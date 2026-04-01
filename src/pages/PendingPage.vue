@@ -1,5 +1,4 @@
 <script setup>
-import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePendingAppointments } from '../composables/usePendingAppointments'
 import { useSelectedAppointment } from '../composables/useSelectedAppointment'
@@ -9,8 +8,6 @@ import PendingSwipeCard from '../components/PendingSwipeCard.vue'
 const router = useRouter()
 const { pendingItems, loading, error, fetchPending, handleStatusUpdate } = usePendingAppointments()
 const { appointment: selectedAppt, currentDate: selectedDate } = useSelectedAppointment()
-
-onMounted(() => fetchPending())
 
 function handleReschedule(appointmentId) {
   const appt = pendingItems.value.find(a => a.appointmentId === appointmentId)

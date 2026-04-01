@@ -17,10 +17,12 @@ function parseGvizDate(val) {
   return String(val)
 }
 
+// Module-level singletons — shared across all callers
+const pendingItems = ref([])
+const loading      = ref(false)
+const error        = ref(null)
+
 export function usePendingAppointments() {
-  const pendingItems = ref([])
-  const loading      = ref(false)
-  const error        = ref(null)
 
   async function fetchPending() {
     const { APPOINTMENTS_SPREADSHEET_ID, CUSTOMERS_SPREADSHEET_ID } = APP_CONFIG
