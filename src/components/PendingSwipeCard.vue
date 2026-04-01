@@ -161,8 +161,8 @@ function openMaps(addr) {
       <!-- Card content — AppointmentSummaryCard layout -->
       <div class="px-4 py-4">
 
-        <!-- Top: avatar + name + address -->
-        <div class="flex items-center gap-3 mb-3">
+        <!-- Avatar + name + address + date/time -->
+        <div class="flex items-center gap-3">
           <div :class="['w-11 h-11 rounded-full flex items-center justify-center shrink-0 border border-outline-variant/10', cfg.avatarCls]">
             <span v-if="updating" class="material-symbols-outlined text-[22px] animate-spin">sync</span>
             <span v-else class="material-symbols-outlined fill-icon text-[22px]">{{ cfg.icon }}</span>
@@ -175,18 +175,12 @@ function openMaps(addr) {
               </span>
             </div>
             <p v-if="displayAddress" class="font-body text-xs text-on-surface-variant mt-0.5 truncate">{{ displayAddress }}</p>
-          </div>
-        </div>
-
-        <!-- Bottom: date + timeslot -->
-        <div class="flex justify-between items-center pt-3 border-t border-outline-variant/20">
-          <div class="flex items-center gap-1.5 text-on-surface">
-            <span class="material-symbols-outlined text-primary text-[16px]">calendar_today</span>
-            <span class="font-body text-xs font-medium">{{ formattedDate }}</span>
-          </div>
-          <div class="flex items-center gap-1.5 text-on-surface">
-            <span class="material-symbols-outlined text-primary text-[16px]">schedule</span>
-            <span class="font-body text-xs font-medium">{{ timeSlot || '—' }}</span>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="material-symbols-outlined text-primary text-[13px]">calendar_today</span>
+              <span class="font-body text-xs text-on-surface-variant">{{ formattedDate }}</span>
+              <span class="material-symbols-outlined text-primary text-[13px]">schedule</span>
+              <span class="font-body text-xs text-on-surface-variant">{{ timeSlot || '—' }}</span>
+            </div>
           </div>
         </div>
 
