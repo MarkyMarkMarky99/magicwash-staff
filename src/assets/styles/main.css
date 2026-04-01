@@ -1,0 +1,35 @@
+:root {
+  --primary-color: #0056b3;
+  --primary-light: #e6f0fa;
+  --secondary-color: #6c757d;
+  --bg-color: #f4f7f6;
+  --card-bg: #ffffff;
+  --text-color: #333333;
+  --border-color: #e0e0e0;
+  --danger-color: #dc3545;
+  --success-color: #28a745;
+}
+
+body {
+  font-family: 'Prompt', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  line-height: 1.6;
+}
+
+/* Base button animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.view-enter-active,
+.view-leave-active {
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.view-enter-from,
+.view-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
