@@ -18,7 +18,7 @@ const selected = ref(toDateStr(today))
 const {
   allItems,
   loading, error,
-  pending, morning, afternoon,
+  pending, slots,
   fetchAppointments,
   handleStatusUpdate,
 } = useAppointments()
@@ -75,23 +75,14 @@ function handleReschedule(appointmentId) {
       />
 
       <CardContainer
-        title="Morning Collection"
-        icon="wb_twilight"
-        :items="morning"
+        v-for="(slot, i) in slots"
+        :key="slot.label"
+        :title="slot.label"
+        :icon="slot.icon"
+        :items="slot.items"
         :loading="loading"
         :error="error"
-        :top-divider="!loading && pending.length > 0"
-        :on-status-update="handleStatusUpdate"
-        :on-reschedule="handleReschedule"
-      />
-
-      <CardContainer
-        title="Afternoon Delivery"
-        icon="wb_sunny"
-        :items="afternoon"
-        :loading="loading"
-        :error="error"
-        :top-divider="true"
+        :top-divider="i > 0 || (!loading && pending.length > 0)"
         :on-status-update="handleStatusUpdate"
         :on-reschedule="handleReschedule"
       />

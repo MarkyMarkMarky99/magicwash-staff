@@ -13,10 +13,22 @@ export function useAppointments() {
   const loading  = ref(false)
   const error    = ref(null)
 
-  // ── Derived sections (same logic as React useMemo) ──
-  const pending   = computed(() => allItems.value.filter(a => a.rawStatus === 'PENDING'))
-  const morning   = computed(() => allItems.value.filter(a => a.type !== 'DELIVERY' && a.rawStatus !== 'PENDING'))
-  const afternoon = computed(() => allItems.value.filter(a => a.type === 'DELIVERY'  && a.rawStatus !== 'PENDING'))
+  // ── Derived sections ──
+  const pending = computed(() => allItems.value.filter(a => a.rawStatus === 'PENDING'))
+
+  const TIME_SLOTS = [
+    { label: '10:00–12:00', start: '10:00', icon: 'wb_twilight' },
+    { label: '13:00–15:00', start: '13:00', icon: 'wb_sunny' },
+    { label: '15:00–17:00', start: '15:00', icon: 'light_mode' },
+    { label: '18:00–20:00', start: '18:00', icon: 'nights_stay' },
+  ]
+
+  const slots = computed(() =>
+    TIME_SLOTS.map(s => ({
+      ...s,
+      items: allItems.value.filter(a => a.rawStatus !== 'PENDING' && a.time === s.start),
+    }))
+  )
 
   // ── Fetch ──
   async function fetchAppointments(dateStr) {
@@ -129,7 +141,7 @@ export function useAppointments() {
 
   return {
     allItems, loading, error,
-    pending, morning, afternoon,
+    pending, slots,
     fetchAppointments, handleStatusUpdate, rescheduleAppointment, createAppointment,
   }
 }
