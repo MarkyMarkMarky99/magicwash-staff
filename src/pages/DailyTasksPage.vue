@@ -18,7 +18,7 @@ const selected = ref(toDateStr(today))
 const {
   allItems,
   loading, error,
-  pending, slots,
+  slots,
   fetchAppointments,
   handleStatusUpdate,
 } = useAppointments()
@@ -62,17 +62,6 @@ function handleReschedule(appointmentId) {
 
     <!-- Main content -->
     <main class="flex-1 overflow-y-auto no-scrollbar pb-20 w-full bg-surface min-w-0">
-
-      <CardContainer
-        v-if="loading || pending.length > 0"
-        title="Pending Confirmation"
-        icon="pending_actions"
-        :items="pending"
-        :loading="loading"
-        :error="error"
-        :on-status-update="handleStatusUpdate"
-        :on-reschedule="handleReschedule"
-      />
 
       <CardContainer
         v-for="(slot, i) in slots"
