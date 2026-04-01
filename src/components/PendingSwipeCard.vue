@@ -176,9 +176,9 @@ function openMaps(addr) {
             </div>
             <p v-if="displayAddress" class="font-body text-xs text-on-surface-variant mt-0.5 truncate">{{ displayAddress }}</p>
             <div class="flex items-center gap-2 mt-1">
-              <span class="material-symbols-outlined text-primary text-[13px]">calendar_today</span>
+              <span class="material-symbols-outlined text-primary text-[11px]">calendar_today</span>
               <span class="font-body text-xs text-on-surface-variant">{{ formattedDate }}</span>
-              <span class="material-symbols-outlined text-primary text-[13px]">schedule</span>
+              <span class="material-symbols-outlined text-primary text-[11px]">schedule</span>
               <span class="font-body text-xs text-on-surface-variant">{{ timeSlot || '—' }}</span>
             </div>
           </div>
