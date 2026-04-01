@@ -71,7 +71,7 @@ function handleReschedule(appointmentId) {
         :items="slot.items"
         :loading="loading"
         :error="error"
-        :top-divider="i > 0 || (!loading && pending.length > 0)"
+        :top-divider="i > 0"
         :on-status-update="handleStatusUpdate"
         :on-reschedule="handleReschedule"
       />
