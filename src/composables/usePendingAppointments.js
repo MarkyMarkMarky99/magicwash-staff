@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { gvizQuery } from '../utils/gviz'
+import { gvizQuery, toDateStr } from '../utils/gviz'
 import { APP_CONFIG, ICON_MAP } from '../utils/constants'
 import { pendingCount } from './usePendingCount'
 
@@ -9,13 +9,12 @@ function apptCardStatus(status) {
   return 'default'
 }
 
-function formatDateLabel(dateStr, timeSlot) {
-  if (!dateStr) return timeSlot || ''
-  const d = new Date(dateStr)
-  const month = d.toLocaleString('en', { month: 'short' })
-  const day   = d.getDate()
-  const time  = timeSlot ? timeSlot.split('-')[0] : ''
-  return time ? `${month} ${day} · ${time}` : `${month} ${day}`
+// GViz returns date columns as "Date(2025,3,5)" strings (month is 0-indexed)
+function parseGvizDate(val) {
+  if (!val) return ''
+  const m = String(val).match(/^Date\((\d+),(\d+),(\d+)\)$/)
+  if (m) return toDateStr(new Date(+m[1], +m[2], +m[3]))
+  return String(val)
 }
 
 export function usePendingAppointments() {
@@ -59,7 +58,8 @@ export function usePendingAppointments() {
       pendingItems.value = appts.map(a => ({
         appointmentId: a.AppointmentID,
         rawStatus:     a.Status,
-        time:          formatDateLabel(a.AppointmentDate, a.TimeSlot),
+        date:          parseGvizDate(a.AppointmentDate),
+        timeSlot:      a.TimeSlot || '',
         customer:      nameMap[a.CustomerID] || a.CustomerID || '—',
         address:       a.Address || '',
         icon:          ICON_MAP[a.AppointmentType] || 'event',
@@ -86,7 +86,6 @@ export function usePendingAppointments() {
     const json = await resp.json()
     if (json.status !== 'success') throw new Error(json.message)
 
-    // Remove from list — confirmed items no longer need action
     pendingItems.value = pendingItems.value.filter(i => i.appointmentId !== appointmentId)
     pendingCount.value = pendingItems.value.length
   }
