@@ -68,6 +68,7 @@ html, body {
 /* Google Fonts sets font-size: 24px on .material-symbols-outlined (unlayered).
    Tailwind v4 utilities are in @layer utilities and lose to unlayered rules.
    Double-class specificity (0,2,0) beats Google Fonts' (0,1,0) without !important. */
+.material-symbols-outlined.text-\[11px\] { font-size: 11px; }
 .material-symbols-outlined.text-\[14px\] { font-size: 14px; }
 .material-symbols-outlined.text-\[16px\] { font-size: 16px; }
 .material-symbols-outlined.text-\[20px\] { font-size: 20px; }

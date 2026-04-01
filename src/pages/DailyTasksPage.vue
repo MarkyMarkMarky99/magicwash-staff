@@ -89,13 +89,5 @@ function handleReschedule(appointmentId) {
 
     </main>
 
-    <!-- FAB -->
-    <button
-      aria-label="Add appointment"
-      class="absolute bottom-6 right-5 w-[56px] h-[56px] bg-secondary text-on-secondary rounded-xl shadow-[0_4px_12px_rgba(0,107,95,0.3)] flex items-center justify-center active:scale-95 transition-transform z-40"
-    >
-      <span class="material-symbols-outlined text-[28px]">add</span>
-    </button>
-
   </AppLayout>
 </template>
