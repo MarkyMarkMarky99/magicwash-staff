@@ -10,7 +10,7 @@ const cacheLoaded  = ref(false)
 
 const CUSTOMER_TYPES = [
   { key: 'all',       label: 'All' },
-  { key: 'general',   label: 'General' },
+  { key: 'regular',   label: 'Regular' },
   { key: 'member',    label: 'Member' },
   { key: 'corporate', label: 'Corporate' },
 ]

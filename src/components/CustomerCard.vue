@@ -7,7 +7,7 @@ const props = defineProps({
 })
 
 const TYPE_COLORS = {
-  General:   'bg-gray-100 text-gray-600',
+  Regular:   'bg-gray-100 text-gray-600',
   Member:    'bg-blue-50 text-blue-700',
   Corporate: 'bg-amber-50 text-amber-700',
 }
