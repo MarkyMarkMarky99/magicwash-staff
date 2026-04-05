@@ -87,14 +87,18 @@ html, body {
 }
 
 /* ── Swipe Card ── */
+:root {
+  --snap-right: 8rem;
+  --snap-left: 12rem;
+}
 .swipe-card {
   touch-action: pan-y;
   user-select: none;
   transition: transform 0.25s ease;
 }
 .swipe-card.swiped-right {
-  transform: translateX(8rem);
+  transform: translateX(var(--snap-right));
 }
 .swipe-card.swiped-left {
-  transform: translateX(-12rem);
+  transform: translateX(calc(-1 * var(--snap-left)));
 }
