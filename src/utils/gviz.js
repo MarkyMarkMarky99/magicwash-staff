@@ -68,3 +68,11 @@ export function toDateStr(d) {
   const dd = String(d.getDate()).padStart(2, '0')
   return `${d.getFullYear()}-${mm}-${dd}`
 }
+
+// GViz returns date columns as "Date(2025,3,5)" strings (month is 0-indexed)
+export function parseGvizDate(val) {
+  if (!val) return ''
+  const m = String(val).match(/^Date\((\d+),(\d+),(\d+)\)$/)
+  if (m) return toDateStr(new Date(+m[1], +m[2], +m[3]))
+  return String(val)
+}

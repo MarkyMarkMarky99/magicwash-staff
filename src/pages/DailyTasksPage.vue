@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { toDateStr } from '../utils/gviz'
-import { useAppointments } from '../composables/useAppointments'
+import { useAppointmentStore } from '../composables/useAppointmentStore'
 import { useSelectedAppointment } from '../composables/useSelectedAppointment'
 import AppLayout from '../layouts/AppLayout.vue'
 import DateTabs from '../components/DateTabs.vue'
@@ -19,13 +19,21 @@ const {
   allItems,
   loading, error,
   slots,
-  fetchAppointments,
+  loadMonth,
   handleStatusUpdate,
-} = useAppointments()
+} = useAppointmentStore()
 
 const { appointment: selectedAppt, currentDate: selectedDate } = useSelectedAppointment()
 
-watch(selected, (dateStr) => fetchAppointments(dateStr), { immediate: true })
+// Day tap — update active date (cache hit = no fetch)
+watch(selected, (dateStr) => {
+  loadMonth(navYear.value, navMonth.value, dateStr)
+}, { immediate: true })
+
+// Month nav — reset selected to 1st of the new month then fetch
+watch([navYear, navMonth], ([year, month]) => {
+  selected.value = toDateStr(new Date(year, month, 1))
+})
 
 function prevMonth() {
   if (navMonth.value === 0) { navYear.value--;  navMonth.value = 11 }

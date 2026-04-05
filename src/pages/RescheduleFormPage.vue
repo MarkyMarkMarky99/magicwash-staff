@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { toDateStr } from '../utils/gviz'
 import { useSelectedAppointment } from '../composables/useSelectedAppointment'
-import { useAppointments } from '../composables/useAppointments'
+import { useAppointmentStore } from '../composables/useAppointmentStore'
 import FormLayout from '../layouts/FormLayout.vue'
 import AppointmentSummaryCard from '../components/AppointmentSummaryCard.vue'
 import DateStrip from '../components/DateStrip.vue'
@@ -12,7 +12,7 @@ const TIME_SLOTS = ['10:00-12:00', '13:00-15:00', '15:00-17:00', '18:00-20:00']
 
 const router = useRouter()
 const { appointment, currentDate } = useSelectedAppointment()
-const { rescheduleAppointment } = useAppointments()
+const { rescheduleAppointment } = useAppointmentStore()
 
 const tomorrow = computed(() => {
   const d = new Date()

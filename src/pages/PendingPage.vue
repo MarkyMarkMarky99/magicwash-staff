@@ -1,12 +1,12 @@
 <script setup>
 import { useRouter } from 'vue-router'
-import { usePendingAppointments } from '../composables/usePendingAppointments'
+import { useAppointmentStore } from '../composables/useAppointmentStore'
 import { useSelectedAppointment } from '../composables/useSelectedAppointment'
 import AppLayout from '../layouts/AppLayout.vue'
 import PendingSwipeCard from '../components/PendingSwipeCard.vue'
 
 const router = useRouter()
-const { pendingItems, loading, error, fetchPending, handleStatusUpdate } = usePendingAppointments()
+const { pendingItems, loading, error, refresh, handleStatusUpdate } = useAppointmentStore()
 const { appointment: selectedAppt, currentDate: selectedDate } = useSelectedAppointment()
 
 function handleReschedule(appointmentId) {
@@ -37,7 +37,7 @@ function handleReschedule(appointmentId) {
           <button
             class="flex items-center gap-1 text-primary text-[11px] font-semibold py-1 px-2.5 rounded-full bg-primary/10 active:bg-primary/20 transition-colors disabled:opacity-40"
             :disabled="loading"
-            @click="fetchPending"
+            @click="refresh"
           >
             <span class="material-symbols-outlined text-[13px]" :class="loading ? 'animate-spin' : ''">refresh</span>
             {{ loading ? 'Loading…' : 'Refresh' }}
