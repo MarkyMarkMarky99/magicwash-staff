@@ -18,6 +18,10 @@ function onSwipeRight() {
   baseRef.value?.snapCard('none')
 }
 
+function callPhone(phone) {
+  window.location.href = `tel:${phone}`
+}
+
 function openMaps(addr) {
   window.open(
     `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}&travelmode=driving`,
@@ -32,17 +36,23 @@ function openMaps(addr) {
     <!-- Left panel: action buttons -->
     <template #left-panel>
       <div class="absolute inset-0 bg-primary flex items-center justify-end text-on-primary">
-        <!-- Button group: width matches snap-left, distributes buttons evenly -->
         <div class="flex items-center justify-evenly" style="width: var(--snap-left)">
           <button
             :disabled="!customer.phone"
             :class="['flex flex-col items-center gap-0.5 transition-all', customer.phone ? 'hover:scale-110' : 'opacity-30 cursor-not-allowed']"
-            @click="customer.phone && (window.location.href = `tel:${customer.phone}`)"
+            @click="customer.phone && callPhone(customer.phone)"
           >
             <span class="material-symbols-outlined text-[20px]">call</span>
             <span class="font-label text-[8px] font-bold uppercase">Call</span>
           </button>
-<button
+          <button
+            disabled
+            class="flex flex-col items-center gap-0.5 opacity-30 cursor-not-allowed"
+          >
+            <span class="material-symbols-outlined text-[20px]">calendar_add_on</span>
+            <span class="font-label text-[8px] font-bold uppercase">Book</span>
+          </button>
+          <button
             :disabled="!customer.address"
             :class="['flex flex-col items-center gap-0.5 transition-all', customer.address ? 'hover:scale-110' : 'opacity-30 cursor-not-allowed']"
             @click="customer.address && openMaps(customer.address)"

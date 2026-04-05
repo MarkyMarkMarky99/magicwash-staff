@@ -50,7 +50,7 @@ export function useCustomerStore() {
       const rows = await gvizQuery(
         sid,
         'Customers',
-        'SELECT B,C,D,E,F,H,J,L,M,N,O,P WHERE T is null ORDER BY C',
+        'SELECT B,C,D,E,F,H,J,L,M,N,O,P WHERE T is null ORDER BY A DESC',
       )
       allCustomers.value = rows.map(mapRow)
       cacheLoaded.value  = true
