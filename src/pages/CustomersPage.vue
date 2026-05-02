@@ -18,6 +18,7 @@ const filteredCustomers = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
   if (!q) return base
   return base.filter(c =>
+    (c.index   || '').toLowerCase().includes(q) ||
     (c.name    || '').toLowerCase().includes(q) ||
     (c.phone   || '').toLowerCase().includes(q) ||
     (c.address || '').toLowerCase().includes(q)
@@ -49,7 +50,7 @@ onUnmounted(() => closeSearch())
         ref="searchInputRef"
         v-model="searchQuery"
         type="text"
-        placeholder="Search by name, phone, or address…"
+        placeholder="Search by index, name, phone, or address…"
         class="flex-1 bg-transparent font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 outline-none"
         autofocus
       />
