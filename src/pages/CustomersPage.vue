@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useCustomerStore } from '../composables/useCustomerStore'
+import { useCustomerSearch } from '../composables/useCustomerSearch'
 import AppLayout from '../layouts/AppLayout.vue'
 import CustomerTypeTabs from '../components/CustomerTypeTabs.vue'
 import CustomerCard from '../components/CustomerCard.vue'
@@ -8,10 +9,23 @@ import CustomerCard from '../components/CustomerCard.vue'
 const selectedType = ref('all')
 
 const { loading, error, loadAll, byType } = useCustomerStore()
+const { searchOpen, searchQuery, closeSearch } = useCustomerSearch()
 
-const filteredCustomers = computed(() => byType(selectedType.value))
+const searchInputRef = ref(null)
+
+const filteredCustomers = computed(() => {
+  const base = byType(selectedType.value)
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return base
+  return base.filter(c =>
+    (c.name    || '').toLowerCase().includes(q) ||
+    (c.phone   || '').toLowerCase().includes(q) ||
+    (c.address || '').toLowerCase().includes(q)
+  )
+})
 
 onMounted(() => loadAll())
+onUnmounted(() => closeSearch())
 </script>
 
 <template>
@@ -23,6 +37,27 @@ onMounted(() => loadAll())
         :active-type="selectedType"
         @type-select="selectedType = $event"
       />
+    </div>
+
+    <!-- Search bar -->
+    <div
+      v-if="searchOpen"
+      class="flex-none bg-surface-container px-4 py-2 flex items-center gap-2 border-b border-outline-variant/20"
+    >
+      <span class="material-symbols-outlined text-on-surface-variant text-[18px] shrink-0">search</span>
+      <input
+        ref="searchInputRef"
+        v-model="searchQuery"
+        type="text"
+        placeholder="Search by name, phone, or address…"
+        class="flex-1 bg-transparent font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 outline-none"
+        autofocus
+      />
+      <button
+        v-if="searchQuery"
+        class="material-symbols-outlined text-on-surface-variant text-[18px] hover:text-on-surface transition-colors"
+        @click="searchQuery = ''"
+      >close</button>
     </div>
 
     <!-- Main content -->

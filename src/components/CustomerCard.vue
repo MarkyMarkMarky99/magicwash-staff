@@ -1,5 +1,7 @@
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useSelectedCustomer } from '../composables/useSelectedCustomer'
 import BaseSwipeCard from './BaseSwipeCard.vue'
 
 const props = defineProps({
@@ -13,6 +15,8 @@ const TYPE_COLORS = {
 }
 
 const baseRef = ref(null)
+const router  = useRouter()
+const { customer: selectedCustomer } = useSelectedCustomer()
 
 function onSwipeRight() {
   baseRef.value?.snapCard('none')
@@ -27,6 +31,11 @@ function openMaps(addr) {
     `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}&travelmode=driving`,
     '_blank'
   )
+}
+
+function openNewBooking() {
+  selectedCustomer.value = props.customer
+  router.push('/new-booking')
 }
 </script>
 
@@ -46,8 +55,8 @@ function openMaps(addr) {
             <span class="font-label text-[8px] font-bold uppercase">Call</span>
           </button>
           <button
-            disabled
-            class="flex flex-col items-center gap-0.5 opacity-30 cursor-not-allowed"
+            class="flex flex-col items-center gap-0.5 transition-all hover:scale-110"
+            @click="openNewBooking"
           >
             <span class="material-symbols-outlined text-[20px]">calendar_add_on</span>
             <span class="font-label text-[8px] font-bold uppercase">Book</span>

@@ -3,11 +3,13 @@ import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import logoUrl from '../assets/logo.png'
 import { pendingCount } from '../composables/usePendingCount'
+import { useCustomerSearch } from '../composables/useCustomerSearch'
 import NavSidebar from './NavSidebar.vue'
 
 const router = useRouter()
 const route  = useRoute()
 const sidebarOpen = ref(false)
+const { searchOpen, toggleSearch } = useCustomerSearch()
 </script>
 
 <template>
@@ -22,7 +24,12 @@ const sidebarOpen = ref(false)
       <h1 class="text-lg font-headline font-bold tracking-tight">Magicwash Laundry</h1>
     </div>
     <div class="flex items-center gap-2">
-      <button class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1" aria-label="Search">search</button>
+      <button
+        class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
+        :class="searchOpen && route.path === '/customers' ? 'bg-white/20' : ''"
+        aria-label="Search"
+        @click="route.path === '/customers' && toggleSearch()"
+      >search</button>
 
       <!-- Close button — shown on /pending and /customers -->
       <button

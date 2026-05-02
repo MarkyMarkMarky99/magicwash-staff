@@ -59,7 +59,7 @@ async function handleConfirm() {
 
       <!-- Date picker -->
       <section>
-        <DateStrip :selected-date="selectedDate" @select="selectedDate = $event" />
+        <DateStrip :selected-date="selectedDate" title="Select New Date" @select="selectedDate = $event" />
       </section>
 
       <!-- Time slots -->
