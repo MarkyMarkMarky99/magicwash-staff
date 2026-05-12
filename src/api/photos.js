@@ -3,7 +3,6 @@ const GATEWAY_URL = 'https://script.google.com/macros/s/AKfycbycje0WWsGgIXjrH6uV
 async function post(body) {
   const response = await fetch(GATEWAY_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ resource: 'sheet', ...body }),
   })
   const json = await response.json()
