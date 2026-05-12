@@ -9,7 +9,7 @@ const route = useRoute()
 const orderId = route.params.orderId
 const createdBy = route.query.by ?? ''
 
-const { images, MAX_FILES, addFiles, remove } = usePhotoUpload(orderId, createdBy)
+const { images, addFiles, remove } = usePhotoUpload(orderId, createdBy)
 
 const showPicker = ref(false)
 const showCamera = ref(false)
@@ -41,10 +41,7 @@ const isEmpty = computed(
   () => fetchStatus.value === 'done' && fetchedPhotos.value.length === 0 && images.value.length === 0,
 )
 
-const remainingPhotoSlots = computed(() => Math.max(0, MAX_FILES - images.value.length))
-
 function openPicker() {
-  if (images.value.length >= MAX_FILES) return
   showPicker.value = true
 }
 
@@ -55,7 +52,7 @@ function pickAlbum() {
 
 function pickCamera() {
   showPicker.value = false
-  if (remainingPhotoSlots.value > 0) showCamera.value = true
+  showCamera.value = true
 }
 
 function handleFiles(event) {
@@ -165,11 +162,7 @@ function handleCameraCapture(file) {
     <div class="fixed bottom-6 right-4">
       <button
         @click="openPicker"
-        :disabled="images.length >= MAX_FILES"
-        class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition active:opacity-80 disabled:cursor-not-allowed"
-        :class="images.length >= MAX_FILES
-          ? 'bg-surface-variant text-on-surface-variant'
-          : 'bg-primary text-on-primary'"
+        class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition active:opacity-80 bg-primary text-on-primary"
       >
         <span class="material-symbols-outlined text-2xl">add_photo_alternate</span>
       </button>
@@ -247,7 +240,6 @@ function handleCameraCapture(file) {
 
     <CameraOverlayPage
       :open="showCamera"
-      :remaining="remainingPhotoSlots"
       @capture="handleCameraCapture"
       @close="showCamera = false"
     />

@@ -6,10 +6,6 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-  remaining: {
-    type: Number,
-    default: 0,
-  },
 })
 
 const emit = defineEmits(['close', 'capture'])
@@ -19,11 +15,61 @@ const stream = ref(null)
 const errorMessage = ref('')
 const isStarting = ref(false)
 const isCapturing = ref(false)
-const capturedCount = ref(0)
+const flashActive = ref(false)
+const flyoutActive = ref(false)
+const lastPreviewUrl = ref('')
+const previewPulse = ref(false)
+let flashTimer = null
+let flyoutTimer = null
+let previewStartTimer = null
+let previewTimer = null
 
 const canCapture = computed(
-  () => props.open && !errorMessage.value && !isStarting.value && !isCapturing.value && props.remaining > 0,
+  () => props.open && !errorMessage.value && !isStarting.value && !isCapturing.value,
 )
+
+function clearFeedbackTimers() {
+  window.clearTimeout(flashTimer)
+  window.clearTimeout(flyoutTimer)
+  window.clearTimeout(previewStartTimer)
+  window.clearTimeout(previewTimer)
+  flashTimer = null
+  flyoutTimer = null
+  previewStartTimer = null
+  previewTimer = null
+}
+
+function clearLastPreview() {
+  if (!lastPreviewUrl.value) return
+  URL.revokeObjectURL(lastPreviewUrl.value)
+  lastPreviewUrl.value = ''
+}
+
+function showCaptureFeedback(file) {
+  clearFeedbackTimers()
+  clearLastPreview()
+
+  lastPreviewUrl.value = URL.createObjectURL(file)
+  flashActive.value = true
+  flyoutActive.value = true
+  previewPulse.value = false
+
+  previewStartTimer = window.setTimeout(() => {
+    previewPulse.value = true
+  }, 180)
+
+  flashTimer = window.setTimeout(() => {
+    flashActive.value = false
+  }, 140)
+
+  flyoutTimer = window.setTimeout(() => {
+    flyoutActive.value = false
+  }, 360)
+
+  previewTimer = window.setTimeout(() => {
+    previewPulse.value = false
+  }, 460)
+}
 
 async function startCamera() {
   if (!props.open || stream.value || isStarting.value) return
@@ -69,6 +115,11 @@ function stopCamera() {
   stream.value = null
   isStarting.value = false
   isCapturing.value = false
+  flashActive.value = false
+  flyoutActive.value = false
+  previewPulse.value = false
+  clearFeedbackTimers()
+  clearLastPreview()
 }
 
 function closeCamera() {
@@ -104,7 +155,7 @@ async function capturePhoto() {
     const filename = `camera_${Date.now()}.jpg`
     const file = new File([blob], filename, { type: 'image/jpeg' })
 
-    capturedCount.value += 1
+    showCaptureFeedback(file)
     emit('capture', file)
   } catch {
     errorMessage.value = 'ถ่ายภาพไม่สำเร็จ'
@@ -117,7 +168,6 @@ watch(
   () => props.open,
   (open) => {
     if (open) {
-      capturedCount.value = 0
       startCamera()
     } else {
       stopCamera()
@@ -139,6 +189,18 @@ onBeforeUnmount(stopCamera)
       playsinline
     />
 
+    <div
+      class="pointer-events-none absolute inset-0 bg-white transition-opacity duration-150"
+      :class="flashActive ? 'opacity-75' : 'opacity-0'"
+    />
+
+    <img
+      v-if="flyoutActive && lastPreviewUrl"
+      :src="lastPreviewUrl"
+      alt=""
+      class="capture-flyout pointer-events-none absolute inset-0 h-full w-full object-cover"
+    />
+
     <div class="absolute inset-x-0 top-0 bg-gradient-to-b from-black/80 to-transparent px-4 pb-8 pt-4">
       <div class="flex items-center justify-between gap-3">
         <button
@@ -149,9 +211,7 @@ onBeforeUnmount(stopCamera)
           <span class="material-symbols-outlined text-2xl">close</span>
         </button>
 
-        <div class="min-w-0 rounded-full bg-black/45 px-3 py-1.5 font-body text-xs">
-          {{ capturedCount }} รูป / เหลือ {{ remaining }}
-        </div>
+        <div class="h-11 w-11" aria-hidden="true" />
       </div>
     </div>
 
@@ -175,28 +235,87 @@ onBeforeUnmount(stopCamera)
     </div>
 
     <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-10">
-      <div class="flex items-center justify-center gap-8">
-        <button
-          class="h-12 w-12 rounded-full bg-white/15 flex items-center justify-center active:opacity-80"
-          aria-label="ปิดกล้อง"
-          @click="closeCamera"
-        >
-          <span class="material-symbols-outlined text-2xl">check</span>
-        </button>
+      <div class="grid grid-cols-3 items-center">
+        <div class="flex justify-start">
+          <div
+            class="h-14 w-14 rounded-lg border border-white/45 bg-white/15 overflow-hidden shadow-lg transition-transform"
+            :class="{ 'preview-pop': previewPulse }"
+            aria-live="polite"
+          >
+            <img
+              v-if="lastPreviewUrl"
+              :src="lastPreviewUrl"
+              alt="ภาพล่าสุด"
+              class="h-full w-full object-cover"
+            />
+            <div v-else class="h-full w-full flex items-center justify-center text-white/70">
+              <span class="material-symbols-outlined text-2xl">photo_library</span>
+            </div>
+          </div>
+        </div>
 
-        <button
-          class="h-20 w-20 rounded-full border-4 border-white bg-white/20 p-1 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
-          :disabled="!canCapture"
-          aria-label="ถ่ายภาพ"
-          @click="capturePhoto"
-        >
-          <span class="block h-full w-full rounded-full bg-white" />
-        </button>
+        <div class="flex justify-center">
+          <button
+            class="h-20 w-20 rounded-full border-4 border-white bg-white/20 p-1 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="!canCapture"
+            aria-label="ถ่ายภาพ"
+            @click="capturePhoto"
+          >
+            <span class="block h-full w-full rounded-full bg-white" />
+          </button>
+        </div>
 
-        <div class="h-12 w-12 flex items-center justify-center rounded-full bg-white/15 font-body text-sm">
-          {{ remaining }}
+        <div class="flex justify-end">
+          <button
+            class="h-12 w-12 rounded-full bg-white/15 flex items-center justify-center active:opacity-80"
+            aria-label="ปิดกล้อง"
+            @click="closeCamera"
+          >
+            <span class="material-symbols-outlined text-2xl">check</span>
+          </button>
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.preview-pop {
+  animation: preview-pop 0.28s ease-out;
+}
+
+.capture-flyout {
+  animation: capture-flyout 0.36s ease-in forwards;
+  transform-origin: left bottom;
+}
+
+@keyframes preview-pop {
+  0% {
+    transform: scale(0.72);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes capture-flyout {
+  0% {
+    transform: scale(1);
+    opacity: 0.96;
+  }
+  55% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(0.12);
+    opacity: 0;
+  }
+}
+</style>

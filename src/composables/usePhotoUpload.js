@@ -3,7 +3,7 @@ import { compressImage } from '../utils/imageCompression'
 import { uploadRaw } from '../api/storage'
 import { savePhoto } from '../api/photos'
 
-const MAX_FILES = 10
+const MAX_FILES_PER_PICK = 10
 
 function genId() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -45,8 +45,7 @@ export function usePhotoUpload(orderId, createdBy) {
   }
 
   function addFiles(files) {
-    const slots = MAX_FILES - images.value.length
-    Array.from(files).slice(0, slots).forEach(processFile)
+    Array.from(files).slice(0, MAX_FILES_PER_PICK).forEach(processFile)
   }
 
   function remove(id) {
@@ -61,5 +60,5 @@ export function usePhotoUpload(orderId, createdBy) {
     images.value = []
   }
 
-  return { images, MAX_FILES, addFiles, remove, clearAll }
+  return { images, MAX_FILES_PER_PICK, addFiles, remove, clearAll }
 }
