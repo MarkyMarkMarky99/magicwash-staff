@@ -23,6 +23,11 @@ let flashTimer = null
 let flyoutTimer = null
 let previewStartTimer = null
 let previewTimer = null
+let processQueueTimer = null
+let isProcessingCaptureQueue = false
+let captureCounter = 0
+let disposed = false
+const captureQueue = []
 
 const canCapture = computed(
   () => props.open && !errorMessage.value && !isStarting.value && !isCapturing.value,
@@ -45,30 +50,76 @@ function clearLastPreview() {
   lastPreviewUrl.value = ''
 }
 
+function showShutterFlash() {
+  window.clearTimeout(flashTimer)
+  flashActive.value = true
+
+  flashTimer = window.setTimeout(() => {
+    flashActive.value = false
+    flashTimer = null
+  }, 140)
+}
+
+function clearPreviewTimers() {
+  window.clearTimeout(flyoutTimer)
+  window.clearTimeout(previewStartTimer)
+  window.clearTimeout(previewTimer)
+  flyoutTimer = null
+  previewStartTimer = null
+  previewTimer = null
+}
+
 function showCaptureFeedback(file) {
-  clearFeedbackTimers()
+  clearPreviewTimers()
   clearLastPreview()
 
   lastPreviewUrl.value = URL.createObjectURL(file)
-  flashActive.value = true
   flyoutActive.value = true
   previewPulse.value = false
 
   previewStartTimer = window.setTimeout(() => {
     previewPulse.value = true
   }, 180)
-
-  flashTimer = window.setTimeout(() => {
-    flashActive.value = false
-  }, 140)
-
   flyoutTimer = window.setTimeout(() => {
     flyoutActive.value = false
+    flyoutTimer = null
   }, 360)
 
   previewTimer = window.setTimeout(() => {
     previewPulse.value = false
+    previewTimer = null
   }, 460)
+}
+
+async function processCaptureQueue() {
+  if (isProcessingCaptureQueue) return
+
+  isProcessingCaptureQueue = true
+
+  while (!disposed && captureQueue.length) {
+    try {
+      const { canvas, filename } = captureQueue.shift()
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92))
+      if (!blob) throw new Error('Unable to create image')
+
+      const file = new File([blob], filename, { type: 'image/jpeg' })
+      if (props.open) showCaptureFeedback(file)
+      emit('capture', file)
+    } catch {
+      if (props.open) errorMessage.value = 'ถ่ายภาพไม่สำเร็จ'
+    }
+  }
+
+  isProcessingCaptureQueue = false
+}
+
+function scheduleCaptureProcessing() {
+  if (processQueueTimer || isProcessingCaptureQueue) return
+
+  processQueueTimer = window.setTimeout(() => {
+    processQueueTimer = null
+    processCaptureQueue()
+  }, 0)
 }
 
 async function startCamera() {
@@ -127,7 +178,7 @@ function closeCamera() {
   emit('close')
 }
 
-async function capturePhoto() {
+function capturePhoto() {
   if (!canCapture.value || !videoRef.value) return
 
   const video = videoRef.value
@@ -140,6 +191,7 @@ async function capturePhoto() {
   }
 
   isCapturing.value = true
+  showShutterFlash()
 
   try {
     const canvas = document.createElement('canvas')
@@ -149,14 +201,9 @@ async function capturePhoto() {
     const context = canvas.getContext('2d')
     context.drawImage(video, 0, 0, width, height)
 
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92))
-    if (!blob) throw new Error('Unable to create image')
-
-    const filename = `camera_${Date.now()}.jpg`
-    const file = new File([blob], filename, { type: 'image/jpeg' })
-
-    showCaptureFeedback(file)
-    emit('capture', file)
+    const filename = `camera_${Date.now()}_${captureCounter++}.jpg`
+    captureQueue.push({ canvas, filename })
+    scheduleCaptureProcessing()
   } catch {
     errorMessage.value = 'ถ่ายภาพไม่สำเร็จ'
   } finally {
@@ -176,7 +223,13 @@ watch(
   { immediate: true },
 )
 
-onBeforeUnmount(stopCamera)
+onBeforeUnmount(() => {
+  disposed = true
+  window.clearTimeout(processQueueTimer)
+  processQueueTimer = null
+  captureQueue.length = 0
+  stopCamera()
+})
 </script>
 
 <template>

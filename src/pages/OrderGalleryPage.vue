@@ -74,8 +74,8 @@ function handleCameraCapture(file) {
     </div>
 
     <!-- Body -->
-    <div class="flex-1 overflow-y-auto">
-      <div class="p-4 flex flex-col min-h-full">
+    <div class="gallery-scroll flex-1 overflow-y-auto">
+      <div class="flex min-h-full flex-col py-1">
 
         <!-- Loading -->
         <div v-if="fetchStatus === 'loading'" class="flex-1 flex flex-col items-center justify-center gap-3">
@@ -97,14 +97,14 @@ function handleCameraCapture(file) {
           </div>
 
           <!-- Photo grid -->
-          <div v-else class="grid grid-cols-3 gap-1">
+          <div v-else class="grid grid-cols-3 gap-[2px]">
 
             <!-- Remote photos (already saved) -->
             <button
               v-for="(photo, i) in fetchedPhotos"
               :key="photo.id"
               @click="lightbox = i"
-              class="rounded-lg overflow-hidden bg-surface-variant aspect-square focus:outline-none focus:ring-2 focus:ring-primary"
+              class="aspect-square overflow-hidden rounded-[3px] bg-surface-variant focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <img
                 :src="photo.image_url"
@@ -118,7 +118,7 @@ function handleCameraCapture(file) {
               v-for="(img, i) in images"
               :key="img.id"
               @click="lightbox = fetchedPhotos.length + i"
-              class="rounded-lg overflow-hidden bg-surface-variant aspect-square focus:outline-none focus:ring-2 focus:ring-primary relative"
+              class="relative aspect-square overflow-hidden rounded-[3px] bg-surface-variant focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <!-- Error state -->
               <div
@@ -247,6 +247,14 @@ function handleCameraCapture(file) {
 </template>
 
 <style scoped>
+.gallery-scroll {
+  scrollbar-width: none;
+}
+
+.gallery-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 .sheet-enter-active, .sheet-leave-active { transition: opacity 0.2s ease; }
 .sheet-enter-active .relative, .sheet-leave-active .relative { transition: transform 0.25s ease; }
 .sheet-enter-from, .sheet-leave-to { opacity: 0; }
