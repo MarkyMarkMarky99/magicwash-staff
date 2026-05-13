@@ -1,7 +1,16 @@
 import { gvizQuery } from '../utils/gviz'
 
 const GATEWAY_URL = 'https://script.google.com/macros/s/AKfycbycje0WWsGgIXjrH6uVJpkUnyoVNzOuATLMq3uc2T-Jr_Fnno_KFKVYuGpf5wLPWaVC/exec'
-const PHOTOS_SPREADSHEET_ID = '1_0gUApQJTz_b1b3FiIFt7K2nJuToHtXFZb3emt1vrn4'
+
+const SPREADSHEET_ID = {
+  BEF: '1tfgJvjXMkH8MIoJ38No9-1DBdG7o0lcPG8dVhPCGw-E',
+  AFT: '1_0gUApQJTz_b1b3FiIFt7K2nJuToHtXFZb3emt1vrn4',
+}
+
+const SHEET_TARGET = {
+  BEF: 'BeforePhoto',
+  AFT: 'AfterPhoto',
+}
 
 async function post(body) {
   const response = await fetch(GATEWAY_URL, {
@@ -9,30 +18,27 @@ async function post(body) {
     body: JSON.stringify({ resource: 'sheet', ...body }),
   })
   const json = await response.json()
-  // Apps Script always returns HTTP 200 — check status field instead
   if (json.status !== 'ok') throw new Error(json.message ?? 'Request failed')
   return json
 }
 
 // columns: A=id, B=order_id, C=orderitem_id, D=item_id, E=image_path,
 //          F=image_url, G=notes, H=created_at, I=created_by, ...
-export async function getPhotosByOrderId(orderId) {
-  const safeId = String(orderId).replace(/'/g, '')
-  const rows = await gvizQuery(
-    PHOTOS_SPREADSHEET_ID,
-    'AfterPhoto',
-    `SELECT A, F, G WHERE B='${safeId}'`,
-  )
+export async function getPhotos(type, orderId, orderitemId = null) {
+  const safeOrderId = String(orderId).replace(/'/g, '')
+  let query = `SELECT A, F, G WHERE B='${safeOrderId}'`
+  if (orderitemId) {
+    const safeItemId = String(orderitemId).replace(/'/g, '')
+    query += ` AND C='${safeItemId}'`
+  }
+  const rows = await gvizQuery(SPREADSHEET_ID[type], SHEET_TARGET[type], query)
   return rows.filter(r => r.image_url)
 }
 
-/**
- * @param {{ id: string, order_id: string, image_url: string, created_by: string }} data
- */
-export async function savePhoto(data) {
+export async function savePhoto(type, data) {
   return post({
     action: 'APPEND',
-    target: 'AfterPhoto',
+    target: SHEET_TARGET[type],
     data,
   })
 }

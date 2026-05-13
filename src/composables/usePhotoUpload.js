@@ -10,7 +10,7 @@ function genId() {
   return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 }
 
-export function usePhotoUpload(orderId, createdBy) {
+export function usePhotoUpload(type, orderId, orderitemId, createdBy) {
   const images = ref([])
 
   function updateItem(id, patch) {
@@ -37,7 +37,9 @@ export function usePhotoUpload(orderId, createdBy) {
       const imageUrl = await uploadRaw(compressed)
       updateItem(id, { imageUrl, status: 'saving' })
 
-      await savePhoto({ id, order_id: orderId, image_url: imageUrl, created_by: createdBy })
+      const photoData = { id, order_id: orderId, image_url: imageUrl, created_by: createdBy }
+      if (orderitemId) photoData.orderitem_id = orderitemId
+      await savePhoto(type, photoData)
       updateItem(id, { status: 'done' })
     } catch (err) {
       updateItem(id, { status: 'error', errorMsg: err?.message ?? 'เกิดข้อผิดพลาด' })

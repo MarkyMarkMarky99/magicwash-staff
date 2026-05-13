@@ -12,7 +12,8 @@ const routes = [
   { path: '/reschedule',   component: RescheduleFormPage },
   { path: '/new-booking',  component: NewBookingPage },
   { path: '/customers',    component: CustomersPage },
-  { path: '/orders/:orderId/gallery', component: OrderGalleryPage },
+  { path: '/gallery/:key', component: OrderGalleryPage },
+  { path: '/orders/:orderId/gallery', redirect: to => ({ path: `/gallery/AFT-${to.params.orderId}`, query: to.query }) },
 ]
 
 export default createRouter({

@@ -2,14 +2,20 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePhotoUpload } from '../composables/usePhotoUpload'
-import { getPhotosByOrderId } from '../api/photos'
+import { getPhotos } from '../api/photos'
 import CameraOverlayPage from './CameraOverlayPage.vue'
 
-const route = useRoute()
-const orderId = route.params.orderId
-const createdBy = route.query.by ?? ''
+function parseKey(key) {
+  const parts = key.split('-')
+  return { type: parts[0], orderId: parts[1], orderitemId: parts[2] ?? null }
+}
 
-const { images, addFiles, remove } = usePhotoUpload(orderId, createdBy)
+const route = useRoute()
+const { type, orderId, orderitemId } = parseKey(route.params.key)
+const createdBy = route.query.by ?? ''
+const title = type === 'BEF' ? 'รูปก่อนซัก' : 'รูปหลังซัก'
+
+const { images, addFiles, remove } = usePhotoUpload(type, orderId, orderitemId, createdBy)
 
 const showPicker = ref(false)
 const showCamera = ref(false)
@@ -24,7 +30,7 @@ const fetchStatus = ref('loading')
 
 onMounted(async () => {
   try {
-    fetchedPhotos.value = await getPhotosByOrderId(orderId)
+    fetchedPhotos.value = await getPhotos(type, orderId, orderitemId)
     fetchStatus.value = 'done'
   } catch {
     fetchStatus.value = 'error'
@@ -70,7 +76,7 @@ function handleCameraCapture(file) {
 
     <!-- Header -->
     <div class="bg-surface border-b border-outline-variant px-4 py-3 flex items-center">
-      <h1 class="font-body text-on-surface text-base font-semibold">รูปภาพ</h1>
+      <h1 class="font-body text-on-surface text-base font-semibold">{{ title }}</h1>
     </div>
 
     <!-- Body -->
