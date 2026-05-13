@@ -12,6 +12,11 @@ const SHEET_TARGET = {
   AFT: 'AfterPhoto',
 }
 
+const READ_SHEET = {
+  BEF: 'LaundryPhotos',
+  AFT: 'AfterPhoto',
+}
+
 async function post(body) {
   const response = await fetch(GATEWAY_URL, {
     method: 'POST',
@@ -31,7 +36,7 @@ export async function getPhotos(type, orderId, orderitemId = null) {
     const safeItemId = String(orderitemId).replace(/'/g, '')
     query += ` AND C='${safeItemId}'`
   }
-  const rows = await gvizQuery(SPREADSHEET_ID[type], SHEET_TARGET[type], query)
+  const rows = await gvizQuery(SPREADSHEET_ID[type], READ_SHEET[type], query)
   return rows.filter(r => r.image_url)
 }
 
