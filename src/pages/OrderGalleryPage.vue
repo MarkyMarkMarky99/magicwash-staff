@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed, onBeforeUnmount, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { usePhotoUpload } from '../composables/usePhotoUpload'
 import { getPhotos } from '../api/photos'
 import CameraOverlayPage from './CameraOverlayPage.vue'
@@ -11,6 +11,7 @@ function parseKey(key) {
 }
 
 const route = useRoute()
+const router = useRouter()
 const { type, orderId, orderitemId } = parseKey(route.params.key)
 const createdBy = route.query.by ?? ''
 const title = type === 'BEF' ? 'รูปก่อนซัก' : 'รูปหลังซัก'
@@ -18,7 +19,7 @@ const title = type === 'BEF' ? 'รูปก่อนซัก' : 'รูปห�
 const { images, addFiles, remove, clearAll } = usePhotoUpload(type, orderId, orderitemId, createdBy)
 
 const showPicker = ref(false)
-const showCamera = ref(false)
+const showCamera = ref(route.meta.openCamera === true)
 const albumInputRef = ref(null)
 const lightbox = ref(null)
 
@@ -40,6 +41,13 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   clearAll()
 })
+
+watch(
+  () => route.meta.openCamera === true,
+  (openCamera) => {
+    showCamera.value = openCamera
+  },
+)
 
 // Unified flat list used by the lightbox
 const allPhotos = computed(() => [
@@ -72,6 +80,19 @@ function handleFiles(event) {
 
 function handleCameraCapture(file, options) {
   addFiles([file], options)
+}
+
+function galleryLocation() {
+  const query = { ...route.query }
+  delete query.camera
+  return { path: `/gallery/${route.params.key}`, query }
+}
+
+function handleCameraClose() {
+  showCamera.value = false
+  if (route.meta.openCamera === true) {
+    router.replace(galleryLocation())
+  }
 }
 </script>
 
@@ -251,7 +272,7 @@ function handleCameraCapture(file, options) {
     <CameraOverlayPage
       :open="showCamera"
       @capture="handleCameraCapture"
-      @close="showCamera = false"
+      @close="handleCameraClose"
     />
   </div>
 </template>

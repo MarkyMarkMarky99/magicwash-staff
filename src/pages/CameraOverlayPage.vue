@@ -12,6 +12,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'capture'])
 
 const videoRef = ref(null)
+const flyoutCanvasRef = ref(null)
 const stream = ref(null)
 const errorMessage = ref('')
 const isStarting = ref(false)
@@ -25,12 +26,16 @@ let flyoutTimer = null
 let previewStartTimer = null
 let previewTimer = null
 let processQueueTimer = null
+let shutterTimer = null
 let isProcessingCaptureQueue = false
 let captureCounter = 0
 let disposed = false
+let cameraStartToken = 0
+let captureSessionId = 0
 const captureQueue = []
 const CAPTURE_MAX_DIMENSION = 1280
 const CAPTURE_JPEG_QUALITY = 0.82
+const CAPTURE_FEEDBACK_MS = 900
 
 function capDimensions(w, h, maxDim) {
   if (w <= maxDim && h <= maxDim) return { w, h }
@@ -47,10 +52,12 @@ function clearFeedbackTimers() {
   window.clearTimeout(flyoutTimer)
   window.clearTimeout(previewStartTimer)
   window.clearTimeout(previewTimer)
+  window.clearTimeout(shutterTimer)
   flashTimer = null
   flyoutTimer = null
   previewStartTimer = null
   previewTimer = null
+  shutterTimer = null
 }
 
 function clearLastPreview() {
@@ -78,26 +85,100 @@ function clearPreviewTimers() {
   previewTimer = null
 }
 
-function showCaptureFeedback(file) {
-  clearPreviewTimers()
+function clearThumbnailTimers() {
+  window.clearTimeout(previewStartTimer)
+  window.clearTimeout(previewTimer)
+  previewStartTimer = null
+  previewTimer = null
+}
+
+function clearCaptureProcessing() {
+  window.clearTimeout(processQueueTimer)
+  processQueueTimer = null
+  captureQueue.length = 0
+}
+
+function drawCanvasCover(targetCanvas, sourceCanvas) {
+  const rect = targetCanvas.getBoundingClientRect()
+  const pixelRatio = window.devicePixelRatio || 1
+  const targetWidth = Math.max(1, Math.round(rect.width * pixelRatio))
+  const targetHeight = Math.max(1, Math.round(rect.height * pixelRatio))
+
+  targetCanvas.width = targetWidth
+  targetCanvas.height = targetHeight
+
+  const sourceRatio = sourceCanvas.width / sourceCanvas.height
+  const targetRatio = targetWidth / targetHeight
+  let sx = 0
+  let sy = 0
+  let sw = sourceCanvas.width
+  let sh = sourceCanvas.height
+
+  if (sourceRatio > targetRatio) {
+    sw = Math.round(sourceCanvas.height * targetRatio)
+    sx = Math.round((sourceCanvas.width - sw) / 2)
+  } else {
+    sh = Math.round(sourceCanvas.width / targetRatio)
+    sy = Math.round((sourceCanvas.height - sh) / 2)
+  }
+
+  const context = targetCanvas.getContext('2d')
+  if (!context) throw new Error('Canvas context unavailable')
+  context.drawImage(sourceCanvas, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight)
+}
+
+function scheduleShutterRelease() {
+  window.clearTimeout(shutterTimer)
+  shutterTimer = window.setTimeout(() => {
+    isCapturing.value = false
+    shutterTimer = null
+  }, CAPTURE_FEEDBACK_MS)
+}
+
+async function showCaptureFeedback(canvas) {
+  try {
+    clearPreviewTimers()
+
+    if (!props.open || disposed) return
+
+    flyoutActive.value = false
+    previewPulse.value = false
+
+    await nextTick()
+    if (!props.open || disposed) return
+
+    flyoutActive.value = true
+
+    await nextTick()
+    if (!props.open || disposed) return
+
+    if (flyoutCanvasRef.value) drawCanvasCover(flyoutCanvasRef.value, canvas)
+
+    flyoutTimer = window.setTimeout(() => {
+      flyoutActive.value = false
+      flyoutTimer = null
+    }, CAPTURE_FEEDBACK_MS)
+  } catch {
+    flyoutActive.value = false
+    previewPulse.value = false
+  }
+}
+
+function setLastPreview(file) {
+  clearThumbnailTimers()
   clearLastPreview()
 
   lastPreviewUrl.value = URL.createObjectURL(file)
-  flyoutActive.value = true
   previewPulse.value = false
 
   previewStartTimer = window.setTimeout(() => {
     previewPulse.value = true
-  }, 180)
-  flyoutTimer = window.setTimeout(() => {
-    flyoutActive.value = false
-    flyoutTimer = null
-  }, 360)
+  }, 0)
 
   previewTimer = window.setTimeout(() => {
     previewPulse.value = false
     previewTimer = null
-  }, 460)
+  }, 340)
 }
 
 async function processCaptureQueue() {
@@ -107,12 +188,13 @@ async function processCaptureQueue() {
 
   while (!disposed && captureQueue.length) {
     try {
-      const { canvas, filename } = captureQueue.shift()
+      const { canvas, filename, sessionId } = captureQueue.shift()
       const blob = await encodeCanvasToJpeg(canvas, CAPTURE_JPEG_QUALITY)
+      if (disposed || sessionId !== captureSessionId) continue
       if (!blob) throw new Error('Unable to create image')
 
       const file = new File([blob], filename, { type: 'image/jpeg' })
-      if (props.open) showCaptureFeedback(file)
+      if (props.open) setLastPreview(file)
       emit('capture', file, { skipCompression: true })
     } catch {
       if (props.open) errorMessage.value = 'ถ่ายภาพไม่สำเร็จ'
@@ -134,6 +216,7 @@ function scheduleCaptureProcessing() {
 async function startCamera() {
   if (!props.open || stream.value || isStarting.value) return
 
+  const startToken = ++cameraStartToken
   errorMessage.value = ''
 
   if (!navigator.mediaDevices?.getUserMedia) {
@@ -153,14 +236,26 @@ async function startCamera() {
       audio: false,
     })
 
+    if (!props.open || disposed || startToken !== cameraStartToken) {
+      mediaStream.getTracks().forEach((track) => track.stop())
+      return
+    }
+
     stream.value = mediaStream
     await nextTick()
+
+    if (!props.open || disposed || startToken !== cameraStartToken) {
+      mediaStream.getTracks().forEach((track) => track.stop())
+      if (stream.value === mediaStream) stream.value = null
+      return
+    }
 
     if (videoRef.value) {
       videoRef.value.srcObject = mediaStream
       await videoRef.value.play()
     }
   } catch (err) {
+    if (!props.open || disposed || startToken !== cameraStartToken) return
     errorMessage.value = err?.name === 'NotAllowedError'
       ? 'ไม่ได้รับอนุญาตให้ใช้กล้อง'
       : 'เปิดกล้องไม่สำเร็จ'
@@ -170,6 +265,7 @@ async function startCamera() {
 }
 
 function stopCamera() {
+  cameraStartToken++
   if (videoRef.value) videoRef.value.srcObject = null
   stream.value?.getTracks().forEach((track) => track.stop())
   stream.value = null
@@ -182,7 +278,13 @@ function stopCamera() {
   clearLastPreview()
 }
 
-function closeCamera() {
+function discardPendingCaptures() {
+  captureSessionId++
+  clearCaptureProcessing()
+}
+
+function closeCamera({ discardPending = false } = {}) {
+  if (discardPending) discardPendingCaptures()
   stopCamera()
   emit('close')
 }
@@ -209,17 +311,19 @@ function capturePhoto() {
     canvas.height = dimensions.h
 
     const context = canvas.getContext('2d')
+    if (!context) throw new Error('Canvas context unavailable')
     context.imageSmoothingEnabled = true
     context.imageSmoothingQuality = 'high'
     context.drawImage(video, 0, 0, width, height, 0, 0, dimensions.w, dimensions.h)
 
     const filename = `camera_${Date.now()}_${captureCounter++}.jpg`
-    captureQueue.push({ canvas, filename })
+    showCaptureFeedback(canvas)
+    captureQueue.push({ canvas, filename, sessionId: captureSessionId })
     scheduleCaptureProcessing()
   } catch {
     errorMessage.value = 'ถ่ายภาพไม่สำเร็จ'
   } finally {
-    isCapturing.value = false
+    scheduleShutterRelease()
   }
 }
 
@@ -237,9 +341,8 @@ watch(
 
 onBeforeUnmount(() => {
   disposed = true
-  window.clearTimeout(processQueueTimer)
-  processQueueTimer = null
-  captureQueue.length = 0
+  captureSessionId++
+  clearCaptureProcessing()
   stopCamera()
 })
 </script>
@@ -259,19 +362,19 @@ onBeforeUnmount(() => {
       :class="flashActive ? 'opacity-75' : 'opacity-0'"
     />
 
-    <img
-      v-if="flyoutActive && lastPreviewUrl"
-      :src="lastPreviewUrl"
-      alt=""
+    <canvas
+      v-if="flyoutActive"
+      ref="flyoutCanvasRef"
+      aria-hidden="true"
       class="capture-flyout pointer-events-none absolute inset-0 h-full w-full object-cover"
-    />
+    ></canvas>
 
     <div class="absolute inset-x-0 top-0 bg-gradient-to-b from-black/80 to-transparent px-4 pb-8 pt-4">
       <div class="flex items-center justify-between gap-3">
         <button
           class="h-11 w-11 rounded-full bg-black/45 flex items-center justify-center active:opacity-80"
           aria-label="ปิดกล้อง"
-          @click="closeCamera"
+          @click="closeCamera({ discardPending: true })"
         >
           <span class="material-symbols-outlined text-2xl">close</span>
         </button>
@@ -302,6 +405,27 @@ onBeforeUnmount(() => {
     <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-10">
       <div class="grid grid-cols-3 items-center">
         <div class="flex justify-start">
+          <button
+            class="h-12 w-12 rounded-full bg-white/15 flex items-center justify-center active:opacity-80"
+            aria-label="เสร็จสิ้น"
+            @click="closeCamera()"
+          >
+            <span class="material-symbols-outlined text-2xl">check</span>
+          </button>
+        </div>
+
+        <div class="flex justify-center">
+          <button
+            class="h-20 w-20 rounded-full border-4 border-white bg-white/20 p-1 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="!canCapture"
+            aria-label="ถ่ายภาพ"
+            @click="capturePhoto"
+          >
+            <span class="block h-full w-full rounded-full bg-white" />
+          </button>
+        </div>
+
+        <div class="flex justify-end">
           <div
             class="h-14 w-14 rounded-lg border border-white/45 bg-white/15 overflow-hidden shadow-lg transition-transform"
             :class="{ 'preview-pop': previewPulse }"
@@ -318,27 +442,6 @@ onBeforeUnmount(() => {
             </div>
           </div>
         </div>
-
-        <div class="flex justify-center">
-          <button
-            class="h-20 w-20 rounded-full border-4 border-white bg-white/20 p-1 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
-            :disabled="!canCapture"
-            aria-label="ถ่ายภาพ"
-            @click="capturePhoto"
-          >
-            <span class="block h-full w-full rounded-full bg-white" />
-          </button>
-        </div>
-
-        <div class="flex justify-end">
-          <button
-            class="h-12 w-12 rounded-full bg-white/15 flex items-center justify-center active:opacity-80"
-            aria-label="ปิดกล้อง"
-            @click="closeCamera"
-          >
-            <span class="material-symbols-outlined text-2xl">check</span>
-          </button>
-        </div>
       </div>
     </div>
   </div>
@@ -346,12 +449,13 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .preview-pop {
-  animation: preview-pop 0.28s ease-out;
+  animation: preview-pop 0.34s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .capture-flyout {
-  animation: capture-flyout 0.36s ease-in forwards;
-  transform-origin: left bottom;
+  animation: capture-flyout 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  transform-origin: right bottom;
+  will-change: transform, opacity, border-radius;
 }
 
 @keyframes preview-pop {
@@ -371,15 +475,23 @@ onBeforeUnmount(() => {
 
 @keyframes capture-flyout {
   0% {
-    transform: scale(1);
+    border-radius: 0;
+    transform: translateY(0) scale(1);
     opacity: 0.96;
   }
-  55% {
-    transform: scale(1);
-    opacity: 0.9;
+  18% {
+    border-radius: 10px;
+    transform: translateY(-18px) scale(0.96);
+    opacity: 0.98;
+  }
+  72% {
+    border-radius: 16px;
+    transform: translate(-1.35rem, -5.6rem) scale(0.16);
+    opacity: 0.92;
   }
   100% {
-    transform: scale(0.12);
+    border-radius: 14px;
+    transform: translate(-1.25rem, -5rem) scale(0.11);
     opacity: 0;
   }
 }
