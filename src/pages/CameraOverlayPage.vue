@@ -278,13 +278,7 @@ function stopCamera() {
   clearLastPreview()
 }
 
-function discardPendingCaptures() {
-  captureSessionId++
-  clearCaptureProcessing()
-}
-
-function closeCamera({ discardPending = false } = {}) {
-  if (discardPending) discardPendingCaptures()
+function closeCamera() {
   stopCamera()
   emit('close')
 }
@@ -371,13 +365,7 @@ onBeforeUnmount(() => {
 
     <div class="absolute inset-x-0 top-0 bg-gradient-to-b from-black/80 to-transparent px-4 pb-8 pt-4">
       <div class="flex items-center justify-between gap-3">
-        <button
-          class="h-11 w-11 rounded-full bg-black/45 flex items-center justify-center active:opacity-80"
-          aria-label="ปิดกล้อง"
-          @click="closeCamera({ discardPending: true })"
-        >
-          <span class="material-symbols-outlined text-2xl">close</span>
-        </button>
+        <div class="h-11 w-11" aria-hidden="true" />
 
         <div class="h-11 w-11" aria-hidden="true" />
       </div>
