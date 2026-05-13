@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* ── Material Design 3 Color System ── */
   --color-primary: #004f45;
@@ -31,6 +33,13 @@
   --color-on-error: #ffffff;
   --color-error-container: #ffdad6;
   --color-on-error-container: #93000a;
+  --color-background-light: #f5f6f8;
+  --color-background-dark: #111318;
+  --color-surface-light: #ffffff;
+  --color-surface-dark: #1a202c;
+  --color-border-light: #e2e8f0;
+  --color-border-dark: #282e39;
+  --color-text-secondary: #9ca6ba;
 
   /* ── Typography ── */
   --font-headline: "Manrope", sans-serif;
@@ -73,7 +82,9 @@ html, body {
 .material-symbols-outlined.text-\[16px\] { font-size: 16px; }
 .material-symbols-outlined.text-\[20px\] { font-size: 20px; }
 .material-symbols-outlined.text-\[22px\] { font-size: 22px; }
+.material-symbols-outlined.text-\[24px\] { font-size: 24px; }
 .material-symbols-outlined.text-\[28px\] { font-size: 28px; }
+.material-symbols-outlined.text-\[48px\] { font-size: 48px; }
 
 /* ── Scrollbar Hide ── */
 .hide-scrollbar::-webkit-scrollbar,
@@ -101,4 +112,31 @@ html, body {
 }
 .swipe-card.swiped-left {
   transform: translateX(calc(-1 * var(--snap-left)));
+}
+
+/* ── Job Tracking ── */
+.loader {
+  border: 3px solid #f3f3f3;
+  border-radius: 50%;
+  border-top: 3px solid var(--color-primary);
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+
+.loader-sm {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(1);
+  opacity: 0.5;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

@@ -5,6 +5,7 @@ import NewBookingPage from '../pages/NewBookingPage.vue'
 import PendingPage from '../pages/PendingPage.vue'
 import CustomersPage from '../pages/CustomersPage.vue'
 import OrderGalleryPage from '../pages/OrderGalleryPage.vue'
+import JobTrackingPage from '../pages/JobTrackingPage.vue'
 
 const routes = [
   { path: '/',             component: DailyTasksPage },
@@ -12,6 +13,7 @@ const routes = [
   { path: '/reschedule',   component: RescheduleFormPage },
   { path: '/new-booking',  component: NewBookingPage },
   { path: '/customers',    component: CustomersPage },
+  { path: '/job-tracking', component: JobTrackingPage },
   { path: '/gallery/:key/camera', component: OrderGalleryPage, meta: { openCamera: true } },
   { path: '/gallery/:key', component: OrderGalleryPage },
   { path: '/orders/:orderId/gallery/camera', redirect: to => ({ path: `/gallery/AFT-${to.params.orderId}/camera`, query: to.query }) },
