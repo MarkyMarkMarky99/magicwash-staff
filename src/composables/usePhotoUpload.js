@@ -18,7 +18,7 @@ export function usePhotoUpload(type, orderId, orderitemId, createdBy) {
     if (item) Object.assign(item, patch)
   }
 
-  async function processFile(file) {
+  async function processFile(file, options = {}) {
     const id = genId()
     images.value.push({
       id,
@@ -31,7 +31,7 @@ export function usePhotoUpload(type, orderId, orderitemId, createdBy) {
     })
 
     try {
-      const compressed = await compressImage(file)
+      const compressed = options.skipCompression ? file : await compressImage(file)
       updateItem(id, { compressedSize: compressed.size, status: 'uploading' })
 
       const imageUrl = await uploadRaw(compressed)
@@ -46,8 +46,10 @@ export function usePhotoUpload(type, orderId, orderitemId, createdBy) {
     }
   }
 
-  function addFiles(files) {
-    Array.from(files).slice(0, MAX_FILES_PER_PICK).forEach(processFile)
+  function addFiles(files, options = {}) {
+    Array.from(files).slice(0, MAX_FILES_PER_PICK).forEach((file) => {
+      processFile(file, options)
+    })
   }
 
   function remove(id) {

@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { encodeCanvasToJpeg } from '../utils/imageCompression'
 
 const props = defineProps({
   open: {
@@ -28,6 +29,14 @@ let isProcessingCaptureQueue = false
 let captureCounter = 0
 let disposed = false
 const captureQueue = []
+const CAPTURE_MAX_DIMENSION = 1280
+const CAPTURE_JPEG_QUALITY = 0.82
+
+function capDimensions(w, h, maxDim) {
+  if (w <= maxDim && h <= maxDim) return { w, h }
+  const ratio = Math.min(maxDim / w, maxDim / h)
+  return { w: Math.round(w * ratio), h: Math.round(h * ratio) }
+}
 
 const canCapture = computed(
   () => props.open && !errorMessage.value && !isStarting.value && !isCapturing.value,
@@ -99,12 +108,12 @@ async function processCaptureQueue() {
   while (!disposed && captureQueue.length) {
     try {
       const { canvas, filename } = captureQueue.shift()
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92))
+      const blob = await encodeCanvasToJpeg(canvas, CAPTURE_JPEG_QUALITY)
       if (!blob) throw new Error('Unable to create image')
 
       const file = new File([blob], filename, { type: 'image/jpeg' })
       if (props.open) showCaptureFeedback(file)
-      emit('capture', file)
+      emit('capture', file, { skipCompression: true })
     } catch {
       if (props.open) errorMessage.value = 'ถ่ายภาพไม่สำเร็จ'
     }
@@ -194,12 +203,15 @@ function capturePhoto() {
   showShutterFlash()
 
   try {
+    const dimensions = capDimensions(width, height, CAPTURE_MAX_DIMENSION)
     const canvas = document.createElement('canvas')
-    canvas.width = width
-    canvas.height = height
+    canvas.width = dimensions.w
+    canvas.height = dimensions.h
 
     const context = canvas.getContext('2d')
-    context.drawImage(video, 0, 0, width, height)
+    context.imageSmoothingEnabled = true
+    context.imageSmoothingQuality = 'high'
+    context.drawImage(video, 0, 0, width, height, 0, 0, dimensions.w, dimensions.h)
 
     const filename = `camera_${Date.now()}_${captureCounter++}.jpg`
     captureQueue.push({ canvas, filename })

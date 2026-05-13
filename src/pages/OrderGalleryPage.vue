@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onBeforeUnmount, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePhotoUpload } from '../composables/usePhotoUpload'
 import { getPhotos } from '../api/photos'
@@ -15,7 +15,7 @@ const { type, orderId, orderitemId } = parseKey(route.params.key)
 const createdBy = route.query.by ?? ''
 const title = type === 'BEF' ? 'รูปก่อนซัก' : 'รูปหลังซัก'
 
-const { images, addFiles, remove } = usePhotoUpload(type, orderId, orderitemId, createdBy)
+const { images, addFiles, remove, clearAll } = usePhotoUpload(type, orderId, orderitemId, createdBy)
 
 const showPicker = ref(false)
 const showCamera = ref(false)
@@ -35,6 +35,10 @@ onMounted(async () => {
   } catch {
     fetchStatus.value = 'error'
   }
+})
+
+onBeforeUnmount(() => {
+  clearAll()
 })
 
 // Unified flat list used by the lightbox
@@ -66,8 +70,8 @@ function handleFiles(event) {
   event.target.value = ''
 }
 
-function handleCameraCapture(file) {
-  addFiles([file])
+function handleCameraCapture(file, options) {
+  addFiles([file], options)
 }
 </script>
 
