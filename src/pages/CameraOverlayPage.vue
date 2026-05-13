@@ -406,11 +406,20 @@ onBeforeUnmount(() => {
       <div class="grid grid-cols-3 items-center">
         <div class="flex justify-start">
           <button
-            class="h-12 w-12 rounded-full bg-white/15 flex items-center justify-center active:opacity-80"
-            aria-label="เสร็จสิ้น"
+            class="h-14 w-14 rounded-lg border border-white/45 bg-white/15 overflow-hidden shadow-lg transition-transform active:scale-95"
+            :class="{ 'preview-pop': previewPulse }"
+            aria-label="เปิดแกลเลอรี"
             @click="closeCamera()"
           >
-            <span class="material-symbols-outlined text-2xl">check</span>
+            <img
+              v-if="lastPreviewUrl"
+              :src="lastPreviewUrl"
+              alt="ภาพล่าสุด"
+              class="h-full w-full object-cover"
+            />
+            <div v-else class="h-full w-full flex items-center justify-center text-white/70">
+              <span class="material-symbols-outlined text-2xl">photo_library</span>
+            </div>
           </button>
         </div>
 
@@ -426,21 +435,13 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="flex justify-end">
-          <div
-            class="h-14 w-14 rounded-lg border border-white/45 bg-white/15 overflow-hidden shadow-lg transition-transform"
-            :class="{ 'preview-pop': previewPulse }"
-            aria-live="polite"
+          <button
+            class="h-12 w-12 rounded-full bg-white/15 flex items-center justify-center active:opacity-80"
+            aria-label="เสร็จสิ้น"
+            @click="closeCamera()"
           >
-            <img
-              v-if="lastPreviewUrl"
-              :src="lastPreviewUrl"
-              alt="ภาพล่าสุด"
-              class="h-full w-full object-cover"
-            />
-            <div v-else class="h-full w-full flex items-center justify-center text-white/70">
-              <span class="material-symbols-outlined text-2xl">photo_library</span>
-            </div>
-          </div>
+            <span class="material-symbols-outlined text-2xl">check</span>
+          </button>
         </div>
       </div>
     </div>
@@ -454,7 +455,7 @@ onBeforeUnmount(() => {
 
 .capture-flyout {
   animation: capture-flyout 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-  transform-origin: right bottom;
+  transform-origin: left bottom;
   will-change: transform, opacity, border-radius;
 }
 
@@ -486,12 +487,12 @@ onBeforeUnmount(() => {
   }
   72% {
     border-radius: 16px;
-    transform: translate(-1.35rem, -5.6rem) scale(0.16);
+    transform: translate(1.35rem, -5.6rem) scale(0.16);
     opacity: 0.92;
   }
   100% {
     border-radius: 14px;
-    transform: translate(-1.25rem, -5rem) scale(0.11);
+    transform: translate(1.25rem, -5rem) scale(0.11);
     opacity: 0;
   }
 }
