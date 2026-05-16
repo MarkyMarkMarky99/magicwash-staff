@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onDeactivated, ref, watch } from 'vue'
 import { encodeCanvasToJpeg } from '../utils/imageCompression'
 
 const props = defineProps({
@@ -34,7 +34,7 @@ let cameraStartToken = 0
 let captureSessionId = 0
 const captureQueue = []
 const CAPTURE_MAX_DIMENSION = 1280
-const CAPTURE_JPEG_QUALITY = 0.82
+const CAPTURE_JPEG_QUALITY = 1.0
 const CAPTURE_FEEDBACK_MS = 900
 
 function capDimensions(w, h, maxDim) {
@@ -339,10 +339,16 @@ onBeforeUnmount(() => {
   clearCaptureProcessing()
   stopCamera()
 })
+
+onDeactivated(() => {
+  captureSessionId++
+  clearCaptureProcessing()
+  stopCamera()
+})
 </script>
 
 <template>
-  <div v-if="open" class="fixed inset-0 z-[60] bg-black text-white">
+  <div v-if="open" class="absolute inset-0 z-[60] bg-black text-white">
     <video
       ref="videoRef"
       class="absolute inset-0 h-full w-full object-cover"
