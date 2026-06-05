@@ -29,10 +29,10 @@ watch(pickupDate, (value) => {
 })
 
 const data = computed(() => ({
-  pickupDate: pickupDate.value,
-  dueDate: dueDate.value,
-  orderName: orderName.value.trim(),
-  serviceType: serviceType.value,
+  received_date: pickupDate.value,
+  due_date: dueDate.value,
+  order_name: orderName.value.trim(),
+  order_description: serviceType.value,
   notes: notes.value,
 }))
 

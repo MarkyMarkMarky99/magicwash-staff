@@ -73,13 +73,9 @@ export function useCustomerStore() {
     ),
   )
 
-  function invalidate() {
-    cacheLoaded.value = false
-  }
-
   return {
-    allCustomers, loading, error, cacheLoaded,
+    loading, error,
     CUSTOMER_TYPES,
-    loadAll, byType, customerCounts, invalidate,
+    loadAll, byType, customerCounts,
   }
 }

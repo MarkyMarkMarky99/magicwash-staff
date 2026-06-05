@@ -13,6 +13,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  showPreviewButton: {
+    type: Boolean,
+    default: true,
+  },
 })
 
 const emit = defineEmits(['close', 'capture'])
@@ -160,6 +164,7 @@ onDeactivated(cleanupCamera)
     <div class="absolute inset-x-0 top-0 bg-gradient-to-b from-black/80 to-transparent px-4 pb-8 pt-4">
       <div class="flex items-center justify-between gap-3">
         <div class="h-11 w-11" aria-hidden="true" />
+        <slot name="top" />
         <button
           class="flex h-11 w-11 items-center justify-center rounded-full bg-black/35 active:opacity-80"
           aria-label="ปิดกล้อง"
@@ -190,9 +195,11 @@ onDeactivated(cleanupCamera)
     </div>
 
     <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-10">
+      <slot name="bottom" />
       <div class="grid grid-cols-3 items-center">
         <div class="flex justify-start">
           <button
+            v-if="showPreviewButton"
             class="h-14 w-14 overflow-hidden rounded-lg border border-white/45 bg-white/15 shadow-lg transition-transform active:scale-95"
             :class="{ 'preview-pop': previewPulse }"
             aria-label="ดูภาพล่าสุด"
