@@ -9,7 +9,6 @@ import OrderGalleryPage from '../pages/OrderGalleryPage.vue'
 import JobTrackingPage from '../pages/JobTrackingPage.vue'
 import FormOverlayPage from '../pages/FormOverlayPage.vue'
 import DriverPhotoPage from '../pages/DriverPhotoPage.vue'
-import PaymentPage from '../pages/PaymentPage.vue'
 import { CameraWorkspace, SinglePhotoCameraInput } from '../components/camera'
 
 const formModules = import.meta.glob('../components/forms/*.vue')
@@ -136,8 +135,6 @@ const routes = [
   { path: '/new-booking',  component: NewBookingPage },
   { path: '/customers',    component: CustomersPage },
   { path: '/job-tracking', component: JobTrackingPage },
-  { path: '/payment', component: PaymentPage },
-  { path: '/orders/:orderId/payment', component: PaymentPage },
   { path: '/driver/photo/:photoCode', component: DriverPhotoPage },
   { path: '/camera', component: CameraRoute },
   { path: '/camera-single', component: SingleCameraTestRoute },
