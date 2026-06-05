@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onUnmounted } from 'vue'
-import BaseSwipeCard from './BaseSwipeCard.vue'
+import BaseSwipeCard from '../shared/BaseSwipeCard.vue'
 
 // ── Status config ──
 const STATUS_CONFIG = {

@@ -1,8 +1,8 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useSelectedCustomer } from '../composables/useSelectedCustomer'
-import BaseSwipeCard from './BaseSwipeCard.vue'
+import { useSelectedCustomer } from '../../composables/useSelectedCustomer'
+import BaseSwipeCard from '../shared/BaseSwipeCard.vue'
 
 const props = defineProps({
   customer: { type: Object, required: true },

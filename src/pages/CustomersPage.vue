@@ -3,8 +3,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useCustomerStore } from '../composables/useCustomerStore'
 import { useCustomerSearch } from '../composables/useCustomerSearch'
 import AppLayout from '../layouts/AppLayout.vue'
-import CustomerTypeTabs from '../components/CustomerTypeTabs.vue'
-import CustomerCard from '../components/CustomerCard.vue'
+import CustomerTypeTabs from '../components/customers/CustomerTypeTabs.vue'
+import CustomerCard from '../components/customers/CustomerCard.vue'
 
 const selectedType = ref('all')
 

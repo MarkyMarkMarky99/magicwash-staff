@@ -1,9 +1,9 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import logoUrl from '../assets/logo.png'
-import { pendingCount } from '../composables/usePendingCount'
-import { useCustomerSearch } from '../composables/useCustomerSearch'
+import logoUrl from '../../assets/logo.png'
+import { pendingCount } from '../../composables/usePendingCount'
+import { useCustomerSearch } from '../../composables/useCustomerSearch'
 import NavSidebar from './NavSidebar.vue'
 
 const router = useRouter()

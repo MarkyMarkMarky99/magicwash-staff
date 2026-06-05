@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
-import { useCustomerStore } from '../composables/useCustomerStore'
-import GenericTabs from './shared/GenericTabs.vue'
+import { useCustomerStore } from '../../composables/useCustomerStore'
+import GenericTabs from '../shared/GenericTabs.vue'
 
 defineProps({
   activeType: { type: String, required: true },

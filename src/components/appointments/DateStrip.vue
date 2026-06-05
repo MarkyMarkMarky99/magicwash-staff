@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { toDateStr } from '../utils/gviz'
+import { toDateStr } from '../../utils/gviz'
 
 const props = defineProps({
   selectedDate:        { type: String,  default: '' },

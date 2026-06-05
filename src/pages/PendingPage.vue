@@ -3,7 +3,7 @@ import { useRouter } from 'vue-router'
 import { useAppointmentStore } from '../composables/useAppointmentStore'
 import { useSelectedAppointment } from '../composables/useSelectedAppointment'
 import AppLayout from '../layouts/AppLayout.vue'
-import SwipeCard from '../components/SwipeCard.vue'
+import SwipeCard from '../components/appointments/SwipeCard.vue'
 
 const router = useRouter()
 const { pendingItems, loading, error, refresh, handleStatusUpdate } = useAppointmentStore()

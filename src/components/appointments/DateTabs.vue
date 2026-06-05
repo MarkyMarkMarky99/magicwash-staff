@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import { toDateStr } from '../utils/gviz'
+import { toDateStr } from '../../utils/gviz'
 
 const props = defineProps({
   year:         { type: Number, required: true },

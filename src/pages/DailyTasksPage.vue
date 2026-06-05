@@ -5,8 +5,8 @@ import { toDateStr } from '../utils/gviz'
 import { useAppointmentStore } from '../composables/useAppointmentStore'
 import { useSelectedAppointment } from '../composables/useSelectedAppointment'
 import AppLayout from '../layouts/AppLayout.vue'
-import DateTabs from '../components/DateTabs.vue'
-import CardContainer from '../components/CardContainer.vue'
+import DateTabs from '../components/appointments/DateTabs.vue'
+import CardContainer from '../components/appointments/CardContainer.vue'
 
 const today = new Date()
 
