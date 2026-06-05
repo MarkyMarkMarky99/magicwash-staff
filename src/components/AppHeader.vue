@@ -31,9 +31,17 @@ const { searchOpen, toggleSearch } = useCustomerSearch()
         @click="route.path === '/customers' && toggleSearch()"
       >search</button>
 
+      <!-- Invoice action -->
+      <button
+        v-if="route.path === '/invoices'"
+        class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
+        aria-label="Create invoice"
+        @click="router.push('/forms/create-invoice-form')"
+      >add</button>
+
       <!-- Close button — shown on /pending and /customers -->
       <button
-        v-if="route.path === '/pending' || route.path === '/customers'"
+        v-else-if="route.path === '/pending' || route.path === '/customers'"
         class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
         aria-label="Close"
         @click="router.push('/')"

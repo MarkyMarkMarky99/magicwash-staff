@@ -4,6 +4,7 @@ import DailyTasksPage from '../pages/DailyTasksPage.vue'
 import BookingFormPage from '../pages/BookingFormPage.vue'
 import PendingPage from '../pages/PendingPage.vue'
 import CustomersPage from '../pages/CustomersPage.vue'
+import InvoicesPage from '../pages/InvoicesPage.vue'
 import OrderGalleryPage from '../pages/OrderGalleryPage.vue'
 import FormOverlayPage from '../pages/FormOverlayPage.vue'
 
@@ -58,6 +59,7 @@ const routes = [
   { path: '/reschedule',   component: BookingFormPage, props: { mode: 'reschedule' } },
   { path: '/new-booking',  component: BookingFormPage, props: { mode: 'new-booking' } },
   { path: '/customers',    component: CustomersPage },
+  { path: '/invoices',     component: InvoicesPage },
   { path: '/forms',        component: FormsIndexRoute },
   { path: '/forms/:formName', component: FormOverlayPage },
   { path: '/gallery/:key/camera', component: OrderGalleryPage, meta: { openCamera: true } },
