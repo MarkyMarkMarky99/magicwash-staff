@@ -21,7 +21,10 @@ const ACTION_META = {
 const props = defineProps({
   appointmentId:  { type: String,   required: true },
   rawStatus:      { type: String,   required: true },
+  variant:        { type: String,   default: 'daily', validator: value => ['daily', 'pending'].includes(value) },
+  date:           { type: String,   default: '' },
   time:           { type: String,   default: '' },
+  timeSlot:       { type: String,   default: '' },
   customer:       { type: String,   default: '' },
   address:        { type: String,   default: '' },
   icon:           { type: String,   default: 'event' },
@@ -61,6 +64,14 @@ const displayAddress = computed(() => (contact.value.Address || '').split(',')[0
 const phone          = computed(() => contact.value.Phone || null)
 const location       = computed(() => contact.value.Location || contact.value.Address || null)
 const canReschedule  = computed(() => props.onReschedule && !['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(props.rawStatus))
+const isPendingView  = computed(() => props.variant === 'pending')
+const displayTime    = computed(() => props.timeSlot || props.time || '—')
+
+const formattedDate = computed(() => {
+  if (!props.date) return '—'
+  const d = new Date(`${props.date}T00:00:00`)
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+})
 
 const rightPanel = computed(() => {
   if (updating.value)   return { icon: 'sync',         label: 'Saving…',                          spin: true,  fill: false }
@@ -158,15 +169,38 @@ function openMaps(addr) {
         </div>
       </template>
 
-      <!-- Card content -->
-      <div class="px-4 py-3 flex gap-3">
-        <!-- Avatar -->
+      <!-- Pending card content -->
+      <div v-if="isPendingView" class="px-4 py-4">
+        <div class="flex items-center gap-3">
+          <div :class="['w-11 h-11 rounded-full flex items-center justify-center shrink-0 border border-outline-variant/10', cfg.avatarCls]">
+            <span v-if="updating" class="material-symbols-outlined text-[22px] animate-spin">sync</span>
+            <span v-else class="material-symbols-outlined fill-icon text-[22px]">{{ cfg.icon }}</span>
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <h3 class="font-headline font-bold text-primary text-[14px] leading-tight truncate">{{ displayName }}</h3>
+              <span :class="['inline-flex items-center px-1.5 py-px rounded-full font-label text-[9px] font-bold uppercase tracking-wide shrink-0', cfg.badgeCls]">
+                {{ cfg.label }}
+              </span>
+            </div>
+            <p v-if="displayAddress" class="font-body text-xs text-on-surface-variant mt-0.5 truncate">{{ displayAddress }}</p>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="material-symbols-outlined text-primary text-[11px]">calendar_today</span>
+              <span class="font-body text-xs text-on-surface-variant">{{ formattedDate }}</span>
+              <span class="material-symbols-outlined text-primary text-[11px]">schedule</span>
+              <span class="font-body text-xs text-on-surface-variant">{{ displayTime }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily card content -->
+      <div v-else class="px-4 py-3 flex gap-3">
         <div :class="['w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shrink-0 border border-outline-variant/10', cfg.avatarCls]">
           <span v-if="updating" class="material-symbols-outlined text-[20px] animate-spin">sync</span>
           <span v-else class="material-symbols-outlined fill-icon text-[20px]">{{ cfg.icon }}</span>
         </div>
 
-        <!-- Content -->
         <div class="flex-grow min-w-0 flex flex-col justify-center">
           <div class="flex items-center justify-between gap-2 mb-0.5">
             <div class="flex items-center gap-1.5 min-w-0">
@@ -175,13 +209,10 @@ function openMaps(addr) {
                 {{ cfg.label }}
               </span>
             </div>
-            <span class="font-body text-[11px] font-semibold text-on-surface-variant shrink-0">{{ time }}</span>
+            <span class="font-body text-[11px] font-semibold text-on-surface-variant shrink-0">{{ displayTime }}</span>
           </div>
 
-          <div
-            v-if="displayAddress"
-            class="flex items-center gap-1 min-w-0"
-          >
+          <div v-if="displayAddress" class="flex items-center gap-1 min-w-0">
             <p class="font-body text-xs text-on-surface-variant truncate">{{ displayAddress }}</p>
           </div>
         </div>

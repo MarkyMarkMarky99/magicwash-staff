@@ -3,7 +3,7 @@ import { useRouter } from 'vue-router'
 import { useAppointmentStore } from '../composables/useAppointmentStore'
 import { useSelectedAppointment } from '../composables/useSelectedAppointment'
 import AppLayout from '../layouts/AppLayout.vue'
-import PendingSwipeCard from '../components/PendingSwipeCard.vue'
+import SwipeCard from '../components/SwipeCard.vue'
 
 const router = useRouter()
 const { pendingItems, loading, error, refresh, handleStatusUpdate } = useAppointmentStore()
@@ -67,9 +67,10 @@ function handleReschedule(appointmentId) {
 
       <!-- Cards -->
       <div v-else class="divide-y divide-outline-variant/10">
-        <PendingSwipeCard
+        <SwipeCard
           v-for="appt in pendingItems"
           :key="appt.appointmentId"
+          variant="pending"
           v-bind="appt"
           :on-status-update="handleStatusUpdate"
           :on-reschedule="handleReschedule"
