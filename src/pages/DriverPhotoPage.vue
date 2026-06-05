@@ -2,7 +2,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { CameraSuccessModal, SinglePhotoCameraInput } from '../components/camera'
-import GlassNoteBox from '../components/forms/shared/GlassNoteBox.vue'
+import GlassNoteBox from '../components/GlassNoteBox.vue'
 import { handleAppend } from '../utils/gateway'
 import { uuid8 } from '../utils/uuid'
 
