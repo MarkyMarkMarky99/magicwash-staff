@@ -1,5 +1,5 @@
 <script setup>
-import { computed, defineAsyncComponent, onActivated, ref } from 'vue'
+import { computed, defineAsyncComponent, onActivated, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppointmentStore } from '../composables/useAppointmentStore'
 import FormLayout from '../layouts/FormLayout.vue'
@@ -8,21 +8,43 @@ const AppointmentScheduleForm = defineAsyncComponent(() =>
   import('../components/forms/AppointmentScheduleForm.vue')
 )
 
+const props = defineProps({
+  mode: {
+    type: String,
+    default: 'new-booking',
+    validator: value => ['new-booking', 'reschedule'].includes(value),
+  },
+})
+
 const router = useRouter()
-const { rescheduleAppointment } = useAppointmentStore()
+const { createAppointment, rescheduleAppointment } = useAppointmentStore()
 
 const formRef = ref(null)
 const submitting = ref(false)
 const error = ref(null)
 
-onActivated(() => {
-  submitting.value = false
-  error.value = null
-})
+const isReschedule = computed(() => props.mode === 'reschedule')
+const title = computed(() => isReschedule.value ? 'Reschedule Appointment' : 'New Booking')
+const submitLabel = computed(() => isReschedule.value ? 'Confirm Reschedule' : 'Confirm Booking')
+const submitIcon = computed(() => isReschedule.value ? 'check_circle' : 'add_circle')
+const submittingLabel = computed(() => isReschedule.value ? 'Saving…' : 'Booking…')
+const fallbackError = computed(() =>
+  isReschedule.value
+    ? 'Failed to reschedule. Please try again.'
+    : 'Failed to book. Please try again.'
+)
+
+onActivated(resetTransientState)
+watch(() => props.mode, resetTransientState)
 
 const canConfirm = computed(() =>
   Boolean(formRef.value?.isValid) && !submitting.value
 )
+
+function resetTransientState() {
+  submitting.value = false
+  error.value = null
+}
 
 async function handleConfirm() {
   if (!canConfirm.value || !formRef.value?.data) return
@@ -32,15 +54,26 @@ async function handleConfirm() {
   submitting.value = true
 
   try {
-    await rescheduleAppointment(
-      data.appointmentId,
-      data.date,
-      data.time,
-      data.reason,
-    )
-    router.back()
+    if (isReschedule.value) {
+      await rescheduleAppointment(
+        data.appointmentId,
+        data.date,
+        data.time,
+        data.reason,
+      )
+    } else {
+      await createAppointment(
+        data.customerId,
+        data.date,
+        data.time,
+        data.serviceType,
+        data.notes,
+      )
+    }
+
+    await router.back()
   } catch (err) {
-    error.value = err.message || 'Failed to reschedule. Please try again.'
+    error.value = err.message || fallbackError.value
   } finally {
     submitting.value = false
   }
@@ -48,8 +81,8 @@ async function handleConfirm() {
 </script>
 
 <template>
-  <FormLayout title="Reschedule Appointment" @back="router.back()">
-    <AppointmentScheduleForm ref="formRef" mode="reschedule" />
+  <FormLayout :title="title" @back="router.back()">
+    <AppointmentScheduleForm ref="formRef" :mode="mode" />
 
     <div
       v-if="error"
@@ -70,11 +103,11 @@ async function handleConfirm() {
       >
         <template v-if="submitting">
           <span class="material-symbols-outlined text-[20px] animate-spin">sync</span>
-          Saving…
+          {{ submittingLabel }}
         </template>
         <template v-else>
-          <span class="material-symbols-outlined text-[20px]">check_circle</span>
-          Confirm Reschedule
+          <span class="material-symbols-outlined text-[20px]">{{ submitIcon }}</span>
+          {{ submitLabel }}
         </template>
       </button>
     </template>

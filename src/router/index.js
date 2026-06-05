@@ -1,8 +1,7 @@
 import { defineAsyncComponent, h } from 'vue'
 import { createRouter, createWebHashHistory, RouterLink } from 'vue-router'
 import DailyTasksPage from '../pages/DailyTasksPage.vue'
-import RescheduleFormPage from '../pages/RescheduleFormPage.vue'
-import NewBookingPage from '../pages/NewBookingPage.vue'
+import BookingFormPage from '../pages/BookingFormPage.vue'
 import PendingPage from '../pages/PendingPage.vue'
 import CustomersPage from '../pages/CustomersPage.vue'
 import OrderGalleryPage from '../pages/OrderGalleryPage.vue'
@@ -56,8 +55,8 @@ const FormsIndexRoute = {
 const routes = [
   { path: '/',             component: DailyTasksPage },
   { path: '/pending',      component: PendingPage },
-  { path: '/reschedule',   component: RescheduleFormPage },
-  { path: '/new-booking',  component: NewBookingPage },
+  { path: '/reschedule',   component: BookingFormPage, props: { mode: 'reschedule' } },
+  { path: '/new-booking',  component: BookingFormPage, props: { mode: 'new-booking' } },
   { path: '/customers',    component: CustomersPage },
   { path: '/forms',        component: FormsIndexRoute },
   { path: '/forms/:formName', component: FormOverlayPage },
