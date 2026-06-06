@@ -1,4 +1,6 @@
 <script setup>
+import SectionContainer from '../shared/SectionContainer.vue'
+
 defineProps({
   subtotal: { type: Number, default: 0 },
   delivery: { type: Number, default: 0 },
@@ -15,14 +17,7 @@ defineProps({
 </script>
 
 <template>
-  <section class="bg-surface-container-lowest border border-outline-variant/25 rounded-lg overflow-hidden">
-    <div class="px-4 py-3 bg-surface-container-low border-b border-outline-variant/20">
-      <h2 class="font-headline font-bold text-sm text-primary flex items-center gap-2">
-        <span class="material-symbols-outlined text-[20px]">receipt_long</span>
-        Summary
-      </h2>
-    </div>
-
+  <SectionContainer title="Summary" icon="receipt_long">
     <div class="p-4 space-y-3 text-sm">
       <div class="flex justify-between text-on-surface-variant">
         <span>Subtotal</span>
@@ -59,5 +54,5 @@ defineProps({
         </div>
       </div>
     </div>
-  </section>
+  </SectionContainer>
 </template>

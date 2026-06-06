@@ -1,4 +1,6 @@
 <script setup>
+import SectionContainer from '../shared/SectionContainer.vue'
+
 defineProps({
   items: {
     type: Array,
@@ -12,17 +14,12 @@ defineProps({
 </script>
 
 <template>
-  <section class="bg-surface-container-lowest border border-outline-variant/25 rounded-lg overflow-hidden">
-    <div class="px-4 py-3 bg-surface-container-low border-b border-outline-variant/20 flex items-center justify-between">
-      <h2 class="font-headline font-bold text-sm text-primary flex items-center gap-2">
-        <span class="material-symbols-outlined text-[20px]">shopping_basket</span>
-        Order Items
-      </h2>
-      <span class="text-[11px] text-on-surface-variant font-semibold bg-surface-container-lowest px-2 py-1 rounded border border-outline-variant/20">
-        {{ items.length }} Items
-      </span>
-    </div>
-
+  <SectionContainer
+    title="Order Items"
+    icon="shopping_basket"
+    :count="items.length"
+    count-label="Items"
+  >
     <div v-if="items.length" class="divide-y divide-outline-variant/15">
       <div
         v-for="item in items"
@@ -45,5 +42,5 @@ defineProps({
     <div v-else class="px-4 py-8 text-center text-sm text-on-surface-variant">
       No order items
     </div>
-  </section>
+  </SectionContainer>
 </template>
