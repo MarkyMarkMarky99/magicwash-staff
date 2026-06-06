@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import AppLayout from '../layouts/AppLayout.vue'
 import GenericTabs from '../components/shared/GenericTabs.vue'
+import ListContainer from '../components/shared/ListContainer.vue'
 import InvoiceCard from '../components/invoices/InvoiceCard.vue'
 
 const selectedStatus = ref('all')
@@ -121,34 +122,20 @@ const displayInvoices = computed(() =>
     </div>
 
     <main class="flex-1 overflow-y-auto no-scrollbar pb-20 w-full bg-surface min-w-0">
-      <section class="bg-white w-full">
-        <div class="px-4 py-2 bg-surface-container-low text-primary flex items-center justify-between">
-          <div class="flex items-center gap-2.5">
-            <span class="material-symbols-outlined text-primary text-[16px]">receipt_long</span>
-            <h2 class="font-headline font-bold text-[13px] tracking-tight">Invoices</h2>
-          </div>
-          <div class="flex items-center gap-1.5 bg-surface-container rounded-full px-2.5 py-1">
-            <span class="font-label text-[9px] text-on-surface-variant font-bold uppercase tracking-wider">
-              {{ filteredInvoices.length }} Invoices
-            </span>
-          </div>
-        </div>
-
-        <p
-          v-if="filteredInvoices.length === 0"
-          class="px-6 py-4 text-sm text-on-surface-variant italic"
-        >
-          No invoices
-        </p>
-
-        <div v-else class="divide-y divide-outline-variant/10">
-          <InvoiceCard
-            v-for="invoice in displayInvoices"
-            :key="invoice.id"
-            :invoice="invoice"
-          />
-        </div>
-      </section>
+      <ListContainer
+        title="Invoices"
+        icon="receipt_long"
+        :count="filteredInvoices.length"
+        count-label="Invoices"
+        :empty="filteredInvoices.length === 0"
+        empty-text="No invoices"
+      >
+        <InvoiceCard
+          v-for="invoice in displayInvoices"
+          :key="invoice.id"
+          :invoice="invoice"
+        />
+      </ListContainer>
     </main>
   </AppLayout>
 </template>
