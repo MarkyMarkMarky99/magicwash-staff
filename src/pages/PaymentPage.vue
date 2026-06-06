@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onActivated, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import FormActionButton from '../components/forms/shared/FormActionButton.vue'
 import FormLayout from '../layouts/FormLayout.vue'
 import {
   OrderItemsTable,
@@ -173,20 +174,15 @@ async function confirmOrder() {
           <p class="text-[11px] text-on-surface-variant uppercase font-bold tracking-wide">Grand Total</p>
           <p class="text-xl font-headline font-extrabold text-on-surface">{{ formatCurrency(netTotal) }}</p>
         </div>
-        <button
-          :disabled="confirming"
-          class="flex-none bg-primary hover:brightness-110 text-on-primary font-headline font-bold text-sm py-3 px-5 shadow-[0_4px_12px_rgba(0,79,69,0.2)] transition-all flex items-center justify-center gap-2 rounded-lg disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.98]"
+        <FormActionButton
+          class="flex-none"
+          :loading="confirming"
+          loading-label="Processing"
+          trailing-icon="arrow_forward"
           @click="confirmOrder"
         >
-          <template v-if="confirming">
-            <span class="material-symbols-outlined text-[20px] animate-spin">sync</span>
-            Processing
-          </template>
-          <template v-else>
-            <span>Confirm Order</span>
-            <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
-          </template>
-        </button>
+          Confirm Order
+        </FormActionButton>
       </div>
     </template>
   </FormLayout>

@@ -1,5 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue'
+import FormActionButton from '../forms/shared/FormActionButton.vue'
+import FormInput from '../forms/shared/FormInput.vue'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -30,31 +32,28 @@ function apply() {
 
 <template>
   <div class="space-y-2">
-    <label for="voucher-code" class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block">
-      Voucher Code
-    </label>
-    <div class="flex gap-2">
-      <div class="relative flex-1 min-w-0">
-        <input
-          id="voucher-code"
-          :value="localValue"
-          type="text"
-          placeholder="Enter Code"
-          class="w-full bg-surface-container border border-outline-variant/40 text-on-surface text-sm rounded-lg focus:ring-1 focus:ring-primary focus:border-primary block p-2.5 pl-9 uppercase placeholder:normal-case placeholder:text-on-surface-variant/60"
-          @input="updateValue($event.target.value)"
-          @keydown.enter.prevent="apply"
-        >
-        <span class="material-symbols-outlined text-[20px] absolute inset-y-0 left-3 flex items-center text-on-surface-variant pointer-events-none">
-          confirmation_number
-        </span>
-      </div>
-      <button
-        type="button"
-        class="px-4 py-2 bg-primary hover:brightness-110 text-on-primary text-xs font-bold uppercase tracking-wide rounded-lg transition-colors active:scale-[0.98]"
+    <div class="flex items-end gap-2">
+      <FormInput
+        id="voucher-code"
+        class="flex-1 min-w-0"
+        label="Voucher Code"
+        :model-value="localValue"
+        placeholder="Enter Code"
+        icon="confirmation_number"
+        icon-position="left"
+        label-variant="compact"
+        size="sm"
+        uppercase
+        @update:model-value="updateValue"
+        @enter="apply"
+      />
+      <FormActionButton
+        size="sm"
+        uppercase
         @click="apply"
       >
         Apply
-      </button>
+      </FormActionButton>
     </div>
     <p
       v-if="message"
