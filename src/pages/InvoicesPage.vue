@@ -1,89 +1,23 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import AppLayout from '../layouts/AppLayout.vue'
 import GenericTabs from '../components/shared/GenericTabs.vue'
 import ListContainer from '../components/shared/ListContainer.vue'
 import InvoiceCard from '../components/invoices/InvoiceCard.vue'
+import { getInvoices } from '../features/invoices/services/invoice.service'
 
 const selectedStatus = ref('all')
-
-const STATUS_TONES = {
-  draft: {
-    icon: 'edit_document',
-    label: 'Draft',
-    avatar: 'bg-gray-100 text-gray-500',
-    badge: 'bg-gray-100 text-gray-600',
-  },
-  unpaid: {
-    icon: 'receipt_long',
-    label: 'Unpaid',
-    avatar: 'bg-amber-50 text-amber-700',
-    badge: 'bg-amber-100 text-amber-700',
-  },
-  paid: {
-    icon: 'task_alt',
-    label: 'Paid',
-    avatar: 'bg-green-50 text-green-700',
-    badge: 'bg-green-100 text-green-700',
-  },
-  overdue: {
-    icon: 'warning',
-    label: 'Overdue',
-    avatar: 'bg-red-50 text-red-700',
-    badge: 'bg-red-100 text-red-700',
-  },
-}
+const invoices = ref([])
+const loading = ref(false)
+const error = ref(null)
 
 const invoiceStatuses = [
   { key: 'all', label: 'All' },
-  { key: 'draft', label: 'Draft' },
-  { key: 'unpaid', label: 'Unpaid' },
-  { key: 'paid', label: 'Paid' },
-  { key: 'overdue', label: 'Overdue' },
+  { key: 'UNPAID', label: 'Unpaid' },
+  { key: 'PARTIAL', label: 'Partial' },
+  { key: 'PAID', label: 'Paid' },
+  { key: 'OVERDUE', label: 'Overdue' },
 ]
-
-const invoices = ref([
-  {
-    id: 'inv-1008',
-    invoiceNo: 'INV-2026-1008',
-    customer: 'Anong Laundry Co.',
-    dueDate: '2026-06-12',
-    total: 1840,
-    status: 'unpaid',
-    paymentMethod: 'Transfer',
-    itemsSummary: 'Wash & Fold · 24 items',
-  },
-  {
-    id: 'inv-1007',
-    invoiceNo: 'INV-2026-1007',
-    customer: 'Somsak Residence',
-    dueDate: '2026-06-10',
-    total: 620,
-    status: 'draft',
-    paymentMethod: 'COD',
-    itemsSummary: 'Dry Cleaning · 3 items',
-  },
-  {
-    id: 'inv-1006',
-    invoiceNo: 'INV-2026-1006',
-    customer: 'Baan Sukhumvit',
-    dueDate: '2026-06-05',
-    total: 2320,
-    status: 'overdue',
-    paymentMethod: 'Transfer',
-    itemsSummary: 'Monthly account · 48 items',
-  },
-  {
-    id: 'inv-1005',
-    invoiceNo: 'INV-2026-1005',
-    customer: 'Nara Boutique Hotel',
-    dueDate: '2026-06-04',
-    total: 4280,
-    status: 'paid',
-    paymentMethod: 'Credit',
-    itemsSummary: 'Corporate laundry · 86 items',
-  },
-])
 
 const filteredInvoices = computed(() => {
   if (selectedStatus.value === 'all') return invoices.value
@@ -99,16 +33,30 @@ const tabs = computed(() =>
   }))
 )
 
-const displayInvoices = computed(() =>
-  filteredInvoices.value.map(invoice => {
-    const tone = STATUS_TONES[invoice.status] || STATUS_TONES.draft
-    return {
-      ...invoice,
-      statusLabel: tone.label,
-      statusTone: tone,
-    }
-  })
-)
+onMounted(async () => {
+  loading.value = true
+  error.value = null
+
+  try {
+    const result = await getInvoices({
+      keyword: '',
+      customerId: null,
+      status: null,
+      dateFrom: null,
+      dateTo: null,
+      page: 1,
+      perPage: 20,
+      sortBy: 'issuedDate',
+      sortOrder: 'desc',
+    })
+
+    invoices.value = result.invoices
+  } catch {
+    error.value = 'Unable to load invoices'
+  } finally {
+    loading.value = false
+  }
+})
 </script>
 
 <template>
@@ -127,11 +75,13 @@ const displayInvoices = computed(() =>
         icon="receipt_long"
         :count="filteredInvoices.length"
         count-label="Invoices"
+        :loading="loading"
+        :error="error"
         :empty="filteredInvoices.length === 0"
         empty-text="No invoices"
       >
         <InvoiceCard
-          v-for="invoice in displayInvoices"
+          v-for="invoice in filteredInvoices"
           :key="invoice.id"
           :invoice="invoice"
         />

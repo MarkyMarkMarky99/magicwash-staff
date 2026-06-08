@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useCustomerStore } from '../composables/useCustomerStore'
-import { useCustomerSearch } from '../composables/useCustomerSearch'
+import { useHeaderSearch } from '@/shared/composables/useHeaderSearch'
 import AppLayout from '../layouts/AppLayout.vue'
 import CustomerTypeTabs from '../components/customers/CustomerTypeTabs.vue'
 import CustomerCard from '../components/customers/CustomerCard.vue'
@@ -10,7 +10,7 @@ import ListContainer from '../components/shared/ListContainer.vue'
 const selectedType = ref('all')
 
 const { loading, error, loadAll, byType } = useCustomerStore()
-const { searchOpen, searchQuery, closeSearch } = useCustomerSearch()
+const { searchOpen, searchQuery, closeSearch } = useHeaderSearch()
 
 const searchInputRef = ref(null)
 
