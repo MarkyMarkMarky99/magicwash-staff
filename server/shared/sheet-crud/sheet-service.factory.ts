@@ -1,8 +1,8 @@
-import type { ZodType, ZodTypeDef } from 'zod'
+import { z, type ZodType, type ZodTypeDef } from 'zod'
 import { ApiError } from '../http/api-error'
 import { parseOrThrow } from '../http/validate'
-import type { ApiQueryParams } from '../types/api-request.types'
-import type { ApiPaginationMeta } from '../types/api-response.types'
+import { apiPaginationMetaSchema } from '../../../contracts/shared/api.schema'
+import type { ApiQueryParams } from '../types/handler.types'
 import type {
   Coalesced,
   ResourceRepository,
@@ -153,7 +153,7 @@ export interface SheetHooks<
 
 export interface SheetListResult<TListDto> {
   items: TListDto[]
-  pagination: ApiPaginationMeta
+  pagination: z.infer<typeof apiPaginationMetaSchema>
 }
 
 export interface SheetService<TListDto, TDetailDto> {

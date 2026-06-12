@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { API_PAGINATION_DEFAULTS } from '../../../shared/types/api-request.types'
+import { API_PAGINATION_DEFAULTS } from '../../../../contracts/shared/api.schema'
 
 // ── Domain value sets — the single source for runtime validation (the schemas)
 //    and types (their z.infer). Sheet rows, response DTOs, and filters all derive

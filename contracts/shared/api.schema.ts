@@ -21,11 +21,6 @@ export const sortOrderSchema = z.enum(['asc', 'desc'])
 /** Default page / page size for list endpoints (feature list-query schemas reference these). */
 export const API_PAGINATION_DEFAULTS = { page: 1, perPage: 20 } as const
 
-export const paginationParamsSchema = z.object({
-  page: z.number().int().positive(),
-  perPage: z.number().int().positive(),
-})
-
 // ── Response envelope ───────────────────────────────────────────────────────
 export const apiErrorCodeSchema = z.enum([
   'BAD_REQUEST',
@@ -37,6 +32,9 @@ export const apiErrorCodeSchema = z.enum([
   'CONFLICT',
   'INTERNAL_ERROR',
 ])
+
+/** Runtime value object of the error codes (`API_ERROR_CODES.NOT_FOUND === 'NOT_FOUND'`). */
+export const API_ERROR_CODES = apiErrorCodeSchema.enum
 
 export const apiPaginationMetaSchema = z.object({
   total: z.number(),

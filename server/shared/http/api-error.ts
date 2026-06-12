@@ -1,4 +1,7 @@
-import { API_ERROR_CODES, type ApiErrorCode } from '../types/api-response.types'
+import { z } from 'zod'
+import { API_ERROR_CODES, apiErrorCodeSchema } from '../../../contracts/shared/api.schema'
+
+type ApiErrorCode = z.infer<typeof apiErrorCodeSchema>
 
 /** HTTP status code that each API error code maps to. */
 export const STATUS_BY_ERROR_CODE: Record<ApiErrorCode, number> = {

@@ -1,12 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import type {
-  ApiHandlerRequest,
-  ApiHttpMethod,
-  ApiQueryParams,
-} from '../types/api-request.types'
-import { API_ERROR_CODES } from '../types/api-response.types'
+import { z } from 'zod'
+import { API_ERROR_CODES, httpMethodSchema } from '../../../contracts/shared/api.schema'
+import type { ApiHandlerRequest, ApiQueryParams } from '../types/handler.types'
 import { ApiError } from './api-error'
 import { errorBody, type ApiResult } from './response'
+
+type ApiHttpMethod = z.infer<typeof httpMethodSchema>
 
 /** Handles one HTTP method for a single route. */
 export type ApiController = (req: ApiHandlerRequest) => Promise<ApiResult> | ApiResult

@@ -1,10 +1,20 @@
-import type {
-  ApiErrorCode,
-  ApiErrorResponse,
-  ApiPaginatedResponse,
-  ApiPaginationMeta,
-  ApiSuccessResponse,
-} from '../types/api-response.types'
+import { z } from 'zod'
+import {
+  apiErrorCodeSchema,
+  apiErrorResponseSchema,
+  apiPaginatedSchema,
+  apiPaginationMetaSchema,
+  apiSuccessSchema,
+} from '../../../contracts/shared/api.schema'
+
+// Envelope types inferred from the shared contract — the single source. The
+// generic success/paginated wrappers are derived from the contract builders
+// (a single Zod schema can't be generic over its data type).
+type ApiErrorCode = z.infer<typeof apiErrorCodeSchema>
+type ApiPaginationMeta = z.infer<typeof apiPaginationMetaSchema>
+type ApiSuccessResponse<TData> = z.infer<ReturnType<typeof apiSuccessSchema<z.ZodType<TData>>>>
+type ApiPaginatedResponse<TItem> = z.infer<ReturnType<typeof apiPaginatedSchema<z.ZodType<TItem>>>>
+type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>
 
 function baseMeta() {
   return { timestamp: new Date().toISOString() }
@@ -24,11 +34,7 @@ export function paginatedBody<TItem>(
 }
 
 /** Build an error response body. */
-export function errorBody(
-  code: ApiErrorCode,
-  message: string,
-  details?: unknown,
-): ApiErrorResponse {
+export function errorBody(code: ApiErrorCode, message: string, details?: unknown): ApiErrorResponse {
   return { success: false, error: { code, message, details }, meta: baseMeta() }
 }
 

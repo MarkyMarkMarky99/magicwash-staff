@@ -1,5 +1,5 @@
-import type { ZodType, ZodTypeDef } from 'zod'
-import type { ApiSortOrder } from '../types/api-request.types'
+import { z, type ZodType, type ZodTypeDef } from 'zod'
+import type { sortOrderSchema } from '../../../contracts/shared/api.schema'
 
 /**
  * Shared declarations for the sheet-crud engine — the generic CRUD stack that
@@ -16,7 +16,7 @@ export interface SheetListFilter {
   page: number
   perPage: number
   sortBy: string
-  sortOrder: ApiSortOrder
+  sortOrder: z.infer<typeof sortOrderSchema>
 }
 
 /** One GViz where-clause; null when the filter doesn't constrain it. */

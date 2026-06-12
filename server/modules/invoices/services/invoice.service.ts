@@ -1,10 +1,11 @@
 // ⚠ MOVED AS-IS from api/modules/invoices — pending full invoice-module refactor.
 //   The move only relocated files (relative imports to ../../../shared were
 //   preserved); treat this layout as temporary, pending the full invoice refactor.
+import { z } from 'zod'
 import { ApiError } from '../../../shared/http/api-error'
 import { parseOrThrow } from '../../../shared/http/validate'
-import type { ApiQueryParams } from '../../../shared/types/api-request.types'
-import type { ApiPaginationMeta } from '../../../shared/types/api-response.types'
+import { apiPaginationMetaSchema } from '../../../../contracts/shared/api.schema'
+import type { ApiQueryParams } from '../../../shared/types/handler.types'
 import { generateId } from '../../../shared/utils/id'
 import {
   toCreateRecord,
@@ -28,7 +29,7 @@ const ID_LENGTH = 8
 
 export interface InvoiceListResult {
   items: InvoiceListItemDto[]
-  pagination: ApiPaginationMeta
+  pagination: z.infer<typeof apiPaginationMetaSchema>
 }
 
 function today(): string {

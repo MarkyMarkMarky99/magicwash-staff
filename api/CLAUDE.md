@@ -84,7 +84,7 @@ export const fooService = createSheetService({
 - **Route files stay one line per method** — no logic in routes; call `list`/`getById`/`create`/`update`.
 - **Dependency direction:** `routes → service → repository → queries`
 - **Type import direction:** `server/modules/<m>/<m>-db.schema.ts` (DB) → `contracts/<m>/<m>-api.schema.ts` (API). DB contract may reuse API enums; never the reverse.
-- **What may live in `contracts/`:** the per-feature camelCase request/response schemas + enums, and the generic request/response envelope (`contracts/shared/api.schema.ts`) — pure Zod, no type exports. **Never in `contracts/`:** DB row/payload schemas, repository types, the serverless **handler runtime object** (`ApiHandlerRequest` + raw query, which stay in `server/shared/types/`), or business services — and a `contracts/` file must never import from `server/` or `api/`.
+- **What may live in `contracts/`:** the per-feature camelCase request/response schemas + enums, and the generic request/response envelope (`contracts/shared/api.schema.ts`) — pure Zod, no type exports. **Never in `contracts/`:** DB row/payload schemas, repository types, the serverless **handler runtime object** (`ApiHandlerRequest` + raw query — `server/shared/types/handler.types.ts`), or business services — and a `contracts/` file must never import from `server/` or `api/`.
 
 ### Key Engine Rules
 
@@ -108,7 +108,7 @@ Repositories and services are module-level object literals (`export const fooSer
 
 ## Response Contract
 
-Success: `{ data, meta }`; paginated: `meta.pagination = { total, page, perPage, totalPages }`; error: `{ error: { code, message, details? } }`. Built only via `ok`/`created`/`noContent`/`okPaginated`/`ApiError` from `server/shared/http/`. The envelope shape is the shared Zod contract `contracts/shared/api.schema.ts` (single source for FE + BE); `server/shared/types/` only infers the builders' named types from it.
+Success: `{ data, meta }`; paginated: `meta.pagination = { total, page, perPage, totalPages }`; error: `{ error: { code, message, details? } }`. Built only via `ok`/`created`/`noContent`/`okPaginated`/`ApiError` from `server/shared/http/`. The envelope shape is the shared Zod contract `contracts/shared/api.schema.ts` (single source for FE + BE); the `server/shared/http/` builders infer their types from it directly (no parallel type declarations).
 
 ## Gotchas
 
