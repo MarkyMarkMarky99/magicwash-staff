@@ -1,11 +1,24 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { z } from 'zod'
 import { API_ERROR_CODES, httpMethodSchema } from '../../../contracts/shared/api.schema'
-import type { ApiHandlerRequest, ApiQueryParams } from '../types/handler.types'
 import { ApiError } from './api-error'
 import { errorBody, type ApiResult } from './response'
 
 type ApiHttpMethod = z.infer<typeof httpMethodSchema>
+
+// ── Handler runtime objects (server-only; no FE↔BE contract equivalent) ──
+/** Raw query exactly as it arrives on the URL (strings, pre-parse). */
+export type ApiQueryValue = string | string[] | undefined
+export type ApiQueryParams = Record<string, ApiQueryValue>
+
+/** The framework-agnostic request a controller receives (built from a VercelRequest). */
+export interface ApiHandlerRequest<TQuery extends ApiQueryParams = ApiQueryParams, TBody = unknown> {
+  method: string
+  query: TQuery
+  body: TBody
+  headers: Record<string, string | string[] | undefined>
+  params: Record<string, string> // route path params, e.g. /appointments/:id
+}
 
 /** Handles one HTTP method for a single route. */
 export type ApiController = (req: ApiHandlerRequest) => Promise<ApiResult> | ApiResult

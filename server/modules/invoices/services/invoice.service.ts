@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { ApiError } from '../../../shared/http/api-error'
 import { parseOrThrow } from '../../../shared/http/validate'
 import { apiPaginationMetaSchema } from '../../../../contracts/shared/api.schema'
-import type { ApiQueryParams } from '../../../shared/types/handler.types'
+import type { ApiQueryParams } from '../../../shared/http/api-handler'
 import { generateId } from '../../../shared/utils/id'
 import {
   toCreateRecord,

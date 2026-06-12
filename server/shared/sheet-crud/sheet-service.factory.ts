@@ -2,7 +2,7 @@ import { z, type ZodType, type ZodTypeDef } from 'zod'
 import { ApiError } from '../http/api-error'
 import { parseOrThrow } from '../http/validate'
 import { apiPaginationMetaSchema } from '../../../contracts/shared/api.schema'
-import type { ApiQueryParams } from '../types/handler.types'
+import type { ApiQueryParams } from '../http/api-handler'
 import type {
   Coalesced,
   ResourceRepository,
