@@ -1,23 +1,47 @@
 import type {
-  InvoiceItemUnitRow,
-  PaymentMethodRow,
-  PaymentStatusRow,
-  PaymentSummaryStatusRow,
-} from './invoice-db.types'
+  InvoiceItemUnit,
+  InvoiceStatus,
+  PaymentMethod,
+  PaymentStatus,
+  PaymentSummaryStatus,
+} from './invoice.schema'
 
-export type InvoiceItemUnitDto = InvoiceItemUnitRow
+/**
+ * Response contract for the invoices feature.
+ *
+ * These are the frontend-ready DTOs the API exposes — camelCase, business facts
+ * resolved server-side (status, totals, balance), and NO DB/internal shape:
+ * audit fields (`*By`, `updatedAt`, `deletedAt/By`) and the payment gateway
+ * `apiLog` stay behind the API boundary. Presentation concerns (labels, tones)
+ * are added by the frontend mapper, not here.
+ */
 
-export type PaymentMethodDto = PaymentMethodRow
+// --- Enum contract (camelCase mirror of the DB enums) ---
 
-export type PaymentStatusDto = PaymentStatusRow
+export type InvoiceItemUnitDto = InvoiceItemUnit
 
-export type PaymentSummaryStatusDto = PaymentSummaryStatusRow
+export type PaymentMethodDto = PaymentMethod
 
-export type InvoiceStatusDto = PaymentSummaryStatusDto | 'OVERDUE'
+export type PaymentStatusDto = PaymentStatus
+
+export type PaymentSummaryStatusDto = PaymentSummaryStatus
+
+/** Display status that drives the invoice badge. Superset of the payment summary
+ *  status — replaces UNPAID/PARTIAL with OVERDUE once past the due date. */
+export type InvoiceStatusDto = InvoiceStatus
+
+// --- Nested shapes ---
+
+export interface InvoiceCustomerDto {
+  id: string
+  name: string
+  phone: string | null
+  address: string | null
+  taxId: string | null
+}
 
 export interface InvoiceItemResponseDto {
   id: string
-  invoiceId: string
   description: string
   quantity: number
   unit: InvoiceItemUnitDto
@@ -25,35 +49,46 @@ export interface InvoiceItemResponseDto {
   lineTotal: number
 }
 
-export interface PaymentResponseDto {
+export interface PaymentItemDto {
   id: string
-  invoiceId: string
   amount: number | null
   method: PaymentMethodDto | null
+  status: PaymentStatusDto
   proofUrl: string | null
   referenceNo: string | null
-  status: PaymentStatusDto
-  apiLog: Record<string, unknown> | null
-  notes: string | null
   receiptId: string | null
-  createdAt: string
-  createdBy: string
-  updatedAt: string
-  updatedBy: string
+  /** When the payment was recorded — the display date of the transaction. */
+  paidAt: string
 }
 
-export interface InvoiceResponseDto {
+// --- List endpoint: lightweight summary, no nested arrays ---
+
+export interface InvoiceListItemDto {
   id: string
   invoiceNumber: string
-  customerId: string
   customerName: string
-  customerPhone: string | null
-  customerAddress: string | null
-  customerTaxId: string | null
+  issuedDate: string
+  dueDate: string | null
+  totalAmount: number
+  amountPaid: number
+  balance: number
+  status: InvoiceStatusDto
+  // No paymentMethod here: the list reads only Invoices + PaymentSummary (no N+1),
+  // and method lives on the Payments sheet. It's available on the detail DTO instead.
+}
+
+// --- Detail endpoint: full breakdown for the invoice document + payment history ---
+
+export interface InvoiceDetailDto {
+  id: string
+  invoiceNumber: string
+  customer: InvoiceCustomerDto
   periodStart: string
   periodEnd: string
   issuedDate: string
   dueDate: string | null
+
+  // Tax-document breakdown
   itemsSubtotal: number
   discountAmount: number
   surchargeAmount: number
@@ -61,23 +96,12 @@ export interface InvoiceResponseDto {
   taxAmount: number
   whtAmount: number
   totalAmount: number
-  amountDue: number
+
+  // Payment rollup
   amountPaid: number
   balance: number
-  paymentStatus: PaymentSummaryStatusDto
-  paymentMethod: PaymentMethodDto | 'NONE'
   status: InvoiceStatusDto
-  items: InvoiceItemResponseDto[]
-  payments: PaymentResponseDto[]
-  createdAt: string
-  createdBy: string
-  deletedAt: string | null
-  deletedBy: string | null
-}
 
-export interface InvoiceListResponseDto {
-  invoices: InvoiceResponseDto[]
-  total: number
-  page: number
-  perPage: number
+  items: InvoiceItemResponseDto[]
+  payments: PaymentItemDto[]
 }

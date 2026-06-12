@@ -1,87 +1,201 @@
-import { mapInvoiceRecordRowToResponseDto } from '../mappers/invoice.mapper'
-import { findInvoiceRecords } from '../repositories/invoice.repository'
-import type { InvoiceListResponseDto, InvoiceResponseDto } from '../types/invoice-response.types'
+import { ApiError } from '../../../shared/http/api-error'
+import { parseOrThrow } from '../../../shared/http/validate'
+import type { ApiQueryParams } from '../../../shared/types/api-request.types'
+import type { ApiPaginationMeta } from '../../../shared/types/api-response.types'
+import { generateId } from '../../../shared/utils/id'
+import {
+  toCreateRecord,
+  toDetailDto,
+  toListItemDto,
+  toPaymentCreateRow,
+  toPaymentUpdateRow,
+  toSummaryUpdate,
+} from '../mappers/invoice.mapper'
+import { invoiceRepository } from '../repositories/invoice.repository'
+import {
+  invoiceCreateSchema,
+  invoiceListQuerySchema,
+  paymentCreateSchema,
+  paymentUpdateSchema,
+} from '../types/invoice.schema'
+import type { InvoiceDetailDto, InvoiceListItemDto } from '../types/invoice-response.types'
+import type { PaymentRow, PaymentSummaryRow } from '../types/invoice-sheet.types'
 
-export interface InvoiceListQuery {
-  keyword?: string
-  customerId?: string | null
-  status?: string | null
-  dateFrom?: string | null
-  dateTo?: string | null
-  page?: number
-  perPage?: number
-  sortBy?: keyof InvoiceResponseDto
-  sortOrder?: 'asc' | 'desc'
+const ID_LENGTH = 8
+
+export interface InvoiceListResult {
+  items: InvoiceListItemDto[]
+  pagination: ApiPaginationMeta
 }
 
-const DEFAULT_PAGE = 1
-const DEFAULT_PER_PAGE = 20
-const DEFAULT_SORT_BY: keyof InvoiceResponseDto = 'issuedDate'
-const DEFAULT_SORT_ORDER: 'asc' | 'desc' = 'desc'
-
-export async function getInvoices(query: InvoiceListQuery): Promise<InvoiceListResponseDto> {
-  const records = await findInvoiceRecords()
-  const invoices = records.map(mapInvoiceRecordRowToResponseDto)
-
-  const filtered = filterInvoices(invoices, query)
-  const sorted = sortInvoices(filtered, query)
-
-  const page = Math.max(query.page ?? DEFAULT_PAGE, 1)
-  const perPage = Math.max(query.perPage ?? DEFAULT_PER_PAGE, 1)
-  const start = (page - 1) * perPage
-
-  return {
-    invoices: sorted.slice(start, start + perPage),
-    total: sorted.length,
-    page,
-    perPage,
-  }
+function today(): string {
+  return new Date().toISOString().slice(0, 10)
 }
 
-function filterInvoices(invoices: InvoiceResponseDto[], query: InvoiceListQuery): InvoiceResponseDto[] {
-  const keyword = (query.keyword ?? '').trim().toLowerCase()
-
-  return invoices.filter((invoice) => {
-    const matchesKeyword =
-      !keyword ||
-      invoice.invoiceNumber.toLowerCase().includes(keyword) ||
-      invoice.customerName.toLowerCase().includes(keyword) ||
-      (invoice.customerPhone ?? '').toLowerCase().includes(keyword)
-    const matchesCustomer = !query.customerId || invoice.customerId === query.customerId
-    const matchesStatus = !query.status || invoice.status === query.status
-    const matchesDateFrom = !query.dateFrom || invoice.issuedDate >= query.dateFrom
-    const matchesDateTo = !query.dateTo || invoice.issuedDate <= query.dateTo
-
-    return matchesKeyword && matchesCustomer && matchesStatus && matchesDateFrom && matchesDateTo
-  })
+function now(): string {
+  return new Date().toISOString()
 }
 
-function sortInvoices(invoices: InvoiceResponseDto[], query: InvoiceListQuery): InvoiceResponseDto[] {
-  const sortBy = query.sortBy ?? DEFAULT_SORT_BY
-  const sortOrder = query.sortOrder ?? DEFAULT_SORT_ORDER
-  const sortDirection = sortOrder === 'asc' ? 1 : -1
+// INV-YYYYMM-<random4>, derived from the issued date. No running counter, so two
+// concurrent creates can't race on a shared max (the random suffix keeps it unique).
+function generateInvoiceNumber(issuedDate: string): string {
+  const yyyymm = issuedDate.slice(0, 7).replace('-', '')
+  return `INV-${yyyymm}-${generateId(4)}`
+}
 
-  return [...invoices].sort((left, right) => {
-    const leftValue = getSortValue(left, sortBy)
-    const rightValue = getSortValue(right, sortBy)
+export const invoiceService = {
+  async listInvoices(query: ApiQueryParams): Promise<InvoiceListResult> {
+    const filter = parseOrThrow(invoiceListQuerySchema, query)
+    const records = await invoiceRepository.getByFilter(filter)
+    const day = today()
 
-    if (leftValue < rightValue) {
-      return -1 * sortDirection
+    // Map first (resolves the display status, incl. derived OVERDUE), then apply the
+    // status filter the Invoices sheet can't express. Pagination follows the filter,
+    // so `total` reflects the filtered result.
+    let items = records.map((record) => toListItemDto(record, day))
+    if (filter.status) {
+      items = items.filter((item) => item.status === filter.status)
     }
 
-    if (leftValue > rightValue) {
-      return 1 * sortDirection
+    const total = items.length
+    const start = (filter.page - 1) * filter.perPage
+    const pageItems = items.slice(start, start + filter.perPage)
+
+    return {
+      items: pageItems,
+      pagination: {
+        total,
+        page: filter.page,
+        perPage: filter.perPage,
+        totalPages: Math.ceil(total / filter.perPage),
+      },
+    }
+  },
+
+  async getInvoice(invoiceId: string): Promise<InvoiceDetailDto> {
+    const record = await invoiceRepository.getById(invoiceId)
+    if (!record) {
+      throw ApiError.notFound(`Invoice '${invoiceId}' not found`)
+    }
+    return toDetailDto(record, today())
+  },
+
+  async createInvoice(rawInput: unknown): Promise<InvoiceDetailDto> {
+    const input = parseOrThrow(invoiceCreateSchema, rawInput)
+
+    const createdAt = now()
+    const issuedDate = input.issuedDate ?? today()
+    const invoiceId = generateId(ID_LENGTH)
+
+    const record = toCreateRecord(input, {
+      invoiceId,
+      invoiceNumber: generateInvoiceNumber(issuedDate),
+      issuedDate,
+      createdAt,
+      itemIds: input.items.map(() => generateId(ID_LENGTH)),
+      paymentSummaryId: generateId(ID_LENGTH),
+    })
+
+    await invoiceRepository.create(record)
+
+    // We just built every row — assemble the response without a re-read.
+    return toDetailDto(
+      {
+        invoice: record.invoice,
+        items: record.items,
+        paymentSummary: record.paymentSummary,
+        payments: [],
+      },
+      today(),
+    )
+  },
+
+  async recordPayment(invoiceId: string, rawInput: unknown): Promise<InvoiceDetailDto> {
+    const input = parseOrThrow(paymentCreateSchema, rawInput)
+    const record = await requireRecord(invoiceId)
+    const summaryRow = requireSummary(record.paymentSummary, invoiceId)
+
+    const timestamp = now()
+    const payment = toPaymentCreateRow(invoiceId, input, {
+      paymentId: generateId(ID_LENGTH),
+      createdAt: timestamp,
+    })
+
+    // New payments start PENDING, so the rollup is unchanged numerically — but we
+    // recompute over the full set to keep it authoritative regardless.
+    const effectivePayments: PaymentRow[] = [...record.payments, payment]
+    const summary = toSummaryUpdate(summaryRow, effectivePayments, {
+      updatedAt: timestamp,
+      updatedBy: input.createdBy,
+    })
+
+    await invoiceRepository.recordPayment({ payment, summary })
+
+    return toDetailDto(
+      {
+        invoice: record.invoice,
+        items: record.items,
+        paymentSummary: { ...summaryRow, ...summary },
+        payments: effectivePayments,
+      },
+      today(),
+    )
+  },
+
+  async updatePayment(
+    invoiceId: string,
+    paymentId: string,
+    rawInput: unknown,
+  ): Promise<InvoiceDetailDto> {
+    const input = parseOrThrow(paymentUpdateSchema, rawInput)
+    const record = await requireRecord(invoiceId)
+    const summaryRow = requireSummary(record.paymentSummary, invoiceId)
+
+    const existing = record.payments.find((payment) => payment.id === paymentId)
+    if (!existing) {
+      throw ApiError.notFound(`Payment '${paymentId}' not found on invoice '${invoiceId}'`)
     }
 
-    return 0
-  })
+    const timestamp = now()
+    const patch = toPaymentUpdateRow(paymentId, input, timestamp)
+
+    // Apply the patch in memory so the rollup reflects the new effective set
+    // (e.g. a payment flipping to VERIFIED now counts toward amount_paid).
+    const updated: PaymentRow = { ...existing, ...patch }
+    const effectivePayments = record.payments.map((payment) =>
+      payment.id === paymentId ? updated : payment,
+    )
+    const summary = toSummaryUpdate(summaryRow, effectivePayments, {
+      updatedAt: timestamp,
+      updatedBy: input.updatedBy,
+    })
+
+    await invoiceRepository.updatePayment({ payment: patch, summary })
+
+    return toDetailDto(
+      {
+        invoice: record.invoice,
+        items: record.items,
+        paymentSummary: { ...summaryRow, ...summary },
+        payments: effectivePayments,
+      },
+      today(),
+    )
+  },
 }
 
-function getSortValue(invoice: InvoiceResponseDto, sortBy: keyof InvoiceResponseDto): string | number {
-  if (sortBy === 'dueDate') {
-    return invoice.dueDate ?? ''
+async function requireRecord(invoiceId: string) {
+  const record = await invoiceRepository.getById(invoiceId)
+  if (!record) {
+    throw ApiError.notFound(`Invoice '${invoiceId}' not found`)
   }
+  return record
+}
 
-  const value = invoice[sortBy]
-  return typeof value === 'string' || typeof value === 'number' ? value : ''
+// A non-deleted invoice always has a seeded rollup; a missing one is a data fault.
+function requireSummary(summary: PaymentSummaryRow | null, invoiceId: string): PaymentSummaryRow {
+  if (!summary) {
+    throw ApiError.internal(`Invoice '${invoiceId}' has no payment summary`)
+  }
+  return summary
 }

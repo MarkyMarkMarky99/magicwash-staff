@@ -1,250 +1,142 @@
-import type { InvoiceRecordRow } from '../types/invoice-db.types'
+import { AppScriptClient } from '../../../shared/google-sheets/appscript.client'
+import { GVizClient } from '../../../shared/google-sheets/gviz.client'
+import { BaseSheetRepository } from '../../../shared/repositories/base-sheet.repository'
+import {
+  invoiceItemQuery,
+  invoiceQuery,
+  paymentQuery,
+  paymentSummaryQuery,
+} from '../queries/invoice-gviz.query'
+import type {
+  InvoiceCreateRecord,
+  InvoiceFilter,
+  InvoiceItemRow,
+  InvoiceListRecordRow,
+  InvoiceRecordRow,
+  InvoiceRow,
+  PaymentRow,
+  PaymentSummaryRow,
+  PaymentUpdateWrite,
+  PaymentWrite,
+} from '../types/invoice-sheet.types'
 
-const invoiceRecords: InvoiceRecordRow[] = [
-  {
-    invoice: {
-      id: 'INV-ID-1008',
-      invoice_number: 'INV-2026-1008',
-      customer_id: 'CUS-1001',
-      customer_name: 'Anong Laundry Co.',
-      customer_phone: '081-234-5678',
-      customer_address: '12 Sukhumvit Road, Bangkok',
-      customer_tax_id: '0105559000001',
-      period_start: '2026-06-01',
-      period_end: '2026-06-07',
-      issued_date: '2026-06-07',
-      due_date: '2026-06-12',
-      items_subtotal: 1840,
-      discount_amount: 0,
-      surcharge_amount: 0,
-      subtotal: 1840,
-      tax_amount: 0,
-      wht_amount: 0,
-      total_amount: 1840,
-      created_at: '2026-06-07T09:00:00+07:00',
-      created_by: 'system',
-      deleted_at: null,
-      deleted_by: null,
-    },
-    items: [
-      {
-        id: 'ITEM-1008-1',
-        invoice_id: 'INV-ID-1008',
-        description: 'Wash & Fold',
-        quantity: 24,
-        unit: 'PIECE',
-        unit_price: 76.67,
-        line_total: 1840,
-      },
-    ],
-    paymentSummary: {
-      id: 'PAY-1008',
-      invoice_id: 'INV-ID-1008',
-      amount_due: 1840,
-      amount_paid: 0,
-      balance: 1840,
-      status: 'UNPAID',
-      created_at: '2026-06-07T09:00:00+07:00',
-      created_by: 'system',
-      updated_at: '2026-06-07T09:00:00+07:00',
-      updated_by: 'system',
-      deleted_at: null,
-      deleted_by: null,
-    },
-    payments: [],
-  },
-  {
-    invoice: {
-      id: 'INV-ID-1007',
-      invoice_number: 'INV-2026-1007',
-      customer_id: 'CUS-1002',
-      customer_name: 'Somsak Residence',
-      customer_phone: '089-222-4444',
-      customer_address: '88 Rama 4 Road, Bangkok',
-      customer_tax_id: null,
-      period_start: '2026-06-01',
-      period_end: '2026-06-06',
-      issued_date: '2026-06-06',
-      due_date: '2026-06-10',
-      items_subtotal: 620,
-      discount_amount: 0,
-      surcharge_amount: 0,
-      subtotal: 620,
-      tax_amount: 0,
-      wht_amount: 0,
-      total_amount: 620,
-      created_at: '2026-06-06T15:30:00+07:00',
-      created_by: 'system',
-      deleted_at: null,
-      deleted_by: null,
-    },
-    items: [
-      {
-        id: 'ITEM-1007-1',
-        invoice_id: 'INV-ID-1007',
-        description: 'Dry Cleaning',
-        quantity: 3,
-        unit: 'PIECE',
-        unit_price: 206.67,
-        line_total: 620,
-      },
-    ],
-    paymentSummary: {
-      id: 'PAY-1007',
-      invoice_id: 'INV-ID-1007',
-      amount_due: 620,
-      amount_paid: 300,
-      balance: 320,
-      status: 'PARTIAL',
-      created_at: '2026-06-06T15:30:00+07:00',
-      created_by: 'system',
-      updated_at: '2026-06-06T16:00:00+07:00',
-      updated_by: 'system',
-      deleted_at: null,
-      deleted_by: null,
-    },
-    payments: [
-      {
-        id: 'PMT-1007-1',
-        invoice_id: 'INV-ID-1007',
-        amount: 300,
-        method: 'CASH',
-        proof_url: null,
-        reference_no: null,
-        status: 'VERIFIED',
-        api_log: null,
-        notes: null,
-        receipt_id: 'RCT-1007-1',
-        created_at: '2026-06-06T16:00:00+07:00',
-        created_by: 'system',
-        updated_at: '2026-06-06T16:00:00+07:00',
-        updated_by: 'system',
-      },
-    ],
-  },
-  {
-    invoice: {
-      id: 'INV-ID-1006',
-      invoice_number: 'INV-2026-1006',
-      customer_id: 'CUS-1003',
-      customer_name: 'Baan Sukhumvit',
-      customer_phone: '02-333-2222',
-      customer_address: '55 Sukhumvit 31, Bangkok',
-      customer_tax_id: null,
-      period_start: '2026-05-01',
-      period_end: '2026-05-31',
-      issued_date: '2026-06-01',
-      due_date: '2026-06-05',
-      items_subtotal: 2320,
-      discount_amount: 0,
-      surcharge_amount: 0,
-      subtotal: 2320,
-      tax_amount: 0,
-      wht_amount: 0,
-      total_amount: 2320,
-      created_at: '2026-06-01T10:00:00+07:00',
-      created_by: 'system',
-      deleted_at: null,
-      deleted_by: null,
-    },
-    items: [
-      {
-        id: 'ITEM-1006-1',
-        invoice_id: 'INV-ID-1006',
-        description: 'Monthly account',
-        quantity: 48,
-        unit: 'PIECE',
-        unit_price: 48.33,
-        line_total: 2320,
-      },
-    ],
-    paymentSummary: {
-      id: 'PAY-1006',
-      invoice_id: 'INV-ID-1006',
-      amount_due: 2320,
-      amount_paid: 0,
-      balance: 2320,
-      status: 'UNPAID',
-      created_at: '2026-06-01T10:00:00+07:00',
-      created_by: 'system',
-      updated_at: '2026-06-01T10:00:00+07:00',
-      updated_by: 'system',
-      deleted_at: null,
-      deleted_by: null,
-    },
-    payments: [],
-  },
-  {
-    invoice: {
-      id: 'INV-ID-1005',
-      invoice_number: 'INV-2026-1005',
-      customer_id: 'CUS-1004',
-      customer_name: 'Nara Boutique Hotel',
-      customer_phone: '02-111-9999',
-      customer_address: '199 Sathorn Road, Bangkok',
-      customer_tax_id: '0105558000002',
-      period_start: '2026-05-25',
-      period_end: '2026-06-03',
-      issued_date: '2026-06-04',
-      due_date: '2026-06-04',
-      items_subtotal: 4280,
-      discount_amount: 0,
-      surcharge_amount: 0,
-      subtotal: 4280,
-      tax_amount: 0,
-      wht_amount: 0,
-      total_amount: 4280,
-      created_at: '2026-06-04T11:00:00+07:00',
-      created_by: 'system',
-      deleted_at: null,
-      deleted_by: null,
-    },
-    items: [
-      {
-        id: 'ITEM-1005-1',
-        invoice_id: 'INV-ID-1005',
-        description: 'Corporate laundry',
-        quantity: 86,
-        unit: 'PIECE',
-        unit_price: 49.77,
-        line_total: 4280,
-      },
-    ],
-    paymentSummary: {
-      id: 'PAY-1005',
-      invoice_id: 'INV-ID-1005',
-      amount_due: 4280,
-      amount_paid: 4280,
-      balance: 0,
-      status: 'PAID',
-      created_at: '2026-06-04T11:00:00+07:00',
-      created_by: 'system',
-      updated_at: '2026-06-04T13:00:00+07:00',
-      updated_by: 'system',
-      deleted_at: null,
-      deleted_by: null,
-    },
-    payments: [
-      {
-        id: 'PMT-1005-1',
-        invoice_id: 'INV-ID-1005',
-        amount: 4280,
-        method: 'TRANSFER',
-        proof_url: 'https://example.com/payment-proofs/pmt-1005.jpg',
-        reference_no: 'TRX20260604001',
-        status: 'VERIFIED',
-        api_log: null,
-        notes: null,
-        receipt_id: 'RCT-1005-1',
-        created_at: '2026-06-04T13:00:00+07:00',
-        created_by: 'system',
-        updated_at: '2026-06-04T13:00:00+07:00',
-        updated_by: 'system',
-      },
-    ],
-  },
-]
+/**
+ * Invoices are normalized across four sheets (Invoices, InvoiceItems,
+ * PaymentSummary, Payments) inside one spreadsheet, written through one Apps
+ * Script endpoint. This repository is the only place that knows that layout: it
+ * composes the four sheets into the aggregate read shapes the mapper consumes,
+ * and fans a single logical write out to the sheets it touches.
+ *
+ * ATOMICITY: Sheets has no cross-sheet transaction. Multi-sheet writes below run
+ * as ordered Apps Script calls and are NOT atomic — a mid-way failure can leave a
+ * partial invoice. Acceptable for now; the proper fix is a batched `doPost` action
+ * that writes all rows for one invoice in a single request. See note on `create`.
+ */
 
-export async function findInvoiceRecords(): Promise<InvoiceRecordRow[]> {
-  return invoiceRecords
+function requireEnv(key: string): string {
+  const value = process.env[key]
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`)
+  }
+  return value
+}
+
+// One spreadsheet, four tabs, one write endpoint — so the GViz/AppScript clients
+// are shared; only the sheet (tab) name differs per BaseSheetRepository.
+const gvizClient = new GVizClient({ spreadsheetId: requireEnv('INVOICES_SPREADSHEET_ID') })
+const appScriptClient = new AppScriptClient({ scriptUrl: requireEnv('APPSCRIPT_INVOICE_URL') })
+
+const invoiceSheet = new BaseSheetRepository<InvoiceRow>({
+  sheet: process.env.INVOICES_SHEET_NAME ?? 'Invoices',
+  gvizClient,
+  appScriptClient,
+})
+const invoiceItemSheet = new BaseSheetRepository<InvoiceItemRow>({
+  sheet: process.env.INVOICE_ITEMS_SHEET_NAME ?? 'InvoiceItems',
+  gvizClient,
+  appScriptClient,
+})
+const paymentSummarySheet = new BaseSheetRepository<PaymentSummaryRow>({
+  sheet: process.env.PAYMENT_SUMMARY_SHEET_NAME ?? 'PaymentSummary',
+  gvizClient,
+  appScriptClient,
+})
+const paymentSheet = new BaseSheetRepository<PaymentRow>({
+  sheet: process.env.PAYMENTS_SHEET_NAME ?? 'Payments',
+  gvizClient,
+  appScriptClient,
+})
+
+export const invoiceRepository = {
+  // ── Reads ─────────────────────────────────────────────────────────
+  /** Full record for the detail view: header + items + rollup + payments. */
+  async getById(invoiceId: string): Promise<InvoiceRecordRow | null> {
+    const [invoice] = await invoiceSheet.get(invoiceQuery.getById(invoiceId))
+    if (!invoice) {
+      return null
+    }
+
+    const [items, summaries, payments] = await Promise.all([
+      invoiceItemSheet.get(invoiceItemQuery.getByInvoiceId(invoiceId)),
+      paymentSummarySheet.get(paymentSummaryQuery.getByInvoiceId(invoiceId)),
+      paymentSheet.get(paymentQuery.getByInvoiceId(invoiceId)),
+    ])
+
+    return {
+      invoice,
+      items,
+      paymentSummary: summaries[0] ?? null,
+      payments,
+    }
+  },
+
+  /**
+   * List records: header + rollup only. The list DTO needs no items/payments, so
+   * this reads two sheets and joins in memory — TWO queries total regardless of
+   * page size, never 1 + 3·N. Filtering/sort happen in the Invoices query; the
+   * `status` filter and pagination are applied by the service after the join.
+   */
+  async getByFilter(filter: InvoiceFilter): Promise<InvoiceListRecordRow[]> {
+    const invoices = await invoiceSheet.get(invoiceQuery.getByFilter(filter))
+    if (!invoices.length) {
+      return []
+    }
+
+    const summaries = await paymentSummarySheet.get(
+      paymentSummaryQuery.getByInvoiceIds(invoices.map((invoice) => invoice.id)),
+    )
+    const summaryByInvoiceId = new Map(summaries.map((summary) => [summary.invoice_id, summary]))
+
+    return invoices.map((invoice) => ({
+      invoice,
+      paymentSummary: summaryByInvoiceId.get(invoice.id) ?? null,
+    }))
+  },
+
+  // ── Writes ────────────────────────────────────────────────────────
+  /**
+   * Persist a new invoice across three sheets in dependency order
+   * (header → items → rollup). NOT atomic (see module note): a failure after the
+   * header is written leaves a partial invoice. Move to a single batched `doPost`
+   * action when atomicity/throughput on many line items matters.
+   */
+  async create(record: InvoiceCreateRecord): Promise<void> {
+    await invoiceSheet.create(record.invoice)
+    for (const item of record.items) {
+      await invoiceItemSheet.create(item)
+    }
+    await paymentSummarySheet.create(record.paymentSummary)
+  },
+
+  /** Append a payment, then restate the invoice's rollup. */
+  async recordPayment(write: PaymentWrite): Promise<void> {
+    await paymentSheet.create(write.payment)
+    await paymentSummarySheet.update(write.summary)
+  },
+
+  /** Patch a payment (e.g. PENDING → VERIFIED), then restate the rollup. */
+  async updatePayment(write: PaymentUpdateWrite): Promise<void> {
+    await paymentSheet.update(write.payment)
+    await paymentSummarySheet.update(write.summary)
+  },
 }
