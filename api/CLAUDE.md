@@ -13,7 +13,8 @@ Serverless backend for the Vue webapp. Data lives in Google Sheets — reads via
 ⚠️ **Vercel function budget:** every `.ts`/`.js` under `api/` becomes one serverless function; Hobby plan caps at **12**. So `api/` holds **route files only** — all helper code lives outside `api/` and is bundled into importing routes (not counted). Root Directory = `webapp-vue`.
 
 - `api/<feature>/` — route files only: `index.ts` (list/create), `[id].ts` (get/update). These are the serverless functions. (Legacy `customers.js`/`gviz.js`/`write.js` are also routes.)
-- `contracts/<feature>/<m>-api.schema.ts` — FE↔BE API contract (camelCase request/response schemas + enums), shared with the frontend via `@contracts/*`.
+- `contracts/<feature>/<m>-api.schema.ts` — per-feature FE↔BE API contract (camelCase request/response schemas + enums), shared with the frontend via `@contracts/*`.
+- `contracts/shared/api.schema.ts` — the generic FE↔BE contract: HTTP/query conventions + the response envelope (`apiSuccessSchema`/`apiPaginatedSchema`/`apiErrorResponseSchema`, error codes, pagination meta, defaults). Pure Zod, no type exports — consumers `z.infer`.
 - `server/modules/<module>/` — business logic per feature (db contract + wiring; complex modules keep layered folders).
 - `server/shared/` — cross-feature infrastructure (http, google-sheets, sheet-crud, repositories, types, utils).
 - `server/gviz/` — legacy GViz proxy (`gviz-utils.js`) + per-sheet column maps (`schemas/*.js`), used by the `.js` routes.
@@ -83,7 +84,7 @@ export const fooService = createSheetService({
 - **Route files stay one line per method** — no logic in routes; call `list`/`getById`/`create`/`update`.
 - **Dependency direction:** `routes → service → repository → queries`
 - **Type import direction:** `server/modules/<m>/<m>-db.schema.ts` (DB) → `contracts/<m>/<m>-api.schema.ts` (API). DB contract may reuse API enums; never the reverse.
-- **What may live in `contracts/`:** only API-facing camelCase request/response schemas + enums. **Never in `contracts/`:** DB row/payload schemas, repository types, the handler envelope (`server/shared/types/api-request|response.types`), or business services — a `contracts/` file must never import from `server/` or `api/`.
+- **What may live in `contracts/`:** the per-feature camelCase request/response schemas + enums, and the generic request/response envelope (`contracts/shared/api.schema.ts`) — pure Zod, no type exports. **Never in `contracts/`:** DB row/payload schemas, repository types, the serverless **handler runtime object** (`ApiHandlerRequest` + raw query, which stay in `server/shared/types/`), or business services — and a `contracts/` file must never import from `server/` or `api/`.
 
 ### Key Engine Rules
 
@@ -107,7 +108,7 @@ Repositories and services are module-level object literals (`export const fooSer
 
 ## Response Contract
 
-Success: `{ data, meta }`; paginated: `meta.pagination = { total, page, perPage, totalPages }`; error: `{ error: { code, message, details? } }`. Built only via `ok`/`created`/`noContent`/`okPaginated`/`ApiError` from `server/shared/http/`.
+Success: `{ data, meta }`; paginated: `meta.pagination = { total, page, perPage, totalPages }`; error: `{ error: { code, message, details? } }`. Built only via `ok`/`created`/`noContent`/`okPaginated`/`ApiError` from `server/shared/http/`. The envelope shape is the shared Zod contract `contracts/shared/api.schema.ts` (single source for FE + BE); `server/shared/types/` only infers the builders' named types from it.
 
 ## Gotchas
 

@@ -1,52 +1,41 @@
-export const API_ERROR_CODES = {
-  BAD_REQUEST: 'BAD_REQUEST',
-  VALIDATION_ERROR: 'VALIDATION_ERROR',
-  UNAUTHORIZED: 'UNAUTHORIZED',
-  FORBIDDEN: 'FORBIDDEN',
-  NOT_FOUND: 'NOT_FOUND',
-  METHOD_NOT_ALLOWED: 'METHOD_NOT_ALLOWED',
-  CONFLICT: 'CONFLICT',
-  INTERNAL_ERROR: 'INTERNAL_ERROR',
-} as const
+import { z } from 'zod'
+import {
+  apiErrorBodySchema,
+  apiErrorCodeSchema,
+  apiPaginationMetaSchema,
+  apiResponseMetaSchema,
+} from '../../../contracts/shared/api.schema'
 
-export type ApiErrorCode = (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES]
+/**
+ * Server-side named types for the response envelope, derived from the shared
+ * contract (`contracts/shared/api.schema.ts`) — the single source. This module
+ * only infers the types the http builders consume. The generic success/
+ * paginated wrappers are TS generics (one Zod schema can't be generic over its
+ * data), declared here over the contract's inferred meta/error pieces.
+ */
 
-export interface ApiPaginationMeta {
-  total: number
-  page: number
-  perPage: number
-  totalPages: number
-}
+/** Runtime value object of error codes (`API_ERROR_CODES.NOT_FOUND` === 'NOT_FOUND'). */
+export const API_ERROR_CODES = apiErrorCodeSchema.enum
+export type ApiErrorCode = z.infer<typeof apiErrorCodeSchema>
 
-export interface ApiResponseMeta {
-  timestamp?: string
-}
+export type ApiPaginationMeta = z.infer<typeof apiPaginationMetaSchema>
+type ApiResponseMeta = z.infer<typeof apiResponseMetaSchema>
+type ApiErrorBody = z.infer<typeof apiErrorBodySchema>
 
-export interface ApiPaginatedMeta extends ApiResponseMeta {
-  pagination: ApiPaginationMeta
-}
-
-export interface BaseResponse {
-  success: boolean
+export interface ApiSuccessResponse<TData> {
+  success: true
+  data: TData
   meta?: ApiResponseMeta
 }
 
-export interface ApiSuccessResponse<TData> extends BaseResponse {
+export interface ApiPaginatedResponse<TItem> {
   success: true
-  data: TData
+  data: TItem[]
+  meta: ApiResponseMeta & { pagination: ApiPaginationMeta }
 }
 
-export interface ApiErrorBody {
-  code: ApiErrorCode
-  message: string
-  details?: unknown
-}
-
-export interface ApiErrorResponse extends BaseResponse {
+export interface ApiErrorResponse {
   success: false
   error: ApiErrorBody
-}
-
-export interface ApiPaginatedResponse<TItem> extends ApiSuccessResponse<TItem[]> {
-  meta: ApiPaginatedMeta
+  meta?: ApiResponseMeta
 }

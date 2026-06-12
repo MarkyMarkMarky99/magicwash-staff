@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { API_PAGINATION_DEFAULTS } from '../shared/pagination'
+import { API_PAGINATION_DEFAULTS } from '../shared/api.schema'
 
 /**
  * The appointments API ↔ frontend contract: request/query schemas, response
