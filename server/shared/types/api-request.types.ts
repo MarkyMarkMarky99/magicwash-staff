@@ -18,10 +18,8 @@ export interface ApiPaginationParams {
   perPage: number
 }
 
-export const API_PAGINATION_DEFAULTS = {
-  page: 1,
-  perPage: 20,
-} as const
+// Canonical source lives in the FE↔BE contract; re-exported here for BE consumers.
+export { API_PAGINATION_DEFAULTS } from '../../../contracts/shared/pagination'
 
 // Common list query: pagination + optional sort + search
 export interface ApiListQuery<TSortField extends string = string> extends ApiPaginationParams {

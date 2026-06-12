@@ -4,7 +4,7 @@ import {
   appointmentTimeSlotSchema,
   appointmentTypeSchema,
   serviceTierSchema,
-} from './appointment-api.schema'
+} from '../../../contracts/appointments/appointment-api.schema'
 
 /**
  * The appointments API ↔ database contract (Google Sheets / Apps Script):

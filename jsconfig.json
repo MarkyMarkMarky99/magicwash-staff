@@ -5,9 +5,10 @@
     "moduleResolution": "Bundler",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@contracts/*": ["contracts/*"]
     }
   },
-  "include": ["src/**/*.js", "src/**/*.ts", "src/**/*.vue"],
+  "include": ["src/**/*.js", "src/**/*.ts", "src/**/*.vue", "contracts/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

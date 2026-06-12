@@ -14,7 +14,7 @@
   - `pages/` - Route-level pages. Orchestrate store, route params, and feature components.
   - `services/` - API communication for the feature.
   - `stores/` - Feature state management using Pinia.
-  - `types/` - Frontend models and API DTO types.
+  - `types/` - Frontend view models. API DTO types come from `@contracts/*`, not re-declared here.
   - `mappers/` - Transform API DTOs to frontend models and payloads back to API format.
   - `constants/` - Feature-specific static values.
   - `routes.ts` - Feature route definitions.
@@ -44,10 +44,18 @@ The frontend depends only on the **API contract**: it consumes `camelCase`, busi
 DTOs (statuses, totals, merged relations already resolved) and never sees DB shape —
 `snake_case`/PascalCase rows stay behind the API boundary.
 
+That contract lives in `contracts/<feature>/<m>-api.schema.ts` (project root, outside both
+`src/` and `api/`) and is the **single source of truth** for request/response shapes + enums —
+imported by the backend AND the frontend via the `@contracts/*` alias. Use `import type` +
+`z.infer<typeof schema>` to pull just the types with no runtime cost, or import the schema value
+when you want client-side zod validation. Only camelCase API schemas/enums live there — never DB shape.
+
 ## Types & DTO Rules
-- `*-api.types.ts` — the API response contract the frontend consumes: `camelCase`,
-  business-complete (all statuses/totals/relations resolved server-side).
-- `*.types.ts` — frontend view models; extend the API type with presentation-only
+- API contract types come from `@contracts/<feature>/<m>-api.schema.ts` (shared with the
+  backend) — derive them with `import type` + `z.infer`, do NOT hand-copy DTOs into the
+  feature. The contract is `camelCase` and business-complete (all statuses/totals/relations
+  resolved server-side).
+- `*.types.ts` — frontend view models; extend the contract type with presentation-only
   additions (labels, tones, display aliases, summaries).
 - Never let DB shape reach the frontend: raw DB rows / `snake_case` must not cross the
   API boundary, and DB types must never reach stores, pages, or components.
@@ -58,9 +66,10 @@ DTOs (statuses, totals, merged relations already resolved) and never sees DB sha
 - Composables: prefix with `use`
 
 ## Import Rules
-- Use `@/` path alias.
+- Use `@/` path alias for `src/`; `@contracts/*` for the shared API contract.
 - Avoid deep relative imports like `../../../../`.
-- Use `import type` for TypeScript types and interfaces.
+- Use `import type` for TypeScript types and interfaces (and to pull contract types
+  without bundling zod at runtime).
 
 ## Coding Standards
 - Prefer strong TypeScript types.

@@ -14,7 +14,7 @@
  * Returns: JSON array of row objects with camelCase field names
  *   e.g. [{ customerId: "CUS-001", customerName: "...", ... }]
  */
-import { SOURCE_MAP, fetchGvizMapped } from './_gviz.js';
+import { SOURCE_MAP, fetchGvizMapped } from '../server/gviz/gviz-utils.js';
 
 export default async function handler(req, res) {
   const { source, tq, cols } = req.query;

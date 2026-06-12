@@ -1,5 +1,5 @@
-import { appointmentService } from '../modules/appointments/appointment.module'
-import { ApiHandler, ok } from '../shared/http'
+import { appointmentService } from '../../server/modules/appointments/appointment.module'
+import { ApiHandler, ok } from '../../server/shared/http'
 
 // /api/appointments/:id
 export default new ApiHandler({

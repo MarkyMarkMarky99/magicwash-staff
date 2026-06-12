@@ -1,5 +1,5 @@
-import { invoiceService } from '../modules/invoices/services/invoice.service'
-import { ApiHandler, created, okPaginated } from '../shared/http'
+import { invoiceService } from '../../server/modules/invoices/services/invoice.service'
+import { ApiHandler, created, okPaginated } from '../../server/shared/http'
 
 // /api/invoices
 export default new ApiHandler({

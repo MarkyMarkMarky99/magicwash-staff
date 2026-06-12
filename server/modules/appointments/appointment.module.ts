@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { createGoogleSheetRepository, createSheetService } from '../../shared/sheet-crud'
-import { appointmentApiSchemas, appointmentListQuerySchema } from './types/appointment-api.schema'
-import { appointmentDbSchemas, appointmentRowSchema } from './types/appointment-db.schema'
+import { appointmentApiSchemas, appointmentListQuerySchema } from '../../../contracts/appointments/appointment-api.schema'
+import { appointmentDbSchemas, appointmentRowSchema } from './appointment-db.schema'
 
 // ── Types derived from the schemas — the schemas stay the single source of
 //    truth; the aliases live with their only consumer (this module) rather

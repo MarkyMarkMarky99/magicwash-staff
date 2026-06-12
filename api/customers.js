@@ -1,4 +1,4 @@
-import { fetchGvizMapped } from './_gviz.js';
+import { fetchGvizMapped } from '../server/gviz/gviz-utils.js';
 
 const CUSTOMER_QUERY = 'SELECT B,C,D,E,F,H,J,L,M,N,O,P WHERE T is null ORDER BY A DESC';
 

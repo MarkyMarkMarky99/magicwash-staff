@@ -1,5 +1,5 @@
-import { invoiceService } from '../modules/invoices/services/invoice.service'
-import { ApiHandler, ok } from '../shared/http'
+import { invoiceService } from '../../server/modules/invoices/services/invoice.service'
+import { ApiHandler, ok } from '../../server/shared/http'
 
 // /api/invoices/:id  — invoices are immutable (no PATCH); soft-delete deferred.
 export default new ApiHandler({

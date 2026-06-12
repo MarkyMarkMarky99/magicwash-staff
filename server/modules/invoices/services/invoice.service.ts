@@ -1,3 +1,6 @@
+// ⚠ MOVED AS-IS from api/modules/invoices — pending full invoice-module refactor.
+//   The move only relocated files (relative imports to ../../../shared were
+//   preserved); treat this layout as temporary. See api/PLAN.md §5 / api/HANDOFF.md.
 import { ApiError } from '../../../shared/http/api-error'
 import { parseOrThrow } from '../../../shared/http/validate'
 import type { ApiQueryParams } from '../../../shared/types/api-request.types'

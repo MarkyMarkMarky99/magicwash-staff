@@ -12,18 +12,35 @@ Serverless backend for the Vue webapp. Data lives in Google Sheets — reads go 
 
 ### Project Structure
 
-- `api/<feature>/` - Vercel route files — `index.ts` (list/create) and `[id].ts` (get/update)
-- `api/modules/` - Business logic per feature
-- `api/shared/` - Cross-feature infrastructure (http, google-sheets, sheet-crud, repositories, utils)
+⚠️ **Vercel function budget:** zero-config Vercel turns EVERY `.ts`/`.js` file
+under `api/` into its own serverless function; the Hobby plan caps a deployment
+at **12**. So `api/` holds **route files only** — all helper code lives OUTSIDE
+`api/` and is bundled into the routes that import it (not counted). Root
+Directory = `webapp-vue`, so `server/`, `contracts/`, `src/` are all in the build context.
 
-### Module Structure (`modules/<module>/`)
+- `api/<feature>/` - Vercel route files only — `index.ts` (list/create) and
+  `[id].ts` (get/update). These ARE the serverless functions; one line per
+  method. (Legacy `customers.js` / `gviz.js` / `write.js` are also routes.)
+- `contracts/<feature>/<m>-api.schema.ts` - the FE↔BE API contract (camelCase
+  request/response schemas + enums), **shared**: imported by backend AND frontend
+  (`@contracts/*`). Only this crosses to the frontend (see Type import direction).
+- `server/modules/<module>/` - business logic per feature (db contract + module
+  wiring; complex modules keep their layered folders)
+- `server/shared/` - cross-feature infrastructure (http, google-sheets, sheet-crud, repositories, types, utils)
+- `server/gviz/` - legacy GViz proxy (`gviz-utils.js`) + per-sheet column maps (`schemas/*.js`), imported by the `.js` routes
+- Backend imports are RELATIVE (`../../server/...`, `../../../contracts/...`) — no
+  tsconfig path alias, so `@vercel/node`/esbuild resolves them zero-config. The
+  `@contracts/*` alias is for the FRONTEND (Vite) only.
 
-**Simple modules** (one sheet, CRUD + filters — e.g. appointments) are two
-contract files under `types/` plus a `<m>.module.ts` that is wiring only.
-Skeleton for a new module:
+### Module Structure (`server/modules/<module>/`)
+
+**Simple modules** (one sheet, CRUD + filters — e.g. appointments) are a
+`<m>-db.schema.ts` + a `<m>.module.ts` that is wiring only (both in
+`server/modules/<m>/`); the matching `<m>-api.schema.ts` lives in
+`contracts/<m>/` (shared with the frontend). Skeleton for a new module:
 
 ```ts
-// <m>-api.schema.ts — the API ↔ frontend contract (all camelCase):
+// contracts/<m>/<m>-api.schema.ts — the API ↔ frontend contract (all camelCase), shared with FE:
 //   request/query schemas, response schemas, and the API-facing enums.
 export const fooCreateSchema = z.object({ name: z.string().min(1), createdBy: z.string().min(1), ... })
 export const fooUpdateSchema = z.object({ name: z.string().optional(), updatedBy: z.string().min(1) }).refine(...)
@@ -37,7 +54,7 @@ export const fooApiSchemas = {
   listResponse: fooListResponseSchema, detailResponse: fooDetailResponseSchema,
 } as const
 
-// <m>-db.schema.ts — the API ↔ database contract (sheet column keys):
+// server/modules/<m>/<m>-db.schema.ts — the API ↔ database contract (sheet column keys):
 //   ⚠️ row key order = physical column order (1st key = column A); never reorder.
 export const fooRowSchema = z.object({ FooID: z.string(), Name: z.string(), Notes: ..., ... })
 // Write payloads are declared PER ACTION, not derived from the row: a row
@@ -84,7 +101,7 @@ export const fooService = createSheetService({
   uppercase `ID` suffix; API fields are the camelCase twins
   (`PickupOrderID` ↔ `pickupOrderId`). Projection, payload building, and sort
   resolution all pair the two contracts through it
-  (`shared/sheet-crud/sheet-naming.ts`). A sheet that breaks the convention
+  (`server/shared/sheet-crud/sheet-naming.ts`). A sheet that breaks the convention
   needs an engine extension, not a workaround.
 - **Two contracts, machine-checked**: the api and db bundles are independent
   declarations; everything that could drift between them (or against the row)
@@ -114,7 +131,7 @@ export const fooService = createSheetService({
 **Complex modules** (multi-sheet reads, 1:n assembly, business rules beyond
 CRUD+filter — e.g. invoices) keep dedicated layers, composing the underlying
 pieces (`BaseSheetRepository`, `createClauseBuilders`, `createSheetQuery`,
-naming utils — exported from `shared/sheet-crud/` and `shared/repositories/`)
+naming utils — exported from `server/shared/sheet-crud/` and `server/shared/repositories/`)
 where useful:
 
 - `types/` - Declaration layer (schemas, shapes, enums, DTOs)
@@ -127,10 +144,14 @@ where useful:
 
 - Route files stay one line per method — no logic in routes
 - Dependency direction: `routes → service → repository → queries`
-- Type import direction: `<m>-db.schema.ts → <m>-api.schema.ts` (DB contract may
-  reuse API enums; never the reverse) — DB contracts (`snake`/PascalCase rows,
-  payloads) must never reach the frontend; response DTOs are copied to the
-  frontend as frontend-owned types, not imported across projects
+- Type import direction: `server/modules/<m>/<m>-db.schema.ts (DB) →
+  contracts/<m>/<m>-api.schema.ts (API)` (DB contract may reuse API enums; never
+  the reverse). The API contract is SHARED with the frontend (`@contracts/*`);
+  the DB contract is not. **May live in `contracts/`:** only API-facing camelCase
+  request/response schemas + enums. **Never in `contracts/`:** DB row/payload
+  schemas, repository types, the handler envelope
+  (`server/shared/types/api-request|response.types`), or business services — and
+  a `contracts/` file must never import from `server/` or `api/`.
 - `types/` holds static declarations only — if data flows through a file, it belongs in `queries/` or `mappers/`
 
 ## Singletons, not classes
@@ -140,9 +161,9 @@ where useful:
 - All `sheet-crud` factories run at module scope, so env vars are read once at
   first import (safe: `tsc` doesn't execute modules; Vercel cold start has env).
 - No per-module factory files. Wiring happens through imports; the only factories
-  are the generic ones in `shared/sheet-crud/`.
-- `shared/` clients (`GVizClient`, `AppScriptClient`, `BaseSheetRepository`) stay
-  classes — they're instantiated per feature with different config.
+  are the generic ones in `server/shared/sheet-crud/`.
+- `server/shared/` clients (`GVizClient`, `AppScriptClient`, `BaseSheetRepository`)
+  stay classes — they're instantiated per feature with different config.
 
 ### Validation (Strict by Contract)
 - **Parsing:** Service entry points call `parseOrThrow(schema, raw)`. Yields 422 with flattened issues on violation. Never cast using `as`.
@@ -152,13 +173,13 @@ where useful:
 ## Response contract
 - Success: `{ data, meta }`; paginated: `meta.pagination = { total, page, perPage, totalPages }`;
   error: `{ error: { code, message, details? } }` — built only via `ok` / `created` /
-  `noContent` / `okPaginated` / `ApiError` from `shared/http/`.
+  `noContent` / `okPaginated` / `ApiError` from `server/shared/http/`.
 
 ## Gotchas
 - Don't add repository/query methods speculatively — expose exactly what the
   service calls today (`getByFilter` covers most ad-hoc reads).
 - The "never cast with `as`" rule applies to module code. Inside
-  `shared/sheet-crud/` factories, commented casts that only erase generics are
+  `server/shared/sheet-crud/` factories, commented casts that only erase generics are
   allowed — the config mapped types already verified every field↔column pairing.
 - Don't widen `perPage` past its `.max()` — over-limit is a 422, not a clamp.
 - ISO `YYYY-MM-DD` strings compare correctly with `<=` — no Date parsing needed.
