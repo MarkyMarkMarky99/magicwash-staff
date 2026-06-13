@@ -7,7 +7,7 @@ import { API_PAGINATION_DEFAULTS } from '../shared/api.schema'
  * `customer-db.schema.ts` and never crosses this boundary.
  */
 
-export const customerTypeSchema = z.enum(['Member', 'Regular'])
+export const customerTypeSchema = z.enum(['Member', 'Regular', 'Corporate'])
 export const customerSourceSchema = z.enum(['Facebook Ads', 'Google Ads'])
 export const preferredContactMethodSchema = z.enum(['Line', 'Messenger'])
 
