@@ -36,8 +36,8 @@ export interface SheetApiSchemas<TFilter, TCreateInput, TUpdateInput, TListDto, 
 
 // ── Contract completeness checks ─────────────────────────────────────────────
 //
-// The api and db bundles are independent declarations bound by the naming
-// convention; everything that could silently drift between them (or against
+// The api and db bundles are independent declarations bound by the explicit
+// field map; everything that could silently drift between them (or against
 // the stored row) is a compile error surfaced on the config property.
 
 /** `unknown` when TProblem is empty; otherwise an unsatisfiable error property. */
@@ -286,9 +286,9 @@ export function createSheetService<
   const { resourceName, repository, api, db } = config
   const hooks = config.hooks ?? {}
 
-  // ── Projection: response schema fields → row columns via the naming
-  //    convention. (Casts in here only erase generics — the config mapped
-  //    types already verified every field↔column pairing.) ──
+  // ── Projection: response schema fields → row columns via the field map.
+  //    (Casts in here only erase generics — the config mapped types already
+  //    verified every field↔column pairing.) ──
 
   const rowColumns = Object.keys(db.row.shape) as Array<keyof TRow & string>
 
