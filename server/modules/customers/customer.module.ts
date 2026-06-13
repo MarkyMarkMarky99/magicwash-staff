@@ -24,11 +24,11 @@ const customerRepository = createGoogleSheetRepository<CustomerRow, CustomerFilt
   },
   db: customerDbSchemas,
   clauses: (clause, columns) => [
-    clause.contains('keyword', ['CustomerID', 'CustomerIndex', 'CustomerName', 'Email']),
+    // keyword spans customerIndex (most-used lookup), customerName, and address
+    // (address replaces the dropped dedicated location filter). Phone is excluded:
+    // it is a number column, and GViz contains() can't run on a numeric column.
+    clause.contains('keyword', ['CustomerIndex', 'CustomerName', 'Address']),
     clause.eq('customerType', 'CustomerType'),
-    clause.eq('source', 'Source'),
-    clause.eq('preferredContactMethod', 'PreferredContactMethod'),
-    clause.contains('location', ['Location']),
     // Soft-deleted rows (DeletedAt set) are hidden unless explicitly included.
     (filter) => (filter.includeDeleted ? null : `${columns.DeletedAt} is null`),
   ],

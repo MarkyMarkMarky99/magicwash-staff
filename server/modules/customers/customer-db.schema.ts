@@ -64,9 +64,6 @@ export const customerAppendPayloadSchema = z.object({
   Email: z.string().nullable(),
   CustomerType: customerTypeSchema.nullable(),
   Source: customerSourceSchema.nullable(),
-  ScheduledDays: z.string().nullable(),
-  LastVisitDate: z.string().nullable(),
-  PreferredContactMethod: preferredContactMethodSchema.nullable(),
   // Required on APPEND even though the stored cell is nullable (legacy rows).
   UpdatedBy: z.string().min(1),
 })
@@ -84,9 +81,6 @@ export const customerUpdatePayloadSchema = z.object({
   Email: z.string().nullable().optional(),
   CustomerType: customerTypeSchema.nullable().optional(),
   Source: customerSourceSchema.nullable().optional(),
-  ScheduledDays: z.string().nullable().optional(),
-  LastVisitDate: z.string().nullable().optional(),
-  PreferredContactMethod: preferredContactMethodSchema.nullable().optional(),
   // Every update must carry its actor.
   UpdatedBy: z.string().min(1),
 })
