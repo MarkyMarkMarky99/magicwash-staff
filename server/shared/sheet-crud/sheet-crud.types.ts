@@ -47,19 +47,28 @@ export interface ResourceRepository<TRow, TFilter> {
 /**
  * The module's contract with the database layer, declared in its
  * `<m>-db.schema.ts`: the full stored row (key order = physical column
- * order), the id column, and one payload schema per write action. Action
- * payloads are declared per action — NOT derived from the row — because a
- * stored-row column type describes what may sit in the cell (including legacy
- * mess), while an action contract states what that action must send (e.g.
- * `CreatedBy` is nullable in storage but required on APPEND).
+ * order), the id column, the column -> API field map, and one payload schema
+ * per write action. Action payloads are declared per action — NOT derived from
+ * the row — because a stored-row column type describes what may sit in the cell
+ * (including legacy mess), while an action contract states what that action
+ * must send (e.g. `CreatedBy` is nullable in storage but required on APPEND).
  */
 export interface SheetDbSchemas<
   TRow extends object,
   TAppendPayload extends object,
   TUpdatePayload extends object,
+  TFieldMap extends Record<keyof TRow & string, string>,
 > {
   row: ZodType<TRow, ZodTypeDef, unknown> & { shape: Record<keyof TRow & string, unknown> }
   idColumn: SheetIdColumn<TRow> & string
+  /**
+   * Explicit DB column -> API field name, one entry per row column. Replaces
+   * any naming convention: the engine never guesses a field from a column. The
+   * module should declare it with `as const satisfies Record<keyof Row & string,
+   * string>` so a missing or stray column is a compile error; bijectivity is
+   * checked at runtime when the resolver is built.
+   */
+  fieldMap: TFieldMap
   /** Exact APPEND body (sans db-filled cells); key order = payload key order. */
   appendPayload: ZodType<TAppendPayload, ZodTypeDef, unknown> & {
     shape: Record<keyof TAppendPayload & string, unknown>

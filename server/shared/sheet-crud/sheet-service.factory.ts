@@ -9,7 +9,7 @@ import type {
   SheetDbSchemas,
   SheetListFilter,
 } from './sheet-crud.types'
-import { columnToField, type ColumnToField, type SheetDtoFor } from './sheet-naming'
+import { makeFieldResolver, type FieldFor, type SheetDtoFor } from './sheet-naming'
 
 // ── The API contract bundle ──────────────────────────────────────────────────
 
@@ -58,37 +58,45 @@ export type PayloadColumnsNotStorable<TRow, TPayload> = {
     : C
 }[keyof TPayload & keyof TRow & string]
 
+/** Row columns the field map omits, or map keys that aren't real columns. */
+export type FieldMapColumnsMismatch<TRow extends object, TFieldMap> =
+  | Exclude<keyof TRow & string, keyof TFieldMap & string>
+  | Exclude<keyof TFieldMap & string, keyof TRow & string>
+
 /** Append fills every payload column; absent optional input becomes null. */
-export type UnfillableCreateColumns<TPayload, TInput> = {
-  [C in keyof TPayload & string]: ColumnToField<C> extends keyof TInput
-    ? Coalesced<TInput[ColumnToField<C>]> extends TPayload[C]
+export type UnfillableCreateColumns<TFieldMap, TPayload, TInput> = {
+  [C in keyof TPayload & string]: FieldFor<TFieldMap, C> extends keyof TInput
+    ? Coalesced<TInput[FieldFor<TFieldMap, C> & keyof TInput]> extends TPayload[C]
       ? never
       : C
     : C
 }[keyof TPayload & string]
 
 /** Update is PATCH: only defined input fields are sent, so undefined means "skipped". */
-export type UnfillableUpdateColumns<TPayload, TInput> = {
-  [C in keyof TPayload & string]: ColumnToField<C> extends keyof TInput
-    ? Exclude<TInput[ColumnToField<C>], undefined> extends Exclude<TPayload[C], undefined>
+export type UnfillableUpdateColumns<TFieldMap, TPayload, TInput> = {
+  [C in keyof TPayload & string]: FieldFor<TFieldMap, C> extends keyof TInput
+    ? Exclude<TInput[FieldFor<TFieldMap, C> & keyof TInput], undefined> extends Exclude<
+        TPayload[C],
+        undefined
+      >
       ? never
       : C
     : C
 }[keyof TPayload & string]
 
-/** Input fields whose conventional column is not in the payload schema. */
-export type DroppedInputFields<TInput, TPayload> = Exclude<
+/** Input fields whose mapped column is not in the payload schema. */
+export type DroppedInputFields<TFieldMap, TInput, TPayload> = Exclude<
   keyof TInput & string,
-  ColumnToField<keyof TPayload & string>
+  FieldFor<TFieldMap, keyof TPayload & string>
 >
 
-/** The whole row seen through the naming convention (every column, camelCase). */
-type ProjectedRow<TRow extends object> = SheetDtoFor<TRow, keyof TRow & string>
+/** The whole row seen through the field map (every column, renamed to its API field). */
+type ProjectedRow<TRow extends object, TFieldMap> = SheetDtoFor<TRow, TFieldMap>
 
 /** Response fields with no backing row column. */
-export type UnbackedResponseFields<TRow extends object, TDto> = Exclude<
+export type UnbackedResponseFields<TRow extends object, TDto, TFieldMap> = Exclude<
   keyof TDto & string,
-  keyof ProjectedRow<TRow>
+  keyof ProjectedRow<TRow, TFieldMap>
 >
 
 /**
@@ -96,17 +104,21 @@ export type UnbackedResponseFields<TRow extends object, TDto> = Exclude<
  * non-null `address` over a nullable Address column. Forces response schemas
  * to be honest about nullability without any runtime cost.
  */
-export type UntruthfulResponseFields<TRow extends object, TDto> = {
-  [F in keyof TDto & keyof ProjectedRow<TRow> & string]: ProjectedRow<TRow>[F] extends TDto[F]
+export type UntruthfulResponseFields<TRow extends object, TDto, TFieldMap> = {
+  [F in keyof TDto & keyof ProjectedRow<TRow, TFieldMap> & string]: ProjectedRow<
+    TRow,
+    TFieldMap
+  >[F] extends TDto[F]
     ? never
     : F
-}[keyof TDto & keyof ProjectedRow<TRow> & string]
+}[keyof TDto & keyof ProjectedRow<TRow, TFieldMap> & string]
 
-/** sortBy values that are not the camelCase twin of any row column. */
-export type UnsortableFields<TRow extends object, TFilter extends SheetListFilter> = Exclude<
-  TFilter['sortBy'],
-  ColumnToField<keyof TRow & string>
->
+/** sortBy values that are not the mapped API field of any row column. */
+export type UnsortableFields<
+  TRow extends object,
+  TFilter extends SheetListFilter,
+  TFieldMap,
+> = Exclude<TFilter['sortBy'], FieldFor<TFieldMap, keyof TRow & string>>
 
 // ── Hooks ────────────────────────────────────────────────────────────────────
 
@@ -172,6 +184,7 @@ export interface SheetServiceConfig<
   TUpdatePayload extends object,
   TListDto extends object,
   TDetailDto extends object,
+  TFieldMap extends Record<keyof TRow & string, string>,
 > {
   /** Resource name used in error messages, e.g. 'Appointment'. */
   resourceName: string
@@ -181,18 +194,24 @@ export interface SheetServiceConfig<
   api: SheetApiSchemas<TFilter, TCreateInput, TUpdateInput, TListDto, TDetailDto> &
     RequireEmpty<
       'ERROR: these listResponse fields have no backing row column, or claim a type the cell cannot guarantee (nullability must be honest)',
-      UnbackedResponseFields<TRow, TListDto> | UntruthfulResponseFields<TRow, TListDto>
+      | UnbackedResponseFields<TRow, TListDto, TFieldMap>
+      | UntruthfulResponseFields<TRow, TListDto, TFieldMap>
     > &
     RequireEmpty<
       'ERROR: these detailResponse fields have no backing row column, or claim a type the cell cannot guarantee (nullability must be honest)',
-      UnbackedResponseFields<TRow, TDetailDto> | UntruthfulResponseFields<TRow, TDetailDto>
+      | UnbackedResponseFields<TRow, TDetailDto, TFieldMap>
+      | UntruthfulResponseFields<TRow, TDetailDto, TFieldMap>
     > &
     RequireEmpty<
-      'ERROR: these sortBy values are not the camelCase twin of any row column',
-      UnsortableFields<TRow, TFilter>
+      'ERROR: these sortBy values are not the mapped API field of any row column',
+      UnsortableFields<TRow, TFilter, TFieldMap>
     >
   /** The API ↔ database contract bundle (`<m>-db.schema.ts`). */
-  db: SheetDbSchemas<TRow, TAppendPayload, TUpdatePayload> &
+  db: SheetDbSchemas<TRow, TAppendPayload, TUpdatePayload, TFieldMap> &
+    RequireEmpty<
+      'ERROR: the fieldMap must have exactly one entry per row column — these row columns are unmapped, or these map keys are not row columns',
+      FieldMapColumnsMismatch<TRow, TFieldMap>
+    > &
     RequireEmpty<
       'ERROR: these payload columns do not exist in the stored row, or declare a type the cell cannot store',
       | PayloadColumnsNotInRow<TRow, TAppendPayload>
@@ -202,19 +221,19 @@ export interface SheetServiceConfig<
     > &
     RequireEmpty<
       'ERROR: the create request cannot fill these appendPayload columns',
-      UnfillableCreateColumns<TAppendPayload, TCreateInput>
+      UnfillableCreateColumns<TFieldMap, TAppendPayload, TCreateInput>
     > &
     RequireEmpty<
       'ERROR: the update request cannot fill these updatePayload columns',
-      UnfillableUpdateColumns<TUpdatePayload, TUpdateInput>
+      UnfillableUpdateColumns<TFieldMap, TUpdatePayload, TUpdateInput>
     > &
     RequireEmpty<
       'ERROR: these create request fields land in no appendPayload column — their values would be silently dropped',
-      DroppedInputFields<TCreateInput, TAppendPayload>
+      DroppedInputFields<TFieldMap, TCreateInput, TAppendPayload>
     > &
     RequireEmpty<
       'ERROR: these update request fields land in no updatePayload column — their values would be silently dropped',
-      DroppedInputFields<TUpdateInput, TUpdatePayload>
+      DroppedInputFields<TFieldMap, TUpdateInput, TUpdatePayload>
     >
   hooks?: SheetHooks<
     TRow,
@@ -250,6 +269,7 @@ export function createSheetService<
   TUpdatePayload extends object,
   TListDto extends object,
   TDetailDto extends object,
+  TFieldMap extends Record<keyof TRow & string, string>,
 >(
   config: SheetServiceConfig<
     TRow,
@@ -259,7 +279,8 @@ export function createSheetService<
     TAppendPayload,
     TUpdatePayload,
     TListDto,
-    TDetailDto
+    TDetailDto,
+    TFieldMap
   >,
 ): SheetService<TListDto, TDetailDto> {
   const { resourceName, repository, api, db } = config
@@ -271,9 +292,14 @@ export function createSheetService<
 
   const rowColumns = Object.keys(db.row.shape) as Array<keyof TRow & string>
 
+  // The explicit field map drives every column↔field translation, both
+  // directions. (Cast erases the generic for the stringly runtime; the config
+  // mapped types already verified the map is exact and well-typed.)
+  const resolver = makeFieldResolver(db.fieldMap as Record<string, string>)
+
   const fieldToColumn = new Map<string, keyof TRow & string>()
   for (const column of rowColumns) {
-    fieldToColumn.set(columnToField(column), column)
+    fieldToColumn.set(resolver.toField(column), column)
   }
 
   function projectorFor(shape: Record<string, unknown>, schemaName: string) {
@@ -306,10 +332,10 @@ export function createSheetService<
   //    schema doesn't mirror) — 500, not 422. ──
 
   const appendPairs = Object.keys(db.appendPayload.shape).map(
-    (column) => [column, columnToField(column)] as const,
+    (column) => [column, resolver.toField(column)] as const,
   )
   const updatePairs = Object.keys(db.updatePayload.shape).map(
-    (column) => [column, columnToField(column)] as const,
+    (column) => [column, resolver.toField(column)] as const,
   )
 
   function parsePayload<TPayload>(

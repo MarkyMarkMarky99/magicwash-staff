@@ -9,7 +9,7 @@ import type {
   SheetIdColumn,
   SheetListFilter,
 } from './sheet-crud.types'
-import { columnLetterFor, columnToField } from './sheet-naming'
+import { columnLetterFor, makeFieldResolver } from './sheet-naming'
 import {
   createClauseBuilders,
   createSheetQuery,
@@ -32,14 +32,16 @@ export interface GoogleSheetRepositoryConfig<
   sheet: GoogleSheetSource
   /**
    * The module's DB contract bundle (`SheetDbSchemas` satisfies this
-   * structurally). The repository uses only `row` — its key order derives the
-   * GViz column letters (1st key = column A) and the sort-field map — and
-   * `idColumn`; the action payload schemas are the service's concern.
-   * Validating row *contents* is also the service's concern, not transport's.
+   * structurally). The repository uses `row` — its key order derives the GViz
+   * column letters (1st key = column A) — `idColumn`, and `fieldMap` to resolve
+   * sort fields to columns; the action payload schemas are the service's
+   * concern. Validating row *contents* is also the service's concern, not
+   * transport's.
    */
   db: {
     row: { shape: Record<keyof TRow & string, unknown> }
     idColumn: SheetIdColumn<TRow> & string
+    fieldMap: Record<keyof TRow & string, string>
   }
   /** Receives clause builders bound to the derived letters; cross-field domain logic goes in as plain functions. */
   clauses: (
@@ -70,14 +72,19 @@ export function createGoogleSheetRepository<
     letters[name] = columnLetterFor(index)
   })
 
+  // The explicit field map resolves API sort fields back to their columns.
+  // (Cast erases the generic for the stringly runtime; the service config's
+  // mapped types already verified the map is exact.)
+  const resolver = makeFieldResolver(config.db.fieldMap as Record<string, string>)
+
   const query = createSheetQuery<TRow, TFilter>({
     columns: letters,
     idColumn: config.db.idColumn,
     clauses: config.clauses(createClauseBuilders<TRow, TFilter>(letters), letters),
-    // Sort fields are conventional API names; resolve them through the same
-    // transform. (Cast: the engine view is stringly; byFilter guards misses.)
+    // Sort fields are API field names; resolve them to columns through the map.
+    // (Cast: the engine view is stringly; byFilter guards misses.)
     sortColumns: Object.fromEntries(
-      columnNames.map((column) => [columnToField(column), column]),
+      columnNames.map((column) => [resolver.toField(column), column]),
     ) as Record<TFilter['sortBy'], keyof TRow>,
   })
 

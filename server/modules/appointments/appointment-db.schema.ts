@@ -81,10 +81,33 @@ export const appointmentUpdatePayloadSchema = z.object({
   ServiceTier: serviceTierSchema.optional(),
 })
 
+// ── DB column -> API field. Appointments already obeys the historical
+//    PascalCase/`ID`-suffix convention, so every entry is its plain twin — but
+//    it is declared explicitly all the same: the engine no longer guesses, and
+//    `satisfies` makes a missing or stray column a compile error. ──
+export const appointmentFieldMap = {
+  AppointmentID: 'appointmentId',
+  CustomerID: 'customerId',
+  AppointmentType: 'appointmentType',
+  AppointmentDate: 'appointmentDate',
+  TimeSlot: 'timeSlot',
+  Status: 'status',
+  Address: 'address',
+  PickupOrderID: 'pickupOrderId',
+  DeliveryOrderID: 'deliveryOrderId',
+  Notes: 'notes',
+  CreatedAt: 'createdAt',
+  UpdatedAt: 'updatedAt',
+  CreatedBy: 'createdBy',
+  UpdatedBy: 'updatedBy',
+  ServiceTier: 'serviceTier',
+} as const satisfies Record<keyof z.infer<typeof appointmentRowSchema> & string, string>
+
 /** The bundle both engine factories consume — one import for the whole DB contract. */
 export const appointmentDbSchemas = {
   row: appointmentRowSchema,
   idColumn: 'AppointmentID',
+  fieldMap: appointmentFieldMap,
   appendPayload: appointmentAppendPayloadSchema,
   updatePayload: appointmentUpdatePayloadSchema,
 } as const
