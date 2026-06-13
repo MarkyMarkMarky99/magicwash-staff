@@ -26,7 +26,7 @@ const customerRepository = createGoogleSheetRepository<CustomerRow, CustomerFilt
   clauses: (clause, columns) => [
     // keyword spans customerIndex (most-used lookup), customerName, and address
     // (address replaces the dropped dedicated location filter). Phone is excluded:
-    // it is a number column, and GViz contains() can't run on a numeric column.
+    // its legacy cells are still integers, which GViz contains() handles poorly.
     clause.contains('keyword', ['CustomerIndex', 'CustomerName', 'Address']),
     clause.eq('customerType', 'CustomerType'),
     // Soft-deleted rows (DeletedAt set) are hidden unless explicitly included.
@@ -34,11 +34,35 @@ const customerRepository = createGoogleSheetRepository<CustomerRow, CustomerFilt
   ],
 })
 
+// ── Phone normalization ──────────────────────────────────────────────────────
+// Phone is contractually a string, but legacy cells are integers that dropped the
+// leading 0 of Thai numbers (0812345678 -> 812345678). Restore it on the way out
+// so the DTO carries the real number the UI dials/displays — the frontend must not
+// reshape API data, so this normalization is the API's job. New rows are stored as
+// text and pass through unchanged.
+function toPhoneString(value: unknown): string | null {
+  if (value === null || value === undefined || value === '') return null
+  const digits = String(value).replace(/\D/g, '')
+  if (digits === '') return null
+  return digits.startsWith('0') ? digits : `0${digits}`
+}
+
+function withPhoneString<T extends { phone: string | null }>(dto: T): T {
+  return { ...dto, phone: toPhoneString(dto.phone) }
+}
+
 // ── API behavior: the two contract bundles do the talking. ──
 export const customerService = createSheetService({
   resourceName: 'Customer',
   repository: customerRepository,
   api: customerApiSchemas,
   db: customerDbSchemas,
-  // No hooks: customers has no write-time business logic yet.
+  // Only an after-hook: normalize the legacy integer phone back to its real string
+  // on every response. Customers has no other write-time business logic.
+  hooks: {
+    list: { after: (items) => items.map(withPhoneString) },
+    get: { after: withPhoneString },
+    create: { after: withPhoneString },
+    update: { after: withPhoneString },
+  },
 })

@@ -29,7 +29,7 @@ export const customerRowSchema = z.object({
   CustomerID: z.string(),
   CustomerIndex: z.string(),
   CustomerName: z.string(),
-  Phone: z.number().nullable(), // stored as an integer; loses Thai leading 0
+  Phone: z.string().nullable(), // contractually a string; legacy cells are integers (lost the leading 0) and are normalized to a padded string on read
   Address: z.string().nullable(),
   Location: z.string().nullable(),
   RegisteredDate: z.string().nullable(),
@@ -54,7 +54,7 @@ export const customerRowSchema = z.object({
 
 export const customerAppendPayloadSchema = z.object({
   CustomerName: z.string().min(1),
-  Phone: z.number().int().nullable(),
+  Phone: z.string().nullable(), // stored as text so the Thai leading 0 survives
   Address: z.string().nullable(),
   Location: z.string().nullable(),
   RegisteredDate: z.string().nullable(), // null lets the DB layer default to today
@@ -71,7 +71,7 @@ export const customerAppendPayloadSchema = z.object({
 /** PATCH semantics: only the fields being changed are sent; the id travels separately. */
 export const customerUpdatePayloadSchema = z.object({
   CustomerName: z.string().min(1).optional(),
-  Phone: z.number().int().nullable().optional(),
+  Phone: z.string().nullable().optional(), // stored as text so the Thai leading 0 survives
   Address: z.string().nullable().optional(),
   Location: z.string().nullable().optional(),
   RegisteredDate: z.string().nullable().optional(),

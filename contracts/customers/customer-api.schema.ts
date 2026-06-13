@@ -13,9 +13,11 @@ export const preferredContactMethodSchema = z.enum(['Line', 'Messenger'])
 
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a valid YYYY-MM-DD date')
 
-// phone is an integer column; the honest API type is a number. Thai numbers
-// lose their leading 0 (0812345678) — a pre-existing storage decision.
-const phoneSchema = z.number().int()
+// phone is exposed and accepted as a string so the leading 0 of Thai numbers
+// (0812345678) survives. Legacy rows were stored as an integer (which dropped the
+// 0); the customer module normalizes them back to a padded string on read, and
+// new writes are stored as text.
+const phoneSchema = z.string()
 
 // Create: client sends business fields only; the server owns the identity and
 // metadata columns. There is no CreatedBy column, so the actor rides on updatedBy.
@@ -58,7 +60,11 @@ export const customerUpdateSchema = z
 // customerIndex is the default list order; registeredDate is the one alternate sort.
 export const customerSortFieldSchema = z.enum(['customerIndex', 'registeredDate'])
 
-export const MAX_CUSTOMERS_PER_PAGE = 100
+// The customer list is small and the UI filters/paginates in memory, so the
+// endpoint returns everything in one shot: the cap is generous and the default
+// page size equals it. Revisit with real server-side paging if the dataset ever
+// outgrows this.
+export const MAX_CUSTOMERS_PER_PAGE = 2000
 
 export const customerListQuerySchema = z.object({
   // Free-text search across customerIndex / customerName / address (the
@@ -74,7 +80,7 @@ export const customerListQuerySchema = z.object({
     .int()
     .positive()
     .max(MAX_CUSTOMERS_PER_PAGE)
-    .default(API_PAGINATION_DEFAULTS.perPage),
+    .default(MAX_CUSTOMERS_PER_PAGE),
   sortBy: customerSortFieldSchema.default('customerIndex'),
   sortOrder: z.enum(['asc', 'desc']).default('asc'),
 })
@@ -87,7 +93,7 @@ export const customerListResponseSchema = z.object({
   customerId: z.string(),
   customerIndex: z.string(),
   customerName: z.string(),
-  phone: z.number().nullable(),
+  phone: z.string().nullable(),
   address: z.string().nullable(),
   location: z.string().nullable(),
   customerType: customerTypeSchema.nullable(),
