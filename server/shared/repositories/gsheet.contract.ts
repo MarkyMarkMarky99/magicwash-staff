@@ -49,6 +49,8 @@ export interface GSheetRepositoryOptions<TDbRow extends object = Record<string, 
   spreadsheetId: string
   scriptUrl: string
   rowSchema: GSheetRowSchema & { shape: Record<keyof TDbRow & string, unknown> }
+  /** API/domain field name of the primary key, e.g. `customerId`. */
+  primaryKey: string
   fieldMap?: FieldMap
   transformer?: RepositoryTransformer
 }
@@ -58,10 +60,8 @@ export declare class GSheetRepository<
   TDbRow extends object,
   TReadWhere,
   TCreate,
-  TUpdateFilter,
   TUpdate,
-  TDeleteFilter = TUpdateFilter,
-> extends BaseRepository<TApiRow, TReadWhere, TCreate, TUpdateFilter, TUpdate, TDeleteFilter> {
+> extends BaseRepository<TApiRow, TReadWhere, TCreate, TUpdate> {
   constructor(input: GSheetRepositoryOptions<TDbRow>)
 
   protected execute<TResponse, TQuery = unknown, TData = unknown>(
@@ -70,9 +70,9 @@ export declare class GSheetRepository<
 
   read(query?: RepositoryReadQuery<TReadWhere>): Promise<Array<Partial<TApiRow>>>
   create(data: TCreate): Promise<TApiRow>
-  update(filter: TUpdateFilter, data: TUpdate): Promise<TApiRow>
+  update(id: string, data: TUpdate): Promise<TApiRow>
   /** Future implementation. */
-  delete(filter: TDeleteFilter): Promise<never>
+  delete(id: string): Promise<never>
 
   /** Private implementation helper used by execute() for GViz reads. */
   private fetchGVizRows(input: GVizFetchInput): Promise<unknown[]>

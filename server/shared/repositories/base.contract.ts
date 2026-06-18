@@ -24,6 +24,7 @@ export interface RepositoryPagination {
 
 export interface RepositoryReadQuery<TWhere> {
   // BaseRepository maps only DB-backed query fields:
+  // id -> folded into where[primaryKey], then mapper.toDb()
   // where -> mapper.toDb()
   // select -> field names to DB field names
   // search.fields -> field names to DB field names
@@ -33,6 +34,12 @@ export interface RepositoryReadQuery<TWhere> {
   // search.keyword
   // sort.order
   // pagination
+  //
+  // `id` is the semantic primary-key accessor: BaseRepository folds a non-empty
+  // id into where[primaryKey] before mapping, so execute() never receives `id`.
+  // On read a missing/blank id is ignored (no filter); update/delete require a
+  // non-empty id (else they throw `Repository <operation> requires a non-empty id`).
+  id?: string
   where?: TWhere
   select?: readonly string[]
   search?: RepositorySearch
@@ -83,24 +90,24 @@ export interface RepositoryTransformer {
 // Generics split the two row contracts; every generic here is an API/domain shape
 // (camelCase). The DB shape (TDbRow) is NOT a base generic — it lives on the
 // storage impl (GSheetRepository) because base never sees rowSchema / column order.
-//   TApiRow       -> row the repo RETURNS (contracts/<m>/<m>-api.schema.ts)
-//   TReadWhere    -> read filter (DB-backed API/domain fields)
-//   TCreate       -> create input the service passes in (API/domain)
-//   TUpdateFilter -> update filter (e.g. { id: string })
-//   TUpdate       -> update input the service passes in (API/domain)
-//   TDeleteFilter -> delete filter
+//   TApiRow    -> row the repo RETURNS (contracts/<m>/<m>-api.schema.ts)
+//   TReadWhere -> read filter (DB-backed API/domain fields)
+//   TCreate    -> create input the service passes in (API/domain)
+//   TUpdate    -> update input the service passes in (API/domain)
+// update(id)/delete(id) take the API/domain primaryKey value (a string); the
+// repository folds it into where[primaryKey] before the DB request.
 // mapper.toDb (+ transformer.request) turn inputs into the *-db.schema.ts DB shape
 // the storage layer / Apps Script sees.
 export declare abstract class BaseRepository<
   TApiRow extends object,
   TReadWhere,
   TCreate,
-  TUpdateFilter,
   TUpdate,
-  TDeleteFilter = TUpdateFilter,
 > {
   protected constructor(input: {
     fieldMap?: FieldMap
+    /** API/domain field name of the primary key, e.g. `customerId`. */
+    primaryKey: string
     transformer?: RepositoryTransformer
   })
 
@@ -129,7 +136,8 @@ export declare abstract class BaseRepository<
   abstract read(query?: RepositoryReadQuery<TReadWhere>): Promise<Array<Partial<TApiRow>>>
   // create(data) -> request({ operation: 'create', data })
   abstract create(data: TCreate): Promise<TApiRow>
-  // update(filter, data) -> request({ operation: 'update', query: { where: filter }, data })
-  abstract update(filter: TUpdateFilter, data: TUpdate): Promise<TApiRow>
-  abstract delete(filter: TDeleteFilter): Promise<unknown>
+  // update(id, data) -> request({ operation: 'update', query: { id }, data })
+  abstract update(id: string, data: TUpdate): Promise<TApiRow>
+  // delete(id) -> request({ operation: 'delete', query: { id } })
+  abstract delete(id: string): Promise<unknown>
 }

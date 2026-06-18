@@ -52,6 +52,8 @@ export interface GSheetRepositoryOptions<TDbRow extends object = Record<string, 
   spreadsheetId: string
   scriptUrl: string
   rowSchema: GSheetRowSchema & { shape: Record<keyof TDbRow & string, unknown> }
+  /** API/domain field name of the primary key, e.g. `customerId`. */
+  primaryKey: string
   fieldMap?: FieldMap
   transformer?: RepositoryTransformer
 }
@@ -85,10 +87,8 @@ export class GSheetRepository<
   TDbRow extends object,
   TReadWhere,
   TCreate,
-  TUpdateFilter,
   TUpdate,
-  TDeleteFilter = TUpdateFilter,
-> extends BaseRepository<TApiRow, TReadWhere, TCreate, TUpdateFilter, TUpdate, TDeleteFilter> {
+> extends BaseRepository<TApiRow, TReadWhere, TCreate, TUpdate> {
   private readonly sheetName: string
   private readonly spreadsheetId: string
   private readonly scriptUrl: string
@@ -96,7 +96,11 @@ export class GSheetRepository<
   private readonly letterToField: Record<string, string>
 
   constructor(input: GSheetRepositoryOptions<TDbRow>) {
-    super({ fieldMap: input.fieldMap, transformer: input.transformer })
+    super({
+      fieldMap: input.fieldMap,
+      primaryKey: input.primaryKey,
+      transformer: input.transformer,
+    })
     this.sheetName = input.sheetName
     this.spreadsheetId = input.spreadsheetId
     this.scriptUrl = input.scriptUrl
@@ -140,16 +144,16 @@ export class GSheetRepository<
     return this.request<TApiRow, never, TCreate>({ operation: 'create', data })
   }
 
-  update(filter: TUpdateFilter, data: TUpdate): Promise<TApiRow> {
-    return this.request<TApiRow, { where: TUpdateFilter }, TUpdate>({
+  update(id: string, data: TUpdate): Promise<TApiRow> {
+    return this.request<TApiRow, { id: string }, TUpdate>({
       operation: 'update',
-      query: { where: filter },
+      query: { id },
       data,
     })
   }
 
   /** Future implementation. */
-  async delete(_filter: TDeleteFilter): Promise<never> {
+  async delete(_id: string): Promise<never> {
     throw new Error('GSheetRepository.delete is not implemented yet')
   }
 
