@@ -185,3 +185,35 @@ All points resolved and folded into the plan above.
 - ✅ **Endpoint returns all customers** — `MAX_CUSTOMERS_PER_PAGE` raised to 2000 and the list-query `perPage` default set to it, so `GET /api/customers` returns the whole list (engine pagination is in-memory slicing; the GViz read has no LIMIT).
 
 No backend tasks remain.
+
+---
+
+## Implementation Review (2026-06-14)
+
+Claude refactored the customer vertical slice and the frontend build passes (`npm run build`).
+
+What is already aligned with this plan:
+
+- `src/features/customers` exists and no longer imports legacy customer-specific page/component/composable files.
+- Customer service derives DTO/query types from `@contracts/customers/customer-api.schema`.
+- `src/shared/api/api-client.ts` unwraps the API envelope and validates request/query input only.
+- Customer store holds result state only (`customers`, `loading`, `error`, cache flag).
+- `useCustomerFilterRoute` keeps customer filters in the URL; search/type/counts are computed in memory.
+- `/customers` routes to the new customer feature.
+- `src/shared/stores/selected-customer.store.ts` exists and the new `CustomerCard` writes it before opening booking.
+- `AppointmentScheduleForm.vue` no longer depends on `src/composables/useSelectedCustomer.js`.
+
+Issues to fix before calling the customer refactor complete:
+
+1. **Booking can submit without a selected customer.**
+   - `AppointmentScheduleForm.vue` returns `customerId: null` when the shared selected-customer store is empty.
+   - Its `isValid` check currently requires date/time/service only in `new-booking` mode.
+   - Directly opening or refreshing `/new-booking` can enable submit and pass `null` to `createAppointment`.
+   - Fix: require `customer.value?.customerId` for new booking validity and show a clear empty/error state when no customer is selected.
+
+2. **Address vs location needs one explicit decision.**
+   - Customer DTO exposes both `address` and `location`.
+   - Current `CustomerCard` map navigation and booking summary use `address`.
+   - If `location` is the intended Maps destination, update the card/form to use it; otherwise document that `address` is the canonical booking/navigation display field for now.
+
+Status: customer refactor is structurally correct but paused before final cleanup. Next planning focus is `features/appointments`; return here after appointments contract/DTO decisions are clear.

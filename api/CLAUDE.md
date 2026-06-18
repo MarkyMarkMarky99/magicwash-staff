@@ -116,4 +116,4 @@ Success: `{ data, meta }`; paginated: `meta.pagination = { total, page, perPage,
 - Inside `server/shared/sheet-crud/` factories, commented casts that only erase generics are allowed — the config mapped types already verified every field↔column pairing.
 - Don't widen `perPage` past its `.max()` — over-limit is 422, not a clamp.
 - ISO `YYYY-MM-DD` strings compare correctly with `<=` — no Date parsing needed.
-- Env vars (e.g. `APPOINTMENTS_SPREADSHEET_ID`, `APPSCRIPT_APPOINTMENT_URL`, `APPOINTMENTS_SHEET_NAME`) are read once at module import; missing ones throw with the variable name.
+- Env vars are read once at module import; every backend module must use the shared Apps Script endpoint `APPSCRIPT_URL` plus module-specific sheet vars such as `CUSTOMERS_SPREADSHEET_ID` and `CUSTOMERS_SHEET_NAME`.

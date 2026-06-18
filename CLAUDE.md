@@ -14,9 +14,6 @@
   - `pages/` - Route-level pages. Orchestrate store, route params, and feature components.
   - `services/` - API communication for the feature.
   - `stores/` - Feature state management using Pinia.
-  - `types/` - Frontend view models. API DTO types come from `@contracts/*`, not re-declared here.
-  - `mappers/` - Transform API DTOs to frontend models and payloads back to API format.
-  - `constants/` - Feature-specific static values.
   - `routes.ts` - Feature route definitions.
 - `src/assets/` - Static assets: images, icons, global styles.
 
@@ -24,17 +21,17 @@ Only create subfolders when the feature actually needs them.
 
 ## Architecture Rules
 - Follow feature-based architecture. Dependency direction: `app` -> `features` -> `shared`; `shared` must never import from `features`, and avoid cross-feature imports — move shared logic to `src/shared/`.
-- Layer responsibilities: components (presentational, no API calls) -> pages (orchestrate, no duplicated API logic) -> stores (manage state, call services) -> services (call the API, run responses through mappers).
+- Layer responsibilities: components (presentational, no API calls) -> pages (orchestrate, no duplicated API logic) -> stores (manage state, call services) -> services (call the API and return typed API DTOs directly).
 - The API is the source of truth for business data — it returns frontend-ready `camelCase` DTOs with all business facts (statuses, totals, merged relations) already resolved. The frontend must not re-derive or re-assemble business data the API should already provide.
-- Frontend mappers only turn API DTOs into view models by adding presentation concerns (labels, tones, display aliases, summary strings) — never merge records, compute business statuses, or convert casing; that is the API's job (see `api/CLAUDE.md`).
+- API DTOs are already the frontend model. Do not add frontend mappers to transform API data. If the UI needs additional business data or a different data shape, fix the backend contract/mapper instead of transforming it again in the frontend.
 
 ## Data Flow
 
-Component -> Page -> Store -> Service -> Mapper -> API
+Component -> Page -> Store -> Service -> API
 
 Response flow:
 
-API -> Mapper -> Service -> Store -> Page -> Component
+API -> Service -> Store -> Page -> Component
 
 ## Backend API
 The serverless backend lives in `api/`. **`api/CLAUDE.md` is the single source of truth**
@@ -51,12 +48,13 @@ imported by the backend AND the frontend via the `@contracts/*` alias. Use `impo
 when you want client-side zod validation. Only camelCase API schemas/enums live there — never DB shape.
 
 ## Types & DTO Rules
-- API contract types come from `@contracts/<feature>/<m>-api.schema.ts` (shared with the
-  backend) — derive them with `import type` + `z.infer`, do NOT hand-copy DTOs into the
-  feature. The contract is `camelCase` and business-complete (all statuses/totals/relations
-  resolved server-side).
-- `*.types.ts` — frontend view models; extend the contract type with presentation-only
-  additions (labels, tones, display aliases, summaries).
+- API contract schemas come from `@contracts/<feature>/<m>-api.schema.ts` (shared with the
+  backend). Stores and services should import the schema and derive DTO types with
+  `z.infer<typeof schema>`.
+- Do not create frontend-owned DTO/type copies for API responses. Use the contract-derived
+  DTO types directly.
+- API DTOs are the frontend model. Do not create separate frontend view-model types unless
+  the type is purely UI state and is not a transformed copy of API data.
 - Never let DB shape reach the frontend: raw DB rows / `snake_case` must not cross the
   API boundary, and DB types must never reach stores, pages, or components.
 
@@ -77,11 +75,11 @@ when you want client-side zod validation. Only camelCase API schemas/enums live 
 - Keep components presentational when possible.
 - Keep business logic out of UI components.
 - Keep API logic inside services only.
-- Keep field mapping inside mappers only.
+- Do not add frontend field mapping layers for API data.
 
 ## Gotchas
 - Do not inject API clients into components.
-- Do not use API DTOs directly in UI — always map to a view model first.
+- Use API DTOs directly as the frontend data model.
 - Do not re-implement business logic in the frontend that the API already resolves
   (e.g. status derivation, totals, merging related records). If the API response
   is missing data the UI needs, fix it in the API (see `api/CLAUDE.md`) — don't patch
