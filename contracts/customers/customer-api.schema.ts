@@ -107,6 +107,9 @@ export const customerDetailResponseSchema = customerListResponseSchema.extend({
   email: z.string().nullable(),
 })
 
+export const customerCreateResponseSchema = customerDetailResponseSchema
+export const customerUpdateResponseSchema = customerDetailResponseSchema
+
 /** The bundle `createSheetService` consumes — one import for the whole API contract. */
 export const customerApiSchemas = {
   listQuery: customerListQuerySchema,
@@ -114,4 +117,6 @@ export const customerApiSchemas = {
   updateRequest: customerUpdateSchema,
   listResponse: customerListResponseSchema,
   detailResponse: customerDetailResponseSchema,
+  createResponse: customerCreateResponseSchema,
+  updateResponse: customerUpdateResponseSchema,
 } as const

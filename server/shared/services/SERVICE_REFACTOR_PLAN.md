@@ -97,6 +97,11 @@ Not In Scope:
 - Do not implement specific module business
 = ไม่ทำ projection แบบ list/detail ซ่อนอยู่ใน base
 
+Migration Note:
+- ตอน module ยังใช้ createSheetService เดิม ให้คง append payload required-nullable ไว้ก่อน
+- ตอน migrate module ไป BaseCrudService ค่อยเปลี่ยน append payload fields ที่ API create เป็น optional/nullish จาก .nullable() -> .nullish()
+- ทำพร้อมกับตัด buildPayload/fill-null ของ service เก่าออกจาก module นั้น
+
 Test Edge Cases:
 
 list()
