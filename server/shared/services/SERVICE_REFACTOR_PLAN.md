@@ -3,9 +3,8 @@
 // TApiRow = row after repository mapper.toApi()
 //           API/domain field names; do not infer this from raw *-db.schema.ts.
 //           DB shape lives only in storage impl, e.g. GSheetRepository<TApiRow, TDbRow>.
-// TListResponse / TDetailResponse
+// TListResponse / TDetailResponse / TCreateResponse / TUpdateResponse
 //            = *-api.schema.ts frontend response contracts.
-// create/update use detailResponseSchema unless a module needs a custom service.
 
 // Repository dependency reference:
 repository.read(query?: RepositoryReadQuery<TReadWhere>) -> Promise<Array<Partial<TApiRow>>>
@@ -34,14 +33,18 @@ interface BaseCrudServiceOptions<
   TUpdate,
   TListResponse,
   TDetailResponse,
+  TCreateResponse,
+  TUpdateResponse,
 > {
-  repository: BaseRepository<TApiRow, TReadWhere, TCreate, string, TUpdate>
+  repository: BaseRepository<TApiRow, TReadWhere, TCreate, TUpdate>
 
   listQuerySchema: ZodSchema<TListQuery>
   createSchema: ZodSchema<TCreate>
   updateSchema: ZodSchema<TUpdate>
   listResponseSchema: ZodSchema<TListResponse>
   detailResponseSchema: ZodSchema<TDetailResponse>
+  createResponseSchema: ZodSchema<TCreateResponse>
+  updateResponseSchema: ZodSchema<TUpdateResponse>
 
   toReadQuery(query: TListQuery) -> RepositoryReadQuery<TReadWhere>
 
@@ -58,6 +61,8 @@ class BaseCrudService<
   TUpdate,
   TListResponse,
   TDetailResponse,
+  TCreateResponse,
+  TUpdateResponse,
 > {
   list(query: unknown) -> Promise<ServiceListResult<TListResponse>>
   // validate req.query -> toReadQuery -> repo.read -> project listResponseSchema.shape only
@@ -66,11 +71,11 @@ class BaseCrudService<
   getById(id: string) -> Promise<TDetailResponse>
   // validate id -> repo.read({ id }) -> missing throw 404 -> duplicate throw 409 -> project detailResponseSchema.shape only
 
-  create(payload: unknown) -> Promise<TDetailResponse>
-  // validate req.body -> repo.create(data) -> project detailResponseSchema.shape
+  create(payload: unknown) -> Promise<TCreateResponse>
+  // validate req.body -> repo.create(data) -> project createResponseSchema.shape
 
-  update(id: string, payload: unknown) -> Promise<TDetailResponse>
-  // validate id + req.body -> repo.read({ id }) existence guard -> repo.update(id, data) -> project detailResponseSchema.shape
+  update(id: string, payload: unknown) -> Promise<TUpdateResponse>
+  // validate id + req.body -> repo.read({ id }) existence guard -> repo.update(id, data) -> project updateResponseSchema.shape
 }
 
 ```
@@ -130,8 +135,8 @@ create()
 - payload invalid ต้อง throw validation error
 - payload valid ต้องเรียก repo.create(data) ด้วย parsed data
 - service ต้องไม่ fill null หรือ build append payload
-- repo response ต้อง project ตาม detailResponseSchema.shape
-- response ต้อง strip fields นอก detailResponseSchema.shape
+- repo response ต้อง project ตาม createResponseSchema.shape
+- response ต้อง strip fields นอก createResponseSchema.shape
 - service ต้องไม่ส่ง raw unknown payload เข้า repo
 
 update()
@@ -142,8 +147,8 @@ update()
 - repo.read({ id }) return empty array ต้อง throw 404
 - repo.read({ id }) return หลาย rows ต้อง throw 409
 - หลัง existence guard ต้องเรียก repo.update(id, data) ด้วย parsed data
-- repo response ต้อง project ตาม detailResponseSchema.shape
-- response ต้อง strip fields นอก detailResponseSchema.shape
+- repo response ต้อง project ตาม updateResponseSchema.shape
+- response ต้อง strip fields นอก updateResponseSchema.shape
 - service ต้องไม่สร้าง update filter เอง
 
 shared()
