@@ -138,6 +138,9 @@ export const appointmentDetailResponseSchema = appointmentListResponseSchema.ext
   notes: z.string().nullable(),
 })
 
+export const appointmentCreateResponseSchema = appointmentDetailResponseSchema
+export const appointmentUpdateResponseSchema = appointmentDetailResponseSchema
+
 /** The bundle `createSheetService` consumes — one import for the whole API contract. */
 export const appointmentApiSchemas = {
   listQuery: appointmentListQuerySchema,
@@ -145,4 +148,6 @@ export const appointmentApiSchemas = {
   updateRequest: appointmentUpdateSchema,
   listResponse: appointmentListResponseSchema,
   detailResponse: appointmentDetailResponseSchema,
+  createResponse: appointmentCreateResponseSchema,
+  updateResponse: appointmentUpdateResponseSchema,
 } as const
