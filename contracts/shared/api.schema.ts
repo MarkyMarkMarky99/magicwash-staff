@@ -43,6 +43,17 @@ export const apiPaginationMetaSchema = z.object({
   totalPages: z.number(),
 })
 
+/**
+ * Minimal pagination metadata (page-only, no total).
+ * Used by the new BaseCrudService after repository-layer pagination
+ * (limit/offset) was introduced. Total counts (if needed) will be
+ * provided via separate aggregate methods (e.g. count()).
+ */
+export const apiPageMetaSchema = z.object({
+  page: z.number(),
+  perPage: z.number(),
+})
+
 export const apiResponseMetaSchema = z.object({
   timestamp: z.string().optional(),
 })

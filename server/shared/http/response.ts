@@ -2,6 +2,7 @@ import { z } from 'zod'
 import {
   apiErrorCodeSchema,
   apiErrorResponseSchema,
+  apiPageMetaSchema,
   apiPaginatedSchema,
   apiPaginationMetaSchema,
   apiSuccessSchema,
@@ -63,4 +64,20 @@ export const okPaginated = <TItem>(
 ): ApiResult<ApiPaginatedResponse<TItem>> => ({
   status: 200,
   body: paginatedBody(items, pagination),
+})
+
+/** Minimal page meta type (no total). */
+type ApiPageMeta = z.infer<typeof apiPageMetaSchema>
+
+/** 200 with a paged list using minimal page-only meta (no total/totalPages). */
+export const okPaged = <TItem>(
+  items: TItem[],
+  pagination: ApiPageMeta,
+): ApiResult => ({
+  status: 200,
+  body: {
+    success: true,
+    data: items,
+    meta: { ...baseMeta(), pagination },
+  },
 })
