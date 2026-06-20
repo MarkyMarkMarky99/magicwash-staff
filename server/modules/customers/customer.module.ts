@@ -8,7 +8,10 @@ import {
   customerUpdateResponseSchema,
   customerUpdateSchema,
 } from '../../../contracts/customers/customer-api.schema'
-import type { RepositoryReadQuery } from '../../shared/repositories/base.repository'
+import type {
+  ApiRowFromFieldMap,
+  RepositoryReadQuery,
+} from '../../shared/repositories/base.repository'
 import { GSheetRepository } from '../../shared/repositories/gsheet.repository'
 import { BaseCrudService } from '../../shared/services/base-crud.service'
 import { requireEnv } from '../../shared/utils/env'
@@ -20,32 +23,7 @@ type CustomerDbRow = z.infer<typeof customerRowSchema>
 type CustomerListQuery = z.infer<typeof customerListQuerySchema>
 type CustomerCreate = z.infer<typeof customerCreateSchema>
 type CustomerUpdate = z.infer<typeof customerUpdateSchema>
-
-// The full API/domain row the repository returns after mapper.toApi(): every
-// camelCase twin of customerRowSchema. This is NOT the list/detail response —
-// those are projections BaseCrudService derives from the response schemas.
-type CustomerApiRow = {
-  timestamp: CustomerDbRow['Timestamp']
-  customerId: CustomerDbRow['CustomerID']
-  customerIndex: CustomerDbRow['CustomerIndex']
-  customerName: CustomerDbRow['CustomerName']
-  phone: CustomerDbRow['Phone']
-  address: CustomerDbRow['Address']
-  location: CustomerDbRow['Location']
-  registeredDate: CustomerDbRow['RegisteredDate']
-  facebook: CustomerDbRow['Facebook']
-  lineId: CustomerDbRow['Line']
-  whatsapp: CustomerDbRow['Whatsapp']
-  email: CustomerDbRow['Email']
-  customerType: CustomerDbRow['CustomerType']
-  source: CustomerDbRow['Source']
-  scheduledDays: CustomerDbRow['ScheduledDays']
-  lastVisitDate: CustomerDbRow['LastVisitDate']
-  preferredContactMethod: CustomerDbRow['PreferredContactMethod']
-  updatedAt: CustomerDbRow['UpdatedAt']
-  updatedBy: CustomerDbRow['UpdatedBy']
-  deletedAt: CustomerDbRow['DeletedAt']
-}
+type CustomerApiRow = ApiRowFromFieldMap<CustomerDbRow, typeof customerFieldMap>
 
 // Read filter the service maps from the list query — DB-backed API/domain fields
 // only. keyword/sort/pagination travel on RepositoryReadQuery, not here.

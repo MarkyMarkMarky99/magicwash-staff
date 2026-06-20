@@ -10,6 +10,17 @@ export type RepositoryOperation = 'read' | 'create' | 'update' | 'delete'
  */
 export type FieldMap = Record<string, string>
 
+export type ApiRowFromFieldMap<
+  TDbRow extends object,
+  TFieldMap extends Partial<Record<keyof TDbRow & string, string>>,
+> = {
+  [K in keyof TDbRow & string as K extends keyof TFieldMap
+    ? TFieldMap[K] extends string
+      ? TFieldMap[K]
+      : K
+    : K]: TDbRow[K]
+}
+
 export interface RepositorySearch {
   keyword: string
   fields: readonly string[]
