@@ -1,68 +1,105 @@
-import { z } from 'zod'
-import { createGoogleSheetRepository, createSheetService } from '../../shared/sheet-crud'
+import type { z } from 'zod'
 import {
-  customerApiSchemas,
+  customerCreateResponseSchema,
+  customerCreateSchema,
+  customerDetailResponseSchema,
   customerListQuerySchema,
+  customerListResponseSchema,
+  customerUpdateResponseSchema,
+  customerUpdateSchema,
 } from '../../../contracts/customers/customer-api.schema'
-import { customerDbSchemas, customerRowSchema } from './customer-db.schema'
+import type { RepositoryReadQuery } from '../../shared/repositories/base.repository'
+import { GSheetRepository } from '../../shared/repositories/gsheet.repository'
+import { BaseCrudService } from '../../shared/services/base-crud.service'
+import { requireEnv } from '../../shared/utils/env'
+import { customerFieldMap, customerRowSchema } from './customer-db.schema'
 
-// ── Types derived from the schemas — the schemas stay the single source of
-//    truth; the aliases live with their only consumer (this module). ──
-type CustomerRow = z.infer<typeof customerRowSchema>
-type CustomerFilter = z.infer<typeof customerListQuerySchema>
+// ── Types derived from the contract + DB schemas; the schema files export no
+//    z.infer types, so the aliases live with their only consumer (this module). ──
+type CustomerDbRow = z.infer<typeof customerRowSchema>
+type CustomerListQuery = z.infer<typeof customerListQuerySchema>
+type CustomerCreate = z.infer<typeof customerCreateSchema>
+type CustomerUpdate = z.infer<typeof customerUpdateSchema>
+
+// The full API/domain row the repository returns after mapper.toApi(): every
+// camelCase twin of customerRowSchema. This is NOT the list/detail response —
+// those are projections BaseCrudService derives from the response schemas.
+type CustomerApiRow = {
+  timestamp: CustomerDbRow['Timestamp']
+  customerId: CustomerDbRow['CustomerID']
+  customerIndex: CustomerDbRow['CustomerIndex']
+  customerName: CustomerDbRow['CustomerName']
+  phone: CustomerDbRow['Phone']
+  address: CustomerDbRow['Address']
+  location: CustomerDbRow['Location']
+  registeredDate: CustomerDbRow['RegisteredDate']
+  facebook: CustomerDbRow['Facebook']
+  lineId: CustomerDbRow['Line']
+  whatsapp: CustomerDbRow['Whatsapp']
+  email: CustomerDbRow['Email']
+  customerType: CustomerDbRow['CustomerType']
+  source: CustomerDbRow['Source']
+  scheduledDays: CustomerDbRow['ScheduledDays']
+  lastVisitDate: CustomerDbRow['LastVisitDate']
+  preferredContactMethod: CustomerDbRow['PreferredContactMethod']
+  updatedAt: CustomerDbRow['UpdatedAt']
+  updatedBy: CustomerDbRow['UpdatedBy']
+  deletedAt: CustomerDbRow['DeletedAt']
+}
+
+// Read filter the service maps from the list query — DB-backed API/domain fields
+// only. keyword/sort/pagination travel on RepositoryReadQuery, not here.
+type CustomerReadWhere = {
+  customerType?: CustomerListQuery['customerType']
+}
 
 // ── Data access: the Google Sheets implementation behind the repository
-//    contract. The irregular `Line -> lineId` mapping is carried by
-//    `customerDbSchemas.fieldMap`; everything here is pure wiring plus the
-//    filter clauses, which still speak DB columns directly. ──
-const customerRepository = createGoogleSheetRepository<CustomerRow, CustomerFilter>({
-  sheet: {
-    sheetName: 'Customers',
-    sheetNameEnv: 'CUSTOMERS_SHEET_NAME',
-    spreadsheetIdEnv: 'CUSTOMERS_SPREADSHEET_ID',
-    scriptUrlEnv: 'APPSCRIPT_CUSTOMER_URL',
-  },
-  db: customerDbSchemas,
-  clauses: (clause, columns) => [
-    // keyword spans customerIndex (most-used lookup), customerName, and address
-    // (address replaces the dropped dedicated location filter). Phone is excluded:
-    // its legacy cells are still integers, which GViz contains() handles poorly.
-    clause.contains('keyword', ['CustomerIndex', 'CustomerName', 'Address']),
-    clause.eq('customerType', 'CustomerType'),
-    // Soft-deleted rows (DeletedAt set) are hidden unless explicitly included.
-    (filter) => (filter.includeDeleted ? null : `${columns.DeletedAt} is null`),
-  ],
+//    contract. The irregular `Line -> lineId` mapping rides on customerFieldMap;
+//    all transport detail (column letters, GViz strings, Apps Script writes)
+//    stays inside GSheetRepository. ──
+const customerRepository = new GSheetRepository<
+  CustomerApiRow,
+  CustomerDbRow,
+  CustomerReadWhere,
+  CustomerCreate,
+  CustomerUpdate
+>({
+  sheetName: 'Customers',
+  spreadsheetId: requireEnv('CUSTOMERS_SPREADSHEET_ID'),
+  scriptUrl: requireEnv('APPSCRIPT_URL'),
+  rowSchema: customerRowSchema,
+  primaryKey: 'customerId',
+  fieldMap: customerFieldMap,
 })
 
-// ── Phone normalization ──────────────────────────────────────────────────────
-// Phone is contractually a string, but legacy cells are integers that dropped the
-// leading 0 of Thai numbers (0812345678 -> 812345678). Restore it on the way out
-// so the DTO carries the real number the UI dials/displays — the frontend must not
-// reshape API data, so this normalization is the API's job. New rows are stored as
-// text and pass through unchanged.
-function toPhoneString(value: unknown): string | null {
-  if (value === null || value === undefined || value === '') return null
-  const digits = String(value).replace(/\D/g, '')
-  if (digits === '') return null
-  return digits.startsWith('0') ? digits : `0${digits}`
+// Translate the validated list query into the storage-agnostic read query. Only
+// API/domain field names appear here; the repository maps them to DB columns.
+// customerType defaults to null (no filter) — pass undefined so the query builder
+// drops the clause rather than matching the literal string 'null'.
+function toCustomerReadQuery(query: CustomerListQuery): RepositoryReadQuery<CustomerReadWhere> {
+  return {
+    where: { customerType: query.customerType ?? undefined },
+    search: {
+      keyword: query.keyword,
+      fields: ['customerIndex', 'customerName', 'address'],
+    },
+    sort: { field: query.sortBy, order: query.sortOrder },
+    pagination: { page: query.page, perPage: query.perPage },
+  }
 }
 
-function withPhoneString<T extends { phone: string | null }>(dto: T): T {
-  return { ...dto, phone: toPhoneString(dto.phone) }
-}
-
-// ── API behavior: the two contract bundles do the talking. ──
-export const customerService = createSheetService({
-  resourceName: 'Customer',
+// ── API behavior: BaseCrudService validates the request, maps the read query,
+//    calls the repository, and projects each response by its schema shape. No
+//    hooks: phone is already stored as text with its leading 0, so customers
+//    needs no read-time normalization or other write-time business logic. ──
+export const customerService = new BaseCrudService({
   repository: customerRepository,
-  api: customerApiSchemas,
-  db: customerDbSchemas,
-  // Only an after-hook: normalize the legacy integer phone back to its real string
-  // on every response. Customers has no other write-time business logic.
-  hooks: {
-    list: { after: (items) => items.map(withPhoneString) },
-    get: { after: withPhoneString },
-    create: { after: withPhoneString },
-    update: { after: withPhoneString },
-  },
+  listQuerySchema: customerListQuerySchema,
+  createSchema: customerCreateSchema,
+  updateSchema: customerUpdateSchema,
+  listResponseSchema: customerListResponseSchema,
+  detailResponseSchema: customerDetailResponseSchema,
+  createResponseSchema: customerCreateResponseSchema,
+  updateResponseSchema: customerUpdateResponseSchema,
+  toReadQuery: toCustomerReadQuery,
 })

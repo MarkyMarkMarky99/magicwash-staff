@@ -29,7 +29,7 @@ export const customerRowSchema = z.object({
   CustomerID: z.string(),
   CustomerIndex: z.string(),
   CustomerName: z.string(),
-  Phone: z.string().nullable(), // contractually a string; legacy cells are integers (lost the leading 0) and are normalized to a padded string on read
+  Phone: z.string().nullable(), // contractually a string; stored as text with the leading 0 and returned as-is (no read-time normalization)
   Address: z.string().nullable(),
   Location: z.string().nullable(),
   RegisteredDate: z.string().nullable(),

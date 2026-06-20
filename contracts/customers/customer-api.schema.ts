@@ -14,16 +14,15 @@ export const preferredContactMethodSchema = z.enum(['Line', 'Messenger'])
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a valid YYYY-MM-DD date')
 
 // phone is exposed and accepted as a string so the leading 0 of Thai numbers
-// (0812345678) survives. Legacy rows were stored as an integer (which dropped the
-// 0); the customer module normalizes them back to a padded string on read, and
-// new writes are stored as text.
+// (0812345678) survives. It is stored as text and returned as-is — the sheet
+// already holds the padded string, so no read-time normalization is needed.
 const phoneSchema = z.string()
 
 // Create: client sends business fields only; the server owns the identity and
 // metadata columns. There is no CreatedBy column, so the actor rides on updatedBy.
 export const customerCreateSchema = z.object({
   customerName: z.string().min(1),
-  phone: phoneSchema.nullish(),
+  phone: phoneSchema.min(1),
   address: z.string().nullish(),
   location: z.string().nullish(),
   registeredDate: isoDateSchema.nullish(), // omit to default to today
@@ -67,13 +66,11 @@ export const customerSortFieldSchema = z.enum(['customerIndex', 'registeredDate'
 export const MAX_CUSTOMERS_PER_PAGE = 2000
 
 export const customerListQuerySchema = z.object({
-  // Free-text search across customerIndex / customerName / address (the
-  // contains() clause in customer.module.ts); address replaces the dropped
-  // dedicated location filter.
+  // Free-text search across customerIndex / customerName / address (the keyword
+  // search in customer.module.ts); address replaces the dropped dedicated
+  // location filter.
   keyword: z.string().default(''),
   customerType: customerTypeSchema.nullable().optional().default(null),
-  // Soft-deleted rows (deletedAt set) are hidden unless explicitly included.
-  includeDeleted: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
   page: z.coerce.number().int().positive().default(API_PAGINATION_DEFAULTS.page),
   perPage: z.coerce
     .number()
@@ -110,7 +107,7 @@ export const customerDetailResponseSchema = customerListResponseSchema.extend({
 export const customerCreateResponseSchema = customerDetailResponseSchema
 export const customerUpdateResponseSchema = customerDetailResponseSchema
 
-/** The bundle `createSheetService` consumes — one import for the whole API contract. */
+/** Convenience bundle for service wiring; schemas above remain the source of truth. */
 export const customerApiSchemas = {
   listQuery: customerListQuerySchema,
   createRequest: customerCreateSchema,
