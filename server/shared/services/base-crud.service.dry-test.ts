@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { z } from 'zod'
 import { API_ERROR_CODES } from '../../../contracts/shared/api.schema'
+import { ReadQueryDTO } from '../dtos/read-query.dto'
 import { ApiError } from '../http/api-error'
 
 type AnyRow = Record<string, unknown>
@@ -105,24 +106,11 @@ function test(name: string, run: () => Promise<void> | void): void {
   tests.push({ name, run })
 }
 
-function expectedReadQuery(query: ListQuery): unknown {
-  return {
-    where: {
-      customerType: query.customerType ?? undefined,
-    },
-    search: {
-      keyword: query.keyword,
-      fields: ['customerName'],
-    },
-    sort: {
-      field: query.sortBy,
-      order: query.sortOrder,
-    },
-    pagination: {
-      page: query.page,
-      perPage: query.perPage,
-    },
-  }
+// The service now builds the read query via ReadQueryDTO.fromQuery: reserved
+// fields become search/sort/pagination, every other field (customerType) becomes
+// `where`, and null is preserved (the repository decides what to ignore).
+function expectedReadQuery(query: ListQuery): ReadQueryDTO<unknown> {
+  return ReadQueryDTO.fromQuery(query, ['customerName'])
 }
 
 async function loadServiceCtor(): Promise<BaseCrudServiceCtor> {
@@ -133,7 +121,6 @@ async function loadServiceCtor(): Promise<BaseCrudServiceCtor> {
 }
 
 function makeService(BaseCrudService: BaseCrudServiceCtor, repo = new FakeRepository()) {
-  const readQueries: ListQuery[] = []
   const service = new BaseCrudService({
     repository: repo,
     listQuerySchema,
@@ -143,13 +130,10 @@ function makeService(BaseCrudService: BaseCrudServiceCtor, repo = new FakeReposi
     detailResponseSchema,
     createResponseSchema,
     updateResponseSchema,
-    toReadQuery(query: ListQuery) {
-      readQueries.push(query)
-      return expectedReadQuery(query)
-    },
+    searchFields: ['customerName'],
   })
 
-  return { service, repo, readQueries }
+  return { service, repo }
 }
 
 async function expectApiError(
@@ -168,9 +152,9 @@ async function expectApiError(
   assert.fail(`Expected ApiError ${code}`)
 }
 
-test('list applies query defaults and forwards mapped read query', async () => {
+test('list applies query defaults and forwards read query DTO', async () => {
   const BaseCrudService = await loadServiceCtor()
-  const { service, repo, readQueries } = makeService(BaseCrudService)
+  const { service, repo } = makeService(BaseCrudService)
 
   repo.nextReadResponse = []
 
@@ -181,22 +165,21 @@ test('list applies query defaults and forwards mapped read query', async () => {
       perPage: 20,
     },
   })
-  assert.deepEqual(readQueries, [
-    {
+  assert.deepEqual(repo.readCalls, [
+    expectedReadQuery({
       keyword: '',
       customerType: null,
       page: 1,
       perPage: 20,
       sortBy: 'customerIndex',
       sortOrder: 'asc',
-    },
+    }),
   ])
-  assert.deepEqual(repo.readCalls, [expectedReadQuery(readQueries[0])])
 })
 
 test('list coerces HTTP query strings before returning pagination', async () => {
   const BaseCrudService = await loadServiceCtor()
-  const { service, repo, readQueries } = makeService(BaseCrudService)
+  const { service, repo } = makeService(BaseCrudService)
 
   repo.nextReadResponse = []
 
@@ -207,21 +190,27 @@ test('list coerces HTTP query strings before returning pagination', async () => 
       perPage: 5,
     },
   })
-  assert.equal(readQueries[0].page, 2)
-  assert.equal(readQueries[0].perPage, 5)
-  assert.deepEqual(repo.readCalls, [expectedReadQuery(readQueries[0])])
+  assert.deepEqual(repo.readCalls, [
+    expectedReadQuery({
+      keyword: '',
+      customerType: null,
+      page: 2,
+      perPage: 5,
+      sortBy: 'customerIndex',
+      sortOrder: 'asc',
+    }),
+  ])
 })
 
 test('list throws validation error for invalid query and does not call repo', async () => {
   const BaseCrudService = await loadServiceCtor()
-  const { service, repo, readQueries } = makeService(BaseCrudService)
+  const { service, repo } = makeService(BaseCrudService)
 
   await expectApiError(
     () => service.list({ page: '0' }),
     API_ERROR_CODES.VALIDATION_ERROR,
     422,
   )
-  assert.equal(readQueries.length, 0)
   assert.equal(repo.readCalls.length, 0)
 })
 
@@ -370,7 +359,7 @@ test('getById reads by semantic id and returns projected detail row', async () =
     customerName: 'Alice',
     phone: 812345678,
   })
-  assert.deepEqual(repo.readCalls, [{ id: 'C001' }])
+  assert.deepEqual(repo.readCalls, [ReadQueryDTO.fromId('C001')])
   assert.deepEqual(rawRow, {
     customerId: 'C001',
     customerName: 'Alice',
@@ -395,7 +384,7 @@ test('getById trims id before reading', async () => {
     customerName: 'Alice',
     phone: null,
   })
-  assert.deepEqual(repo.readCalls, [{ id: 'C001' }])
+  assert.deepEqual(repo.readCalls, [ReadQueryDTO.fromId('C001')])
 })
 
 test('getById projects missing response fields as undefined keys', async () => {
@@ -630,7 +619,7 @@ test('update sends semantic id and parsed data, then projects update response', 
       phone: 99999,
     },
   )
-  assert.deepEqual(repo.readCalls, [{ id: 'C001' }])
+  assert.deepEqual(repo.readCalls, [ReadQueryDTO.fromId('C001')])
   assert.deepEqual(repo.updateCalls, [
     {
       id: 'C001',
@@ -662,7 +651,7 @@ test('update trims id before read and update', async () => {
     updatedBy: 'tester',
   })
 
-  assert.deepEqual(repo.readCalls, [{ id: 'C001' }])
+  assert.deepEqual(repo.readCalls, [ReadQueryDTO.fromId('C001')])
   assert.deepEqual(repo.updateCalls, [
     {
       id: 'C001',

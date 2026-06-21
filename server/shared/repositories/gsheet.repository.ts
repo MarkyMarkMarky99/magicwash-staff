@@ -5,10 +5,11 @@
 import {
   BaseRepository,
   type FieldMap,
-  type RepositoryReadQuery,
+  type MappedReadQuery,
   type RepositoryRequest,
   type RepositoryTransformer,
 } from './base.repository'
+import type { ReadQueryDTO } from '../dtos/read-query.dto'
 import {
   deriveGVizColumns,
   GVizQueryBuilder,
@@ -114,7 +115,7 @@ export class GSheetRepository<
     switch (request.operation) {
       case 'read': {
         const rows = await this.readRows(
-          request.query as RepositoryReadQuery<Record<string, unknown>> | undefined,
+          request.query as MappedReadQuery<Record<string, unknown>> | undefined,
         )
         return rows as TResponse
       }
@@ -133,8 +134,8 @@ export class GSheetRepository<
     }
   }
 
-  read(query?: RepositoryReadQuery<TReadWhere>): Promise<Array<Partial<TApiRow>>> {
-    return this.request<Array<Partial<TApiRow>>, RepositoryReadQuery<TReadWhere>, never>({
+  read(query?: ReadQueryDTO<TReadWhere>): Promise<Array<Partial<TApiRow>>> {
+    return this.request<Array<Partial<TApiRow>>, ReadQueryDTO<TReadWhere>, never>({
       operation: 'read',
       query,
     })
@@ -158,7 +159,7 @@ export class GSheetRepository<
   }
 
   private async readRows(
-    query: RepositoryReadQuery<Record<string, unknown>> | undefined,
+    query: MappedReadQuery<Record<string, unknown>> | undefined,
   ): Promise<unknown[]> {
     const gvizQuery = GVizQueryBuilder.fromColumns(this.columns).fromQuery(query).build()
     return this.fetchGVizRows({ query: gvizQuery })
@@ -169,7 +170,7 @@ export class GSheetRepository<
   private buildUpdatePayload(request: RepositoryRequest<unknown, unknown>): Record<string, unknown> {
     const data = (request.data as Record<string, unknown> | undefined) ?? {}
     const where =
-      (request.query as RepositoryReadQuery<Record<string, unknown>> | undefined)?.where ?? {}
+      (request.query as MappedReadQuery<Record<string, unknown>> | undefined)?.where ?? {}
     return { ...data, ...where }
   }
 

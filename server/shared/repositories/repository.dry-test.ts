@@ -3,10 +3,10 @@ import { z } from 'zod'
 import {
   BaseRepository,
   type FieldMap,
-  type RepositoryReadQuery,
   type RepositoryRequest,
   type RepositoryTransformer,
 } from './base.repository'
+import type { ReadQueryDTO } from '../dtos/read-query.dto'
 import { GSheetRepository } from './gsheet.repository'
 import {
   customerFieldMap,
@@ -33,8 +33,8 @@ class TestRepository extends BaseRepository<AnyRow, AnyRow, AnyRow, AnyRow> {
     super(input)
   }
 
-  read(query?: RepositoryReadQuery<AnyRow>): Promise<Array<Partial<AnyRow>>> {
-    return this.request<Array<Partial<AnyRow>>, RepositoryReadQuery<AnyRow>, never>({
+  read(query?: ReadQueryDTO<AnyRow>): Promise<Array<Partial<AnyRow>>> {
+    return this.request<Array<Partial<AnyRow>>, ReadQueryDTO<AnyRow>, never>({
       operation: 'read',
       query,
     })

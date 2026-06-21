@@ -8,10 +8,8 @@ import {
   customerUpdateResponseSchema,
   customerUpdateSchema,
 } from '../../../contracts/customers/customer-api.schema'
-import type {
-  ApiRowFromFieldMap,
-  RepositoryReadQuery,
-} from '../../shared/repositories/base.repository'
+import type { ApiRowFromFieldMap } from '../../shared/repositories/base.repository'
+import type { OmitReservedQueryFields } from '../../shared/dtos/read-query.dto'
 import { GSheetRepository } from '../../shared/repositories/gsheet.repository'
 import { BaseCrudService } from '../../shared/services/base-crud.service'
 import { requireEnv } from '../../shared/utils/env'
@@ -25,11 +23,11 @@ type CustomerCreate = z.infer<typeof customerCreateSchema>
 type CustomerUpdate = z.infer<typeof customerUpdateSchema>
 type CustomerApiRow = ApiRowFromFieldMap<CustomerDbRow, typeof customerFieldMap>
 
-// Read filter the service maps from the list query — DB-backed API/domain fields
-// only. keyword/sort/pagination travel on RepositoryReadQuery, not here.
-type CustomerReadWhere = {
-  customerType?: CustomerListQuery['customerType']
-}
+// Read filter — DERIVED from the list query (reserved fields removed) so the
+// service's ReadQueryDTO.fromQuery() and the repository agree by construction.
+// Only DB-backed filter fields remain (customerType); keyword/sort/pagination
+// travel on the ReadQueryDTO, not here.
+type CustomerReadWhere = OmitReservedQueryFields<CustomerListQuery>
 
 // ── Data access: the Google Sheets implementation behind the repository
 //    contract. The irregular `Line -> lineId` mapping rides on customerFieldMap;
@@ -50,26 +48,14 @@ const customerRepository = new GSheetRepository<
   fieldMap: customerFieldMap,
 })
 
-// Translate the validated list query into the storage-agnostic read query. Only
-// API/domain field names appear here; the repository maps them to DB columns.
-// customerType defaults to null (no filter) — pass undefined so the query builder
-// drops the clause rather than matching the literal string 'null'.
-function toCustomerReadQuery(query: CustomerListQuery): RepositoryReadQuery<CustomerReadWhere> {
-  return {
-    where: { customerType: query.customerType ?? undefined },
-    search: {
-      keyword: query.keyword,
-      fields: ['customerIndex', 'customerName', 'address'],
-    },
-    sort: { field: query.sortBy, order: query.sortOrder },
-    pagination: { page: query.page, perPage: query.perPage },
-  }
-}
-
-// ── API behavior: BaseCrudService validates the request, maps the read query,
-//    calls the repository, and projects each response by its schema shape. No
-//    hooks: phone is already stored as text with its leading 0, so customers
-//    needs no read-time normalization or other write-time business logic. ──
+// ── API behavior: BaseCrudService validates the request, builds the read query
+//    (ReadQueryDTO.fromQuery with searchFields), calls the repository, and
+//    projects each response by its schema shape. No hooks: phone is already
+//    stored as text with its leading 0, so customers needs no read-time
+//    normalization or other write-time business logic.
+//
+//    customerType defaults to null (no filter); fromQuery preserves it and the
+//    GViz builder drops null/''/undefined where values, so no clause is built. ──
 export const customerService = new BaseCrudService({
   repository: customerRepository,
   listQuerySchema: customerListQuerySchema,
@@ -79,5 +65,5 @@ export const customerService = new BaseCrudService({
   detailResponseSchema: customerDetailResponseSchema,
   createResponseSchema: customerCreateResponseSchema,
   updateResponseSchema: customerUpdateResponseSchema,
-  toReadQuery: toCustomerReadQuery,
+  searchFields: ['customerIndex', 'customerName', 'address'],
 })

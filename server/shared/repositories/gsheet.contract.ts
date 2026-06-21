@@ -5,10 +5,10 @@
 import {
   BaseRepository,
   type FieldMap,
-  type RepositoryReadQuery,
   type RepositoryRequest,
   type RepositoryTransformer,
 } from './base.contract'
+import type { ReadQueryDTO } from '../dtos/read-query.dto'
 import type { GSheetRowSchema } from './utils/gviz-query.builder'
 
 export type AppScriptAction = 'APPEND' | 'UPDATE'
@@ -68,7 +68,7 @@ export declare class GSheetRepository<
     request: RepositoryRequest<TQuery, TData>,
   ): Promise<TResponse>
 
-  read(query?: RepositoryReadQuery<TReadWhere>): Promise<Array<Partial<TApiRow>>>
+  read(query?: ReadQueryDTO<TReadWhere>): Promise<Array<Partial<TApiRow>>>
   create(data: TCreate): Promise<TApiRow>
   update(id: string, data: TUpdate): Promise<TApiRow>
   /** Future implementation. */

@@ -2,9 +2,9 @@ import assert from 'node:assert/strict'
 import {
   BaseRepository,
   type FieldMap,
-  type RepositoryReadQuery,
   type RepositoryRequest,
 } from './base.repository'
+import type { ReadQueryDTO } from '../dtos/read-query.dto'
 
 type CustomerApiRow = {
   customerId: string
@@ -43,7 +43,7 @@ class FakeRepository extends BaseRepository<
     return { CustomerID: 'C001', CustomerName: 'Somchai' } as TResponse
   }
 
-  read(query?: RepositoryReadQuery<CustomerReadWhere>): Promise<Array<Partial<CustomerApiRow>>> {
+  read(query?: ReadQueryDTO<CustomerReadWhere>): Promise<Array<Partial<CustomerApiRow>>> {
     return this.request({ operation: 'read', query })
   }
 

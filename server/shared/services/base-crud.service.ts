@@ -1,8 +1,10 @@
 import type { ZodType, ZodTypeDef } from 'zod'
-import type {
-  BaseRepository,
-  RepositoryReadQuery,
-} from '../repositories/base.repository'
+import type { BaseRepository } from '../repositories/base.repository'
+import {
+  ReadQueryDTO,
+  type GenericListQuery,
+  type OmitReservedQueryFields,
+} from '../dtos/read-query.dto'
 import { ApiError } from '../http/api-error'
 import { parseOrThrow } from '../http/validate'
 
@@ -18,10 +20,13 @@ export interface ServiceListResult<TListResponse extends object> {
   }
 }
 
+// The read filter is DERIVED from the list query: ReadQueryDTO.fromQuery() maps
+// every non-reserved list-query field into `where`, so the repository's read
+// where type is exactly `OmitReservedQueryFields<TListQuery>`. There is no
+// independent read-where generic and no module-written toReadQuery() bridge.
 export interface BaseCrudServiceOptions<
   TApiRow extends object,
-  TListQuery extends { page: number; perPage: number },
-  TReadWhere,
+  TListQuery extends GenericListQuery,
   TCreate,
   TUpdate,
   TListResponse extends object,
@@ -29,7 +34,7 @@ export interface BaseCrudServiceOptions<
   TCreateResponse extends object,
   TUpdateResponse extends object,
 > {
-  repository: BaseRepository<TApiRow, TReadWhere, TCreate, TUpdate>
+  repository: BaseRepository<TApiRow, OmitReservedQueryFields<TListQuery>, TCreate, TUpdate>
 
   listQuerySchema: ZodType<TListQuery, ZodTypeDef, unknown>
   createSchema: ZodType<TCreate, ZodTypeDef, unknown>
@@ -39,13 +44,13 @@ export interface BaseCrudServiceOptions<
   createResponseSchema: ResponseSchema<TCreateResponse>
   updateResponseSchema: ResponseSchema<TUpdateResponse>
 
-  toReadQuery(query: TListQuery): RepositoryReadQuery<TReadWhere>
+  /** API/domain fields the list keyword searches against (ReadQueryDTO.fromQuery). */
+  searchFields: readonly string[]
 }
 
 export class BaseCrudService<
   TApiRow extends object,
-  TListQuery extends { page: number; perPage: number },
-  TReadWhere,
+  TListQuery extends GenericListQuery,
   TCreate,
   TUpdate,
   TListResponse extends object,
@@ -53,7 +58,12 @@ export class BaseCrudService<
   TCreateResponse extends object,
   TUpdateResponse extends object,
 > {
-  private readonly repository: BaseRepository<TApiRow, TReadWhere, TCreate, TUpdate>
+  private readonly repository: BaseRepository<
+    TApiRow,
+    OmitReservedQueryFields<TListQuery>,
+    TCreate,
+    TUpdate
+  >
   private readonly listQuerySchema: ZodType<TListQuery, ZodTypeDef, unknown>
   private readonly createSchema: ZodType<TCreate, ZodTypeDef, unknown>
   private readonly updateSchema: ZodType<TUpdate, ZodTypeDef, unknown>
@@ -61,13 +71,12 @@ export class BaseCrudService<
   private readonly detailResponseSchema: ResponseSchema<TDetailResponse>
   private readonly createResponseSchema: ResponseSchema<TCreateResponse>
   private readonly updateResponseSchema: ResponseSchema<TUpdateResponse>
-  private readonly toReadQuery: (query: TListQuery) => RepositoryReadQuery<TReadWhere>
+  private readonly searchFields: readonly string[]
 
   constructor(
     input: BaseCrudServiceOptions<
       TApiRow,
       TListQuery,
-      TReadWhere,
       TCreate,
       TUpdate,
       TListResponse,
@@ -84,12 +93,12 @@ export class BaseCrudService<
     this.detailResponseSchema = input.detailResponseSchema
     this.createResponseSchema = input.createResponseSchema
     this.updateResponseSchema = input.updateResponseSchema
-    this.toReadQuery = input.toReadQuery
+    this.searchFields = input.searchFields
   }
 
   async list(query: unknown): Promise<ServiceListResult<TListResponse>> {
     const validQuery = parseOrThrow(this.listQuerySchema, query)
-    const readQuery = this.toReadQuery(validQuery)
+    const readQuery = ReadQueryDTO.fromQuery(validQuery, this.searchFields)
     const rows = await this.repository.read(readQuery)
 
     return {
@@ -103,7 +112,9 @@ export class BaseCrudService<
 
   async getById(id: string): Promise<TDetailResponse> {
     const safeId = this.requireId(id)
-    const rows = await this.repository.read({ id: safeId })
+    const rows = await this.repository.read(
+      ReadQueryDTO.fromId<OmitReservedQueryFields<TListQuery>>(safeId),
+    )
     const row = this.requireSingleRow(rows, safeId)
     return this.project(row, this.detailResponseSchema)
   }
@@ -118,7 +129,9 @@ export class BaseCrudService<
     const safeId = this.requireId(id)
     const data = parseOrThrow(this.updateSchema, payload)
 
-    const rows = await this.repository.read({ id: safeId })
+    const rows = await this.repository.read(
+      ReadQueryDTO.fromId<OmitReservedQueryFields<TListQuery>>(safeId),
+    )
     this.requireSingleRow(rows, safeId)
 
     const row = await this.repository.update(safeId, data)

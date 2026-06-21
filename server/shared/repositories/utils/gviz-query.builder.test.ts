@@ -1,4 +1,4 @@
-import type { RepositoryReadQuery } from '../base.repository'
+import type { MappedReadQuery } from '../base.repository'
 import {
   type GSheetColumnMap,
   type GSheetRowSchema,
@@ -7,14 +7,14 @@ import {
 export interface GVizQueryBuilderCase {
   name: string
   columns: GSheetColumnMap
-  query?: RepositoryReadQuery<Record<string, unknown>>
+  query?: MappedReadQuery<Record<string, unknown>>
   expected: string
 }
 
 export interface GVizQueryBuilderErrorCase {
   name: string
   columns: GSheetColumnMap
-  query?: RepositoryReadQuery<Record<string, unknown>>
+  query?: MappedReadQuery<Record<string, unknown>>
   expectedError: string
 }
 
