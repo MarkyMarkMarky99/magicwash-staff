@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { API_PAGINATION_DEFAULTS } from '../shared/api.schema'
+import type { ModuleApiContract } from '../shared/module-api-contract'
 
 /**
  * The customers API ↔ frontend contract: request/query/response schemas and the
@@ -107,13 +108,24 @@ export const customerDetailResponseSchema = customerListResponseSchema.extend({
 export const customerCreateResponseSchema = customerDetailResponseSchema
 export const customerUpdateResponseSchema = customerDetailResponseSchema
 
-/** Convenience bundle for service wiring; schemas above remain the source of truth. */
+/**
+ * The module API contract bundle (nested `query` / `request` / `response`)
+ * consumed by the service wiring. The individual schemas above stay exported and
+ * remain the source of truth; this bundle just groups them into the standard
+ * `ModuleApiContract` shape so every module wires the same way.
+ */
 export const customerApiSchemas = {
-  listQuery: customerListQuerySchema,
-  createRequest: customerCreateSchema,
-  updateRequest: customerUpdateSchema,
-  listResponse: customerListResponseSchema,
-  detailResponse: customerDetailResponseSchema,
-  createResponse: customerCreateResponseSchema,
-  updateResponse: customerUpdateResponseSchema,
-} as const
+  query: {
+    list: customerListQuerySchema,
+  },
+  request: {
+    create: customerCreateSchema,
+    update: customerUpdateSchema,
+  },
+  response: {
+    list: customerListResponseSchema,
+    detail: customerDetailResponseSchema,
+    create: customerCreateResponseSchema,
+    update: customerUpdateResponseSchema,
+  },
+} satisfies ModuleApiContract

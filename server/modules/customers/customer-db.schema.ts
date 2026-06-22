@@ -4,6 +4,7 @@ import {
   customerTypeSchema,
   preferredContactMethodSchema,
 } from '../../../contracts/customers/customer-api.schema'
+import type { ModuleDbContract } from '../../shared/contracts/module-db-contract'
 
 /**
  * The customers API ↔ database contract (Google Sheets / Apps Script): the full
@@ -52,24 +53,29 @@ export const customerRowSchema = z.object({
 //    CustomerIndex, UpdatedAt, DeletedAt); this sheet has no CreatedBy column,
 //    so the write actor rides on UpdatedBy. ──
 
-export const customerAppendPayloadSchema = z.object({
+// CREATE flow (NOT old fill-null): a field omitted from the payload is not sent;
+// an explicit null is sent as null; required fields must be present. So the
+// required columns (CustomerName, Phone, UpdatedBy) stay present while every
+// optional column is `.nullable().optional()` — mirrors the API create schema's
+// nullish() fields after mapping.
+export const customerDbCreateRequestSchema = z.object({
   CustomerName: z.string().min(1),
-  Phone: z.string().nullable(), // stored as text so the Thai leading 0 survives
-  Address: z.string().nullable(),
-  Location: z.string().nullable(),
-  RegisteredDate: z.string().nullable(), // null lets the DB layer default to today
-  Facebook: z.string().nullable(),
-  Line: z.string().nullable(),
-  Whatsapp: z.string().nullable(),
-  Email: z.string().nullable(),
-  CustomerType: customerTypeSchema.nullable(),
-  Source: customerSourceSchema.nullable(),
+  Phone: z.string().min(1), // required non-null; stored as text so the Thai leading 0 survives
+  Address: z.string().nullable().optional(),
+  Location: z.string().nullable().optional(),
+  RegisteredDate: z.string().nullable().optional(), // omit or null -> DB layer defaults to today
+  Facebook: z.string().nullable().optional(),
+  Line: z.string().nullable().optional(),
+  Whatsapp: z.string().nullable().optional(),
+  Email: z.string().nullable().optional(),
+  CustomerType: customerTypeSchema.nullable().optional(),
+  Source: customerSourceSchema.nullable().optional(),
   // Required on APPEND even though the stored cell is nullable (legacy rows).
   UpdatedBy: z.string().min(1),
 })
 
 /** PATCH semantics: only the fields being changed are sent; the id travels separately. */
-export const customerUpdatePayloadSchema = z.object({
+export const customerDbUpdateRequestSchema = z.object({
   CustomerName: z.string().min(1).optional(),
   Phone: z.string().nullable().optional(), // stored as text so the Thai leading 0 survives
   Address: z.string().nullable().optional(),
@@ -111,11 +117,27 @@ export const customerFieldMap = {
   DeletedAt: 'deletedAt',
 } as const satisfies Record<keyof z.infer<typeof customerRowSchema> & string, string>
 
-/** The bundle both engine factories consume — one import for the whole DB contract. */
-export const customerDbSchemas = {
+/**
+ * The module DB contract bundle (backend↔database boundary) in the standard
+ * `ModuleDbContract` shape — one import for the whole DB side. The repository
+ * consumes `row` / `fieldMap` / `primaryKey` today; `request` / `response`
+ * declare the DB write/read shapes for current and future consumers.
+ *
+ * `primaryKey` is the API/domain field name (`customerId`), not the DB column
+ * (`CustomerID`) — the repository folds it into where[primaryKey] and the mapper
+ * resolves it to the column.
+ */
+export const customerDbContract = {
   row: customerRowSchema,
-  idColumn: 'CustomerID',
   fieldMap: customerFieldMap,
-  appendPayload: customerAppendPayloadSchema,
-  updatePayload: customerUpdatePayloadSchema,
-} as const
+  primaryKey: 'customerId',
+  request: {
+    create: customerDbCreateRequestSchema,
+    update: customerDbUpdateRequestSchema,
+  },
+  response: {
+    read: customerRowSchema.partial(),
+    create: customerRowSchema,
+    update: customerRowSchema,
+  },
+} satisfies ModuleDbContract

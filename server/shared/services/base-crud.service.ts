@@ -1,4 +1,3 @@
-import type { ZodType, ZodTypeDef } from 'zod'
 import type { BaseRepository } from '../repositories/base.repository'
 import {
   ReadQueryDTO,
@@ -7,10 +6,10 @@ import {
 } from '../dtos/read-query.dto'
 import { ApiError } from '../http/api-error'
 import { parseOrThrow } from '../http/validate'
-
-type ResponseSchema<TResponse extends object> = ZodType<TResponse, ZodTypeDef, unknown> & {
-  shape: Record<keyof TResponse & string, unknown>
-}
+import type {
+  ModuleApiContractOf,
+  ResponseSchema,
+} from '../../../contracts/shared/module-api-contract'
 
 export interface ServiceListResult<TListResponse extends object> {
   items: TListResponse[]
@@ -36,13 +35,20 @@ export interface BaseCrudServiceOptions<
 > {
   repository: BaseRepository<TApiRow, OmitReservedQueryFields<TListQuery>, TCreate, TUpdate>
 
-  listQuerySchema: ZodType<TListQuery, ZodTypeDef, unknown>
-  createSchema: ZodType<TCreate, ZodTypeDef, unknown>
-  updateSchema: ZodType<TUpdate, ZodTypeDef, unknown>
-  listResponseSchema: ResponseSchema<TListResponse>
-  detailResponseSchema: ResponseSchema<TDetailResponse>
-  createResponseSchema: ResponseSchema<TCreateResponse>
-  updateResponseSchema: ResponseSchema<TUpdateResponse>
+  /**
+   * The module's nested API contract bundle. The service reads the request/query
+   * schemas it validates against from `api.query` / `api.request`, and projects
+   * each response by the matching `api.response.*` schema shape.
+   */
+  api: ModuleApiContractOf<
+    TListQuery,
+    TCreate,
+    TUpdate,
+    TListResponse,
+    TDetailResponse,
+    TCreateResponse,
+    TUpdateResponse
+  >
 
   /** API/domain fields the list keyword searches against (ReadQueryDTO.fromQuery). */
   searchFields: readonly string[]
@@ -64,13 +70,15 @@ export class BaseCrudService<
     TCreate,
     TUpdate
   >
-  private readonly listQuerySchema: ZodType<TListQuery, ZodTypeDef, unknown>
-  private readonly createSchema: ZodType<TCreate, ZodTypeDef, unknown>
-  private readonly updateSchema: ZodType<TUpdate, ZodTypeDef, unknown>
-  private readonly listResponseSchema: ResponseSchema<TListResponse>
-  private readonly detailResponseSchema: ResponseSchema<TDetailResponse>
-  private readonly createResponseSchema: ResponseSchema<TCreateResponse>
-  private readonly updateResponseSchema: ResponseSchema<TUpdateResponse>
+  private readonly api: ModuleApiContractOf<
+    TListQuery,
+    TCreate,
+    TUpdate,
+    TListResponse,
+    TDetailResponse,
+    TCreateResponse,
+    TUpdateResponse
+  >
   private readonly searchFields: readonly string[]
 
   constructor(
@@ -86,23 +94,17 @@ export class BaseCrudService<
     >,
   ) {
     this.repository = input.repository
-    this.listQuerySchema = input.listQuerySchema
-    this.createSchema = input.createSchema
-    this.updateSchema = input.updateSchema
-    this.listResponseSchema = input.listResponseSchema
-    this.detailResponseSchema = input.detailResponseSchema
-    this.createResponseSchema = input.createResponseSchema
-    this.updateResponseSchema = input.updateResponseSchema
+    this.api = input.api
     this.searchFields = input.searchFields
   }
 
   async list(query: unknown): Promise<ServiceListResult<TListResponse>> {
-    const validQuery = parseOrThrow(this.listQuerySchema, query)
+    const validQuery = parseOrThrow(this.api.query.list, query)
     const readQuery = ReadQueryDTO.fromQuery(validQuery, this.searchFields)
     const rows = await this.repository.read(readQuery)
 
     return {
-      items: rows.map((row) => this.project(row, this.listResponseSchema)),
+      items: rows.map((row) => this.project(row, this.api.response.list)),
       pagination: {
         page: validQuery.page,
         perPage: validQuery.perPage,
@@ -116,18 +118,18 @@ export class BaseCrudService<
       ReadQueryDTO.fromId<OmitReservedQueryFields<TListQuery>>(safeId),
     )
     const row = this.requireSingleRow(rows, safeId)
-    return this.project(row, this.detailResponseSchema)
+    return this.project(row, this.api.response.detail)
   }
 
   async create(payload: unknown): Promise<TCreateResponse> {
-    const data = parseOrThrow(this.createSchema, payload)
+    const data = parseOrThrow(this.api.request.create, payload)
     const row = await this.repository.create(data)
-    return this.project(row, this.createResponseSchema)
+    return this.project(row, this.api.response.create)
   }
 
   async update(id: string, payload: unknown): Promise<TUpdateResponse> {
     const safeId = this.requireId(id)
-    const data = parseOrThrow(this.updateSchema, payload)
+    const data = parseOrThrow(this.api.request.update, payload)
 
     const rows = await this.repository.read(
       ReadQueryDTO.fromId<OmitReservedQueryFields<TListQuery>>(safeId),
@@ -135,7 +137,7 @@ export class BaseCrudService<
     this.requireSingleRow(rows, safeId)
 
     const row = await this.repository.update(safeId, data)
-    return this.project(row, this.updateResponseSchema)
+    return this.project(row, this.api.response.update)
   }
 
   private requireId(id: string): string {

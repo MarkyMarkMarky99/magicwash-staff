@@ -123,13 +123,16 @@ async function loadServiceCtor(): Promise<BaseCrudServiceCtor> {
 function makeService(BaseCrudService: BaseCrudServiceCtor, repo = new FakeRepository()) {
   const service = new BaseCrudService({
     repository: repo,
-    listQuerySchema,
-    createSchema,
-    updateSchema,
-    listResponseSchema,
-    detailResponseSchema,
-    createResponseSchema,
-    updateResponseSchema,
+    api: {
+      query: { list: listQuerySchema },
+      request: { create: createSchema, update: updateSchema },
+      response: {
+        list: listResponseSchema,
+        detail: detailResponseSchema,
+        create: createResponseSchema,
+        update: updateResponseSchema,
+      },
+    },
     searchFields: ['customerName'],
   })
 

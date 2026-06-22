@@ -21,4 +21,5 @@ paths:
 - Define detail response schemas for full detail DTOs.
 - Define response schemas as API-facing `camelCase` DTO contracts only.
 - Do not include DB row schemas or `snake_case` fields in API contract schemas.
-- Export a single `*ApiSchemas` bundle containing the module contract schemas.
+- Keep every individual schema exported (the frontend imports them directly).
+- Export a single `*ApiSchemas` bundle in the nested standard shape `{ query: { list }, request: { create, update }, response: { list, detail, create, update } }`, typed with `satisfies ModuleApiContract` from `contracts/shared/module-api-contract.ts`.
