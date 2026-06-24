@@ -21,9 +21,17 @@ import type { ModuleApiContract } from '../../../contracts/shared/module-api-con
 /** DB column name -> API/domain field name. Re-exported so the DB contract lives in one place. */
 export type { FieldMap }
 
+/**
+ * A DB row schema is a Zod OBJECT: `GSheetRepository` derives the GViz column
+ * letters from `row.shape` (physical column order), so the row must expose
+ * `.shape`. Mirrors `AnyResponseSchema` on the API side. A non-object schema
+ * (e.g. `z.string()`) fails the guard at compile time.
+ */
+export type DbRowSchema = ZodSchema & { shape: Record<string, unknown> }
+
 /** Structural guard: a module's DB bundle must have exactly these slots. */
 export type ModuleDbContract = {
-  row: ZodSchema
+  row: DbRowSchema
   fieldMap: FieldMap
   /** API/domain field name of the primary key, e.g. `customerId` (NOT the DB column). */
   primaryKey: string
@@ -49,7 +57,7 @@ export type ModuleDbContractOf<
   TCreateResponse extends object,
   TUpdateResponse extends object,
 > = {
-  row: ZodType<TRow, ZodTypeDef, unknown>
+  row: ZodType<TRow, ZodTypeDef, unknown> & { shape: Record<string, unknown> }
   fieldMap: FieldMap
   primaryKey: string
   request: {

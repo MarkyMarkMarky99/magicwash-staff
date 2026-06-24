@@ -5,7 +5,7 @@ import type { ModuleApiContract } from '../shared/module-api-contract'
 /**
  * The customers API ↔ frontend contract: request/query/response schemas and the
  * API-facing enums they share. The DB-side contract lives in
- * `customer-db.schema.ts` and never crosses this boundary.
+ * `server/modules/customers/customer.contract.ts` and never crosses this boundary.
  */
 
 export const customerTypeSchema = z.enum(['Member', 'Regular', 'Corporate'])
@@ -112,9 +112,11 @@ export const customerUpdateResponseSchema = customerDetailResponseSchema
  * The module API contract bundle (nested `query` / `request` / `response`)
  * consumed by the service wiring. The individual schemas above stay exported and
  * remain the source of truth; this bundle just groups them into the standard
- * `ModuleApiContract` shape so every module wires the same way.
+ * `ModuleApiContract` shape so every module wires the same way. Named
+ * `customerApiContract` to mirror the DB side (`customerDbContract`) and the
+ * composed `customerContract`.
  */
-export const customerApiSchemas = {
+export const customerApiContract = {
   query: {
     list: customerListQuerySchema,
   },

@@ -1,17 +1,19 @@
 import { z } from 'zod'
 import {
+  customerApiContract,
   customerSourceSchema,
   customerTypeSchema,
   preferredContactMethodSchema,
 } from '../../../contracts/customers/customer-api.schema'
-import type { ModuleDbContract } from '../../shared/contracts/module-db-contract'
+import type { ModuleContract, ModuleDbContract } from '../../shared/contracts/module-db-contract'
 
 /**
- * The customers API ↔ database contract (Google Sheets / Apps Script): the full
- * stored row, the explicit DB column -> API field map, and one exact payload
- * schema per write action. This side of the boundary speaks sheet column keys
- * (PascalCase) and must never reach the frontend — the API-facing contract lives
- * in `customer-api.schema.ts`.
+ * The customers module contract: the API ↔ database (Google Sheets / Apps Script)
+ * DB side plus the composed module contract. This file is the single server-side
+ * owner of the DB schemas, `customerDbContract`, and the composed
+ * `customerContract` (API bundle + DB bundle). The DB side speaks sheet column
+ * keys (PascalCase) and must never reach the frontend — the API-facing contract
+ * lives in `contracts/customers/customer-api.schema.ts`.
  *
  * Why customers needs an explicit field map: the real sheet header is `Line`
  * but the API exposes it as `lineId`. The old PascalCase→camelCase convention
@@ -141,3 +143,15 @@ export const customerDbContract = {
     update: customerRowSchema,
   },
 } satisfies ModuleDbContract
+
+/**
+ * The complete module contract: the API bundle (camelCase, FE-shareable) plus the
+ * DB bundle (sheet columns, server-only) under one symbol. `satisfies` (never a
+ * `: ModuleContract` annotation) keeps the exact `fieldMap` literal and per-slot
+ * schema types, so `GSheetRepository` and `BaseCrudService` infer everything they
+ * need off this one value. This is the module's single source of truth.
+ */
+export const customerContract = {
+  api: customerApiContract,
+  db: customerDbContract,
+} satisfies ModuleContract

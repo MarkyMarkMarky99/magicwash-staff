@@ -35,7 +35,7 @@ export const fooDetailResponseSchema = fooListResponseSchema.extend({ notes: z.s
 export const fooCreateResponseSchema = fooDetailResponseSchema
 export const fooUpdateResponseSchema = fooDetailResponseSchema
 // One NESTED API bundle, same shape every module (satisfies ModuleApiContract):
-export const fooApiSchemas = {
+export const fooApiContract = {
   query: { list: fooListQuerySchema },
   request: { create: fooCreateSchema, update: fooUpdateSchema },
   response: {
@@ -44,7 +44,7 @@ export const fooApiSchemas = {
   },
 } satisfies ModuleApiContract
 
-// server/modules/<m>/<m>-db.schema.ts — API ↔ DB contract (sheet column keys):
+// server/modules/<m>/<m>.contract.ts — DB contract (sheet column keys) + composed module contract:
 //   ⚠️ row key order = physical column order (1st key = column A); never reorder.
 export const fooRowSchema = z.object({ FooID: z.string(), Name: z.string(), Notes: ..., ... })
 // DB request payloads declared PER ACTION, not derived from the row. Omitted columns = DB fills on APPEND.
@@ -60,19 +60,14 @@ export const fooDbContract = {
   response: { read: fooRowSchema.partial(), create: fooRowSchema, update: fooRowSchema },
 } satisfies ModuleDbContract
 
-// server/modules/<m>/<m>.module.ts — wiring only. Compose the module contract, then
-// derive type aliases next to their consumer (schema files export NO z.infer types):
-const fooContract = { api: fooApiSchemas, db: fooDbContract } satisfies ModuleContract
-type FooDbRow = z.infer<typeof fooContract.db.row>
-type FooListQuery = z.infer<typeof fooContract.api.query.list>
-type FooCreate = z.infer<typeof fooContract.api.request.create>
-type FooUpdate = z.infer<typeof fooContract.api.request.update>
-type FooApiRow = ApiRowFromFieldMap<FooDbRow, typeof fooContract.db.fieldMap>
-type FooReadWhere = OmitReservedQueryFields<FooListQuery>
+// The composed module contract lives in this file too — one server-side source of truth:
+export const fooContract = { api: fooApiContract, db: fooDbContract } satisfies ModuleContract
 
-const fooRepository = new GSheetRepository<FooApiRow, FooDbRow, FooReadWhere, FooCreate, FooUpdate>({
+// server/modules/<m>/<m>.module.ts — wiring only. The whole contract drives every
+// inferred type, so the module declares NO repository-derived aliases:
+const fooRepository = new GSheetRepository({
+  contract: fooContract,
   sheetName: 'Foos', spreadsheetId: requireEnv('FOOS_SPREADSHEET_ID'), scriptUrl: requireEnv('APPSCRIPT_URL'),
-  rowSchema: fooContract.db.row, primaryKey: fooContract.db.primaryKey, fieldMap: fooContract.db.fieldMap,
 })
 
 export const fooService = new BaseCrudService({
@@ -102,7 +97,7 @@ bundles are checked with `satisfies`; `BaseCrudService` consumes the parameteriz
 
 - **Route files stay one line per method** — no logic in routes; call `list`/`getById`/`create`/`update`.
 - **Dependency direction:** `routes → service → repository → queries`
-- **Type import direction:** `server/modules/<m>/<m>-db.schema.ts` (DB) → `contracts/<m>/<m>-api.schema.ts` (API). DB contract may reuse API enums; never the reverse.
+- **Type import direction:** `server/modules/<m>/<m>.contract.ts` (DB + composed contract) → `contracts/<m>/<m>-api.schema.ts` (API). DB contract may reuse API enums; never the reverse. (Legacy not-yet-migrated modules may still use `<m>-db.schema.ts`.)
 - **What may live in `contracts/`:** the per-feature camelCase request/response schemas + enums, the generic request/response envelope (`contracts/shared/api.schema.ts`) — pure Zod, no type exports — and the API contract-*shape* meta-types (`contracts/shared/module-api-contract.ts`: `ResponseSchema`/`ModuleApiContract`/`ModuleApiContractOf`), which are structural TS types (no DB shape, no `server/` import) shared by FE and BE. **Never in `contracts/`:** DB row/payload schemas, repository types, the DB-side contract shapes (`ModuleDbContract`/`ModuleContract` live in `server/shared/contracts/`), the serverless **handler runtime object** (`ApiHandlerRequest` + raw query — co-located in `server/shared/http/api-handler.ts`), or business services — and a `contracts/` file must never import from `server/` or `api/`.
 
 ### Key Engine Rules
@@ -110,9 +105,9 @@ bundles are checked with `satisfies`; `BaseCrudService` consumes the parameteriz
 Target stack: `BaseCrudService` (storage-agnostic service) + `BaseRepository`/`GSheetRepository` (`server/shared/repositories/`) + the `ModuleContract` bundles. This is the source of truth for new and migrated modules.
 
 - **Repository is a contract:** the service depends on `BaseRepository<TApiRow, TReadWhere, TCreate, TUpdate>` (`read`/`create`/`update`/`delete`, all API/domain-shaped). `GSheetRepository` is its Google Sheets implementation and owns every transport detail — GViz query strings + reads, Apps Script writes, column-letter derivation from the row schema. Swap storage by implementing the same contract; `BaseCrudService` stays unchanged.
-- **Field map is load-bearing:** each `<m>-db.schema.ts` declares an explicit `fieldMap` (DB column → API/domain field) checked with `satisfies Record<keyof row & string, string>`. The mapper renames keys both ways for queries, payloads, and responses; irregular pairs the old PascalCase↔camelCase convention can't express (`Line → lineId`) ride on the map. Omit a column to keep its name (identity).
+- **Field map is load-bearing:** each `<m>.contract.ts` declares an explicit `fieldMap` (DB column → API/domain field) checked with `satisfies Record<keyof row & string, string>`. The mapper renames keys both ways for queries, payloads, and responses; irregular pairs the old PascalCase↔camelCase convention can't express (`Line → lineId`) ride on the map. Omit a column to keep its name (identity).
 - **Reads flow through `ReadQueryDTO`:** `BaseCrudService` validates the list query (`api.query.list`), builds an immutable `ReadQueryDTO.fromQuery(query, searchFields)` (keyword→search; page/perPage/sort reserved; every other field→`where`), and passes it to `repository.read()`, which maps API fields → DB columns before the GViz query. `getById`/`update` address one row by the API `primaryKey`, folded into `where[primaryKey]`. The read-where type is DERIVED — `OmitReservedQueryFields<TListQuery>`, no separate filter generic.
-- **Contracts are machine-checked:** `<m>ApiSchemas satisfies ModuleApiContract`, `<m>DbContract satisfies ModuleDbContract`, `<m>Contract satisfies ModuleContract`, plus `fieldMap satisfies Record<keyof row & string, string>`. A missing/stray column, a wrong DTO type, or a bundle slot left out is a compile error.
+- **Contracts are machine-checked:** `<m>ApiContract satisfies ModuleApiContract`, `<m>DbContract satisfies ModuleDbContract`, `<m>Contract satisfies ModuleContract`, plus `fieldMap satisfies Record<keyof row & string, string>`. A missing/stray column, a wrong DTO type, or a bundle slot left out is a compile error.
 - **Cell values are NEVER runtime-validated** — legacy data is dirty by decision; dirty rows must flow through reads AND write responses without 500. Response schemas drive projection (their `.shape` key set) at compile time only — `BaseCrudService` never `.parse()`s a row. A GViz column that resolves to no DB field throws (contract drift, not dirty data).
 - **doPost contract:** APPEND/UPDATE return the stored row in `data`. UPDATE is PATCH — only changed fields sent; the id is passed to the repository separately and pinned last in the doPost body (route id wins). DB-side request/response escape hatches use the repository `transformer` (`RepositoryTransformer`), not a service hook.
 - **Audit columns** (`UpdatedAt`/`UpdatedBy`/`DeletedAt`/…) appear in no response schema. The actor (`updatedBy`) is client input.

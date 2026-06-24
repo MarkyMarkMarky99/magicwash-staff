@@ -7,19 +7,11 @@ import {
   type RepositoryTransformer,
 } from './base.repository'
 import type { ReadQueryDTO } from '../dtos/read-query.dto'
+import type { ModuleContract } from '../contracts/module-db-contract'
 import { GSheetRepository } from './gsheet.repository'
-import {
-  customerFieldMap,
-  customerRowSchema,
-} from '../../modules/customers/customer-db.schema'
-import {
-  appointmentFieldMap,
-  appointmentRowSchema,
-} from '../../modules/appointments/appointment-db.schema'
+import { customerContract, customerFieldMap } from '../../modules/customers/customer.contract'
 
 type AnyRow = Record<string, unknown>
-type CustomerRow = z.infer<typeof customerRowSchema>
-type AppointmentRow = z.infer<typeof appointmentRowSchema>
 
 class TestRepository extends BaseRepository<AnyRow, AnyRow, AnyRow, AnyRow> {
   lastRequest?: RepositoryRequest<unknown, unknown>
@@ -87,6 +79,19 @@ function customerTestRepo(): TestRepository {
   })
 }
 
+// Customers is the real, in-scope contract for the GSheet transport tests; column
+// order (1st key = column A) gives CustomerID=B, CustomerName=D, Line=J,
+// CustomerType=M — the letters the GViz assertions below expect.
+function customerSheetRepo(transformer?: RepositoryTransformer): GSheetRepository<typeof customerContract> {
+  return new GSheetRepository({
+    contract: customerContract,
+    sheetName: 'Customers',
+    spreadsheetId: 'spreadsheet-id',
+    scriptUrl: 'https://script.example/exec',
+    transformer,
+  })
+}
+
 function gvizBody(table: unknown): string {
   return `google.visualization.Query.setResponse(${JSON.stringify({
     status: 'ok',
@@ -126,6 +131,8 @@ async function withMockFetch<T>(
 function tqFrom(url: string): string {
   return new URL(url).searchParams.get('tq') ?? ''
 }
+
+// ── BaseRepository pipeline (storage-agnostic; unchanged by the contract refactor) ──
 
 test('BaseRepository folds semantic read id into mapped primary-key where', async () => {
   const repo = customerTestRepo()
@@ -346,59 +353,49 @@ test('BaseRepository transformer sees DB fields between mapper.toDb and execute'
   })
 })
 
+// ── GSheetRepository: contract-driven construction + Google Sheets transport ──
+
 test('GSheetRepository read builds GViz query from mapped API fields', async () => {
-  const repo = new GSheetRepository<AnyRow, AppointmentRow, AnyRow, AnyRow, AnyRow>({
-    sheetName: 'Appointments',
-    spreadsheetId: 'spreadsheet-id',
-    scriptUrl: 'https://script.example/exec',
-    rowSchema: appointmentRowSchema,
-    primaryKey: 'appointmentId',
-    fieldMap: { ...appointmentFieldMap },
-  })
+  const repo = customerSheetRepo()
 
   await withMockFetch(
     async () => response({ text: gvizBody({ cols: [], rows: [] }) }),
     async (calls) => {
       await repo.read({
-        select: ['appointmentId'],
+        select: ['customerId'],
         where: {
-          status: 'PENDING',
+          customerType: 'Member',
         },
       })
 
-      assert.equal(tqFrom(calls[0].url), "select A\nwhere F = 'PENDING'")
+      // customerId -> CustomerID (column B); customerType -> CustomerType (column M)
+      assert.equal(tqFrom(calls[0].url), "select B\nwhere M = 'Member'")
     },
   )
 })
 
-test('GSheetRepository maps GViz table columns to API fields', async () => {
-  const repo = new GSheetRepository<AnyRow, AppointmentRow, AnyRow, AnyRow, AnyRow>({
-    sheetName: 'Appointments',
-    spreadsheetId: 'spreadsheet-id',
-    scriptUrl: 'https://script.example/exec',
-    rowSchema: appointmentRowSchema,
-    primaryKey: 'appointmentId',
-    fieldMap: { ...appointmentFieldMap },
-  })
+test('GSheetRepository maps GViz table columns to API fields including Line -> lineId', async () => {
+  const repo = customerSheetRepo()
 
   await withMockFetch(
     async () =>
       response({
         text: gvizBody({
-          cols: [{ id: 'A' }, { id: 'B' }, { id: 'F' }],
+          cols: [{ id: 'B' }, { id: 'D' }, { id: 'J' }],
           rows: [
             {
-              c: [{ v: 'A001' }, { v: 'C001' }, { v: 'PENDING' }],
+              c: [{ v: 'C001' }, { v: 'Alice' }, { v: 'line-1' }],
             },
           ],
         }),
       }),
     async () => {
+      // B -> CustomerID -> customerId; D -> CustomerName -> customerName; J -> Line -> lineId
       assert.deepEqual(await repo.read(), [
         {
-          appointmentId: 'A001',
           customerId: 'C001',
-          status: 'PENDING',
+          customerName: 'Alice',
+          lineId: 'line-1',
         },
       ])
     },
@@ -406,14 +403,7 @@ test('GSheetRepository maps GViz table columns to API fields', async () => {
 })
 
 test('GSheetRepository throws when GViz returns an unknown column letter', async () => {
-  const repo = new GSheetRepository<AnyRow, AppointmentRow, AnyRow, AnyRow, AnyRow>({
-    sheetName: 'Appointments',
-    spreadsheetId: 'spreadsheet-id',
-    scriptUrl: 'https://script.example/exec',
-    rowSchema: appointmentRowSchema,
-    primaryKey: 'appointmentId',
-    fieldMap: { ...appointmentFieldMap },
-  })
+  const repo = customerSheetRepo()
 
   await withMockFetch(
     async () =>
@@ -433,14 +423,7 @@ test('GSheetRepository throws when GViz returns an unknown column letter', async
 })
 
 test('GSheetRepository create sends Apps Script append payload and maps response', async () => {
-  const repo = new GSheetRepository<AnyRow, CustomerRow, AnyRow, AnyRow, AnyRow>({
-    sheetName: 'Customers',
-    spreadsheetId: 'spreadsheet-id',
-    scriptUrl: 'https://script.example/exec',
-    rowSchema: customerRowSchema,
-    primaryKey: 'customerId',
-    fieldMap: { ...customerFieldMap },
-  })
+  const repo = customerSheetRepo()
 
   await withMockFetch(
     async () =>
@@ -455,33 +438,36 @@ test('GSheetRepository create sends Apps Script append payload and maps response
         },
       }),
     async (calls) => {
-      assert.deepEqual(await repo.create({ customerName: 'Alice', lineId: 'line-1' }), {
-        customerId: 'C001',
-        customerName: 'Alice',
-        lineId: 'line-1',
-      })
+      assert.deepEqual(
+        await repo.create({
+          customerName: 'Alice',
+          phone: '0812345678',
+          lineId: 'line-1',
+          updatedBy: 'tester',
+        }),
+        {
+          customerId: 'C001',
+          customerName: 'Alice',
+          lineId: 'line-1',
+        },
+      )
 
       assert.deepEqual(JSON.parse(calls[0].init?.body as string), {
         action: 'APPEND',
         sheet: 'Customers',
         data: {
           CustomerName: 'Alice',
+          Phone: '0812345678',
           Line: 'line-1',
+          UpdatedBy: 'tester',
         },
       })
     },
   )
 })
 
-test('GSheetRepository update sends Apps Script update payload with id winning', async () => {
-  const repo = new GSheetRepository<AnyRow, CustomerRow, AnyRow, AnyRow, AnyRow>({
-    sheetName: 'Customers',
-    spreadsheetId: 'spreadsheet-id',
-    scriptUrl: 'https://script.example/exec',
-    rowSchema: customerRowSchema,
-    primaryKey: 'customerId',
-    fieldMap: { ...customerFieldMap },
-  })
+test('GSheetRepository update folds the route id into the doPost payload', async () => {
+  const repo = customerSheetRepo()
 
   await withMockFetch(
     async () =>
@@ -497,8 +483,8 @@ test('GSheetRepository update sends Apps Script update payload with id winning',
     async (calls) => {
       assert.deepEqual(
         await repo.update('C001', {
-          customerId: 'WRONG',
           customerName: 'Alice Updated',
+          updatedBy: 'tester',
         }),
         {
           customerId: 'C001',
@@ -510,23 +496,65 @@ test('GSheetRepository update sends Apps Script update payload with id winning',
         action: 'UPDATE',
         sheet: 'Customers',
         data: {
-          CustomerID: 'C001',
           CustomerName: 'Alice Updated',
+          UpdatedBy: 'tester',
+          CustomerID: 'C001',
         },
       })
     },
   )
 })
 
-test('GSheetRepository write throws Apps Script errors and delete is future', async () => {
-  const repo = new GSheetRepository<AnyRow, CustomerRow, AnyRow, AnyRow, AnyRow>({
-    sheetName: 'Customers',
-    spreadsheetId: 'spreadsheet-id',
-    scriptUrl: 'https://script.example/exec',
-    rowSchema: customerRowSchema,
-    primaryKey: 'customerId',
-    fieldMap: { ...customerFieldMap },
+test('GSheetRepository forwards the transformer to BaseRepository', async () => {
+  // Proves the rewritten constructor still threads `transformer` into super():
+  // request() runs on DB-named fields, response() rewrites the stored row.
+  const repo = customerSheetRepo({
+    request(request) {
+      return {
+        ...request,
+        data: {
+          ...(request.data as AnyRow),
+          UpdatedBy: 'system',
+        },
+      }
+    },
+    response(stored) {
+      return {
+        ...(stored as AnyRow),
+        CustomerName: 'Transformed',
+      }
+    },
   })
+
+  await withMockFetch(
+    async () =>
+      response({
+        json: {
+          success: true,
+          data: {
+            CustomerID: 'C001',
+            CustomerName: 'Original',
+          },
+        },
+      }),
+    async (calls) => {
+      const created = await repo.create({
+        customerName: 'Alice',
+        phone: '0812345678',
+        updatedBy: 'tester',
+      })
+
+      // request() injected the DB-named UpdatedBy into the APPEND payload
+      const sent = JSON.parse(calls[0].init?.body as string) as { data: Record<string, unknown> }
+      assert.equal(sent.data.UpdatedBy, 'system')
+      // response() override survived back through mapper.toApi (CustomerName -> customerName)
+      assert.equal(created.customerName, 'Transformed')
+    },
+  )
+})
+
+test('GSheetRepository write throws Apps Script errors and delete is future', async () => {
+  const repo = customerSheetRepo()
 
   await withMockFetch(
     async () =>
@@ -538,7 +566,12 @@ test('GSheetRepository write throws Apps Script errors and delete is future', as
       }),
     async () => {
       await assert.rejects(
-        () => repo.create({ customerName: 'Alice' }),
+        () =>
+          repo.create({
+            customerName: 'Alice',
+            phone: '0812345678',
+            updatedBy: 'tester',
+          }),
         /Apps Script APPEND failed: bad request/,
       )
     },
@@ -547,6 +580,83 @@ test('GSheetRepository write throws Apps Script errors and delete is future', as
   await assert.rejects(
     () => repo.delete('C001'),
     /GSheetRepository.delete is not implemented yet/,
+  )
+})
+
+// ── Route-id precedence with a conflicting body primary key ──
+// The customer update contract does not expose `customerId`, so a synthetic,
+// test-only ModuleContract whose update payload carries the primary key is the
+// only way to prove the folded route id wins the doPost merge (where pinned last).
+
+const widgetRowSchema = z.object({
+  WidgetID: z.string(),
+  Name: z.string(),
+})
+
+const widgetContract = {
+  api: {
+    query: {
+      list: z.object({
+        keyword: z.string().default(''),
+        page: z.coerce.number().int().positive().default(1),
+        perPage: z.coerce.number().int().positive().default(20),
+        sortBy: z.enum(['widgetId']).default('widgetId'),
+        sortOrder: z.enum(['asc', 'desc']).default('asc'),
+      }),
+    },
+    request: {
+      create: z.object({ name: z.string().min(1) }),
+      update: z.object({ widgetId: z.string().optional(), name: z.string().optional() }),
+    },
+    response: {
+      list: z.object({ widgetId: z.string() }),
+      detail: z.object({ widgetId: z.string(), name: z.string() }),
+      create: z.object({ widgetId: z.string(), name: z.string() }),
+      update: z.object({ widgetId: z.string(), name: z.string() }),
+    },
+  },
+  db: {
+    row: widgetRowSchema,
+    fieldMap: { WidgetID: 'widgetId', Name: 'name' },
+    primaryKey: 'widgetId',
+    request: {
+      create: z.object({ Name: z.string() }),
+      update: z.object({ Name: z.string().optional() }),
+    },
+    response: {
+      read: widgetRowSchema.partial(),
+      create: widgetRowSchema,
+      update: widgetRowSchema,
+    },
+  },
+} satisfies ModuleContract
+
+test('GSheetRepository update lets the route id win over a conflicting body primary key', async () => {
+  const repo = new GSheetRepository({
+    contract: widgetContract,
+    sheetName: 'Widgets',
+    spreadsheetId: 'spreadsheet-id',
+    scriptUrl: 'https://script.example/exec',
+  })
+
+  await withMockFetch(
+    async () =>
+      response({
+        json: { success: true, data: { WidgetID: 'W1', Name: 'New' } },
+      }),
+    async (calls) => {
+      await repo.update('W1', { widgetId: 'WRONG', name: 'New' })
+
+      // data has WidgetID:'WRONG' from the body, but where (id) is pinned last
+      assert.deepEqual(JSON.parse(calls[0].init?.body as string), {
+        action: 'UPDATE',
+        sheet: 'Widgets',
+        data: {
+          Name: 'New',
+          WidgetID: 'W1',
+        },
+      })
+    },
   )
 })
 

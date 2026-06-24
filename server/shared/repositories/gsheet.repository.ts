@@ -2,20 +2,42 @@
 // Owns all transport detail: GViz query strings + reads, Apps Script writes.
 // Reference design: ./gsheet.contract.ts
 
+import type { z } from 'zod'
 import {
   BaseRepository,
-  type FieldMap,
+  type ApiRowFromFieldMap,
   type MappedReadQuery,
   type RepositoryRequest,
   type RepositoryTransformer,
 } from './base.repository'
-import type { ReadQueryDTO } from '../dtos/read-query.dto'
+import { type ReadQueryDTO, type OmitReservedQueryFields } from '../dtos/read-query.dto'
+import type { ModuleContract } from '../contracts/module-db-contract'
 import {
   deriveGVizColumns,
   GVizQueryBuilder,
   type GSheetColumnMap,
-  type GSheetRowSchema,
 } from './utils/gviz-query.builder'
+
+// ── Repository types derived from the exact module contract. The DB row drives the
+//    mapped API row (via the field map); the API bundle drives the read filter and
+//    the create/update inputs. These are private — modules wire by passing the
+//    whole `contract`, never by restating these. ──
+type ModuleDbRow<TContract extends ModuleContract> = z.infer<TContract['db']['row']>
+
+type ModuleApiRow<TContract extends ModuleContract> = ApiRowFromFieldMap<
+  ModuleDbRow<TContract>,
+  TContract['db']['fieldMap']
+>
+
+type ModuleListQuery<TContract extends ModuleContract> = z.infer<TContract['api']['query']['list']>
+
+type ModuleReadWhere<TContract extends ModuleContract> = OmitReservedQueryFields<
+  ModuleListQuery<TContract>
+>
+
+type ModuleCreate<TContract extends ModuleContract> = z.infer<TContract['api']['request']['create']>
+
+type ModuleUpdate<TContract extends ModuleContract> = z.infer<TContract['api']['request']['update']>
 
 export type AppScriptAction = 'APPEND' | 'UPDATE'
 
@@ -48,14 +70,16 @@ export type AppScriptResponse<TData = unknown> =
   | AppScriptSuccessResponse<TData>
   | AppScriptErrorResponse
 
-export interface GSheetRepositoryOptions<TDbRow extends object = Record<string, unknown>> {
+export interface GSheetRepositoryOptions<TContract extends ModuleContract> {
+  /**
+   * The complete module contract. Runtime DB config (`db.row` / `db.fieldMap` /
+   * `db.primaryKey`) and the inferred API-facing method types both come from here,
+   * so callers never repeat generic arguments or schema options.
+   */
+  contract: TContract
   sheetName: string
   spreadsheetId: string
   scriptUrl: string
-  rowSchema: GSheetRowSchema & { shape: Record<keyof TDbRow & string, unknown> }
-  /** API/domain field name of the primary key, e.g. `customerId`. */
-  primaryKey: string
-  fieldMap?: FieldMap
   transformer?: RepositoryTransformer
 }
 
@@ -83,29 +107,28 @@ interface GVizResponse {
 
 const GVIZ_BASE_URL = 'https://docs.google.com/spreadsheets/d'
 
-export class GSheetRepository<
-  TApiRow extends object,
-  TDbRow extends object,
-  TReadWhere,
-  TCreate,
-  TUpdate,
-> extends BaseRepository<TApiRow, TReadWhere, TCreate, TUpdate> {
+export class GSheetRepository<TContract extends ModuleContract> extends BaseRepository<
+  ModuleApiRow<TContract>,
+  ModuleReadWhere<TContract>,
+  ModuleCreate<TContract>,
+  ModuleUpdate<TContract>
+> {
   private readonly sheetName: string
   private readonly spreadsheetId: string
   private readonly scriptUrl: string
   private readonly columns: GSheetColumnMap
   private readonly letterToField: Record<string, string>
 
-  constructor(input: GSheetRepositoryOptions<TDbRow>) {
+  constructor(input: GSheetRepositoryOptions<TContract>) {
     super({
-      fieldMap: input.fieldMap,
-      primaryKey: input.primaryKey,
+      fieldMap: input.contract.db.fieldMap,
+      primaryKey: input.contract.db.primaryKey,
       transformer: input.transformer,
     })
     this.sheetName = input.sheetName
     this.spreadsheetId = input.spreadsheetId
     this.scriptUrl = input.scriptUrl
-    this.columns = deriveGVizColumns(input.rowSchema)
+    this.columns = deriveGVizColumns(input.contract.db.row)
     this.letterToField = invertColumns(this.columns)
   }
 
@@ -134,19 +157,28 @@ export class GSheetRepository<
     }
   }
 
-  read(query?: ReadQueryDTO<TReadWhere>): Promise<Array<Partial<TApiRow>>> {
-    return this.request<Array<Partial<TApiRow>>, ReadQueryDTO<TReadWhere>, never>({
+  read(
+    query?: ReadQueryDTO<ModuleReadWhere<TContract>>,
+  ): Promise<Array<Partial<ModuleApiRow<TContract>>>> {
+    return this.request<
+      Array<Partial<ModuleApiRow<TContract>>>,
+      ReadQueryDTO<ModuleReadWhere<TContract>>,
+      never
+    >({
       operation: 'read',
       query,
     })
   }
 
-  create(data: TCreate): Promise<TApiRow> {
-    return this.request<TApiRow, never, TCreate>({ operation: 'create', data })
+  create(data: ModuleCreate<TContract>): Promise<ModuleApiRow<TContract>> {
+    return this.request<ModuleApiRow<TContract>, never, ModuleCreate<TContract>>({
+      operation: 'create',
+      data,
+    })
   }
 
-  update(id: string, data: TUpdate): Promise<TApiRow> {
-    return this.request<TApiRow, { id: string }, TUpdate>({
+  update(id: string, data: ModuleUpdate<TContract>): Promise<ModuleApiRow<TContract>> {
+    return this.request<ModuleApiRow<TContract>, { id: string }, ModuleUpdate<TContract>>({
       operation: 'update',
       query: { id },
       data,
@@ -214,7 +246,7 @@ export class GSheetRepository<
   }
 
   // Maps GViz cells back to row objects keyed by DB column names (the
-  // *-db.schema.ts shape). Cell values are returned as-is — never validated
+  // contract.db.row shape). Cell values are returned as-is — never validated
   // (dirty rows must flow). A returned column that maps to no DB field is a
   // contract drift, not dirty data, so it fails loudly.
   private tableToRows(table: GVizTable): Record<string, unknown>[] {
