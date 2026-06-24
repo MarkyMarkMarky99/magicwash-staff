@@ -25,3 +25,6 @@ dist-ssr
 
 .vercel
 .env*.local
+
+# Local agent configuration
+.claude/
