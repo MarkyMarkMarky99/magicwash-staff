@@ -2,14 +2,15 @@
 // The live implementation lives in ./gsheet.repository.ts and must satisfy
 // the signatures declared here. Kept for design reference only.
 
+import type { z } from 'zod'
 import {
   BaseRepository,
-  type FieldMap,
-  type RepositoryReadQuery,
+  type ApiRowFromFieldMap,
   type RepositoryRequest,
   type RepositoryTransformer,
 } from './base.contract'
-import type { GSheetRowSchema } from './utils/gviz-query.builder'
+import type { ReadQueryDTO, OmitReservedQueryFields } from '../dtos/read-query.dto'
+import type { ModuleContract } from '../contracts/module-db-contract'
 
 export type AppScriptAction = 'APPEND' | 'UPDATE'
 
@@ -42,35 +43,53 @@ export type AppScriptResponse<TData = unknown> =
   | AppScriptSuccessResponse<TData>
   | AppScriptErrorResponse
 
-// rowSchema is the DB row (TDbRow) — key order is physical column order, which
-// drives the GViz column letters. Field renames go through fieldMap (DB -> API).
-export interface GSheetRepositoryOptions<TDbRow extends object = Record<string, unknown>> {
+// ── Repository types derived from the exact module contract (mirror of the live
+//    implementation). The DB row drives the mapped API row via the field map; the
+//    API bundle drives the read filter and the create/update inputs. ──
+type ModuleDbRow<TContract extends ModuleContract> = z.infer<TContract['db']['row']>
+
+type ModuleApiRow<TContract extends ModuleContract> = ApiRowFromFieldMap<
+  ModuleDbRow<TContract>,
+  TContract['db']['fieldMap']
+>
+
+type ModuleReadWhere<TContract extends ModuleContract> = OmitReservedQueryFields<
+  z.infer<TContract['api']['query']['list']>
+>
+
+type ModuleCreate<TContract extends ModuleContract> = z.infer<TContract['api']['request']['create']>
+
+type ModuleUpdate<TContract extends ModuleContract> = z.infer<TContract['api']['request']['update']>
+
+// The whole module contract is the only constructor input besides sheet/transport
+// config: DB config (row/fieldMap/primaryKey, where row.shape -> GViz column
+// letters by physical order) and the inferred API method types both come from it.
+// Field renames (e.g. `Line -> lineId`) ride on `contract.db.fieldMap`.
+export interface GSheetRepositoryOptions<TContract extends ModuleContract> {
+  contract: TContract
   sheetName: string
   spreadsheetId: string
   scriptUrl: string
-  rowSchema: GSheetRowSchema & { shape: Record<keyof TDbRow & string, unknown> }
-  /** API/domain field name of the primary key, e.g. `customerId`. */
-  primaryKey: string
-  fieldMap?: FieldMap
   transformer?: RepositoryTransformer
 }
 
-export declare class GSheetRepository<
-  TApiRow extends object,
-  TDbRow extends object,
-  TReadWhere,
-  TCreate,
-  TUpdate,
-> extends BaseRepository<TApiRow, TReadWhere, TCreate, TUpdate> {
-  constructor(input: GSheetRepositoryOptions<TDbRow>)
+export declare class GSheetRepository<TContract extends ModuleContract> extends BaseRepository<
+  ModuleApiRow<TContract>,
+  ModuleReadWhere<TContract>,
+  ModuleCreate<TContract>,
+  ModuleUpdate<TContract>
+> {
+  constructor(input: GSheetRepositoryOptions<TContract>)
 
   protected execute<TResponse, TQuery = unknown, TData = unknown>(
     request: RepositoryRequest<TQuery, TData>,
   ): Promise<TResponse>
 
-  read(query?: RepositoryReadQuery<TReadWhere>): Promise<Array<Partial<TApiRow>>>
-  create(data: TCreate): Promise<TApiRow>
-  update(id: string, data: TUpdate): Promise<TApiRow>
+  read(
+    query?: ReadQueryDTO<ModuleReadWhere<TContract>>,
+  ): Promise<Array<Partial<ModuleApiRow<TContract>>>>
+  create(data: ModuleCreate<TContract>): Promise<ModuleApiRow<TContract>>
+  update(id: string, data: ModuleUpdate<TContract>): Promise<ModuleApiRow<TContract>>
   /** Future implementation. */
   delete(id: string): Promise<never>
 

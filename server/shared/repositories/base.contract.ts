@@ -2,49 +2,46 @@
 // The live implementation lives in ./base.repository.ts and must satisfy
 // the signatures declared here. Kept for design reference only.
 
+import type {
+  ReadQueryDTO,
+  ReadQueryPagination,
+  ReadQuerySearch,
+  ReadQuerySort,
+} from '../dtos/read-query.dto'
+
 export type RepositoryOperation = 'read' | 'create' | 'update' | 'delete'
 
 /** DB column name -> API/domain field name (matches each module's `<m>-db.schema.ts`). */
 export type FieldMap = Record<string, string>
 
-export interface RepositorySearch {
-  keyword: string
-  fields: readonly string[]
+export type ApiRowFromFieldMap<
+  TDbRow extends object,
+  TFieldMap extends Partial<Record<keyof TDbRow & string, string>>,
+> = {
+  [K in keyof TDbRow & string as K extends keyof TFieldMap
+    ? TFieldMap[K] extends string
+      ? TFieldMap[K]
+      : K
+    : K]: TDbRow[K]
 }
 
-export interface RepositorySort {
-  field: string
-  order: 'asc' | 'desc'
-}
-
-export interface RepositoryPagination {
-  page: number
-  perPage: number
-}
-
-export interface RepositoryReadQuery<TWhere> {
-  // BaseRepository maps only DB-backed query fields:
-  // id -> folded into where[primaryKey], then mapper.toDb()
-  // where -> mapper.toDb()
-  // select -> field names to DB field names
-  // search.fields -> field names to DB field names
-  // sort.field -> field name to DB field name
-  //
-  // BaseRepository does not map:
-  // search.keyword
-  // sort.order
-  // pagination
-  //
-  // `id` is the semantic primary-key accessor: BaseRepository folds a non-empty
-  // id into where[primaryKey] before mapping, so execute() never receives `id`.
-  // On read a missing/blank id is ignored (no filter); update/delete require a
-  // non-empty id (else they throw `Repository <operation> requires a non-empty id`).
-  id?: string
+// Internal, mutable, DB-field-named read query — the post-mapping shape produced
+// by BaseRepository.mapQueryToDb() and consumed by execute() / the GViz builder.
+// It is NOT the public read contract: read() takes the immutable, API/domain-
+// field-named ReadQueryDTO<TWhere> (see ../dtos/read-query.dto).
+//
+// BaseRepository maps only DB-backed fields (where -> mapper.toDb; select /
+// search.fields / sort.field -> DB field names) and does not map search.keyword,
+// sort.order, or pagination. The semantic `id` is folded into where[primaryKey]
+// during mapping, so it never reaches execute(): on read a missing/blank id is
+// ignored (no filter); update/delete require a non-empty id (else they throw
+// `Repository <operation> requires a non-empty id`).
+export interface MappedReadQuery<TWhere> {
   where?: TWhere
   select?: readonly string[]
-  search?: RepositorySearch
-  sort?: RepositorySort
-  pagination?: RepositoryPagination
+  search?: ReadQuerySearch
+  sort?: ReadQuerySort
+  pagination?: ReadQueryPagination
 }
 
 export declare class Mapper {
@@ -132,8 +129,9 @@ export declare abstract class BaseRepository<
     request: RepositoryRequest<TQuery, TData>,
   ): Promise<TResponse>
 
-  // read() may project (select), so rows are Partial of the API row.
-  abstract read(query?: RepositoryReadQuery<TReadWhere>): Promise<Array<Partial<TApiRow>>>
+  // read() takes the immutable ReadQueryDTO and may project (select), so rows
+  // are Partial of the API row.
+  abstract read(query?: ReadQueryDTO<TReadWhere>): Promise<Array<Partial<TApiRow>>>
   // create(data) -> request({ operation: 'create', data })
   abstract create(data: TCreate): Promise<TApiRow>
   // update(id, data) -> request({ operation: 'update', query: { id }, data })

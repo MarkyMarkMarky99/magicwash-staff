@@ -32,44 +32,58 @@ export const fooListQuerySchema = z.object({ keyword: ..., page: ..., sortBy: ..
 // Response schemas DRIVE projection: fields (camelCase twins of row columns, key order = DTO key order).
 export const fooListResponseSchema = z.object({ fooId: z.string(), name: z.string() })
 export const fooDetailResponseSchema = fooListResponseSchema.extend({ notes: z.string().nullable() })
-export const fooApiSchemas = {
-  listQuery: fooListQuerySchema, createRequest: fooCreateSchema, updateRequest: fooUpdateSchema,
-  listResponse: fooListResponseSchema, detailResponse: fooDetailResponseSchema,
-} as const
+export const fooCreateResponseSchema = fooDetailResponseSchema
+export const fooUpdateResponseSchema = fooDetailResponseSchema
+// One NESTED API bundle, same shape every module (satisfies ModuleApiContract):
+export const fooApiContract = {
+  query: { list: fooListQuerySchema },
+  request: { create: fooCreateSchema, update: fooUpdateSchema },
+  response: {
+    list: fooListResponseSchema, detail: fooDetailResponseSchema,
+    create: fooCreateResponseSchema, update: fooUpdateResponseSchema,
+  },
+} satisfies ModuleApiContract
 
-// server/modules/<m>/<m>-db.schema.ts — API ↔ DB contract (sheet column keys):
+// server/modules/<m>/<m>.contract.ts — DB contract (sheet column keys) + composed module contract:
 //   ⚠️ row key order = physical column order (1st key = column A); never reorder.
 export const fooRowSchema = z.object({ FooID: z.string(), Name: z.string(), Notes: ..., ... })
-// Payloads declared PER ACTION, not derived from the row. Omitted columns = DB fills on APPEND.
-export const fooAppendPayloadSchema = z.object({ Name: z.string().min(1), Notes: z.string().nullable(), CreatedBy: z.string().min(1) })
-export const fooUpdatePayloadSchema = z.object({ Name: z.string().optional(), Notes: ..., UpdatedBy: z.string().min(1) })
-export const fooDbSchemas = {
-  row: fooRowSchema, idColumn: 'FooID',
-  appendPayload: fooAppendPayloadSchema, updatePayload: fooUpdatePayloadSchema,
-} as const
+// DB request payloads declared PER ACTION, not derived from the row. Omitted columns = DB fills on APPEND.
+export const fooDbCreateRequestSchema = z.object({ Name: z.string().min(1), Notes: z.string().nullable(), CreatedBy: z.string().min(1) })
+export const fooDbUpdateRequestSchema = z.object({ Name: z.string().optional(), Notes: ..., UpdatedBy: z.string().min(1) })
+export const fooFieldMap = { FooID: 'fooId', Name: 'name', Notes: 'notes', ... } as const satisfies Record<keyof z.infer<typeof fooRowSchema> & string, string>
+// One NESTED DB bundle (satisfies ModuleDbContract). primaryKey is the API/domain
+// field name (fooId), NOT the DB column (FooID). request/response describe the DB
+// boundary; the repository consumes row/fieldMap/primaryKey today.
+export const fooDbContract = {
+  row: fooRowSchema, fieldMap: fooFieldMap, primaryKey: 'fooId',
+  request: { create: fooDbCreateRequestSchema, update: fooDbUpdateRequestSchema },
+  response: { read: fooRowSchema.partial(), create: fooRowSchema, update: fooRowSchema },
+} satisfies ModuleDbContract
 
-// server/modules/<m>/<m>.module.ts — wiring only.
-// Schema files export NO z.infer types — derive type aliases next to their consumer:
-type FooRow = z.infer<typeof fooRowSchema>
-type FooFilter = z.infer<typeof fooListQuerySchema>
+// The composed module contract lives in this file too — one server-side source of truth:
+export const fooContract = { api: fooApiContract, db: fooDbContract } satisfies ModuleContract
 
-const fooRepository = createGoogleSheetRepository<FooRow, FooFilter>({
-  sheet: { sheetName: 'Foos', spreadsheetIdEnv: '...', scriptUrlEnv: '...' },
-  db: fooDbSchemas,
-  clauses: (clause, columns) => [
-    clause.eq('status', 'Status'),   // also: contains / dateRange
-    (filter) => null,                // cross-field logic: plain fn
-  ],
+// server/modules/<m>/<m>.module.ts — wiring only. The whole contract drives every
+// inferred type, so the module declares NO repository-derived aliases:
+const fooRepository = new GSheetRepository({
+  contract: fooContract,
+  sheetName: 'Foos', spreadsheetId: requireEnv('FOOS_SPREADSHEET_ID'), scriptUrl: requireEnv('APPSCRIPT_URL'),
 })
 
-export const fooService = createSheetService({
-  resourceName: 'Foo',
+export const fooService = new BaseCrudService({
   repository: fooRepository,
-  api: fooApiSchemas,
-  db: fooDbSchemas,
-  // hooks: { create: { before }, update: { before, after }, ... } — optional
+  api: fooContract.api,
+  searchFields: ['fooId', 'name'],   // API/domain fields the list keyword searches
 })
 ```
+
+The shared contract-shape types are the standard every module conforms to:
+`ResponseSchema` / `ModuleApiContract` / `ModuleApiContractOf` live in
+`contracts/shared/module-api-contract.ts` (API side, FE-shareable); `FieldMap` /
+`ModuleDbContract` / `ModuleDbContractOf` / `ModuleContract` live in
+`server/shared/contracts/module-db-contract.ts` (DB side, backend-only). A module's
+bundles are checked with `satisfies`; `BaseCrudService` consumes the parameterized
+`ModuleApiContractOf` so each slot keeps its precise DTO type.
 
 **Complex modules** (multi-sheet reads, 1:n assembly, business rules beyond CRUD+filter) keep dedicated layers, composing `BaseSheetRepository`, `createClauseBuilders`, `createSheetQuery`, and naming utils from `server/shared/sheet-crud/` and `server/shared/repositories/`:
 
@@ -83,22 +97,26 @@ export const fooService = createSheetService({
 
 - **Route files stay one line per method** — no logic in routes; call `list`/`getById`/`create`/`update`.
 - **Dependency direction:** `routes → service → repository → queries`
-- **Type import direction:** `server/modules/<m>/<m>-db.schema.ts` (DB) → `contracts/<m>/<m>-api.schema.ts` (API). DB contract may reuse API enums; never the reverse.
-- **What may live in `contracts/`:** the per-feature camelCase request/response schemas + enums, and the generic request/response envelope (`contracts/shared/api.schema.ts`) — pure Zod, no type exports. **Never in `contracts/`:** DB row/payload schemas, repository types, the serverless **handler runtime object** (`ApiHandlerRequest` + raw query — co-located in `server/shared/http/api-handler.ts`), or business services — and a `contracts/` file must never import from `server/` or `api/`.
+- **Type import direction:** `server/modules/<m>/<m>.contract.ts` (DB + composed contract) → `contracts/<m>/<m>-api.schema.ts` (API). DB contract may reuse API enums; never the reverse. (Legacy not-yet-migrated modules may still use `<m>-db.schema.ts`.)
+- **What may live in `contracts/`:** the per-feature camelCase request/response schemas + enums, the generic request/response envelope (`contracts/shared/api.schema.ts`) — pure Zod, no type exports — and the API contract-*shape* meta-types (`contracts/shared/module-api-contract.ts`: `ResponseSchema`/`ModuleApiContract`/`ModuleApiContractOf`), which are structural TS types (no DB shape, no `server/` import) shared by FE and BE. **Never in `contracts/`:** DB row/payload schemas, repository types, the DB-side contract shapes (`ModuleDbContract`/`ModuleContract` live in `server/shared/contracts/`), the serverless **handler runtime object** (`ApiHandlerRequest` + raw query — co-located in `server/shared/http/api-handler.ts`), or business services — and a `contracts/` file must never import from `server/` or `api/`.
 
 ### Key Engine Rules
 
-- **Repository is a contract:** services depend on `ResourceRepository<TRow, TFilter>` (`findById`/`findByFilter`/`append`/`update`). `createGoogleSheetRepository` is its one implementation and owns all transport detail — column letters, GViz query strings, Apps Script payloads, env wiring. Another storage backend implements the same interface and keeps the generic service.
-- **Naming convention is load-bearing:** sheet headers PascalCase with uppercase `ID` suffix ↔ camelCase API twins (`PickupOrderID` ↔ `pickupOrderId`). Projection, payload building, and sort resolution all pair through `server/shared/sheet-crud/sheet-naming.ts`. A sheet that breaks the convention needs an engine extension, not a workaround.
-- **Two contracts, machine-checked:** compile errors catch all drift — payload column missing from row or wrong cell type; payload column the request can't fill; request field landing in no payload column (silently dropped); response field with no backing column or a type the cell can't guarantee (nullability must be honest); a `sortBy` value that is no column's camelCase twin.
-- **Cell values are NEVER runtime-validated** — legacy data is dirty by decision; dirty rows must flow through reads AND write responses without 500. Response schemas constrain at compile time only. Built write payloads ARE runtime-validated by their action schema, including hook output (violation = 500 config bug, not client error).
-- **doPost contract:** APPEND/UPDATE must return the full stored row in `data`; service checks every `db.row` column is present (keys only, values unvalidated), else 500. UPDATE is PATCH — only defined fields sent; id is passed to the repository separately and pinned last in the doPost body (route id wins).
-- **Audit columns** (`CreatedAt`/`UpdatedAt`/`CreatedBy`/`UpdatedBy`) appear in no response schema. The actor (`createdBy`/`updatedBy`) is client input.
-- **Hooks:** one `before` + one `after` per method, business logic only (presentation stays in frontend mappers). Needing more = module outgrew the engine — give it its own service.
+Target stack: `BaseCrudService` (storage-agnostic service) + `BaseRepository`/`GSheetRepository` (`server/shared/repositories/`) + the `ModuleContract` bundles. This is the source of truth for new and migrated modules.
 
-## Singletons, not classes
+- **Repository is a contract:** the service depends on `BaseRepository<TApiRow, TReadWhere, TCreate, TUpdate>` (`read`/`create`/`update`/`delete`, all API/domain-shaped). `GSheetRepository` is its Google Sheets implementation and owns every transport detail — GViz query strings + reads, Apps Script writes, column-letter derivation from the row schema. Swap storage by implementing the same contract; `BaseCrudService` stays unchanged.
+- **Field map is load-bearing:** each `<m>.contract.ts` declares an explicit `fieldMap` (DB column → API/domain field) checked with `satisfies Record<keyof row & string, string>`. The mapper renames keys both ways for queries, payloads, and responses; irregular pairs the old PascalCase↔camelCase convention can't express (`Line → lineId`) ride on the map. Omit a column to keep its name (identity).
+- **Reads flow through `ReadQueryDTO`:** `BaseCrudService` validates the list query (`api.query.list`), builds an immutable `ReadQueryDTO.fromQuery(query, searchFields)` (keyword→search; page/perPage/sort reserved; every other field→`where`), and passes it to `repository.read()`, which maps API fields → DB columns before the GViz query. `getById`/`update` address one row by the API `primaryKey`, folded into `where[primaryKey]`. The read-where type is DERIVED — `OmitReservedQueryFields<TListQuery>`, no separate filter generic.
+- **Contracts are machine-checked:** `<m>ApiContract satisfies ModuleApiContract`, `<m>DbContract satisfies ModuleDbContract`, `<m>Contract satisfies ModuleContract`, plus `fieldMap satisfies Record<keyof row & string, string>`. A missing/stray column, a wrong DTO type, or a bundle slot left out is a compile error.
+- **Cell values are NEVER runtime-validated** — legacy data is dirty by decision; dirty rows must flow through reads AND write responses without 500. Response schemas drive projection (their `.shape` key set) at compile time only — `BaseCrudService` never `.parse()`s a row. A GViz column that resolves to no DB field throws (contract drift, not dirty data).
+- **doPost contract:** APPEND/UPDATE return the stored row in `data`. UPDATE is PATCH — only changed fields sent; the id is passed to the repository separately and pinned last in the doPost body (route id wins). DB-side request/response escape hatches use the repository `transformer` (`RepositoryTransformer`), not a service hook.
+- **Audit columns** (`UpdatedAt`/`UpdatedBy`/`DeletedAt`/…) appear in no response schema. The actor (`updatedBy`) is client input.
+- **No hooks in `BaseCrudService`:** the flow is fixed (validate → read/write → project). Business logic beyond CRUD+filter belongs in a dedicated service for that module, not in the generic engine.
+- **Legacy/transition:** `server/shared/sheet-crud/` (the `createSheetService` / `createGoogleSheetRepository` factories, `ResourceRepository`, `sheet-naming`) still backs not-yet-migrated paths and is being removed. Do **not** treat the factory flow as the source of truth for new work.
 
-Repositories and services are module-level object literals (`export const fooService = { ... }`), not classes. Node's module cache makes them true singletons. `sheet-crud` factories run at module scope — env vars read once at first import (safe: `tsc` doesn't execute modules; Vercel cold start has env). No per-module factory files; wiring is through imports; the only factories are the generic ones in `server/shared/sheet-crud/`. Exception: `server/shared/` clients (`GVizClient`, `AppScriptClient`, `BaseSheetRepository`) stay classes — instantiated per feature with different config.
+## Singletons via the module cache
+
+Repositories and services are class instances created once at module scope (`const fooRepository = new GSheetRepository(...)`, `export const fooService = new BaseCrudService(...)`). Node's module cache makes them true singletons; constructors read env once at first import (safe: `tsc` doesn't execute modules; Vercel cold start has env). Wiring is through imports — no per-module factory files. (Legacy `sheet-crud` modules still expose object-literal services from generic factories; those are being migrated to the class-instance form above.)
 
 ## Validation
 

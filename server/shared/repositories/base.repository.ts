@@ -1,6 +1,13 @@
 // Storage-agnostic repository contract + shared pipeline.
 // Reference design: ./base.contract.ts
 
+import type {
+  ReadQueryDTO,
+  ReadQueryPagination,
+  ReadQuerySearch,
+  ReadQuerySort,
+} from '../dtos/read-query.dto'
+
 export type RepositoryOperation = 'read' | 'create' | 'update' | 'delete'
 
 /**
@@ -10,39 +17,32 @@ export type RepositoryOperation = 'read' | 'create' | 'update' | 'delete'
  */
 export type FieldMap = Record<string, string>
 
-export interface RepositorySearch {
-  keyword: string
-  fields: readonly string[]
+export type ApiRowFromFieldMap<
+  TDbRow extends object,
+  TFieldMap extends Partial<Record<keyof TDbRow & string, string>>,
+> = {
+  [K in keyof TDbRow & string as K extends keyof TFieldMap
+    ? TFieldMap[K] extends string
+      ? TFieldMap[K]
+      : K
+    : K]: TDbRow[K]
 }
 
-export interface RepositorySort {
-  field: string
-  order: 'asc' | 'desc'
-}
-
-export interface RepositoryPagination {
-  page: number
-  perPage: number
-}
-
-export interface RepositoryReadQuery<TWhere> {
-  // BaseRepository maps only DB-backed query fields:
-  // id -> folded into where[primaryKey], then mapper.toDb()
-  // where -> mapper.toDb()
-  // select / search.fields / sort.field -> API/domain field names to DB field names
-  //
-  // BaseRepository does not map: search.keyword, sort.order, pagination
-  //
-  // `id` is the semantic primary-key accessor: BaseRepository folds a non-empty
-  // id into where[primaryKey] before mapping, so it never reaches execute() as
-  // `id`. On read a missing/blank id is ignored (no filter); update/delete
-  // require a non-empty id.
-  id?: string
+/**
+ * Internal, mutable, DB-field-named read query — the post-mapping shape produced
+ * by mapQueryToDb() and consumed by execute() / the GViz builder. It is NOT the
+ * public read contract: the service passes a ReadQueryDTO<TWhere> (immutable,
+ * API/domain-field-named) into read(); BaseRepository maps it down to this shape.
+ *
+ * It carries no `id`: the semantic `id` is folded into where[primaryKey] during
+ * mapping, so it never reaches execute().
+ */
+export interface MappedReadQuery<TWhere> {
   where?: TWhere
   select?: readonly string[]
-  search?: RepositorySearch
-  sort?: RepositorySort
-  pagination?: RepositoryPagination
+  search?: ReadQuerySearch
+  sort?: ReadQuerySort
+  pagination?: ReadQueryPagination
 }
 
 export interface RepositoryRequest<TQuery = unknown, TData = unknown> {
@@ -177,10 +177,11 @@ export abstract class BaseRepository<
     request: RepositoryRequest<TQuery, TData>,
   ): Promise<TResponse>
 
-  // Public surface is API/domain-shaped. read() may return a projection
-  // (select), so each row is a Partial of the API row; every present field is
-  // an API field the mapper resolved.
-  abstract read(query?: RepositoryReadQuery<TReadWhere>): Promise<Array<Partial<TApiRow>>>
+  // Public surface is API/domain-shaped. read() takes the immutable
+  // ReadQueryDTO (API/domain field names) and may return a projection (select),
+  // so each row is a Partial of the API row; every present field is an API field
+  // the mapper resolved.
+  abstract read(query?: ReadQueryDTO<TReadWhere>): Promise<Array<Partial<TApiRow>>>
   abstract create(data: TCreate): Promise<TApiRow>
   // update/delete address a single row by its API/domain primary-key value.
   abstract update(id: string, data: TUpdate): Promise<TApiRow>
@@ -198,8 +199,8 @@ export abstract class BaseRepository<
       return query
     }
 
-    const source = query as RepositoryReadQuery<Record<string, unknown>>
-    const mapped: RepositoryReadQuery<Record<string, unknown>> = {}
+    const source = query as ReadQueryDTO<Record<string, unknown>>
+    const mapped: MappedReadQuery<Record<string, unknown>> = {}
 
     // Fold the semantic `id` into where[primaryKey] so it maps like any other
     // DB-backed field; `id` itself is never forwarded to execute().
@@ -252,7 +253,7 @@ export abstract class BaseRepository<
    * API/domain field name), winning over any explicit where[primaryKey].
    */
   private resolveWhere(
-    source: RepositoryReadQuery<Record<string, unknown>>,
+    source: ReadQueryDTO<Record<string, unknown>>,
     operation: RepositoryOperation,
   ): Record<string, unknown> | undefined {
     const id = source.id

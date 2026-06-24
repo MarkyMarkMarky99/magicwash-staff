@@ -1,9 +1,9 @@
+import type { MappedReadQuery } from '../base.repository'
 import type {
-  RepositoryPagination,
-  RepositoryReadQuery,
-  RepositorySearch,
-  RepositorySort,
-} from '../base.repository'
+  ReadQueryPagination,
+  ReadQuerySearch,
+  ReadQuerySort,
+} from '../../dtos/read-query.dto'
 
 export type GSheetColumnMap = Record<string, string>
 
@@ -33,7 +33,7 @@ export class GVizQueryBuilder {
     return new GVizQueryBuilder(columns)
   }
 
-  fromQuery(query?: RepositoryReadQuery<Record<string, unknown>>): this {
+  fromQuery(query?: MappedReadQuery<Record<string, unknown>>): this {
     return this
       .select(query?.select)
       .where(query?.where)
@@ -70,7 +70,7 @@ export class GVizQueryBuilder {
     return this
   }
 
-  search(search?: RepositorySearch): this {
+  search(search?: ReadQuerySearch): this {
     if (!search || this.isIgnoredValue(search.keyword) || search.fields.length === 0) {
       return this
     }
@@ -84,7 +84,7 @@ export class GVizQueryBuilder {
     return this
   }
 
-  sort(sort?: RepositorySort): this {
+  sort(sort?: ReadQuerySort): this {
     if (!sort) {
       return this
     }
@@ -93,7 +93,7 @@ export class GVizQueryBuilder {
     return this
   }
 
-  pagination(pagination?: RepositoryPagination): this {
+  pagination(pagination?: ReadQueryPagination): this {
     if (!pagination) {
       return this
     }
