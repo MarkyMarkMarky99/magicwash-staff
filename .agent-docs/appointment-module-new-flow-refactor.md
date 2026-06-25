@@ -378,5 +378,8 @@ DB contract decisions: `ServiceTier` ใน create เป็น optional; เพ
 `Location -> location`. ยังไม่ implement transformer ในรอบนี้.
 
 **Handoff -> @codex**
-แก้ API contract และสร้าง `appointment.contract.ts` ตาม decisions ข้างต้น.
+ดู implementation ที่ commit `a8ec8e1 Prepare appointment module contracts` บน branch
+`feature/appointments-module-migration`: แก้
+`contracts/appointments/appointment-api.schema.ts` และสร้าง
+`server/modules/appointments/appointment.contract.ts` ตาม decisions ข้างต้น.
 
