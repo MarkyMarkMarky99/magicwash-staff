@@ -1,0 +1,104 @@
+import { z } from 'zod'
+import {
+  appointmentApiContract,
+  appointmentStatusSchema,
+  appointmentTimeSlotSchema,
+  appointmentTypeSchema,
+  serviceTierSchema,
+} from '../../../contracts/appointments/appointment-api.schema'
+import type { ModuleContract, ModuleDbContract } from '../../shared/contracts/module-db-contract'
+
+/**
+ * The appointments module contract: API schemas plus the DB-side Google Sheets
+ * contract. The DB side speaks sheet column keys and owns the stored row/write
+ * payload shapes; API-facing camelCase schemas live in the shared contract file.
+ */
+
+// KEY ORDER = physical sheet column order. Append new columns only at the end.
+export const appointmentRowSchema = z.object({
+  AppointmentID: z.string(),
+  CustomerID: z.string(),
+  AppointmentType: appointmentTypeSchema,
+  AppointmentDate: z.string(),
+  TimeSlot: appointmentTimeSlotSchema,
+  Status: appointmentStatusSchema,
+  // JSON customer snapshot string. Transformer will parse it later to expose
+  // customerName/customerCode/phone/address/location on API responses.
+  Address: z.string().nullable(),
+  PickupOrderID: z.string().nullable(),
+  DeliveryOrderID: z.string().nullable(),
+  Notes: z.string().nullable(),
+  CreatedAt: z.string().nullable(),
+  UpdatedAt: z.string().nullable(),
+  CreatedBy: z.string().nullable(),
+  UpdatedBy: z.string().nullable(),
+  ServiceTier: serviceTierSchema.nullable(),
+  DeletedAt: z.string().nullable(),
+  DeletedBy: z.string().nullable(),
+})
+
+export const appointmentDbCreateRequestSchema = z.object({
+  CustomerID: z.string().min(1),
+  AppointmentType: appointmentTypeSchema,
+  AppointmentDate: z.string(),
+  TimeSlot: appointmentTimeSlotSchema,
+  // Required DB payload, derived from CustomerID by a future transformer.
+  Address: z.string().min(1),
+  PickupOrderID: z.string().nullable().optional(),
+  DeliveryOrderID: z.string().nullable().optional(),
+  Notes: z.string().nullable().optional(),
+  CreatedBy: z.string().min(1),
+  ServiceTier: serviceTierSchema.optional(),
+})
+
+export const appointmentDbUpdateRequestSchema = z.object({
+  AppointmentType: appointmentTypeSchema.optional(),
+  AppointmentDate: z.string().optional(),
+  TimeSlot: appointmentTimeSlotSchema.optional(),
+  Status: appointmentStatusSchema.optional(),
+  Address: z.string().nullable().optional(),
+  PickupOrderID: z.string().nullable().optional(),
+  DeliveryOrderID: z.string().nullable().optional(),
+  Notes: z.string().nullable().optional(),
+  UpdatedBy: z.string().min(1),
+})
+
+export const appointmentFieldMap = {
+  AppointmentID: 'appointmentId',
+  CustomerID: 'customerId',
+  AppointmentType: 'appointmentType',
+  AppointmentDate: 'appointmentDate',
+  TimeSlot: 'timeSlot',
+  Status: 'status',
+  Address: 'address',
+  PickupOrderID: 'pickupOrderId',
+  DeliveryOrderID: 'deliveryOrderId',
+  Notes: 'notes',
+  CreatedAt: 'createdAt',
+  UpdatedAt: 'updatedAt',
+  CreatedBy: 'createdBy',
+  UpdatedBy: 'updatedBy',
+  ServiceTier: 'serviceTier',
+  DeletedAt: 'deletedAt',
+  DeletedBy: 'deletedBy',
+} as const satisfies Record<keyof z.infer<typeof appointmentRowSchema> & string, string>
+
+export const appointmentDbContract = {
+  row: appointmentRowSchema,
+  fieldMap: appointmentFieldMap,
+  primaryKey: 'appointmentId',
+  request: {
+    create: appointmentDbCreateRequestSchema,
+    update: appointmentDbUpdateRequestSchema,
+  },
+  response: {
+    read: appointmentRowSchema.partial(),
+    create: appointmentRowSchema,
+    update: appointmentRowSchema,
+  },
+} satisfies ModuleDbContract
+
+export const appointmentContract = {
+  api: appointmentApiContract,
+  db: appointmentDbContract,
+} satisfies ModuleContract

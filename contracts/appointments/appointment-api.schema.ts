@@ -1,11 +1,12 @@
 import { z } from 'zod'
 import { API_PAGINATION_DEFAULTS } from '../shared/api.schema'
+import type { ModuleApiContract } from '../shared/module-api-contract'
 
 /**
  * The appointments API ↔ frontend contract: request/query schemas, response
  * schemas, and the API-facing enums they share. Everything the client sends
  * or receives is declared here — the DB-side contract lives in
- * `appointment-db.schema.ts` and never crosses the API boundary.
+ * `appointment.contract.ts` and never crosses the API boundary.
  */
 
 // ── Domain value sets — the single source for the API-facing enums; the db
@@ -36,8 +37,7 @@ export const appointmentCreateSchema = z.object({
   appointmentType: appointmentTypeSchema,
   appointmentDate: isoDateSchema,
   timeSlot: appointmentTimeSlotSchema,
-  serviceTier: serviceTierSchema,
-  address: z.string().nullish(),
+  serviceTier: serviceTierSchema.optional(),
   pickupOrderId: z.string().nullish(),
   deliveryOrderId: z.string().nullish(),
   notes: z.string().nullish(),
@@ -58,7 +58,6 @@ export const appointmentUpdateSchema = z
     pickupOrderId: z.string().nullable().optional(),
     deliveryOrderId: z.string().nullable().optional(),
     notes: z.string().nullable().optional(),
-    serviceTier: serviceTierSchema.optional(),
     updatedBy: z.string().min(1),
   })
   .refine(
@@ -70,46 +69,28 @@ export const appointmentUpdateSchema = z
 //    Its inferred output — the AppointmentFilter the repository consumes — is
 //    derived in appointment.module.ts, keeping this file to schema declarations. ──
 export const appointmentSortFieldSchema = z.enum([
-  'appointmentId',
-  'customerId',
   'appointmentDate',
   'timeSlot',
   'status',
-  'appointmentType',
-  'serviceTier',
-  'createdAt',
-  'updatedAt',
 ])
 
 export const MAX_APPOINTMENTS_PER_PAGE = 100
 
-export const appointmentListQuerySchema = z
-  .object({
-    keyword: z.string().default(''),
-    customerId: z.string().nullable().optional().default(null),
-    orderId: z.string().nullable().optional().default(null),
-    status: appointmentStatusSchema.nullable().optional().default(null),
-    appointmentType: appointmentTypeSchema.nullable().optional().default(null),
-    timeSlot: appointmentTimeSlotSchema.nullable().optional().default(null),
-    serviceTier: serviceTierSchema.nullable().optional().default(null),
-    dateFrom: isoDateSchema.nullable().optional().default(null),
-    dateTo: isoDateSchema.nullable().optional().default(null),
-    includePending: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
-    page: z.coerce.number().int().positive().default(API_PAGINATION_DEFAULTS.page),
-    perPage: z.coerce
-      .number()
-      .int()
-      .positive()
-      .max(MAX_APPOINTMENTS_PER_PAGE)
-      .default(API_PAGINATION_DEFAULTS.perPage),
-    sortBy: appointmentSortFieldSchema.default('appointmentDate'),
-    sortOrder: z.enum(['asc', 'desc']).default('asc'),
-  })
-  // ISO dates compare correctly as strings.
-  .refine((query) => !query.dateFrom || !query.dateTo || query.dateFrom <= query.dateTo, {
-    message: 'dateFrom must be before or equal to dateTo',
-    path: ['dateFrom'],
-  })
+export const appointmentListQuerySchema = z.object({
+  keyword: z.string().default(''),
+  customerId: z.string().nullable().optional().default(null),
+  appointmentDate: isoDateSchema.nullable().optional().default(null),
+  status: appointmentStatusSchema.nullable().optional().default(null),
+  page: z.coerce.number().int().positive().default(API_PAGINATION_DEFAULTS.page),
+  perPage: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(MAX_APPOINTMENTS_PER_PAGE)
+    .default(API_PAGINATION_DEFAULTS.perPage),
+  sortBy: appointmentSortFieldSchema.default('appointmentDate'),
+  sortOrder: z.enum(['asc', 'desc']).default('asc'),
+})
 
 // ── Responses: the backend → frontend contract, following the invoices
 //    list/detail split — list is the lightweight subset the list view needs,
@@ -124,24 +105,45 @@ export const appointmentListQuerySchema = z
 export const appointmentListResponseSchema = z.object({
   appointmentId: z.string(),
   customerId: z.string(),
+  customerName: z.string().nullable(),
+  customerCode: z.string().nullable(),
+  phone: z.string().nullable(),
+  address: z.string().nullable(),
+  location: z.string().nullable(),
   appointmentType: appointmentTypeSchema,
   appointmentDate: z.string(),
   timeSlot: appointmentTimeSlotSchema,
   status: appointmentStatusSchema,
-  serviceTier: serviceTierSchema.nullable(),
+  notes: z.string().nullable(),
 })
 
 export const appointmentDetailResponseSchema = appointmentListResponseSchema.extend({
-  address: z.string().nullable(),
   pickupOrderId: z.string().nullable(),
   deliveryOrderId: z.string().nullable(),
-  notes: z.string().nullable(),
+  serviceTier: serviceTierSchema.nullable(),
 })
 
 export const appointmentCreateResponseSchema = appointmentDetailResponseSchema
 export const appointmentUpdateResponseSchema = appointmentDetailResponseSchema
 
-/** The bundle `createSheetService` consumes — one import for the whole API contract. */
+/** The nested API contract consumed by the new BaseCrudService flow. */
+export const appointmentApiContract = {
+  query: {
+    list: appointmentListQuerySchema,
+  },
+  request: {
+    create: appointmentCreateSchema,
+    update: appointmentUpdateSchema,
+  },
+  response: {
+    list: appointmentListResponseSchema,
+    detail: appointmentDetailResponseSchema,
+    create: appointmentCreateResponseSchema,
+    update: appointmentUpdateResponseSchema,
+  },
+} satisfies ModuleApiContract
+
+/** Legacy flat bundle kept until appointment.module.ts migrates to appointmentApiContract. */
 export const appointmentApiSchemas = {
   listQuery: appointmentListQuerySchema,
   createRequest: appointmentCreateSchema,
