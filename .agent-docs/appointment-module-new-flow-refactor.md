@@ -380,18 +380,3 @@ DB contract decisions: `ServiceTier` ใน create เป็น optional; เพ
 **Handoff -> @codex**
 แก้ API contract และสร้าง `appointment.contract.ts` ตาม decisions ข้างต้น.
 
-================================================================================
-
-- [CODEX] [2026-06-26 02:22]
-**Moved contract work to correct branch**
-พบว่างานถูกทำใน `feature/features-api-modules-structure` แต่ branch ที่ถูกต้องคือ
-`feature/appointments-module-migration` ซึ่ง checkout อยู่ที่ worktree
-`C:\MagicwashGemini\webapp-vue-appointments-migration`. ย้าย changes ของ
-`contracts/appointments/appointment-api.schema.ts`,
-`server/modules/appointments/appointment.contract.ts`, และแผนนี้ไป apply บน worktree
-ของ branch ที่ถูกต้องแล้ว.
-
-**Handoff -> @user**
-เตรียม add/commit/push บน `feature/appointments-module-migration`.
-
-================================================================================
