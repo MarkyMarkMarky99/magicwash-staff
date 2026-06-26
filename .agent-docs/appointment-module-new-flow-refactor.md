@@ -383,3 +383,154 @@ DB contract decisions: `ServiceTier` ใน create เป็น optional; เพ
 `contracts/appointments/appointment-api.schema.ts` และสร้าง
 `server/modules/appointments/appointment.contract.ts` ตาม decisions ข้างต้น.
 
+================================================================================
+
+- [USER] [2026-06-26 03:23]
+**Resolved remaining contract decisions**
+Transformer อยู่ในรอบ migration นี้ แต่รายละเอียด implementation จะคุยแยกภายหลัง.
+ตัดสินใจตัด `address` ออกจาก API update contract ด้วย เพราะ `Address` ฝั่ง DB เป็น
+customer snapshot string ไม่ใช่ address field ตรง ๆ. CODEX แก้
+`contracts/appointments/appointment-api.schema.ts` แล้ว โดยลบ `address` ออกจาก
+`appointmentUpdateSchema` แต่ยังไม่ commit.
+
+Clarification: ประเด็น keyword/search ไม่ได้หมายถึง list query filters
+(`appointmentListQuerySchema` เหลือ `customerId`, `appointmentDate`, `status` ตามที่
+ตกลงแล้ว) แต่เป็น decision ตอน wire `BaseCrudService.searchFields` ภายหลัง ว่าจะให้
+`keyword` contains คอลัมน์ใดบ้าง. ถ้าใส่ `address` ใน `searchFields` จะ search raw DB
+`Address` snapshot string เพราะ transformer ทำงานหลัง read ไม่ใช่ก่อน query.
+
+Transformer response rule: ถ้า parse customer snapshot ไม่ได้ หรือไม่มี snapshot ต้อง
+normalize derived API fields เป็น `null` เสมอ (`customerName`, `customerCode`, `phone`,
+`address`, `location`) เพื่อไม่ปล่อย `undefined` หลุดจาก response contract.
+
+**Handoff -> @codex**
+อัปเดตสรุป remaining decisions ตามนี้ แล้วอย่า commit.
+
+================================================================================
+
+- [USER] [2026-06-27 00:05]
+**Confirmed Address snapshot transformer shape**
+คอลัมน์ DB `Address` เก็บ customer snapshot เป็น JSON string จริง เช่น:
+`{"CustomerName":"","CustomerLabel":"WIX","Phone":"","Address":"123 ถ.สุขุมวิท ซ.15","Location":"123 ถ.สุขุมวิท ซ.15","Facebook":"","Line":"","Whatsapp":"","Email":""}`.
+
+ดังนั้น migration ต้องมี appointments transformer ที่แตก nested JSON structure ในคอลัมน์
+`Address` ให้เป็น flat API response fields:
+- `CustomerName` -> `customerName`
+- `CustomerLabel` -> `customerCode`
+- `Phone` -> `phone`
+- `Address` -> `address`
+- `Location` -> `location`
+
+Transformer ต้องรันหลัง repository read/write ได้ DB-shaped row กลับมาและก่อน
+`mapper.toApi()`. วิธีที่เข้ากับ pipeline ปัจจุบันคือ transformer response คืน row
+ที่ยังมี DB keys เดิมอยู่ แต่แทน `Address` ด้วย address string ที่ parse ได้ และเติม
+extra API-shaped keys ที่ไม่มี DB column ตรง (`customerName`, `customerCode`, `phone`,
+`location`). `mapper.toApi()` จะ map `Address -> address` และปล่อย extra API keys เดิมไว้.
+
+ถ้า `Address` เป็น `null`, ว่าง, parse JSON ไม่ได้, หรือ key ข้างในเป็นค่าว่าง/ไม่ใช่ string
+ให้ normalize derived fields เป็น `null` เสมอ ไม่ปล่อย `undefined`.
+
+**Handoff -> @codex**
+ใช้ decision นี้ตอนเขียน Transformer design ใน Step 2 และ test cases ใน Step 3.
+
+================================================================================
+
+- [CODEX] [2026-06-27 00:32]
+**Proposed appointment transformer implementation plan**
+Transformer ควร implement ก่อน migration wiring เพื่อพิสูจน์ว่า request/response hook ของ
+`GSheetRepository` ใช้งานกับ appointments ได้จริง และลด risk ตอนย้าย module หลัก.
+
+Proposed files:
+- `server/modules/appointments/appointment.transformer.ts` — production transformer +
+  pure snapshot helpers.
+- `server/modules/appointments/appointment.transformer.dry-test.ts` — focused tests
+  ที่ไม่ยิง network โดย inject fake customer lookup.
+
+Design:
+- Export factory `createAppointmentTransformer({ getCustomerById })` ที่คืน
+  `RepositoryTransformer`.
+- `getCustomerById(customerId)` คืน customer API/detail shape ที่มี
+  `customerIndex`, `customerName`, `phone`, `address`, `location`, `facebook`,
+  `lineId`, `whatsapp`, `email`.
+- Production wiring ภายหลังใช้ `customerService.getById(CustomerID)` เป็น dependency
+  (ไม่ import appointment จาก customers จึงไม่เกิด circular dependency).
+
+Request transformer:
+- ทำงานเฉพาะ `operation === 'create'`.
+- รับ `request.data` ที่ถูก mapper.toDb แล้ว ดังนั้น key เป็น DB shape:
+  `CustomerID`, `AppointmentType`, `AppointmentDate`, `TimeSlot`, ...
+- อ่าน `CustomerID`; ถ้าไม่มี/ไม่ใช่ string ให้ปล่อยให้ contract/service error ตามปกติ
+  หรือ throw contract error แบบชัดเจนใน test.
+- lookup customer ด้วย `getCustomerById(CustomerID)`.
+- เติม `Address` เป็น JSON string snapshot:
+  - `CustomerName`: `customer.customerName ?? ''`
+  - `CustomerLabel`: `customer.customerIndex ?? ''`
+  - `Phone`: `customer.phone ?? ''`
+  - `Address`: `customer.address ?? ''`
+  - `Location`: `customer.location ?? customer.address ?? ''`
+  - `Facebook`: `customer.facebook ?? ''`
+  - `Line`: `customer.lineId ?? ''`
+  - `Whatsapp`: `customer.whatsapp ?? ''`
+  - `Email`: `customer.email ?? ''`
+- ไม่แตะ update request เพราะ API update ตัด `address` ออกแล้ว และไม่มี flow refresh
+  customer snapshot ตอน PATCH ปกติ.
+
+Response transformer:
+- ทำงานกับ object และ array response (`read` คืน array, `create/update` คืน object).
+- แต่ละ row เป็น DB-shaped row จาก GViz/Apps Script. อ่าน `row.Address`.
+- ถ้า `Address` เป็น JSON object string ให้ parse แล้ว flatten:
+  - เติม extra API-shaped keys `customerName`, `customerCode`, `phone`, `location`
+    เพราะไม่มี DB column ให้ mapper map.
+  - แทน DB key `Address` ด้วย parsed `Address` string/null เพื่อให้ mapper map ต่อเป็น
+    API `address`.
+- ถ้า `Address` เป็น `null`, empty string, invalid JSON, non-object JSON, หรือ value
+  ข้างในไม่ใช่ non-empty string ให้ normalize target field นั้นเป็น `null`.
+- ห้ามปล่อย `undefined`; response projection หลัง `BaseCrudService` ต้องเห็น
+  `customerName/customerCode/phone/address/location` เป็น string หรือ null เสมอ.
+
+Test plan:
+- request create: fake customer lookup ถูกเรียกด้วย `CustomerID`; request data ที่ส่งต่อมี
+  `Address` เป็น JSON snapshot ตาม real column shape.
+- request update/read: ไม่ lookup และไม่แก้ request data.
+- response read array: parse real snapshot example แล้วได้ flat fields ครบ และ `address`
+  เป็น `"123 ถ.สุขุมวิท ซ.15"`.
+- response create/update object: behavior เดียวกับ read object.
+- fallback: `Address=null`, `Address=''`, invalid JSON, JSON array, missing keys,
+  empty string values -> derived fields เป็น `null`.
+- mapper interaction: transformer response ต้องคืน DB key `Address` สำหรับ address field
+  และ API-shaped extra keys สำหรับ `customerName/customerCode/phone/location`; หลังผ่าน
+  repository mapper แล้ว key เหล่านี้ยังอยู่ใน API response.
+- error path: customer lookup not found/error bubbles out of create, so appointment is not
+  created with incomplete snapshot.
+
+Open implementation detail for Human:
+- `CustomerLabel` ใน snapshot จะใช้ `customer.customerIndex` เป็น source ของ API
+  `customerCode` ตาม customer contract ปัจจุบัน. ถ้า label ต้องมาจาก field อื่น ต้องระบุ
+  ก่อน implement.
+
+**Handoff -> @user**
+ยืนยัน source ของ `CustomerLabel` ว่าใช้ `customerIndex` ได้ไหม แล้วจึงเริ่ม TDD transformer
+ก่อน migration wiring.
+
+================================================================================
+
+- [USER] [2026-06-27 03:41]
+**Superseded transformer request lookup plan**
+Human clarified that appointment creation happens from the customer page, so the
+frontend already has the customer snapshot fields. The transformer request plan
+that looked up customer data via `getCustomerById` is superseded.
+
+Current request contract decision:
+- API create must send required flat snapshot fields:
+  `customerName`, `customerCode`, `phone`, `address`, `location`.
+- Request transformer receives mapper-to-DB data, packs those flat fields into
+  DB `Address` as the customer snapshot JSON, removes helper fields
+  (`customerName`, `customerCode`, `phone`, `location`), and forwards only the
+  DB/AppScript payload.
+- DB schema remains the DB/AppScript payload contract; it must not include the
+  helper fields because those are not DB columns.
+- DB request/response runtime validation remains future engine work and is out
+  of scope for this appointment migration.
+
+**Handoff -> @codex**
+Commit the current transformer/contracts/memory changes without opening a PR.

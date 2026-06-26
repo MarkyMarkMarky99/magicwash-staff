@@ -34,6 +34,11 @@ const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a valid Y
 // ── Create: client sends business fields only; createdBy comes from the frontend ──
 export const appointmentCreateSchema = z.object({
   customerId: z.string().min(1),
+  customerName: z.string().trim().min(1),
+  customerCode: z.string().trim().min(1),
+  phone: z.string().trim().min(1),
+  address: z.string().trim().min(1),
+  location: z.string().trim().min(1),
   appointmentType: appointmentTypeSchema,
   appointmentDate: isoDateSchema,
   timeSlot: appointmentTimeSlotSchema,
@@ -54,7 +59,6 @@ export const appointmentUpdateSchema = z
     appointmentDate: isoDateSchema.optional(),
     timeSlot: appointmentTimeSlotSchema.optional(),
     status: appointmentStatusSchema.optional(),
-    address: z.string().nullable().optional(),
     pickupOrderId: z.string().nullable().optional(),
     deliveryOrderId: z.string().nullable().optional(),
     notes: z.string().nullable().optional(),

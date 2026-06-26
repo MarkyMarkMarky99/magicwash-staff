@@ -42,7 +42,8 @@ export const appointmentDbCreateRequestSchema = z.object({
   AppointmentType: appointmentTypeSchema,
   AppointmentDate: z.string(),
   TimeSlot: appointmentTimeSlotSchema,
-  // Required DB payload, derived from CustomerID by a future transformer.
+  // Required DB payload; the request transformer packs flat API customer
+  // snapshot fields into this JSON string before Apps Script receives the body.
   Address: z.string().min(1),
   PickupOrderID: z.string().nullable().optional(),
   DeliveryOrderID: z.string().nullable().optional(),
