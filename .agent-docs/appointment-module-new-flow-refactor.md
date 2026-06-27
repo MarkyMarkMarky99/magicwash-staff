@@ -1,536 +1,464 @@
 # APPOINTMENT_MODULE_NEW_FLOW_REFACTOR_PLAN
 
-**Status:** Step 1 CLOSED (Problem/Scope approved by Human 2026-06-24) → Step 2 direction proposed, awaiting Human decision
-**Related Module:** appointments / engine-migration (legacy sheet-crud → repositories + BaseCrudService)
+**Status:** Step 2 plan drafted — awaiting Claude review
+**Related Module:** appointments / engine-migration (legacy sheet-crud -> repositories + BaseCrudService)
 **Created by:** CLAUDE
+**Last cleaned by:** CODEX
 **Date:** 2026-06-24
 
 > Process & gates: see the collaborative-workflow `SKILL.md`.
-> Fill sections in order — never write a section before its step gate clears.
-> **Step 1 ปิดแล้ว. Step 2: ตกลง "ทิศทาง" กับ Human ก่อน ค่อยเขียน solution ลงแผน — ยังไม่เขียน How จนกว่าจะตกลง direction.**
+> This file was intentionally cleaned on 2026-06-27 by Human request. Old activity-log detail is preserved in git history; this file is now the current working source of truth.
 
 ---
 
 ## Problem & Objective
 
-> **Step 1 gate:** handoff this section to Human and get confirmation before writing "How".
-
 ### Problem Statement
 
-โมดูล `appointments` เป็น **โมดูลสุดท้ายที่ยังรันบน engine เก่า (`server/shared/sheet-crud/`)**
-ขณะที่โมดูล `customers` ถูก migrate ไปอยู่บน flow ใหม่เรียบร้อยแล้ว และ `api/CLAUDE.md`
-ประกาศชัดว่า flow ใหม่คือ source of truth:
+`appointments` is the last module still using the legacy `server/shared/sheet-crud/` flow:
 
-> Target stack: `BaseCrudService` + `BaseRepository`/`GSheetRepository`
-> (`server/shared/repositories/`) + the `ModuleContract` bundles … the `sheet-crud`
-> factory flow … **is being removed. Do not treat the factory flow as the source of truth.**
+- `server/modules/appointments/appointment.module.ts` still imports `createGoogleSheetRepository` and `createSheetService`.
+- `customers` already uses the new stack: `GSheetRepository` + `BaseCrudService` + `ModuleContract`.
+- Keeping appointments on legacy flow blocks removal of `sheet-crud`, `google-sheets`, and `base-sheet.repository.ts`.
 
-หลักฐานจากโค้ดจริง:
-
-- **appointments (เก่า)** — `server/modules/appointments/appointment.module.ts:2` ยัง
-  `import { createGoogleSheetRepository, createSheetService } from '../../shared/sheet-crud'`,
-  ใช้ flat bundle `appointmentApiSchemas` / `appointmentDbSchemas`
-  (`{ row, idColumn, fieldMap, appendPayload, updatePayload }`), และเขียน filter ผ่าน
-  `clauses` แบบ inline.
-- **customers (ใหม่)** — `server/modules/customers/customer.module.ts` ใช้
-  `new GSheetRepository({ contract, sheetName, spreadsheetId, scriptUrl })` +
-  `new BaseCrudService({ repository, api, searchFields })` ขับด้วย contract bundle เดียว
-  (`customerContract = { api, db }` ใน shape `ModuleContract`) ไม่มี `clauses` เลย.
-- การ grep ยืนยันว่า **appointment.module.ts เป็น module เดียวที่ยัง import `sheet-crud`** —
-  ไฟล์อื่นที่ติด `sheet-crud` คือ engine ตัวมันเองทั้งหมด. ตราบใดที่ appointments ยังไม่ย้าย
-  legacy engine ก็ลบไม่ได้ → ต้องดูแล 2 engine คู่กัน และ doc/skeleton ใน `api/CLAUDE.md`
-  divergent กับโค้ดจริง.
-
-ปัญหา (pain) แยกเป็น 2 ชั้น:
-
-**1. ชั้นโครงสร้าง (mechanical) — ตรงไปตรงมา ตามแม่แบบ customers:**
-ไฟล์/บันเดิลของ appointments ยังเป็นรูปแบบเก่า ต้องปรับให้เข้ารูป `ModuleContract`:
-- `contracts/appointments/appointment-api.schema.ts` export flat `appointmentApiSchemas`
-  (`{ listQuery, createRequest, … }`) แทนที่จะเป็น nested `appointmentApiContract`
-  (`{ query.list, request.{create,update}, response.{list,detail,create,update} }`).
-- `server/modules/appointments/appointment-db.schema.ts` export `appointmentDbSchemas`
-  (`{ row, idColumn, fieldMap, appendPayload, updatePayload }`) แทน `appointment.contract.ts`
-  ที่มี `appointmentDbContract` (`{ row, fieldMap, primaryKey, request.{create,update},
-  response.{read,create,update} }`) + composed `appointmentContract = { api, db }`.
-- รายละเอียดเล็ก ๆ: `idColumn: 'AppointmentID'` (DB column) → `primaryKey: 'appointmentId'`
-  (API field); ขาด slot `response.read`; payload `appendPayload`/`updatePayload` →
-  `request.create`/`request.update`.
-
-**2. ชั้นความสามารถ (capability gap) — นี่คือหัวใจของปัญหา:**
-read pipeline ใหม่ (`ReadQueryDTO.fromQuery` + `GSheetRepository` + `GVizQueryBuilder`)
-รองรับเฉพาะ **equality-on-one-column `where` + keyword `search` (contains) + sort +
-pagination** เท่านั้น — docstring ของ `read-query.dto.ts` ระบุเองว่า "does NOT … support
-operation/range/null/or filters (future repository-layer work)" และทุก non-reserved field
-จะถูกตีความเป็น **equality filter ที่ map ตรงเป็น 1 column**.
-
-แต่ list query ของ appointments (`appointmentListQuerySchema`) มี filter ที่ flow ใหม่
-**ยังแสดงออกไม่ได้** (เทียบกับ `clauses` เดิมใน appointment.module.ts:24-46):
-
-| filter | engine เก่า | flow ใหม่ทำได้ไหม |
-|---|---|---|
-| `keyword` → `AppointmentID/CustomerID/Address/Notes` | `clause.contains` | ✅ ใช้ `searchFields` |
-| `customerId`,`status`,`appointmentType`,`timeSlot`,`serviceTier` | `clause.eq` (1:1) | ✅ equality `where` |
-| `dateFrom`/`dateTo` ครอบ `AppointmentDate` | `clause.dateRange` | ❌ เป็น **range ไม่ใช่ equality** |
-| `orderId` → `PickupOrderID` **OR** `DeliveryOrderID` | `clause.eq('orderId', [2 cols])` | ❌ **1 field → OR หลาย column** |
-| `includePending` → `( … or Status='PENDING')` | OR-widen ด้วย constant | ❌ **boolean flag → OR กับค่าคงที่** |
-
-ผลคือ migrate แบบลอก customers ตรง ๆ จะ **พังทันที**: `dateFrom`/`dateTo`/`orderId`/
-`includePending` เป็น non-reserved fields → ถูกยัดเข้า `where` → mapper หา column ไม่เจอ →
-`GVizQueryBuilder.resolveColumn('dateFrom')` throw `No GViz column resolves for field 'dateFrom'`.
-customers migrate ผ่านได้เพราะ filter เดียวคือ `customerType` (equality 1:1) + keyword เท่านั้น —
-appointments เป็นโมดูลแรกที่ไปชน filter ที่ engine ใหม่ยังไม่มี.
+The earlier capability-gap direction changed. We will **not** extend the Base read pipeline in this migration. Appointment list filters were re-scoped to fields the current Base read flow supports.
 
 ### Goal / Success Criteria
 
-- `appointments` รันบน new stack (`GSheetRepository` + `BaseCrudService` + `ModuleContract`
-  bundles) เหมือน `customers` — ไม่มี module ไหนอ้าง `server/shared/sheet-crud/` อีก.
-- **Behavior parity ของ list filters ครบทุกตัว**: keyword search, `customerId`, `orderId`
-  (OR 2 columns), `status`, `appointmentType`, `timeSlot`, `serviceTier`, date range
-  (`dateFrom`/`dateTo`), `includePending` — ให้ผลลัพธ์ query เทียบเท่าของเดิม.
-- พฤติกรรม create/update/getById คงเดิม (รวม validation 422, append ต้องมี
-  `CreatedBy`+`ServiceTier`, update เป็น PATCH + actor required, response projection
-  list/detail split เท่าเดิม).
-- `npm run typecheck:api` ผ่าน (EXIT 0).
-- **Route GET ต้องสลับ `okPaginated` → `okPaged`** (แก้ทั้ง import และ call ใน
-  `api/appointments/index.ts`) ให้ตรงกับแม่แบบ `api/customers/index.ts:8`. เหตุผล:
-  `okPaginated` รับ `apiPaginationMetaSchema` = `{ total, page, perPage, totalPages }`
-  (`contracts/shared/api.schema.ts:39-44`) แต่ `BaseCrudService.list()` คืน
-  `pagination: { page, perPage }` เท่านั้น (`base-crud.service.ts:108-111`) → ของเดิม
-  type-check ผ่านเพราะ sheet-crud service คืน `total` มาด้วย, พอย้ายมา BaseCrudService
-  แล้ว `okPaginated` จะ **type ไม่ผ่าน**. เมธอด `list/getById/create/update` และรูป
-  `{ items, pagination }` ที่ service คืนยังเหมือนเดิม.
+- `appointments` runs on the new stack:
+  - `GSheetRepository`
+  - `BaseCrudService`
+  - `appointmentContract = { api, db }`
+- No production appointment module imports `server/shared/sheet-crud/`.
+- GET route uses `okPaged`, not `okPaginated`.
+- `npm run typecheck:api` passes after module migration.
+- Transformer stays wired and covered by dry tests.
 
 ### Scope
 
 **In Scope**
-- ปรับ `contracts/appointments/appointment-api.schema.ts` → nested `appointmentApiContract`
-  (`satisfies ModuleApiContract`) โดยคง schema เดิมทั้งหมดเป็น source of truth.
-- แทน `appointment-db.schema.ts` ด้วย `appointment.contract.ts` (db contract +
-  composed `appointmentContract`) ตามแม่แบบ `customer.contract.ts`.
-- เขียน `appointment.module.ts` ใหม่ให้ wiring แบบ class-instance singleton (new stack).
-- **ปิด capability gap ของ filter** ให้ filter ของ appointments ทุกตัวทำงานบน read pipeline
-  ใหม่ได้ (range / OR-across-columns / includePending). *วิธีปิด gap = งานของ Step 2*
-  (จะ extend engine กลาง หรือใช้กลไกระดับ module — ยังไม่ตัดสินตอนนี้).
-- รวม env ของ appointments เป็น shared `APPSCRIPT_URL` (เลิกใช้ `APPSCRIPT_APPOINTMENT_URL`)
-  — **ยืนยันโดย Human 2026-06-24**.
-- **ลบ legacy engine ในงานนี้เลย**: `server/shared/sheet-crud/` +
-  `server/shared/google-sheets/` + `server/shared/repositories/base-sheet.repository.ts`
-  (appointments เป็น consumer สุดท้าย ลบได้หลังย้ายเสร็จ) — **ยืนยันโดย Human 2026-06-24**.
-- เขียน/ปรับ tests ให้คลุม edge cases ที่ derive ใน Step 2 (TDD ใน Step 3).
+
+- Use existing `contracts/appointments/appointment-api.schema.ts` nested `appointmentApiContract`.
+- Use existing `server/modules/appointments/appointment.contract.ts` `appointmentContract`.
+- Wire `server/modules/appointments/appointment.module.ts` to:
+  - `new GSheetRepository({ contract: appointmentContract, ..., transformer: createAppointmentTransformer() })`
+  - `new BaseCrudService({ repository, api: appointmentContract.api, searchFields })`
+- Use shared `APPSCRIPT_URL`.
+- Update `api/appointments/index.ts` from `okPaginated` to `okPaged`.
+- Keep `server/modules/appointments/appointment.transformer.ts` and its dry tests.
+- Remove legacy engine after appointments has no remaining legacy consumer:
+  - `server/shared/sheet-crud/`
+  - `server/shared/google-sheets/`
+  - `server/shared/repositories/base-sheet.repository.ts`
 
 **Out of Scope**
-- DELETE / soft-delete (ยัง deferred ตามมติเดิม).
-- แตะ FE appointments ที่มีอยู่ (legacy `src/composables/useAppointmentStore.js`,
-  `src/pages/*`, `src/components/appointments/*`) — ทั้ง migrate ไป feature-based และ
-  เปลี่ยนให้มันมาเรียก `/api/appointments` (ปัจจุบันมัน bypass API อยู่ ดู Known change).
-- เปลี่ยน Apps Script deployment จริงฝั่ง infra (การรวม env เป็น `APPSCRIPT_URL` ใน
-  backend module = In Scope แล้ว ตาม Open Question #2 ที่ resolved).
 
-**Known API contract change (ไม่ใช่ "ไม่กระทบ FE")**
-- list envelope `meta.pagination` หดจาก `{ total, page, perPage, totalPages }` →
-  `{ page, perPage }` (page-only). นี่เป็น **API envelope change** จริง — สอดคล้องกับที่
-  `customers` ปล่อยอยู่แล้ว.
-- **ยืนยัน repo-wide** (ไม่ใช่แค่ไม่มี `src/features/appointments/`): grep ทั้ง repo พบว่า
-  `appointmentService` ถูก import เฉพาะ `api/appointments/index.ts`, `[id].ts`, และ
-  module ตัวเอง — **ไม่มีโค้ด FE ไหนเรียก `/api/appointments` เลย**. FE appointments ที่มี
-  อยู่อ่าน **GViz ตรง** (`gvizQuery(APPOINTMENTS_SPREADSHEET_ID, 'Appointments', …)`)
-  และเขียน **`APPOINTMENTS_SCRIPT_URL` ตรง** ผ่าน Apps Script — bypass serverless API
-  ทั้งหมด. ดังนั้น envelope change นี้ **ไม่มี FE consumer ที่พัง** เพราะ FE ไม่ได้ใช้
-  endpoint นี้ (ไม่ใช่เพราะ "ไม่มี feature folder"). business DTO (list/detail rows) เท่าเดิม.
+- Extending `ReadQueryDTO`, `GVizQueryBuilder`, or Base read pipeline for range/OR filters.
+- DELETE / soft-delete API.
+- Frontend appointment feature migration.
+- Real Apps Script deployment changes.
+- Runtime validation of `db.request.*` / `db.response.*` schemas. This is future engine work and is also noted in `.user/memory/MEMORY.md`.
 
-### Requirements
+---
 
-**Functional**
-- list filters ทุกตัวให้ GViz query เทียบเท่าของเดิม (รวม `dateFrom<=dateTo` refine →
-  422, OR ของ `orderId`, OR-widen ของ `includePending`).
-- **`includePending` ต้องล็อกสองกิ่งให้ชัด** (จะกลายเป็น test case ใน Step 3):
-  - `includePending=true` **+ มี** date range → `(AppointmentDate ใน from..to) OR Status='PENDING'`.
-  - `includePending=true` **+ ไม่มี** date range → `Status='PENDING'` ล้วน.
-  - `includePending=false`/ไม่ส่ง → ไม่แตะ (date range ตามปกติถ้ามี).
-- create/update/getById พฤติกรรม + validation เดิม; response projection list/detail
-  เดิม; audit fields ไม่โผล่ใน response.
-- **write null-semantics (omit vs clear)** — pipeline จริงคือ `mapper.toDb` →
-  `renameKeys` วน `Object.entries(input)` (`base.repository.ts:280-286`) แล้ว
-  `JSON.stringify` ส่งให้ Apps Script. ดังนั้น DB write request schema ต้องสื่อความ:
-  - omit field (ไม่ส่ง key) → ไม่แตะค่าเดิม.
-  - explicit `null` → ส่ง `null` เพื่อล้างค่า.
-  - required field → ต้องมีเสมอ.
-  ผลคือฟิลด์ที่ต้องการ "ละไว้ = คงเดิม, null = ล้าง" (เช่น `Address`, `PickupOrderID`,
-  `DeliveryOrderID`, `Notes` ใน create/update) ต้องเป็น **`.nullable().optional()`** —
-  ไม่ใช่ `.nullable()` เดี่ยว (ซึ่งทำให้ฟิลด์ required = ถูกส่งทุกครั้ง = เคลียร์ค่าเสมอ).
-- id ที่หาไม่เจอ → 404; id ซ้ำหลายแถว → 409 (ตาม BaseCrudService).
+## Current Contract Decisions
 
-**Non-Functional**
-- `npm run typecheck:api` ผ่าน; ไม่ใช้ `any`/`as` ใน module code.
-- ทุก contract ถูก machine-check ด้วย `satisfies` (`ModuleApiContract` /
-  `ModuleDbContract` / `ModuleContract` / `fieldMap satisfies Record<keyof row & string,string>`).
-- schema files ไม่ export `z.infer` aliases (ดู [[schema-files-no-infer-exports]]).
-- ไม่เพิ่ม method เก็งกำไรใน repository/engine; ส่วนที่ extend engine ต้องไม่ทำให้
-  customers (และ module อนาคต) พฤติกรรมเปลี่ยน.
+### List Query
 
-### Open Questions
+`appointmentListQuerySchema` is scoped to Base-supported fields only:
 
-1. **วิธีปิด capability gap** — *design ของ Step 2* (มีนัยเชิงสถาปัตยกรรม): ขยาย read
-   pipeline กลาง (`ReadQueryDTO`/`GVizQueryBuilder`) ให้รองรับ range/OR เป็น first-class,
-   หรือให้ appointments แนบ custom filter logic ระดับ module โดยไม่แตะ engine กลาง? —
-   ยกไปตัดสินใน Step 2.
-2. ~~env / Apps Script endpoint~~ → **RESOLVED 2026-06-24: รวมเป็น shared `APPSCRIPT_URL`.**
-3. ~~ขอบเขตการลบ legacy~~ → **RESOLVED 2026-06-24: รวมการลบ legacy ในงานนี้.**
-4. ~~Problem/Scope ต้อง "ปรับก่อน"~~ → **RESOLVED 2026-06-24**: Human ระบุ 4 จุด —
-   (a) route `okPaginated`→`okPaged` (ผมเคยพูดผิดว่าไม่ต้องแก้), (b) frontend เป็น
-   envelope change ไม่ใช่ "no impact", (c) write fields ต้อง `.nullable().optional()`,
-   (d) ล็อก `includePending` สองกิ่ง. fold เข้า Goal/Scope/Requirements แล้ว.
+- `keyword`
+- `customerId`
+- `appointmentDate`
+- `status`
+- `page`
+- `perPage`
+- `sortBy`
+- `sortOrder`
+
+Removed from list query for this migration:
+
+- `dateFrom`
+- `dateTo`
+- `orderId`
+- `includePending`
+- `appointmentType`
+- `timeSlot`
+- `serviceTier`
+
+Sort fields:
+
+- `appointmentDate`
+- `timeSlot`
+- `status`
+
+### API Create
+
+Create request must include flat customer snapshot fields from the customer page:
+
+- `customerName`
+- `customerCode`
+- `phone`
+- `address`
+- `location`
+
+These are required with `.trim().min(1)`.
+
+The request transformer packs them into DB `Address` JSON before Apps Script receives the payload, then removes helper fields.
+
+### API Update
+
+API update does **not** expose `address` or `serviceTier`.
+
+Current mutable API update fields:
+
+- `appointmentType`
+- `appointmentDate`
+- `timeSlot`
+- `status`
+- `pickupOrderId`
+- `deliveryOrderId`
+- `notes`
+- `updatedBy`
+
+### API Response
+
+List response includes flattened customer snapshot fields:
+
+- `customerName`
+- `customerCode`
+- `phone`
+- `address`
+- `location`
+
+Detail/create/update response extends list response with:
+
+- `pickupOrderId`
+- `deliveryOrderId`
+- `serviceTier`
+
+### DB Contract
+
+`appointment.contract.ts` DB side remains a DB/AppScript contract, not an intermediate transformer contract.
+
+- DB `Address` is the real sheet column.
+- DB `Address` stores a customer snapshot JSON string.
+- `appointmentDbCreateRequestSchema` requires final DB `Address`.
+- DB update schema may still include `Address` because it describes DB capabilities/standard, even though API update does not expose `address`.
+
+---
+
+## Transformer Status
+
+Implemented and pushed in commit:
+
+- `d655ca4 Prepare appointment transformer`
+
+Files:
+
+- `server/modules/appointments/appointment.transformer.ts`
+- `server/modules/appointments/appointment.transformer.dry-test.ts`
+
+Verified:
+
+```text
+npx tsx server/modules/appointments/appointment.transformer.dry-test.ts
+26 appointment transformer dry tests passed
+```
+
+### Request Transformer
+
+- Runs only for `operation === 'create'`.
+- Input is already mapper-to-DB data.
+- Packs helper fields into DB `Address` JSON:
+  - `customerName` -> `CustomerName`
+  - `customerCode` -> `CustomerLabel`
+  - `phone` -> `Phone`
+  - `address` -> `Address`
+  - `location` -> `Location`
+  - `Facebook`, `Line`, `Whatsapp`, `Email` -> empty strings for now
+- Removes helper fields before forwarding to Apps Script:
+  - `customerName`
+  - `customerCode`
+  - `phone`
+  - `location`
+- Leaves non-create requests unchanged.
+
+### Response Transformer
+
+- Runs before `mapper.toApi()`.
+- Supports read arrays and create/update/detail objects.
+- Parses DB `Address` JSON snapshot and flattens to:
+  - `customerName`
+  - `customerCode`
+  - `phone`
+  - `Address` (DB key, later mapped to API `address`)
+  - `location`
+- Missing/empty snapshot fields become `null`.
+- Legacy plain string / invalid / non-object `Address` falls back to address text.
+- Does not mutate input rows.
 
 ---
 
 ## How (Implementation Approach)
 
-> Step 2: agree the approach with the human first, then document it here. **(ยังไม่เริ่ม)**
+> Step 2 review target: this section is the proposed migration plan. Claude should review this plan and the referenced files before Step 3 implementation starts.
 
 ### High-Level Steps
 
-_TBD — Step 2_
+1. Keep the already-implemented transformer as-is unless review finds a bug:
+   - `server/modules/appointments/appointment.transformer.ts`
+   - `server/modules/appointments/appointment.transformer.dry-test.ts`
+2. Migrate `server/modules/appointments/appointment.module.ts`:
+   - remove legacy `sheet-crud` imports;
+   - import `appointmentContract`;
+   - import `GSheetRepository`;
+   - import `BaseCrudService`;
+   - import `requireEnv`;
+   - import `createAppointmentTransformer`;
+   - instantiate repository with shared `APPSCRIPT_URL`;
+   - instantiate service with `appointmentContract.api`.
+3. Use keyword `searchFields`:
+   - proposed: `['appointmentId', 'customerId', 'address', 'notes']`;
+   - review concern: `address` searches raw DB snapshot JSON, not transformed `address`.
+4. Update `api/appointments/index.ts`:
+   - import `okPaged`;
+   - return `okPaged(items, pagination)`.
+5. Run verification:
+   - `npx tsx server/modules/appointments/appointment.transformer.dry-test.ts`
+   - `npm run typecheck:api`
+6. Remove legacy engine only after `appointment.module.ts` has no legacy imports and typecheck is green:
+   - `server/shared/sheet-crud/`
+   - `server/shared/google-sheets/`
+   - `server/shared/repositories/base-sheet.repository.ts`
+7. Re-run verification after legacy removal:
+   - transformer dry test;
+   - `npm run typecheck:api`;
+   - repository dry tests if imports or shared repository code changed.
 
 ### Contracts
 
-_TBD — Step 2_
+**API create request** (`contracts/appointments/appointment-api.schema.ts`)
 
-### Functional Flow & Behavior
+```ts
+appointmentCreateSchema = {
+  customerId: string,
+  customerName: string, // required trim().min(1)
+  customerCode: string, // required trim().min(1)
+  phone: string,        // required trim().min(1)
+  address: string,      // required trim().min(1)
+  location: string,     // required trim().min(1)
+  appointmentType: AppointmentType,
+  appointmentDate: YYYY-MM-DD,
+  timeSlot: AppointmentTimeSlot,
+  serviceTier?: ServiceTier,
+  pickupOrderId?: string | null,
+  deliveryOrderId?: string | null,
+  notes?: string | null,
+  createdBy: string,
+}
+```
 
-_TBD — Step 2_
+**API list query**
 
-### Edge Cases (complete list, grouped by feature/work-area)
+```ts
+appointmentListQuerySchema = {
+  keyword: string,
+  customerId: string | null,
+  appointmentDate: string | null,
+  status: AppointmentStatus | null,
+  page: number,
+  perPage: number,
+  sortBy: 'appointmentDate' | 'timeSlot' | 'status',
+  sortOrder: 'asc' | 'desc',
+}
+```
 
-_TBD — Step 2 (derive หลัง approach นิ่ง)_
+**DB create request** (`server/modules/appointments/appointment.contract.ts`)
+
+```ts
+appointmentDbCreateRequestSchema = {
+  CustomerID: string,
+  AppointmentType: AppointmentType,
+  AppointmentDate: string,
+  TimeSlot: AppointmentTimeSlot,
+  Address: string, // final customer snapshot JSON string
+  PickupOrderID?: string | null,
+  DeliveryOrderID?: string | null,
+  Notes?: string | null,
+  CreatedBy: string,
+  ServiceTier?: ServiceTier,
+}
+```
+
+DB create schema intentionally does **not** include `customerName/customerCode/phone/location`; those are API helper fields consumed by the request transformer before Apps Script receives the body.
+
+**Transformer snapshot JSON**
+
+```ts
+{
+  CustomerName: string,
+  CustomerLabel: string,
+  Phone: string,
+  Address: string,
+  Location: string,
+  Facebook: '',
+  Line: '',
+  Whatsapp: '',
+  Email: '',
+}
+```
+
+### Proposed Module Wiring
+
+```ts
+const appointmentRepository = new GSheetRepository({
+  contract: appointmentContract,
+  sheetName: 'Appointments',
+  spreadsheetId: requireEnv('APPOINTMENTS_SPREADSHEET_ID'),
+  scriptUrl: requireEnv('APPSCRIPT_URL'),
+  transformer: createAppointmentTransformer(),
+})
+
+export const appointmentService = new BaseCrudService({
+  repository: appointmentRepository,
+  api: appointmentContract.api,
+  searchFields: ['appointmentId', 'customerId', 'address', 'notes'],
+})
+```
+
+Review should confirm whether `address` belongs in `searchFields`. Because `address` is a raw DB snapshot string at query time, keyword search over `address` searches the serialized snapshot, not transformed fields.
+
+### Functional Flow
+
+**List**
+
+```text
+GET query
+-> appointmentApiContract.query.list parse
+-> ReadQueryDTO.fromQuery
+-> GSheetRepository.read
+-> transformer.response
+-> mapper.toApi
+-> BaseCrudService.project(list response)
+-> okPaged(items, pagination)
+```
+
+**Create**
+
+```text
+POST payload with flat customer snapshot fields
+-> appointmentApiContract.request.create parse
+-> mapper.toDb
+-> transformer.request packs Address JSON and removes helper fields
+-> Apps Script APPEND
+-> transformer.response flattens Address snapshot
+-> mapper.toApi
+-> BaseCrudService.project(create response)
+```
+
+**Update**
+
+```text
+PATCH payload
+-> appointmentApiContract.request.update parse
+-> read existing row by id for 404/409 behavior
+-> mapper.toDb
+-> transformer.request returns unchanged
+-> Apps Script UPDATE
+-> transformer.response flattens Address snapshot from returned row
+-> mapper.toApi
+-> BaseCrudService.project(update response)
+```
 
 ---
 
-## Activity Log
+## Edge Cases To Preserve
+
+### Transformer Request
+
+- Create packs flat snapshot fields into DB `Address` JSON.
+- Create removes helper fields before Apps Script payload.
+- Create does not mutate input request data.
+- Create rejects missing/blank required snapshot fields.
+- Non-create requests return unchanged.
+- Mapper integration is covered: API payload -> `Mapper.toDb()` -> transformer.
+
+### Transformer Response
+
+- Read `[]` returns `[]`.
+- Multi-row arrays transform each row independently.
+- Valid snapshot JSON flattens customer fields.
+- Missing `Address` returns all derived fields as `null`.
+- Empty/whitespace `Address` returns all derived fields as `null`.
+- Missing/empty/non-string snapshot field values normalize to `null`.
+- Legacy plain string/invalid/non-object `Address` falls back to address text.
+- Input row is not mutated.
+- Mapper integration is covered: transformed DB row -> `Mapper.toApi()`.
+
+### Module Migration
+
+- `getById` not found -> 404 through `BaseCrudService`.
+- duplicate id rows -> 409 through `BaseCrudService`.
+- `okPaged` response meta is `{ page, perPage }`.
+- `okPaginated` must not remain in appointments index route.
+- `APPSCRIPT_APPOINTMENT_URL` must not be used by new appointment module.
+- `appointment.module.ts` must not import `sheet-crud`.
+
+---
+
+## Decisions & Rejected Alternatives
+
+- **Rejected:** extend Base read pipeline for range/OR filters in this migration.
+  - Reason: Human re-scoped appointment list query to Base-supported filters only.
+- **Rejected:** request transformer looks up customer by `customerService.getById`.
+  - Reason: appointment creation happens from the customer page, so frontend can send the snapshot fields directly.
+- **Rejected:** adding flat helper fields to DB create schema.
+  - Reason: DB schema must represent final DB/AppScript payload, not transformer intermediate data.
+- **Rejected:** removing `Address` from DB update schema only because API update does not expose address.
+  - Reason: DB schema describes DB capability/standard, not API projection.
+
+---
+
+## Compact Activity Log
 
 ================================================================================
 
-- [CLAUDE] [2026-06-24 18:40]
-**Created Problem Definition (Step 1)**
-อ่านโค้ดจริงทั้งสองฝั่ง: appointments (legacy `sheet-crud`: appointment.module.ts,
-appointment-db.schema.ts, contracts/appointments/appointment-api.schema.ts) และ
-customers (new stack: customer.module.ts, customer.contract.ts,
-contracts/customers/customer-api.schema.ts) + engine กลาง (base-crud.service.ts,
-read-query.dto.ts, base/gsheet.repository.ts, gviz-query.builder.ts, module-*-contract.ts)
-+ routes. ยืนยันว่า appointments เป็น module สุดท้ายบน sheet-crud และเจอ capability gap
-ของ read pipeline ใหม่ (range / OR-across-columns / includePending) เป็นแก่นของปัญหา.
-เขียน Problem Statement / Goal / Scope / Requirements + Open Questions.
-
-**Handoff -> @user**
-ขอยืนยัน: (1) Problem + Scope ตรงกับที่ตั้งใจไหม โดยเฉพาะว่า "flow ใหม่" = stack ของ
-customers (GSheetRepository + BaseCrudService + ModuleContract); (2) ตอบ Open Questions
-ข้อ env (APPSCRIPT_URL vs APPSCRIPT_APPOINTMENT_URL) และขอบเขตการลบ legacy ว่าอยู่ในงานนี้
-หรือ follow-up. ยังไม่ออกแบบ solution จนกว่าจะยืนยัน.
+- [CLAUDE] [2026-06-24]
+Created Step 1 problem/scope. Confirmed appointments is the last legacy `sheet-crud` consumer.
 
 ================================================================================
 
-- [USER] [2026-06-24 18:48]
-**ตอบ Step 1 (บางส่วน)**
-- env / Apps Script endpoint → **รวมเป็น shared `APPSCRIPT_URL`**.
-- การลบ legacy `sheet-crud`/`google-sheets` → **รวมในงานนี้เลย**.
-- Problem framing → เลือก **"ปรับก่อน"** (มีจุดใน Problem/Scope ที่อยากปรับก่อนปิด Step 1).
+- [USER] [2026-06-24]
+Confirmed scope decisions: use shared `APPSCRIPT_URL`; remove legacy engine in this migration; route must use `okPaged`; frontend impact is a real API envelope change; write null semantics must be explicit.
+
+================================================================================
+
+- [USER] [2026-06-26]
+Re-scoped list query to Base-supported filters only. Decided not to expand Base read pipeline in this migration.
+
+================================================================================
+
+- [USER/CODEX] [2026-06-27]
+Implemented appointment transformer before module migration. Commit pushed:
+`d655ca4 Prepare appointment transformer`.
+
+================================================================================
+
+- [USER] [2026-06-27]
+Requested plan cleanup before continuing. Old detailed activity log removed from the working plan; git history remains the durable record.
+
+================================================================================
+
+- [CODEX] [2026-06-27 13:29]
+Drafted Step 2 migration plan after cleanup. The plan now reflects the current scoped direction:
+no Base read-pipeline expansion, transformer already implemented, appointment module migration next,
+route switch to `okPaged`, and legacy engine removal only after appointments no longer imports it.
 
 **Handoff -> @claude**
-ระบุว่าจะปรับ Problem/Scope ตรงไหน.
-
-================================================================================
-
-- [CLAUDE] [2026-06-24 18:50]
-**บันทึกมติที่ยืนยันแล้ว + รอ input**
-ย้าย "ลบ legacy" และ "รวม env เป็น APPSCRIPT_URL" เข้า In Scope; ปิด Open Questions
-ข้อ 2–3. ค้างข้อ 1 (วิธีปิด capability gap) ไว้ตัดสินใน Step 2.
-
-**Handoff -> @user**
-รอ Human ระบุจุดที่ต้อง "ปรับก่อน" ใน Problem/Scope — ยังไม่เข้า Step 2 จนกว่าจะเคลียร์.
-
-================================================================================
-
-- [USER] [2026-06-24 19:05]
-**ระบุจุดที่ต้อง "ปรับก่อน" (4 ข้อ)**
-1. Route ต้องเปลี่ยน: `okPaginated` ต้องการ `{ total, page, perPage, totalPages }` แต่
-   `BaseCrudService.list()` คืน `{ page, perPage }` → ต้องใช้ `okPaged` แบบ customers.
-2. Frontend impact ห้ามเขียนว่า "ไม่มีแน่นอน": pagination meta เปลี่ยน = envelope change.
-3. ขาด write omission/null contract: omit→ไม่ส่ง, null→ล้าง, required→ต้องมี; ดังนั้น
-   `Address`/`PickupOrderID`/`DeliveryOrderID`/`Notes` ต้อง `.nullable().optional()`.
-4. ล็อก `includePending` edge case: (มี date range → date range OR PENDING),
-   (ไม่มี date range → PENDING ล้วน).
-
-**Handoff -> @claude**
-ยืนยันกับโค้ดจริงแล้ว fold เข้าแผน.
-
-================================================================================
-
-- [CLAUDE] [2026-06-24 19:10]
-**ยืนยัน 4 จุดกับโค้ดจริง + fold เข้าแผน (ปิด Step 1)**
-อ่าน `api/appointments/index.ts`, `api/customers/index.ts`, `http/response.ts`,
-`contracts/shared/api.schema.ts`, `gsheet.repository.ts`, `base.repository.ts` —
-ยืนยันทั้ง 4 จุดถูกต้อง (จุด 1/3/4 เป็นข้อเท็จจริงจากโค้ดตรง; ข้อ 1 ผมเคยสรุปผิดว่า
-route ไม่ต้องแก้). เพิ่มเติม: ไม่มี `src/features/appointments/` บน FE เลย (glob ไม่เจอ)
-→ ข้อ 2 ไม่มี consumer พังตอนนี้ แต่บันทึกเป็น contract change ตามจริง.
-แก้แผน: Goal เพิ่ม route `okPaginated`→`okPaged` (ลบประโยค "route ไม่ต้องแก้ logic"),
-Scope เพิ่ม "Known API contract change" + ย้าย FE feature ออกเป็น Out of Scope,
-Requirements เพิ่ม includePending สองกิ่ง + write null-semantics (`.nullable().optional()`),
-ปิด Open Question #4.
-
-**Handoff -> @user**
-Step 1 (Problem/Scope/Requirements) ครบและตรงกับ 4 จุดที่ระบุแล้ว. ขอ **gate ปิด Step 1**:
-ยืนยันว่าพร้อมเข้า Step 2 (Solution Design) ไหม — Step 2 จะโฟกัส Open Question #1
-(วิธีปิด capability gap: extend engine กลางให้รองรับ range/OR เป็น first-class
-vs. กลไกระดับ module) เป็นแกนการออกแบบ.
-
-================================================================================
-
-- [CODEX] [2026-06-26 00:18]
-**Proposed migration direction (Step 2 — pending Human decision)**
-อ่าน collaborative-workflow skill + plan template/example และตรวจโค้ดจริงที่เป็นจุดตัดสินใจ:
-`server/shared/dtos/read-query.dto.ts`, `server/shared/repositories/base.repository.ts`,
-`server/shared/repositories/gsheet.repository.ts`,
-`server/shared/repositories/utils/gviz-query.builder.ts`,
-`server/shared/services/base-crud.service.ts`,
-`server/modules/appointments/appointment.module.ts`,
-`server/modules/appointments/appointment-db.schema.ts`,
-`contracts/appointments/appointment-api.schema.ts`,
-`server/modules/customers/customer.module.ts`, และ
-`server/modules/customers/customer.contract.ts`.
-
-ข้อเท็จจริงที่ยืนยันแล้ว: `BaseCrudService.list()` บังคับใช้
-`ReadQueryDTO.fromQuery()` เสมอ และ `fromQuery()` จะย้ายทุก non-reserved query field
-เข้า `where` equality filter. ส่วน `GVizQueryBuilder` render ได้แค่ equality `where`,
-keyword `search`, sort, pagination. ดังนั้น appointments ไม่สามารถ migrate แบบ customers
-ตรง ๆ ได้ เพราะ `dateFrom`/`dateTo`/`orderId`/`includePending` จะเป็น field ที่ resolve
-เป็นคอลัมน์ไม่ได้หรือ express OR/range ไม่ได้.
-
-**Recommendation:** ใช้แนวทาง hybrid ที่ขยาย read pipeline กลางให้มี filter expression
-แบบ data-only เป็น first-class แล้วให้ appointments มี pure query adapter เฉพาะ module
-เพื่อแปลง list query ที่ validate แล้วเป็น `ReadQueryDTO` ที่มี expression เหล่านั้น.
-รายละเอียด direction:
-- เพิ่ม shared read expression contract ใน `read-query.dto.ts` เช่น `eq`, `contains`,
-  `dateRange`, `and`, `or` โดยยังใช้ API/domain field names และยังไม่ผูกกับ GViz string.
-- ขยาย `BaseRepository.mapQueryToDb()` ให้ map field names ภายใน expression จาก API →
-  DB column names เหมือนที่ทำกับ `where`/`search`/`sort` อยู่แล้ว.
-- ขยาย `GVizQueryBuilder` ให้ render expression หลัง map เป็น DB fields แล้ว โดยใช้
-  sanitizer/column resolver เดียวกับของเดิม และยัง join top-level constraints ด้วย `and`.
-- เพิ่ม optional hook ที่ `BaseCrudServiceOptions` เช่น `buildReadQuery(validQuery,
-  searchFields)`; default ยังเป็น `ReadQueryDTO.fromQuery()` เพื่อให้ customers และ module
-  simple CRUD ไม่เปลี่ยน behavior.
-- appointments ใช้ hook นี้เพื่อ:
-  - เก็บ equality filters ปกติไว้ใน `where`: `customerId`, `status`,
-    `appointmentType`, `timeSlot`, `serviceTier`.
-  - แปลง `orderId` เป็น `or(eq(pickupOrderId), eq(deliveryOrderId))`.
-  - แปลง date range เป็น `dateRange(appointmentDate, dateFrom, dateTo)`.
-  - แปลง `includePending=true` เป็น OR ตาม requirement:
-    `(dateRange OR status='PENDING')` เมื่อมี date range,
-    หรือ `status='PENDING'` ล้วนเมื่อไม่มี date range.
-  - ใช้ keyword search เดิมผ่าน `searchFields: ['appointmentId', 'customerId',
-    'address', 'notes']`.
-- หลัง direction นี้นิ่ง ค่อยเขียนส่วน `How` เป็น migration steps:
-  1. ปรับ API contract appointments เป็น nested `appointmentApiContract`.
-  2. แทน DB schema bundle เก่าด้วย `appointment.contract.ts` และ `appointmentContract`.
-  3. เพิ่ม read expression support + tests ใน shared pipeline.
-  4. wire `appointment.module.ts` ด้วย `GSheetRepository` + `BaseCrudService` +
-     `buildAppointmentReadQuery`.
-  5. แก้ route GET จาก `okPaginated` เป็น `okPaged`.
-  6. ลบ legacy `sheet-crud`, `google-sheets`, `base-sheet.repository.ts` หลังไม่มี consumer.
-  7. รัน typecheck/tests และบันทึกผล.
-
-ทางเลือกที่ไม่แนะนำ:
-- module-level raw GViz clause/transformer: migrate เร็วกว่าแต่ดึง string dialect กลับมาอยู่
-  ใน appointments และไม่แก้ gap ให้ engine ใหม่.
-- ขยาย `ReadQueryDTO.fromQuery()` ด้วย config descriptor อย่างเดียว: ลด hook ได้แต่จะซับซ้อน
-  กับ `includePending` เพราะมันเป็น conditional OR ที่ขึ้นกับหลาย field.
-- custom AppointmentService ไม่ใช้ `BaseCrudService`: รักษา behavior ได้แต่ขัด goal ที่
-  appointments ต้องรันบน stack เดียวกับ customers.
-
-ยังไม่เติม `How` เพราะ collaborative-workflow ระบุว่า Step 2 ต้องตกลง direction กับ Human
-ก่อน แล้วจึง document solution ลง sections หลัก.
-
-**Handoff -> @user**
-ขอ Human decision: อนุมัติ direction hybrid นี้ไหม? ถ้าอนุมัติ รอบถัดไปจะเติม `How`
-ในไฟล์นี้เป็น High-Level Steps, Contracts, Functional Flow และ derive Edge Cases เพื่อส่ง
-review ต่อ.
-
-================================================================================
-
-- [USER] [2026-06-26 02:22]
-**Re-scoped appointments API/DB contract decisions**
-ตัดสินใจไม่แก้ `BaseCrudService.list()` / Base read pipeline ในรอบนี้. ดังนั้น
-appointments list query จะเหลือเฉพาะ filter ที่ Base เดิมรองรับได้:
-`keyword`, `customerId`, `appointmentDate`, `status`, `page`, `perPage`, `sortBy`,
-`sortOrder`; ตัด `dateFrom`, `dateTo`, `orderId`, `includePending`,
-`appointmentType`, `timeSlot`, `serviceTier` ออกจาก query. Sort field เหลือ
-`appointmentDate`, `timeSlot`, `status`.
-
-API create เอา `address` ออกทั้งหมด เพราะ backend transformer จะ derive DB `Address`
-จาก `customerId`; `serviceTier` เป็น optional. API update เอา `serviceTier` ออก.
-List response เพิ่ม `customerName`, `customerCode`, `phone`, `address`, `location`,
-`notes` และตัด `serviceTier`; detail/create/update response ใช้ detail shape ที่เพิ่ม
-`pickupOrderId`, `deliveryOrderId`, `serviceTier`.
-
-DB contract decisions: `ServiceTier` ใน create เป็น optional; เพิ่ม `DeletedAt`,
-`DeletedBy` ต่อท้าย row schema; DB create มี `Address` required. คอลัมน์ `Address`
-เป็น JSON customer snapshot string ที่ GViz คืนเป็น string. Transformer ภายหลังจะ parse
-`Address` snapshot และ map `CustomerName -> customerName`,
-`CustomerLabel -> customerCode`, `Phone -> phone`, `Address -> address`,
-`Location -> location`. ยังไม่ implement transformer ในรอบนี้.
-
-**Handoff -> @codex**
-ดู implementation ที่ commit `a8ec8e1 Prepare appointment module contracts` บน branch
-`feature/appointments-module-migration`: แก้
-`contracts/appointments/appointment-api.schema.ts` และสร้าง
-`server/modules/appointments/appointment.contract.ts` ตาม decisions ข้างต้น.
-
-================================================================================
-
-- [USER] [2026-06-26 03:23]
-**Resolved remaining contract decisions**
-Transformer อยู่ในรอบ migration นี้ แต่รายละเอียด implementation จะคุยแยกภายหลัง.
-ตัดสินใจตัด `address` ออกจาก API update contract ด้วย เพราะ `Address` ฝั่ง DB เป็น
-customer snapshot string ไม่ใช่ address field ตรง ๆ. CODEX แก้
-`contracts/appointments/appointment-api.schema.ts` แล้ว โดยลบ `address` ออกจาก
-`appointmentUpdateSchema` แต่ยังไม่ commit.
-
-Clarification: ประเด็น keyword/search ไม่ได้หมายถึง list query filters
-(`appointmentListQuerySchema` เหลือ `customerId`, `appointmentDate`, `status` ตามที่
-ตกลงแล้ว) แต่เป็น decision ตอน wire `BaseCrudService.searchFields` ภายหลัง ว่าจะให้
-`keyword` contains คอลัมน์ใดบ้าง. ถ้าใส่ `address` ใน `searchFields` จะ search raw DB
-`Address` snapshot string เพราะ transformer ทำงานหลัง read ไม่ใช่ก่อน query.
-
-Transformer response rule: ถ้า parse customer snapshot ไม่ได้ หรือไม่มี snapshot ต้อง
-normalize derived API fields เป็น `null` เสมอ (`customerName`, `customerCode`, `phone`,
-`address`, `location`) เพื่อไม่ปล่อย `undefined` หลุดจาก response contract.
-
-**Handoff -> @codex**
-อัปเดตสรุป remaining decisions ตามนี้ แล้วอย่า commit.
-
-================================================================================
-
-- [USER] [2026-06-27 00:05]
-**Confirmed Address snapshot transformer shape**
-คอลัมน์ DB `Address` เก็บ customer snapshot เป็น JSON string จริง เช่น:
-`{"CustomerName":"","CustomerLabel":"WIX","Phone":"","Address":"123 ถ.สุขุมวิท ซ.15","Location":"123 ถ.สุขุมวิท ซ.15","Facebook":"","Line":"","Whatsapp":"","Email":""}`.
-
-ดังนั้น migration ต้องมี appointments transformer ที่แตก nested JSON structure ในคอลัมน์
-`Address` ให้เป็น flat API response fields:
-- `CustomerName` -> `customerName`
-- `CustomerLabel` -> `customerCode`
-- `Phone` -> `phone`
-- `Address` -> `address`
-- `Location` -> `location`
-
-Transformer ต้องรันหลัง repository read/write ได้ DB-shaped row กลับมาและก่อน
-`mapper.toApi()`. วิธีที่เข้ากับ pipeline ปัจจุบันคือ transformer response คืน row
-ที่ยังมี DB keys เดิมอยู่ แต่แทน `Address` ด้วย address string ที่ parse ได้ และเติม
-extra API-shaped keys ที่ไม่มี DB column ตรง (`customerName`, `customerCode`, `phone`,
-`location`). `mapper.toApi()` จะ map `Address -> address` และปล่อย extra API keys เดิมไว้.
-
-ถ้า `Address` เป็น `null`, ว่าง, parse JSON ไม่ได้, หรือ key ข้างในเป็นค่าว่าง/ไม่ใช่ string
-ให้ normalize derived fields เป็น `null` เสมอ ไม่ปล่อย `undefined`.
-
-**Handoff -> @codex**
-ใช้ decision นี้ตอนเขียน Transformer design ใน Step 2 และ test cases ใน Step 3.
-
-================================================================================
-
-- [CODEX] [2026-06-27 00:32]
-**Proposed appointment transformer implementation plan**
-Transformer ควร implement ก่อน migration wiring เพื่อพิสูจน์ว่า request/response hook ของ
-`GSheetRepository` ใช้งานกับ appointments ได้จริง และลด risk ตอนย้าย module หลัก.
-
-Proposed files:
-- `server/modules/appointments/appointment.transformer.ts` — production transformer +
-  pure snapshot helpers.
-- `server/modules/appointments/appointment.transformer.dry-test.ts` — focused tests
-  ที่ไม่ยิง network โดย inject fake customer lookup.
-
-Design:
-- Export factory `createAppointmentTransformer({ getCustomerById })` ที่คืน
-  `RepositoryTransformer`.
-- `getCustomerById(customerId)` คืน customer API/detail shape ที่มี
-  `customerIndex`, `customerName`, `phone`, `address`, `location`, `facebook`,
-  `lineId`, `whatsapp`, `email`.
-- Production wiring ภายหลังใช้ `customerService.getById(CustomerID)` เป็น dependency
-  (ไม่ import appointment จาก customers จึงไม่เกิด circular dependency).
-
-Request transformer:
-- ทำงานเฉพาะ `operation === 'create'`.
-- รับ `request.data` ที่ถูก mapper.toDb แล้ว ดังนั้น key เป็น DB shape:
-  `CustomerID`, `AppointmentType`, `AppointmentDate`, `TimeSlot`, ...
-- อ่าน `CustomerID`; ถ้าไม่มี/ไม่ใช่ string ให้ปล่อยให้ contract/service error ตามปกติ
-  หรือ throw contract error แบบชัดเจนใน test.
-- lookup customer ด้วย `getCustomerById(CustomerID)`.
-- เติม `Address` เป็น JSON string snapshot:
-  - `CustomerName`: `customer.customerName ?? ''`
-  - `CustomerLabel`: `customer.customerIndex ?? ''`
-  - `Phone`: `customer.phone ?? ''`
-  - `Address`: `customer.address ?? ''`
-  - `Location`: `customer.location ?? customer.address ?? ''`
-  - `Facebook`: `customer.facebook ?? ''`
-  - `Line`: `customer.lineId ?? ''`
-  - `Whatsapp`: `customer.whatsapp ?? ''`
-  - `Email`: `customer.email ?? ''`
-- ไม่แตะ update request เพราะ API update ตัด `address` ออกแล้ว และไม่มี flow refresh
-  customer snapshot ตอน PATCH ปกติ.
-
-Response transformer:
-- ทำงานกับ object และ array response (`read` คืน array, `create/update` คืน object).
-- แต่ละ row เป็น DB-shaped row จาก GViz/Apps Script. อ่าน `row.Address`.
-- ถ้า `Address` เป็น JSON object string ให้ parse แล้ว flatten:
-  - เติม extra API-shaped keys `customerName`, `customerCode`, `phone`, `location`
-    เพราะไม่มี DB column ให้ mapper map.
-  - แทน DB key `Address` ด้วย parsed `Address` string/null เพื่อให้ mapper map ต่อเป็น
-    API `address`.
-- ถ้า `Address` เป็น `null`, empty string, invalid JSON, non-object JSON, หรือ value
-  ข้างในไม่ใช่ non-empty string ให้ normalize target field นั้นเป็น `null`.
-- ห้ามปล่อย `undefined`; response projection หลัง `BaseCrudService` ต้องเห็น
-  `customerName/customerCode/phone/address/location` เป็น string หรือ null เสมอ.
-
-Test plan:
-- request create: fake customer lookup ถูกเรียกด้วย `CustomerID`; request data ที่ส่งต่อมี
-  `Address` เป็น JSON snapshot ตาม real column shape.
-- request update/read: ไม่ lookup และไม่แก้ request data.
-- response read array: parse real snapshot example แล้วได้ flat fields ครบ และ `address`
-  เป็น `"123 ถ.สุขุมวิท ซ.15"`.
-- response create/update object: behavior เดียวกับ read object.
-- fallback: `Address=null`, `Address=''`, invalid JSON, JSON array, missing keys,
-  empty string values -> derived fields เป็น `null`.
-- mapper interaction: transformer response ต้องคืน DB key `Address` สำหรับ address field
-  และ API-shaped extra keys สำหรับ `customerName/customerCode/phone/location`; หลังผ่าน
-  repository mapper แล้ว key เหล่านี้ยังอยู่ใน API response.
-- error path: customer lookup not found/error bubbles out of create, so appointment is not
-  created with incomplete snapshot.
-
-Open implementation detail for Human:
-- `CustomerLabel` ใน snapshot จะใช้ `customer.customerIndex` เป็น source ของ API
-  `customerCode` ตาม customer contract ปัจจุบัน. ถ้า label ต้องมาจาก field อื่น ต้องระบุ
-  ก่อน implement.
-
-**Handoff -> @user**
-ยืนยัน source ของ `CustomerLabel` ว่าใช้ `customerIndex` ได้ไหม แล้วจึงเริ่ม TDD transformer
-ก่อน migration wiring.
-
-================================================================================
-
-- [USER] [2026-06-27 03:41]
-**Superseded transformer request lookup plan**
-Human clarified that appointment creation happens from the customer page, so the
-frontend already has the customer snapshot fields. The transformer request plan
-that looked up customer data via `getCustomerById` is superseded.
-
-Current request contract decision:
-- API create must send required flat snapshot fields:
-  `customerName`, `customerCode`, `phone`, `address`, `location`.
-- Request transformer receives mapper-to-DB data, packs those flat fields into
-  DB `Address` as the customer snapshot JSON, removes helper fields
-  (`customerName`, `customerCode`, `phone`, `location`), and forwards only the
-  DB/AppScript payload.
-- DB schema remains the DB/AppScript payload contract; it must not include the
-  helper fields because those are not DB columns.
-- DB request/response runtime validation remains future engine work and is out
-  of scope for this appointment migration.
-
-**Handoff -> @codex**
-Commit the current transformer/contracts/memory changes without opening a PR.
+Please review this plan before implementation. Focus on:
+- whether `appointment.module.ts` wiring is correct for `GSheetRepository + BaseCrudService`;
+- whether API/DB contract boundaries are correct, especially transformer helper fields vs final DB payload;
+- whether proposed `searchFields` should include raw snapshot `address`;
+- whether edge cases are complete enough for Step 3;
+- whether legacy engine removal timing is safe.
