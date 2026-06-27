@@ -56,20 +56,18 @@
 
 ### Next Steps
 
-1. Return to `.agent-docs/appointment-module-new-flow-refactor.md`.
-2. Update the main Step 2 `How` section to reflect the new scoped direction:
-   - No Base read-pipeline expansion in this migration.
-   - Appointment list query only uses Base-supported filters.
-   - Transformer is already implemented and should be wired into `GSheetRepository`.
-3. Migrate `server/modules/appointments/appointment.module.ts`:
+1. Return to `.agent-docs/appointment-module-new-flow-refactor/`.
+2. Phase 2 plan has been migrated to the new workflow folder, updated with Claude review feedback, and approved by the human on 2026-06-28.
+3. Commit and push the Phase 2 docs before starting Phase 3 implementation.
+4. Migrate `server/modules/appointments/appointment.module.ts`:
    - Replace legacy `sheet-crud` wiring with `GSheetRepository + BaseCrudService`.
    - Use `appointmentContract`.
    - Pass `transformer: createAppointmentTransformer()` to `GSheetRepository`.
    - Use shared `APPSCRIPT_URL`.
    - Set `searchFields` for keyword intentionally.
-4. Update route `api/appointments/index.ts`:
+5. Update route `api/appointments/index.ts`:
    - Replace `okPaginated` with `okPaged`.
-5. After module wiring:
+6. After module wiring:
    - Run `npm run typecheck:api`.
    - Run transformer dry test again.
    - Then decide when to remove legacy `server/shared/sheet-crud`, `server/shared/google-sheets`, and `server/shared/repositories/base-sheet.repository.ts`.
