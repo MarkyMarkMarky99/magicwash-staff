@@ -146,14 +146,3 @@ export const appointmentApiContract = {
     update: appointmentUpdateResponseSchema,
   },
 } satisfies ModuleApiContract
-
-/** Legacy flat bundle kept until appointment.module.ts migrates to appointmentApiContract. */
-export const appointmentApiSchemas = {
-  listQuery: appointmentListQuerySchema,
-  createRequest: appointmentCreateSchema,
-  updateRequest: appointmentUpdateSchema,
-  listResponse: appointmentListResponseSchema,
-  detailResponse: appointmentDetailResponseSchema,
-  createResponse: appointmentCreateResponseSchema,
-  updateResponse: appointmentUpdateResponseSchema,
-} as const

@@ -49,3 +49,8 @@ Migrated this task from the single-file plan to the collaborative-workflow folde
 
 - [USER] [2026-06-28 04:29]
 Approved Phase 2 final plan. Gate passed for Phase 3 implementation after the Phase 2 docs commit is pushed.
+
+================================================================================
+
+- [CODEX] [2026-06-28 05:10]
+Phase 3 implemented by group: (1) rewired `appointment.module.ts` to `GSheetRepository + BaseCrudService` with the transformer + `searchFields ['appointmentId','customerId','notes']`, switched `api/appointments/index.ts` to `okPaged`; (2) removed `appointment-db.schema.ts` + legacy `appointmentApiSchemas`; (3) removed legacy engine `sheet-crud`/`google-sheets`/`base-sheet.repository`. Verification green: `typecheck:api` passes, transformer 26, repository 16, BaseCrudService 31. Open: manual physical-sheet column-order check (A–O, P/Q); frontend `okPaged` meta change is out of scope. Pending: commit + push Phase 2 docs and Phase 3 changes.
