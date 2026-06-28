@@ -1,6 +1,6 @@
 # Implementation
 
-**Status:** Phase 3 implemented — verification green; commit pushed; one manual sheet-column check remains
+**Status:** Phase 3 complete — verification green, commit pushed, live sheet columns verified
 
 > Gate: Verification passes and the Phase 3 commit is pushed. Implementation must match the approved Phase 2 plan.
 
@@ -54,10 +54,10 @@ repository) can be added later.
 ## Deviations From Approved Plan
 
 - None in code.
-- **Open manual check (plan step 5):** physical Appointments sheet column order must
-  match the contract's 17-key order used by `deriveGVizColumns` (A–O aligned;
-  `DeletedAt`/`DeletedBy` appended at P/Q). This is a live-sheet check that cannot be
-  verified from code — needs a human/live read before trusting reads in production.
+- **Resolved manual check (plan step 5):** physical Appointments sheet column order
+  was verified through GViz after the missing trailing columns were added. A-Q now
+  match the contract's 17-key order, with `ServiceTier` at O, `DeletedAt` at P, and
+  `DeletedBy` at Q.
 
 ## Downstream Impact (out of scope, flagged)
 
@@ -76,3 +76,8 @@ All green (2026-06-28):
 - `npx tsx server/shared/services/base-crud.service.dry-test.ts` — `31 BaseCrudService dry tests passed`.
 
 Re-verified after Claude implementation review by Codex with the same commands; all remain green.
+
+Live sheet verification after column update:
+
+- GViz header query A-Q returns `AppointmentID`, `CustomerID`, `AppointmentType`, `AppointmentDate`, `TimeSlot`, `Status`, `Address`, `PickupOrderID`, `DeliveryOrderID`, `Notes`, `CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy`, `ServiceTier`, `DeletedAt`, `DeletedBy`.
+- `appointmentService.getById('APPT-91e5be46')` returns `serviceTier: null`, confirming the detail projection now has the key and normalizes the blank sheet value.

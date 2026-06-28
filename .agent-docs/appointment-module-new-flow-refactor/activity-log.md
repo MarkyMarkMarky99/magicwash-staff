@@ -59,3 +59,8 @@ Phase 3 implemented by group: (1) rewired `appointment.module.ts` to `GSheetRepo
 
 - [CODEX] [2026-06-28 05:18]
 Phase 3 commit pushed: `369137c` on `feature/appointments-module-migration` (16 files, +96/−1325). Phase 3 gate met: implementation matches the approved plan, verification green, commit pushed. Only open item is the manual physical-sheet column-order check.
+
+================================================================================
+
+- [USER/CODEX] [2026-06-29 02:15]
+Human added the missing Appointments sheet columns. Codex verified live GViz headers A-Q now match the contract order (`ServiceTier` at O, `DeletedAt` at P, `DeletedBy` at Q) and `appointmentService.getById('APPT-91e5be46')` returns `serviceTier: null`. The remaining Phase 3 manual sheet-column check is resolved.
