@@ -1,6 +1,6 @@
 # Implementation
 
-**Status:** Phase 3 implemented — verification green; pending commit/push and one manual sheet-column check
+**Status:** Phase 3 implemented — verification green; commit pushed; one manual sheet-column check remains
 
 > Gate: Verification passes and the Phase 3 commit is pushed. Implementation must match the approved Phase 2 plan.
 
@@ -74,3 +74,5 @@ All green (2026-06-28):
 - `npx tsx server/modules/appointments/appointment.transformer.dry-test.ts` — `26 appointment transformer dry tests passed`.
 - `npx tsx server/shared/repositories/repository.dry-test.ts` — `16 repository dry tests passed`.
 - `npx tsx server/shared/services/base-crud.service.dry-test.ts` — `31 BaseCrudService dry tests passed`.
+
+Re-verified after Claude implementation review by Codex with the same commands; all remain green.
