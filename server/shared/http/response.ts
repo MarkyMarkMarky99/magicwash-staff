@@ -1,3 +1,4 @@
+import type { VercelResponse } from '@vercel/node'
 import { z } from 'zod'
 import {
   apiErrorCodeSchema,
@@ -43,6 +44,21 @@ export function errorBody(code: ApiErrorCode, message: string, details?: unknown
 export interface ApiResult<TBody = unknown> {
   status: number
   body: TBody
+  headers?: Record<string, string>
+}
+
+/** Write a normalized API result to a Vercel response. */
+export function writeResult(res: VercelResponse, result: ApiResult): void {
+  for (const [name, value] of Object.entries(result.headers ?? {})) {
+    res.setHeader(name, value)
+  }
+
+  if (result.status === 204) {
+    res.status(204).end()
+    return
+  }
+
+  res.status(result.status).json(result.body)
 }
 
 /** 200 with a single resource. */
