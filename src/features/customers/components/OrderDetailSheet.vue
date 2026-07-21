@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { OrderListDto } from '../services/order.service'
+import { formatShortDate } from '../utils/format-date'
 
 const props = defineProps<{
   open: boolean
@@ -14,6 +15,10 @@ const emit = defineEmits<{
 
 const router = useRouter()
 const itemsOpen = ref(true)
+const dragOffset = ref(0)
+const dragging = ref(false)
+const CLOSE_THRESHOLD = 80
+let dragStartY = 0
 
 watch(
   () => props.order,
@@ -27,6 +32,31 @@ function viewPhotos() {
   emit('close')
   router.push(`/gallery/AFT-${props.order.orderId}`)
 }
+
+function handleDragStart(event: PointerEvent) {
+  if (!props.open) return
+  dragStartY = event.clientY
+  dragging.value = true
+  ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
+}
+
+function handleDragMove(event: PointerEvent) {
+  if (!dragging.value) return
+  dragOffset.value = Math.max(0, event.clientY - dragStartY)
+}
+
+function handleDragEnd(event: PointerEvent) {
+  if (!dragging.value) return
+  const target = event.currentTarget as HTMLElement
+  if (target.hasPointerCapture?.(event.pointerId)) {
+    target.releasePointerCapture(event.pointerId)
+  }
+  dragging.value = false
+  if (dragOffset.value >= CLOSE_THRESHOLD) {
+    emit('close')
+  }
+  dragOffset.value = 0
+}
 </script>
 
 <template>
@@ -39,11 +69,31 @@ function viewPhotos() {
         @click="emit('close')"
       />
 
-      <section class="relative max-h-[84vh] w-full overflow-hidden rounded-t-2xl bg-white shadow-2xl">
-        <header class="flex items-center justify-between gap-3 border-b border-outline-variant/20 px-4 py-3">
-          <div class="min-w-0">
-            <h2 class="font-headline text-base font-bold text-primary">Order details</h2>
-            <p class="truncate text-xs text-on-surface-variant">{{ order?.orderId || '-' }}</p>
+      <section
+        class="relative flex max-h-[84vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl"
+        :class="dragging ? '' : 'transition-transform duration-200 ease-out'"
+        :style="{ transform: `translateY(${dragOffset}px)` }"
+      >
+        <div
+          class="flex flex-none touch-none cursor-grab justify-center pb-0.5 pt-2 active:cursor-grabbing"
+          @pointerdown="handleDragStart"
+          @pointermove="handleDragMove"
+          @pointerup="handleDragEnd"
+          @pointercancel="handleDragEnd"
+        >
+          <div class="h-1 w-9 rounded-full bg-outline-variant" />
+        </div>
+
+        <div
+          class="flex flex-none touch-none cursor-grab items-center justify-between gap-3 border-b border-outline-variant/20 px-4 pb-2 pt-0.5 active:cursor-grabbing"
+          @pointerdown="handleDragStart"
+          @pointermove="handleDragMove"
+          @pointerup="handleDragEnd"
+          @pointercancel="handleDragEnd"
+        >
+          <div class="min-w-0 flex-1">
+            <p class="mb-0.5 font-label text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">Order</p>
+            <h2 class="truncate font-headline text-base font-bold text-primary">{{ order?.orderId || '-' }}</h2>
           </div>
           <button
             type="button"
@@ -53,61 +103,83 @@ function viewPhotos() {
           >
             <span class="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
           </button>
-        </header>
+        </div>
 
-        <div class="max-h-[calc(84vh-64px)] overflow-y-auto px-4 py-4">
-          <dl class="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <dt class="text-xs text-on-surface-variant">Received</dt>
-              <dd class="font-medium text-on-surface">{{ order?.receivedDate || '-' }}</dd>
+        <!-- Dates + primary action: pinned below the header, above the scroll area,
+             so "view photos" never requires scrolling to reach. -->
+        <div v-if="order" class="flex-none space-y-3 px-4 pb-2 pt-3">
+          <div class="flex items-stretch gap-2">
+            <div class="flex-1 rounded-xl bg-surface-container-low px-3 py-2.5">
+              <p class="mb-1 font-label text-[9px] uppercase tracking-wide text-on-surface-variant">Received</p>
+              <p class="font-headline text-[13px] font-bold leading-tight text-on-surface">{{ formatShortDate(order.receivedDate) }}</p>
             </div>
-            <div>
-              <dt class="text-xs text-on-surface-variant">Due</dt>
-              <dd class="font-medium text-on-surface">{{ order?.dueDate || '-' }}</dd>
+            <div class="flex items-center px-1">
+              <span class="material-symbols-outlined text-[16px] leading-none text-outline" aria-hidden="true">arrow_forward</span>
             </div>
-          </dl>
-
-          <div v-if="order" class="mt-5">
-            <button
-              type="button"
-              class="flex w-full items-center justify-between border-b border-outline-variant/20 pb-2 text-left"
-              @click="itemsOpen = !itemsOpen"
-            >
-              <span class="font-headline text-sm font-bold text-primary">Items ({{ order.items.length }})</span>
-              <span class="material-symbols-outlined text-[19px] text-primary" aria-hidden="true">
-                {{ itemsOpen ? 'expand_less' : 'expand_more' }}
-              </span>
-            </button>
-
-            <div v-if="itemsOpen" class="mt-2 flex flex-col gap-2">
-              <p v-if="order.items.length === 0" class="text-sm text-on-surface-variant">No item details</p>
-              <div
-                v-for="(item, index) in order.items"
-                :key="item.id || `${order.orderId}-${index}`"
-                class="rounded-lg bg-surface-container-low px-3 py-2 text-sm"
-              >
-                <div class="flex items-center justify-between gap-3">
-                  <span class="font-medium text-on-surface">{{ item.description || item.serviceType || 'Item' }}</span>
-                  <span class="shrink-0 text-xs text-on-surface-variant">{{ item.quantity ?? '-' }}</span>
-                </div>
-              </div>
+            <div class="flex-1 rounded-xl bg-surface-container-low px-3 py-2.5">
+              <p class="mb-1 font-label text-[9px] uppercase tracking-wide text-on-surface-variant">Due</p>
+              <p class="font-headline text-[13px] font-bold leading-tight text-on-surface">{{ formatShortDate(order.dueDate) }}</p>
             </div>
           </div>
 
-          <p class="mt-5 text-sm text-on-surface-variant">
-            <span class="font-bold text-on-surface">Note:</span>
-            {{ order?.note || '-' }}
-          </p>
-
           <button
             type="button"
-            class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-bold text-on-primary transition hover:opacity-90"
-            :disabled="!order"
+            class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 font-label text-[12px] font-semibold text-on-primary transition-all hover:bg-primary/90 active:scale-[0.98]"
             @click="viewPhotos"
           >
-            <span class="material-symbols-outlined text-[19px]" aria-hidden="true">photo_library</span>
+            <span class="material-symbols-outlined text-[16px] leading-none" aria-hidden="true">photo_library</span>
             View Photos
           </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto px-4 py-4">
+          <div v-if="order" class="space-y-4">
+            <section v-if="order.items.length > 0" class="w-full overflow-hidden rounded-2xl">
+              <div
+                class="flex cursor-pointer select-none items-center justify-between bg-surface-container-low px-4 py-2 text-primary"
+                @click="itemsOpen = !itemsOpen"
+              >
+                <div class="flex items-center gap-2.5">
+                  <span class="material-symbols-outlined text-[16px] text-primary" aria-hidden="true">checkroom</span>
+                  <h2 class="font-headline text-[13px] font-bold tracking-tight">Items</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="flex h-[22px] items-center gap-1.5 rounded-full bg-surface-container px-2.5">
+                    <span class="font-label text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">
+                      {{ order.quantity ?? order.items.length }} pcs
+                    </span>
+                  </div>
+                  <span
+                    class="material-symbols-outlined text-[16px] text-primary transition-transform"
+                    :class="itemsOpen ? 'rotate-180' : ''"
+                    aria-hidden="true"
+                  >expand_more</span>
+                </div>
+              </div>
+              <ul v-if="itemsOpen" class="divide-y divide-outline-variant/10">
+                <li
+                  v-for="(item, index) in order.items"
+                  :key="item.id || `${order.orderId}-${index}`"
+                  class="flex items-center gap-3 px-4 py-3"
+                >
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate font-body text-sm font-medium leading-tight text-on-surface">
+                      {{ item.description || '—' }}
+                    </p>
+                    <p v-if="item.serviceType" class="mt-0.5 font-body text-[11px] text-on-surface-variant">{{ item.serviceType }}</p>
+                  </div>
+                  <span class="shrink-0 font-label text-[11px] font-semibold text-on-surface-variant">
+                    {{ item.quantity ?? '-' }} pcs
+                  </span>
+                </li>
+              </ul>
+            </section>
+
+            <div v-if="order.note" class="flex items-start gap-2 rounded-xl bg-surface-container-low px-3 py-2.5">
+              <span class="material-symbols-outlined mt-0.5 shrink-0 text-[16px] leading-none text-on-surface-variant" aria-hidden="true">edit_note</span>
+              <p class="font-body text-sm leading-relaxed text-on-surface-variant">{{ order.note }}</p>
+            </div>
+          </div>
         </div>
       </section>
     </div>

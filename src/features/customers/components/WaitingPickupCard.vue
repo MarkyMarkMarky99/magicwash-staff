@@ -1,42 +1,36 @@
 <script setup lang="ts">
 import type { AppointmentListDto } from '../services/waiting-pickup.service'
 import { normalizeAppointmentDate } from '../utils/waiting-pickup.filter'
+import { formatShortDate } from '../utils/format-date'
 
-defineProps<{
+const props = defineProps<{
   appointment: AppointmentListDto
 }>()
 
-const STATUS_CLASSES: Record<string, string> = {
-  CONFIRMED: 'bg-blue-50 text-blue-700',
-  IN_TRANSIT: 'bg-amber-50 text-amber-700',
-}
-
-function statusLabel(status: string) {
-  return status === 'IN_TRANSIT' ? 'In transit' : status === 'CONFIRMED' ? 'Confirmed' : status
+function formattedDate() {
+  return formatShortDate(normalizeAppointmentDate(props.appointment.appointmentDate))
 }
 </script>
 
 <template>
-  <article class="rounded-xl border border-outline-variant/20 bg-surface-container-lowest px-3 py-3">
-    <div class="flex items-center justify-between gap-3">
-      <div class="flex min-w-0 items-center gap-2">
-        <span class="material-symbols-outlined text-primary" aria-hidden="true">local_shipping</span>
-        <div class="min-w-0">
-          <p class="font-headline text-sm font-bold text-on-surface">Waiting pickup</p>
-          <p class="text-xs text-on-surface-variant">
-            {{ normalizeAppointmentDate(appointment.appointmentDate) || '—' }}
-            <span aria-hidden="true"> · </span>
-            {{ appointment.timeSlot }}
-          </p>
-        </div>
-      </div>
-
-      <span
-        class="shrink-0 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wide"
-        :class="STATUS_CLASSES[appointment.status] || 'bg-surface-container-high text-on-surface-variant'"
-      >
-        {{ statusLabel(appointment.status) }}
-      </span>
+  <div class="flex gap-3 px-4 py-3">
+    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-outline-variant/10 bg-amber-50 text-amber-600">
+      <span class="material-symbols-outlined text-[20px]" aria-hidden="true">local_shipping</span>
     </div>
-  </article>
+
+    <div class="min-w-0 flex-grow">
+      <div class="mb-0.5 flex items-center gap-1.5">
+        <h3 class="font-headline text-[14px] font-bold leading-tight text-primary">
+          {{ formattedDate() }}
+        </h3>
+        <span class="shrink-0 rounded-full bg-amber-100 px-1.5 py-px font-label text-[9px] font-bold uppercase tracking-wide text-amber-700">
+          Waiting pickup
+        </span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-[13px] text-on-surface-variant" aria-hidden="true">schedule</span>
+        <p class="truncate font-body text-xs text-on-surface-variant">{{ appointment.timeSlot || '—' }}</p>
+      </div>
+    </div>
+  </div>
 </template>
