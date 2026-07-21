@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSelectedCustomer } from '../../composables/useSelectedCustomer'
 import BaseSwipeCard from '../shared/BaseSwipeCard.vue'
+import CardLeadingIcon from '../../shared/components/CardLeadingIcon.vue'
 
 const props = defineProps({
   customer: { type: Object, required: true },
@@ -75,10 +76,7 @@ function openNewBooking() {
 
     <!-- Card content -->
     <div class="px-4 py-3 flex gap-3">
-      <!-- Avatar -->
-      <div class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-outline-variant/10">
-        <span class="material-symbols-outlined fill-icon text-[20px]">person</span>
-      </div>
+      <CardLeadingIcon icon="person" label="Customer" />
 
       <!-- Info -->
       <div class="flex-grow min-w-0 flex flex-col justify-center">

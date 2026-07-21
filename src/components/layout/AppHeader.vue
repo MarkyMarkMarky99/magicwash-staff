@@ -1,15 +1,18 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import logoUrl from '../../assets/logo.png'
 import { pendingCount } from '../../composables/usePendingCount'
-import { useCustomerSearch } from '../../composables/useCustomerSearch'
+import { useHeaderSearch } from '@/shared/composables/useHeaderSearch'
 import NavSidebar from './NavSidebar.vue'
 
 const router = useRouter()
 const route  = useRoute()
 const sidebarOpen = ref(false)
-const { searchOpen, toggleSearch } = useCustomerSearch()
+const { searchOpen, toggleSearch } = useHeaderSearch()
+
+const SEARCHABLE_ROUTES = ['/customers', '/invoices']
+const canSearch = computed(() => SEARCHABLE_ROUTES.includes(route.path))
 </script>
 
 <template>
@@ -26,9 +29,9 @@ const { searchOpen, toggleSearch } = useCustomerSearch()
     <div class="flex items-center gap-2">
       <button
         class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
-        :class="searchOpen && route.path === '/customers' ? 'bg-white/20' : ''"
+        :class="searchOpen && canSearch ? 'bg-white/20' : ''"
         aria-label="Search"
-        @click="route.path === '/customers' && toggleSearch()"
+        @click="canSearch && toggleSearch()"
       >search</button>
 
       <!-- Invoice action -->
@@ -38,6 +41,14 @@ const { searchOpen, toggleSearch } = useCustomerSearch()
         aria-label="Create invoice"
         @click="router.push('/forms/create-invoice-form')"
       >add</button>
+
+      <!-- Back button — shown on customer order history -->
+      <button
+        v-else-if="route.name === 'customer-order-history'"
+        class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
+        aria-label="Back to customers"
+        @click="router.push({ name: 'customer-list' })"
+      >arrow_back</button>
 
       <!-- Close button — shown on /pending and /customers -->
       <button

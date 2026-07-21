@@ -18,21 +18,21 @@ function addDays(days) {
 }
 
 const customerName = ref('')
-const invoiceNo = ref(`INV-${new Date().getFullYear()}-`)
+const invoiceNumber = ref(`INV-${new Date().getFullYear()}-`)
 const dueDate = ref(addDays(7))
 const paymentMethod = ref('TRANSFER')
 const notes = ref('')
 
 const data = computed(() => ({
   customerName: customerName.value.trim(),
-  invoiceNo: invoiceNo.value.trim(),
+  invoiceNumber: invoiceNumber.value.trim(),
   dueDate: dueDate.value,
   paymentMethod: paymentMethod.value,
   notes: notes.value.trim(),
 }))
 
 const isValid = computed(() =>
-  Boolean(customerName.value.trim() && invoiceNo.value.trim() && dueDate.value && paymentMethod.value)
+  Boolean(customerName.value.trim() && invoiceNumber.value.trim() && dueDate.value && paymentMethod.value)
 )
 
 defineExpose({ data, isValid })
@@ -52,7 +52,7 @@ defineExpose({ data, isValid })
     <section class="grid grid-cols-2 gap-3">
       <FormInput
         id="invoice-number"
-        v-model="invoiceNo"
+        v-model="invoiceNumber"
         label="Invoice No."
         placeholder="INV-2026-0001"
         autocomplete="off"

@@ -3,10 +3,10 @@ import { createRouter, createWebHashHistory, RouterLink } from 'vue-router'
 import DailyTasksPage from '../pages/DailyTasksPage.vue'
 import BookingFormPage from '../pages/BookingFormPage.vue'
 import PendingPage from '../pages/PendingPage.vue'
-import CustomersPage from '../pages/CustomersPage.vue'
-import InvoicesPage from '../pages/InvoicesPage.vue'
 import OrderGalleryPage from '../pages/OrderGalleryPage.vue'
 import FormOverlayPage from '../pages/FormOverlayPage.vue'
+import { invoiceRoutes } from '@/features/invoices/routes'
+import { customerRoutes } from '@/features/customers/routes'
 
 const formModules = import.meta.glob('../components/forms/*.vue')
 
@@ -58,8 +58,8 @@ const routes = [
   { path: '/pending',      component: PendingPage },
   { path: '/reschedule',   component: BookingFormPage, props: { mode: 'reschedule' } },
   { path: '/new-booking',  component: BookingFormPage, props: { mode: 'new-booking' } },
-  { path: '/customers',    component: CustomersPage },
-  { path: '/invoices',     component: InvoicesPage },
+  ...customerRoutes,
+  ...invoiceRoutes,
   { path: '/forms',        component: FormsIndexRoute },
   { path: '/forms/:formName', component: FormOverlayPage },
   { path: '/gallery/:key/camera', component: OrderGalleryPage, meta: { openCamera: true } },

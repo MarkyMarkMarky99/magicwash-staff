@@ -1,7 +1,8 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { toDateStr } from '../../utils/gviz'
-import { useSelectedCustomer } from '../../composables/useSelectedCustomer'
+import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.store'
 import { useSelectedAppointment } from '../../composables/useSelectedAppointment'
 import AppointmentSummaryCard from '../appointments/AppointmentSummaryCard.vue'
 import DateStrip from '../appointments/DateStrip.vue'
@@ -35,7 +36,7 @@ function tomorrowDate() {
   return toDateStr(d)
 }
 
-const { customer } = useSelectedCustomer()
+const { customer } = storeToRefs(useSelectedCustomerStore())
 const { appointment, currentDate } = useSelectedAppointment()
 
 const todayStr = toDateStr(new Date())
@@ -95,7 +96,7 @@ const data = computed(() => {
   if (isNewBooking.value) {
     return {
       mode: 'new-booking',
-      customerId: customer.value?.id ?? null,
+      customerId: customer.value?.customerId ?? null,
       date: selectedDate.value,
       time: selectedTime.value,
       serviceType: selectedService.value,
@@ -142,7 +143,7 @@ defineExpose({ data, isValid })
 
     <section v-if="isNewBooking" aria-label="Customer">
       <AppointmentSummaryCard
-        :customer="customer?.name"
+        :customer="customer?.customerName"
         :time="selectedTime"
         :date="selectedDate"
         :address="customer?.address"
