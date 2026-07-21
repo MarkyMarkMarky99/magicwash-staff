@@ -3,8 +3,8 @@ import {
   BaseRepository,
   type FieldMap,
   type RepositoryRequest,
-} from './base.repository'
-import type { ReadQueryDTO } from '../dtos/read-query.dto'
+} from './base.repository.js'
+import type { ReadQueryDTO } from '../dtos/read-query.dto.js'
 
 type CustomerApiRow = {
   customerId: string

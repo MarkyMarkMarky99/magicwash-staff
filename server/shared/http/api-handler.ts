@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { z } from 'zod'
-import { API_ERROR_CODES, httpMethodSchema } from '../../../contracts/shared/api.schema'
-import { ApiError } from './api-error'
-import { errorBody, type ApiResult } from './response'
+import { API_ERROR_CODES, httpMethodSchema } from '../../../contracts/shared/api.schema.js'
+import { ApiError } from './api-error.js'
+import { errorBody, type ApiResult } from './response.js'
 
 type ApiHttpMethod = z.infer<typeof httpMethodSchema>
 

@@ -1,9 +1,9 @@
 import type { z } from 'zod'
-import { orderListQuerySchema, orderListResponseSchema } from '../../../contracts/orders/order-api.schema'
-import { parseOrThrow } from '../../shared/http/validate'
-import { requireEnv } from '../../shared/utils/env'
-import { mapOrderRow, type OrderApiRow } from './orders.mapper'
-import { OrdersRepository } from './orders.repository'
+import { orderListQuerySchema, orderListResponseSchema } from '../../../contracts/orders/order-api.schema.js'
+import { parseOrThrow } from '../../shared/http/validate.js'
+import { requireEnv } from '../../shared/utils/env.js'
+import { mapOrderRow, type OrderApiRow } from './orders.mapper.js'
+import { OrdersRepository } from './orders.repository.js'
 
 export type OrderListResponse = z.infer<typeof orderListResponseSchema>
 

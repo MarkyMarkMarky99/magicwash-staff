@@ -1,4 +1,4 @@
-import type { GSheetColumnMap } from './gviz-query.builder'
+import type { GSheetColumnMap } from './gviz-query.builder.js'
 
 export const GVIZ_BASE_URL = 'https://docs.google.com/spreadsheets/d'
 

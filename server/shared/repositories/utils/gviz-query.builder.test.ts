@@ -1,8 +1,8 @@
-import type { MappedReadQuery } from '../base.repository'
+import type { MappedReadQuery } from '../base.repository.js'
 import {
   type GSheetColumnMap,
   type GSheetRowSchema,
-} from './gviz-query.builder'
+} from './gviz-query.builder.js'
 
 export interface GVizQueryBuilderCase {
   name: string

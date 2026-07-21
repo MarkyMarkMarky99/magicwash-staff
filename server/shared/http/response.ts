@@ -6,7 +6,7 @@ import {
   apiPaginatedSchema,
   apiPaginationMetaSchema,
   apiSuccessSchema,
-} from '../../../contracts/shared/api.schema'
+} from '../../../contracts/shared/api.schema.js'
 
 // Envelope types inferred from the shared contract — the single source. The
 // generic success/paginated wrappers are derived from the contract builders

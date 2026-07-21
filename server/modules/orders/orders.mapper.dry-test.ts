@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
-import { orderListQuerySchema } from '../../../contracts/orders/order-api.schema'
-import { parseOrThrow } from '../../shared/http/validate'
-import { mapOrderRow, normalizeGVizDate, toNullableNumber } from './orders.mapper'
+import { orderListQuerySchema } from '../../../contracts/orders/order-api.schema.js'
+import { parseOrThrow } from '../../shared/http/validate.js'
+import { mapOrderRow, normalizeGVizDate, toNullableNumber } from './orders.mapper.js'
 
 const baseRow = {
   orderId: 'AFT-1001',

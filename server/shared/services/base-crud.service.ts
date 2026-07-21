@@ -1,15 +1,15 @@
-import type { BaseRepository } from '../repositories/base.repository'
+import type { BaseRepository } from '../repositories/base.repository.js'
 import {
   ReadQueryDTO,
   type GenericListQuery,
   type OmitReservedQueryFields,
-} from '../dtos/read-query.dto'
-import { ApiError } from '../http/api-error'
-import { parseOrThrow } from '../http/validate'
+} from '../dtos/read-query.dto.js'
+import { ApiError } from '../http/api-error.js'
+import { parseOrThrow } from '../http/validate.js'
 import type {
   ModuleApiContractOf,
   ResponseSchema,
-} from '../../../contracts/shared/module-api-contract'
+} from '../../../contracts/shared/module-api-contract.js'
 
 export interface ServiceListResult<TListResponse extends object> {
   items: TListResponse[]

@@ -5,8 +5,8 @@ import {
   appointmentTimeSlotSchema,
   appointmentTypeSchema,
   serviceTierSchema,
-} from '../../../contracts/appointments/appointment-api.schema'
-import type { ModuleContract, ModuleDbContract } from '../../shared/contracts/module-db-contract'
+} from '../../../contracts/appointments/appointment-api.schema.js'
+import type { ModuleContract, ModuleDbContract } from '../../shared/contracts/module-db-contract.js'
 
 /**
  * The appointments module contract: API schemas plus the DB-side Google Sheets

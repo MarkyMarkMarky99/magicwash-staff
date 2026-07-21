@@ -1,9 +1,9 @@
-import type { MappedReadQuery } from '../base.repository'
+import type { MappedReadQuery } from '../base.repository.js'
 import type {
   ReadQueryPagination,
   ReadQuerySearch,
   ReadQuerySort,
-} from '../../dtos/read-query.dto'
+} from '../../dtos/read-query.dto.js'
 
 export type GSheetColumnMap = Record<string, string>
 

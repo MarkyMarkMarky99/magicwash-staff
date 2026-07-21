@@ -1,4 +1,4 @@
-import type { OrderRow } from './order.contract'
+import type { OrderRow } from './order.contract.js'
 
 export interface OrderItem {
   id: string | null

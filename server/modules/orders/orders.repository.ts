@@ -1,9 +1,9 @@
 import type { z } from 'zod'
-import { orderListQuerySchema } from '../../../contracts/orders/order-api.schema'
-import { deriveGVizColumns, GVizQueryBuilder } from '../../shared/repositories/utils/gviz-query.builder'
-import { fetchGVizRows } from '../../shared/repositories/utils/gviz-reader'
-import type { OrderRow } from './order.contract'
-import { orderRowSchema } from './order.contract'
+import { orderListQuerySchema } from '../../../contracts/orders/order-api.schema.js'
+import { deriveGVizColumns, GVizQueryBuilder } from '../../shared/repositories/utils/gviz-query.builder.js'
+import { fetchGVizRows } from '../../shared/repositories/utils/gviz-reader.js'
+import type { OrderRow } from './order.contract.js'
+import { orderRowSchema } from './order.contract.js'
 
 type OrderListQuery = z.infer<typeof orderListQuerySchema>
 

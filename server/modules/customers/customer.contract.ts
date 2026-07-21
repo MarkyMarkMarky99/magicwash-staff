@@ -4,8 +4,8 @@ import {
   customerSourceSchema,
   customerTypeSchema,
   preferredContactMethodSchema,
-} from '../../../contracts/customers/customer-api.schema'
-import type { ModuleContract, ModuleDbContract } from '../../shared/contracts/module-db-contract'
+} from '../../../contracts/customers/customer-api.schema.js'
+import type { ModuleContract, ModuleDbContract } from '../../shared/contracts/module-db-contract.js'
 
 /**
  * The customers module contract: the API ↔ database (Google Sheets / Apps Script)

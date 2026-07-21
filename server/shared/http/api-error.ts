@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { API_ERROR_CODES, apiErrorCodeSchema } from '../../../contracts/shared/api.schema'
+import { API_ERROR_CODES, apiErrorCodeSchema } from '../../../contracts/shared/api.schema.js'
 
 type ApiErrorCode = z.infer<typeof apiErrorCodeSchema>
 

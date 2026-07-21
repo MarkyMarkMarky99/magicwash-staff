@@ -1,5 +1,5 @@
-import { customerService } from '../../server/modules/customers/customer.module'
-import { ApiHandler, created, okPaged } from '../../server/shared/http'
+import { customerService } from '../../server/modules/customers/customer.module.js'
+import { ApiHandler, created, okPaged } from '../../server/shared/http/index.js'
 
 // /api/customers
 export default new ApiHandler({

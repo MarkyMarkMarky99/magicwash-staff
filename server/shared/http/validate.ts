@@ -1,5 +1,5 @@
 import type { ZodType, ZodTypeDef } from 'zod'
-import { ApiError } from './api-error'
+import { ApiError } from './api-error.js'
 
 /**
  * Validate unknown runtime data (HTTP body/query) against a Zod schema.

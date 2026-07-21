@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { API_PAGINATION_DEFAULTS } from '../shared/api.schema'
-import type { ModuleApiContract } from '../shared/module-api-contract'
+import { API_PAGINATION_DEFAULTS } from '../shared/api.schema.js'
+import type { ModuleApiContract } from '../shared/module-api-contract.js'
 
 /**
  * The customers API ↔ frontend contract: request/query/response schemas and the

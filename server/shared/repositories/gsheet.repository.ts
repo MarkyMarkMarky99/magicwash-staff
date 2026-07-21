@@ -9,15 +9,15 @@ import {
   type MappedReadQuery,
   type RepositoryRequest,
   type RepositoryTransformer,
-} from './base.repository'
-import { type ReadQueryDTO, type OmitReservedQueryFields } from '../dtos/read-query.dto'
-import type { ModuleContract } from '../contracts/module-db-contract'
+} from './base.repository.js'
+import { type ReadQueryDTO, type OmitReservedQueryFields } from '../dtos/read-query.dto.js'
+import type { ModuleContract } from '../contracts/module-db-contract.js'
 import {
   deriveGVizColumns,
   GVizQueryBuilder,
   type GSheetColumnMap,
-} from './utils/gviz-query.builder'
-import { fetchGVizRows } from './utils/gviz-reader'
+} from './utils/gviz-query.builder.js'
+import { fetchGVizRows } from './utils/gviz-reader.js'
 
 // ── Repository types derived from the exact module contract. The DB row drives the
 //    mapped API row (via the field map); the API bundle drives the read filter and

@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { API_PAGINATION_DEFAULTS } from '../shared/api.schema'
-import type { ReadOnlyModuleApiContract } from '../shared/read-only-module-api-contract'
+import { API_PAGINATION_DEFAULTS } from '../shared/api.schema.js'
+import type { ReadOnlyModuleApiContract } from '../shared/read-only-module-api-contract.js'
 
 export const orderItemSchema = z.object({
   id: z.string().nullable(),

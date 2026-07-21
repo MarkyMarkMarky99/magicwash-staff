@@ -8,9 +8,9 @@ import {
   type ApiRowFromFieldMap,
   type RepositoryRequest,
   type RepositoryTransformer,
-} from './base.contract'
-import type { ReadQueryDTO, OmitReservedQueryFields } from '../dtos/read-query.dto'
-import type { ModuleContract } from '../contracts/module-db-contract'
+} from './base.contract.js'
+import type { ReadQueryDTO, OmitReservedQueryFields } from '../dtos/read-query.dto.js'
+import type { ModuleContract } from '../contracts/module-db-contract.js'
 
 export type AppScriptAction = 'APPEND' | 'UPDATE'
 

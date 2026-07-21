@@ -1,8 +1,8 @@
-import { appointmentContract } from './appointment.contract'
-import { GSheetRepository } from '../../shared/repositories/gsheet.repository'
-import { BaseCrudService } from '../../shared/services/base-crud.service'
-import { requireEnv } from '../../shared/utils/env'
-import { createAppointmentTransformer } from './appointment.transformer'
+import { appointmentContract } from './appointment.contract.js'
+import { GSheetRepository } from '../../shared/repositories/gsheet.repository.js'
+import { BaseCrudService } from '../../shared/services/base-crud.service.js'
+import { requireEnv } from '../../shared/utils/env.js'
+import { createAppointmentTransformer } from './appointment.transformer.js'
 
 // ── Data access: the Google Sheets implementation behind the repository contract.
 //    The whole `appointmentContract` drives every inferred type — DB row, mapped

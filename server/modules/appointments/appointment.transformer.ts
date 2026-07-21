@@ -2,8 +2,8 @@ import type { z } from 'zod'
 import type {
   RepositoryRequest,
   RepositoryTransformer,
-} from '../../shared/repositories/base.repository'
-import type { appointmentContract } from './appointment.contract'
+} from '../../shared/repositories/base.repository.js'
+import type { appointmentContract } from './appointment.contract.js'
 
 export type AppointmentDbRow = z.infer<typeof appointmentContract.db.row>
 export type AppointmentDbCreateRequest = z.infer<

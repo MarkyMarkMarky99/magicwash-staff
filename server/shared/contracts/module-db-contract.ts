@@ -1,6 +1,6 @@
 import type { ZodSchema, ZodType, ZodTypeDef } from 'zod'
-import type { FieldMap } from '../repositories/base.repository'
-import type { ModuleApiContract } from '../../../contracts/shared/module-api-contract'
+import type { FieldMap } from '../repositories/base.repository.js'
+import type { ModuleApiContract } from '../../../contracts/shared/module-api-contract.js'
 
 /**
  * Shared module contract shapes — DB side (the backend↔database boundary).

@@ -1,5 +1,5 @@
-import { customerService } from '../../server/modules/customers/customer.module'
-import { ApiHandler, ok } from '../../server/shared/http'
+import { customerService } from '../../server/modules/customers/customer.module.js'
+import { ApiHandler, ok } from '../../server/shared/http/index.js'
 
 // /api/customers/:id  — soft-delete deferred (no DELETE), mirroring appointments.
 export default new ApiHandler({

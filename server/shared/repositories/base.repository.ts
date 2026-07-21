@@ -6,7 +6,7 @@ import type {
   ReadQueryPagination,
   ReadQuerySearch,
   ReadQuerySort,
-} from '../dtos/read-query.dto'
+} from '../dtos/read-query.dto.js'
 
 export type RepositoryOperation = 'read' | 'create' | 'update' | 'delete'
 
