@@ -164,3 +164,125 @@ const incompleteApiBundle = {
 }
 // @ts-expect-error — the API bundle is missing the required `response` slot
 const _incompleteApiContract: ModuleApiContract = incompleteApiBundle
+
+// ── read-only module: list-only API + empty DB request satisfies the widened guards ──
+const readOnlyListQuery = zod.object({
+  keyword: zod.string().default(''),
+  page: zod.coerce.number().int().positive().default(1),
+  perPage: zod.coerce.number().int().positive().default(20),
+  sortBy: zod.enum(['id']).default('id'),
+  sortOrder: zod.enum(['asc', 'desc']).default('asc'),
+  filterId: zod.string().min(1),
+})
+const readOnlyListResponse = zod.object({
+  id: zod.string(),
+  label: zod.string().nullable(),
+})
+const readOnlyRow = zod.object({
+  id: zod.string(),
+  label: zod.string().nullable(),
+})
+
+const readOnlyApiContract = {
+  query: { list: readOnlyListQuery },
+  response: { list: readOnlyListResponse },
+} satisfies ModuleApiContract
+
+const readOnlyDbContract = {
+  row: readOnlyRow,
+  fieldMap: { id: 'id', label: 'label' },
+  primaryKey: 'id',
+  request: {},
+  response: { read: readOnlyRow.partial() },
+} satisfies ModuleDbContract
+
+const readOnlyContract = {
+  api: readOnlyApiContract,
+  db: readOnlyDbContract,
+} satisfies ModuleContract
+
+const readOnlyRepo = new GSheetRepository({
+  contract: readOnlyContract,
+  sheetName: 'ReadOnly',
+  spreadsheetId: 'x',
+  scriptUrl: 'y',
+})
+
+const readOnlyService = new BaseCrudService({
+  repository: readOnlyRepo,
+  api: readOnlyContract.api,
+  searchFields: [],
+})
+
+// list remains callable and returns the list response DTO
+type ReadOnlyListItem = Awaited<ReturnType<typeof readOnlyService.list>>['items'][number]
+type _ReadOnlyList = Expect<
+  Equal<ReadOnlyListItem, z.infer<typeof readOnlyListResponse>>
+>
+
+// repository create/update are uncallable with a real argument (ModuleCreate/Update = never)
+// @ts-expect-error — create is not supported; data must be never
+readOnlyRepo.create({ id: 'x' })
+// @ts-expect-error — update is not supported; data must be never
+readOnlyRepo.update('x', { label: 'y' })
+
+// service create/update/getById are uncallable with a real argument
+// @ts-expect-error — getById is not supported; id must be never
+readOnlyService.getById('x')
+// @ts-expect-error — create is not supported; payload must be never
+readOnlyService.create({ id: 'x' })
+// @ts-expect-error — update is not supported; id/payload must be never
+readOnlyService.update('x', { label: 'y' })
+
+// ── request present, response write slots absent: service still uncallable ──
+// Codex finding: create/update must key off BOTH request and response generics.
+// A contract with request.create/update but no response.create/update must not
+// leave .create()/.update() compile-time callable (runtime already rejects them).
+const requestWithoutWriteResponseApi = {
+  query: { list: readOnlyListQuery },
+  request: {
+    create: zod.object({ label: zod.string() }),
+    update: zod.object({ label: zod.string().optional() }),
+  },
+  response: {
+    list: readOnlyListResponse,
+    // intentionally no detail / create / update response schemas
+  },
+} satisfies ModuleApiContract
+
+const requestWithoutWriteResponseDb = {
+  row: readOnlyRow,
+  fieldMap: { id: 'id', label: 'label' },
+  primaryKey: 'id',
+  request: {
+    create: zod.object({ label: zod.string() }),
+    update: zod.object({ label: zod.string().optional() }),
+  },
+  response: { read: readOnlyRow.partial() },
+} satisfies ModuleDbContract
+
+const requestWithoutWriteResponseContract = {
+  api: requestWithoutWriteResponseApi,
+  db: requestWithoutWriteResponseDb,
+} satisfies ModuleContract
+
+const requestWithoutWriteResponseRepo = new GSheetRepository({
+  contract: requestWithoutWriteResponseContract,
+  sheetName: 'PartialWrite',
+  spreadsheetId: 'x',
+  scriptUrl: 'y',
+})
+
+const requestWithoutWriteResponseService = new BaseCrudService({
+  repository: requestWithoutWriteResponseRepo,
+  api: requestWithoutWriteResponseContract.api,
+  searchFields: [],
+})
+
+// @ts-expect-error — request.create present but response.create absent → uncallable
+requestWithoutWriteResponseService.create({ label: 'x' })
+// @ts-expect-error — request.update present but response.update absent → uncallable
+requestWithoutWriteResponseService.update('x', { label: 'y' })
+// getById still keys only on response.detail (absent here)
+// @ts-expect-error — response.detail absent → getById uncallable
+requestWithoutWriteResponseService.getById('x')

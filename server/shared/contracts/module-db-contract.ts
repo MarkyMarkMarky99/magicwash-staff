@@ -15,7 +15,8 @@ import type { ModuleApiContract } from '../../../contracts/shared/module-api-con
  *
  * The repository consumes only `row`, `fieldMap`, and `primaryKey` today;
  * `request`/`response` declare the DB write/read shapes even before every repo
- * path consumes them.
+ * path consumes them. Write slots (`create`/`update`/`delete`) are each
+ * individually optional so read-only modules write `request: {}` explicitly.
  */
 
 /** DB column name -> API/domain field name. Re-exported so the DB contract lives in one place. */
@@ -35,15 +36,16 @@ export type ModuleDbContract = {
   fieldMap: FieldMap
   /** API/domain field name of the primary key, e.g. `customerId` (NOT the DB column). */
   primaryKey: string
+  /** Always present as an object; create/update/delete members are each optional. */
   request: {
-    create: ZodSchema
-    update: ZodSchema
+    create?: ZodSchema
+    update?: ZodSchema
     delete?: ZodSchema
   }
   response: {
     read: ZodSchema
-    create: ZodSchema
-    update: ZodSchema
+    create?: ZodSchema
+    update?: ZodSchema
     delete?: ZodSchema
   }
 }
@@ -51,24 +53,24 @@ export type ModuleDbContract = {
 /** Type-parameterized DB contract for future typed consumers. */
 export type ModuleDbContractOf<
   TRow extends object,
-  TCreate,
-  TUpdate,
-  TRead extends object,
-  TCreateResponse extends object,
-  TUpdateResponse extends object,
+  TCreate = never,
+  TUpdate = never,
+  TRead extends object = object,
+  TCreateResponse extends object = never,
+  TUpdateResponse extends object = never,
 > = {
   row: ZodType<TRow, ZodTypeDef, unknown> & { shape: Record<string, unknown> }
   fieldMap: FieldMap
   primaryKey: string
   request: {
-    create: ZodType<TCreate, ZodTypeDef, unknown>
-    update: ZodType<TUpdate, ZodTypeDef, unknown>
+    create?: ZodType<TCreate, ZodTypeDef, unknown>
+    update?: ZodType<TUpdate, ZodTypeDef, unknown>
     delete?: ZodSchema
   }
   response: {
     read: ZodType<TRead, ZodTypeDef, unknown>
-    create: ZodType<TCreateResponse, ZodTypeDef, unknown>
-    update: ZodType<TUpdateResponse, ZodTypeDef, unknown>
+    create?: ZodType<TCreateResponse, ZodTypeDef, unknown>
+    update?: ZodType<TUpdateResponse, ZodTypeDef, unknown>
     delete?: ZodSchema
   }
 }

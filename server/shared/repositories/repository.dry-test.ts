@@ -660,6 +660,84 @@ test('GSheetRepository update lets the route id win over a conflicting body prim
   )
 })
 
+// ── read-only GSheetRepository: write guards fire before any Apps Script fetch ──
+
+const readOnlyRowSchema = z.object({
+  id: z.string(),
+  label: z.string().nullable(),
+})
+
+const readOnlyListQuerySchema = z.object({
+  keyword: z.string().default(''),
+  page: z.coerce.number().int().positive().default(1),
+  perPage: z.coerce.number().int().positive().default(20),
+  sortBy: z.enum(['id']).default('id'),
+  sortOrder: z.enum(['asc', 'desc']).default('asc'),
+})
+
+const readOnlyContract = {
+  api: {
+    query: { list: readOnlyListQuerySchema },
+    response: { list: z.object({ id: z.string(), label: z.string().nullable() }) },
+  },
+  db: {
+    row: readOnlyRowSchema,
+    fieldMap: { id: 'id', label: 'label' },
+    primaryKey: 'id',
+    request: {},
+    response: { read: readOnlyRowSchema.partial() },
+  },
+} satisfies ModuleContract
+
+function readOnlySheetRepo(): GSheetRepository<typeof readOnlyContract> {
+  return new GSheetRepository({
+    contract: readOnlyContract,
+    sheetName: 'ReadOnly',
+    spreadsheetId: 'spreadsheet-id',
+    scriptUrl: 'https://script.example/exec',
+  })
+}
+
+test('read-only GSheetRepository.create throws before any fetch', async () => {
+  const repo = readOnlySheetRepo()
+
+  await withMockFetch(
+    async () => {
+      assert.fail('fetch must not be called for unsupported create')
+      return response({ json: { success: true, data: {} } })
+    },
+    async (calls) => {
+      await assert.rejects(
+        () => (repo as unknown as { create: (data: unknown) => Promise<unknown> }).create({ label: 'x' }),
+        /create is not supported by this module/,
+      )
+      assert.equal(calls.length, 0)
+    },
+  )
+})
+
+test('read-only GSheetRepository.update throws before any fetch', async () => {
+  const repo = readOnlySheetRepo()
+
+  await withMockFetch(
+    async () => {
+      assert.fail('fetch must not be called for unsupported update')
+      return response({ json: { success: true, data: {} } })
+    },
+    async (calls) => {
+      await assert.rejects(
+        () =>
+          (repo as unknown as { update: (id: string, data: unknown) => Promise<unknown> }).update(
+            'id-1',
+            { label: 'x' },
+          ),
+        /update is not supported by this module/,
+      )
+      assert.equal(calls.length, 0)
+    },
+  )
+})
+
 async function main(): Promise<void> {
   for (const item of tests) {
     await item.run()

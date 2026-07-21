@@ -36,9 +36,23 @@ type ModuleReadWhere<TContract extends ModuleContract> = OmitReservedQueryFields
   ModuleListQuery<TContract>
 >
 
-type ModuleCreate<TContract extends ModuleContract> = z.infer<TContract['api']['request']['create']>
+/** Resolves to `never` when the API contract has no `request.create` slot. */
+type ModuleCreate<TContract extends ModuleContract> = TContract['api'] extends {
+  request: { create: infer S }
+}
+  ? S extends z.ZodTypeAny
+    ? z.infer<S>
+    : never
+  : never
 
-type ModuleUpdate<TContract extends ModuleContract> = z.infer<TContract['api']['request']['update']>
+/** Resolves to `never` when the API contract has no `request.update` slot. */
+type ModuleUpdate<TContract extends ModuleContract> = TContract['api'] extends {
+  request: { update: infer S }
+}
+  ? S extends z.ZodTypeAny
+    ? z.infer<S>
+    : never
+  : never
 
 export type AppScriptAction = 'APPEND' | 'UPDATE'
 
@@ -90,6 +104,8 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
   private readonly spreadsheetId: string
   private readonly scriptUrl: string
   private readonly columns: GSheetColumnMap
+  /** Kept for runtime capability checks on optional write slots. */
+  private readonly contract: TContract
 
   constructor(input: GSheetRepositoryOptions<TContract>) {
     super({
@@ -97,6 +113,7 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
       primaryKey: input.contract.db.primaryKey,
       transformer: input.transformer,
     })
+    this.contract = input.contract
     this.sheetName = input.sheetName
     this.spreadsheetId = input.spreadsheetId
     this.scriptUrl = input.scriptUrl
@@ -142,6 +159,9 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
   }
 
   create(data: ModuleCreate<TContract>): Promise<ModuleApiRow<TContract>> {
+    if (this.contract.db.request.create === undefined) {
+      return Promise.reject(new Error('create is not supported by this module'))
+    }
     return this.request<ModuleApiRow<TContract>, never, ModuleCreate<TContract>>({
       operation: 'create',
       data,
@@ -149,6 +169,9 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
   }
 
   update(id: string, data: ModuleUpdate<TContract>): Promise<ModuleApiRow<TContract>> {
+    if (this.contract.db.request.update === undefined) {
+      return Promise.reject(new Error('update is not supported by this module'))
+    }
     return this.request<ModuleApiRow<TContract>, { id: string }, ModuleUpdate<TContract>>({
       operation: 'update',
       query: { id },

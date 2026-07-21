@@ -23,15 +23,18 @@ export interface ServiceListResult<TListResponse extends object> {
 // every non-reserved list-query field into `where`, so the repository's read
 // where type is exactly `OmitReservedQueryFields<TListQuery>`. There is no
 // independent read-where generic and no module-written toReadQuery() bridge.
+//
+// Optional write/detail generics default to `never` so list-only modules get an
+// uncallable create/update/getById surface (parameter type resolves to `never`).
 export interface BaseCrudServiceOptions<
   TApiRow extends object,
   TListQuery extends GenericListQuery,
-  TCreate,
-  TUpdate,
-  TListResponse extends object,
-  TDetailResponse extends object,
-  TCreateResponse extends object,
-  TUpdateResponse extends object,
+  TCreate = never,
+  TUpdate = never,
+  TListResponse extends object = object,
+  TDetailResponse extends object = never,
+  TCreateResponse extends object = never,
+  TUpdateResponse extends object = never,
 > {
   repository: BaseRepository<TApiRow, OmitReservedQueryFields<TListQuery>, TCreate, TUpdate>
 
@@ -57,12 +60,12 @@ export interface BaseCrudServiceOptions<
 export class BaseCrudService<
   TApiRow extends object,
   TListQuery extends GenericListQuery,
-  TCreate,
-  TUpdate,
-  TListResponse extends object,
-  TDetailResponse extends object,
-  TCreateResponse extends object,
-  TUpdateResponse extends object,
+  TCreate = never,
+  TUpdate = never,
+  TListResponse extends object = object,
+  TDetailResponse extends object = never,
+  TCreateResponse extends object = never,
+  TUpdateResponse extends object = never,
 > {
   private readonly repository: BaseRepository<
     TApiRow,
@@ -112,8 +115,18 @@ export class BaseCrudService<
     }
   }
 
-  async getById(id: string): Promise<TDetailResponse> {
-    const safeId = this.requireId(id)
+  /**
+   * Uncallable when the contract has no `response.detail` (TDetailResponse = never):
+   * `id` resolves to `never`. Detail has no paired request slot, so this generic
+   * alone is the correct capability signal.
+   */
+  async getById(
+    id: [TDetailResponse] extends [never] ? never : string,
+  ): Promise<TDetailResponse> {
+    if (this.api.response.detail === undefined) {
+      throw new Error('getById is not supported by this module')
+    }
+    const safeId = this.requireId(id as string)
     const rows = await this.repository.read(
       ReadQueryDTO.fromId<OmitReservedQueryFields<TListQuery>>(safeId),
     )
@@ -121,14 +134,45 @@ export class BaseCrudService<
     return this.project(row, this.api.response.detail)
   }
 
-  async create(payload: unknown): Promise<TCreateResponse> {
+  /**
+   * Uncallable unless BOTH `request.create` (TCreate) and `response.create`
+   * (TCreateResponse) are present. Either slot missing → payload is `never`.
+   */
+  async create(
+    payload: [TCreate] extends [never]
+      ? never
+      : [TCreateResponse] extends [never]
+        ? never
+        : unknown,
+  ): Promise<TCreateResponse> {
+    if (this.api.request?.create === undefined || this.api.response.create === undefined) {
+      throw new Error('create is not supported by this module')
+    }
     const data = parseOrThrow(this.api.request.create, payload)
     const row = await this.repository.create(data)
     return this.project(row, this.api.response.create)
   }
 
-  async update(id: string, payload: unknown): Promise<TUpdateResponse> {
-    const safeId = this.requireId(id)
+  /**
+   * Uncallable unless BOTH `request.update` (TUpdate) and `response.update`
+   * (TUpdateResponse) are present. Either slot missing → params are `never`.
+   */
+  async update(
+    id: [TUpdate] extends [never]
+      ? never
+      : [TUpdateResponse] extends [never]
+        ? never
+        : string,
+    payload: [TUpdate] extends [never]
+      ? never
+      : [TUpdateResponse] extends [never]
+        ? never
+        : unknown,
+  ): Promise<TUpdateResponse> {
+    if (this.api.request?.update === undefined || this.api.response.update === undefined) {
+      throw new Error('update is not supported by this module')
+    }
+    const safeId = this.requireId(id as string)
     const data = parseOrThrow(this.api.request.update, payload)
 
     const rows = await this.repository.read(
