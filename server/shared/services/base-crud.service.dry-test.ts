@@ -115,7 +115,7 @@ function expectedReadQuery(query: ListQuery): ReadQueryDTO<unknown> {
 
 async function loadServiceCtor(): Promise<BaseCrudServiceCtor> {
   // Keep this dry test type-checkable before BaseCrudService is implemented.
-  const modulePath = './base-crud.service'
+  const modulePath = './base-crud.service.js'
   const module = (await import(modulePath)) as { BaseCrudService: BaseCrudServiceCtor }
   return module.BaseCrudService
 }
@@ -725,6 +725,72 @@ test('update propagates repository errors from repo.update', async () => {
     () => service.update('C001', { phone: null, updatedBy: 'tester' }),
     /update failed/,
   )
+})
+
+function makeReadOnlyService(BaseCrudService: BaseCrudServiceCtor, repo = new FakeRepository()) {
+  const service = new BaseCrudService({
+    repository: repo,
+    api: {
+      query: { list: listQuerySchema },
+      response: {
+        list: listResponseSchema,
+      },
+    },
+    searchFields: [],
+  })
+
+  return { service, repo }
+}
+
+test('read-only service list still works without write slots', async () => {
+  const BaseCrudService = await loadServiceCtor()
+  const { service, repo } = makeReadOnlyService(BaseCrudService)
+  repo.nextReadResponse = [{ customerId: 'C001', customerName: 'Alice' }]
+
+  assert.deepEqual(await service.list({}), {
+    items: [{ customerId: 'C001', customerName: 'Alice' }],
+    pagination: { page: 1, perPage: 20 },
+  })
+  assert.equal(repo.readCalls.length, 1)
+})
+
+test('read-only service create throws before any repository call', async () => {
+  const BaseCrudService = await loadServiceCtor()
+  const { service, repo } = makeReadOnlyService(BaseCrudService)
+
+  await assert.rejects(
+    () => service.create({ customerName: 'Alice', updatedBy: 'tester' }),
+    /create is not supported by this module/,
+  )
+  assert.equal(repo.createCalls.length, 0)
+  assert.equal(repo.readCalls.length, 0)
+  assert.equal(repo.updateCalls.length, 0)
+})
+
+test('read-only service update throws before any repository call', async () => {
+  const BaseCrudService = await loadServiceCtor()
+  const { service, repo } = makeReadOnlyService(BaseCrudService)
+
+  await assert.rejects(
+    () => service.update('C001', { customerName: 'Alice', updatedBy: 'tester' }),
+    /update is not supported by this module/,
+  )
+  assert.equal(repo.createCalls.length, 0)
+  assert.equal(repo.readCalls.length, 0)
+  assert.equal(repo.updateCalls.length, 0)
+})
+
+test('read-only service getById throws before any repository call', async () => {
+  const BaseCrudService = await loadServiceCtor()
+  const { service, repo } = makeReadOnlyService(BaseCrudService)
+
+  await assert.rejects(
+    () => service.getById('C001'),
+    /getById is not supported by this module/,
+  )
+  assert.equal(repo.createCalls.length, 0)
+  assert.equal(repo.readCalls.length, 0)
+  assert.equal(repo.updateCalls.length, 0)
 })
 
 async function main(): Promise<void> {

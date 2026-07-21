@@ -1,4 +1,4 @@
-import { ordersService } from '../../server/modules/orders/orders.service.js'
+import { ordersService } from '../../server/modules/orders/order.module.js'
 import { ApiHandler, okPaged } from '../../server/shared/http/index.js'
 
 // /api/orders — read-only OrdersView access; there is intentionally no POST/PATCH route.

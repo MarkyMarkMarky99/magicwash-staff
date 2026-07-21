@@ -53,9 +53,23 @@ type ModuleReadWhere<TContract extends ModuleContract> = OmitReservedQueryFields
   z.infer<TContract['api']['query']['list']>
 >
 
-type ModuleCreate<TContract extends ModuleContract> = z.infer<TContract['api']['request']['create']>
+/** Resolves to `never` when the API contract has no `request.create` slot. */
+type ModuleCreate<TContract extends ModuleContract> = TContract['api'] extends {
+  request: { create: infer S }
+}
+  ? S extends z.ZodTypeAny
+    ? z.infer<S>
+    : never
+  : never
 
-type ModuleUpdate<TContract extends ModuleContract> = z.infer<TContract['api']['request']['update']>
+/** Resolves to `never` when the API contract has no `request.update` slot. */
+type ModuleUpdate<TContract extends ModuleContract> = TContract['api'] extends {
+  request: { update: infer S }
+}
+  ? S extends z.ZodTypeAny
+    ? z.infer<S>
+    : never
+  : never
 
 // The whole module contract is the only constructor input besides sheet/transport
 // config: DB config (row/fieldMap/primaryKey, where row.shape -> GViz column

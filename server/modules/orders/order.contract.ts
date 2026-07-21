@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { orderApiContract } from '../../../contracts/orders/order-api.schema.js'
+import type { ModuleContract, ModuleDbContract } from '../../shared/contracts/module-db-contract.js'
 
 /**
  * DB contract for the read-only OrdersView materialized view.
@@ -36,3 +38,16 @@ export const orderFieldMap = {
 } as const satisfies Record<keyof z.infer<typeof orderRowSchema> & string, string>
 
 export type OrderRow = z.infer<typeof orderRowSchema>
+
+export const orderDbContract = {
+  row: orderRowSchema,
+  fieldMap: orderFieldMap,
+  primaryKey: 'orderId',
+  request: {}, // no create/update/delete — explicit empty object, not omitted
+  response: { read: orderRowSchema.partial() },
+} satisfies ModuleDbContract
+
+export const orderContract = {
+  api: orderApiContract,
+  db: orderDbContract,
+} satisfies ModuleContract
