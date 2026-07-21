@@ -42,6 +42,14 @@ const canSearch = computed(() => SEARCHABLE_ROUTES.includes(route.path))
         @click="router.push('/forms/create-invoice-form')"
       >add</button>
 
+      <!-- Back button — shown on customer order history -->
+      <button
+        v-else-if="route.name === 'customer-order-history'"
+        class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
+        aria-label="Back to customers"
+        @click="router.push({ name: 'customer-list' })"
+      >arrow_back</button>
+
       <!-- Close button — shown on /pending and /customers -->
       <button
         v-else-if="route.path === '/pending' || route.path === '/customers'"

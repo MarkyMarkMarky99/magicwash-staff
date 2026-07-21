@@ -63,6 +63,15 @@ export async function apiGetList<TItem, TQuery extends z.ZodTypeAny = z.ZodTypeA
   return { items: body.data, pagination: body.meta.pagination }
 }
 
+/** GET a single-resource endpoint and unwrap the standard success envelope. */
+export async function apiGet<T>(path: string): Promise<T> {
+  const response = await fetch(path)
+  if (!response.ok) throw await toApiError(response)
+
+  const body = (await response.json()) as { data: T }
+  return body.data
+}
+
 /** Serialize a validated query object, skipping null/undefined and empty strings. */
 function buildQueryString(query: unknown): string {
   if (!query || typeof query !== 'object') return ''

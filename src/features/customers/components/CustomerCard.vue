@@ -41,10 +41,14 @@ function openNewBooking() {
   selectedCustomerStore.select(props.customer)
   router.push('/new-booking')
 }
+
+function openOrderHistory() {
+  router.push(`/customers/${encodeURIComponent(props.customer.customerId)}/orders`)
+}
 </script>
 
 <template>
-  <BaseSwipeCard ref="baseRef" @swipe-right="onSwipeRight">
+  <BaseSwipeCard ref="baseRef" @tap="openOrderHistory" @swipe-right="onSwipeRight">
     <!-- Left panel: action buttons -->
     <template #left-panel>
       <div class="absolute inset-0 bg-primary flex items-center justify-end text-on-primary">

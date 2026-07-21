@@ -6,7 +6,7 @@ const props = defineProps({
   threshold: { type: Number,  default: 80    },
 })
 
-const emit = defineEmits(['swipe-right', 'swipe-left'])
+const emit = defineEmits(['swipe-right', 'swipe-left', 'tap'])
 
 const cardRef = ref(null)
 const wrapRef = ref(null)
@@ -14,6 +14,9 @@ const snapped  = ref('none')
 
 let startX         = 0
 let startTranslate = 0
+let startSnapped    = 'none'
+let maxMovement     = 0
+const TAP_THRESHOLD = 8
 
 onUnmounted(() => {
   document.removeEventListener('mousemove', onMouseMove)
@@ -60,6 +63,7 @@ function resolve(dx) {
   if (direction === 'right') { snapCard('right'); emit('swipe-right'); return }
   if (direction === 'left')  { snapCard('left');  emit('swipe-left');  return }
   snapCard('none')
+  if (startSnapped === 'none' && Math.max(maxMovement, Math.abs(dx)) <= TAP_THRESHOLD) emit('tap')
 }
 
 // ── Touch events ──
@@ -67,10 +71,14 @@ function onTouchStart(e) {
   if (props.disabled) return
   startX         = e.touches[0].clientX
   startTranslate = getTranslate()
+  startSnapped   = snapped.value
+  maxMovement    = 0
 }
 function onTouchMove(e) {
   if (props.disabled) return
-  setTranslate(startTranslate + e.touches[0].clientX - startX)
+  const dx = e.touches[0].clientX - startX
+  maxMovement = Math.max(maxMovement, Math.abs(dx))
+  setTranslate(startTranslate + dx)
 }
 function onTouchEnd(e) {
   resolve(e.changedTouches[0].clientX - startX)
@@ -84,7 +92,13 @@ function onMouseDown(e) {
   if (props.disabled) return
   startX         = e.clientX
   startTranslate = getTranslate()
-  onMouseMove = (ev) => setTranslate(startTranslate + ev.clientX - startX)
+  startSnapped   = snapped.value
+  maxMovement    = 0
+  onMouseMove = (ev) => {
+    const dx = ev.clientX - startX
+    maxMovement = Math.max(maxMovement, Math.abs(dx))
+    setTranslate(startTranslate + dx)
+  }
   onMouseUp   = (ev) => {
     document.removeEventListener('mousemove', onMouseMove)
     document.removeEventListener('mouseup',   onMouseUp)

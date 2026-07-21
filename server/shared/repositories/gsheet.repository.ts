@@ -17,6 +17,7 @@ import {
   GVizQueryBuilder,
   type GSheetColumnMap,
 } from './utils/gviz-query.builder'
+import { fetchGVizRows } from './utils/gviz-reader'
 
 // ── Repository types derived from the exact module contract. The DB row drives the
 //    mapped API row (via the field map); the API bundle drives the read filter and
@@ -40,10 +41,6 @@ type ModuleCreate<TContract extends ModuleContract> = z.infer<TContract['api']['
 type ModuleUpdate<TContract extends ModuleContract> = z.infer<TContract['api']['request']['update']>
 
 export type AppScriptAction = 'APPEND' | 'UPDATE'
-
-export interface GVizFetchInput {
-  query: string
-}
 
 export interface AppScriptRequestInput<TData = unknown> {
   action: AppScriptAction
@@ -83,30 +80,6 @@ export interface GSheetRepositoryOptions<TContract extends ModuleContract> {
   transformer?: RepositoryTransformer
 }
 
-interface GVizCell {
-  v: unknown
-  f?: string
-}
-
-interface GVizColumn {
-  id: string
-  label?: string
-  type?: string
-}
-
-interface GVizTable {
-  cols: GVizColumn[]
-  rows: { c: (GVizCell | null)[] }[]
-}
-
-interface GVizResponse {
-  status: 'ok' | 'warning' | 'error'
-  table?: GVizTable
-  errors?: { message?: string; detailed_message?: string }[]
-}
-
-const GVIZ_BASE_URL = 'https://docs.google.com/spreadsheets/d'
-
 export class GSheetRepository<TContract extends ModuleContract> extends BaseRepository<
   ModuleApiRow<TContract>,
   ModuleReadWhere<TContract>,
@@ -117,7 +90,6 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
   private readonly spreadsheetId: string
   private readonly scriptUrl: string
   private readonly columns: GSheetColumnMap
-  private readonly letterToField: Record<string, string>
 
   constructor(input: GSheetRepositoryOptions<TContract>) {
     super({
@@ -129,7 +101,6 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
     this.spreadsheetId = input.spreadsheetId
     this.scriptUrl = input.scriptUrl
     this.columns = deriveGVizColumns(input.contract.db.row)
-    this.letterToField = invertColumns(this.columns)
   }
 
   protected async execute<TResponse, TQuery = unknown, TData = unknown>(
@@ -194,7 +165,12 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
     query: MappedReadQuery<Record<string, unknown>> | undefined,
   ): Promise<unknown[]> {
     const gvizQuery = GVizQueryBuilder.fromColumns(this.columns).fromQuery(query).build()
-    return this.fetchGVizRows({ query: gvizQuery })
+    return fetchGVizRows({
+      spreadsheetId: this.spreadsheetId,
+      sheetName: this.sheetName,
+      query: gvizQuery,
+      columns: this.columns,
+    })
   }
 
   // doPost UPDATE contract: send only the patched fields, then pin the filter
@@ -212,56 +188,6 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
       throw new Error(`Apps Script ${action} failed: ${response.error}`)
     }
     return response.data
-  }
-
-  private async fetchGVizRows(input: GVizFetchInput): Promise<unknown[]> {
-    const url =
-      `${GVIZ_BASE_URL}/${this.spreadsheetId}/gviz/tq` +
-      `?tqx=out:json&headers=1&sheet=${encodeURIComponent(this.sheetName)}` +
-      `&tq=${encodeURIComponent(input.query)}`
-
-    const response = await fetch(url)
-    if (!response.ok) {
-      throw new Error(`GViz read failed: ${response.status} ${response.statusText}`)
-    }
-
-    const table = this.parseGVizResponse(await response.text())
-    return this.tableToRows(table)
-  }
-
-  private parseGVizResponse(body: string): GVizTable {
-    const start = body.indexOf('{')
-    const end = body.lastIndexOf('}')
-    if (start === -1 || end === -1) {
-      throw new Error('GViz response is not parseable JSON')
-    }
-
-    const parsed = JSON.parse(body.slice(start, end + 1)) as GVizResponse
-    if (parsed.status === 'error') {
-      const reason = parsed.errors?.[0]?.detailed_message ?? parsed.errors?.[0]?.message ?? 'unknown error'
-      throw new Error(`GViz query error: ${reason}`)
-    }
-
-    return parsed.table ?? { cols: [], rows: [] }
-  }
-
-  // Maps GViz cells back to row objects keyed by DB column names (the
-  // contract.db.row shape). Cell values are returned as-is — never validated
-  // (dirty rows must flow). A returned column that maps to no DB field is a
-  // contract drift, not dirty data, so it fails loudly.
-  private tableToRows(table: GVizTable): Record<string, unknown>[] {
-    return table.rows.map((row) => {
-      const result: Record<string, unknown> = {}
-      table.cols.forEach((column, index) => {
-        const field = this.letterToField[column.id]
-        if (!field) {
-          throw new Error(`No DB field resolves for GViz column '${column.id}'`)
-        }
-        const cell = row.c[index]
-        result[field] = cell == null ? null : (cell.v ?? null)
-      })
-      return result
-    })
   }
 
   private async sendAppScriptRequest<TResponse = unknown, TData = unknown>(
@@ -285,12 +211,4 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
 
     return (await response.json()) as AppScriptResponse<TResponse>
   }
-}
-
-function invertColumns(columns: GSheetColumnMap): Record<string, string> {
-  const inverted: Record<string, string> = {}
-  for (const [field, letter] of Object.entries(columns)) {
-    inverted[letter] = field
-  }
-  return inverted
 }

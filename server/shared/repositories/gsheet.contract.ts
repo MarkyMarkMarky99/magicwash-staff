@@ -14,10 +14,6 @@ import type { ModuleContract } from '../contracts/module-db-contract'
 
 export type AppScriptAction = 'APPEND' | 'UPDATE'
 
-export interface GVizFetchInput {
-  query: string
-}
-
 export interface AppScriptRequestInput<TData = unknown> {
   action: AppScriptAction
   data: TData
@@ -92,9 +88,6 @@ export declare class GSheetRepository<TContract extends ModuleContract> extends 
   update(id: string, data: ModuleUpdate<TContract>): Promise<ModuleApiRow<TContract>>
   /** Future implementation. */
   delete(id: string): Promise<never>
-
-  /** Private implementation helper used by execute() for GViz reads. */
-  private fetchGVizRows(input: GVizFetchInput): Promise<unknown[]>
 
   /** Private implementation helper used by execute() for Apps Script writes. */
   private sendAppScriptRequest<TResponse = unknown, TData = unknown>(
