@@ -1,6 +1,5 @@
 // Google Sheets implementation of BaseRepository.
 // Owns all transport detail: GViz query strings + reads, Apps Script writes.
-// Reference design: ./gsheet.contract.ts
 
 import type { z } from 'zod'
 import {

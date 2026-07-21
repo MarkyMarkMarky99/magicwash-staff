@@ -1,5 +1,4 @@
 // Storage-agnostic repository contract + shared pipeline.
-// Reference design: ./base.contract.ts
 
 import type {
   ReadQueryDTO,
