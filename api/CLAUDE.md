@@ -18,7 +18,8 @@ Serverless backend for the Vue webapp. Data lives in Google Sheets — reads via
 - `server/modules/<module>/` — business logic per feature (db contract + wiring; complex modules keep layered folders).
 - `server/shared/` — cross-feature infrastructure (http, google-sheets, sheet-crud, repositories, utils).
 - `server/gviz/` — legacy GViz proxy (`gviz-utils.js`) + per-sheet column maps (`schemas/*.js`), used by the `.js` routes.
-- **Backend imports are RELATIVE** (`../../server/...`, `../../../contracts/...`) — no tsconfig path alias; `@vercel/node`/esbuild resolves zero-config. The `@contracts/*` alias is FRONTEND-only (Vite).
+- **Backend imports are RELATIVE** (`../../server/...`, `../../../contracts/...`) — no tsconfig path alias. The `@contracts/*` alias is FRONTEND-only (Vite).
+- ⚠️ **Every relative import/export specifier MUST include an explicit `.js` extension** (e.g. `from '../../server/modules/customers/customer.module.js'`, pointing at the `.ts` source — TypeScript maps it correctly). `@vercel/node` does **not** bundle these routes zero-config: it only bundles when `VERCEL_API_FUNCTION_BUNDLING=1` is set, which it isn't here; otherwise it renames `.ts`→`.js` and traces dependencies as separate files run under Node's native ESM loader (`package.json` has `"type": "module"`), which requires extensions and throws `ERR_MODULE_NOT_FOUND` without them. `api/tsconfig.json`'s `moduleResolution: "Bundler"` silently allows missing extensions at typecheck time — `npm run typecheck:api` and `vercel dev` will NOT catch a missing extension; only a real `vercel build`/deploy does. Caused a full production outage on 2026-07-21 (all `/api/*` routes down) — see the fix commit `0111faf` for the full incident writeup.
 
 ## Module Structure (`server/modules/<module>/`)
 
