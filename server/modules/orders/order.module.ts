@@ -1,6 +1,7 @@
 import { orderContract } from './order.contract.js'
 import { GSheetRepository } from '../../shared/repositories/gsheet.repository.js'
 import { BaseCrudService } from '../../shared/services/base-crud.service.js'
+import { createCrudRoutes } from '../../shared/http/crud-routes.js'
 import { requireEnv } from '../../shared/utils/env.js'
 import { createOrdersTransformer } from './orders.transformer.js'
 
@@ -25,3 +26,5 @@ export const ordersService = new BaseCrudService({
   api: orderContract.api,
   searchFields: [],
 })
+
+export const orderRoutes = createCrudRoutes(ordersService, orderContract.api)

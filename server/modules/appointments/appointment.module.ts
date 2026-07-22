@@ -1,6 +1,7 @@
 import { appointmentContract } from './appointment.contract.js'
 import { GSheetRepository } from '../../shared/repositories/gsheet.repository.js'
 import { BaseCrudService } from '../../shared/services/base-crud.service.js'
+import { createCrudRoutes } from '../../shared/http/crud-routes.js'
 import { requireEnv } from '../../shared/utils/env.js'
 import { createAppointmentTransformer } from './appointment.transformer.js'
 
@@ -33,3 +34,5 @@ export const appointmentService = new BaseCrudService({
   api: appointmentContract.api,
   searchFields: ['appointmentId', 'customerId', 'notes'],
 })
+
+export const appointmentRoutes = createCrudRoutes(appointmentService, appointmentContract.api)

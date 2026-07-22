@@ -1,6 +1,7 @@
 import { customerContract } from './customer.contract.js'
 import { GSheetRepository } from '../../shared/repositories/gsheet.repository.js'
 import { BaseCrudService } from '../../shared/services/base-crud.service.js'
+import { createCrudRoutes } from '../../shared/http/crud-routes.js'
 import { requireEnv } from '../../shared/utils/env.js'
 
 // ── Data access: the Google Sheets implementation behind the repository contract.
@@ -29,3 +30,5 @@ export const customerService = new BaseCrudService({
   api: customerContract.api,
   searchFields: ['customerIndex', 'customerName', 'address'],
 })
+
+export const customerRoutes = createCrudRoutes(customerService, customerContract.api)

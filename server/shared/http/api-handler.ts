@@ -27,12 +27,14 @@ export type ApiController = (req: ApiHandlerRequest) => Promise<ApiResult> | Api
 export type ApiRouteMap = Partial<Record<ApiHttpMethod, ApiController>>
 
 /**
- * Dispatches one API route by HTTP method.
+ * Dispatches one API route by HTTP method. Most modules never construct this
+ * directly — `createCrudRoutes()` (`./crud-routes.ts`) builds the collection/item
+ * ApiHandlers for standard CRUD from the module's contract. Hand-roll one only for
+ * a non-CRUD endpoint:
  *
- *   // server/modules/appointments/appointment.routes.ts
- *   export default new ApiHandler({
- *     GET:    (req) => ok(await service.getAppointment(req.params.id)),
- *   }).handle
+ *   new ApiHandler({
+ *     GET: (req) => ok(await service.getAppointment(req.params.id)),
+ *   })
  *
  * Common concerns are handled here once: method dispatch (405 + Allow header),
  * request normalization, and turning thrown ApiErrors into ApiErrorResponses.
