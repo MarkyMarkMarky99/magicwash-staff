@@ -28,3 +28,6 @@ dist-ssr
 
 # Local agent configuration
 .claude/
+
+# Nested git worktrees (e.g. for sandboxed agent runs)
+.worktrees/
