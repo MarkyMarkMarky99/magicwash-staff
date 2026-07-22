@@ -23,7 +23,7 @@ export class ApiGateway {
   }
 
   private dispatch = async (req: VercelRequest): Promise<ApiResult> => {
-    const segments = parsePath(req.url)
+    const segments = parsePath(req)
     if (segments.length === 0 || segments.length > 2) {
       throw ApiError.notFound('Route not found')
     }
@@ -51,26 +51,96 @@ export class ApiGateway {
   }
 }
 
-function parsePath(url: string | undefined): string[] {
-  let pathname: string
+function parsePath(req: VercelRequest): string[] {
+  const pathname = getPathname(req.url)
+
+  if (isPublicApiPath(pathname) && !isGatewayDestinationPath(pathname)) {
+    return parseSegments(pathname.slice('/api/'.length), true)
+  }
+
+  const routePath = getRoutePath(req)
+  if (routePath !== undefined) {
+    return parseSegments(routePath.value, routePath.isRaw)
+  }
+
+  if (isGatewayDestinationPath(pathname)) {
+    return []
+  }
+
+  throw ApiError.notFound('Route not found')
+}
+
+function getPathname(url: string | undefined): string {
   try {
-    pathname = new URL(url ?? '/', 'http://internal').pathname
+    return new URL(url ?? '/', 'http://internal').pathname
   } catch {
     throw ApiError.badRequest('Malformed API path')
   }
+}
 
-  let rawPath: string
-  if (pathname === '/api') {
-    rawPath = ''
-  } else if (pathname.startsWith('/api/')) {
-    rawPath = pathname.slice('/api/'.length)
-  } else {
-    throw ApiError.notFound('Route not found')
+function isPublicApiPath(pathname: string): boolean {
+  return pathname === '/api' || pathname.startsWith('/api/')
+}
+
+function isGatewayDestinationPath(pathname: string): boolean {
+  return pathname === '/api/[...path]' || pathname === '/api/[...path]/'
+}
+
+function getRoutePath(
+  req: VercelRequest,
+): { value: string | string[]; isRaw: boolean } | undefined {
+  // Generic Vercel rewrites deliver the splat as a query parameter.
+  // Keep the raw value from req.url so encoded slashes stay within one segment.
+  const rawValue = getRawRoutePath(req.url)
+  if (rawValue !== undefined) {
+    return { value: rawValue, isRaw: true }
   }
 
-  if (!rawPath) return []
+  for (const [key, value] of Object.entries(req.query ?? {})) {
+    if (isRoutePathQueryKey(key)) {
+      return { value, isRaw: false }
+    }
+  }
 
-  const rawSegments = rawPath.split('/')
+  return undefined
+}
+
+function getRawRoutePath(url: string | undefined): string | string[] | undefined {
+  if (!url) return undefined
+
+  let search: string
+  try {
+    search = new URL(url, 'http://internal').search.slice(1)
+  } catch {
+    return undefined
+  }
+
+  const values: string[] = []
+  for (const pair of search.split('&')) {
+    const separator = pair.indexOf('=')
+    const rawKey = separator === -1 ? pair : pair.slice(0, separator)
+    let key: string
+    try {
+      key = decodeURIComponent(rawKey)
+    } catch {
+      continue
+    }
+    if (!isRoutePathQueryKey(key)) continue
+    values.push(separator === -1 ? '' : pair.slice(separator + 1))
+  }
+
+  if (values.length === 0) return undefined
+  return values.length === 1 ? values[0] : values
+}
+
+function isRoutePathQueryKey(key: string): boolean {
+  const normalizedKey = key.toLowerCase()
+  return normalizedKey === 'path' || normalizedKey === '...path'
+}
+
+function parseSegments(path: string | string[], decodeSegments: boolean): string[] {
+  const rawSegments = Array.isArray(path) ? [...path] : path.split('/')
+  if (rawSegments.length === 0) return []
   if (rawSegments.at(-1) === '') {
     rawSegments.pop()
   }
@@ -79,6 +149,7 @@ function parsePath(url: string | undefined): string[] {
   }
 
   return rawSegments.map((segment) => {
+    if (!decodeSegments) return segment
     try {
       return decodeURIComponent(segment)
     } catch {
@@ -89,7 +160,7 @@ function parsePath(url: string | undefined): string[] {
 
 function toApiRequest(req: VercelRequest, segments: string[]): ApiHandlerRequest {
   const query = Object.fromEntries(
-    Object.entries(req.query ?? {}).filter(([key]) => key !== 'path'),
+    Object.entries(req.query ?? {}).filter(([key]) => !isRoutePathQueryKey(key)),
   ) as ApiQueryParams
 
   return {
