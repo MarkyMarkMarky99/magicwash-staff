@@ -136,6 +136,29 @@ Repositories, services, and routes are all built once at module scope in `<m>.mo
 
 Success: `{ data, meta }`; paginated: `meta.pagination = { total, page, perPage, totalPages }`; error: `{ error: { code, message, details? } }`. Built only via `ok`/`created`/`noContent`/`okPaginated`/`ApiError` from `server/shared/http/`. The envelope shape is the shared Zod contract `contracts/shared/api.schema.ts` (single source for FE + BE); the `server/shared/http/` builders infer their types from it directly (no parallel type declarations).
 
+## Testing
+
+No test runner is installed (no jest/vitest/mocha) — tests are plain TypeScript files run
+directly with `npx tsx <path>`, asserting via `node:assert/strict`. They live under
+`tests/server/`, not colocated with the source they cover; the subpath mirrors the module's path
+under `server/` (e.g. `server/modules/orders/orders.transformer.ts` →
+`tests/server/unit/modules/orders/orders.transformer.dry-test.ts`).
+
+- `tests/server/unit/<mirrored-path>/<name>.dry-test.ts` — runtime tests (hand-rolled `test()`
+  collector + `assert`, run via `npx tsx`). Reserve "integration" for a future test that hits a
+  real external system (live Google Sheets); a test that only uses fakes/mocked `fetch` is still
+  `unit`, not `integration`.
+- `tests/server/types/<mirrored-path>/<name>.type-test.ts` — compile-time-only tests (`Expect`/
+  `Equal`/`@ts-expect-error` type assertions, zero runtime code). Enforced exclusively by
+  `npm run typecheck:api` — never run with `tsx`.
+- Every test file imports the real module(s) it covers via relative paths back into `server/`/
+  `contracts/` — no mocking framework, no colocated fixtures — and keeps the explicit `.js`
+  extension on backend imports per the rule above.
+- `api/tsconfig.json`'s `include` has `../tests/server/**/*.ts` alongside `../server/**/*.ts` so
+  these stay covered by `typecheck:api`. Frontend tests (`tests/web/`) are deliberately NOT in
+  this include — don't widen it to `../tests/**/*.ts`, that would pull frontend code into a
+  command named `typecheck:api`.
+
 ## Gotchas
 
 - Don't add repository/query methods speculatively — `getByFilter` covers most ad-hoc reads.

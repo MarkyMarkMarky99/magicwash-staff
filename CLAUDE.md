@@ -77,6 +77,19 @@ when you want client-side zod validation. Only camelCase API schemas/enums live 
 - Keep API logic inside services only.
 - Do not add frontend field mapping layers for API data.
 
+## Testing
+
+No test runner is installed — tests are plain TypeScript files run directly with `npx tsx <path>`,
+asserting via `node:assert/strict`. They live under `tests/`, not colocated with the source they
+cover, split by project:
+
+- `tests/web/unit/<mirrored src/ path>/<name>.dry-test.ts` — frontend unit tests; the subpath
+  mirrors the file's path under `src/` (e.g. `src/features/customers/utils/waiting-pickup.filter.ts`
+  → `tests/web/unit/features/customers/utils/waiting-pickup.filter.dry-test.ts`). Imports stay
+  extensionless (Vite/bundler convention), unlike backend imports.
+- `tests/server/...` — backend tests; see the Testing section in `api/CLAUDE.md` for the full
+  convention (unit vs. type-only tests, `api/tsconfig.json` scope).
+
 ## Gotchas
 - Do not inject API clients into components.
 - Use API DTOs directly as the frontend data model.
