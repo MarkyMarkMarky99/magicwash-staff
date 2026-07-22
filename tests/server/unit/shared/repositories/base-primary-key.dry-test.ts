@@ -3,8 +3,8 @@ import {
   BaseRepository,
   type FieldMap,
   type RepositoryRequest,
-} from './base.repository.js'
-import type { ReadQueryDTO } from '../dtos/read-query.dto.js'
+} from '../../../../../server/shared/repositories/base.repository.js'
+import type { ReadQueryDTO } from '../../../../../server/shared/dtos/read-query.dto.js'
 
 type CustomerApiRow = {
   customerId: string
@@ -180,7 +180,7 @@ async function run(): Promise<void> {
   })
   assert.equal(lastRequest(), null, 'a blank id must not reach execute()')
 
-  console.log('base primaryKey/id temp tests passed')
+  console.log('base primaryKey/id dry tests passed')
 }
 
 run().catch((error: unknown) => {

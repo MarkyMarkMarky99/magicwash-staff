@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import type { z } from 'zod'
-import type { appointmentListResponseSchema } from '../../../../contracts/appointments/appointment-api.schema'
-import { filterWaitingPickups, normalizeAppointmentDate } from './waiting-pickup.filter'
+import type { appointmentListResponseSchema } from '../../../../../../contracts/appointments/appointment-api.schema'
+import { filterWaitingPickups, normalizeAppointmentDate } from '../../../../../../src/features/customers/utils/waiting-pickup.filter'
 
 type AppointmentListDto = z.infer<typeof appointmentListResponseSchema>
 

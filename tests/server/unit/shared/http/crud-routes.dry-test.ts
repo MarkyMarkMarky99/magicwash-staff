@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { z } from 'zod'
-import type { ModuleApiContract } from '../../../contracts/shared/module-api-contract.js'
-import type { ApiHandlerRequest } from './api-handler.js'
-import { createCrudRoutes } from './crud-routes.js'
+import type { ModuleApiContract } from '../../../../../contracts/shared/module-api-contract.js'
+import type { ApiHandlerRequest } from '../../../../../server/shared/http/api-handler.js'
+import { createCrudRoutes } from '../../../../../server/shared/http/crud-routes.js'
 
 type FakeService = Parameters<typeof createCrudRoutes>[0]
 

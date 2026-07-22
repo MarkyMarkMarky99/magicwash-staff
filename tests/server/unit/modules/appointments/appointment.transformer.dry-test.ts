@@ -6,9 +6,9 @@ import {
   transformAppointmentRequest,
   transformAppointmentResponse,
   transformResponseRow,
-} from './appointment.transformer.js'
-import { Mapper } from '../../shared/repositories/base.repository.js'
-import { appointmentFieldMap } from './appointment.contract.js'
+} from '../../../../../server/modules/appointments/appointment.transformer.js'
+import { Mapper } from '../../../../../server/shared/repositories/base.repository.js'
+import { appointmentFieldMap } from '../../../../../server/modules/appointments/appointment.contract.js'
 
 const realAddressSnapshot =
   '{"CustomerName": "", "CustomerLabel": "WIX", "Phone": "", "Address": "123 ถ.สุขุมวิท ซ.15", "Location": "123 ถ.สุขุมวิท ซ.15", "Facebook": "", "Line": "", "Whatsapp": "", "Email": ""}'

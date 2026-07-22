@@ -6,11 +6,11 @@
 
 import type { z } from 'zod'
 import { z as zod } from 'zod'
-import { GSheetRepository } from './gsheet.repository.js'
-import { BaseCrudService } from '../services/base-crud.service.js'
-import type { ModuleContract, ModuleDbContract } from '../contracts/module-db-contract.js'
-import type { ModuleApiContract } from '../../../contracts/shared/module-api-contract.js'
-import { customerContract } from '../../modules/customers/customer.contract.js'
+import { GSheetRepository } from '../../../../../server/shared/repositories/gsheet.repository.js'
+import { BaseCrudService } from '../../../../../server/shared/services/base-crud.service.js'
+import type { ModuleContract, ModuleDbContract } from '../../../../../server/shared/contracts/module-db-contract.js'
+import type { ModuleApiContract } from '../../../../../contracts/shared/module-api-contract.js'
+import { customerContract } from '../../../../../server/modules/customers/customer.contract.js'
 
 // ── type-level helpers ──
 type Expect<T extends true> = T

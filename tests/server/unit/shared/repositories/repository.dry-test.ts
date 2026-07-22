@@ -5,11 +5,11 @@ import {
   type FieldMap,
   type RepositoryRequest,
   type RepositoryTransformer,
-} from './base.repository.js'
-import type { ReadQueryDTO } from '../dtos/read-query.dto.js'
-import type { ModuleContract } from '../contracts/module-db-contract.js'
-import { GSheetRepository } from './gsheet.repository.js'
-import { customerContract, customerFieldMap } from '../../modules/customers/customer.contract.js'
+} from '../../../../../server/shared/repositories/base.repository.js'
+import type { ReadQueryDTO } from '../../../../../server/shared/dtos/read-query.dto.js'
+import type { ModuleContract } from '../../../../../server/shared/contracts/module-db-contract.js'
+import { GSheetRepository } from '../../../../../server/shared/repositories/gsheet.repository.js'
+import { customerContract, customerFieldMap } from '../../../../../server/modules/customers/customer.contract.js'
 
 type AnyRow = Record<string, unknown>
 

@@ -23,7 +23,6 @@
 
 - Appointment transformer implemented:
   - File: `server/modules/appointments/appointment.transformer.ts`
-  - Dry tests: `server/modules/appointments/appointment.transformer.dry-test.ts`
 - Transformer request flow:
   - API create now sends required flat snapshot fields:
     `customerName`, `customerCode`, `phone`, `address`, `location`.
@@ -47,7 +46,6 @@
 ### Verified
 
 - Passed:
-  - `npx tsx server/modules/appointments/appointment.transformer.dry-test.ts`
   - Result: `26 appointment transformer dry tests passed`
 - Known failing check:
   - `npm run typecheck:api` still fails because `server/modules/appointments/appointment.module.ts`

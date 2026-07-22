@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { z } from 'zod'
-import { API_ERROR_CODES } from '../../../contracts/shared/api.schema.js'
-import { ReadQueryDTO } from '../dtos/read-query.dto.js'
-import { ApiError } from '../http/api-error.js'
+import { API_ERROR_CODES } from '../../../../../contracts/shared/api.schema.js'
+import { ReadQueryDTO } from '../../../../../server/shared/dtos/read-query.dto.js'
+import { ApiError } from '../../../../../server/shared/http/api-error.js'
 
 type AnyRow = Record<string, unknown>
 type BaseCrudServiceCtor = new (input: Record<string, unknown>) => {
@@ -115,7 +115,7 @@ function expectedReadQuery(query: ListQuery): ReadQueryDTO<unknown> {
 
 async function loadServiceCtor(): Promise<BaseCrudServiceCtor> {
   // Keep this dry test type-checkable before BaseCrudService is implemented.
-  const modulePath = './base-crud.service.js'
+  const modulePath = '../../../../../server/shared/services/base-crud.service.js'
   const module = (await import(modulePath)) as { BaseCrudService: BaseCrudServiceCtor }
   return module.BaseCrudService
 }
