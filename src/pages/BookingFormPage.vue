@@ -35,21 +35,34 @@ const fallbackError = computed(() =>
     : 'Failed to book. Please try again.'
 )
 
-onActivated(resetTransientState)
-watch(() => props.mode, resetTransientState)
-
 const fixedServiceType = ref(null)
 const deliveryOrderId = ref(null)
 
-onActivated(() => {
+function syncDeliveryContext() {
   if (isReschedule.value) {
     fixedServiceType.value = null
     deliveryOrderId.value = null
+    useDeliveryBookingIntentStore().consume() // drain any pending intent so it can't leak into a later unrelated booking
     return
   }
   const consumed = useDeliveryBookingIntentStore().consume()?.trim() || null
   fixedServiceType.value = consumed ? 'DELIVERY' : null
   deliveryOrderId.value = consumed
+}
+
+// Both triggers below run the same pair of effects — resetTransientState()
+// clears stale submit/error state and syncDeliveryContext() re-syncs the
+// delivery intent. onActivated covers fresh mount + KeepAlive re-entry;
+// the mode watch additionally covers a direct /new-booking <-> /reschedule
+// navigation that reuses the same cached instance without necessarily
+// firing onActivated again (mode changes via prop update only).
+onActivated(() => {
+  resetTransientState()
+  syncDeliveryContext()
+})
+watch(() => props.mode, () => {
+  resetTransientState()
+  syncDeliveryContext()
 })
 
 const canConfirm = computed(() =>

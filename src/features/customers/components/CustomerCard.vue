@@ -35,8 +35,9 @@ function openMaps(address: string) {
   )
 }
 
-// The only writer of the shared selected-customer store: stash the full DTO so
-// the booking form can read customerId/customerName/address, then hand off.
+// One of three writers of the shared selected-customer store (see its doc
+// comment): stash the full DTO so the booking form can read
+// customerId/customerName/address, then hand off.
 function openNewBooking() {
   selectedCustomerStore.select(props.customer)
   router.push('/new-booking')
