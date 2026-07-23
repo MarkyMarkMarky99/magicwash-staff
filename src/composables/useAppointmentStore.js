@@ -145,7 +145,7 @@ export function useAppointmentStore() {
   }
 
   // ── Create new appointment ──
-  async function createAppointment(customerId, date, time, serviceType, notes) {
+  async function createAppointment(customerId, date, time, serviceType, notes, deliveryOrderId = null) {
     const url = APP_CONFIG.APPOINTMENTS_SCRIPT_URL
     if (!url) throw new Error('APPOINTMENTS_SCRIPT_URL is not configured.')
     const resp = await fetch(url, {
@@ -158,6 +158,7 @@ export function useAppointmentStore() {
         timeSlot: time,
         appointmentType: serviceType,
         notes,
+        deliveryOrderId,
       }),
     })
     const json = await resp.json()

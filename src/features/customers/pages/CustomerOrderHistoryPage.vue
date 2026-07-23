@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 import AppLayout from '@/layouts/AppLayout.vue'
+import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.store'
+import { useDeliveryBookingIntentStore } from '@/shared/stores/delivery-booking-intent.store'
 import { useCustomerOrderHistoryStore } from '../stores/customer-order-history.store'
 import type { OrderListDto } from '../services/order.service'
 import OrderDetailSheet from '../components/OrderDetailSheet.vue'
@@ -12,6 +15,7 @@ const props = defineProps<{
   customerId: string
 }>()
 
+const router = useRouter()
 const store = useCustomerOrderHistoryStore()
 const { customer, customerLoading, customerError } = storeToRefs(store)
 const selectedOrder = ref<OrderListDto | null>(null)
@@ -29,6 +33,17 @@ function openOrder(order: OrderListDto) {
 function closeSheet() {
   sheetOpen.value = false
   selectedOrder.value = null
+}
+
+function bookDelivery() {
+  const order = selectedOrder.value
+  if (!customer.value || !order) return
+  const orderId = order.orderId?.trim()
+  if (!orderId || order.customerId !== customer.value.customerId) return
+  useSelectedCustomerStore().select(customer.value)
+  useDeliveryBookingIntentStore().set(orderId)
+  closeSheet()
+  router.push('/new-booking')
 }
 
 onMounted(loadCustomer)
@@ -53,6 +68,7 @@ watch(() => props.customerId, loadCustomer)
       :open="sheetOpen"
       :order="selectedOrder"
       @close="closeSheet"
+      @book-delivery="bookDelivery"
     />
   </AppLayout>
 </template>

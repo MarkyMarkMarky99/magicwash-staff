@@ -2,6 +2,7 @@
 import { computed, defineAsyncComponent, onActivated, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppointmentStore } from '../composables/useAppointmentStore'
+import { useDeliveryBookingIntentStore } from '@/shared/stores/delivery-booking-intent.store'
 import FormLayout from '../layouts/FormLayout.vue'
 
 const AppointmentScheduleForm = defineAsyncComponent(() =>
@@ -37,6 +38,20 @@ const fallbackError = computed(() =>
 onActivated(resetTransientState)
 watch(() => props.mode, resetTransientState)
 
+const fixedServiceType = ref(null)
+const deliveryOrderId = ref(null)
+
+onActivated(() => {
+  if (isReschedule.value) {
+    fixedServiceType.value = null
+    deliveryOrderId.value = null
+    return
+  }
+  const consumed = useDeliveryBookingIntentStore().consume()?.trim() || null
+  fixedServiceType.value = consumed ? 'DELIVERY' : null
+  deliveryOrderId.value = consumed
+})
+
 const canConfirm = computed(() =>
   Boolean(formRef.value?.isValid) && !submitting.value
 )
@@ -68,6 +83,7 @@ async function handleConfirm() {
         data.time,
         data.serviceType,
         data.notes,
+        data.deliveryOrderId,
       )
     }
 
@@ -82,7 +98,12 @@ async function handleConfirm() {
 
 <template>
   <FormLayout :title="title" @back="router.back()">
-    <AppointmentScheduleForm ref="formRef" :mode="mode" />
+    <AppointmentScheduleForm
+      ref="formRef"
+      :mode="mode"
+      :fixed-service-type="fixedServiceType"
+      :delivery-order-id="deliveryOrderId"
+    />
 
     <div
       v-if="error"
