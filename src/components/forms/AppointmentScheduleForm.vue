@@ -15,6 +15,14 @@ const props = defineProps({
     default: 'new-booking',
     validator: value => ['new-booking', 'reschedule'].includes(value),
   },
+  fixedServiceType: {
+    type: String,
+    default: null,
+  },
+  deliveryOrderId: {
+    type: String,
+    default: null,
+  },
 })
 
 const SERVICE_TYPES = [
@@ -68,13 +76,22 @@ const notes = ref('')
 watch(() => props.mode, (mode) => {
   selectedDate.value = mode === 'new-booking' ? smartDefaultDate() : tomorrowDate()
   selectedTime.value = mode === 'new-booking' ? firstAvailableSlot(selectedDate.value) : null
-  selectedService.value = 'PICKUP'
   notes.value = ''
 }, { immediate: true })
+
+watch(
+  [() => props.mode, () => props.fixedServiceType],
+  ([mode, forced]) => {
+    if (mode === 'new-booking') selectedService.value = forced || 'PICKUP'
+  },
+  { immediate: true },
+)
 
 const selectedServiceIndex = computed(() =>
   SERVICE_TYPES.findIndex(s => s.value === selectedService.value)
 )
+
+const isFixedDelivery = computed(() => Boolean(props.fixedServiceType))
 
 const timeSlotOptions = computed(() =>
   TIME_SLOTS.map(slot => ({
@@ -101,6 +118,7 @@ const data = computed(() => {
       time: selectedTime.value,
       serviceType: selectedService.value,
       notes: notes.value,
+      deliveryOrderId: props.deliveryOrderId,
     }
   }
 
@@ -164,7 +182,7 @@ defineExpose({ data, isValid })
       </div>
     </section>
 
-    <section v-if="isNewBooking" class="flex justify-center">
+    <section v-if="isNewBooking && !isFixedDelivery" class="flex justify-center">
       <div class="relative inline-flex rounded-[14px] bg-surface-container p-1 gap-1">
         <div
           class="absolute top-1 bottom-1 rounded-[10px] bg-primary shadow-sm pointer-events-none"
@@ -184,6 +202,13 @@ defineExpose({ data, isValid })
         >
           {{ svc.label }}
         </button>
+      </div>
+    </section>
+
+    <section v-else-if="isNewBooking && isFixedDelivery" class="flex justify-center">
+      <div class="inline-flex items-center gap-2 rounded-full bg-surface-container px-4 py-2 text-[11px] font-label font-bold uppercase tracking-wide text-on-surface-variant">
+        <span class="material-symbols-outlined text-[16px] leading-none text-primary" aria-hidden="true">local_shipping</span>
+        Delivery — linked to this order
       </div>
     </section>
 

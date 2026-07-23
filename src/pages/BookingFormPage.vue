@@ -2,6 +2,7 @@
 import { computed, defineAsyncComponent, onActivated, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppointmentStore } from '../composables/useAppointmentStore'
+import { useDeliveryBookingIntentStore } from '@/shared/stores/delivery-booking-intent.store'
 import FormLayout from '../layouts/FormLayout.vue'
 
 const AppointmentScheduleForm = defineAsyncComponent(() =>
@@ -34,8 +35,35 @@ const fallbackError = computed(() =>
     : 'Failed to book. Please try again.'
 )
 
-onActivated(resetTransientState)
-watch(() => props.mode, resetTransientState)
+const fixedServiceType = ref(null)
+const deliveryOrderId = ref(null)
+
+function syncDeliveryContext() {
+  if (isReschedule.value) {
+    fixedServiceType.value = null
+    deliveryOrderId.value = null
+    useDeliveryBookingIntentStore().consume() // drain any pending intent so it can't leak into a later unrelated booking
+    return
+  }
+  const consumed = useDeliveryBookingIntentStore().consume()?.trim() || null
+  fixedServiceType.value = consumed ? 'DELIVERY' : null
+  deliveryOrderId.value = consumed
+}
+
+// Both triggers below run the same pair of effects — resetTransientState()
+// clears stale submit/error state and syncDeliveryContext() re-syncs the
+// delivery intent. onActivated covers fresh mount + KeepAlive re-entry;
+// the mode watch additionally covers a direct /new-booking <-> /reschedule
+// navigation that reuses the same cached instance without necessarily
+// firing onActivated again (mode changes via prop update only).
+onActivated(() => {
+  resetTransientState()
+  syncDeliveryContext()
+})
+watch(() => props.mode, () => {
+  resetTransientState()
+  syncDeliveryContext()
+})
 
 const canConfirm = computed(() =>
   Boolean(formRef.value?.isValid) && !submitting.value
@@ -68,6 +96,7 @@ async function handleConfirm() {
         data.time,
         data.serviceType,
         data.notes,
+        data.deliveryOrderId,
       )
     }
 
@@ -82,7 +111,12 @@ async function handleConfirm() {
 
 <template>
   <FormLayout :title="title" @back="router.back()">
-    <AppointmentScheduleForm ref="formRef" :mode="mode" />
+    <AppointmentScheduleForm
+      ref="formRef"
+      :mode="mode"
+      :fixed-service-type="fixedServiceType"
+      :delivery-order-id="deliveryOrderId"
+    />
 
     <div
       v-if="error"

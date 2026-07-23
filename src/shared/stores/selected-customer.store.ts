@@ -10,7 +10,9 @@ import { customerListResponseSchema } from '@contracts/customers/customer-api.sc
  * contract, so `shared` depends only on `@contracts`, never on a feature.
  *
  * Holds the customer DTO so booking can read `customerId`, `customerName`, and
- * `address` directly. Only the customers feature's CustomerCard writes this.
+ * `address` directly. Written by three call sites today: `CustomerCard.vue`,
+ * `OrderHistoryCustomerCard.vue`, and the `bookDelivery` handler in
+ * `CustomerOrderHistoryPage.vue`.
  */
 export type SelectedCustomer = z.infer<typeof customerListResponseSchema>
 
