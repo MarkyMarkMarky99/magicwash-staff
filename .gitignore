@@ -31,3 +31,6 @@ dist-ssr
 
 # Nested git worktrees (e.g. for sandboxed agent runs)
 .worktrees/
+
+# Local planning draft
+/docs/invoice-create-plan.md

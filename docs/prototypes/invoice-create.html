@@ -1,0 +1,1465 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ออกใบแจ้งหนี้ | Prototype</title>
+  <style>
+    :root {
+      /* Copied from the app's src/style.css for offline fidelity. */
+      --primary: #004f45;
+      --primary-container: #00695c;
+      --on-primary: #ffffff;
+      --secondary: #006b5f;
+      --secondary-container: #8df5e4;
+      --ink: #191c1d;
+      --muted: #3e4946;
+      --surface: #f8fafa;
+      --surface-lowest: #ffffff;
+      --surface-low: #f2f4f4;
+      --surface-container: #eceeee;
+      --surface-high: #e6e8e8;
+      --line: #bec9c5;
+      --primary-dark: var(--primary-container);
+      --primary-soft: var(--secondary-container);
+      --primary-pale: var(--surface-low);
+      --warning: #8a5200;
+      --warning-bg: #fff1d6;
+      --danger: #ba1a1a;
+      --danger-bg: #ffdad6;
+      --success: #176b4d;
+      --success-bg: #d7f4e3;
+      --radius-xl: 1.5rem;
+      --radius-lg: .75rem;
+      --radius-md: .75rem;
+      --radius-sm: .5rem;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      height: 100dvh;
+      overflow: hidden;
+      color: var(--ink);
+      background: var(--surface);
+      font: 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+    }
+
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .52; }
+    [hidden] { display: none !important; }
+
+    .app-shell { display: flex; height: 100%; min-height: 0; flex-direction: column; }
+
+    .topbar {
+      position: relative;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 64px;
+      padding: 12px 16px;
+      color: var(--on-primary);
+      background: var(--primary);
+    }
+
+    .back-button, .header-icon {
+      display: grid;
+      width: 40px;
+      height: 40px;
+      place-items: center;
+      border: 0;
+      border-radius: 50%;
+      color: var(--on-primary);
+      background: transparent;
+      font-size: 22px;
+    }
+
+    .back-button:hover, .header-icon:hover { background: rgba(255,255,255,.1); }
+
+    .app-brand { display: flex; min-width: 0; align-items: center; gap: 9px; }
+    .brand-lockup { display: flex; min-width: 0; align-items: center; gap: 9px; }
+    .brand-mark {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border-radius: 9px;
+      color: #004f45;
+      background: #b6dc2d;
+      font: 800 12px/1 Manrope, Inter, sans-serif;
+      letter-spacing: -.08em;
+    }
+    .topbar-actions { display: flex; align-items: center; gap: 2px; }
+
+    .topbar-title { min-width: 0; flex: 1; }
+    .topbar-title strong { display: block; overflow: hidden; font: 700 16px/1.2 Manrope, Inter, sans-serif; letter-spacing: -.01em; text-overflow: ellipsis; white-space: nowrap; }
+    .topbar-title span { display: block; overflow: hidden; color: rgba(255,255,255,.76); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+
+    .prototype-chip {
+      padding: 5px 9px;
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 99px;
+      color: #d7fffa;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    main {
+      width: 100%;
+      max-width: 1180px;
+      flex: 1;
+      min-height: 0;
+      margin: 0 auto;
+      overflow-y: auto;
+      background: var(--surface);
+    }
+
+    .intro {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 16px 14px;
+      border-bottom: 1px solid rgba(190,201,197,.45);
+    }
+
+    .intro h1 { margin: 0 0 4px; color: var(--primary); font: 700 clamp(21px, 4vw, 26px)/1.2 Manrope, Inter, sans-serif; letter-spacing: -.035em; }
+    .intro p { max-width: 630px; margin: 0; color: var(--muted); font-size: 12px; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      align-items: start;
+      gap: 0;
+    }
+
+    .main-column, .side-column { display: grid; gap: 0; }
+
+    .screen-nav {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 12px 16px 18px;
+      border-top: 1px solid rgba(190,201,197,.35);
+      background: var(--surface-lowest);
+    }
+    .screen-nav-next .button { min-width: 118px; }
+    .screen-nav-back { justify-content: flex-start; padding-top: 10px; padding-bottom: 10px; }
+
+    .card {
+      border: 0;
+      border-radius: 0;
+      background: var(--surface-lowest);
+      box-shadow: none;
+    }
+
+    .section-card { padding: 0 0 16px; }
+
+    .section-heading {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 0 14px;
+      padding: 10px 16px;
+      border-top: 1px solid rgba(190,201,197,.3);
+      border-bottom: 1px solid rgba(190,201,197,.25);
+      background: var(--surface-low);
+    }
+
+    .section-heading h2 { margin: 0; color: var(--primary); font: 700 13px/1.3 Manrope, Inter, sans-serif; letter-spacing: -.015em; }
+    .section-heading p { margin: 3px 0 0 24px; color: var(--muted); font-size: 11px; }
+
+    .step, .section-symbol {
+      display: inline-grid;
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      place-items: center;
+      margin-right: 6px;
+      color: var(--primary);
+      font-size: 16px;
+      font-weight: 700;
+      vertical-align: middle;
+    }
+
+    .section-symbol { font-size: 16px; }
+
+    .field-grid { display: grid; gap: 14px; }
+    .field-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .field-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+    label.field-label {
+      display: block;
+      margin: 0 0 6px;
+      color: #42635f;
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    input, select {
+      width: 100%;
+      min-height: 40px;
+      padding: 9px 12px;
+      border: 1px solid rgba(110,121,118,.48);
+      border-radius: var(--radius-sm);
+      outline: none;
+      color: var(--ink);
+      background: var(--surface-lowest);
+      transition: border-color .15s, box-shadow .15s, background .15s;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(0,79,69,.13);
+    }
+
+    input::placeholder { color: #9aafad; }
+
+    .input-with-status { position: relative; }
+    .input-with-status input { padding-right: 112px; }
+    .input-status {
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      transform: translateY(-50%);
+      color: var(--success);
+      font-size: 11px;
+      font-weight: 700;
+      pointer-events: none;
+    }
+
+    .input-status.warn { color: var(--warning); }
+    .hint { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
+
+    .notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      margin-top: 11px;
+      padding: 11px 13px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+    }
+
+    .notice[hidden] { display: none; }
+
+    .notice.warn { color: #744c00; background: var(--warning-bg); }
+    .notice.danger { color: #7b1e16; background: var(--danger-bg); }
+    .notice.success { color: #17613e; background: var(--success-bg); }
+    .notice-icon { font-weight: 900; }
+
+    .customer-browser { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, .9fr); gap: 16px; }
+    .search-wrap { position: relative; margin-bottom: 10px; }
+    .search-wrap input { padding-left: 38px; }
+    .search-icon { position: absolute; top: 9px; left: 13px; color: var(--muted); font-size: 18px; }
+
+    .customer-list {
+      display: grid;
+      max-height: 293px;
+      gap: 8px;
+      overflow-y: auto;
+      padding-right: 3px;
+    }
+
+    .customer-option {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      width: 100%;
+      padding: 10px;
+      border: 1px solid transparent;
+      border-radius: 0;
+      text-align: left;
+      color: var(--ink);
+      background: var(--surface-lowest);
+      border-bottom: 1px solid rgba(190,201,197,.24);
+    }
+
+    .customer-option:hover, .customer-option.selected { border-color: rgba(0,79,69,.18); background: var(--surface-low); }
+    .avatar { display: grid; width: 36px; height: 36px; flex: 0 0 auto; place-items: center; border-radius: 50%; color: var(--primary); background: var(--secondary-container); font: 700 12px/1 Manrope, Inter, sans-serif; }
+    .customer-option strong, .customer-option small { display: block; }
+    .customer-option small { color: var(--muted); font-size: 11px; }
+    .customer-option .check { margin-left: auto; color: var(--primary); font-size: 18px; opacity: 0; }
+    .customer-option.selected .check { opacity: 1; }
+
+    .snapshot {
+      min-height: 204px;
+      padding: 17px;
+      border: 0;
+      border-radius: var(--radius-lg);
+      background: var(--surface-low);
+    }
+
+    .snapshot.empty { display: grid; place-items: center; color: var(--muted); text-align: center; }
+    .snapshot-head { display: flex; align-items: center; gap: 11px; margin-bottom: 15px; }
+    .snapshot-head h3 { margin: 0; font-size: 15px; }
+    .snapshot-head p { margin: 2px 0 0; color: var(--muted); font-size: 11px; }
+    .snapshot dl { display: grid; grid-template-columns: 72px 1fr; gap: 8px 10px; margin: 0; font-size: 13px; }
+    .snapshot dt { color: var(--muted); }
+    .snapshot dd { margin: 0; font-weight: 650; overflow-wrap: anywhere; }
+
+    .order-picker {
+      display: none;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(190,201,197,.45);
+    }
+    .order-picker.visible { display: block; }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 42px;
+      padding: 9px 15px;
+      border: 0;
+      border-radius: var(--radius-md);
+      font-weight: 750;
+      transition: opacity .15s, background .15s;
+    }
+    .button:hover:not(:disabled) { opacity: .86; }
+    .button.primary { color: var(--on-primary); background: var(--primary); }
+    .button.primary:hover:not(:disabled) { background: var(--primary-container); }
+    .button.secondary { color: var(--primary); background: var(--surface-container); }
+    .button.ghost { color: var(--primary); background: transparent; }
+    .button.danger { color: var(--danger); background: transparent; }
+    .button.small { min-height: 34px; padding: 6px 10px; border-radius: 9px; font-size: 12px; }
+    .button.full { width: 100%; }
+
+    .items-toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
+    .line-list { display: grid; gap: 12px; margin-top: 16px; }
+    .line-empty { padding: 24px 14px; border: 1px dashed #aecbc8; border-radius: var(--radius-lg); color: var(--muted); background: var(--surface-low); text-align: center; }
+
+    .line-card { overflow: hidden; border: 1px solid rgba(190,201,197,.45); border-radius: var(--radius-lg); background: var(--surface-lowest); }
+    .line-card.imported { border-color: rgba(0,107,95,.42); }
+    .line-header { display: flex; align-items: flex-start; gap: 10px; padding: 12px 13px 9px; background: var(--surface-low); }
+    .line-number { display: grid; width: 28px; height: 28px; flex: 0 0 auto; place-items: center; border-radius: 50%; color: var(--primary); background: var(--secondary-container); font: 700 12px/1 Manrope, Inter, sans-serif; }
+    .line-title { flex: 1; min-width: 0; }
+    .line-title strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .line-title small { display: block; color: var(--muted); font-size: 11px; }
+    .source-tag { display: inline-flex; margin-top: 4px; padding: 2px 7px; border-radius: 99px; color: var(--primary); background: var(--secondary-container); font-size: 10px; font-weight: 750; }
+    .line-actions { display: flex; gap: 2px; }
+    .icon-button { display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 9px; color: var(--muted); background: transparent; font-size: 17px; }
+    .icon-button:hover { color: var(--primary); background: var(--surface-container); }
+    .icon-button.remove:hover { color: var(--danger); background: var(--danger-bg); }
+    .line-body { padding: 14px 15px 16px; }
+    .line-body .field-grid { gap: 10px; }
+    .line-body input, .line-body select { min-height: 39px; padding: 7px 10px; font-size: 13px; }
+    .line-body label.field-label { margin-bottom: 4px; font-size: 11px; }
+    .line-subtotal { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    .line-subtotal strong { color: var(--primary-dark); font-size: 16px; }
+    .missing-price { margin-top: 8px; color: var(--warning); font-size: 11px; }
+
+    .adjustments { margin-top: 13px; padding: 12px; border-radius: var(--radius-md); background: var(--surface-low); }
+    .adjustments summary { cursor: pointer; color: var(--primary-dark); font-size: 12px; font-weight: 750; }
+    .adjustment-list { display: grid; gap: 8px; margin-top: 10px; }
+    .adjustment-row { display: grid; grid-template-columns: minmax(0, 1fr) 92px 84px 30px; gap: 6px; align-items: center; }
+    .adjustment-row input, .adjustment-row select { min-height: 35px; padding: 6px 8px; font-size: 12px; }
+    .adjustment-row .icon-button { width: 30px; height: 30px; }
+    .adjustments .button { margin-top: 9px; }
+
+    /* Compact invoice rows: long copy first, numbers and total on one scan line. */
+    .line-body { padding: 10px 12px 11px; }
+    .line-top-fields {
+      display: block;
+    }
+    .line-values {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) 68px 56px minmax(82px, .95fr) minmax(104px, 1.1fr);
+      gap: 7px;
+      align-items: end;
+      margin-top: 8px;
+    }
+    .line-body > .line-top-fields input,
+    .line-body > .line-values input {
+      min-height: 34px;
+      padding: 6px 8px;
+      font-size: 12px;
+    }
+    .line-body > .line-top-fields .field-label,
+    .line-body > .line-values .field-label { margin-bottom: 3px; font-size: 10px; }
+    .line-top-fields > div,
+    .line-values > div { min-width: 0; }
+    .line-total {
+      min-width: 0;
+      padding-left: 8px;
+      border-left: 1px solid rgba(190,201,197,.55);
+      text-align: right;
+    }
+    .line-total span { display: block; color: var(--muted); font-size: 10px; }
+    .line-total strong { display: block; overflow: hidden; color: var(--primary); font: 700 14px/1.2 Manrope, Inter, sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+    .line-body .field-error { margin-top: 3px; font-size: 10px; }
+    .line-body .adjustments { margin-top: 8px; padding: 8px 9px; }
+    .line-body .adjustments summary { font-size: 11px; }
+    .line-body .adjustment-list { gap: 6px; margin-top: 8px; }
+    .line-body .missing-price { margin-top: 6px; font-size: 10px; }
+
+    .invoice-adjustments { display: grid; gap: 10px; }
+    .invoice-adjustments .adjustment-row { grid-template-columns: minmax(0, 1fr) 108px 95px 30px; }
+
+    .sticky-totals { position: sticky; top: 0; padding: 16px; border-left: 1px solid rgba(190,201,197,.32); border-bottom: 1px solid rgba(190,201,197,.45); }
+    .totals-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 15px; }
+    .totals-head h2 { margin: 0; font-size: 18px; }
+    .live-dot { display: inline-flex; align-items: center; gap: 5px; color: var(--success); font-size: 11px; font-weight: 750; }
+    .live-dot::before { width: 7px; height: 7px; border-radius: 50%; background: #26a269; content: ""; }
+    .total-lines { display: grid; gap: 11px; padding-bottom: 15px; border-bottom: 1px solid var(--line); }
+    .total-row { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 13px; }
+    .total-row strong { color: var(--ink); font-weight: 750; }
+    .total-row.adjustment strong { color: var(--warning); }
+    .total-final { display: flex; align-items: end; justify-content: space-between; gap: 12px; padding: 16px 0 18px; }
+    .total-final span { color: var(--muted); font-size: 13px; }
+    .total-final strong { color: var(--primary-dark); font-size: 28px; letter-spacing: -.04em; }
+    .totals-note { margin: 13px 0 0; color: var(--muted); font-size: 11px; text-align: center; }
+
+    .dev-tools { margin-top: 0; padding: 13px 16px; border: 0; border-top: 1px solid rgba(190,201,197,.45); border-radius: 0; background: var(--surface-low); }
+    .dev-tools summary { cursor: pointer; color: var(--muted); font-size: 12px; font-weight: 750; }
+    .dev-tools .field { margin-top: 12px; }
+    .dev-tools select { min-height: 37px; font-size: 12px; }
+    .dev-tools p { margin: 7px 0 0; color: var(--muted); font-size: 11px; }
+
+    .payload-card { margin-top: 0; border-top: 1px solid rgba(190,201,197,.45); }
+    .payload-card summary { cursor: pointer; padding: 14px 16px; color: var(--primary); font: 700 13px/1.3 Manrope, Inter, sans-serif; background: var(--surface-low); }
+    .payload-body { padding: 0 20px 20px; }
+    .payload-body pre { max-height: 480px; margin: 0; padding: 15px; overflow: auto; border-radius: 14px; color: #d9fffa; background: #123b39; font: 12px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
+    .payload-caption { margin: 0 0 10px; color: var(--muted); font-size: 12px; }
+
+    .result-card { display: none; margin-top: 0; padding: 18px 16px; border-top: 1px solid rgba(190,201,197,.45); }
+    .result-card.visible { display: block; animation: rise .25s ease-out; }
+    @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .result-card h2 { margin: 0 0 7px; font-size: 20px; }
+    .result-card p { margin: 0; color: var(--muted); }
+    .result-icon { display: grid; width: 45px; height: 45px; margin-bottom: 13px; place-items: center; border-radius: 15px; font-size: 22px; }
+    .result-card.created { background: var(--success-bg); }
+    .result-card.created .result-icon { color: var(--success); background: #c7efd6; }
+    .result-card.validation { background: var(--danger-bg); }
+    .result-card.validation .result-icon { color: var(--danger); background: #ffd9d4; }
+    .result-card.orphan { background: var(--warning-bg); }
+    .result-card.orphan .result-icon { color: var(--warning); background: #ffe6a9; }
+    .result-details { display: grid; gap: 7px; margin: 16px 0 0; padding: 13px; border-radius: 13px; background: rgba(255,255,255,.56); }
+    .result-details div { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+    .result-details span { color: var(--muted); }
+    .result-details strong { text-align: right; }
+    .validation-list { margin: 14px 0 0; padding-left: 19px; color: #8c2a20; font-size: 13px; }
+    .result-footnote { margin-top: 13px !important; font-size: 12px; }
+
+    .footer-note { margin: 16px; color: var(--muted); font-size: 11px; text-align: center; }
+
+    .field-error { display: block; margin: 5px 0 0; color: var(--danger); font-size: 11px; line-height: 1.35; }
+    .field-error[hidden] { display: none; }
+    [aria-invalid="true"] { border-color: var(--danger); }
+    .adjustment-entry { display: grid; gap: 4px; }
+    .adjustment-error { margin: 0 36px 0 0; }
+    .app-brand .back-button { flex: 0 0 auto; }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .sticky-totals { position: static; }
+      .side-column { order: -1; }
+      .sticky-totals { border-left: 0; }
+    }
+
+    @media (max-width: 640px) {
+      .topbar { padding-inline: 8px; }
+      .prototype-chip { display: none; }
+      .intro { display: block; }
+      .intro h1 { font-size: 27px; }
+      .section-card, .sticky-totals, .result-card { padding: 0 0 14px; border-radius: 0; }
+      .sticky-totals { padding: 14px 16px; }
+      .result-card { padding: 16px; }
+      .field-grid.two, .field-grid.three, .customer-browser { grid-template-columns: 1fr; }
+      .customer-list { max-height: 225px; }
+      .adjustment-row { grid-template-columns: minmax(0, 1fr) 84px 75px 30px; }
+      .invoice-adjustments .adjustment-row { grid-template-columns: minmax(0, 1fr) 88px 75px 30px; }
+      .adjustment-row input, .adjustment-row select { font-size: 11px; }
+      .line-header { padding-inline: 12px; }
+      .line-body { padding-inline: 12px; }
+      .line-values { grid-template-columns: minmax(0, 1.05fr) 56px 48px minmax(72px, .95fr) minmax(92px, 1.05fr); gap: 5px; }
+      .line-total { padding-left: 5px; }
+      .line-total strong { font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="app-brand">
+        <button id="menu-button" class="back-button" type="button" aria-label="กลับไปด้านบน">≡</button>
+        <div class="brand-lockup">
+          <span class="brand-mark" aria-hidden="true">MW</span>
+          <div class="topbar-title">
+            <strong>Magicwash Laundry</strong>
+            <span>ออกใบแจ้งหนี้</span>
+          </div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button id="header-customer-search" class="header-icon" type="button" aria-label="ไปที่เลือกลูกค้า">⌕</button>
+        <button id="header-close" class="header-icon" type="button" aria-label="กลับไปด้านบน">×</button>
+      </div>
+    </header>
+
+    <main>
+      <div class="intro">
+        <div>
+          <h1>สร้างใบแจ้งหนี้</h1>
+          <p>เลือกข้อมูลลูกค้า ดึงรายการจากออเดอร์ หรือเพิ่มรายการเอง จากนั้นตรวจสอบยอดรวมก่อนออกใบแจ้งหนี้</p>
+        </div>
+      </div>
+
+      <div id="layout" class="layout">
+        <div class="main-column">
+          <section class="card section-card" data-view="one">
+            <div class="section-heading">
+              <div>
+                <h2><span class="section-symbol" aria-hidden="true">▤</span>ข้อมูลใบแจ้งหนี้</h2>
+                <p>เลขที่ใบแจ้งหนี้พิมพ์เองได้ตามรูปแบบของร้าน</p>
+              </div>
+            </div>
+            <div class="field-grid two">
+              <div>
+                <label class="field-label" for="invoice-number">เลขที่ใบแจ้งหนี้</label>
+                <div class="input-with-status">
+                  <input id="invoice-number" type="text" value="INV-2026-0042" autocomplete="off" placeholder="เช่น INV-2026-0042">
+                  <span id="invoice-status" class="input-status">ยังไม่พบเลขซ้ำ</span>
+                </div>
+                <div id="duplicate-notice" class="notice warn" hidden>
+                  <span class="notice-icon">!</span>
+                  <span>เลขที่นี้เคยใช้แล้ว ตรวจสอบอีกครั้งได้ แต่ยังออกใบแจ้งหนี้ต่อได้</span>
+                </div>
+                <p id="invoice-number-error" class="field-error" data-validation-error hidden></p>
+              </div>
+              <div>
+                <label class="field-label" for="issued-date">วันที่ออกใบแจ้งหนี้</label>
+                <input id="issued-date" type="date">
+                <p class="hint">แก้เป็นวันที่ย้อนหลังได้</p>
+                <p id="issued-date-error" class="field-error" data-validation-error hidden></p>
+              </div>
+            </div>
+            <div style="margin-top:14px">
+              <div>
+                <label class="field-label" for="due-date">วันครบกำหนดชำระ</label>
+                <input id="due-date" type="date">
+                <p id="due-date-error" class="field-error" data-validation-error hidden></p>
+              </div>
+            </div>
+          </section>
+
+          <section class="card section-card" data-view="one">
+            <div class="section-heading">
+              <div>
+                <h2><span class="section-symbol" aria-hidden="true">♙</span>ลูกค้า</h2>
+                <p>เลือกชื่อลูกค้าเพื่อบันทึกข้อมูล snapshot ลงในใบนี้</p>
+              </div>
+            </div>
+            <div class="customer-browser">
+              <div>
+                <div class="search-wrap">
+                  <span class="search-icon">⌕</span>
+                  <input id="customer-search" type="search" placeholder="ค้นหาชื่อ รหัส หรือเบอร์โทร" autocomplete="off">
+                </div>
+                <div id="customer-list" class="customer-list" aria-live="polite"></div>
+              </div>
+              <div id="customer-snapshot" class="snapshot empty">
+                <div>เลือกลูกค้าจากรายการ<br>เพื่อดูข้อมูลที่จะถูกแช่แข็งไว้บนใบแจ้งหนี้</div>
+              </div>
+            </div>
+            <p id="customer-error" class="field-error" data-validation-error hidden></p>
+
+            <div id="order-picker" class="order-picker">
+              <div class="section-heading" style="margin-bottom:10px">
+                <div>
+                  <h2 style="font-size:15px">ดึงรายการจากออเดอร์</h2>
+                  <p>เลือกออเดอร์แล้วรายการทั้งหมดจะเข้าใบนี้ทันที</p>
+                </div>
+              </div>
+              <div>
+                <label class="field-label" for="order-select">เลือกออเดอร์ของลูกค้า</label>
+                <select id="order-select"></select>
+              </div>
+              <p id="order-hint" class="hint">เลือกรายการแล้ว ระบบจะเพิ่มทุกบรรทัดให้โดยไม่ใส่ราคา</p>
+            </div>
+          </section>
+
+          <div class="screen-nav screen-nav-next" data-view="one">
+            <p id="page-one-error" class="field-error" data-validation-error hidden></p>
+            <button id="next-button" class="button primary" type="button">ถัดไป <span aria-hidden="true">→</span></button>
+          </div>
+
+          <div class="screen-nav screen-nav-back" data-view="two">
+            <p id="page-two-error" class="field-error" data-validation-error hidden></p>
+            <button id="back-button" class="button ghost" type="button"><span aria-hidden="true">←</span> ย้อนกลับ</button>
+          </div>
+
+          <section class="card section-card" data-view="two">
+            <div class="section-heading">
+              <div>
+                <h2><span class="section-symbol" aria-hidden="true">☷</span>รายการในใบแจ้งหนี้</h2>
+                <p>ลำดับรายการมีความหมาย เลื่อนขึ้นลงได้ และราคาต่อหน่วยกรอกแยกทุกบรรทัด</p>
+              </div>
+              <span id="line-count" class="prototype-chip" style="color:var(--primary-dark);border-color:#a8d5d1;background:var(--primary-soft)">0 รายการ</span>
+            </div>
+            <div class="items-toolbar">
+              <button id="add-blank-line" class="button secondary" type="button">+ เพิ่มรายการเอง</button>
+              <button id="scroll-to-customer" class="button ghost" type="button">เลือกจากออเดอร์ด้านบน</button>
+            </div>
+            <div id="line-list" class="line-list"></div>
+          </section>
+
+          <section class="card section-card" data-view="two">
+            <div class="section-heading">
+              <div>
+                <h2><span class="section-symbol" aria-hidden="true">±</span>ส่วนลดหรือค่าปรับทั้งใบ</h2>
+                <p>คำนวณตามลำดับที่ใส่ และมีผลครั้งเดียวกับยอดรวมทั้งใบ</p>
+              </div>
+              <button id="add-invoice-adjustment" class="button secondary small" type="button">+ เพิ่มรายการ</button>
+            </div>
+            <div id="invoice-adjustments" class="invoice-adjustments"></div>
+            <p id="no-invoice-adjustments" class="hint">ยังไม่มีส่วนลดหรือค่าปรับระดับใบแจ้งหนี้</p>
+          </section>
+
+          <section id="result-card" class="card result-card" data-view="two"></section>
+
+          <details class="card payload-card" data-view="two">
+            <summary>ดู JSON ที่หน้านี้จะส่งให้ระบบ</summary>
+            <div class="payload-body">
+              <p class="payload-caption">ข้อมูลจะอัปเดตตามฟอร์มแบบสด ๆ — ยอดรวม, สถานะ และรหัสภายในจะไม่ถูกส่งจากหน้าเว็บ</p>
+              <pre id="payload-json"></pre>
+            </div>
+          </details>
+        </div>
+
+        <aside class="side-column" data-view="two">
+          <section class="card sticky-totals">
+            <div class="totals-head">
+              <h2>สรุปยอด</h2>
+              <span class="live-dot">อัปเดตสด</span>
+            </div>
+            <div id="total-lines" class="total-lines"></div>
+            <div class="total-final">
+              <span>ยอดสุทธิ</span>
+              <strong id="grand-total">฿0.00</strong>
+            </div>
+            <button id="issue-button" class="button primary full" type="button">ออกใบแจ้งหนี้</button>
+            <p class="totals-note">กดแล้วจะจำลองการบันทึก 2 วินาที</p>
+          </section>
+
+          <details class="dev-tools">
+            <summary>ตัวเลือกทดสอบผลลัพธ์ (สำหรับ prototype)</summary>
+            <div class="field">
+              <label class="field-label" for="result-mode">เมื่อกดออกใบแจ้งหนี้ ให้แสดงผลแบบ</label>
+              <select id="result-mode">
+                <option value="created">สร้างสำเร็จ</option>
+                <option value="validation">ตรวจสอบไม่ผ่าน</option>
+                <option value="orphan">บันทึกรายการแล้ว แต่ใบแจ้งหนี้ไม่สำเร็จ</option>
+              </select>
+              <p>ใช้สลับดูทั้งสามสถานะ โดยไม่เรียก backend จริง</p>
+            </div>
+          </details>
+        </aside>
+      </div>
+
+      <p class="footer-note">ต้นแบบเพื่อคุยเรื่อง flow เท่านั้น • ไม่มีการเรียก API และไม่มีข้อมูลถูกบันทึกจริง</p>
+    </main>
+  </div>
+
+  <script>
+    const customers = [
+      {
+        customerCode: 'CUS-001', customerName: 'โรงแรมสยาม', phone: '021234567', address: '123 ถ.พระราม 1 กรุงเทพฯ',
+        orders: [
+          { id: 'ORD-2026-0117', date: '2026-07-28', items: [
+            { id: 'a3f9c1d2', description: 'ผ้าปูที่นอน', serviceType: 'LAUNDRY', unit: 'ผืน', quantity: 20 },
+            { id: 'b6c2e8a1', description: 'ปลอกหมอน', serviceType: 'LAUNDRY', unit: 'ใบ', quantity: 42 },
+            { id: 'c1d7f0b4', description: 'ผ้าเช็ดตัว', serviceType: 'LAUNDRY', unit: 'ผืน', quantity: 35 }
+          ] },
+          { id: 'ORD-2026-0104', date: '2026-07-21', items: [
+            { id: 'd2f5a4c9', description: 'ผ้าคลุมเตียง', serviceType: 'LAUNDRY', unit: 'ผืน', quantity: 8 },
+            { id: 'e4a8b3c7', description: 'ผ้าม่านห้องพัก', serviceType: 'SPECIAL_CARE', unit: 'ผืน', quantity: 4 }
+          ] }
+        ]
+      },
+      {
+        customerCode: 'CUS-002', customerName: 'สปาอุ่นใจ', phone: '0892345678', address: '88/9 ถ.นิมมานเหมินท์ เชียงใหม่',
+        orders: [
+          { id: 'ORD-2026-0122', date: '2026-07-29', items: [
+            { id: 'f0a1b2c3', description: 'ผ้าขนหนูผืนใหญ่', serviceType: 'LAUNDRY', unit: 'ผืน', quantity: 30 },
+            { id: 'f4d5e6a7', description: 'เสื้อคลุมสปา', serviceType: 'LAUNDRY', unit: 'ตัว', quantity: 12 },
+            { id: 'f8b9c0d1', description: 'ผ้าปูเตียงนวด', serviceType: 'LAUNDRY', unit: 'ผืน', quantity: 16 }
+          ] }
+        ]
+      },
+      {
+        customerCode: 'CUS-003', customerName: 'คลินิกหมอใจดี', phone: '076345678', address: '45 ถ.เยาวราช ภูเก็ต',
+        orders: [
+          { id: 'ORD-2026-0098', date: '2026-07-24', items: [
+            { id: '0a1b2c3d', description: 'ชุดกาวน์แพทย์', serviceType: 'LAUNDRY', unit: 'ตัว', quantity: 15 },
+            { id: '4e5f6a7b', description: 'ผ้าคลุมเตียงตรวจ', serviceType: 'LAUNDRY', unit: 'ผืน', quantity: 10 }
+          ] },
+          { id: 'ORD-2026-0087', date: '2026-07-18', items: [
+            { id: '8c9d0e1f', description: 'ผ้าห่มคนไข้', serviceType: 'LAUNDRY', unit: 'ผืน', quantity: 6 },
+            { id: '2a3b4c5d', description: 'ปลอกหมอนคนไข้', serviceType: 'LAUNDRY', unit: 'ใบ', quantity: 12 },
+            { id: '6e7f8a9b', description: 'ผ้าม่านกั้นเตียง', serviceType: 'SPECIAL_CARE', unit: 'ผืน', quantity: 3 }
+          ] }
+        ]
+      },
+      {
+        customerCode: 'CUS-004', customerName: 'คุณณิชา วัฒนกุล', phone: '0814567890', address: '19/4 หมู่บ้านลัดดารมย์ นนทบุรี',
+        orders: [
+          { id: 'ORD-2026-0111', date: '2026-07-26', items: [
+            { id: 'aa11bb22', description: 'ผ้านวม 6 ฟุต', serviceType: 'SPECIAL_CARE', unit: 'ผืน', quantity: 1 },
+            { id: 'cc33dd44', description: 'พรมเช็ดเท้า', serviceType: 'LAUNDRY', unit: 'ผืน', quantity: 4 }
+          ] }
+        ]
+      },
+      {
+        customerCode: 'CUS-005', customerName: 'โรงเรียนสายรุ้ง', phone: '022345678', address: '71 ถ.ประชาชื่น กรุงเทพฯ',
+        orders: [
+          { id: 'ORD-2026-0109', date: '2026-07-25', items: [
+            { id: 'ee55ff66', description: 'ผ้าปูที่นอนหอพัก', serviceType: 'LAUNDRY', unit: 'ผืน', quantity: 45 },
+            { id: 'gg77hh88', description: 'ผ้าห่มนักเรียน', serviceType: 'LAUNDRY', unit: 'ผืน', quantity: 45 },
+            { id: 'ii99jj00', description: 'ชุดกีฬา', serviceType: 'LAUNDRY', unit: 'ชุด', quantity: 28 },
+            { id: 'kk11ll22', description: 'ผ้าม่านห้องเรียน', serviceType: 'SPECIAL_CARE', unit: 'ผืน', quantity: 9 }
+          ] },
+          { id: 'ORD-2026-0076', date: '2026-07-11', items: [
+            { id: 'mm33nn44', description: 'ผ้าเช็ดมือ', serviceType: 'LAUNDRY', unit: 'ผืน', quantity: 60 },
+            { id: 'oo55pp66', description: 'ผ้าปูโต๊ะโรงอาหาร', serviceType: 'LAUNDRY', unit: 'ผืน', quantity: 14 }
+          ] }
+        ]
+      },
+      {
+        customerCode: 'CUS-006', customerName: 'บริษัท ฟลอร่า รีสอร์ต', phone: '032567890', address: '9/9 หัวหิน ประจวบคีรีขันธ์',
+        orders: [
+          { id: 'ORD-2026-0126', date: '2026-07-29', items: [
+            { id: 'qq77rr88', description: 'ผ้าปูเตียงวิลล่า', serviceType: 'LAUNDRY', unit: 'ผืน', quantity: 18 },
+            { id: 'ss99tt00', description: 'เสื้อคลุมอาบน้ำ', serviceType: 'LAUNDRY', unit: 'ตัว', quantity: 18 },
+            { id: 'uu11vv22', description: 'ผ้าเช็ดตัวสระว่ายน้ำ', serviceType: 'LAUNDRY', unit: 'ผืน', quantity: 36 }
+          ] }
+        ]
+      }
+    ];
+
+    const state = {
+      customer: null,
+      orderId: '',
+      currentView: 'one',
+      lines: [],
+      invoiceAdjustments: [],
+      nextLineId: 1,
+      nextAdjustmentId: 1,
+      saving: false,
+      validationErrors: {}
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function today() {
+      const date = new Date();
+      const offset = date.getTimezoneOffset();
+      return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 10);
+    }
+
+    function addDays(dateString, days) {
+      const date = new Date(`${dateString}T12:00:00`);
+      date.setDate(date.getDate() + days);
+      return date.toISOString().slice(0, 10);
+    }
+
+    function numberOrNull(value) {
+      if (value === '' || value === null || value === undefined) return null;
+      const number = Number(value);
+      return Number.isFinite(number) ? number : null;
+    }
+
+    const ZERO = { n: 0n, d: 1n };
+
+    function gcd(a, b) {
+      let left = a < 0n ? -a : a;
+      let right = b < 0n ? -b : b;
+      while (right) [left, right] = [right, left % right];
+      return left || 1n;
+    }
+
+    function decimal(value) {
+      const text = String(value ?? '').trim();
+      if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(text)) return null;
+      const sign = text.startsWith('-') ? -1n : 1n;
+      const unsigned = text.replace(/^[+-]/, '');
+      const [whole = '0', fraction = ''] = unsigned.split('.');
+      const denominator = 10n ** BigInt(fraction.length);
+      const numerator = sign * BigInt(`${whole || '0'}${fraction}` || '0');
+      const divisor = gcd(numerator, denominator);
+      return { n: numerator / divisor, d: denominator / divisor };
+    }
+
+    function decimalFromNumber(value) {
+      return decimal(String(value));
+    }
+
+    function addDecimal(left, right) {
+      const numerator = left.n * right.d + right.n * left.d;
+      const denominator = left.d * right.d;
+      const divisor = gcd(numerator, denominator);
+      return { n: numerator / divisor, d: denominator / divisor };
+    }
+
+    function multiplyDecimal(left, right) {
+      const numerator = left.n * right.n;
+      const denominator = left.d * right.d;
+      const divisor = gcd(numerator, denominator);
+      return { n: numerator / divisor, d: denominator / divisor };
+    }
+
+    function divideDecimal(left, right) {
+      if (right.n === 0n) return null;
+      const numerator = left.n * right.d;
+      const denominator = left.d * right.n;
+      const divisor = gcd(numerator, denominator);
+      const sign = denominator < 0n ? -1n : 1n;
+      return { n: (numerator / divisor) * sign, d: (denominator / divisor) * sign };
+    }
+
+    function subtractDecimal(left, right) {
+      return addDecimal(left, { n: -right.n, d: right.d });
+    }
+
+    function decimalToNumber(value) {
+      if (!value) return null;
+      return Number(value.n) / Number(value.d);
+    }
+
+    function money(value) {
+      const amount = value && typeof value.n === 'bigint' ? value : decimalFromNumber(value);
+      if (!amount) return '—';
+      const sign = amount.n < 0n ? '-' : '';
+      const numerator = amount.n < 0n ? -amount.n : amount.n;
+      const scaledNumerator = numerator * 100n;
+      let scaled = scaledNumerator / amount.d;
+      if ((scaledNumerator % amount.d) * 2n >= amount.d) scaled += 1n;
+      const baht = scaled / 100n;
+      const satang = String(scaled % 100n).padStart(2, '0');
+      return `${sign}฿${baht.toLocaleString('en-US')}.${satang}`;
+    }
+
+    function initials(name) {
+      return name.replace(/^คุณ/, '').trim().slice(0, 2);
+    }
+
+    function applyAdjustment(running, adjustment) {
+      const value = adjustment.decimal || decimal(adjustment.value);
+      if (!value) return running;
+      if (adjustment.calculation === 'FIXED') return addDecimal(running, value);
+      return addDecimal(running, divideDecimal(multiplyDecimal(running, value), decimalFromNumber(100)));
+    }
+
+    function usableAdjustments(adjustments) {
+      return adjustments
+        .map((adjustment) => ({
+          label: adjustment.label.trim(),
+          calculation: adjustment.calculation,
+          value: numberOrNull(adjustment.value),
+          decimal: decimal(adjustment.value),
+          refSource: adjustment.refSource,
+          refCode: adjustment.refCode
+        }))
+        .filter((adjustment) => adjustment.label && adjustment.decimal && adjustment.decimal.n !== 0n);
+    }
+
+    function calculateLine(line) {
+      const quantity = decimal(line.quantity);
+      const unitPrice = decimal(line.unitPrice);
+      if (!quantity || quantity.n <= 0n || !unitPrice) return null;
+      const adjustedUnit = usableAdjustments(line.adjustments).reduce(applyAdjustment, unitPrice);
+      return {
+        subtotal: multiplyDecimal(quantity, unitPrice),
+        total: multiplyDecimal(quantity, adjustedUnit),
+        adjustedUnit
+      };
+    }
+
+    function calculateTotals() {
+      const lineTotals = state.lines.map(calculateLine).filter(Boolean).map((line) => line.total);
+      const lineSum = lineTotals.reduce(addDecimal, ZERO);
+      const finalTotal = usableAdjustments(state.invoiceAdjustments).reduce(applyAdjustment, lineSum);
+      return { lineSum, finalTotal, lineTotals };
+    }
+
+    function linePayload(line) {
+      const payload = {};
+      if (line.sourceOrderId) payload.sourceOrderId = line.sourceOrderId;
+      if (line.sourceItemId) payload.sourceItemId = line.sourceItemId;
+      payload.description = line.description.trim();
+      payload.serviceType = line.serviceType.trim();
+      payload.unit = line.unit.trim();
+      payload.quantity = numberOrNull(line.quantity);
+      payload.unitPrice = numberOrNull(line.unitPrice);
+      payload.adjustments = usableAdjustments(line.adjustments).map(({ label, calculation, value }) => ({
+        label, calculation, value
+      }));
+      return payload;
+    }
+
+    function buildPayload() {
+      const payload = {
+        invoiceNumber: $('invoice-number').value.trim(),
+        issuedDate: $('issued-date').value,
+        dueDate: $('due-date').value,
+        customer: state.customer ? {
+          customerCode: state.customer.customerCode,
+          customerName: state.customer.customerName,
+          phone: state.customer.phone,
+          address: state.customer.address
+        } : null,
+        adjustments: usableAdjustments(state.invoiceAdjustments).map(({ label, calculation, value }) => ({
+          label, calculation, value
+        })),
+        items: state.lines.map(linePayload)
+      };
+      return payload;
+    }
+
+    function renderPayload() {
+      $('payload-json').textContent = JSON.stringify(buildPayload(), null, 2);
+    }
+
+    function renderView(view) {
+      state.currentView = view;
+      document.querySelectorAll('[data-view]').forEach((element) => {
+        element.hidden = element.dataset.view !== view;
+      });
+      $('layout').classList.toggle('is-step-two', view === 'two');
+      document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderCustomers() {
+      const query = $('customer-search').value.trim().toLowerCase();
+      const filtered = customers.filter((customer) => [customer.customerCode, customer.customerName, customer.phone]
+        .some((value) => value.toLowerCase().includes(query)));
+      $('customer-list').innerHTML = filtered.length ? filtered.map((customer) => `
+        <button class="customer-option ${state.customer?.customerCode === customer.customerCode ? 'selected' : ''}" type="button" data-customer-code="${customer.customerCode}">
+          <span class="avatar">${initials(customer.customerName)}</span>
+          <span><strong>${customer.customerName}</strong><small>${customer.customerCode} · ${customer.phone}</small></span>
+          <span class="check">✓</span>
+        </button>
+      `).join('') : '<div class="line-empty">ไม่พบลูกค้าที่ค้นหา</div>';
+    }
+
+    function renderSnapshot() {
+      const customer = state.customer;
+      const snapshot = $('customer-snapshot');
+      if (!customer) {
+        snapshot.className = 'snapshot empty';
+        snapshot.innerHTML = 'เลือกลูกค้าจากรายการ<br>เพื่อดูข้อมูลที่จะถูกแช่แข็งไว้บนใบแจ้งหนี้';
+        return;
+      }
+      snapshot.className = 'snapshot';
+      snapshot.innerHTML = `
+        <div class="snapshot-head">
+          <span class="avatar">${initials(customer.customerName)}</span>
+          <div><h3>ข้อมูลที่จะบันทึกในใบนี้</h3><p>snapshot ณ วันที่ออกใบแจ้งหนี้</p></div>
+        </div>
+        <dl>
+          <dt>รหัส</dt><dd>${customer.customerCode}</dd>
+          <dt>ชื่อ</dt><dd>${customer.customerName}</dd>
+          <dt>โทร</dt><dd>${customer.phone}</dd>
+          <dt>ที่อยู่</dt><dd>${customer.address}</dd>
+        </dl>
+      `;
+    }
+
+    function renderOrderPicker() {
+      const picker = $('order-picker');
+      if (!state.customer) {
+        picker.classList.remove('visible');
+        return;
+      }
+      picker.classList.add('visible');
+      const orders = state.customer.orders;
+      const options = orders.map((order) => `<option value="${order.id}" ${order.id === state.orderId ? 'selected' : ''}>${order.id} · ${order.date} · ${order.items.length} รายการ</option>`).join('');
+      $('order-select').innerHTML = `<option value="">เลือกออเดอร์เพื่อเพิ่มรายการทั้งหมด</option>${options}`;
+      $('order-select').value = state.orderId;
+      $('order-hint').textContent = state.orderId
+        ? 'เพิ่มรายการจากออเดอร์แล้ว ลบรายการที่ไม่ต้องการได้จากด้านล่าง'
+        : 'เลือกรายการแล้ว ระบบจะเพิ่มทุกบรรทัดให้โดยไม่ใส่ราคา';
+    }
+
+    function importOrder(orderId) {
+      const order = state.customer?.orders.find((item) => item.id === orderId);
+      if (!order) return;
+      clearValidationFeedback();
+      state.orderId = order.id;
+      order.items.forEach((item) => {
+        const alreadyInList = state.lines.some((line) => line.sourceOrderId === order.id && line.sourceItemId === item.id);
+        if (!alreadyInList) state.lines.push(newLine({ ...item, orderId: order.id }));
+      });
+      renderOrderPicker();
+      renderLineItems();
+      renderPayload();
+      $('line-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function errorFor(path) {
+      return state.validationErrors[path] || '';
+    }
+
+    function errorMarkup(path) {
+      const message = errorFor(path);
+      return `<p class="field-error" data-validation-error ${message ? '' : 'hidden'}>${escapeHtml(message)}</p>`;
+    }
+
+    function invalidAttribute(path) {
+      return errorFor(path) ? 'aria-invalid="true"' : '';
+    }
+
+    function adjustmentRow(adjustment, scope, index) {
+      const path = scope === 'invoice' ? `adjustments.${index}` : `items.${scope.split('-')[1]}.adjustments.${index}`;
+      return `
+        <div class="adjustment-entry">
+          <div class="adjustment-row" data-adjustment-row="${scope}" data-adjustment-index="${index}">
+            <input data-adjustment-field="label" type="text" value="${escapeAttribute(adjustment.label)}" placeholder="ชื่อรายการ เช่น ส่วนลดสมาชิก" aria-label="ชื่อส่วนลด" ${invalidAttribute(`${path}.label`)}>
+            <select data-adjustment-field="calculation" aria-label="วิธีคำนวณ">
+              <option value="FIXED" ${adjustment.calculation === 'FIXED' ? 'selected' : ''}>บาท</option>
+              <option value="PERCENT" ${adjustment.calculation === 'PERCENT' ? 'selected' : ''}>เปอร์เซ็นต์</option>
+            </select>
+            <input data-adjustment-field="value" type="number" step="0.01" value="${escapeAttribute(adjustment.value)}" placeholder="-50" aria-label="ค่าปรับ" ${invalidAttribute(`${path}.value`)}>
+            <button class="icon-button remove" type="button" data-remove-adjustment="${scope}" data-adjustment-index="${index}" aria-label="ลบส่วนลด">×</button>
+          </div>
+          ${errorMarkup(path)}
+        </div>
+      `;
+    }
+
+    function escapeAttribute(value) {
+      return String(value ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function renderLineItems() {
+      const list = $('line-list');
+      $('line-count').textContent = `${state.lines.length} รายการ`;
+      if (!state.lines.length) {
+        list.innerHTML = `<div class="line-empty">ยังไม่มีรายการ<br><small>เพิ่มจากออเดอร์ หรือกด “เพิ่มรายการเอง” เพื่อเริ่มกรอก</small>${errorMarkup('items')}</div>`;
+        renderTotals();
+        return;
+      }
+      list.innerHTML = state.lines.map((line, index) => {
+        const calculation = calculateLine(line);
+        const title = line.description.trim() || 'รายการใหม่';
+        return `
+          <article class="line-card ${line.sourceOrderId ? 'imported' : ''}" data-line-index="${index}">
+            <div class="line-header">
+              <span class="line-number">${index + 1}</span>
+              <div class="line-title">
+                <strong>${escapeHtml(title)}</strong>
+                <small>${line.sourceOrderId ? 'รายการจากออเดอร์ แก้จำนวนได้' : 'รายการที่พิมพ์เอง'}</small>
+                ${line.sourceOrderId ? `<span class="source-tag">จาก ${line.sourceOrderId}</span>` : ''}
+              </div>
+              <div class="line-actions">
+                <button class="icon-button" type="button" data-move-line="up" data-line-index="${index}" aria-label="เลื่อนขึ้น" ${index === 0 ? 'disabled' : ''}>↑</button>
+                <button class="icon-button" type="button" data-move-line="down" data-line-index="${index}" aria-label="เลื่อนลง" ${index === state.lines.length - 1 ? 'disabled' : ''}>↓</button>
+                <button class="icon-button remove" type="button" data-remove-line="${index}" aria-label="ลบรายการ">×</button>
+              </div>
+            </div>
+            <div class="line-body">
+              <div class="line-top-fields">
+                <div><label class="field-label">รายละเอียด</label><input data-line-field="description" type="text" value="${escapeAttribute(line.description)}" placeholder="เช่น ผ้าปูที่นอน" ${invalidAttribute(`items.${index}.description`)}>${errorMarkup(`items.${index}.description`)}</div>
+              </div>
+              <div class="line-values">
+                <div><label class="field-label">บริการ</label><input data-line-field="serviceType" type="text" value="${escapeAttribute(line.serviceType)}" placeholder="LAUNDRY" ${invalidAttribute(`items.${index}.serviceType`)}>${errorMarkup(`items.${index}.serviceType`)}</div>
+                <div><label class="field-label">หน่วย</label><input data-line-field="unit" type="text" value="${escapeAttribute(line.unit)}" placeholder="ผืน / กก. / ครั้ง" ${invalidAttribute(`items.${index}.unit`)}>${errorMarkup(`items.${index}.unit`)}</div>
+                <div><label class="field-label">จำนวน</label><input data-line-field="quantity" type="number" min="0" step="0.01" value="${escapeAttribute(line.quantity)}" ${invalidAttribute(`items.${index}.quantity`)}>${errorMarkup(`items.${index}.quantity`)}</div>
+                <div><label class="field-label">ราคาต่อหน่วย</label><input data-line-field="unitPrice" type="number" min="0" step="0.01" value="${escapeAttribute(line.unitPrice)}" placeholder="กรอกราคา" ${invalidAttribute(`items.${index}.unitPrice`)}>${errorMarkup(`items.${index}.unitPrice`)}</div>
+                <div class="line-total"><span>รวม</span><strong>${calculation ? money(calculation.total) : 'กรอกราคา'}</strong></div>
+              </div>
+              ${line.sourceOrderId && numberOrNull(line.unitPrice) === null ? '<div class="missing-price">ต้องกรอกราคาต่อหน่วย — ออเดอร์ไม่มีข้อมูลราคา</div>' : ''}
+              <details class="adjustments" ${line.adjustments.length || usableAdjustments(line.adjustments).length ? 'open' : ''}>
+                <summary>ส่วนลด/ค่าปรับรายการนี้ (${usableAdjustments(line.adjustments).length})</summary>
+                <div class="adjustment-list">${line.adjustments.map((adjustment, adjustmentIndex) => adjustmentRow(adjustment, `line-${index}`, adjustmentIndex)).join('')}</div>
+                <button class="button ghost small" type="button" data-add-adjustment="line-${index}">+ เพิ่มส่วนลดรายการ</button>
+              </details>
+            </div>
+          </article>
+        `;
+      }).join('');
+      renderTotals();
+    }
+
+    function renderInvoiceAdjustments() {
+      $('invoice-adjustments').innerHTML = state.invoiceAdjustments.map((adjustment, index) => adjustmentRow(adjustment, 'invoice', index)).join('');
+      $('no-invoice-adjustments').hidden = state.invoiceAdjustments.length > 0;
+      renderTotals();
+    }
+
+    function renderTotals() {
+      const totals = calculateTotals();
+      $('total-lines').innerHTML = `
+        <div class="total-row"><span>รวมรายการ (${state.lines.length})</span><strong>${money(totals.lineSum)}</strong></div>
+        <div class="total-row adjustment"><span>ส่วนลด/ค่าปรับทั้งใบ</span><strong>${money(subtractDecimal(totals.finalTotal, totals.lineSum))}</strong></div>
+      `;
+      $('grand-total').textContent = money(totals.finalTotal);
+      renderPayload();
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+
+    function chooseCustomer(code) {
+      clearValidationFeedback();
+      state.customer = customers.find((customer) => customer.customerCode === code) || null;
+      state.orderId = '';
+      renderCustomers();
+      renderSnapshot();
+      renderOrderPicker();
+      renderPayload();
+    }
+
+    function newLine(source) {
+      return {
+        localId: `line-${state.nextLineId++}`,
+        sourceOrderId: source?.orderId || '',
+        sourceItemId: source?.id || '',
+        description: source?.description || '',
+        serviceType: source?.serviceType || '',
+        unit: source?.unit || '',
+        quantity: source?.quantity ?? 1,
+        unitPrice: '',
+        adjustments: []
+      };
+    }
+
+    function newAdjustment() {
+      return { id: `adjustment-${state.nextAdjustmentId++}`, label: '', calculation: 'FIXED', value: '' };
+    }
+
+    function collectValidationErrors() {
+      const errors = {};
+      const set = (path, message) => { errors[path] = message; };
+      const invoiceNumber = $('invoice-number').value.trim();
+      const issuedDate = $('issued-date').value;
+      const dueDate = $('due-date').value;
+
+      if (!invoiceNumber) set('invoiceNumber', 'กรุณากรอกเลขที่ใบแจ้งหนี้');
+      if (!issuedDate) set('issuedDate', 'กรุณาเลือกวันที่ออกใบแจ้งหนี้');
+      if (!dueDate) set('dueDate', 'กรุณาเลือกวันครบกำหนดชำระ');
+      if (issuedDate && dueDate && dueDate < issuedDate) set('dueDate', 'วันครบกำหนดต้องไม่ก่อนวันที่ออกใบแจ้งหนี้');
+      if (!state.customer) set('customer', 'กรุณาเลือกลูกค้าเพื่อสร้าง snapshot');
+
+      if (!state.lines.length) set('items', 'ต้องมีรายการอย่างน้อย 1 รายการ');
+      state.lines.forEach((line, index) => {
+        const prefix = `items.${index}`;
+        if (!line.description.trim()) set(`${prefix}.description`, 'กรุณากรอกรายละเอียด');
+        if (!line.serviceType.trim()) set(`${prefix}.serviceType`, 'กรุณากรอกประเภทบริการ');
+        if (!line.unit.trim()) set(`${prefix}.unit`, 'กรุณากรอกหน่วย');
+        const quantity = decimal(line.quantity);
+        const unitPrice = decimal(line.unitPrice);
+        if (!quantity || quantity.n <= 0n) set(`${prefix}.quantity`, 'จำนวนต้องมากกว่า 0');
+        if (!unitPrice || unitPrice.n <= 0n) set(`${prefix}.unitPrice`, 'ราคาต่อหน่วยต้องมากกว่า 0');
+
+        line.adjustments.forEach((adjustment, adjustmentIndex) => {
+          const hasInput = adjustment.label.trim() || String(adjustment.value ?? '').trim();
+          if (!hasInput) return;
+          const path = `${prefix}.adjustments.${adjustmentIndex}`;
+          if (!adjustment.label.trim()) {
+            set(path, 'กรุณาตั้งชื่อส่วนลดหรือค่าปรับ');
+            set(`${path}.label`, 'ต้องระบุชื่อ');
+          }
+          const value = decimal(adjustment.value);
+          if (!value || value.n === 0n) {
+            set(path, 'ค่าปรับต้องไม่เป็น 0 และต้องเป็นตัวเลข');
+            set(`${path}.value`, 'ต้องไม่เป็น 0');
+          }
+        });
+      });
+
+      state.invoiceAdjustments.forEach((adjustment, index) => {
+        const hasInput = adjustment.label.trim() || String(adjustment.value ?? '').trim();
+        if (!hasInput) return;
+        const path = `adjustments.${index}`;
+        if (!adjustment.label.trim()) {
+          set(path, 'กรุณาตั้งชื่อส่วนลดหรือค่าปรับทั้งใบ');
+          set(`${path}.label`, 'ต้องระบุชื่อ');
+        }
+        const value = decimal(adjustment.value);
+        if (!value || value.n === 0n) {
+          set(path, 'ค่าปรับต้องไม่เป็น 0 และต้องเป็นตัวเลข');
+          set(`${path}.value`, 'ต้องไม่เป็น 0');
+        }
+      });
+      return errors;
+    }
+
+    function renderTopValidation() {
+      const fields = [
+        ['invoice-number', 'invoice-number-error', 'invoiceNumber'],
+        ['issued-date', 'issued-date-error', 'issuedDate'],
+        ['due-date', 'due-date-error', 'dueDate']
+      ];
+      fields.forEach(([inputId, errorId, path]) => {
+        const input = $(inputId);
+        const error = $(errorId);
+        const message = errorFor(path);
+        input.toggleAttribute('aria-invalid', Boolean(message));
+        if (message) {
+          error.textContent = message;
+          error.hidden = false;
+        } else {
+          error.textContent = '';
+          error.hidden = true;
+        }
+      });
+      const customerError = $('customer-error');
+      customerError.textContent = errorFor('customer');
+      customerError.hidden = !errorFor('customer');
+
+      const pageOneError = $('page-one-error');
+      const firstViewMessage = ['invoiceNumber', 'issuedDate', 'dueDate', 'customer']
+        .map((path) => errorFor(path)).find(Boolean) || '';
+      pageOneError.textContent = firstViewMessage;
+      pageOneError.hidden = !firstViewMessage;
+
+      const pageTwoError = $('page-two-error');
+      const secondViewMessage = [errorFor('customer'), errorFor('items')].filter(Boolean).join(' • ');
+      pageTwoError.textContent = secondViewMessage;
+      pageTwoError.hidden = !secondViewMessage;
+    }
+
+    function clearValidationFeedback() {
+      if (!Object.keys(state.validationErrors).length) return;
+      state.validationErrors = {};
+      document.querySelectorAll('[data-validation-error]').forEach((element) => {
+        element.hidden = true;
+        element.textContent = '';
+      });
+      document.querySelectorAll('[aria-invalid="true"]').forEach((element) => element.removeAttribute('aria-invalid'));
+      $('result-card').classList.remove('visible');
+    }
+
+    function showResult(mode) {
+      const result = $('result-card');
+      const totals = calculateTotals();
+      const invoiceNumber = $('invoice-number').value.trim() || 'ยังไม่ได้ระบุ';
+      const hadValidationErrors = Object.keys(state.validationErrors).length > 0;
+      state.validationErrors = mode === 'validation' ? collectValidationErrors() : {};
+      if (mode === 'validation' && !Object.keys(state.validationErrors).length) {
+        state.validationErrors.invoiceNumber = 'โหมดทดสอบ: ระบบจำลองปฏิเสธข้อมูลเพื่อแสดงสถานะนี้';
+      }
+      renderTopValidation();
+      if (mode === 'validation') {
+        renderLineItems();
+        renderInvoiceAdjustments();
+      } else if (hadValidationErrors) {
+        renderLineItems();
+        renderInvoiceAdjustments();
+      }
+      result.className = `card result-card visible ${mode}`;
+      if (mode === 'created') {
+        result.innerHTML = `
+          <span class="result-icon">✓</span>
+          <h2>ออกใบแจ้งหนี้สำเร็จ</h2>
+          <p>บันทึกใบแจ้งหนี้เรียบร้อยแล้ว ตรวจสอบรายละเอียดก่อนส่งให้ลูกค้า</p>
+          <div class="result-details">
+            <div><span>เลขที่ใบแจ้งหนี้</span><strong>${escapeHtml(invoiceNumber)}</strong></div>
+            <div><span>จำนวนรายการ</span><strong>${state.lines.length} รายการ</strong></div>
+            <div><span>ยอดสุทธิ</span><strong>${money(totals.finalTotal)}</strong></div>
+          </div>
+        `;
+      } else if (mode === 'validation') {
+        const messages = [...new Set(Object.values(state.validationErrors))].slice(0, 6);
+        result.innerHTML = `
+          <span class="result-icon">!</span>
+          <h2>ตรวจสอบข้อมูลไม่ผ่าน</h2>
+          <p>ยังไม่มีการบันทึกข้อมูล แก้ไขรายการด้านล่างแล้วลองใหม่ได้เลย</p>
+          <ul class="validation-list">${messages.map((message) => `<li>${escapeHtml(message)}</li>`).join('')}</ul>
+        `;
+      } else {
+        result.innerHTML = `
+          <span class="result-icon">!</span>
+          <h2>บันทึกรายการแล้ว แต่ใบแจ้งหนี้ไม่สำเร็จ</h2>
+          <p>รายการสินค้าจำนวน ${state.lines.length} บรรทัดถูกบันทึกลงระบบแล้ว แต่ส่วนหัวใบแจ้งหนี้ยังไม่ถูกสร้าง</p>
+          <div class="result-details">
+            <div><span>เลขที่ที่ต้องแจ้งผู้ดูแล</span><strong>${escapeHtml(invoiceNumber)}</strong></div>
+            <div><span>รายการที่บันทึกแล้ว</span><strong>${state.lines.length} รายการ</strong></div>
+          </div>
+          <p class="result-footnote"><strong>อย่ากดส่งซ้ำ</strong> เพราะจะทำให้รายการถูกเพิ่มซ้ำ ติดต่อผู้ดูแลชีตเพื่อช่วยตรวจสอบและจัดการข้อมูลของเลขที่นี้</p>
+        `;
+      }
+      result.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function updateInvoiceNumberStatus() {
+      const duplicate = $('invoice-number').value.trim() === 'INV-2026-0001';
+      $('duplicate-notice').hidden = !duplicate;
+      $('invoice-status').textContent = duplicate ? 'พบเลขซ้ำ' : 'ยังไม่พบเลขซ้ำ';
+      $('invoice-status').classList.toggle('warn', duplicate);
+    }
+
+    function updateLineFromTarget(target) {
+      const card = target.closest('[data-line-index]');
+      if (!card || !target.dataset.lineField) return false;
+      const index = Number(card.dataset.lineIndex);
+      const line = state.lines[index];
+      if (!line) return false;
+      line[target.dataset.lineField] = target.value;
+      const title = card.querySelector('.line-title strong');
+      if (title) title.textContent = line.description.trim() || 'รายการใหม่';
+      const priceWarning = card.querySelector('.missing-price');
+      if (line.sourceOrderId && numberOrNull(line.unitPrice) === null && !priceWarning) {
+        const body = card.querySelector('.line-body');
+        const adjustment = body.querySelector('.adjustments');
+        adjustment.insertAdjacentHTML('beforebegin', '<div class="missing-price">ต้องกรอกราคาต่อหน่วย — ออเดอร์ไม่มีข้อมูลราคา</div>');
+      } else if (priceWarning && numberOrNull(line.unitPrice) !== null) {
+        priceWarning.remove();
+      }
+      const calculation = calculateLine(line);
+      const total = card.querySelector('.line-subtotal strong');
+      if (total) total.textContent = calculation ? money(calculation.total) : 'กรอกราคา';
+      return true;
+    }
+
+    function updateAdjustmentFromTarget(target) {
+      const row = target.closest('[data-adjustment-row]');
+      if (!row || !target.dataset.adjustmentField) return false;
+      const scope = row.dataset.adjustmentRow;
+      const index = Number(row.dataset.adjustmentIndex);
+      const adjustments = scope === 'invoice' ? state.invoiceAdjustments : state.lines[Number(scope.split('-')[1])]?.adjustments;
+      if (!adjustments?.[index]) return false;
+      adjustments[index][target.dataset.adjustmentField] = target.value;
+      if (scope !== 'invoice') {
+        const lineIndex = Number(scope.split('-')[1]);
+        const line = state.lines[lineIndex];
+        const card = document.querySelector(`[data-line-index="${lineIndex}"]`);
+        const total = card?.querySelector('.line-subtotal strong');
+        if (total && line) {
+          const calculation = calculateLine(line);
+          total.textContent = calculation ? money(calculation.total) : 'กรอกราคา';
+        }
+      }
+      return true;
+    }
+
+    $('issued-date').value = today();
+    $('due-date').value = addDays($('issued-date').value, 7);
+
+    renderCustomers();
+    renderLineItems();
+    renderInvoiceAdjustments();
+    updateInvoiceNumberStatus();
+
+    const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+    $('menu-button').addEventListener('click', scrollTop);
+    $('header-close').addEventListener('click', scrollTop);
+    $('header-customer-search').addEventListener('click', () => document.querySelector('.customer-browser')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+
+    $('invoice-number').addEventListener('input', () => { clearValidationFeedback(); updateInvoiceNumberStatus(); renderPayload(); });
+    ['issued-date', 'due-date'].forEach((id) => $(id).addEventListener('input', () => { clearValidationFeedback(); renderPayload(); }));
+    $('customer-search').addEventListener('input', () => { clearValidationFeedback(); renderCustomers(); });
+    $('next-button').addEventListener('click', () => {
+      const errors = collectValidationErrors();
+      state.validationErrors = errors;
+      renderTopValidation();
+      const firstViewPaths = ['invoiceNumber', 'issuedDate', 'dueDate', 'customer'];
+      if (firstViewPaths.some((path) => errors[path])) return;
+      renderView('two');
+      renderLineItems();
+      renderInvoiceAdjustments();
+    });
+    $('back-button').addEventListener('click', () => {
+      clearValidationFeedback();
+      renderView('one');
+    });
+    $('customer-list').addEventListener('click', (event) => {
+      const button = event.target.closest('[data-customer-code]');
+      if (button) chooseCustomer(button.dataset.customerCode);
+    });
+    $('order-select').addEventListener('change', (event) => importOrder(event.target.value));
+
+    $('add-blank-line').addEventListener('click', () => {
+      clearValidationFeedback();
+      state.lines.push(newLine());
+      renderLineItems();
+      setTimeout(() => $('line-list').lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
+    });
+
+    $('scroll-to-customer').addEventListener('click', () => document.querySelector('[data-customer-code]')?.closest('.section-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+
+    $('line-list').addEventListener('input', (event) => {
+      clearValidationFeedback();
+      if (updateLineFromTarget(event.target)) { renderTotals(); return; }
+      if (updateAdjustmentFromTarget(event.target)) { renderTotals(); }
+    });
+    $('line-list').addEventListener('change', (event) => {
+      clearValidationFeedback();
+      if (updateLineFromTarget(event.target)) { renderTotals(); return; }
+      if (updateAdjustmentFromTarget(event.target)) { renderTotals(); }
+    });
+    $('line-list').addEventListener('click', (event) => {
+      clearValidationFeedback();
+      const remove = event.target.closest('[data-remove-line]');
+      if (remove) { state.lines.splice(Number(remove.dataset.removeLine), 1); renderLineItems(); return; }
+      const move = event.target.closest('[data-move-line]');
+      if (move) {
+        const index = Number(move.dataset.lineIndex);
+        const target = move.dataset.moveLine === 'up' ? index - 1 : index + 1;
+        if (state.lines[target]) [state.lines[index], state.lines[target]] = [state.lines[target], state.lines[index]];
+        renderLineItems();
+        return;
+      }
+      const addAdjustment = event.target.closest('[data-add-adjustment]');
+      if (addAdjustment) {
+        const scope = addAdjustment.dataset.addAdjustment;
+        state.lines[Number(scope.split('-')[1])].adjustments.push(newAdjustment());
+        renderLineItems();
+        return;
+      }
+      const removeAdjustment = event.target.closest('[data-remove-adjustment]');
+      if (removeAdjustment) {
+        const scope = removeAdjustment.dataset.removeAdjustment;
+        const adjustments = state.lines[Number(scope.split('-')[1])].adjustments;
+        adjustments.splice(Number(removeAdjustment.dataset.adjustmentIndex), 1);
+        renderLineItems();
+      }
+    });
+
+    $('add-invoice-adjustment').addEventListener('click', () => {
+      clearValidationFeedback();
+      state.invoiceAdjustments.push(newAdjustment());
+      renderInvoiceAdjustments();
+    });
+    $('invoice-adjustments').addEventListener('input', (event) => { clearValidationFeedback(); if (updateAdjustmentFromTarget(event.target)) renderTotals(); });
+    $('invoice-adjustments').addEventListener('change', (event) => { clearValidationFeedback(); if (updateAdjustmentFromTarget(event.target)) renderTotals(); });
+    $('invoice-adjustments').addEventListener('click', (event) => {
+      clearValidationFeedback();
+      const remove = event.target.closest('[data-remove-adjustment]');
+      if (!remove) return;
+      state.invoiceAdjustments.splice(Number(remove.dataset.adjustmentIndex), 1);
+      renderInvoiceAdjustments();
+    });
+
+    $('issue-button').addEventListener('click', () => {
+      if (state.saving) return;
+      state.saving = true;
+      const button = $('issue-button');
+      button.disabled = true;
+      button.textContent = 'กำลังตรวจสอบและบันทึก…';
+      $('result-card').classList.remove('visible');
+      setTimeout(() => {
+        state.saving = false;
+        button.disabled = false;
+        button.textContent = 'ออกใบแจ้งหนี้';
+        const errors = collectValidationErrors();
+        showResult(Object.keys(errors).length && $('result-mode').value !== 'validation' ? 'validation' : $('result-mode').value);
+      }, 2000);
+    });
+
+    renderView('one');
+  </script>
+</body>
+</html>

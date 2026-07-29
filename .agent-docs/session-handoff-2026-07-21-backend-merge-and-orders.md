@@ -20,7 +20,7 @@
 
 Tap a customer card in the Customer List → order history page: customer header, waiting pickups, order list, order detail sheet with items + note + "View Photos".
 
-- **Plan doc:** `.agent-docs/customer-order-history-plan.md` (reviewed 3x by Codex before implementation; status section at the top records the review history and final live-verification results — read it, don't re-derive).
+- **Implementation record:** This feature is complete and live-verified; the source code, tests, and git history are the durable implementation record.
 - **Backend:** `contracts/orders/order-api.schema.ts`, `server/modules/orders/*`, `api/orders/index.ts`. Read-only (`OrdersView` materialized sheet, no create/update route ever wired). Uses a new `ReadOnlyModuleApiContract` shape (`contracts/shared/read-only-module-api-contract.ts`) alongside the existing full-CRUD engine, since this module never writes.
 - **Frontend:** `src/features/customers/{pages/CustomerOrderHistoryPage.vue, components/Order*.vue, stores/customer-order-history.store.ts, services/{order,waiting-pickup}.service.ts, utils/{format-date,waiting-pickup.filter}.ts}`.
 - **UI note:** first pass diverged too far from the `webapp-react` reference (no status avatars, raw ISO dates, "View Photos" buried at the bottom of the detail sheet). Redesigned to match: status-colored avatar icons, human-readable dates, drag-to-dismiss sheet, dates-as-tiles, actions pinned near the top. If touching these components again, look at `webapp-react/src/components/customer-orders/*` first — it's the design source of truth.
@@ -58,7 +58,7 @@ Full incident memory: `vercel-esm-extension-outage.md`. Recommended (not yet don
 
 - `main` is live, verified: `/api/customers`, `/api/appointments`, `/api/orders` all confirmed returning real data in production.
 - Branches deleted (local + remote), fully merged, nothing lost: `feature/customer-order-history`, `feature/appointments-module-migration`, `feature/features-api-modules-structure`.
-- Branches still around, pre-dating this session, not touched: `feature/invoices-structure`, `job-tracking-vue`, `payment-flow-main`.
+- No feature branches remain in the current local or remote refs; only `main` remains.
 - `api/` function count: 7 files (well under the Hobby 12-function cap — this was also likely why `main`'s pre-merge deploy was separately failing; the merge fixed that as a side effect).
 
 ## 5. Memory written this session (auto-loaded next time)
