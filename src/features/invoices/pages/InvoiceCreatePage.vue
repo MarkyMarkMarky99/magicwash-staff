@@ -336,7 +336,7 @@ function goToInvoiceList() {
       </button>
     </div>
 
-    <!-- Result state: submitted, show one of the five distinct outcomes. -->
+    <!-- Result state: submitted, show one of the six distinct outcomes. -->
     <div v-else-if="result" class="space-y-4 px-4 pt-5">
       <section
         v-if="result.kind === 'created'"
@@ -434,6 +434,27 @@ function goToInvoiceList() {
         </p>
         <button type="button" class="w-full rounded-xl bg-primary px-4 py-2.5 font-label text-[12px] font-semibold text-on-primary" @click="backToOrderHistory">
           Back to order history
+        </button>
+      </section>
+
+      <section
+        v-else-if="result.kind === 'invoice_view_sync_failed'"
+        class="space-y-3 rounded-2xl border border-tertiary/40 bg-tertiary-container/15 p-5"
+      >
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-[24px] text-tertiary" aria-hidden="true">sync_problem</span>
+          <h1 class="font-headline text-base font-bold text-on-surface">Invoice created — view needs a refresh</h1>
+        </div>
+        <p class="font-body text-sm text-on-surface-variant">
+          <span class="font-semibold text-on-surface">{{ result.invoiceNumber }}</span> was saved successfully,
+          but the invoice view could not be synchronized.
+        </p>
+        <p class="font-body text-xs text-on-surface-variant">{{ result.message }}</p>
+        <p class="font-body text-xs font-semibold text-tertiary">
+          Do not resubmit — that would create a duplicate invoice.
+        </p>
+        <button type="button" class="w-full rounded-xl bg-primary px-4 py-2.5 font-label text-[12px] font-semibold text-on-primary" @click="goToInvoiceList">
+          View invoices
         </button>
       </section>
 

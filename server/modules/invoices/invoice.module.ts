@@ -15,7 +15,7 @@ import { createInvoice } from './invoice.service.js'
  * `contracts/invoices/invoice-api.schema.ts`, returned directly — not wrapped
  * in the generic `{ success, data, meta }` envelope that `ok`/`created`/
  * `errorBody` build. That envelope assumes one success shape and one error
- * shape; this endpoint's whole point is a five-outcome contract a client
+ * shape; this endpoint's whole point is a six-outcome contract a client
  * reads via `body.kind`, so it is the top-level response as agreed in
  * `docs/contracts/invoice-api.contract.ts`, not nested under `data`.
  */
@@ -42,6 +42,10 @@ function statusForResponse(response: CreateInvoiceResponse): number {
       // purpose: the client must never treat this as retryable, and folding
       // it into invoice_write_failed would risk exactly that.
       return 500
+    case 'invoice_view_sync_failed':
+      // The source invoice and order link are complete; only the materialized
+      // read view failed to refresh.
+      return 502
   }
 }
 

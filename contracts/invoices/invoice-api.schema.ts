@@ -201,12 +201,21 @@ export const createInvoiceOrderLinkFailedSchema = z.object({
   // billed. An admin must look up sourceOrderId and set invoice_id by hand.
 })
 
+export const createInvoiceViewSyncFailedSchema = z.object({
+  kind: z.literal('invoice_view_sync_failed'),
+  invoiceNumber: z.string(),
+  message: z.string(),
+  // The invoice, items, and order link are complete; only InvoicesView is stale.
+  // The client must not create the invoice again.
+})
+
 export const createInvoiceResponseSchema = z.discriminatedUnion('kind', [
   createInvoiceSuccessSchema,
   createInvoiceValidationErrorSchema,
   createInvoiceItemsFailedSchema,
   createInvoiceHeaderFailedSchema,
   createInvoiceOrderLinkFailedSchema,
+  createInvoiceViewSyncFailedSchema,
 ])
 
 export type CreateInvoiceSuccess = z.infer<typeof createInvoiceSuccessSchema>
@@ -214,6 +223,7 @@ export type CreateInvoiceValidationError = z.infer<typeof createInvoiceValidatio
 export type CreateInvoiceItemsFailed = z.infer<typeof createInvoiceItemsFailedSchema>
 export type CreateInvoiceHeaderFailed = z.infer<typeof createInvoiceHeaderFailedSchema>
 export type CreateInvoiceOrderLinkFailed = z.infer<typeof createInvoiceOrderLinkFailedSchema>
+export type CreateInvoiceViewSyncFailed = z.infer<typeof createInvoiceViewSyncFailedSchema>
 export type CreateInvoiceResponse = z.infer<typeof createInvoiceResponseSchema>
 
 // ── GET — the duplicate-number check ────────────────────────────────────────

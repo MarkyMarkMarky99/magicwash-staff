@@ -298,9 +298,11 @@ export interface Adjustment {
  *   1. POST InvoiceItem       — the whole batch in one request
  *   2. POST Invoice           — the header row
  *   3. UPDATE OrderForm       — mark the source order invoiced (§3b)
+ *   4. POST InvoiceView sync  — refresh the materialized invoice view
  *
  * Items first, deliberately. There is no transaction across the sheets, so
- * any of the three can land without the next:
+ * any of the first three writes can land without the next. The view sync is
+ * always attempted last, after the source invoice and order link are complete:
  *
  *   items ok, invoice fails        → orphan item rows nothing references.
  *     Invisible in every invoice list. Recoverable: fix and retry, or delete
@@ -312,6 +314,8 @@ export interface Adjustment {
  *     already fully and correctly recorded; only the OrderForm.invoice_id
  *     linkage is missing. Reported as its own outcome (§3b) and never
  *     retried — retrying would create a second, fully duplicate invoice.
+ *   source writes ok, view sync fails → the invoice is complete but
+ *     InvoicesView is stale. Reported as its own outcome and never retried.
  *
  * Because APPEND validates the entire batch before writing any of it, a bad
  * line cannot leave a half-written item set — the whole request is rejected and
@@ -323,7 +327,9 @@ export interface Adjustment {
  * the invoice number, because rows exist that a human has to clean up. An
  * order-link failure after a successful invoice write is a THIRD distinct
  * outcome for the same reason, with a stricter rule: never offer a retry at
- * all (see §3b). Never collapse any of these into one generic error.
+ * all (see §3b). A view-sync failure is a FOURTH distinct outcome: the source
+ * invoice is complete, but the materialized view is stale. Never collapse any
+ * of these into one generic error.
  */
 
 /* ────────────────────────────────────────────────────────────────────────────
