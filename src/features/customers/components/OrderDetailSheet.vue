@@ -12,6 +12,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
   bookDelivery: []
+  createInvoice: []
 }>()
 
 const router = useRouter()
@@ -139,6 +140,15 @@ function handleDragEnd(event: PointerEvent) {
           >
             <span class="material-symbols-outlined text-[16px] leading-none" aria-hidden="true">local_shipping</span>
             Book Delivery
+          </button>
+
+          <button
+            type="button"
+            class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 font-label text-[12px] font-semibold text-on-primary transition-all hover:bg-primary/90 active:scale-[0.98]"
+            @click="emit('createInvoice')"
+          >
+            <span class="material-symbols-outlined text-[16px] leading-none" aria-hidden="true">receipt_long</span>
+            Create Invoice
           </button>
         </div>
 

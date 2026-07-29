@@ -16,7 +16,7 @@ const canSearch = computed(() => SEARCHABLE_ROUTES.includes(route.path))
 const isGallery = computed(() => route.path.startsWith('/gallery/'))
 
 function goBack() {
-  if (isGallery.value) {
+  if (isGallery.value || route.name === 'invoice-create') {
     router.back()
     return
   }
@@ -49,12 +49,12 @@ function goBack() {
         v-if="route.path === '/invoices'"
         class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
         aria-label="Create invoice"
-        @click="router.push('/forms/create-invoice-form')"
+        @click="router.push({ name: 'invoice-create' })"
       >add</button>
 
       <!-- Back button — shown on detail pages -->
       <button
-        v-else-if="route.name === 'customer-order-history' || isGallery"
+        v-else-if="route.name === 'customer-order-history' || route.name === 'invoice-create' || isGallery"
         class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
         aria-label="Go back"
         @click="goBack"

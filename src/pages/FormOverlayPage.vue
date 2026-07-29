@@ -36,14 +36,6 @@ const formConfigs = {
     submitIcon: 'add_circle',
     submit: (data) => handleAppend('Orders', data),
   },
-  CreateInvoiceForm: {
-    title: 'Create Invoice',
-    submitLabel: 'Create Invoice',
-    submitIcon: 'add_circle',
-    submit: async (data) => {
-      console.log('Mock invoice payload:', data)
-    },
-  },
 }
 
 const scheduleConfigs = {

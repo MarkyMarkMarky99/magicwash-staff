@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import AppLayout from '@/layouts/AppLayout.vue'
 import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.store'
 import { useDeliveryBookingIntentStore } from '@/shared/stores/delivery-booking-intent.store'
+import { useInvoiceCreateIntentStore } from '@/shared/stores/invoice-create-intent.store'
 import { useCustomerOrderHistoryStore } from '../stores/customer-order-history.store'
 import type { OrderListDto } from '../services/order.service'
 import OrderDetailSheet from '../components/OrderDetailSheet.vue'
@@ -46,6 +47,17 @@ function bookDelivery() {
   router.push('/new-booking')
 }
 
+function createInvoice() {
+  const order = selectedOrder.value
+  if (!customer.value || !order) return
+  const orderId = order.orderId?.trim()
+  if (!orderId || order.customerId !== customer.value.customerId) return
+  useSelectedCustomerStore().select(customer.value)
+  useInvoiceCreateIntentStore().set(order)
+  closeSheet()
+  router.push({ name: 'invoice-create' })
+}
+
 onMounted(loadCustomer)
 watch(() => props.customerId, loadCustomer)
 </script>
@@ -69,6 +81,7 @@ watch(() => props.customerId, loadCustomer)
       :order="selectedOrder"
       @close="closeSheet"
       @book-delivery="bookDelivery"
+      @create-invoice="createInvoice"
     />
   </AppLayout>
 </template>
