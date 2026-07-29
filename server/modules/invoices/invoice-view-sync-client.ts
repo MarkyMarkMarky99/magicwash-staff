@@ -49,12 +49,16 @@ export async function syncInvoiceView(invoiceNumber: string): Promise<InvoiceVie
 
   const result = body as Record<string, unknown>
   if (result.ok !== true) {
-    return {
-      outcome: 'failed',
-      message: typeof result.message === 'string'
-        ? result.message
-        : 'Invoice view sync was rejected',
-    }
+    // The Apps Script endpoint names its reason field `error`, NOT `message`
+    // (see appscript/MagicwashPortal/InvoiceViewSync.js) — reading only
+    // `message` silently collapsed every real reason ("invoice not found",
+    // "invoice is deleted", a missing Script Property) into the generic
+    // fallback below. `message` stays as a second choice so a future response
+    // shape using it still surfaces something useful.
+    const reason = [result.error, result.message].find(
+      (candidate): candidate is string => typeof candidate === 'string' && candidate.length > 0,
+    )
+    return { outcome: 'failed', message: reason ?? 'Invoice view sync was rejected' }
   }
 
   return { outcome: 'confirmed' }

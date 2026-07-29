@@ -48,11 +48,28 @@ async function main(): Promise<void> {
   assert.equal(request?.init?.method, 'POST')
   assert.deepEqual(JSON.parse(String(request?.init?.body)), { invoiceNumber: 'INV-0001' })
 
+  // The shape the real Apps Script endpoint actually returns: the reason is
+  // under `error`, not `message`.
   const rejected = await withFetch(
+    (async () => response({ json: { ok: false, error: 'invoice not found' } })) as typeof fetch,
+    () => syncInvoiceView('INV-0001'),
+  )
+  assert.deepEqual(rejected, { outcome: 'failed', message: 'invoice not found' })
+
+  const rejectedWithMessage = await withFetch(
     (async () => response({ json: { ok: false, message: 'View unavailable' } })) as typeof fetch,
     () => syncInvoiceView('INV-0001'),
   )
-  assert.deepEqual(rejected, { outcome: 'failed', message: 'View unavailable' })
+  assert.deepEqual(rejectedWithMessage, { outcome: 'failed', message: 'View unavailable' })
+
+  const rejectedWithNeither = await withFetch(
+    (async () => response({ json: { ok: false } })) as typeof fetch,
+    () => syncInvoiceView('INV-0001'),
+  )
+  assert.deepEqual(rejectedWithNeither, {
+    outcome: 'failed',
+    message: 'Invoice view sync was rejected',
+  })
 
   const nullBody = await withFetch(
     (async () => response({ json: null })) as typeof fetch,
