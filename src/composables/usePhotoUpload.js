@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, toValue } from 'vue'
 import { compressImage } from '../utils/imageCompression'
 import { uploadRaw } from '../api/storage'
 import { savePhoto } from '../api/photos'
@@ -19,6 +19,12 @@ export function usePhotoUpload(type, orderId, orderitemId, createdBy) {
   }
 
   async function processFile(file, options = {}) {
+    const target = {
+      type: toValue(type),
+      orderId: toValue(orderId),
+      orderitemId: toValue(orderitemId),
+      createdBy: toValue(createdBy),
+    }
     const id = genId()
     images.value.push({
       id,
@@ -37,9 +43,14 @@ export function usePhotoUpload(type, orderId, orderitemId, createdBy) {
       const imageUrl = await uploadRaw(compressed)
       updateItem(id, { imageUrl, status: 'saving' })
 
-      const photoData = { id, order_id: orderId, image_url: imageUrl, created_by: createdBy }
-      if (orderitemId) photoData.orderitem_id = orderitemId
-      await savePhoto(type, photoData)
+      const photoData = {
+        id,
+        order_id: target.orderId,
+        image_url: imageUrl,
+        created_by: target.createdBy,
+      }
+      if (target.orderitemId) photoData.orderitem_id = target.orderitemId
+      await savePhoto(target.type, photoData)
       updateItem(id, { status: 'done' })
     } catch (err) {
       updateItem(id, { status: 'error', errorMsg: err?.message ?? 'เกิดข้อผิดพลาด' })

@@ -1,20 +1,29 @@
 <script setup>
-import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
+import { ref, computed, onActivated, onBeforeUnmount, onDeactivated, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePhotoUpload } from '../composables/usePhotoUpload'
 import { getPhotos } from '../api/photos'
+import AppLayout from '../layouts/AppLayout.vue'
 import CameraOverlayPage from './CameraOverlayPage.vue'
 
 function parseKey(key) {
-  const parts = key.split('-')
+  const parts = String(key ?? '').split('-')
   return { type: parts[0], orderId: parts[1], orderitemId: parts[2] ?? null }
 }
 
 const route = useRoute()
 const router = useRouter()
-const { type, orderId, orderitemId } = parseKey(route.params.key)
-const createdBy = route.query.by ?? ''
-const title = type === 'BEF' ? 'รูปก่อนซัก' : 'รูปหลังซัก'
+const routeKey = computed(() => (
+  typeof route.params.key === 'string' ? route.params.key : ''
+))
+const galleryKey = computed(() => parseKey(routeKey.value))
+const type = computed(() => galleryKey.value.type)
+const orderId = computed(() => galleryKey.value.orderId)
+const orderitemId = computed(() => galleryKey.value.orderitemId)
+const createdBy = computed(() => (
+  typeof route.query.by === 'string' ? route.query.by : ''
+))
+const title = computed(() => type.value === 'BEF' ? 'รูปก่อนซัก' : 'รูปหลังซัก')
 
 const { images, addFiles, remove, clearAll } = usePhotoUpload(type, orderId, orderitemId, createdBy)
 
@@ -28,14 +37,55 @@ const IN_PROGRESS = new Set(['compressing', 'uploading', 'saving'])
 // --- Fetch existing photos from GViz ---
 const fetchedPhotos = ref([])  // [{ id, image_url, notes }]
 const fetchStatus = ref('loading')
+let fetchSequence = 0
+let requestedKey = ''
 
-onMounted(async () => {
+async function loadFetchedPhotos(key) {
+  const parsed = parseKey(key)
+  if (!parsed.type || !parsed.orderId) {
+    fetchedPhotos.value = []
+    fetchStatus.value = 'error'
+    return
+  }
+
+  const sequence = ++fetchSequence
+  requestedKey = key
+  clearAll()
+  fetchedPhotos.value = []
+  fetchStatus.value = 'loading'
+  lightbox.value = null
+
   try {
-    fetchedPhotos.value = await getPhotos(type, orderId, orderitemId)
+    const photos = await getPhotos(parsed.type, parsed.orderId, parsed.orderitemId)
+    if (sequence !== fetchSequence) return
+    fetchedPhotos.value = photos
     fetchStatus.value = 'done'
   } catch {
+    if (sequence !== fetchSequence) return
     fetchStatus.value = 'error'
   }
+}
+
+watch(
+  routeKey,
+  (key) => {
+    if (key) {
+      void loadFetchedPhotos(key)
+    }
+  },
+  { immediate: true },
+)
+
+onActivated(() => {
+  const key = routeKey.value
+  if (key && requestedKey !== key) {
+    void loadFetchedPhotos(key)
+  }
+})
+
+onDeactivated(() => {
+  requestedKey = ''
+  fetchSequence += 1
 })
 
 onBeforeUnmount(() => {
@@ -97,16 +147,15 @@ function handleCameraClose() {
 </script>
 
 <template>
-  <div class="h-screen flex flex-col overflow-hidden">
+  <AppLayout>
+    <div class="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div class="flex-none border-b border-outline-variant/20 bg-surface-container-low px-4 py-2">
+        <h1 class="font-headline text-[13px] font-bold tracking-tight text-primary">{{ title }}</h1>
+      </div>
 
-    <!-- Header -->
-    <div class="bg-surface border-b border-outline-variant px-4 py-3 flex items-center">
-      <h1 class="font-body text-on-surface text-base font-semibold">{{ title }}</h1>
-    </div>
-
-    <!-- Body -->
-    <div class="gallery-scroll flex-1 overflow-y-auto">
-      <div class="flex min-h-full flex-col py-1">
+      <!-- Body -->
+      <div class="gallery-scroll flex-1 overflow-y-auto">
+        <div class="flex min-h-full flex-col py-1">
 
         <!-- Loading -->
         <div v-if="fetchStatus === 'loading'" class="flex-1 flex flex-col items-center justify-center gap-3">
@@ -186,18 +235,18 @@ function handleCameraClose() {
           </div>
         </template>
 
+        </div>
       </div>
-    </div>
 
-    <!-- Floating add button -->
-    <div class="fixed bottom-6 right-4">
-      <button
-        @click="openPicker"
-        class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition active:opacity-80 bg-primary text-on-primary"
-      >
-        <span class="material-symbols-outlined text-2xl">add_photo_alternate</span>
-      </button>
-    </div>
+      <!-- Floating add button -->
+      <div class="absolute bottom-6 right-4">
+        <button
+          @click="openPicker"
+          class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition active:opacity-80 bg-primary text-on-primary"
+        >
+          <span class="material-symbols-outlined text-2xl">add_photo_alternate</span>
+        </button>
+      </div>
 
     <!-- Lightbox -->
     <div
@@ -269,12 +318,13 @@ function handleCameraClose() {
     <!-- Hidden inputs -->
     <input ref="albumInputRef" type="file" accept="image/*" multiple class="hidden" @change="handleFiles" />
 
-    <CameraOverlayPage
-      :open="showCamera"
-      @capture="handleCameraCapture"
-      @close="handleCameraClose"
-    />
-  </div>
+      <CameraOverlayPage
+        :open="showCamera"
+        @capture="handleCameraCapture"
+        @close="handleCameraClose"
+      />
+    </div>
+  </AppLayout>
 </template>
 
 <style scoped>

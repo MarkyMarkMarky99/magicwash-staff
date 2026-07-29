@@ -13,6 +13,16 @@ const { searchOpen, toggleSearch } = useHeaderSearch()
 
 const SEARCHABLE_ROUTES = ['/customers', '/invoices']
 const canSearch = computed(() => SEARCHABLE_ROUTES.includes(route.path))
+const isGallery = computed(() => route.path.startsWith('/gallery/'))
+
+function goBack() {
+  if (isGallery.value) {
+    router.back()
+    return
+  }
+
+  router.push({ name: 'customer-list' })
+}
 </script>
 
 <template>
@@ -42,12 +52,12 @@ const canSearch = computed(() => SEARCHABLE_ROUTES.includes(route.path))
         @click="router.push('/forms/create-invoice-form')"
       >add</button>
 
-      <!-- Back button — shown on customer order history -->
+      <!-- Back button — shown on detail pages -->
       <button
-        v-else-if="route.name === 'customer-order-history'"
+        v-else-if="route.name === 'customer-order-history' || isGallery"
         class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
-        aria-label="Back to customers"
-        @click="router.push({ name: 'customer-list' })"
+        aria-label="Go back"
+        @click="goBack"
       >arrow_back</button>
 
       <!-- Close button — shown on /pending and /customers -->
