@@ -58,6 +58,12 @@ export class ApiHandler {
     try {
       return await controller(req)
     } catch (error) {
+      if (!(error instanceof ApiError)) {
+        // Unlike ApiError (an expected, already-classified outcome), this is
+        // an unhandled exception — log it before it's replaced by a generic
+        // message, or it is otherwise invisible to anyone debugging a 500.
+        console.error('Unhandled error in API controller', { method, error })
+      }
       const err =
         error instanceof ApiError
           ? error
