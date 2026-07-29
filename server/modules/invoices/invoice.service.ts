@@ -7,6 +7,7 @@ import {
 import {
   computeInvoiceLine,
   computeInvoiceTotal,
+  roundMoney,
 } from '../../../contracts/invoices/invoice-calculator.js'
 import {
   invoiceItemRowSchema,
@@ -16,6 +17,7 @@ import {
   type InvoiceRow,
 } from './invoice.contract.js'
 import { appendInvoice, appendInvoiceItems } from './invoice.gateway-client.js'
+import { markOrderInvoiced } from '../orders/orderForm.repository.js'
 
 /**
  * `created_by` placeholder until this app has real staff identity — kept in
@@ -47,9 +49,10 @@ function toDbAdjustment(adjustment: InvoiceAdjustmentInput): InvoiceAdjustment {
  * Creates one invoice: validates, computes every line's `subtotal`/
  * `net_total` server-side (authoritative — the client's own live preview is
  * never trusted), writes the `InvoiceItem` batch FIRST, then the `Invoice`
- * header row, and returns one of four distinct outcomes. Never throws for an
- * expected outcome (bad input, a rejected item batch, a failed header write)
- * — those are all represented in the return value per
+ * header row, then marks the source `OrderForm` row as invoiced, and returns
+ * one of five distinct outcomes. Never throws for an expected outcome (bad
+ * input, a rejected item batch, a failed header write, a failed order-link
+ * write) — those are all represented in the return value per
  * `contracts/invoices/invoice-api.schema.ts`. Only a genuine programmer error
  * (e.g. this module building a row that fails its own DB-side schema) should
  * escape as a thrown error, and is not expected to happen against
@@ -146,7 +149,31 @@ export async function createInvoice(payload: unknown): Promise<CreateInvoiceResp
     }
   }
 
-  const itemsTotal = lineCalculations.reduce((sum, calculation) => sum + calculation.netTotal, 0)
+  // ── Mark the source order as invoiced. The invoice IS fully and correctly
+  //    recorded at this point (items + header both written) — only the
+  //    OrderForm-side linkage is missing if this step fails. Reported as its
+  //    own distinct kind, never folded into invoice_write_failed, so the
+  //    caller never offers a retry here: a retry would create a SECOND
+  //    invoice for money that's already correctly billed. ──
+  const orderLink = await markOrderInvoiced(
+    request.sourceOrderId,
+    request.invoiceNumber,
+    INVOICE_CREATED_BY,
+  )
+  if (orderLink.outcome !== 'confirmed') {
+    return {
+      kind: 'order_link_failed',
+      invoiceNumber: request.invoiceNumber,
+      sourceOrderId: request.sourceOrderId,
+    }
+  }
+
+  // Line netTotals are already rounded money, but summing several 2-decimal
+  // floats can itself reintroduce binary drift — round the sum once, same as
+  // computeInvoiceTotal does for its linesTotal (see invoice-calculator.ts).
+  const itemsTotal = roundMoney(
+    lineCalculations.reduce((sum, calculation) => sum + calculation.netTotal, 0),
+  )
   const invoiceTotal = computeInvoiceTotal(
     lineCalculations.map((calculation) => calculation.netTotal),
     request.adjustments,

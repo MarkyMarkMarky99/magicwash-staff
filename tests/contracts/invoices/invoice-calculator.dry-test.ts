@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import {
   computeInvoiceLine,
   computeInvoiceTotal,
+  roundMoney,
 } from '../../../contracts/invoices/invoice-calculator.js'
 
 const tests: Array<{ name: string; run: () => Promise<void> | void }> = []
@@ -84,6 +85,20 @@ test('three lines plus an invoice-level PERCENT -5 lands on an exact cent, not a
 test('computeInvoiceTotal with no adjustments returns the exact rounded sum', () => {
   const invoiceTotal = computeInvoiceTotal([400, 316.8, 150], [])
   assert.equal(invoiceTotal, 866.8)
+})
+
+// ── itemsTotal (mirrors invoice.service.ts's response field) ────────────────
+
+test('summing three already-rounded netTotals can drift in raw IEEE 754, roundMoney fixes it', () => {
+  const netTotals = [316.8, 400, 150.15]
+
+  // The bare reduce invoice.service.ts used to return directly — demonstrates
+  // the bug: this does NOT equal the mathematically exact 866.95.
+  const rawSum = netTotals.reduce((sum, netTotal) => sum + netTotal, 0)
+  assert.notEqual(rawSum, 866.95)
+
+  // roundMoney(rawSum) is what invoice.service.ts's itemsTotal now computes.
+  assert.equal(roundMoney(rawSum), 866.95)
 })
 
 async function main(): Promise<void> {

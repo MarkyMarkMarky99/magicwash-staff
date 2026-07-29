@@ -15,7 +15,7 @@ import { createInvoice } from './invoice.service.js'
  * `contracts/invoices/invoice-api.schema.ts`, returned directly — not wrapped
  * in the generic `{ success, data, meta }` envelope that `ok`/`created`/
  * `errorBody` build. That envelope assumes one success shape and one error
- * shape; this endpoint's whole point is a four-outcome contract a client
+ * shape; this endpoint's whole point is a five-outcome contract a client
  * reads via `body.kind`, so it is the top-level response as agreed in
  * `docs/contracts/invoice-api.contract.ts`, not nested under `data`.
  */
@@ -34,6 +34,13 @@ function statusForResponse(response: CreateInvoiceResponse): number {
       // Items ARE written; only the header row failed. A server-side
       // inconsistency that needs a person to reconcile, not a plain upstream
       // failure — distinct status from items_write_failed on purpose.
+      return 500
+    case 'order_link_failed':
+      // Items AND the invoice header are both written; only the OrderForm
+      // linkage failed. Also a server-side inconsistency needing a person to
+      // reconcile — 500, like invoice_write_failed — but a DIFFERENT kind on
+      // purpose: the client must never treat this as retryable, and folding
+      // it into invoice_write_failed would risk exactly that.
       return 500
   }
 }

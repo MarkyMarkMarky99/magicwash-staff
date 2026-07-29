@@ -4,14 +4,16 @@
  * Type-only spec. Nothing imports it at runtime; it exists so the payload is
  * agreed before any code is written.
  *
- * Two sheets, one workbook, written through the SheetLib gateway at
+ * Three writes, three sheets, through the SheetLib gateway at
  * APPSCRIPT_GATEWAY_URL:
- *   Invoice      → tab "Invoices",     PK invoice_number
- *   InvoiceItem  → tab "InvoiceItems", PK invoice_item_id, FK invoice_number
+ *   Invoice      → tab "Invoices",     PK invoice_number       (APPEND)
+ *   InvoiceItem  → tab "InvoiceItems", PK invoice_item_id, FK invoice_number (APPEND)
+ *   OrderForm    → sheet "OrderForm",  PK id                   (UPDATE, one column)
  *
  * Authoritative schemas (read them, do not trust this file where they differ):
  *   G:\My Drive\Magicwash\Database\GoogleSheets\Invoice.json
  *   G:\My Drive\Magicwash\Database\GoogleSheets\InvoiceItem.json
+ *   G:\My Drive\Magicwash\Database\GoogleSheets\OrderForm.json
  * Ignore Invoices.json / InvoiceItems.json one directory up — stale, different targets.
  */
 
@@ -193,6 +195,58 @@ export interface Adjustment {
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
+ * 3b. POST #3 — mark the source order as invoiced (sent THIRD, after Invoice)
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * Closes the gap where nothing in the system can tell whether an order
+ * already has an invoice. Same gateway, same workbook-agnostic envelope
+ * shape as §1, but UPDATE instead of APPEND, and a target sheet — OrderForm
+ * — that neither Invoice nor InvoiceItem live in.
+ *
+ *   { resource: 'sheet', action: 'UPDATE', target: 'OrderForm',
+ *     key_value: <OrderForm.id>, data: { invoice_id, updated_by } }
+ *   → { status: 'ok', ... } | { status: 'error', message }
+ *
+ * `key_value` is OrderForm.id — the SAME value already carried through
+ * invoice creation as CreateInvoiceRequest.sourceOrderId (OrdersView, what
+ * staff actually browse, is itself built from OrderForm rows, so the id is
+ * identical throughout that chain).
+ *
+ * ⚠ The column is `invoice_id`, NOT `invoice_number`. OrderForm.json has
+ *   `additionalProperties: false` and no `invoice_number` property — only a
+ *   nullable `invoice_id` string. The VALUE written there is still our
+ *   Invoice.invoice_number string; only the column name differs.
+ *
+ * `updated_at` is auto-stamped by SheetLib's update() when omitted — same
+ * auto-stamp behaviour as `created_at` on APPEND (verified in
+ * appscript/SheetLib/SheetService.js). `updated_by` is NOT auto-stamped and
+ * must always be sent explicitly (SheetLib's own doc comment on update():
+ * "data.updated_by must be set by caller").
+ *
+ * export interface OrderFormInvoiceLinkUpdateRequest {
+ *   resource: 'sheet';
+ *   action: 'UPDATE';
+ *   target: 'OrderForm';
+ *   key_value: string;          // OrderForm.id == sourceOrderId
+ *   data: {
+ *     invoice_id: string;       // Invoice.invoice_number's value
+ *     updated_by: string;       // NOT auto-stamped; always send it
+ *   };
+ * }
+ *
+ * Failure reporting: attempted only after the Invoice header row (POST #2)
+ * has already succeeded, so by the time this write is attempted the invoice
+ * itself is fully and correctly recorded. A failure or an unconfirmed result
+ * here is reported as its own distinct outcome (`order_link_failed`, see
+ * `invoice-api.contract.ts` §5) and must NEVER be offered a retry by the
+ * caller — retrying would create a second Invoice for money that's already
+ * correctly billed. This is a stricter rule than POST #2's failure, which
+ * also can't be blindly retried but at least names a concrete recovery path
+ * (delete/ignore the orphaned items); here the correct recovery is an admin
+ * setting OrderForm.invoice_id by hand, never resubmitting the form.
+ */
+
+/* ────────────────────────────────────────────────────────────────────────────
  * 4. The arithmetic — the part most likely to be implemented wrong
  * ────────────────────────────────────────────────────────────────────────────
  *
@@ -241,16 +295,23 @@ export interface Adjustment {
  * 5. Write sequence
  * ────────────────────────────────────────────────────────────────────────────
  *
- *   1. POST InvoiceItem  — the whole batch in one request
- *   2. POST Invoice      — the header row
+ *   1. POST InvoiceItem       — the whole batch in one request
+ *   2. POST Invoice           — the header row
+ *   3. UPDATE OrderForm       — mark the source order invoiced (§3b)
  *
- * Items first, deliberately. There is no transaction across the two tabs, so
- * one of them can land without the other:
+ * Items first, deliberately. There is no transaction across the sheets, so
+ * any of the three can land without the next:
  *
- *   items ok, invoice fails → orphan item rows nothing references. Invisible in
- *     every invoice list. Recoverable: fix and retry, or delete by hand.
- *   invoice ok, items fail  → an ISSUED invoice with no lines, visible to staff
- *     and billable. Strictly worse. This ordering makes it impossible.
+ *   items ok, invoice fails        → orphan item rows nothing references.
+ *     Invisible in every invoice list. Recoverable: fix and retry, or delete
+ *     by hand.
+ *   invoice ok, items fail         → an ISSUED invoice with no lines, visible
+ *     to staff and billable. Strictly worse. This ordering makes it
+ *     impossible.
+ *   items + invoice ok, order-link fails/unconfirmed → the invoice itself is
+ *     already fully and correctly recorded; only the OrderForm.invoice_id
+ *     linkage is missing. Reported as its own outcome (§3b) and never
+ *     retried — retrying would create a second, fully duplicate invoice.
  *
  * Because APPEND validates the entire batch before writing any of it, a bad
  * line cannot leave a half-written item set — the whole request is rejected and
@@ -259,8 +320,10 @@ export interface Adjustment {
  * Failure reporting: an item-batch failure means nothing was written; say so
  * plainly and let staff fix and resubmit. An invoice-row failure after a
  * successful item batch must be reported as its own distinct outcome, naming
- * the invoice number, because rows exist that a human has to clean up.
- * Never collapse the two into one generic error.
+ * the invoice number, because rows exist that a human has to clean up. An
+ * order-link failure after a successful invoice write is a THIRD distinct
+ * outcome for the same reason, with a stricter rule: never offer a retry at
+ * all (see §3b). Never collapse any of these into one generic error.
  */
 
 /* ────────────────────────────────────────────────────────────────────────────

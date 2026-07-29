@@ -167,7 +167,7 @@ export interface CreateInvoiceSuccess {
  * 5. POST /api/invoices — failure responses
  * ────────────────────────────────────────────────────────────────────────────
  *
- * Three outcomes, and they must stay three. The difference between them is
+ * Four outcomes, and they must stay four. The difference between them is
  * whether anything was written, which decides whether resubmitting is safe.
  */
 
@@ -197,11 +197,27 @@ export interface CreateInvoiceHeaderFailed {
    */
 }
 
+export interface CreateInvoiceOrderLinkFailed {
+  kind: 'order_link_failed';
+  invoiceNumber: string;
+  sourceOrderId: string;
+  /**
+   * ⚠ The invoice IS fully and correctly recorded at this point — both the
+   * InvoiceItem batch and the Invoice header row were written successfully.
+   * Only the OrderForm-side linkage (its `invoice_id` column) failed or came
+   * back unconfirmed. The UI must NEVER offer a retry here: resubmitting
+   * would write a SECOND invoice for money that is already correctly
+   * billed. An admin must look up `sourceOrderId` and set `invoice_id` on
+   * that OrderForm row by hand.
+   */
+}
+
 export type CreateInvoiceResponse =
   | CreateInvoiceSuccess
   | CreateInvoiceValidationError
   | CreateInvoiceItemsFailed
-  | CreateInvoiceHeaderFailed;
+  | CreateInvoiceHeaderFailed
+  | CreateInvoiceOrderLinkFailed;
 
 /* ────────────────────────────────────────────────────────────────────────────
  * 6. GET — the duplicate-number check

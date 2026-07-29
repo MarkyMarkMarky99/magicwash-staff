@@ -156,7 +156,7 @@ function applyAdjustmentStep(running: number, adjustment: CalculatorAdjustment):
  *  already knows how to produce for `1.005`), so `Math.round` sees 100.5,
  *  not 100.49999999999999. Shifting back the same way avoids reintroducing
  *  a division's rounding error. */
-function roundMoney(value: number): number {
+export function roundMoney(value: number): number {
   const shifted = Number(`${value}e2`)
   const rounded = Math.round(shifted)
   return Number(`${rounded}e-2`)

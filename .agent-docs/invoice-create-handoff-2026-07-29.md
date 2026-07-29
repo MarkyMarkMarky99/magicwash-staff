@@ -1,9 +1,9 @@
 # Handoff — staff invoice creation
 
 **Author:** Claude Opus 5, via Claude Code
-**Date:** 2026-07-29
-**Branch:** `feature/invoice-write-contract` — **nothing is committed.** Everything below is in the
-working tree.
+**Date:** 2026-07-29 (updated same day — the view-sync section below is newer than the rest)
+**Branch:** `feature/invoice-write-contract`, commit `8f5f9be`. The view-sync work in
+`appscript/MagicwashPortal` is a **separate repo**, already pushed and deployed live — see below.
 **Originating session:** `38aaa679-80d9-4e77-99c9-f87753758023` (that session ran from
 `C:\MagicwashGemini\webapp-react`, not this repo). To ask it something:
 
@@ -32,25 +32,77 @@ an agent already primed with it.
 | Shared arithmetic | Done — `contracts/invoices/invoice-calculator.ts`, with tests |
 | Backend module | Done — `server/modules/invoices/` (contract, gateway-client, service, module) |
 | Route registered | Done — `POST /api/invoices` |
-| Live write to both sheets | **Proven twice** — see below |
+| Live write to Invoice/InvoiceItem | **Proven three times** — see below |
+| `InvoiceView.json` schema | Done — `G:\My Drive\Magicwash\Database\GoogleSheets\InvoiceView.json` |
+| InvoicesView rebuild endpoint | **Built, deployed, proven live** — `appscript/MagicwashPortal`, see below |
+| Wiring the rebuild into `invoice.service.ts` | **Not done.** Currently a separate manual call. |
 | Frontend | **Not started.** Do not start it alone. |
 | Prototype | `docs/prototypes/invoice-create.html` — built before the flow changed, so it is stale |
 
 ## Proven against the live sheets
 
-Two real invoices were written end to end through the real service and the real gateway:
+Three real invoices were written end to end through the real service and the real gateway:
 
 ```
 INV-PROBE-247494   itemsTotal 866.8   invoiceTotal 823.4599999999999   ← before the rounding fix
 INV-PROBE-528466   itemsTotal 866.8   invoiceTotal 823.46             ← after
+INV-PROBE-473405   itemsTotal 866.8   invoiceTotal 823.46             ← used for the view-sync test below
 ```
 
-Both wrote 3 item rows plus an invoice row. An `UPDATE` by `invoice_number` came back
+Each wrote 3 item rows plus an invoice row. An `UPDATE` by `invoice_number` came back
 `row_number: 2`, confirming the header row is really in the sheet.
 
-**Clean-up owed:** those two invoices and their six item rows are sitting in the production
-`Invoices` / `InvoiceItems` tabs. The gateway's `DELETE` is a soft delete, so removing them for real
-means editing the spreadsheet by hand.
+**Clean-up owed:** all three invoices, their item rows, one `Payment` row (see below), and one
+`InvoicesView` row are sitting in production. The gateway's `DELETE` is a soft delete, so removing
+them for real means editing the spreadsheets by hand.
+
+## InvoicesView — now a separate rebuild-on-demand endpoint, proven live end to end
+
+Plan changed mid-session: rather than the Node backend assembling and writing the `InvoicesView`
+row itself, that logic lives in Apps Script, in the **same project that owns the sheet**, callable
+after *any* write that should affect the view — a new invoice, a new payment, a status change —
+not just invoice creation.
+
+- **Schema**: `G:\My Drive\Magicwash\Database\GoogleSheets\InvoiceView.json` — the first schema file
+  ever written for a portal view (`OrdersView` has none). `customerJson`/`itemsJson`/
+  `adjustmentsJson`/`paymentsJson` are typed as pre-serialized strings (same convention as
+  `Payment.slip_data`), not nested objects — the writer stringifies them itself.
+- **Implementation**: `appscript/MagicwashPortal/InvoiceViewSync.js`, one file, `doPost(e)` taking
+  `{ invoiceNumber }`. Reads `Invoices` + `InvoiceItems` + `Payments` (all three, by header name,
+  never by column position), resolves `status`, computes `subtotal`/`grandTotal`/`paidAmount`/
+  `balanceDue`, upserts the one matching row in `InvoicesView` (update if found, append if not).
+  **Deliberately does not touch `Customers`** — `customerJson` is `Invoices.customer`, the frozen
+  snapshot, re-keyed to camelCase, never re-resolved live.
+- **`paidAmount` counts only `Payment.status === 'VERIFIED'`** rows. `PENDING`/`FAILED`/`CANCELLED`
+  are excluded from the money total but still appear in `paymentsJson` so the customer can see a
+  pending slip.
+- **Deployment**: `appsscript.json` had no `webapp` block at all — that's why the first two deploy
+  attempts 404'd. Added `{ "executeAs": "USER_DEPLOYING", "access": "ANYONE_ANONYMOUS" }`, same as
+  `MagicwashGateway`'s manifest. Live URL:
+  ```
+  https://script.google.com/macros/s/AKfycbzS79I0bNK2je-iFJ8cPAznDZNuOFwkFcBdGNXnqFi2sMxtGoHvoPskP3FQRqqrxWd5/exec
+  ```
+  Now in both `.env.local` files as `APPSCRIPT_INVOICE_VIEW_SYNC_URL`. The Script Property
+  `INVOICES_SPREADSHEET_ID` this endpoint needs has been set by hand in that project already.
+- **Proven live, full chain, all three sheets**: created `INV-PROBE-473405` for real, recorded a
+  real `VERIFIED` payment of 300 against it for real, then called this endpoint:
+  ```json
+  {"ok":true,"invoiceNumber":"INV-PROBE-473405","status":"PARTIALLY_PAID",
+   "grandTotal":823.46,"paidAmount":300,"balanceDue":523.46,"action":"created"}
+  ```
+  Called a second time with no new data → `"action":"updated"`, same numbers — upsert confirmed, no
+  duplicate row.
+- **Leftover in that project, not mine**: `AddFN.js` — a one-off script the product owner ran once
+  from the Apps Script editor to hand-append a real invoice (`INV2607FNPLAT1`, customer Panat
+  Kittisit) directly into `InvoicesView`, then forgot to delete. It duplicates the
+  `INVOICES_VIEW_HEADERS` global from `InvoicesView.js` (harmless — Apps Script's V8 runtime
+  tolerates duplicate top-level `var`, all files share one execution context) but is otherwise
+  unrelated to this feature. Left alone; delete it if asked.
+- **`webapp-vue/.env.local` was also missing `APPSCRIPT_GATEWAY_URL` entirely** — a real gap found
+  while adding the sync URL, unrelated to it. Every live test up to this point had worked only
+  because the test scripts cross-loaded that value from `webapp-react`'s env files instead of this
+  repo's own. Fixed — now set directly in `webapp-vue/.env.local` too, so `vercel dev` run from
+  this repo will actually work.
 
 ## The design, and why
 
@@ -138,17 +190,22 @@ every step of the invoice-level loop because each intermediate there is already 
 
 ## Next session
 
-1. **The prototype is stale.** `docs/prompts/invoice-create-prototype.md` is current — two screens,
+1. **Wire the view rebuild into `invoice.service.ts` as step 3.** Right now `createInvoice()` stops
+   after writing `Invoice`, and the `InvoicesView` row was only ever produced by a manual probe call
+   to `APPSCRIPT_INVOICE_VIEW_SYNC_URL`. Decide what a failure here means for the response contract
+   — the money is already recorded correctly either way, only the view is stale — and whether a
+   failed sync should retry, queue, or just get reported for someone to re-trigger by hand.
+2. **The prototype is stale.** `docs/prompts/invoice-create-prototype.md` is current — two screens,
    no billing type, order items auto-loaded on pick, compact line rows, real design tokens copied
    from `src/style.css`. The HTML in `docs/prototypes/` was built before those changes. Rebuild it
    from the prompt before showing anyone.
-2. **Then build the frontend with the product owner, not ahead of him.** He has twice corrected
+3. **Then build the frontend with the product owner, not ahead of him.** He has twice corrected
    work that ran past its brief. The layering rule is firm: behaviour in `src/services/`,
    orchestration in `src/pages/`, and `src/components/` renders props and nothing else.
-3. Delete `src/components/forms/CreateInvoiceForm.vue` and its `FormOverlayPage.vue` entry, and
+4. Delete `src/components/forms/CreateInvoiceForm.vue` and its `FormOverlayPage.vue` entry, and
    `src/features/invoices/types/invoices.types.ts` — that types file uses `UNPAID`/`PAID` in the
    status field, which the live schema rejects outright.
-4. `src/features/invoices/services/invoice.service.ts` calls `/api/modules/invoices`. That route
+5. `src/features/invoices/services/invoice.service.ts` calls `/api/modules/invoices`. That route
    never existed; the real one is `/api/invoices`.
 
 ## Commands

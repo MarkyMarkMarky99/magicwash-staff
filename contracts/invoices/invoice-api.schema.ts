@@ -149,7 +149,7 @@ export type CreateInvoiceRequest = z.infer<typeof invoiceCreateSchema>
 
 // ── POST /api/invoices — response ───────────────────────────────────────────
 //
-// Four outcomes, kept distinct on purpose — the difference between them is
+// Five outcomes, kept distinct on purpose — the difference between them is
 // whether anything was written, which decides whether resubmitting is safe.
 // Never collapse these into one generic error.
 
@@ -189,17 +189,31 @@ export const createInvoiceHeaderFailedSchema = z.object({
   // retry here — this needs a person to reconcile.
 })
 
+export const createInvoiceOrderLinkFailedSchema = z.object({
+  kind: z.literal('order_link_failed'),
+  invoiceNumber: z.string(),
+  sourceOrderId: z.string(),
+  // ⚠ The invoice IS fully and correctly recorded at this point — both the
+  // InvoiceItem batch and the Invoice header row were written successfully.
+  // Only the OrderForm-side linkage (OrderForm.invoice_id) failed or came
+  // back unconfirmed. The UI must NEVER offer a retry here: resubmitting
+  // would create a SECOND invoice for money that's already correctly
+  // billed. An admin must look up sourceOrderId and set invoice_id by hand.
+})
+
 export const createInvoiceResponseSchema = z.discriminatedUnion('kind', [
   createInvoiceSuccessSchema,
   createInvoiceValidationErrorSchema,
   createInvoiceItemsFailedSchema,
   createInvoiceHeaderFailedSchema,
+  createInvoiceOrderLinkFailedSchema,
 ])
 
 export type CreateInvoiceSuccess = z.infer<typeof createInvoiceSuccessSchema>
 export type CreateInvoiceValidationError = z.infer<typeof createInvoiceValidationErrorSchema>
 export type CreateInvoiceItemsFailed = z.infer<typeof createInvoiceItemsFailedSchema>
 export type CreateInvoiceHeaderFailed = z.infer<typeof createInvoiceHeaderFailedSchema>
+export type CreateInvoiceOrderLinkFailed = z.infer<typeof createInvoiceOrderLinkFailedSchema>
 export type CreateInvoiceResponse = z.infer<typeof createInvoiceResponseSchema>
 
 // ── GET — the duplicate-number check ────────────────────────────────────────
