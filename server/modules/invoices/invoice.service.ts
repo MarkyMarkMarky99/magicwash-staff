@@ -17,6 +17,7 @@ import {
   type InvoiceRow,
 } from './invoice.contract.js'
 import { appendInvoice, appendInvoiceItems } from './invoice.gateway-client.js'
+import { syncInvoiceView } from './invoice-view-sync-client.js'
 import { markOrderInvoiced } from '../orders/orderForm.repository.js'
 
 /**
@@ -49,10 +50,11 @@ function toDbAdjustment(adjustment: InvoiceAdjustmentInput): InvoiceAdjustment {
  * Creates one invoice: validates, computes every line's `subtotal`/
  * `net_total` server-side (authoritative — the client's own live preview is
  * never trusted), writes the `InvoiceItem` batch FIRST, then the `Invoice`
- * header row, then marks the source `OrderForm` row as invoiced, and returns
- * one of five distinct outcomes. Never throws for an expected outcome (bad
+ * header row, then marks the source `OrderForm` row as invoiced, syncs the
+ * materialized `InvoicesView` as the final external write, and returns one of
+ * six distinct outcomes. Never throws for an expected outcome (bad
  * input, a rejected item batch, a failed header write, a failed order-link
- * write) — those are all represented in the return value per
+ * write, or a failed view sync) — those are all represented in the return value per
  * `contracts/invoices/invoice-api.schema.ts`. Only a genuine programmer error
  * (e.g. this module building a row that fails its own DB-side schema) should
  * escape as a thrown error, and is not expected to happen against
@@ -178,6 +180,17 @@ export async function createInvoice(payload: unknown): Promise<CreateInvoiceResp
     lineCalculations.map((calculation) => calculation.netTotal),
     request.adjustments,
   )
+
+  // This MUST remain the final external write. The source invoice and order
+  // link are complete before refreshing the materialized view used by the UI.
+  const viewSync = await syncInvoiceView(request.invoiceNumber)
+  if (viewSync.outcome !== 'confirmed') {
+    return {
+      kind: 'invoice_view_sync_failed',
+      invoiceNumber: request.invoiceNumber,
+      message: viewSync.message,
+    }
+  }
 
   return {
     kind: 'created',

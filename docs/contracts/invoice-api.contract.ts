@@ -167,7 +167,7 @@ export interface CreateInvoiceSuccess {
  * 5. POST /api/invoices — failure responses
  * ────────────────────────────────────────────────────────────────────────────
  *
- * Four outcomes, and they must stay four. The difference between them is
+ * Five failure outcomes. The difference between them is
  * whether anything was written, which decides whether resubmitting is safe.
  */
 
@@ -212,12 +212,20 @@ export interface CreateInvoiceOrderLinkFailed {
    */
 }
 
+export interface CreateInvoiceViewSyncFailed {
+  kind: 'invoice_view_sync_failed';
+  invoiceNumber: string;
+  message: string;
+  /** The source invoice is complete; only InvoicesView failed to refresh. */
+}
+
 export type CreateInvoiceResponse =
   | CreateInvoiceSuccess
   | CreateInvoiceValidationError
   | CreateInvoiceItemsFailed
   | CreateInvoiceHeaderFailed
-  | CreateInvoiceOrderLinkFailed;
+  | CreateInvoiceOrderLinkFailed
+  | CreateInvoiceViewSyncFailed;
 
 /* ────────────────────────────────────────────────────────────────────────────
  * 6. GET — the duplicate-number check

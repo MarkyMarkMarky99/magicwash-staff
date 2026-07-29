@@ -6,6 +6,7 @@ import type { CreateInvoiceRequest } from '../../../../../contracts/invoices/inv
 // it's safe to set this before importing createInvoice, same as any other
 // dry test in this suite that needs an env var present.
 process.env.APPSCRIPT_GATEWAY_URL = 'https://script.example/exec'
+process.env.APPSCRIPT_INVOICE_VIEW_SYNC_URL = 'https://script.example/invoice-view-sync'
 
 const { createInvoice } = await import('../../../../../server/modules/invoices/invoice.service.js')
 
@@ -43,9 +44,11 @@ async function withRoutedFetch<T>(
   globalThis.fetch = (async (url: URL | string | { url?: string }, init?: RequestInit) => {
     const body = JSON.parse(String(init?.body)) as Record<string, unknown>
     calls.push({ url: String(url), body })
-    const handler = handlers[body.target as string]
+    const handlerKey = (body.target as string | undefined)
+      ?? (String(url) === process.env.APPSCRIPT_INVOICE_VIEW_SYNC_URL ? 'InvoiceViewSync' : undefined)
+    const handler = handlerKey ? handlers[handlerKey] : undefined
     if (!handler) {
-      throw new Error(`No fetch handler configured for target ${String(body.target)}`)
+      throw new Error(`No fetch handler configured for target ${String(handlerKey)}`)
     }
     return handler(body)
   }) as typeof fetch
@@ -82,21 +85,25 @@ function baseRequest(): CreateInvoiceRequest {
 const okAppend: FetchHandler = async () =>
   response({ json: { resource: 'sheet', status: 'ok', target: 'x', updated_range: 'A1' } })
 
+const okViewSync: FetchHandler = async () =>
+  response({ json: { ok: true, invoiceNumber: 'INV-0001', action: 'updated' } })
+
 test('createInvoice returns "created" when items, invoice, and the order-link write all succeed', async () => {
   await withRoutedFetch(
     {
       InvoiceItem: okAppend,
       Invoice: okAppend,
       OrderForm: async () => response({ json: { status: 'ok' } }),
+      InvoiceViewSync: okViewSync,
     },
     async (calls) => {
       const result = await createInvoice(baseRequest())
 
       assert.equal(result.kind, 'created')
       assert.deepEqual(
-        calls.map((call) => call.body.target),
-        ['InvoiceItem', 'Invoice', 'OrderForm'],
-        'items must be written first, then the invoice header, then the order link — in that order',
+        calls.map((call) => call.body.target ?? 'InvoiceViewSync'),
+        ['InvoiceItem', 'Invoice', 'OrderForm', 'InvoiceViewSync'],
+        'items, header, order link, and view sync must happen in that order',
       )
       // The OrderForm UPDATE carries key_value = sourceOrderId and the
       // invoice_number value under OrderForm's own invoice_id column name.
@@ -107,6 +114,29 @@ test('createInvoice returns "created" when items, invoice, and the order-link wr
         invoice_id: 'INV-0001',
         updated_by: 'staff',
       })
+      assert.deepEqual(calls[3].body, { invoiceNumber: 'INV-0001' })
+      assert.equal(calls[3].url, process.env.APPSCRIPT_INVOICE_VIEW_SYNC_URL)
+    },
+  )
+})
+
+test('createInvoice reports invoice_view_sync_failed after the source writes are complete', async () => {
+  await withRoutedFetch(
+    {
+      InvoiceItem: okAppend,
+      Invoice: okAppend,
+      OrderForm: async () => response({ json: { status: 'ok' } }),
+      InvoiceViewSync: async () => response({ json: { ok: false, message: 'View unavailable' } }),
+    },
+    async (calls) => {
+      const result = await createInvoice(baseRequest())
+
+      assert.deepEqual(result, {
+        kind: 'invoice_view_sync_failed',
+        invoiceNumber: 'INV-0001',
+        message: 'View unavailable',
+      })
+      assert.equal(calls.length, 4)
     },
   )
 })
