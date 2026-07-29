@@ -5,7 +5,7 @@
  * Components below it are presentation only (props in, events out); the
  * service call is the only thing that talks to the network.
  */
-import { computed, onMounted, ref } from 'vue'
+import { computed, onActivated, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import type { CreateInvoiceRequest, CreateInvoiceResponse } from '@contracts/invoices/invoice-api.schema'
@@ -28,13 +28,9 @@ import InvoiceDevJsonPanel from '../components/InvoiceDevJsonPanel.vue'
 
 const router = useRouter()
 
-// ── Consumed hand-off (read once, on mount) ─────────────────────────────────
+// ── Consumed hand-off ────────────────────────────────────────────────────────
 const order = ref<InvoiceCreateIntentOrder | null>(null)
 const { customer } = storeToRefs(useSelectedCustomerStore())
-
-onMounted(() => {
-  order.value = useInvoiceCreateIntentStore().consume()
-})
 
 function todayIso(): string {
   const now = new Date()
@@ -68,22 +64,6 @@ const issuedDate = ref(todayIso())
 const dueDate = ref(todayIso())
 const items = ref<LineItemFormRow[]>([])
 const invoiceAdjustments = ref<AdjustmentFormRow[]>([])
-
-onMounted(() => {
-  const currentOrder = order.value
-  if (!currentOrder) return
-
-  items.value = currentOrder.items.length > 0
-    ? currentOrder.items.map((item) => ({
-      key: crypto.randomUUID(),
-      description: item.description ?? '',
-      unit: item.serviceType ?? '',
-      quantity: item.quantity != null ? String(item.quantity) : '1',
-      unitPrice: '',
-      adjustments: [],
-    }))
-    : [createEmptyLineItemRow()]
-})
 
 function addLine() {
   items.value = [...items.value, createEmptyLineItemRow()]
@@ -177,6 +157,34 @@ const requestPayload = computed<CreateInvoiceRequest | null>(() => {
 // ── Submit ───────────────────────────────────────────────────────────────────
 const submitting = ref(false)
 const result = ref<CreateInvoiceResponse | null>(null)
+
+onActivated(() => {
+  const currentOrder = useInvoiceCreateIntentStore().consume()
+
+  order.value = currentOrder
+  invoiceNumber.value = generateSuggestedInvoiceNumber()
+  issuedDate.value = todayIso()
+  dueDate.value = todayIso()
+  invoiceAdjustments.value = []
+  result.value = null
+  submitting.value = false
+
+  if (!currentOrder) {
+    items.value = []
+    return
+  }
+
+  items.value = currentOrder.items.length > 0
+    ? currentOrder.items.map((item) => ({
+      key: crypto.randomUUID(),
+      description: item.description ?? '',
+      unit: item.serviceType ?? '',
+      quantity: item.quantity != null ? String(item.quantity) : '1',
+      unitPrice: '',
+      adjustments: [],
+    }))
+    : [createEmptyLineItemRow()]
+})
 
 const canRetry = computed(() =>
   result.value?.kind === 'validation_error' || result.value?.kind === 'items_write_failed',
