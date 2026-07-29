@@ -1,13 +1,13 @@
 <script setup lang="ts">
 /**
- * Owns all state for the create-invoice flow: the consumed hand-off intent,
+ * Owns all state for the create-invoice flow: the selected order context,
  * every form field, the live totals preview, and submit/loading/result state.
  * Components below it are presentation only (props in, events out); the
  * service call is the only thing that talks to the network.
  */
-import { computed, onActivated, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import type { CreateInvoiceRequest, CreateInvoiceResponse } from '@contracts/invoices/invoice-api.schema'
 import { computeInvoiceLine, computeInvoiceTotal, roundMoney } from '@contracts/invoices/invoice-calculator'
 import { useInvoiceCreateIntentStore, type InvoiceCreateIntentOrder } from '@/shared/stores/invoice-create-intent.store'
@@ -25,12 +25,19 @@ import InvoiceLineItemsEditor from '../components/InvoiceLineItemsEditor.vue'
 import InvoiceAdjustmentsEditor from '../components/InvoiceAdjustmentsEditor.vue'
 import InvoiceTotalsPreview from '../components/InvoiceTotalsPreview.vue'
 import InvoiceDevJsonPanel from '../components/InvoiceDevJsonPanel.vue'
+import { loadInvoiceCreateContext } from '../services/invoice-create-context.service'
 
 const router = useRouter()
+const route = useRoute()
 
-// ── Consumed hand-off ────────────────────────────────────────────────────────
+// ── Order/customer context ───────────────────────────────────────────────────
 const order = ref<InvoiceCreateIntentOrder | null>(null)
-const { customer } = storeToRefs(useSelectedCustomerStore())
+const selectedCustomerStore = useSelectedCustomerStore()
+const invoiceCreateIntentStore = useInvoiceCreateIntentStore()
+const { customer } = storeToRefs(selectedCustomerStore)
+const contextLoading = ref(false)
+const contextError = ref<string | null>(null)
+let contextRequestId = 0
 
 function todayIso(): string {
   const now = new Date()
@@ -158,9 +165,7 @@ const requestPayload = computed<CreateInvoiceRequest | null>(() => {
 const submitting = ref(false)
 const result = ref<CreateInvoiceResponse | null>(null)
 
-onActivated(() => {
-  const currentOrder = useInvoiceCreateIntentStore().consume()
-
+function initializeForm(currentOrder: InvoiceCreateIntentOrder) {
   order.value = currentOrder
   invoiceNumber.value = generateSuggestedInvoiceNumber()
   issuedDate.value = todayIso()
@@ -168,11 +173,6 @@ onActivated(() => {
   invoiceAdjustments.value = []
   result.value = null
   submitting.value = false
-
-  if (!currentOrder) {
-    items.value = []
-    return
-  }
 
   items.value = currentOrder.items.length > 0
     ? currentOrder.items.map((item) => ({
@@ -184,7 +184,70 @@ onActivated(() => {
       adjustments: [],
     }))
     : [createEmptyLineItemRow()]
-})
+}
+
+function readRouteId(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  return value.trim() || null
+}
+
+async function syncCreateContext() {
+  const requestId = ++contextRequestId
+  const customerId = readRouteId(route.query.customerId)
+  const orderId = readRouteId(route.query.orderId)
+
+  contextError.value = null
+  if (!customerId || !orderId) {
+    contextLoading.value = false
+    order.value = null
+    items.value = []
+    return
+  }
+
+  const stagedOrder = invoiceCreateIntentStore.order
+  const stagedCustomer = selectedCustomerStore.customer
+  if (
+    stagedOrder?.orderId.trim() === orderId
+    && stagedOrder.customerId.trim() === customerId
+    && stagedCustomer?.customerId.trim() === customerId
+  ) {
+    contextLoading.value = false
+    initializeForm(stagedOrder)
+    return
+  }
+
+  contextLoading.value = true
+  order.value = null
+  items.value = []
+
+  try {
+    const context = await loadInvoiceCreateContext(customerId, orderId)
+    if (requestId !== contextRequestId) return
+
+    selectedCustomerStore.select(context.customer)
+    invoiceCreateIntentStore.set(context.order)
+    initializeForm(context.order)
+  } catch {
+    if (requestId !== contextRequestId) return
+    contextError.value = 'Unable to load the selected customer and order.'
+  } finally {
+    if (requestId === contextRequestId) {
+      contextLoading.value = false
+    }
+  }
+}
+
+watch(
+  [() => route.query.customerId, () => route.query.orderId],
+  () => {
+    void syncCreateContext()
+  },
+  { immediate: true },
+)
+
+function retryContextLoad() {
+  void syncCreateContext()
+}
 
 const canRetry = computed(() =>
   result.value?.kind === 'validation_error' || result.value?.kind === 'items_write_failed',
@@ -211,8 +274,9 @@ function resetForRetry() {
 }
 
 function backToOrderHistory() {
-  if (order.value) {
-    router.push({ name: 'customer-order-history', params: { customerId: order.value.customerId } })
+  const customerId = order.value?.customerId.trim() ?? readRouteId(route.query.customerId)
+  if (customerId) {
+    router.push({ name: 'customer-order-history', params: { customerId } })
   } else {
     router.push({ name: 'customer-list' })
   }
@@ -226,8 +290,38 @@ function goToInvoiceList() {
 <template>
   <AppLayout>
   <main class="flex-1 overflow-y-auto bg-surface pb-24">
-    <!-- No order in the hand-off store: someone navigated here directly. -->
-    <div v-if="!order || !customer" class="flex flex-col items-center gap-3 px-6 py-16 text-center">
+    <div v-if="contextLoading" class="flex flex-col items-center gap-3 px-6 py-16 text-center">
+      <span class="material-symbols-outlined animate-spin text-[40px] text-primary" aria-hidden="true">progress_activity</span>
+      <h1 class="font-headline text-base font-bold text-on-surface">Loading order</h1>
+      <p class="max-w-xs font-body text-sm text-on-surface-variant">
+        Restoring the customer and order selected from order history.
+      </p>
+    </div>
+
+    <div v-else-if="contextError" class="flex flex-col items-center gap-3 px-6 py-16 text-center">
+      <span class="material-symbols-outlined text-[40px] text-error" aria-hidden="true">error</span>
+      <h1 class="font-headline text-base font-bold text-on-surface">Could not load this order</h1>
+      <p class="max-w-xs font-body text-sm text-on-surface-variant">{{ contextError }}</p>
+      <div class="mt-2 flex gap-2">
+        <button
+          type="button"
+          class="rounded-xl bg-primary px-4 py-2 font-label text-[12px] font-semibold text-on-primary"
+          @click="retryContextLoad"
+        >
+          Try again
+        </button>
+        <button
+          type="button"
+          class="rounded-xl bg-surface-container px-4 py-2 font-label text-[12px] font-semibold text-primary"
+          @click="backToOrderHistory"
+        >
+          Back to order history
+        </button>
+      </div>
+    </div>
+
+    <!-- No route ids: someone navigated here directly rather than from an order. -->
+    <div v-else-if="!order || !customer" class="flex flex-col items-center gap-3 px-6 py-16 text-center">
       <span class="material-symbols-outlined text-[40px] text-on-surface-variant/50" aria-hidden="true">receipt_long</span>
       <h1 class="font-headline text-base font-bold text-on-surface">No order selected</h1>
       <p class="max-w-xs font-body text-sm text-on-surface-variant">

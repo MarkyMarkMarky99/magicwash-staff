@@ -51,11 +51,15 @@ function createInvoice() {
   const order = selectedOrder.value
   if (!customer.value || !order) return
   const orderId = order.orderId?.trim()
-  if (!orderId || order.customerId !== customer.value.customerId) return
+  const customerId = customer.value.customerId.trim()
+  if (!orderId || !customerId || order.customerId.trim() !== customerId) return
   useSelectedCustomerStore().select(customer.value)
   useInvoiceCreateIntentStore().set(order)
   closeSheet()
-  router.push({ name: 'invoice-create' })
+  router.push({
+    name: 'invoice-create',
+    query: { customerId, orderId },
+  })
 }
 
 onMounted(loadCustomer)
