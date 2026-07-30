@@ -7,6 +7,8 @@ defineProps({
   placeholder:  { type: String, default: '' },
   icon:         { type: String, default: '' },
   autocomplete: { type: String, default: undefined },
+  min:          { type: String, default: undefined },
+  max:          { type: String, default: undefined },
 })
 
 defineEmits(['update:modelValue'])
@@ -25,6 +27,8 @@ defineEmits(['update:modelValue'])
         :type="type"
         :placeholder="placeholder"
         :autocomplete="autocomplete"
+        :min="min"
+        :max="max"
         class="w-full h-12 rounded-xl bg-surface-container border border-outline-variant/30 px-4 pr-11 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-1 focus:ring-primary focus:bg-surface-container-lowest transition-colors"
         @input="$emit('update:modelValue', $event.target.value)"
       >

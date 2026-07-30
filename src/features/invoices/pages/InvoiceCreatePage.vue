@@ -47,6 +47,15 @@ function todayIso(): string {
   return `${y}-${m}-${d}`
 }
 
+function addDays(iso: string, days: number): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  const date = new Date(y, m - 1, d + days)
+  const yy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  return `${yy}-${mm}-${dd}`
+}
+
 /**
  * Pre-fills the invoice number field with INV + 2-digit year + 2-digit month
  * + 8 random digits, e.g. INV260729XXXXXXXX. This is a starting suggestion,
@@ -68,9 +77,27 @@ function generateSuggestedInvoiceNumber(): string {
 // ── Form state ───────────────────────────────────────────────────────────────
 const invoiceNumber = ref(generateSuggestedInvoiceNumber())
 const issuedDate = ref(todayIso())
-const dueDate = ref(todayIso())
+const dueDate = ref(addDays(issuedDate.value, 3))
 const items = ref<LineItemFormRow[]>([])
 const invoiceAdjustments = ref<AdjustmentFormRow[]>([])
+
+// ── Due date must always be after issued date; default is issued + 3 days.
+//    Staff may shorten it, but never to or below the issued date. Changing
+//    the issued date re-defaults the due date whenever the old one is no
+//    longer valid against the new issued date. ──
+const minDueDate = computed(() => addDays(issuedDate.value, 1))
+
+watch(issuedDate, (newIssuedDate, oldIssuedDate) => {
+  if (dueDate.value <= newIssuedDate) {
+    dueDate.value = addDays(newIssuedDate, 3)
+    return
+  }
+  // Still valid against the new issued date — preserve the staff's chosen gap.
+  const gapDays = Math.round(
+    (new Date(dueDate.value).getTime() - new Date(oldIssuedDate).getTime()) / 86400000,
+  )
+  dueDate.value = addDays(newIssuedDate, gapDays)
+})
 
 function addLine() {
   items.value = [...items.value, createEmptyLineItemRow()]
@@ -126,6 +153,7 @@ const invoiceTotal = computed(() =>
 const isValid = computed(() => {
   if (!order.value || !customer.value) return false
   if (!invoiceNumber.value.trim() || !issuedDate.value || !dueDate.value) return false
+  if (dueDate.value <= issuedDate.value) return false
   if (items.value.length === 0) return false
   return items.value.every((item) =>
     item.description.trim().length > 0
@@ -169,7 +197,7 @@ function initializeForm(currentOrder: InvoiceCreateIntentOrder) {
   order.value = currentOrder
   invoiceNumber.value = generateSuggestedInvoiceNumber()
   issuedDate.value = todayIso()
-  dueDate.value = todayIso()
+  dueDate.value = addDays(issuedDate.value, 3)
   invoiceAdjustments.value = []
   result.value = null
   submitting.value = false
@@ -285,6 +313,19 @@ function backToOrderHistory() {
 function goToInvoiceList() {
   router.push({ name: 'invoice-list' })
 }
+
+// ── Post-create: LIFF link staff can hand straight to the customer ─────────
+const copied = ref(false)
+
+function liffUrl(invoiceNumber: string): string {
+  return `https://magicwash-liff.vercel.app/?invoiceNumber=${encodeURIComponent(invoiceNumber)}`
+}
+
+async function copyLiffUrl(invoiceNumber: string) {
+  await navigator.clipboard.writeText(liffUrl(invoiceNumber))
+  copied.value = true
+  setTimeout(() => { copied.value = false }, 2000)
+}
 </script>
 
 <template>
@@ -350,6 +391,19 @@ function goToInvoiceList() {
         <p class="font-headline text-xl font-bold text-primary">
           ฿{{ result.invoiceTotal.toLocaleString('en-US', { minimumFractionDigits: 2 }) }}
         </p>
+
+        <div class="flex items-center gap-2 rounded-xl bg-surface-container px-3 py-2 text-left">
+          <span class="min-w-0 flex-1 truncate font-body text-xs text-on-surface-variant">{{ liffUrl(result.invoiceNumber) }}</span>
+          <button
+            type="button"
+            class="flex shrink-0 items-center gap-1 rounded-lg bg-primary px-3 py-1.5 font-label text-[11px] font-semibold text-on-primary"
+            @click="copyLiffUrl(result.invoiceNumber)"
+          >
+            <span class="material-symbols-outlined text-[16px]" aria-hidden="true">{{ copied ? 'check' : 'content_copy' }}</span>
+            {{ copied ? 'Copied' : 'Copy link' }}
+          </button>
+        </div>
+
         <div class="flex flex-col gap-2 pt-2">
           <button type="button" class="rounded-xl bg-primary px-4 py-2.5 font-label text-[12px] font-semibold text-on-primary" @click="backToOrderHistory">
             Back to order history
@@ -453,6 +507,19 @@ function goToInvoiceList() {
         <p class="font-body text-xs font-semibold text-tertiary">
           Do not resubmit — that would create a duplicate invoice.
         </p>
+
+        <div class="flex items-center gap-2 rounded-xl bg-surface-container px-3 py-2 text-left">
+          <span class="min-w-0 flex-1 truncate font-body text-xs text-on-surface-variant">{{ liffUrl(result.invoiceNumber) }}</span>
+          <button
+            type="button"
+            class="flex shrink-0 items-center gap-1 rounded-lg bg-primary px-3 py-1.5 font-label text-[11px] font-semibold text-on-primary"
+            @click="copyLiffUrl(result.invoiceNumber)"
+          >
+            <span class="material-symbols-outlined text-[16px]" aria-hidden="true">{{ copied ? 'check' : 'content_copy' }}</span>
+            {{ copied ? 'Copied' : 'Copy link' }}
+          </button>
+        </div>
+
         <button type="button" class="w-full rounded-xl bg-primary px-4 py-2.5 font-label text-[12px] font-semibold text-on-primary" @click="goToInvoiceList">
           View invoices
         </button>
@@ -468,6 +535,10 @@ function goToInvoiceList() {
 
     <!-- The form itself. -->
     <form v-else class="space-y-5 px-4 py-5" @submit.prevent="handleSubmit">
+      <header class="space-y-1 border-b border-outline-variant/40 pb-3 text-center">
+        <p class="font-headline text-xl font-bold tracking-tight text-on-surface">#{{ invoiceNumber }}</p>
+      </header>
+
       <section class="space-y-1 rounded-2xl bg-surface-container-low px-4 py-3">
         <p class="font-label text-[10px] uppercase tracking-wide text-on-surface-variant">Billing</p>
         <p class="font-headline text-sm font-bold text-on-surface">{{ customer.customerName }}</p>
@@ -479,19 +550,8 @@ function goToInvoiceList() {
       </section>
 
       <section class="grid grid-cols-2 gap-3">
-        <div class="col-span-2">
-          <FormInput
-            id="invoice-number"
-            v-model="invoiceNumber"
-            label="Invoice number"
-            placeholder="INV-2026-0001"
-            autocomplete="off"
-            icon="tag"
-          />
-        </div>
-
         <FormInput id="invoice-issued-date" v-model="issuedDate" type="date" label="Issued date" icon="event" />
-        <FormInput id="invoice-due-date" v-model="dueDate" type="date" label="Due date" icon="event_available" />
+        <FormInput id="invoice-due-date" v-model="dueDate" type="date" label="Due date" icon="event_available" :min="minDueDate" />
       </section>
 
       <InvoiceLineItemsEditor v-model="items" @add-line="addLine" />
