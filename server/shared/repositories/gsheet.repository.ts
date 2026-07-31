@@ -17,6 +17,7 @@ import {
   type GSheetColumnMap,
 } from './utils/gviz-query.builder.js'
 import { fetchGVizRows } from './utils/gviz-reader.js'
+import { requireEnv } from '../utils/env.js'
 
 // ── Repository types derived from the exact module contract. The DB row drives the
 //    mapped API row (via the field map); the API bundle drives the read filter and
@@ -88,8 +89,10 @@ export interface GSheetRepositoryOptions<TContract extends ModuleContract> {
    */
   contract: TContract
   sheetName: string
+  /** Env var KEY NAME holding the spreadsheet id — resolved via `requireEnv` at construction time. */
   spreadsheetId: string
-  scriptUrl: string
+  /** Env var KEY NAME holding the Apps Script URL. Defaults to `'APPSCRIPT_URL'` when omitted. */
+  scriptUrl?: string
   transformer?: RepositoryTransformer
 }
 
@@ -114,8 +117,8 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
     })
     this.contract = input.contract
     this.sheetName = input.sheetName
-    this.spreadsheetId = input.spreadsheetId
-    this.scriptUrl = input.scriptUrl
+    this.spreadsheetId = requireEnv(input.spreadsheetId)
+    this.scriptUrl = requireEnv(input.scriptUrl ?? 'APPSCRIPT_URL')
     this.columns = deriveGVizColumns(input.contract.db.row)
   }
 

@@ -1,6 +1,5 @@
 import { appointmentContract } from './appointment.contract.js'
 import { GSheetRepository } from '../../shared/repositories/gsheet.repository.js'
-import { requireEnv } from '../../shared/utils/env.js'
 import { createAppointmentTransformer } from './appointment.transformer.js'
 
 // ── Data access: the Google Sheets implementation behind the repository contract.
@@ -20,8 +19,7 @@ export function getAppointmentRepository(): GSheetRepository<typeof appointmentC
   return appointmentRepository ??= new GSheetRepository({
     contract: appointmentContract,
     sheetName: 'Appointments',
-    spreadsheetId: requireEnv('APPOINTMENTS_SPREADSHEET_ID'),
-    scriptUrl: requireEnv('APPSCRIPT_URL'),
+    spreadsheetId: 'APPOINTMENTS_SPREADSHEET_ID',
     transformer: createAppointmentTransformer(),
   })
 }

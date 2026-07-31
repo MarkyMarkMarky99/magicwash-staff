@@ -1,6 +1,5 @@
 import { customerContract } from './customer.contract.js'
 import { GSheetRepository } from '../../shared/repositories/gsheet.repository.js'
-import { requireEnv } from '../../shared/utils/env.js'
 
 // ── Data access: the Google Sheets implementation behind the repository contract.
 //    The complete `customerContract` drives every inferred type — DB row, mapped
@@ -17,7 +16,6 @@ export function getCustomerRepository(): GSheetRepository<typeof customerContrac
   return customerRepository ??= new GSheetRepository({
     contract: customerContract,
     sheetName: 'Customers',
-    spreadsheetId: requireEnv('CUSTOMERS_SPREADSHEET_ID'),
-    scriptUrl: requireEnv('APPSCRIPT_URL'),
+    spreadsheetId: 'CUSTOMERS_SPREADSHEET_ID',
   })
 }

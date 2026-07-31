@@ -11,6 +11,13 @@ import type { ModuleContract } from '../../../../../server/shared/contracts/modu
 import { GSheetRepository } from '../../../../../server/shared/repositories/gsheet.repository.js'
 import { customerContract, customerFieldMap } from '../../../../../server/modules/customers/customer.contract.js'
 
+// GSheetRepository now resolves `spreadsheetId`/`scriptUrl` via requireEnv at
+// construction time (callers pass env var KEY NAMES, not resolved values), so
+// the sheet-transport tests below stash the real values behind test env vars
+// and pass the key names through.
+process.env.TEST_SPREADSHEET_ID = 'spreadsheet-id'
+process.env.TEST_SCRIPT_URL = 'https://script.example/exec'
+
 type AnyRow = Record<string, unknown>
 
 class TestRepository extends BaseRepository<AnyRow, AnyRow, AnyRow, AnyRow> {
@@ -86,8 +93,8 @@ function customerSheetRepo(transformer?: RepositoryTransformer): GSheetRepositor
   return new GSheetRepository({
     contract: customerContract,
     sheetName: 'Customers',
-    spreadsheetId: 'spreadsheet-id',
-    scriptUrl: 'https://script.example/exec',
+    spreadsheetId: 'TEST_SPREADSHEET_ID',
+    scriptUrl: 'TEST_SCRIPT_URL',
     transformer,
   })
 }
@@ -635,8 +642,8 @@ test('GSheetRepository update lets the route id win over a conflicting body prim
   const repo = new GSheetRepository({
     contract: widgetContract,
     sheetName: 'Widgets',
-    spreadsheetId: 'spreadsheet-id',
-    scriptUrl: 'https://script.example/exec',
+    spreadsheetId: 'TEST_SPREADSHEET_ID',
+    scriptUrl: 'TEST_SCRIPT_URL',
   })
 
   await withMockFetch(
@@ -693,8 +700,8 @@ function readOnlySheetRepo(): GSheetRepository<typeof readOnlyContract> {
   return new GSheetRepository({
     contract: readOnlyContract,
     sheetName: 'ReadOnly',
-    spreadsheetId: 'spreadsheet-id',
-    scriptUrl: 'https://script.example/exec',
+    spreadsheetId: 'TEST_SPREADSHEET_ID',
+    scriptUrl: 'TEST_SCRIPT_URL',
   })
 }
 

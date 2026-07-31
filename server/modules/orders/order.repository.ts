@@ -1,6 +1,5 @@
 import { orderContract } from './order.contract.js'
 import { GSheetRepository } from '../../shared/repositories/gsheet.repository.js'
-import { requireEnv } from '../../shared/utils/env.js'
 import { createOrdersTransformer } from './orders.transformer.js'
 
 // ── Data access: standard GSheetRepository against the OrdersView sheet.
@@ -15,10 +14,7 @@ export function getOrdersRepository(): GSheetRepository<typeof orderContract> {
   return ordersRepository ??= new GSheetRepository({
     contract: orderContract,
     sheetName: 'OrdersView',
-    spreadsheetId: requireEnv('ORDERS_SPREADSHEET_ID'),
-    // Required by GSheetRepository constructor; unused for this list-only module
-    // (writes are guarded before fetch). Same shared Apps Script URL as other modules.
-    scriptUrl: requireEnv('APPSCRIPT_URL'),
+    spreadsheetId: 'ORDERS_SPREADSHEET_ID',
     transformer: createOrdersTransformer(),
   })
 }
