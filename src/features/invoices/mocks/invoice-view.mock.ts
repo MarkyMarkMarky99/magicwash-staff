@@ -298,10 +298,6 @@ export function getMockInvoiceListPage(filter: InvoiceFilter) {
   }
 }
 
-export function getMockInvoiceListItems(filter: InvoiceFilter): InvoiceListItem[] {
-  return getMockInvoiceListPage(filter).items
-}
-
 const detailByInvoiceNumber = new Map(
   invoiceDetails.map((detail) => [detail.invoiceNumber, detail]),
 )
