@@ -16,15 +16,21 @@ export const defaultInvoiceFilter: InvoiceFilter = {
   sortOrder: 'desc',
 }
 
-const INVOICE_STATUSES: readonly InvoiceStatusDto[] = ['UNPAID', 'PARTIAL', 'PAID', 'OVERDUE']
+const INVOICE_STATUSES: readonly InvoiceStatusDto[] = [
+  'DRAFT',
+  'UNPAID',
+  'OVERDUE',
+  'PARTIALLY_PAID',
+  'PAID',
+  'CANCELLED',
+  'VOID',
+]
 
 const INVOICE_SORT_KEYS: readonly InvoiceFilter['sortBy'][] = [
-  'invoiceNumber',
-  'customerName',
   'issuedDate',
   'dueDate',
-  'totalAmount',
   'status',
+  'grandTotal',
 ]
 
 const SORT_ORDERS: readonly InvoiceFilter['sortOrder'][] = ['asc', 'desc']

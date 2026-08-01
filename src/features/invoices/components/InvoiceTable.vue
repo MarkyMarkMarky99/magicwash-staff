@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import type { InvoiceResponseDto, InvoiceStatusDto } from '../types/invoices.types'
+import type { InvoiceListItemDto, InvoiceStatusDto } from '../types/invoices.types'
 
 defineProps<{
-  invoices: InvoiceResponseDto[]
+  invoices: InvoiceListItemDto[]
 }>()
 
 const emit = defineEmits<{
-  select: [invoice: InvoiceResponseDto]
+  select: [invoice: InvoiceListItemDto]
 }>()
 
 function formatCurrency(value: number) {
@@ -20,24 +20,19 @@ function formatDate(value: string | null) {
   return value || '-'
 }
 
-function getItemsSummary(invoice: InvoiceResponseDto) {
-  if (invoice.items.length === 0) {
-    return 'No items'
-  }
-
-  if (invoice.items.length === 1) {
-    return invoice.items[0].description
-  }
-
-  return `${invoice.items[0].description} +${invoice.items.length - 1} more`
+function getBillingTypeLabel(billingType: InvoiceListItemDto['billingType']) {
+  return billingType === 'CYCLE' ? 'Cycle billing' : 'Order billing'
 }
 
 function getStatusLabel(status: InvoiceStatusDto) {
   const labels: Record<InvoiceStatusDto, string> = {
+    DRAFT: 'Draft',
     UNPAID: 'Unpaid',
-    PARTIAL: 'Partial',
-    PAID: 'Paid',
     OVERDUE: 'Overdue',
+    PARTIALLY_PAID: 'Partially paid',
+    PAID: 'Paid',
+    CANCELLED: 'Cancelled',
+    VOID: 'Void',
   }
 
   return labels[status]
@@ -45,10 +40,13 @@ function getStatusLabel(status: InvoiceStatusDto) {
 
 function getStatusBadgeClass(status: InvoiceStatusDto) {
   const badgeClasses: Record<InvoiceStatusDto, string> = {
+    DRAFT: 'bg-gray-100 text-gray-600',
     UNPAID: 'bg-error-container text-error',
-    PARTIAL: 'bg-tertiary-container text-tertiary',
-    PAID: 'bg-success-container text-success',
     OVERDUE: 'bg-error text-on-error',
+    PARTIALLY_PAID: 'bg-blue-100 text-blue-700',
+    PAID: 'bg-success-container text-success',
+    CANCELLED: 'bg-error-container text-on-error-container',
+    VOID: 'bg-error-container text-on-error-container',
   }
 
   return badgeClasses[status]
@@ -72,7 +70,7 @@ function getStatusBadgeClass(status: InvoiceStatusDto) {
       <tbody class="divide-y divide-outline-variant/10">
         <tr
           v-for="invoice in invoices"
-          :key="invoice.id"
+          :key="invoice.invoiceNumber"
           class="cursor-pointer transition-colors hover:bg-surface-container-lowest"
           @click="emit('select', invoice)"
         >
@@ -81,16 +79,16 @@ function getStatusBadgeClass(status: InvoiceStatusDto) {
               {{ invoice.invoiceNumber }}
             </p>
             <p class="mt-0.5 text-xs text-on-surface-variant">
-              {{ getItemsSummary(invoice) }}
+              {{ getBillingTypeLabel(invoice.billingType) }}
             </p>
           </td>
 
           <td class="px-4 py-3">
             <p class="text-sm font-medium text-on-surface">
-              {{ invoice.customerName }}
+              {{ invoice.customer?.customerName || '—' }}
             </p>
             <p class="mt-0.5 text-xs text-on-surface-variant">
-              {{ invoice.customerPhone || '-' }}
+              {{ invoice.customer?.phone || '-' }}
             </p>
           </td>
 
@@ -112,7 +110,7 @@ function getStatusBadgeClass(status: InvoiceStatusDto) {
           </td>
 
           <td class="px-4 py-3 text-right text-sm font-bold text-on-surface">
-            {{ formatCurrency(invoice.totalAmount) }}
+            {{ formatCurrency(invoice.grandTotal) }}
           </td>
         </tr>
       </tbody>

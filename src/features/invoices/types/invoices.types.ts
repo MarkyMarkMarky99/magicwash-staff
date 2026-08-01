@@ -1,16 +1,25 @@
+import { z } from 'zod'
+import {
+  invoiceListResponseSchema,
+  invoiceViewStatusSchema,
+} from '@contracts/invoices/invoice-view-api.schema'
+
 export type InvoiceItemUnitDto = 'PIECE' | 'KG' | 'PAIR' | 'SET'
 
 export type PaymentMethodDto = 'CASH' | 'TRANSFER' | 'CREDIT_CARD' | 'CHEQUE' | 'OTHER'
 
 export type PaymentStatusDto = 'PENDING' | 'VERIFYING' | 'VERIFIED' | 'FAILED' | 'MANUAL_REVIEW'
 
-export type PaymentSummaryStatusDto = 'UNPAID' | 'PARTIAL' | 'PAID'
+export type PaymentSummaryStatusDto = 'UNPAID' | 'PARTIALLY_PAID' | 'PAID'
 
-export type InvoiceStatusDto = PaymentSummaryStatusDto | 'OVERDUE'
+export type InvoiceStatusDto = z.infer<typeof invoiceViewStatusSchema>
+
+/** The read-contract projection used by both the invoice list and detail mock. */
+export type InvoiceListItemDto = z.infer<typeof invoiceListResponseSchema>
 
 export interface InvoiceItemResponseDto {
   id: string
-  invoiceId: string
+  invoiceNumber: string
   description: string
   quantity: number
   unit: InvoiceItemUnitDto
@@ -20,7 +29,7 @@ export interface InvoiceItemResponseDto {
 
 export interface PaymentResponseDto {
   id: string
-  invoiceId: string
+  invoiceNumber: string
   amount: number | null
   method: PaymentMethodDto | null
   proofUrl: string | null
@@ -35,41 +44,10 @@ export interface PaymentResponseDto {
   updatedBy: string
 }
 
-export interface InvoiceResponseDto {
-  id: string
-  invoiceNumber: string
-  customerId: string
-  customerName: string
-  customerPhone: string | null
-  customerAddress: string | null
-  customerTaxId: string | null
-  periodStart: string
-  periodEnd: string
-  issuedDate: string
-  dueDate: string | null
-  itemsSubtotal: number
-  discountAmount: number
-  surchargeAmount: number
-  subtotal: number
-  taxAmount: number
-  whtAmount: number
-  totalAmount: number
-  amountDue: number
-  amountPaid: number
-  balance: number
-  paymentStatus: PaymentSummaryStatusDto
-  paymentMethod: PaymentMethodDto | 'NONE'
-  status: InvoiceStatusDto
-  items: InvoiceItemResponseDto[]
-  payments: PaymentResponseDto[]
-  createdAt: string
-  createdBy: string
-  deletedAt: string | null
-  deletedBy: string | null
-}
+export type InvoiceResponseDto = InvoiceListItemDto
 
 export interface InvoiceListResponseDto {
-  invoices: InvoiceResponseDto[]
+  invoices: InvoiceListItemDto[]
   total: number
   page: number
   perPage: number

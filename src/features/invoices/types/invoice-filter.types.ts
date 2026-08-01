@@ -8,12 +8,6 @@ export interface InvoiceFilter {
   dateTo: string | null
   page: number
   perPage: number
-  sortBy:
-    | 'invoiceNumber'
-    | 'customerName'
-    | 'issuedDate'
-    | 'dueDate'
-    | 'totalAmount'
-    | 'status'
+  sortBy: 'issuedDate' | 'dueDate' | 'status' | 'grandTotal'
   sortOrder: 'asc' | 'desc'
 }

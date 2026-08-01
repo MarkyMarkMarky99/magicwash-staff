@@ -3,6 +3,7 @@ import {
   invoiceDetailResponseSchema,
   invoiceListResponseSchema,
 } from '@contracts/invoices/invoice-view-api.schema'
+import type { InvoiceFilter } from '../types/invoice-filter.types'
 
 /**
  * Stand-in for the `/api/invoices` (list) and `/api/invoices/:invoiceNumber`
@@ -213,6 +214,92 @@ export const mockInvoiceListResponse: MockListResponse = {
     timestamp: '2026-08-01T09:00:00.000Z',
     pagination: { page: 1, perPage: 20 },
   },
+}
+
+function filterMockInvoiceListItems(filter: InvoiceFilter): InvoiceListItem[] {
+  const keyword = filter.keyword.trim().toLowerCase()
+
+  return mockInvoiceListResponse.data.filter((invoice) => {
+    if (filter.customerId && invoice.customerId !== filter.customerId) return false
+    if (filter.status && invoice.status !== filter.status) return false
+    if (filter.dateFrom && invoice.issuedDate < filter.dateFrom) return false
+    if (filter.dateTo && invoice.issuedDate > filter.dateTo) return false
+
+    if (!keyword) return true
+
+    const searchableText = [
+      invoice.invoiceNumber,
+      invoice.customer.customerCode,
+      invoice.customer.customerName,
+      invoice.customer.phone,
+      invoice.customer.address,
+    ]
+      .filter((value): value is string => Boolean(value))
+      .join(' ')
+      .toLowerCase()
+
+    return searchableText.includes(keyword)
+  })
+}
+
+function getMockInvoiceSortValue(
+  invoice: InvoiceListItem,
+  sortBy: InvoiceFilter['sortBy'],
+): string | number {
+  switch (sortBy) {
+    case 'grandTotal':
+      return invoice.grandTotal
+    case 'dueDate':
+      return invoice.dueDate
+    case 'status':
+      return invoice.status
+    case 'issuedDate':
+      return invoice.issuedDate
+  }
+}
+
+function sortMockInvoiceListItems(
+  invoices: InvoiceListItem[],
+  filter: InvoiceFilter,
+): InvoiceListItem[] {
+  return [...invoices].sort((left, right) => {
+    const leftValue = getMockInvoiceSortValue(left, filter.sortBy)
+    const rightValue = getMockInvoiceSortValue(right, filter.sortBy)
+    const comparison =
+      typeof leftValue === 'number' && typeof rightValue === 'number'
+        ? leftValue - rightValue
+        : String(leftValue).localeCompare(String(rightValue))
+
+    if (comparison !== 0) {
+      return filter.sortOrder === 'asc' ? comparison : -comparison
+    }
+
+    const invoiceNumberComparison = left.invoiceNumber.localeCompare(right.invoiceNumber)
+    return filter.sortOrder === 'asc' ? invoiceNumberComparison : -invoiceNumberComparison
+  })
+}
+
+/**
+ * Applies the same list filters locally while the real read route is not
+ * registered. The rows still come from the exact projection used by detail.
+ */
+export function getMockInvoiceListPage(filter: InvoiceFilter) {
+  const page = Number.isInteger(filter.page) && filter.page > 0 ? filter.page : 1
+  const perPage = Number.isInteger(filter.perPage) && filter.perPage > 0 ? filter.perPage : 20
+  const filteredInvoices = filterMockInvoiceListItems(filter)
+  const sortedInvoices = sortMockInvoiceListItems(filteredInvoices, filter)
+  const start = (page - 1) * perPage
+
+  return {
+    items: sortedInvoices.slice(start, start + perPage),
+    total: sortedInvoices.length,
+    page,
+    perPage,
+  }
+}
+
+export function getMockInvoiceListItems(filter: InvoiceFilter): InvoiceListItem[] {
+  return getMockInvoiceListPage(filter).items
 }
 
 const detailByInvoiceNumber = new Map(

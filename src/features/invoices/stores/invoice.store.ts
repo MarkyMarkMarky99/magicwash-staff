@@ -2,10 +2,10 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getInvoices } from '../services/invoice.service'
 import type { InvoiceFilter } from '../types/invoice-filter.types'
-import type { InvoiceResponseDto } from '../types/invoices.types'
+import type { InvoiceListItemDto } from '../types/invoices.types'
 
 export const useInvoiceStore = defineStore('invoices', () => {
-  const invoices = ref<InvoiceResponseDto[]>([])
+  const invoices = ref<InvoiceListItemDto[]>([])
   const total = ref(0)
   const page = ref(1)
   const perPage = ref(20)

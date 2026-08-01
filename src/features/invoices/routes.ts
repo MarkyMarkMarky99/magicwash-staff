@@ -12,7 +12,7 @@ export const invoiceRoutes: RouteRecordRaw[] = [
     component: () => import('./pages/InvoiceCreatePage.vue'),
   },
   {
-    path: '/invoices/:invoiceId',
+    path: '/invoices/:invoiceNumber',
     name: 'invoice-detail',
     component: () => import('./pages/InvoiceDetailPage.vue'),
     props: true,
@@ -26,10 +26,10 @@ export const invoiceRoutes: RouteRecordRaw[] = [
     redirect: (to) => ({ name: 'invoice-create', query: to.query }),
   },
   {
-    path: '/invoices-new/:invoiceId',
+    path: '/invoices-new/:invoiceNumber',
     redirect: (to) => ({
       name: 'invoice-detail',
-      params: { invoiceId: to.params.invoiceId },
+      params: { invoiceNumber: to.params.invoiceNumber },
       query: to.query,
     }),
   },

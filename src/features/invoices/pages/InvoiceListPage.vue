@@ -9,7 +9,7 @@ import InvoiceFilterBar from '../components/InvoiceFilterBar.vue'
 import InvoiceTable from '../components/InvoiceTable.vue'
 import { useInvoiceStore } from '../stores/invoice.store'
 import { useInvoiceFilterRoute } from '../composables/useInvoiceFilterRoute'
-import type { InvoiceResponseDto, InvoiceStatusDto } from '../types/invoices.types'
+import type { InvoiceListItemDto, InvoiceStatusDto } from '../types/invoices.types'
 
 const router = useRouter()
 const invoiceStore = useInvoiceStore()
@@ -23,13 +23,24 @@ const {
 const { filter, updateFilter } = useInvoiceFilterRoute()
 const { searchOpen, openSearch, closeSearch } = useHeaderSearch()
 
-const INVOICE_STATUSES = ['UNPAID', 'PARTIAL', 'PAID', 'OVERDUE'] as const
+const INVOICE_STATUSES: InvoiceStatusDto[] = [
+  'DRAFT',
+  'UNPAID',
+  'OVERDUE',
+  'PARTIALLY_PAID',
+  'PAID',
+  'CANCELLED',
+  'VOID',
+]
 
 const STATUS_LABELS: Record<InvoiceStatusDto, string> = {
+  DRAFT: 'Draft',
   UNPAID: 'Unpaid',
-  PARTIAL: 'Partial',
-  PAID: 'Paid',
   OVERDUE: 'Overdue',
+  PARTIALLY_PAID: 'Partially paid',
+  PAID: 'Paid',
+  CANCELLED: 'Cancelled',
+  VOID: 'Void',
 }
 
 const statusFilters: Array<{ key: InvoiceStatusDto | 'all'; label: string }> = [
@@ -54,12 +65,8 @@ onMounted(() => {
 
 onUnmounted(() => closeSearch())
 
-function openInvoice(invoice: InvoiceResponseDto) {
-  router.push({ name: 'invoice-detail', params: { invoiceId: invoice.id } })
-}
-
-function openCreateInvoice() {
-  router.push({ name: 'invoice-create' })
+function openInvoice(invoice: InvoiceListItemDto) {
+  router.push({ name: 'invoice-detail', params: { invoiceNumber: invoice.invoiceNumber } })
 }
 </script>
 
@@ -84,17 +91,6 @@ function openCreateInvoice() {
         empty-text="No invoices"
         :skeleton-rows="4"
       >
-        <template #actions>
-          <button
-            type="button"
-            class="w-7 h-7 rounded-full bg-primary text-on-primary flex items-center justify-center"
-            aria-label="Create invoice"
-            @click.stop="openCreateInvoice"
-          >
-            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">add</span>
-          </button>
-        </template>
-
         <InvoiceTable
           :invoices="invoices"
           @select="openInvoice"
