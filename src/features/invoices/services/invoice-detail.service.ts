@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { invoiceDetailResponseSchema } from '@contracts/invoices/invoice-view-api.schema'
-import { getMockInvoiceDetailResponse } from '../mocks/invoice-view.mock'
+import { apiGet, ApiError } from '@/shared/api/api-client'
 
 export type InvoiceDetailDto = z.infer<typeof invoiceDetailResponseSchema>
 
@@ -56,11 +56,22 @@ function normalizeInvoiceDetail(value: unknown): InvoiceDetailDto | null {
 }
 
 /**
- * Stand-in for GET /api/invoices/:invoiceNumber until the read route is wired.
- * The mock returns the same envelope data shape as the read contract.
+ * GET /api/invoices/:invoiceNumber — real network call via the shared
+ * apiGet helper (same pattern as customer.service.ts's getCustomerById). A
+ * 404 (BaseCrudService.getById throws ApiError.notFound when 0 rows match)
+ * is translated to `null`, matching the old mock's
+ * "unknown invoiceNumber -> undefined -> null" contract the caller
+ * (InvoiceDetailPage.vue) already expects. Any other failure re-throws so
+ * the page's generic error state still fires.
  */
 export async function getInvoiceDetail(input: unknown): Promise<InvoiceDetailDto | null> {
   const invoiceNumber = normalizeInvoiceNumber(input)
-  const response = getMockInvoiceDetailResponse(invoiceNumber)
-  return normalizeInvoiceDetail(response?.data)
+
+  try {
+    const data = await apiGet<unknown>(`/api/invoices/${encodeURIComponent(invoiceNumber)}`)
+    return normalizeInvoiceDetail(data)
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null
+    throw error
+  }
 }

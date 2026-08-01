@@ -11,21 +11,28 @@ export const useInvoiceStore = defineStore('invoices', () => {
   const perPage = ref(20)
   const loading = ref(false)
   const error = ref<string | null>(null)
+  // Guards against an older in-flight request's response overwriting a newer
+  // one (e.g. rapid filter changes firing several requests out of order) —
+  // same pattern as InvoiceDetailPage.vue's loadInvoice().
+  let latestRequest = 0
 
   async function fetchInvoices(filter: InvoiceFilter) {
+    const requestId = ++latestRequest
     loading.value = true
     error.value = null
 
     try {
       const result = await getInvoices(filter)
+      if (requestId !== latestRequest) return
       invoices.value = result.invoices
       total.value = result.total
       page.value = result.page
       perPage.value = result.perPage
     } catch {
+      if (requestId !== latestRequest) return
       error.value = 'Unable to load invoices'
     } finally {
-      loading.value = false
+      if (requestId === latestRequest) loading.value = false
     }
   }
 

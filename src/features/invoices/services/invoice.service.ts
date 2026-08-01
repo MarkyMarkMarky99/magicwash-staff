@@ -1,28 +1,35 @@
 import type { CreateInvoiceRequest, CreateInvoiceResponse } from '@contracts/invoices/invoice-api.schema'
+import { invoiceListQuerySchema } from '@contracts/invoices/invoice-view-api.schema'
 import type { InvoiceFilter } from '../types/invoice-filter.types'
-import { getMockInvoiceListPage } from '../mocks/invoice-view.mock'
-import type { InvoiceListResponseDto } from '../types/invoices.types'
+import type { InvoiceListItemDto, InvoiceListResponseDto } from '../types/invoices.types'
+import { apiGetList } from '@/shared/api/api-client'
 
 const INVOICES_ENDPOINT = '/api/invoices'
 
 /**
- * Stand-in for GET /api/invoices until the read route is wired up in
- * `server/api/route-registry.ts` (that route is currently POST-only). Mirrors
- * `invoice-detail.service.ts`'s `getInvoiceDetail()`: calls the mock directly,
- * with no network attempt — Vite's dev-server SPA fallback returns `200 OK`
- * HTML for any unmatched path, so a real `fetch()` here can't be told apart
- * from a real response by status code alone.
+ * GET /api/invoices — real network call via the shared apiGetList helper,
+ * same pattern as customer.service.ts / order.service.ts. Validates `filter`
+ * against the same `invoiceListQuerySchema` the backend validates against
+ * (contracts/invoices/invoice-view-api.schema.ts).
  *
- * Delete this mock indirection once the real read endpoint exists.
+ * `total` is NOT provided by the backend today — BaseCrudService/okPaged
+ * only returns page-only pagination meta `{ page, perPage }` (see
+ * api/CLAUDE.md's Key Engine Rules), the same limitation customer/order
+ * lists already have. InvoiceListPage only uses `total` as a display count
+ * label, never for page-count navigation, so the current page's item count
+ * is an honest stand-in, not a silent bug.
  */
 export async function getInvoices(filter: InvoiceFilter): Promise<InvoiceListResponseDto> {
-  const page = getMockInvoiceListPage(filter)
+  const { items, pagination } = await apiGetList<InvoiceListItemDto>(INVOICES_ENDPOINT, {
+    query: filter,
+    querySchema: invoiceListQuerySchema,
+  })
 
   return {
-    invoices: page.items,
-    total: page.total,
-    page: page.page,
-    perPage: page.perPage,
+    invoices: items,
+    total: items.length,
+    page: pagination.page,
+    perPage: pagination.perPage,
   }
 }
 

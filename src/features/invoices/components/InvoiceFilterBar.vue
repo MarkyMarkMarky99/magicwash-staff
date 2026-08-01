@@ -43,7 +43,53 @@ watch(keywordInput, (value) => {
   }, SEARCH_DEBOUNCE_MS)
 })
 
-onBeforeUnmount(() => clearTimeout(debounceTimer))
+// Date inputs get the same local-buffer + debounce treatment as keyword —
+// a native <input type="date"> fires one change per keystroke while typing,
+// and without debouncing that means one fetch per keystroke.
+const DATE_DEBOUNCE_MS = 300
+
+const dateFromInput = ref(props.filter.dateFrom ?? '')
+const dateToInput = ref(props.filter.dateTo ?? '')
+let dateFromTimer: ReturnType<typeof setTimeout> | undefined
+let dateToTimer: ReturnType<typeof setTimeout> | undefined
+
+watch(
+  () => props.filter.dateFrom,
+  (value) => {
+    const normalized = value ?? ''
+    if (normalized !== dateFromInput.value) dateFromInput.value = normalized
+  },
+)
+
+watch(
+  () => props.filter.dateTo,
+  (value) => {
+    const normalized = value ?? ''
+    if (normalized !== dateToInput.value) dateToInput.value = normalized
+  },
+)
+
+watch(dateFromInput, (value) => {
+  clearTimeout(dateFromTimer)
+  dateFromTimer = setTimeout(() => {
+    const normalized = value || null
+    if (normalized !== props.filter.dateFrom) emit('filterChange', { dateFrom: normalized })
+  }, DATE_DEBOUNCE_MS)
+})
+
+watch(dateToInput, (value) => {
+  clearTimeout(dateToTimer)
+  dateToTimer = setTimeout(() => {
+    const normalized = value || null
+    if (normalized !== props.filter.dateTo) emit('filterChange', { dateTo: normalized })
+  }, DATE_DEBOUNCE_MS)
+})
+
+onBeforeUnmount(() => {
+  clearTimeout(debounceTimer)
+  clearTimeout(dateFromTimer)
+  clearTimeout(dateToTimer)
+})
 
 // Filter dropdown (date range) — local UI state, collapsed by default and
 // reset whenever the search bar is hidden.
@@ -89,7 +135,7 @@ function updateStatus(status: string) {
       <input
         v-model="keywordInput"
         type="text"
-        placeholder="Search invoice or customer…"
+        placeholder="Search invoice number or customer ID…"
         class="flex-1 bg-transparent font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 outline-none min-w-0"
         autofocus
       />
@@ -121,20 +167,20 @@ function updateStatus(status: string) {
     >
       <FormInput
         id="invoice-date-from"
-        :model-value="filter.dateFrom ?? ''"
+        :model-value="dateFromInput"
         label="From"
         type="date"
         icon="event"
-        @update:model-value="emit('filterChange', { dateFrom: $event || null })"
+        @update:model-value="dateFromInput = $event"
       />
 
       <FormInput
         id="invoice-date-to"
-        :model-value="filter.dateTo ?? ''"
+        :model-value="dateToInput"
         label="To"
         type="date"
         icon="event"
-        @update:model-value="emit('filterChange', { dateTo: $event || null })"
+        @update:model-value="dateToInput = $event"
       />
     </div>
   </section>

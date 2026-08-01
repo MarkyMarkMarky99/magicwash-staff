@@ -1,17 +1,10 @@
 import { z } from 'zod'
 import { API_PAGINATION_DEFAULTS } from '../shared/api.schema.js'
 import type { ModuleApiContract } from '../shared/module-api-contract.js'
-import { invoiceAdjustmentInputSchema } from './invoice-api.schema.js'
 
 /**
  * Invoices READ contract (list + detail) — backs `InvoicesView`, not the
  * Invoice/InvoiceItem write tables in `invoice-api.schema.ts`.
- *
- * `invoiceAdjustmentInputSchema` is reused from `invoice-api.schema.ts` rather
- * than redeclared — `InvoiceView.json`'s example `itemsJson` uses the exact
- * same camelCase field names (unitPrice, netTotal, ...) and the same
- * required-ness (an adjustment either exists with real values or isn't in the
- * array at all, on both the write and read side).
  *
  * `customer` does NOT reuse `invoiceCustomerSnapshotInputSchema` — that
  * schema models what a CLIENT sends on create, where an absent phone/address
@@ -19,6 +12,16 @@ import { invoiceAdjustmentInputSchema } from './invoice-api.schema.js'
  * `invoice-view.transformer.ts`'s `parseCustomer()` always emits every key,
  * `null` when the sheet's `customerJson` doesn't have it. `invoiceViewCustomerSchema`
  * below models that shape instead — `.nullable()`, never `.optional()`.
+ *
+ * Likewise `adjustments` (both invoice- and item-level) and `payments` do NOT
+ * reuse `invoiceAdjustmentInputSchema` from `invoice-api.schema.ts` — that
+ * schema models the create-only write direction (enum `calculation`,
+ * non-null `value`, optional `refSource`/`refCode`). The read side is
+ * `invoice-view.transformer.ts`'s `mapAdjustment()`/`mapPayment()`, which
+ * always emit every key and use `toNullableString`/`toNullableNumber` with no
+ * enum enforcement, so `invoiceViewAdjustmentSchema` and
+ * `invoiceViewPaymentSchema` model every field as `.nullable()` generic
+ * `z.string()`/`z.number()` instead.
  *
  * ⚠ `invoiceViewPaymentSchema` is NOT grounded in a live example —
  * `InvoiceView.json`'s only example has an empty `paymentsJson`. Fields are
@@ -76,18 +79,32 @@ export const invoiceViewCustomerSchema = z.object({
   address: z.string().nullable(),
 })
 
+/** Matches `InvoiceViewAdjustment` in `invoice-view.transformer.ts` exactly —
+ *  every key always present, `null` (not omitted) and no enum enforcement,
+ *  unlike the create-only `invoiceAdjustmentInputSchema`. */
+export const invoiceViewAdjustmentSchema = z.object({
+  label: z.string().nullable(),
+  calculation: z.string().nullable(),
+  value: z.number().nullable(),
+  refSource: z.string().nullable(),
+  refCode: z.string().nullable(),
+})
+
+/** Matches `InvoiceViewItem` in `invoice-view.transformer.ts` exactly — every
+ *  field is `mapItem()`-produced via `toNullableString`/`toNullableNumber`,
+ *  so a dirty row can legitimately leave any of them `null`. */
 export const invoiceViewItemSchema = z.object({
-  description: z.string(),
+  description: z.string().nullable(),
   unit: z.string().nullable(),
-  quantity: z.number(),
-  unitPrice: z.number(),
-  subtotal: z.number(),
-  adjustments: z.array(invoiceAdjustmentInputSchema).default([]),
-  netTotal: z.number(),
+  quantity: z.number().nullable(),
+  unitPrice: z.number().nullable(),
+  subtotal: z.number().nullable(),
+  adjustments: z.array(invoiceViewAdjustmentSchema).default([]),
+  netTotal: z.number().nullable(),
 })
 
 export const invoiceViewPaymentSchema = z.object({
-  paymentId: z.string(),
+  paymentId: z.string().nullable(),
   amount: z.number().nullable(),
   method: z.enum(['CASH', 'BANK_TRANSFER', 'CREDIT_CARD', 'QR_PROMPTPAY', 'GIFT_VOUCHER', 'OTHER']).nullable(),
   status: z.enum(['PENDING', 'VERIFIED', 'FAILED', 'CANCELLED']),
@@ -109,7 +126,7 @@ export const invoiceListResponseSchema = z.object({
   customer: invoiceViewCustomerSchema,
   subtotal: z.number(),
   adjustmentTotal: z.number(),
-  adjustments: z.array(invoiceAdjustmentInputSchema).default([]),
+  adjustments: z.array(invoiceViewAdjustmentSchema).default([]),
   grandTotal: z.number(),
   paidAmount: z.number(),
   balanceDue: z.number(),
