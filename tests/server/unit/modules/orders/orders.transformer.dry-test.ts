@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict'
 import { orderListQuerySchema } from '../../../../../contracts/orders/order-api.schema.js'
 import { parseOrThrow } from '../../../../../server/shared/http/validate.js'
+import { transformOrderRow } from '../../../../../server/modules/orders/orders.transformer.js'
 import {
   normalizeGVizDate,
   toNullableNumber,
-  transformOrderRow,
-} from '../../../../../server/modules/orders/orders.transformer.js'
+} from '../../../../../server/shared/repositories/utils/gviz-cell.js'
 
 const baseRow = {
   orderId: 'AFT-1001',
@@ -144,6 +144,8 @@ test('GViz date serials use the zero-indexed month correction', () => {
   assert.equal(normalizeGVizDate('Date(2026,11,31)'), '2026-12-31')
   assert.equal(normalizeGVizDate('2026-07-21'), '2026-07-21')
   assert.equal(normalizeGVizDate(null), null)
+  assert.equal(normalizeGVizDate(undefined), null)
+  assert.equal(normalizeGVizDate(''), null)
 })
 
 test('missing customerId fails list-query validation instead of reading all orders', () => {

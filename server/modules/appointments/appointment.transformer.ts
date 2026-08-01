@@ -4,6 +4,7 @@ import type {
   RepositoryTransformer,
 } from '../../shared/repositories/base.repository.js'
 import type { appointmentContract } from './appointment.contract.js'
+import { isRecord, parseJsonObject } from '../../shared/repositories/utils/gviz-cell.js'
 
 export type AppointmentDbRow = z.infer<typeof appointmentContract.db.row>
 export type AppointmentDbCreateRequest = z.infer<
@@ -125,14 +126,8 @@ export function flattenAddressSnapshot(
     return empty
   }
 
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(value)
-  } catch {
-    return { ...empty, Address: nullableString(value) }
-  }
-
-  if (!isRecord(parsed)) {
+  const parsed = parseJsonObject(value)
+  if (parsed === null) {
     return { ...empty, Address: nullableString(value) }
   }
 
@@ -171,10 +166,6 @@ function emptyAddressSnapshot(): FlattenedAddressSnapshot {
     phone: null,
     location: null,
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
 function requireString(value: unknown, field: string): string {

@@ -1,4 +1,11 @@
 import type { RepositoryTransformer } from '../../shared/repositories/base.repository.js'
+import {
+  isRecord,
+  normalizeGVizDate,
+  parseJsonArray,
+  toNullableNumber,
+  toNullableString,
+} from '../../shared/repositories/utils/gviz-cell.js'
 
 /**
  * Orders response transformer: ports the former orders.mapper.ts logic into a
@@ -55,54 +62,8 @@ export function transformOrderRow(row: Record<string, unknown>): Record<string, 
   }
 }
 
-export function toNullableNumber(value: unknown): number | null {
-  if (value === null || value === undefined || value === '') {
-    return null
-  }
-
-  try {
-    const result = Number(value)
-    return Number.isNaN(result) ? null : result
-  } catch {
-    return null
-  }
-}
-
-export function normalizeGVizDate(value: unknown): string | null {
-  if (value === null || value === undefined || value === '') {
-    return null
-  }
-
-  if (typeof value !== 'string') {
-    return null
-  }
-
-  const match = value.match(/^Date\((\d+),(\d+),(\d+)\)$/)
-  if (!match) {
-    return value
-  }
-
-  const [, year, month, day] = match
-  return `${year}-${String(Number(month) + 1).padStart(2, '0')}-${String(Number(day)).padStart(2, '0')}`
-}
-
 function parseItems(value: unknown): OrderItem[] {
-  if (typeof value !== 'string') {
-    return []
-  }
-
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(value)
-  } catch {
-    return []
-  }
-
-  if (!Array.isArray(parsed)) {
-    return []
-  }
-
-  return parsed.filter(isPlainObject).map(mapOrderItem)
+  return parseJsonArray(value).filter(isPlainObject).map(mapOrderItem)
 }
 
 function mapOrderItem(item: Record<string, unknown>): OrderItem {
@@ -121,14 +82,6 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
   const prototype = Object.getPrototypeOf(value)
   return prototype === Object.prototype || prototype === null
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-}
-
-function toNullableString(value: unknown): string | null {
-  return typeof value === 'string' ? value : null
 }
 
 function toRequiredString(value: unknown): string {
