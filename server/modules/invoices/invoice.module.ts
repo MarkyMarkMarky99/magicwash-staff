@@ -25,12 +25,11 @@ type InvoiceReadWhere = OmitReservedQueryFields<
  * generic factory can't express. GET (list + by-id) is served by a small
  * BaseCrudService built HERE from `getInvoiceViewRepository()` +
  * `invoiceViewContract.api`, imported directly from invoice-view.repository.ts
- * / invoice-view.contract.ts — deliberately NOT from invoice-view.module.ts.
- * Importing another module's `.module.ts` is against this repo's rule
- * (api/CLAUDE.md: "never by importing another module's `.module.ts`") since
- * it would drag in invoice-view.module.ts's own BaseCrudService/routes as an
- * unwanted ESM side effect. The ~5-line duplication of that construction
- * against invoice-view.module.ts is the accepted tradeoff.
+ * / invoice-view.contract.ts, per this repo's rule against one module
+ * importing another module's `.module.ts` (api/CLAUDE.md) — that would drag
+ * in a second, unwanted `BaseCrudService`/routes construction as an ESM side
+ * effect. There is no standalone invoice-view module file; this is the only
+ * place the read side is wired up.
  *
  * The POST response body IS the `CreateInvoiceResponse` discriminated union
  * from `contracts/invoices/invoice-api.schema.ts`, returned directly — not
@@ -44,7 +43,7 @@ const invoiceReadService = new BaseCrudService({
   api: invoiceViewContract.api,
   // invoiceNumber/customerId are the only flat, searchable columns — the
   // rest of the row (customer, items, adjustments, payments) is serialized
-  // JSON. Kept identical to invoice-view.module.ts's own searchFields.
+  // JSON.
   searchFields: ['invoiceNumber', 'customerId'],
 })
 

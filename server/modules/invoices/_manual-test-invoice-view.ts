@@ -12,10 +12,21 @@ for (const line of envFile.split('\n')) {
 }
 process.env.APPSCRIPT_URL ??= 'https://unused-for-read-only-test.invalid/exec'
 
-const { invoiceViewService } = await import('./invoice-view.module.js')
+// Built directly from the repository/contract rather than importing
+// invoice.module.ts, so this script has no dependency on that module's
+// route/POST wiring — just the read path it's actually exercising.
+const { BaseCrudService } = await import('../../shared/services/base-crud.service.js')
+const { getInvoiceViewRepository } = await import('./invoice-view.repository.js')
+const { invoiceViewContract } = await import('./invoice-view.contract.js')
+
+const invoiceReadService = new BaseCrudService({
+  repository: getInvoiceViewRepository(),
+  api: invoiceViewContract.api,
+  searchFields: ['invoiceNumber', 'customerId'],
+})
 
 console.log('--- list ---')
-const listResult = await invoiceViewService.list({
+const listResult = await invoiceReadService.list({
   keyword: '',
   page: 1,
   perPage: 5,
@@ -27,7 +38,7 @@ console.log(JSON.stringify(listResult, null, 2))
 const firstInvoiceNumber = listResult.items[0]?.invoiceNumber
 if (firstInvoiceNumber) {
   console.log(`--- detail (${firstInvoiceNumber}) ---`)
-  const detail = await invoiceViewService.getById(firstInvoiceNumber)
+  const detail = await invoiceReadService.getById(firstInvoiceNumber)
   console.log(JSON.stringify(detail, null, 2))
 } else {
   console.log('--- no rows in InvoicesView, skipping detail call ---')
