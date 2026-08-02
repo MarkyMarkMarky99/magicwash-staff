@@ -122,18 +122,18 @@ contract work correctly in Development.
 - [x] **Confirm the Appointment target against Apps Script.** Verify the
   Drive-schema target, primary key, allowed fields, and enum values for
   Appointment only.
-- [ ] **Define shared SheetLib write types.** Add the future success/error
+- [x] **Define shared SheetLib write types.** Add the future success/error
   response contract, including persisted `data` and batch `data[]`, without
   changing Apps Script yet.
-- [ ] **Add explicit `target` construction config.** Extend
+- [x] **Add explicit `target` construction config.** Extend
   `GSheetRepository` options so each writable module passes `target` beside
   `sheetName`; never derive or look it up.
-- [ ] **Replace the repository write envelope.** Send `resource: 'sheet'`,
+- [x] **Replace the repository write envelope.** Send `resource: 'sheet'`,
   `target`, and `key_value` for UPDATE; parse `status`/`message` instead of
   `success`/`error`; use `APPSCRIPT_URL`.
-- [ ] **Add `batchAppend(rows)`.** Send exactly one SheetLib APPEND request
+- [x] **Add `batchAppend(rows)`.** Send exactly one SheetLib APPEND request
   with an array and expose the agreed response type.
-- [ ] **Add repository transport tests.** Cover APPEND, UPDATE, gateway error,
+- [x] **Add repository transport tests.** Cover APPEND, UPDATE, gateway error,
   absent-resource regression, and one-request batch append; keep GViz reads
   unchanged.
 - [ ] **Implement the deferred Apps Script response contract.** Make SheetLib

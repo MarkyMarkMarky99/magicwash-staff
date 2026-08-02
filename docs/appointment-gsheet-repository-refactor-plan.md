@@ -86,11 +86,11 @@ write.
 ## TODO checklist after approval
 
 - [x] Verify Appointment target, primary key, Drive schema fields, and enums.
-- [ ] Add `target` to `GSheetRepository` construction options. It is optional
+- [x] Add `target` to `GSheetRepository` construction options. It is optional
   for read-only repositories and required before any write operation.
-- [ ] Replace the shared write transport with the SheetLib request envelope and
+- [x] Replace the shared write transport with the SheetLib request envelope and
   `status`/`message` response handling; retain GViz read behavior unchanged.
-- [ ] Add tests for APPEND, UPDATE with `key_value`, SheetLib error bodies,
+- [x] Add tests for APPEND, UPDATE with `key_value`, SheetLib error bodies,
   HTTP errors, and no-resource regression.
 - [ ] Extend the Appointment DB-side request transformer with create/update
   enrichment for IDs, status, service tier, and Bangkok audit timestamps.
