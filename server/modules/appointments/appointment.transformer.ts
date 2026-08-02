@@ -4,7 +4,7 @@ import type {
   RepositoryTransformer,
 } from '../../shared/repositories/base.repository.js'
 import type { appointmentContract } from './appointment.contract.js'
-import { isRecord, parseJsonObject } from '../../shared/repositories/utils/gviz-cell.js'
+import { isRecord } from '../../shared/repositories/utils/gviz-cell.js'
 
 export type AppointmentDbRow = z.infer<typeof appointmentContract.db.row>
 export type AppointmentDbCreateRequest = z.infer<
@@ -20,18 +20,6 @@ export interface AppointmentCustomerSnapshot {
   Phone: string
   Address: string
   Location: string
-  Facebook: string
-  Line: string
-  Whatsapp: string
-  Email: string
-}
-
-export interface FlattenedAddressSnapshot {
-  Address: string | null
-  customerName: string | null
-  customerCode: string | null
-  phone: string | null
-  location: string | null
 }
 
 export type AppointmentTransformerRequest = RepositoryRequest<
@@ -64,12 +52,10 @@ export async function transformAppointmentRequest(
     return request
   }
 
-  if (!isRecord(request.data)) {
-    throw new Error('Appointment create requires data object')
-  }
-
-  const data = request.data
-  const snapshot = buildCustomerSnapshot(data as AppointmentCreateTransformerData)
+  // BaseCrudService has already validated the public request. This transformer
+  // only adapts the flat API snapshot into the legacy Address JSON cell.
+  const data = request.data as AppointmentCreateTransformerData
+  const snapshot = buildCustomerSnapshot(data)
   const {
     customerName: _customerName,
     customerCode: _customerCode,
@@ -105,78 +91,50 @@ export function buildCustomerSnapshot(
   data: AppointmentCreateTransformerData,
 ): AppointmentCustomerSnapshot {
   return {
-    CustomerName: requireString(data.customerName, 'customerName'),
-    CustomerLabel: requireString(data.customerCode, 'customerCode'),
-    Phone: requireString(data.phone, 'phone'),
-    Address: requireString(data.Address, 'address'),
-    Location: requireString(data.location, 'location'),
-    Facebook: '',
-    Line: '',
-    Whatsapp: '',
-    Email: '',
+    CustomerName: data.customerName,
+    CustomerLabel: data.customerCode,
+    Phone: data.phone,
+    Address: data.Address,
+    Location: data.location,
   }
 }
 
 export function flattenAddressSnapshot(
   value: unknown,
-): FlattenedAddressSnapshot {
-  const empty = emptyAddressSnapshot()
-
-  if (typeof value !== 'string' || value.trim() === '') {
-    return empty
+): Record<string, unknown> | undefined {
+  if (typeof value !== 'string') {
+    return undefined
   }
 
-  const parsed = parseJsonObject(value)
-  if (parsed === null) {
-    return { ...empty, Address: nullableString(value) }
-  }
+  try {
+    const parsed: unknown = JSON.parse(value)
+    if (!isRecord(parsed)) {
+      return undefined
+    }
 
-  return {
-    Address: nullableString(parsed.Address),
-    customerName: nullableString(parsed.CustomerName),
-    customerCode: nullableString(parsed.CustomerLabel),
-    phone: nullableString(parsed.Phone),
-    location: nullableString(parsed.Location),
+    // Decode the storage representation only. Do not check, trim, default, or
+    // otherwise repair values originating from the sheet.
+    return {
+      Address: parsed.Address,
+      customerName: parsed.CustomerName,
+      customerCode: parsed.CustomerLabel,
+      phone: parsed.Phone,
+      location: parsed.Location,
+    }
+  } catch {
+    // A legacy plain-text or malformed cell is returned untouched by the row
+    // transformer; dirty database data must not be coerced into a clean shape.
+    return undefined
   }
 }
 
 export function transformResponseRow(
   row: Record<string, unknown>,
 ): Record<string, unknown> {
+  const snapshot = flattenAddressSnapshot(row.Address)
+
   return {
     ...row,
-    ...flattenAddressSnapshot(row.Address),
+    ...snapshot,
   }
-}
-
-export function nullableString(value: unknown): string | null {
-  if (typeof value !== 'string') {
-    return null
-  }
-
-  const trimmed = value.trim()
-  return trimmed === '' ? null : trimmed
-}
-
-function emptyAddressSnapshot(): FlattenedAddressSnapshot {
-  return {
-    Address: null,
-    customerName: null,
-    customerCode: null,
-    phone: null,
-    location: null,
-  }
-}
-
-function requireString(value: unknown, field: string): string {
-  if (typeof value !== 'string') {
-    throw new Error(`Appointment create requires ${field}`)
-  }
-
-  const trimmed = value.trim()
-  if (trimmed === '') {
-    throw new Error(`Appointment create requires ${field}`)
-  }
-
-  return trimmed
 }

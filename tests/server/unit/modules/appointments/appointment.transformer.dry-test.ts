@@ -82,10 +82,6 @@ test('buildCustomerSnapshot packs flat create fields into the Address JSON shape
     Phone: '0812345678',
     Address: '123 ถ.สุขุมวิท ซ.15',
     Location: '123 ถ.สุขุมวิท ซ.15',
-    Facebook: '',
-    Line: '',
-    Whatsapp: '',
-    Email: '',
   })
 })
 
@@ -120,10 +116,6 @@ test('transformAppointmentRequest packs create flat customer fields into Address
         Phone: '0812345678',
         Address: '123 ถ.สุขุมวิท ซ.15',
         Location: '123 ถ.สุขุมวิท ซ.15',
-        Facebook: '',
-        Line: '',
-        Whatsapp: '',
-        Email: '',
       },
     },
   )
@@ -174,10 +166,6 @@ test('transformAppointmentRequest packs payload after real mapper.toDb conversio
         Phone: '0812345678',
         Address: '123 ถ.สุขุมวิท ซ.15',
         Location: '123 ถ.สุขุมวิท ซ.15',
-        Facebook: '',
-        Line: '',
-        Whatsapp: '',
-        Email: '',
       },
     },
   )
@@ -196,30 +184,14 @@ test('transformAppointmentRequest leaves non-create requests unchanged', async (
   assert.strictEqual(await transformAppointmentRequest(request), request)
 })
 
-test('transformAppointmentRequest rejects create requests without a data object', async () => {
-  await assert.rejects(
-    () => transformAppointmentRequest({ operation: 'create' }),
-    /Appointment create requires data object/,
-  )
-})
-
-test('transformAppointmentRequest rejects missing required snapshot fields', async () => {
-  const { customerCode: _customerCode, ...data } = sampleCreateData
-
-  await assert.rejects(
-    () => transformAppointmentRequest({ operation: 'create', data }),
-    /Appointment create requires customerCode/,
-  )
-})
-
 // ── flattenAddressSnapshot ──────────────────────────────────────────────────
 
 test('flattenAddressSnapshot parses the real Address JSON snapshot', () => {
   assert.deepEqual(flattenAddressSnapshot(realAddressSnapshot), {
     Address: '123 ถ.สุขุมวิท ซ.15',
-    customerName: null,
+    customerName: '',
     customerCode: 'WIX',
-    phone: null,
+    phone: '',
     location: '123 ถ.สุขุมวิท ซ.15',
   })
 })
@@ -242,49 +214,7 @@ test('flattenAddressSnapshot maps snapshot keys to flat response fields', () => 
   })
 })
 
-test('flattenAddressSnapshot normalizes null and empty Address snapshots', () => {
-  const expected = {
-    Address: null,
-    customerName: null,
-    customerCode: null,
-    phone: null,
-    location: null,
-  }
-
-  assert.deepEqual(flattenAddressSnapshot(null), expected)
-  assert.deepEqual(flattenAddressSnapshot(''), expected)
-  assert.deepEqual(flattenAddressSnapshot('   '), expected)
-})
-
-test('flattenAddressSnapshot falls back to legacy plain Address strings for invalid or non-object JSON', () => {
-  const expected = {
-    Address: '{bad json',
-    customerName: null,
-    customerCode: null,
-    phone: null,
-    location: null,
-  }
-
-  assert.deepEqual(flattenAddressSnapshot('{bad json'), expected)
-  assert.deepEqual(flattenAddressSnapshot('[]'), { ...expected, Address: '[]' })
-  assert.deepEqual(flattenAddressSnapshot('"plain string"'), {
-    ...expected,
-    Address: '"plain string"',
-  })
-  assert.deepEqual(flattenAddressSnapshot('123'), { ...expected, Address: '123' })
-})
-
-test('flattenAddressSnapshot treats legacy plain Address strings as address only', () => {
-  assert.deepEqual(flattenAddressSnapshot('  123 ถ.สุขุมวิท ซ.15  '), {
-    Address: '123 ถ.สุขุมวิท ซ.15',
-    customerName: null,
-    customerCode: null,
-    phone: null,
-    location: null,
-  })
-})
-
-test('flattenAddressSnapshot normalizes missing empty and non-string snapshot fields', () => {
+test('flattenAddressSnapshot preserves dirty snapshot values without coercion', () => {
   const snapshot = JSON.stringify({
     CustomerName: '   ',
     CustomerLabel: 123,
@@ -293,60 +223,19 @@ test('flattenAddressSnapshot normalizes missing empty and non-string snapshot fi
   })
 
   assert.deepEqual(flattenAddressSnapshot(snapshot), {
-    Address: '12 Sukhumvit',
-    customerName: null,
-    customerCode: null,
+    Address: '  12 Sukhumvit  ',
+    customerName: '   ',
+    customerCode: 123,
     phone: null,
-    location: null,
+    location: undefined,
   })
 })
 
-test('flattenAddressSnapshot resolves address and location independently', () => {
-  const snapshot = JSON.stringify({
-    Location: '  https://maps.example/place  ',
-  })
-
-  assert.deepEqual(flattenAddressSnapshot(snapshot), {
-    Address: null,
-    customerName: null,
-    customerCode: null,
-    phone: null,
-    location: 'https://maps.example/place',
-  })
-})
-
-test('flattenAddressSnapshot normalizes location whitespace and non-string values', () => {
-  assert.deepEqual(
-    flattenAddressSnapshot(JSON.stringify({ Address: 'A', Location: '   ' })),
-    {
-      Address: 'A',
-      customerName: null,
-      customerCode: null,
-      phone: null,
-      location: null,
-    },
-  )
-
-  assert.deepEqual(
-    flattenAddressSnapshot(JSON.stringify({ Address: 'A', Location: 123 })),
-    {
-      Address: 'A',
-      customerName: null,
-      customerCode: null,
-      phone: null,
-      location: null,
-    },
-  )
-})
-
-test('flattenAddressSnapshot normalizes undefined snapshots', () => {
-  assert.deepEqual(flattenAddressSnapshot(undefined), {
-    Address: null,
-    customerName: null,
-    customerCode: null,
-    phone: null,
-    location: null,
-  })
+test('flattenAddressSnapshot leaves non-snapshot cells undecoded', () => {
+  assert.equal(flattenAddressSnapshot(null), undefined)
+  assert.equal(flattenAddressSnapshot('{bad json'), undefined)
+  assert.equal(flattenAddressSnapshot('[]'), undefined)
+  assert.equal(flattenAddressSnapshot('  123 ถ.สุขุมวิท ซ.15  '), undefined)
 })
 
 // ── transformResponseRow ────────────────────────────────────────────────────
@@ -355,36 +244,26 @@ test('transformResponseRow flattens Address and preserves appointment DB fields'
   assert.deepEqual(transformResponseRow(sampleDbRow), {
     ...sampleDbRow,
     Address: '123 ถ.สุขุมวิท ซ.15',
-    customerName: null,
+    customerName: '',
     customerCode: 'WIX',
-    phone: null,
+    phone: '',
     location: '123 ถ.สุขุมวิท ซ.15',
   })
 })
 
-test('transformResponseRow handles rows without Address without emitting undefined fields', () => {
+test('transformResponseRow preserves rows without an Address snapshot', () => {
   const { Address: _Address, ...rowWithoutAddress } = sampleDbRow
 
   assert.deepEqual(transformResponseRow(rowWithoutAddress), {
     ...rowWithoutAddress,
-    Address: null,
-    customerName: null,
-    customerCode: null,
-    phone: null,
-    location: null,
   })
 })
 
-test('transformResponseRow falls back to raw Address text and preserves the raw row', () => {
+test('transformResponseRow preserves malformed Address data without adding replacement fields', () => {
   const row = { ...sampleDbRow, Address: '{bad json', Notes: 'keep me' }
 
   assert.deepEqual(transformResponseRow(row), {
     ...row,
-    Address: '{bad json',
-    customerName: null,
-    customerCode: null,
-    phone: null,
-    location: null,
   })
 })
 
@@ -408,9 +287,9 @@ test('transformAppointmentResponse transforms read array responses row by row', 
     {
       ...sampleDbRow,
       Address: '123 ถ.สุขุมวิท ซ.15',
-      customerName: null,
+      customerName: '',
       customerCode: 'WIX',
-      phone: null,
+      phone: '',
       location: '123 ถ.สุขุมวิท ซ.15',
     },
   ])
@@ -427,19 +306,12 @@ test('transformAppointmentResponse transforms multi-row arrays independently', (
     {
       ...sampleDbRow,
       Address: '123 ถ.สุขุมวิท ซ.15',
-      customerName: null,
+      customerName: '',
       customerCode: 'WIX',
-      phone: null,
+      phone: '',
       location: '123 ถ.สุขุมวิท ซ.15',
     },
-    {
-      ...invalidRow,
-      Address: '{bad json',
-      customerName: null,
-      customerCode: null,
-      phone: null,
-      location: null,
-    },
+    invalidRow,
   ])
 })
 
@@ -447,9 +319,9 @@ test('transformAppointmentResponse transforms create update and detail object re
   assert.deepEqual(transformAppointmentResponse(sampleDbRow), {
     ...sampleDbRow,
     Address: '123 ถ.สุขุมวิท ซ.15',
-    customerName: null,
+    customerName: '',
     customerCode: 'WIX',
-    phone: null,
+    phone: '',
     location: '123 ถ.สุขุมวิท ซ.15',
   })
 })
@@ -483,9 +355,9 @@ test('transformed response maps cleanly through repository mapper to API fields'
     serviceTier: null,
     deletedAt: null,
     deletedBy: null,
-    customerName: null,
+    customerName: '',
     customerCode: 'WIX',
-    phone: null,
+    phone: '',
     location: '123 ถ.สุขุมวิท ซ.15',
   })
 })

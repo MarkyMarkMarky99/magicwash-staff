@@ -19,6 +19,7 @@ export function getAppointmentRepository(): GSheetRepository<typeof appointmentC
   return appointmentRepository ??= new GSheetRepository({
     contract: appointmentContract,
     sheetName: 'Appointments',
+    target: 'Appointment',
     spreadsheetId: 'APPOINTMENTS_SPREADSHEET_ID',
     transformer: createAppointmentTransformer(),
   })

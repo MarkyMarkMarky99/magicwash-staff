@@ -50,8 +50,11 @@ live contract.
 - `CreatedAt` and `UpdatedAt` use plain text
   `YYYY-MM-DD HH:mm:ss` in Asia/Bangkok (`+07`). Both are set on create;
   only `UpdatedAt` changes on update.
-- Keep the existing Appointment request transformer responsible for serializing
-  the address snapshot into `Address`.
+- The Appointment transformer is a storage-format escape hatch only: serialize
+  and decode the `Address` snapshot JSON without validating, trimming,
+  defaulting, or repairing GViz data.
+- A dedicated Appointment service owns create/update enrichment: IDs, defaults,
+  and Bangkok audit timestamps.
 - Use SheetLib requests:
 
   ```ts
@@ -92,9 +95,12 @@ write.
   `status`/`message` response handling; retain GViz read behavior unchanged.
 - [x] Add tests for APPEND, UPDATE with `key_value`, SheetLib error bodies,
   HTTP errors, and no-resource regression.
-- [ ] Extend the Appointment DB-side request transformer with create/update
-  enrichment for IDs, status, service tier, and Bangkok audit timestamps.
-- [ ] Configure the Appointment repository with
+- [x] Clean up the Appointment transformer: retain only `Address` JSON storage
+  encoding/decoding and remove duplicate request validation plus GViz response
+  coercion/defaulting.
+- [ ] Add a dedicated Appointment service that generates `AppointmentID`,
+  applies `Status`/`ServiceTier` defaults, and owns Bangkok audit timestamps.
+- [x] Configure the Appointment repository with
   `sheetName: 'Appointments'` and `target: 'Appointment'`.
 - [ ] Add Appointment transport tests: create includes all enriched fields and
   serialized `Address`; update changes only `UpdatedAt` and passes
