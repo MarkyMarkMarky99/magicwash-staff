@@ -108,8 +108,13 @@ write.
 - [x] Add Appointment transport tests: create includes all enriched fields and
   serialized `Address`; update changes only `UpdatedAt` and passes
   `AppointmentID` as `key_value`.
-- [ ] Implement and verify the deferred SheetLib persisted-row response in the
-  Development Apps Script deployment.
+- [x] Implement and locally verify the SheetLib persisted-row response:
+  APPEND/UPDATE return schema-mapped `data`, batch APPEND returns ordered row
+  arrays, and write metadata lives under `write`.
+- [x] Update `MagicwashGateway/Contract.d.ts` to declare the persisted `data`
+  and nested `write` response contract.
+- [x] Deploy the SheetLib change and verify the persisted-row response against
+  the Development Apps Script endpoint.
 - [ ] Enable and test backend Appointment create/update end-to-end in
   Development.
 - [ ] In a later, separately approved scope, migrate frontend direct writes.
