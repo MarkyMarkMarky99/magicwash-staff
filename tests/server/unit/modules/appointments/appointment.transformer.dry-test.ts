@@ -34,6 +34,7 @@ const sampleDbRow = {
 }
 
 const sampleCreateData: AppointmentCreateTransformerData = {
+  AppointmentID: 'APPT-1234abcd',
   CustomerID: 'a1b2c3d4',
   customerName: 'Somchai',
   customerCode: 'WIX',
@@ -43,14 +44,18 @@ const sampleCreateData: AppointmentCreateTransformerData = {
   AppointmentType: 'PICKUP',
   AppointmentDate: '2026-04-01',
   TimeSlot: '13:00-15:00',
+  Status: 'CONFIRMED',
   PickupOrderID: null,
   DeliveryOrderID: null,
   Notes: 'ฝากโทรก่อน',
   CreatedBy: 'admin',
   ServiceTier: 'STANDARD',
+  CreatedAt: '2026-04-01 07:34:56',
+  UpdatedAt: '2026-04-01 07:34:56',
 }
 
 const sampleApiCreatePayload = {
+  appointmentId: 'APPT-1234abcd',
   customerId: 'a1b2c3d4',
   customerName: 'Somchai',
   customerCode: 'WIX',
@@ -60,11 +65,14 @@ const sampleApiCreatePayload = {
   appointmentType: 'PICKUP',
   appointmentDate: '2026-04-01',
   timeSlot: '13:00-15:00',
+  status: 'CONFIRMED',
   pickupOrderId: null,
   deliveryOrderId: null,
   notes: 'ฝากโทรก่อน',
   createdBy: 'admin',
   serviceTier: 'STANDARD',
+  createdAt: '2026-04-01 07:34:56',
+  updatedAt: '2026-04-01 07:34:56',
 }
 
 const tests: Array<{ name: string; run: () => Promise<void> | void }> = []
@@ -101,15 +109,19 @@ test('transformAppointmentRequest packs create flat customer fields into Address
       Address: JSON.parse(data.Address as string),
     },
     {
+      AppointmentID: 'APPT-1234abcd',
       CustomerID: 'a1b2c3d4',
       AppointmentType: 'PICKUP',
       AppointmentDate: '2026-04-01',
       TimeSlot: '13:00-15:00',
+      Status: 'CONFIRMED',
       PickupOrderID: null,
       DeliveryOrderID: null,
       Notes: 'ฝากโทรก่อน',
       CreatedBy: 'admin',
       ServiceTier: 'STANDARD',
+      CreatedAt: '2026-04-01 07:34:56',
+      UpdatedAt: '2026-04-01 07:34:56',
       Address: {
         CustomerName: 'Somchai',
         CustomerLabel: 'WIX',
@@ -151,15 +163,19 @@ test('transformAppointmentRequest packs payload after real mapper.toDb conversio
       Address: JSON.parse(data.Address as string),
     },
     {
+      AppointmentID: 'APPT-1234abcd',
       CustomerID: 'a1b2c3d4',
       AppointmentType: 'PICKUP',
       AppointmentDate: '2026-04-01',
       TimeSlot: '13:00-15:00',
+      Status: 'CONFIRMED',
       PickupOrderID: null,
       DeliveryOrderID: null,
       Notes: 'ฝากโทรก่อน',
       CreatedBy: 'admin',
       ServiceTier: 'STANDARD',
+      CreatedAt: '2026-04-01 07:34:56',
+      UpdatedAt: '2026-04-01 07:34:56',
       Address: {
         CustomerName: 'Somchai',
         CustomerLabel: 'WIX',

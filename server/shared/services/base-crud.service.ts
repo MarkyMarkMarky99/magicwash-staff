@@ -149,7 +149,7 @@ export class BaseCrudService<
       throw new Error('create is not supported by this module')
     }
     const data = parseOrThrow(this.api.request.create, payload)
-    const row = await this.repository.create(data)
+    const row = await this.repository.create(this.prepareCreate(data))
     return this.project(row, this.api.response.create)
   }
 
@@ -180,8 +180,24 @@ export class BaseCrudService<
     )
     this.requireSingleRow(rows, safeId)
 
-    const row = await this.repository.update(safeId, data)
+    const row = await this.repository.update(safeId, this.prepareUpdate(safeId, data))
     return this.project(row, this.api.response.update)
+  }
+
+  /**
+   * Service-specific write policy hook. The public create() method has already
+   * validated the untrusted API payload before this receives it.
+   */
+  protected prepareCreate(data: TCreate): TCreate {
+    return data
+  }
+
+  /**
+   * Service-specific write policy hook. The public update() method has already
+   * validated both the id and untrusted API payload before this receives it.
+   */
+  protected prepareUpdate(_id: string, data: TUpdate): TUpdate {
+    return data
   }
 
   private requireId(id: string): string {

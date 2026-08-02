@@ -42,7 +42,6 @@ export const appointmentCreateSchema = z.object({
   appointmentType: appointmentTypeSchema,
   appointmentDate: isoDateSchema,
   timeSlot: appointmentTimeSlotSchema,
-  serviceTier: serviceTierSchema.optional(),
   pickupOrderId: z.string().nullish(),
   deliveryOrderId: z.string().nullish(),
   notes: z.string().nullish(),

@@ -1,6 +1,6 @@
 # Appointment → GSheetRepository / SheetLib Refactor Plan
 
-Status: **plan only — no implementation starts until this plan is approved**.
+Status: **implementation in progress**.
 
 ## Goal
 
@@ -40,9 +40,10 @@ live contract.
 - On create, backend enrichment generates and sends:
 
   ```text
-  AppointmentID
+  AppointmentID = APPT-xxxxxxxx (first eight lowercase hexadecimal characters
+  of a UUID v4)
   Status = CONFIRMED
-  ServiceTier = STANDARD when omitted
+  ServiceTier = STANDARD
   CreatedAt
   UpdatedAt
   ```
@@ -98,8 +99,10 @@ write.
 - [x] Clean up the Appointment transformer: retain only `Address` JSON storage
   encoding/decoding and remove duplicate request validation plus GViz response
   coercion/defaulting.
-- [ ] Add a dedicated Appointment service that generates `AppointmentID`,
+- [x] Add a dedicated Appointment service that generates `AppointmentID`,
   applies `Status`/`ServiceTier` defaults, and owns Bangkok audit timestamps.
+- [x] Align the Appointment DB write contract with the service-owned create and
+  update fields, including the confirmed `APPT-xxxxxxxx` ID format.
 - [x] Configure the Appointment repository with
   `sheetName: 'Appointments'` and `target: 'Appointment'`.
 - [ ] Add Appointment transport tests: create includes all enriched fields and

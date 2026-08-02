@@ -1,7 +1,7 @@
 import { appointmentContract } from './appointment.contract.js'
-import { BaseCrudService } from '../../shared/services/base-crud.service.js'
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
 import { getAppointmentRepository } from './appointment.repository.js'
+import { AppointmentService } from './appointment.service.js'
 
 // ── API behavior: BaseCrudService validates the request, builds the read query
 //    (ReadQueryDTO.fromQuery with searchFields), calls the repository, and
@@ -10,10 +10,8 @@ import { getAppointmentRepository } from './appointment.repository.js'
 //    time it is still the raw serialized snapshot JSON, so searching it would
 //    match constant JSON keys (Phone/Line/Email/…) on every row. Customer-name
 //    keyword search needs a real column and is out of scope. ──
-export const appointmentService = new BaseCrudService({
+export const appointmentService = new AppointmentService({
   repository: getAppointmentRepository(),
-  api: appointmentContract.api,
-  searchFields: ['appointmentId', 'customerId', 'notes'],
 })
 
 export const appointmentRoutes = createCrudRoutes(appointmentService, appointmentContract.api)
