@@ -10,6 +10,10 @@ import type { ReadQueryDTO } from '../../../../../server/shared/dtos/read-query.
 import type { ModuleContract } from '../../../../../server/shared/contracts/module-db-contract.js'
 import { GSheetRepository } from '../../../../../server/shared/repositories/gsheet.repository.js'
 import { customerContract, customerFieldMap } from '../../../../../server/modules/customers/customer.contract.js'
+import {
+  SheetLibRejectedError,
+  SheetLibTransportError,
+} from '../../../../../server/shared/repositories/sheetlib-errors.js'
 
 // GSheetRepository now resolves `spreadsheetId`/`scriptUrl` via requireEnv at
 // construction time (callers pass env var KEY NAMES, not resolved values), so
@@ -708,6 +712,158 @@ test('GSheetRepository write rejects HTTP failures before parsing a SheetLib res
   )
 })
 
+// ── `read_back_failed`: the write itself succeeded (Values.append/
+//    batchUpdate already returned) but SheetLib's own persisted-row
+//    read-back failed afterward — see appscript/SheetLib/SheetService.js.
+//    This is the exact shape that was previously indistinguishable from a
+//    pre-write rejection once MagicwashGateway blanket-caught it. Must
+//    always classify as SheetLibTransportError, never SheetLibRejectedError,
+//    with the real reason surfaced in the message. ──
+
+test('GSheetRepository create surfaces the real reason for a read_back_failed response as SheetLibTransportError, never Rejected', async () => {
+  const repo = customerSheetRepo()
+
+  await withMockFetch(
+    async () =>
+      response({
+        json: {
+          status: 'ok',
+          target: 'Customers',
+          data: null,
+          read_back_failed: true,
+          reason: 'Sheets read-back failure',
+        },
+      }),
+    async () => {
+      await assert.rejects(
+        () =>
+          repo.create({
+            customerName: 'Alice',
+            phone: '0812345678',
+            updatedBy: 'tester',
+          }),
+        (error: unknown) => {
+          assert.ok(error instanceof SheetLibTransportError)
+          assert.ok(!(error instanceof SheetLibRejectedError))
+          assert.match(
+            error instanceof Error ? error.message : '',
+            /succeeded but the persisted-row read-back failed: Sheets read-back failure/,
+          )
+          return true
+        },
+      )
+    },
+  )
+})
+
+// ── A confirmed `status: 'ok'` write is not success by itself: `data` must
+//    be present and of a usable shape, or this is silent partial
+//    persistence — the write happened but nothing tells the caller what got
+//    written. Every case below must throw SheetLibTransportError, NEVER
+//    SheetLibRejectedError: the gateway did not reject anything. ──
+
+test('GSheetRepository create throws SheetLibTransportError (not Rejected) when the gateway answers ok with no "data" at all', async () => {
+  const repo = customerSheetRepo()
+
+  await withMockFetch(
+    async () => response({ json: { status: 'ok', target: 'Customers' } }),
+    async () => {
+      await assert.rejects(
+        () =>
+          repo.create({
+            customerName: 'Alice',
+            phone: '0812345678',
+            updatedBy: 'tester',
+          }),
+        (error: unknown) => {
+          assert.ok(error instanceof SheetLibTransportError)
+          assert.ok(!(error instanceof SheetLibRejectedError))
+          assert.match(
+            error instanceof Error ? error.message : '',
+            /confirmed the write but returned no usable persisted row/,
+          )
+          return true
+        },
+      )
+    },
+  )
+})
+
+test('GSheetRepository update throws SheetLibTransportError (not Rejected) when the gateway answers ok with no "data" at all', async () => {
+  const repo = customerSheetRepo()
+
+  await withMockFetch(
+    async () => response({ json: { status: 'ok', target: 'Customers' } }),
+    async () => {
+      await assert.rejects(
+        () =>
+          repo.update('C001', {
+            customerName: 'Alice Updated',
+            updatedBy: 'tester',
+          }),
+        (error: unknown) => {
+          assert.ok(error instanceof SheetLibTransportError)
+          assert.ok(!(error instanceof SheetLibRejectedError))
+          assert.match(
+            error instanceof Error ? error.message : '',
+            /confirmed the write but returned no usable persisted row/,
+          )
+          return true
+        },
+      )
+    },
+  )
+})
+
+test('GSheetRepository create throws SheetLibTransportError (not Rejected) when "data" is a non-object (a scalar, not a persisted row)', async () => {
+  const repo = customerSheetRepo()
+
+  await withMockFetch(
+    async () => response({ json: { status: 'ok', target: 'Customers', data: 'C001' } }),
+    async () => {
+      await assert.rejects(
+        () =>
+          repo.create({
+            customerName: 'Alice',
+            phone: '0812345678',
+            updatedBy: 'tester',
+          }),
+        (error: unknown) => {
+          assert.ok(error instanceof SheetLibTransportError)
+          assert.ok(!(error instanceof SheetLibRejectedError))
+          return true
+        },
+      )
+    },
+  )
+})
+
+test('GSheetRepository create throws SheetLibTransportError (not Rejected) when "data" is an array on the single-row path', async () => {
+  const repo = customerSheetRepo()
+
+  await withMockFetch(
+    async () =>
+      response({
+        json: { status: 'ok', target: 'Customers', data: [{ CustomerID: 'C001' }] },
+      }),
+    async () => {
+      await assert.rejects(
+        () =>
+          repo.create({
+            customerName: 'Alice',
+            phone: '0812345678',
+            updatedBy: 'tester',
+          }),
+        (error: unknown) => {
+          assert.ok(error instanceof SheetLibTransportError)
+          assert.ok(!(error instanceof SheetLibRejectedError))
+          return true
+        },
+      )
+    },
+  )
+})
+
 test('GSheetRepository write requires an explicit target before fetch', async () => {
   const repo = new GSheetRepository({
     contract: customerContract,
@@ -972,6 +1128,92 @@ test('read-only GSheetRepository.update throws before any fetch', async () => {
             { label: 'x' },
           ),
         /update is not supported by this module/,
+      )
+      assert.equal(calls.length, 0)
+    },
+  )
+})
+
+// ── z.never() declares "must never be written" as intent, rather than
+//    protecting by omission — but it must gate create()/update()/batchAppend()
+//    identically to an absent request slot. Proves the equivalence directly,
+//    the same representation Payment/InvoicesView/OrdersView now use. ──
+
+const neverWriteContract = {
+  api: {
+    query: { list: readOnlyListQuerySchema },
+    response: { list: z.object({ id: z.string(), label: z.string().nullable() }) },
+  },
+  db: {
+    row: readOnlyRowSchema,
+    fieldMap: { id: 'id', label: 'label' },
+    primaryKey: 'id',
+    request: { create: z.never(), update: z.never() },
+    response: { read: readOnlyRowSchema.partial() },
+  },
+} satisfies ModuleContract
+
+function neverWriteSheetRepo(): GSheetRepository<typeof neverWriteContract> {
+  return new GSheetRepository({
+    contract: neverWriteContract,
+    sheetName: 'NeverWrite',
+    spreadsheetId: 'TEST_SPREADSHEET_ID',
+    scriptUrl: 'TEST_SCRIPT_URL',
+  })
+}
+
+test('GSheetRepository.create declared unsupported via z.never() throws before any fetch, same as an absent slot', async () => {
+  const repo = neverWriteSheetRepo()
+
+  await withMockFetch(
+    async () => {
+      assert.fail('fetch must not be called for a z.never() create slot')
+      return response({ json: {} })
+    },
+    async (calls) => {
+      await assert.rejects(
+        () => (repo as unknown as { create: (data: unknown) => Promise<unknown> }).create({ label: 'x' }),
+        /create is not supported by this module/,
+      )
+      assert.equal(calls.length, 0)
+    },
+  )
+})
+
+test('GSheetRepository.update declared unsupported via z.never() throws before any fetch, same as an absent slot', async () => {
+  const repo = neverWriteSheetRepo()
+
+  await withMockFetch(
+    async () => {
+      assert.fail('fetch must not be called for a z.never() update slot')
+      return response({ json: {} })
+    },
+    async (calls) => {
+      await assert.rejects(
+        () =>
+          (repo as unknown as { update: (id: string, data: unknown) => Promise<unknown> }).update(
+            'id-1',
+            { label: 'x' },
+          ),
+        /update is not supported by this module/,
+      )
+      assert.equal(calls.length, 0)
+    },
+  )
+})
+
+test('GSheetRepository.batchAppend declared unsupported via z.never() throws before any fetch', async () => {
+  const repo = neverWriteSheetRepo()
+
+  await withMockFetch(
+    async () => {
+      assert.fail('fetch must not be called for a z.never() create slot')
+      return response({ json: {} })
+    },
+    async (calls) => {
+      await assert.rejects(
+        () => repo.batchAppend([{ label: 'x' } as never]),
+        /batchAppend is not supported by this module/,
       )
       assert.equal(calls.length, 0)
     },

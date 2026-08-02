@@ -1,7 +1,7 @@
 // Google Sheets implementation of BaseRepository.
 // Owns all transport detail: GViz query strings + reads, Apps Script writes.
 
-import type { z } from 'zod'
+import { ZodNever, type z } from 'zod'
 import {
   BaseRepository,
   type ApiRowFromFieldMap,
@@ -18,6 +18,7 @@ import {
 } from './utils/gviz-query.builder.js'
 import { fetchGVizRows } from './utils/gviz-reader.js'
 import { requireEnv } from '../utils/env.js'
+import { SheetLibRejectedError, SheetLibTransportError } from './sheetlib-errors.js'
 
 // ── Repository types derived from the exact module contract. The DB row drives the
 //    mapped API row (via the field map); the API bundle drives the read filter and
@@ -75,6 +76,17 @@ export interface SheetLibSuccessResponse<TData = unknown> {
   target: string
   data: TData
   write?: Record<string, unknown>
+  /**
+   * The write (APPEND/UPDATE) itself already succeeded, but SheetLib's own
+   * persisted-row read-back afterward failed (transient Sheets API error,
+   * quota, timeout) — see `appscript/SheetLib/SheetService.js`. `data` is
+   * `null` in this case: SheetLib genuinely cannot confirm what got
+   * persisted, only that something did. This is why `status` stays `'ok'`
+   * instead of `'error'` — never treat this as a rejection.
+   */
+  read_back_failed?: boolean
+  /** Present when `read_back_failed` is true — the read-back error's message. */
+  reason?: string
 }
 
 export interface SheetLibErrorResponse {
@@ -85,6 +97,30 @@ export interface SheetLibErrorResponse {
 export type SheetLibResponse<TData = unknown> =
   | SheetLibSuccessResponse<TData>
   | SheetLibErrorResponse
+
+/**
+ * A DB `request.create`/`request.update` slot is "unsupported" either by
+ * being genuinely absent (the key omitted, e.g. every non-read-only module's
+ * OTHER unsupported slot) or by being explicitly declared `z.never()` — the
+ * stronger, intentional form read-only modules (InvoicesView, OrdersView,
+ * Payment) use so "this sheet must never be written" is a declared contract
+ * fact, not indistinguishable from "not filled in yet". Both representations
+ * must gate `create()`/`update()`/`batchAppend()` identically — this
+ * function is the one place that equivalence lives, so no call site
+ * duplicates the `instanceof ZodNever` check.
+ */
+function isUnsupportedDbOperation(schema: z.ZodTypeAny | undefined): boolean {
+  return schema === undefined || schema instanceof ZodNever
+}
+
+/**
+ * Every SheetLib write aborts after this long. Without it, a hung Apps
+ * Script call rides until the surrounding Vercel function is killed, which
+ * starves the unknown-transport branch of ever actually firing — matches
+ * the timeout the legacy raw-fetch write clients had independently
+ * (`REQUEST_TIMEOUT_MS = 15_000`).
+ */
+const SHEETLIB_WRITE_TIMEOUT_MS = 15_000
 
 export interface GSheetRepositoryOptions<TContract extends ModuleContract> {
   /**
@@ -181,7 +217,7 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
   }
 
   create(data: ModuleCreate<TContract>): Promise<ModuleApiRow<TContract>> {
-    if (this.contract.db.request.create === undefined) {
+    if (isUnsupportedDbOperation(this.contract.db.request.create)) {
       return Promise.reject(new Error('create is not supported by this module'))
     }
     return this.request<ModuleApiRow<TContract>, never, ModuleCreate<TContract>>({
@@ -191,7 +227,7 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
   }
 
   update(id: string, data: ModuleUpdate<TContract>): Promise<ModuleApiRow<TContract>> {
-    if (this.contract.db.request.update === undefined) {
+    if (isUnsupportedDbOperation(this.contract.db.request.update)) {
       return Promise.reject(new Error('update is not supported by this module'))
     }
     return this.request<ModuleApiRow<TContract>, { id: string }, ModuleUpdate<TContract>>({
@@ -202,7 +238,7 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
   }
 
   async batchAppend(rows: Array<ModuleCreate<TContract>>): Promise<Array<ModuleApiRow<TContract>>> {
-    if (this.contract.db.request.create === undefined) {
+    if (isUnsupportedDbOperation(this.contract.db.request.create)) {
       throw new Error('batchAppend is not supported by this module')
     }
 
@@ -225,15 +261,30 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
       transformedRequests.push(transformedRequest)
     }
 
-    const stored = await this.write(
+    // `expectedShape: 'array'` makes `write()` itself throw
+    // `SheetLibTransportError` if `data` isn't an array at all — see
+    // `write()`'s doc comment. Only the batch-specific LENGTH check (which
+    // `write()` has no way to know) stays here; this must never re-check
+    // array-ness itself, or a mismatched-length batch could double-throw.
+    const stored = (await this.write(
       'APPEND',
       transformedRequests.map((request) => request.data),
-    )
-    if (!Array.isArray(stored)) {
-      throw new Error('SheetLib APPEND response data must be an array for batchAppend')
-    }
+      undefined,
+      'array',
+    )) as unknown[]
+    // ⚠ Fires AFTER the gateway already answered `status: 'ok'` — the rows
+    // almost certainly exist server-side even though the response body
+    // didn't match what this method expected. This must never be classified
+    // the same as "nothing was written": a caller that (wrongly) treated it
+    // as a definite rejection could resubmit the whole batch and double
+    // every row. `SheetLibTransportError` is the same "no definite, USABLE
+    // answer came back" class a network failure/timeout throws — never
+    // `SheetLibRejectedError`.
     if (stored.length !== transformedRequests.length) {
-      throw new Error('SheetLib APPEND response row count must match batchAppend input')
+      throw new SheetLibTransportError(
+        'APPEND',
+        'SheetLib APPEND response row count must match batchAppend input — the gateway confirmed the write but the response shape could not be used to map persisted rows',
+      )
     }
 
     const dbResponse: unknown[] = []
@@ -282,15 +333,69 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
     return { keyValue, patch }
   }
 
-  private async write(action: AppScriptAction, data: unknown, keyValue?: string): Promise<unknown> {
+  /**
+   * `expectedShape` distinguishes the single-row write path (`create()`/
+   * `update()` via `execute()`, expects a persisted-row OBJECT) from the
+   * batch path (`batchAppend()`, expects an ARRAY of persisted rows) — the
+   * two callers need different validation, but both must go through the
+   * SAME check: a `status: 'ok'` response is NOT success by itself. The
+   * gateway confirming the write and this method being unable to read back
+   * *which* row it wrote are two different facts. Blindly returning
+   * `response.data` let `undefined`/a scalar/the wrong shape flow straight
+   * through `create()`/`update()` typed as a real persisted row — silent
+   * partial persistence (e.g. an Invoice header actually written, but the
+   * service proceeding with an `undefined` id because `data` never came
+   * back). Missing/unusable `data` after a confirmed `status: 'ok'` is
+   * ALWAYS `SheetLibTransportError`, never `SheetLibRejectedError` — the
+   * write happened; only the confirmation of what got written is unusable.
+   */
+  private async write(
+    action: AppScriptAction,
+    data: unknown,
+    keyValue?: string,
+    expectedShape: 'object' | 'array' = 'object',
+  ): Promise<unknown> {
     const response = await this.sendSheetLibRequest<unknown>({ action, data, keyValue })
     if (response.status === 'error') {
-      throw new Error(`SheetLib ${action} failed: ${response.message}`)
+      // The gateway gave a definite answer: nothing was written for this
+      // request. Message text is unchanged from before this class existed —
+      // only the thrown type is new.
+      throw new SheetLibRejectedError(action, response.message)
     }
     if (response.status !== 'ok') {
-      throw new Error(`SheetLib ${action} returned an invalid response status`)
+      // A well-formed HTTP response whose body doesn't match the SheetLib
+      // envelope at all — not a definite rejection, so this is transport-side.
+      throw new SheetLibTransportError(action, `SheetLib ${action} returned an invalid response status`)
     }
-    return response.data
+    if (response.read_back_failed === true) {
+      // The write itself (APPEND/UPDATE) already succeeded — SheetLib's own
+      // persisted-row read-back afterward failed. Surface the real reason
+      // instead of falling through to the generic "no usable data" message
+      // below (which would still be correct, just less specific).
+      throw new SheetLibTransportError(
+        action,
+        `SheetLib ${action} succeeded but the persisted-row read-back failed: ${response.reason ?? 'unknown reason'}`,
+      )
+    }
+
+    const stored = response.data
+    if (expectedShape === 'array') {
+      if (!Array.isArray(stored)) {
+        throw new SheetLibTransportError(
+          action,
+          `SheetLib ${action} confirmed the write but "data" was not an array — the write may have succeeded with no usable persisted rows to map back`,
+        )
+      }
+      return stored
+    }
+
+    if (stored === undefined || stored === null || typeof stored !== 'object' || Array.isArray(stored)) {
+      throw new SheetLibTransportError(
+        action,
+        `SheetLib ${action} confirmed the write but returned no usable persisted row in "data" — the write may have succeeded with nothing to map back`,
+      )
+    }
+    return stored
   }
 
   private async sendSheetLibRequest<TResponse = unknown, TData = unknown>(
@@ -307,17 +412,43 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
       body.key_value = input.keyValue
     }
 
-    const response = await fetch(this.scriptUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      redirect: 'follow',
-    })
+    let response: Response
+    try {
+      response = await fetch(this.scriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        redirect: 'follow',
+        // An abort (timeout) is a network-level rejection like any other —
+        // caught below and classified as SheetLibTransportError ('unknown'),
+        // never a confirmed rejection.
+        signal: AbortSignal.timeout(SHEETLIB_WRITE_TIMEOUT_MS),
+      })
+    } catch (error) {
+      // A network failure or timeout: no definite answer came back at all.
+      // The write may or may not have persisted server-side — never treat
+      // this the same as a confirmed SheetLibRejectedError.
+      throw new SheetLibTransportError(
+        input.action,
+        `SheetLib request failed: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
     if (!response.ok) {
-      throw new Error(`SheetLib request failed: ${response.status} ${response.statusText}`)
+      // Message text unchanged from before this class existed.
+      throw new SheetLibTransportError(
+        input.action,
+        `SheetLib request failed: ${response.status} ${response.statusText}`,
+      )
     }
 
-    return (await response.json()) as SheetLibResponse<TResponse>
+    try {
+      return (await response.json()) as SheetLibResponse<TResponse>
+    } catch (error) {
+      throw new SheetLibTransportError(
+        input.action,
+        `SheetLib response was not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
   }
 
   private requireWriteTarget(): string {

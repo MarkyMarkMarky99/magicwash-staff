@@ -140,8 +140,8 @@ contract work correctly in Development.
   return persisted `data`/`data[]` and verify it in Development before any
   backend caller depends on it.
 - [ ] **Migrate invoice writes.** Add target-aware repositories for Invoice,
-  InvoiceItem, and OrderForm; preserve items-first sequencing; then remove
-  `invoice.gateway-client.ts` and the direct OrderForm gateway adapter.
+  InvoiceItem, and OrderForm; preserve items-first sequencing; then remove the
+  legacy Invoice and OrderForm gateway adapters.
 - [ ] **Defer Customer and other backend writes.** Do not migrate Customer,
   Invoice, InvoiceItem, or OrderForm in this refactor; plan each separately
   after Appointment is verified.
@@ -181,8 +181,8 @@ contract work correctly in Development.
 
 - No change to Portal/GViz read behavior.
 - No Apps Script implementation change in the first repository refactor.
-- No deletion or migration of `invoice.gateway-client.ts` until the repository
-  transport and response semantics are verified.
+- Legacy Invoice and OrderForm gateway adapters are removed only after the
+  repository transport and response semantics are verified.
 - No Customer migration. Customer's two-sheet create/update flow is deferred.
 - No Invoice, InvoiceItem, or OrderForm migration.
 - No DELETE support.

@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import {
   invoicePortalRowSchema,
   invoiceViewApiContract,
@@ -18,7 +19,11 @@ export const invoiceViewDbContract = {
   // Portal sheet headers already are API field names; no rename map is needed.
   fieldMap: {},
   primaryKey: 'invoiceNumber',
-  request: {}, // no create/update/delete — explicit empty object, not omitted
+  // `z.never()`, not an absent key: declares "this view must never be
+  // written" as intent — GSheetRepository's isUnsupportedDbOperation gates
+  // create()/update() off EITHER an absent slot or a z.never() one, so this
+  // still rejects at runtime exactly as before.
+  request: { create: z.never(), update: z.never() },
   response: { read: invoiceViewRowSchema.partial() },
 } satisfies ModuleDbContract
 

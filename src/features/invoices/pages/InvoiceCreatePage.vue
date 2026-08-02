@@ -21,6 +21,7 @@ import {
   type LineItemFormRow,
 } from '../types/invoice-create.types'
 import { createInvoice } from '../services/invoice.service'
+import { canRetryInvoiceOutcome, synthesizeNetworkFailureOutcome } from '../utils/invoice-outcome.utils'
 import InvoiceLineItemsEditor from '../components/InvoiceLineItemsEditor.vue'
 import InvoiceAdjustmentsEditor from '../components/InvoiceAdjustmentsEditor.vue'
 import InvoiceTotalsPreview from '../components/InvoiceTotalsPreview.vue'
@@ -277,9 +278,9 @@ function retryContextLoad() {
   void syncCreateContext()
 }
 
-const canRetry = computed(() =>
-  result.value?.kind === 'validation_error' || result.value?.kind === 'items_write_failed',
-)
+// See `canRetryInvoiceOutcome` (utils/invoice-outcome.utils.ts) for the full
+// retry-eligibility policy and why it keys off `certainty`, not just `kind`.
+const canRetry = computed(() => canRetryInvoiceOutcome(result.value))
 
 async function handleSubmit() {
   if (!isValid.value || submitting.value || !requestPayload.value) return
@@ -288,10 +289,10 @@ async function handleSubmit() {
   try {
     result.value = await createInvoice(requestPayload.value)
   } catch {
-    // Network-level failure (not a modeled `kind`) — nothing is known to have
-    // been written; treat the same as a safe-to-retry write failure so the
-    // UI still gives the staff member a way forward.
-    result.value = { kind: 'items_write_failed', message: 'Could not reach the server. Check your connection and try again.' }
+    // A network-level failure (not a modeled `kind`) — see
+    // `synthesizeNetworkFailureOutcome`'s doc comment for why this is always
+    // `certainty: 'unknown'`, never `'rejected'`.
+    result.value = synthesizeNetworkFailureOutcome()
   } finally {
     submitting.value = false
   }
@@ -433,8 +434,12 @@ async function copyLiffUrl(invoiceNumber: string) {
         </button>
       </section>
 
+      <!-- The condition here IS `canRetry` (canRetryInvoiceOutcome), not a
+           re-typed copy of its rule — this is the exact function the footnote
+           below and the frontend Layer 5 test both exercise, so the tested
+           thing is the real thing driving whether "Try again" renders at all. -->
       <section
-        v-else-if="result.kind === 'items_write_failed'"
+        v-else-if="result.kind === 'items_write_failed' && canRetry"
         class="space-y-3 rounded-2xl border border-error/30 bg-error-container/20 p-5"
       >
         <div class="flex items-center gap-2">
@@ -445,6 +450,31 @@ async function copyLiffUrl(invoiceNumber: string) {
         <p class="font-body text-xs text-on-surface-variant">Safe to try again — no invoice or line items were written.</p>
         <button type="button" class="w-full rounded-xl bg-primary px-4 py-2.5 font-label text-[12px] font-semibold text-on-primary" @click="resetForRetry">
           Try again
+        </button>
+      </section>
+
+      <!-- No definite answer ever came back — the batch may already be in the
+           sheet. NEVER a "Try again" button, NEVER the "Nothing was saved"
+           heading: this must route to manual reconciliation, the same as the
+           other never-retry outcomes below. `!canRetry` here is exactly
+           `certainty === 'unknown'` (the only other value items_write_failed
+           carries), driven by the same shared policy function as above. -->
+      <section
+        v-else-if="result.kind === 'items_write_failed' && !canRetry"
+        class="space-y-3 rounded-2xl border border-tertiary/40 bg-tertiary-container/15 p-5"
+      >
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-[24px] text-tertiary" aria-hidden="true">help</span>
+          <h1 class="font-headline text-base font-bold text-on-surface">Outcome unconfirmed</h1>
+        </div>
+        <p class="font-body text-sm text-on-surface-variant">{{ result.message }}</p>
+        <p class="font-body text-xs font-semibold text-tertiary">
+          We could not confirm whether the line items were written. Check InvoiceItems for
+          <span class="font-semibold text-on-surface">{{ invoiceNumber }}</span> before resubmitting —
+          do not just try again, or you may double every line item.
+        </p>
+        <button type="button" class="w-full rounded-xl bg-surface-container px-4 py-2.5 font-label text-[12px] font-semibold text-primary" @click="backToOrderHistory">
+          Back to order history
         </button>
       </section>
 

@@ -1,84 +1,99 @@
 import { z } from 'zod'
+import type { ModuleContract, ModuleDbContract } from '../../shared/contracts/module-db-contract.js'
+import type { ModuleApiContract } from '../../../contracts/shared/module-api-contract.js'
+// Re-exported so `invoice.repository.ts` builds all four `GSheetRepository`
+// getters (Invoice, InvoiceItem, Payment, InvoicesView) from this one module
+// contract file, matching this file's header comment. The physical
+// definition still lives in `invoice-view.contract.ts` (not duplicated here)
+// — that file is a read-only-view sibling this module doesn't own the way it
+// owns the three write-side bundles below.
+export { invoiceViewContract, invoiceViewDbContract } from './invoice-view.contract.js'
 
 /**
- * Invoices module — backend↔Apps Script (gateway) contract. DB-shaped,
- * snake_case, matching the live Google Sheets schemas verbatim:
+ * Invoices module — DB-side contracts, one bundle per PHYSICAL SHEET, all in
+ * this one file per this module's non-negotiable rule
+ * (`server/modules/invoices/invoice.repository.ts` is the only repository
+ * file the module owns; this is the matching single contract file). Four
+ * sheets, four bundles: `Invoice`, `InvoiceItem`, `Payment` below, plus
+ * `InvoicesView` (imported from `invoice-view.contract.ts` and re-exported
+ * here so `invoice.repository.ts` can build all four `GSheetRepository`
+ * getters from this one module).
  *
- *   Invoice      → tab "Invoices",     PK invoice_number
- *   InvoiceItem  → tab "InvoiceItems", PK invoice_item_id, FK invoice_number
- *
- * Authoritative source of truth (read them, this file must lose to them):
+ * Authoritative source of truth for the three sheets this file newly
+ * contracts (read them, this file must lose to them):
  *   G:\My Drive\Magicwash\Database\GoogleSheets\Invoice.json
  *   G:\My Drive\Magicwash\Database\GoogleSheets\InvoiceItem.json
+ *   G:\My Drive\Magicwash\Database\GoogleSheets\Payment.json
  * Ignore the stale Invoices.json / InvoiceItems.json one directory up — those
  * register different targets.
  *
- * This file intentionally does NOT compose a `ModuleDbContract`/`ModuleContract`
- * the way `appointment.contract.ts` / `customer.contract.ts` / `order.contract.ts`
- * do. That shape assumes one sheet, one `row`/`fieldMap`/`primaryKey`, consumed by
- * a single `GSheetRepository`. This module writes to TWO sheets in one workbook
- * through a differently-shaped gateway envelope (`{ resource, action, target,
- * data }` → `{ status: 'ok' | 'error', ... }`, not `{ action, sheet, data }` →
- * `{ success, data }`), and never reads either sheet (InvoicesView, a separate
- * read-only materialized view in a different, publicly-readable spreadsheet,
- * covers reads — a separate module, not this one). There is nothing here for a
- * field map to rename: these schemas ARE the snake_case DB shape, and the
- * eventual camelCase FE↔BE contract (not written yet) is a distinct file that
- * maps onto this one by hand in the service, not through `Mapper`/`BaseRepository`.
+ *   Invoice      → GViz tab "Invoices",     SheetLib target "Invoice",     PK invoice_number
+ *   InvoiceItem  → GViz tab "InvoiceItems", SheetLib target "InvoiceItem", PK invoice_item_id
+ *   Payment      → GViz tab "Payments",     no SheetLib target (unsupported writes below)
  *
- * Row field order below follows the live JSON Schema's declared property order.
- * It is documentation only here — unlike `deriveGVizColumns`-backed modules,
- * nothing derives a GViz column letter from this order, because this module
- * never reads either sheet.
+ * All three share one workbook (env var `INVOICES_SPREADSHEET_ID`) that is
+ * NOT publicly readable — writes (APPEND/UPDATE) succeed against it but GViz
+ * reads do not. Nothing in this module ever calls `.read()` on any of these
+ * three repositories; all GET traffic is served by the separate, publicly
+ * readable `InvoicesView` materialized view.
+ *
+ * Each of the three write-side sheets therefore needs a `ModuleApiContract`
+ * only to satisfy `GSheetRepository<TContract extends ModuleContract>`'s
+ * type — there is no route, and `BaseCrudService` is never built from any of
+ * them. `query.list`/`response.list` are deliberately trivial placeholders
+ * (`internalListQuerySchema`/`internalListResponseSchema`) for exactly that
+ * reason. `api.request.create`/`api.request.update` are NOT placeholders —
+ * `GSheetRepository.create()`/`.update()`/`.batchAppend()` type their
+ * parameter off these schemas, so they are the real, camelCase,
+ * `InvoiceService`-internal command shapes the mapper renames down to the DB
+ * column names in `fieldMap` before every SheetLib write.
+ *
+ * Nested JSON cell content — `customer` and every `adjustments` array — is
+ * NOT renamed by `fieldMap` (the mapper only renames top-level DB columns),
+ * so those nested shapes stay snake_case end to end, exactly matching the
+ * literal JSON the sheet cell stores. `invoiceAdjustmentSchema` and
+ * `invoiceCustomerSnapshotSchema` below are therefore shared, unchanged,
+ * between the DB row schemas and the API/domain command schemas.
  *
  * What SheetLib does to this payload (confirmed by the coordinator against
  * `appscript/SheetLib/{SheetService,SchemaUtils}.js`, not assumed):
  *   1. Nested values are serialized for us (`typeof value === 'object' →
- *      JSON.stringify(value)`) — `customer` and `adjustments` below must stay
- *      real objects/arrays. Pre-stringifying them double-encodes.
+ *      JSON.stringify(value)`) — `customer` and `adjustments` must stay real
+ *      objects/arrays. Pre-stringifying them double-encodes.
  *   2. `null` and `undefined` both become an empty cell, not the text "null".
  *   3. `created_at` is auto-stamped when absent (`doc.created_at =
  *      doc.created_at || _now()`); `created_by` is never auto-stamped.
- *   4. APPEND accepts an array and validates every document before writing any
- *      of them — one bad line rejects the whole batch and nothing is written.
- *      All `InvoiceItem` rows for one invoice therefore travel in ONE request,
- *      never a loop, which removes the partially-written-items failure mode
- *      entirely. Write order is still items-batch first, then the invoice row
- *      second: with no cross-tab transaction, an orphaned item batch (invoice
- *      write failed) is recoverable and invisible to staff, while the reverse
- *      (an ISSUED invoice with no lines, visible and billable) would not be.
- *   5. Because of 2 and 3, the rule for this payload is: send only the
- *      columns we actually own, and OMIT every optional one rather than
- *      sending `null` for it. Omission says plainly that the system (Apps
- *      Script or a later feature) owns that value, and it stops a future
- *      default from being silently overwritten by our explicit null. The
- *      fields this module never sends at all — `created_at`, `updated_at`,
- *      `updated_by`, `deleted_at`, `deleted_by`, and (see the reconciliation
- *      note below) `sku` — are not modeled as keys in the schemas below,
- *      not modeled as `.nullable()` keys we happen to leave undefined.
+ *   4. APPEND accepts an array and validates every document before writing
+ *      any of them — one bad line rejects the whole batch and nothing is
+ *      written. All `InvoiceItem` rows for one invoice therefore travel in
+ *      ONE `batchAppend()` call, never a loop.
+ *   5. Because of 2 and 3, the rule for every outbound payload here is: send
+ *      only the columns this module actually owns, and OMIT every optional
+ *      one rather than sending `null`/`undefined` for it.
  *
- * ⚠ Deviation from every sibling `<m>.contract.ts` in this codebase: these row
- * schemas call `.strict()`. `appointment.contract.ts` / `customer.contract.ts`
- * / `order.contract.ts` don't — they rely on Zod's default silent-strip of
- * unknown keys. This module opts into `.strict()` on purpose: the live JSON
- * Schemas both declare `additionalProperties: false`, and a stray key here
- * should fail loudly (a build bug) rather than be silently dropped on the way
- * to a live production sheet.
+ * ⚠ Deviation from every sibling `<m>.contract.ts` in this codebase: the row
+ * schemas below call `.strict()`. `appointment.contract.ts` /
+ * `customer.contract.ts` / `order.contract.ts` don't — they rely on Zod's
+ * default silent-strip of unknown keys. This module opts into `.strict()` on
+ * purpose: the live JSON Schemas all declare `additionalProperties: false`,
+ * and a stray key here should fail loudly (a build bug) rather than be
+ * silently dropped on the way to a live production sheet.
  *
  * ⚠ Reconciliation note — `sku`: the live `InvoiceItem.json` still declares
- * `sku` as a valid nullable column. The coordinator's instruction was
- * explicit: "`sku` is dropped from the form and the payload."
- * This file follows the chat instruction — `sku` is not modeled as a key on
- * `invoiceItemRowSchema` at all, so the service never sends it. Flagged back
- * as an objection in case the doc file's lingering `sku: string | null`
- * was meant to stay and this is the wrong call.
+ * `sku` as a valid nullable column (modeled below in the STORED row, for
+ * accurate column-letter derivation). The coordinator's instruction was
+ * explicit: "`sku` is dropped from the form and the payload" — so `sku` is
+ * absent from `invoiceItemApiCreateSchema`/`invoiceItemDbCreateRequestSchema`
+ * and `InvoiceService` never sends it. Flagged back as an objection in case
+ * the doc file's lingering `sku: string | null` was meant to stay and this is
+ * the wrong call.
  */
 
 // ── Shared building block: one adjustment step ──────────────────────────────
 //
 // Identical shape on both Invoice.adjustments (invoice-level) and
-// InvoiceItem.adjustments (item-level) in the live schemas, but NOT identical
-// arithmetic — that math belongs to the future service, not this file:
+// InvoiceItem.adjustments (item-level), but NOT identical arithmetic — see
+// `contracts/invoices/invoice-calculator.ts`:
 //   item level:    unit = unit_price; for adj in order: unit ±= per-unit step;
 //                  net_total = quantity * unit  (order-sensitive; PERCENT
 //                  compounds on the running per-unit value)
@@ -119,13 +134,10 @@ export type InvoiceAdjustment = z.infer<typeof invoiceAdjustmentSchema>
 //
 // Frozen at issue time so later profile edits never alter an issued invoice;
 // never re-resolved when rendering. `tax_id` / `branch_code` / `contact_name`
-// / `email` are OMITTED ENTIRELY from this pass's payload, not sent as
-// null — there is no billing-detail UI yet, no source for them, and the
-// Customer sheet is not being extended to carry them. They are still valid,
-// optional columns on the live `customer` def (13-digit `tax_id`, 5-digit
-// `branch_code` with `branch_code` requiring `tax_id`) for whenever a later
-// feature does populate them — just not modeled as keys here, since this
-// contract describes what THIS module actually sends.
+// / `email` are OMITTED ENTIRELY from this pass's payload, not sent as null —
+// there is no billing-detail UI yet, no source for them. They remain valid,
+// optional columns on the live `customer` def for whenever a later feature
+// populates them — just not modeled as keys here.
 
 export const invoiceCustomerSnapshotSchema = z
   .object({
@@ -138,11 +150,169 @@ export const invoiceCustomerSnapshotSchema = z
 
 export type InvoiceCustomerSnapshot = z.infer<typeof invoiceCustomerSnapshotSchema>
 
-// ── POST #1 — InvoiceItem rows (target "InvoiceItem"), sent FIRST as ONE batch ──
+/** ISO 8601 calendar date (YYYY-MM-DD), no time component. */
+const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a YYYY-MM-DD date')
+
+// ── Internal, non-routed API placeholder ────────────────────────────────────
 //
-// `subtotal` and `net_total` are computed inputs the service must supply —
-// never sheet formulas, never trusted verbatim from the browser (the client
-// may show a live preview; the row sent here is the server's own arithmetic).
+// Invoice/InvoiceItem/Payment are never read through BaseCrudService/
+// createCrudRoutes — InvoiceService calls repository.create()/batchAppend()
+// directly, and InvoicesView (a separate, publicly-readable materialized
+// view) serves all GET traffic. These trivial schemas exist ONLY so each
+// sheet's bundle satisfies `ModuleApiContract`'s required `query.list`/
+// `response.list` slots; nothing ever parses against them.
+const internalListQuerySchema = z.object({})
+const internalListResponseSchema = z.object({})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Invoice — GViz tab "Invoices", SheetLib target "Invoice", PK invoice_number
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// KEY ORDER = physical sheet column order (Invoice.json property order).
+
+export const invoiceStatusSchema = z.enum(['DRAFT', 'ISSUED', 'CANCELLED', 'VOID'])
+
+export const invoiceRowSchema = z
+  .object({
+    /** PK. Typed by staff, stored verbatim, never reformatted. */
+    invoice_number: z.string().min(1),
+    /**
+     * Lifecycle only. This module always writes 'ISSUED'.
+     * PAID / UNPAID / PARTIALLY_PAID / OVERDUE are computed downstream in
+     * InvoicesView and are rejected by this enum — never write them here.
+     */
+    status: invoiceStatusSchema,
+    /**
+     * Only ORDER invoices exist for now — this module always writes the
+     * literal 'ORDER'. CYCLE billing is a later feature.
+     */
+    billing_type: z.enum(['ORDER', 'CYCLE']),
+    /** Only meaningful for CYCLE; null/omitted for ORDER. Stored column;
+     *  this module's create command never populates it. */
+    billing_period_start: z.string().nullable(),
+    billing_period_end: z.string().nullable(),
+    issued_date: isoDateSchema,
+    due_date: isoDateSchema,
+    /**
+     * Must equal customer.customer_code exactly — a denormalization that
+     * exists only because GViz cannot filter inside the JSON snapshot below.
+     */
+    customer_id: z.string().min(1),
+    /** Real object — SheetLib JSON.stringifies it for us; never pre-stringify. */
+    customer: invoiceCustomerSnapshotSchema,
+    /**
+     * Invoice-level. Applied ONCE to the running invoice total — different
+     * arithmetic from InvoiceItem's per-item arrays despite the identical
+     * shape. Real array, default []. The live schema has NO total/tax/balance
+     * column on this row at all: those are computed downstream in
+     * InvoicesView, never stored here.
+     */
+    adjustments: z.array(invoiceAdjustmentSchema).default([]),
+    /**
+     * NOT auto-stamped — must always be sent on create.
+     */
+    created_by: z.string().min(1),
+    /** Stored column. SheetLib auto-stamps this when absent from the
+     *  request; the create command never sends it explicitly. */
+    created_at: z.string().nullable(),
+    updated_at: z.string().nullable(),
+    updated_by: z.string().nullable(),
+    deleted_at: z.string().nullable(),
+    deleted_by: z.string().nullable(),
+  })
+  .strict() // additionalProperties: false in the live schema
+
+export type InvoiceRow = z.infer<typeof invoiceRowSchema>
+
+export const invoiceFieldMap = {
+  invoice_number: 'invoiceNumber',
+  status: 'status',
+  billing_type: 'billingType',
+  billing_period_start: 'billingPeriodStart',
+  billing_period_end: 'billingPeriodEnd',
+  issued_date: 'issuedDate',
+  due_date: 'dueDate',
+  customer_id: 'customerId',
+  customer: 'customer',
+  adjustments: 'adjustments',
+  created_by: 'createdBy',
+  created_at: 'createdAt',
+  updated_at: 'updatedAt',
+  updated_by: 'updatedBy',
+  deleted_at: 'deletedAt',
+  deleted_by: 'deletedBy',
+} as const satisfies Record<keyof z.infer<typeof invoiceRowSchema> & string, string>
+
+/** DB-facing capability/documentation schema — snake_case, exactly what
+ *  `InvoiceService` sends on create. Not runtime-parsed by `GSheetRepository`
+ *  itself; it exists so `db.request.create` is a real, non-undefined slot
+ *  (the create-capability gate) that documents the DB-side shape. */
+export const invoiceDbCreateRequestSchema = z.object({
+  invoice_number: z.string().min(1),
+  status: z.literal('ISSUED'),
+  billing_type: z.literal('ORDER'),
+  issued_date: isoDateSchema,
+  due_date: isoDateSchema,
+  customer_id: z.string().min(1),
+  customer: invoiceCustomerSnapshotSchema,
+  adjustments: z.array(invoiceAdjustmentSchema).default([]),
+  created_by: z.string().min(1),
+})
+
+/** API/domain-facing create command — camelCase top-level fields (renamed by
+ *  `invoiceFieldMap`), nested `customer`/`adjustments` content stays
+ *  snake_case (see module header). This is what `InvoiceService` builds and
+ *  passes to `getInvoiceRepository().create()`. */
+export const invoiceApiCreateSchema = z
+  .object({
+    invoiceNumber: z.string().min(1),
+    status: z.literal('ISSUED'),
+    billingType: z.literal('ORDER'),
+    issuedDate: isoDateSchema,
+    dueDate: isoDateSchema,
+    customerId: z.string().min(1),
+    customer: invoiceCustomerSnapshotSchema,
+    adjustments: z.array(invoiceAdjustmentSchema).default([]),
+    createdBy: z.string().min(1),
+  })
+  .strict()
+
+export type InvoiceApiCreateCommand = z.infer<typeof invoiceApiCreateSchema>
+
+const invoiceApiContract = {
+  query: { list: internalListQuerySchema },
+  // `update` is a required sibling of `create` in `ModuleApiContract`'s
+  // structural shape but is never exercised: Invoice is create-only (no edit
+  // path — see `contracts/invoices/invoice-api.schema.ts`), and `db.request`
+  // below omits `update` entirely, so `.update()` rejects at runtime before
+  // any fetch regardless of this placeholder.
+  request: { create: invoiceApiCreateSchema, update: invoiceApiCreateSchema },
+  response: { list: internalListResponseSchema },
+} satisfies ModuleApiContract
+
+export const invoiceDbContract = {
+  row: invoiceRowSchema,
+  fieldMap: invoiceFieldMap,
+  primaryKey: 'invoiceNumber',
+  request: { create: invoiceDbCreateRequestSchema },
+  response: { read: invoiceRowSchema.partial(), create: invoiceRowSchema },
+} satisfies ModuleDbContract
+
+/** The `ModuleContract` `getInvoiceRepository()` constructs its
+ *  `GSheetRepository` from. */
+export const invoiceContract = {
+  api: invoiceApiContract,
+  db: invoiceDbContract,
+} satisfies ModuleContract
+
+// ═══════════════════════════════════════════════════════════════════════════
+// InvoiceItem — GViz tab "InvoiceItems", SheetLib target "InvoiceItem",
+// PK invoice_item_id, FK invoice_number
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// KEY ORDER = physical sheet column order (InvoiceItem.json property order).
+// `subtotal`/`net_total` are computed inputs `InvoiceService` supplies —
+// never sheet formulas, never trusted verbatim from the browser.
 
 export const invoiceItemRowSchema = z
   .object({
@@ -150,31 +320,24 @@ export const invoiceItemRowSchema = z
     invoice_number: z.string().min(1),
     /**
      * PK. Unique and immutable. Format: the first 8 hex characters of
-     * `crypto.randomUUID()` — the one id scheme used across this codebase,
-     * not a per-entity format. Generated by the service, not by this contract
-     * file.
+     * `crypto.randomUUID()` — the one id scheme used across this codebase.
+     * Generated by `InvoiceService`, not this contract file.
      */
     invoice_item_id: z.string().length(8),
     /** Display order within the invoice. 1-based, contiguous, caller-assigned. */
     item_no: z.number().int().positive(),
     /**
      * The invoice's single `sourceOrderId`, copied onto every row by the
-     * service — one ORDER invoice bills exactly one order, and the client
-     * sends the id once, at invoice level, not per line.
+     * service — one ORDER invoice bills exactly one order.
      */
     source_order_id: z.string().nullable(),
-    /**
-     * Always null in this first version — there is no longer any way to
-     * trace a row back to the individual order item it came from, only to
-     * the order via `source_order_id`. A hand-typed line and an
-     * order-derived line are identical in shape.
-     */
+    /** Always null in this first version — no per-item traceability, only
+     *  per-order via `source_order_id` above. */
     source_item_id: z.string().nullable(),
-    // `sku` is intentionally NOT a key here — see the module header's
-    // reconciliation note. The live schema still allows a nullable `sku`
-    // column; this module just never populates it.
-    /** Free text. No enum — do not constrain this to a fixed list. Always
-     *  null in this first version; see `source_item_id` above. */
+    /** Stored column; see the module header's reconciliation note — this
+     *  module never populates it. */
+    sku: z.string().nullable(),
+    /** Free text. No enum. Always null in this first version. */
     service_type: z.string().nullable(),
     /** Customer-facing text, snapshot. */
     description: z.string().min(1),
@@ -189,8 +352,7 @@ export const invoiceItemRowSchema = z
     /**
      * Applied PER UNIT, in array order, then the result is × quantity — see
      * the module header comment. Real array: SheetLib JSON.stringifies
-     * object/array values for us, so this must stay an array, never a
-     * pre-stringified string.
+     * object/array values for us.
      */
     adjustments: z.array(invoiceAdjustmentSchema).default([]),
     /** Final line total after every adjustment. The service computes this. */
@@ -200,122 +362,182 @@ export const invoiceItemRowSchema = z
 
 export type InvoiceItemRow = z.infer<typeof invoiceItemRowSchema>
 
-// ── POST #2 — the Invoice header row (target "Invoice"), sent SECOND, alone ──
+export const invoiceItemFieldMap = {
+  invoice_number: 'invoiceNumber',
+  invoice_item_id: 'invoiceItemId',
+  item_no: 'itemNo',
+  source_order_id: 'sourceOrderId',
+  source_item_id: 'sourceItemId',
+  sku: 'sku',
+  service_type: 'serviceType',
+  description: 'description',
+  quantity: 'quantity',
+  unit: 'unit',
+  unit_price: 'unitPrice',
+  subtotal: 'subtotal',
+  adjustments: 'adjustments',
+  net_total: 'netTotal',
+} as const satisfies Record<keyof z.infer<typeof invoiceItemRowSchema> & string, string>
 
-export const invoiceStatusSchema = z.enum(['DRAFT', 'ISSUED', 'CANCELLED', 'VOID'])
+/** DB-facing capability/documentation schema — snake_case, exactly what
+ *  `InvoiceService` sends per row on `batchAppend()`. `sku` is intentionally
+ *  NOT a key here — see the module header's reconciliation note. */
+export const invoiceItemDbCreateRequestSchema = z.object({
+  invoice_number: z.string().min(1),
+  invoice_item_id: z.string().length(8),
+  item_no: z.number().int().positive(),
+  source_order_id: z.string().nullable(),
+  source_item_id: z.string().nullable(),
+  service_type: z.string().nullable(),
+  description: z.string().min(1),
+  quantity: z.number().positive(),
+  unit: z.string().nullable(),
+  unit_price: z.number(),
+  subtotal: z.number(),
+  adjustments: z.array(invoiceAdjustmentSchema).default([]),
+  net_total: z.number(),
+})
 
-/** ISO 8601 calendar date (YYYY-MM-DD), no time component. */
-const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a YYYY-MM-DD date')
-
-export const invoiceRowSchema = z
+/** API/domain-facing create command — camelCase top-level fields (renamed by
+ *  `invoiceItemFieldMap`), nested `adjustments` content stays snake_case. This
+ *  is what `InvoiceService` builds and passes to
+ *  `getInvoiceItemRepository().batchAppend()`. */
+export const invoiceItemApiCreateSchema = z
   .object({
-    /** PK. Typed by staff, stored verbatim, never reformatted. */
-    invoice_number: z.string().min(1),
-    /**
-     * Lifecycle only. This module always writes 'ISSUED'.
-     * PAID / UNPAID / PARTIALLY_PAID / OVERDUE are computed downstream in
-     * InvoicesView and are rejected by this enum — never write them here.
-     */
-    status: invoiceStatusSchema,
-    /**
-     * Only ORDER invoices exist for now — this module always writes the
-     * literal 'ORDER'. CYCLE billing is a later feature that will bring
-     * `billing_type` back as a real enum plus a required, non-null
-     * `billing_period_start`/`end` pair; no scaffolding for it is kept here.
-     */
-    billing_type: z.literal('ORDER'),
-    // billing_period_start / billing_period_end are deliberately NOT modeled
-    // as keys here (omitted, not sent as null) — see the file header's
-    // "send only the columns we own" rule. The live schema still declares
-    // both as nullable columns for CYCLE's sake; this module just never
-    // populates them while only ORDER invoices exist.
-    issued_date: isoDateSchema,
-    due_date: isoDateSchema,
-    /**
-     * Must equal customer.customer_code exactly — a denormalization that
-     * exists only because GViz cannot filter inside the JSON snapshot below.
-     */
-    customer_id: z.string().min(1),
-    /** Real object — SheetLib JSON.stringifies it for us; do not pre-stringify. */
-    customer: invoiceCustomerSnapshotSchema,
-    /**
-     * Invoice-level. Applied ONCE to the running invoice total (see the
-     * module header comment) — different arithmetic from the per-item
-     * arrays above despite the identical shape. Real array, default [].
-     * Note the live schema has NO total/tax/balance column of any kind on
-     * this row: subtotal and net_total exist only on InvoiceItem rows.
-     * Invoice-level totals, balances, and payment status are computed
-     * downstream when InvoicesView is built, never stored here.
-     */
+    invoiceNumber: z.string().min(1),
+    invoiceItemId: z.string().length(8),
+    itemNo: z.number().int().positive(),
+    sourceOrderId: z.string().nullable(),
+    sourceItemId: z.string().nullable(),
+    serviceType: z.string().nullable(),
+    description: z.string().min(1),
+    quantity: z.number().positive(),
+    unit: z.string().nullable(),
+    unitPrice: z.number(),
+    subtotal: z.number(),
     adjustments: z.array(invoiceAdjustmentSchema).default([]),
-    /**
-     * NOT auto-stamped — must always be sent. Currently the literal string
-     * 'staff' (`INVOICE_CREATED_BY` in `invoice.service.ts`) until this app
-     * has real staff identity; kept in one named constant so switching to a
-     * real actor is a one-line change.
-     */
-    created_by: z.string().min(1),
-    // created_at / updated_at / updated_by / deleted_at / deleted_by are
-    // deliberately NOT modeled as keys on this schema — this module never
-    // sends any of them, on every create. The live schema's base `required`
-    // list includes `created_at` because it describes the row as STORED:
-    // SheetLib auto-stamps that column when the field is absent from the
-    // request (`doc.created_at = doc.created_at || _now()`), so the stored
-    // row always ends up with a value even though the outbound payload (what
-    // this schema describes) omits it entirely. updated_at/by and
-    // deleted_at/by are absent for a simpler reason: this is a create-only
-    // module (no edit or delete path exists), so a newly-issued invoice has
-    // never been updated or deleted — there is nothing to send.
+    netTotal: z.number(),
+  })
+  .strict()
+
+export type InvoiceItemApiCreateCommand = z.infer<typeof invoiceItemApiCreateSchema>
+
+const invoiceItemApiContract = {
+  query: { list: internalListQuerySchema },
+  // Placeholder sibling — see the identical note on `invoiceApiContract`.
+  // InvoiceItem rows are also create-only; `db.request` below omits `update`.
+  request: { create: invoiceItemApiCreateSchema, update: invoiceItemApiCreateSchema },
+  response: { list: internalListResponseSchema },
+} satisfies ModuleApiContract
+
+export const invoiceItemDbContract = {
+  row: invoiceItemRowSchema,
+  fieldMap: invoiceItemFieldMap,
+  primaryKey: 'invoiceItemId',
+  request: { create: invoiceItemDbCreateRequestSchema },
+  response: { read: invoiceItemRowSchema.partial(), create: invoiceItemRowSchema },
+} satisfies ModuleDbContract
+
+/** The `ModuleContract` `getInvoiceItemRepository()` constructs its
+ *  `GSheetRepository` from. */
+export const invoiceItemContract = {
+  api: invoiceItemApiContract,
+  db: invoiceItemDbContract,
+} satisfies ModuleContract
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Payment — GViz tab "Payments". No SheetLib target: writes are UNSUPPORTED
+// by this rollout. `InvoiceService`'s create flow never touches Payment rows;
+// this bundle exists only so the acceptance criterion "one GSheetRepository
+// per physical sheet" holds for the whole Invoice workbook, ready for a
+// future Payment write endpoint that is explicitly out of this rollout's
+// scope (see `docs/invoice-module-refactor-plan.md`).
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// KEY ORDER = physical sheet column order (Payment.json property order).
+// `slip_data` ("do not expose to customers") is modeled here (it's a real
+// stored column, needed for correct column-letter derivation) but is not
+// part of any API-facing schema anywhere in this module.
+
+export const paymentMethodSchema = z.enum([
+  'CASH',
+  'BANK_TRANSFER',
+  'CREDIT_CARD',
+  'QR_PROMPTPAY',
+  'GIFT_VOUCHER',
+  'OTHER',
+])
+
+export const paymentStatusSchema = z.enum(['PENDING', 'VERIFIED', 'FAILED', 'CANCELLED'])
+
+export const paymentRowSchema = z
+  .object({
+    payment_id: z.string().min(1),
+    invoice_number: z.string().min(1),
+    amount: z.number().nullable(),
+    method: paymentMethodSchema,
+    status: paymentStatusSchema,
+    paid_at: z.string().nullable(),
+    reference: z.string().nullable(),
+    proof_url: z.string().nullable(),
+    slip_data: z.string().nullable(),
+    notes: z.string().nullable(),
+    created_at: z.string().nullable(),
+    created_by: z.string().nullable(),
+    updated_at: z.string().nullable(),
+    updated_by: z.string().nullable(),
+    deleted_at: z.string().nullable(),
+    deleted_by: z.string().nullable(),
   })
   .strict() // additionalProperties: false in the live schema
 
-export type InvoiceRow = z.infer<typeof invoiceRowSchema>
+export type PaymentRow = z.infer<typeof paymentRowSchema>
 
-// ── The gateway envelope ─────────────────────────────────────────────────────
-//
-// Plain TS interfaces, not Zod, mirroring `AppScriptRequest`/`AppScriptResponse`
-// in `server/shared/repositories/gsheet.repository.ts` — the sibling convention
-// for an envelope this module never runs a schema-based parse over. This is a
-// DIFFERENT envelope than that repository's: `{ resource, action, target, data }`
-// → `{ status: 'ok' | 'error', ... }`, not `{ action, sheet, data }` →
-// `{ success, data }`. Do not reuse `GSheetRepository` for these targets.
+export const paymentFieldMap = {
+  payment_id: 'paymentId',
+  invoice_number: 'invoiceNumber',
+  amount: 'amount',
+  method: 'method',
+  status: 'status',
+  paid_at: 'paidAt',
+  reference: 'reference',
+  proof_url: 'proofUrl',
+  slip_data: 'slipData',
+  notes: 'notes',
+  created_at: 'createdAt',
+  created_by: 'createdBy',
+  updated_at: 'updatedAt',
+  updated_by: 'updatedBy',
+  deleted_at: 'deletedAt',
+  deleted_by: 'deletedBy',
+} as const satisfies Record<keyof z.infer<typeof paymentRowSchema> & string, string>
 
-export type InvoiceGatewayTarget = 'Invoice' | 'InvoiceItem'
+const paymentApiContract = {
+  query: { list: internalListQuerySchema },
+  // No `request` slot at all — unlike Invoice/InvoiceItem above, Payment has
+  // no create/update command to type-check against, so `ModuleCreate`/
+  // `ModuleUpdate` resolve to `never` and `.create()`/`.update()` are
+  // uncallable at compile time, matching `db.request` (also empty) below.
+  response: { list: internalListResponseSchema },
+} satisfies ModuleApiContract
 
-export interface InvoiceGatewayAppendRequest<TRow> {
-  resource: 'sheet'
-  action: 'APPEND'
-  target: InvoiceGatewayTarget
-  /**
-   * One row, or an array for a batch append. Every `InvoiceItem` row for one
-   * invoice is sent as a single array in one request (see the module header
-   * comment, point 4) — never as a loop of single-row requests.
-   */
-  data: TRow | TRow[]
-}
+export const paymentDbContract = {
+  row: paymentRowSchema,
+  fieldMap: paymentFieldMap,
+  primaryKey: 'paymentId',
+  // `z.never()`, not an absent key: declares "this sheet must never be
+  // written" as intent, rather than protecting by omission (indistinguishable
+  // from "not filled in yet"). `GSheetRepository`'s `isUnsupportedDbOperation`
+  // gates create()/update()/batchAppend() off EITHER an absent slot OR a
+  // z.never() one, so this still rejects at runtime exactly as before.
+  request: { create: z.never(), update: z.never() },
+  response: { read: paymentRowSchema.partial() },
+} satisfies ModuleDbContract
 
-export interface InvoiceGatewayAppendOk {
-  resource: 'sheet'
-  status: 'ok'
-  target: string
-  updated_range: string
-  /** Present only when the request's `data` was an array. */
-  appended_rows?: number
-}
-
-export interface InvoiceGatewayError {
-  status: 'error'
-  message: string
-}
-
-/**
- * Every gateway response is HTTP 200, including errors — dispatch on
- * `status`, never on the HTTP status code. Requests must POST with
- * `Content-Type: text/plain` (Apps Script rejects the JSON preflight) and
- * follow redirects, matching `src/utils/gateway.js`'s existing transport.
- */
-export type InvoiceGatewayAppendResponse = InvoiceGatewayAppendOk | InvoiceGatewayError
-
-/** The two concrete requests this module ever sends. */
-export type InvoiceItemAppendRequest = InvoiceGatewayAppendRequest<InvoiceItemRow>
-export type InvoiceAppendRequest = InvoiceGatewayAppendRequest<InvoiceRow>
+/** The `ModuleContract` `getPaymentRepository()` constructs its
+ *  `GSheetRepository` from. Read-only in this rollout — see the section
+ *  header above. */
+export const paymentContract = {
+  api: paymentApiContract,
+  db: paymentDbContract,
+} satisfies ModuleContract

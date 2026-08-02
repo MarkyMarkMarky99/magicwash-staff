@@ -168,42 +168,80 @@ export const createInvoiceValidationErrorSchema = z.object({
   // Nothing was written. Fix the form and submit again.
 })
 
+/**
+ * Every write-stage failure outcome below carries `certainty`, added in a
+ * later, approved pass on top of the original six-outcome design:
+ *
+ *   - 'rejected' — the gateway gave a definite answer that nothing (for that
+ *     stage) was written (a well-formed `{ status: 'error' }`/`{ ok: false }`
+ *     response). Safe to treat as retry-safe where the stage semantics
+ *     already say so (only `items_write_failed` does).
+ *   - 'unknown'  — no definite answer ever came back (network failure,
+ *     timeout, non-2xx, unparsable body, or a malformed/unexpected response
+ *     shape, INCLUDING a post-write validation failure after the gateway
+ *     already answered ok). The write may or may not have persisted.
+ *     NEVER offer an automatic retry for this certainty, even for a stage
+ *     whose 'rejected' case is otherwise retry-safe — a lost response after
+ *     `InvoiceItem` rows were actually written is exactly the case a plain
+ *     "safe to try again" would double.
+ *
+ * This is the plan's named release gate (`docs/invoice-module-refactor-plan.md`,
+ * "Failure and Retry Semantics"): `items_write_failed` used to be reported
+ * as unconditionally retry-safe even when the true cause was a lost/unknown
+ * response after the batch had already been written. The frontend now keys
+ * retry eligibility off `certainty`, never off `kind` alone.
+ */
+export const invoiceWriteFailureCertaintySchema = z.enum(['rejected', 'unknown'])
+
 export const createInvoiceItemsFailedSchema = z.object({
   kind: z.literal('items_write_failed'),
   message: z.string(),
-  // Nothing was written — Apps Script validates the whole item batch before
-  // writing any of it, so a rejected batch leaves the sheet untouched. Safe
-  // to retry as-is.
+  certainty: invoiceWriteFailureCertaintySchema,
+  // 'rejected': nothing was written — Apps Script validates the whole item
+  // batch before writing any of it, so a rejected batch leaves the sheet
+  // untouched. Safe to retry as-is.
+  // 'unknown': no definite answer came back — the batch may already be in
+  // the sheet. NEVER safe to retry; a retry could double every line item.
 })
 
 export const createInvoiceHeaderFailedSchema = z.object({
   kind: z.literal('invoice_write_failed'),
   invoiceNumber: z.string(),
   itemCount: z.number(),
-  // ⚠ The line items ARE in the sheet; only the invoice row failed.
-  // Resubmitting the same form writes a second set of items under the same
-  // invoice_number. The UI must say so plainly and must NOT offer a plain
-  // retry here — this needs a person to reconcile.
+  certainty: invoiceWriteFailureCertaintySchema,
+  // ⚠ The line items ARE in the sheet either way; only the invoice row
+  // write's own outcome is described by `certainty` ('rejected': the header
+  // definitely wasn't written; 'unknown': it might have been). Resubmitting
+  // the same form writes a second set of items under the same
+  // invoice_number regardless of `certainty` — the UI must say so plainly
+  // and must NOT offer a plain retry here in either case; this needs a
+  // person to reconcile.
 })
 
 export const createInvoiceOrderLinkFailedSchema = z.object({
   kind: z.literal('order_link_failed'),
   invoiceNumber: z.string(),
   sourceOrderId: z.string(),
+  certainty: invoiceWriteFailureCertaintySchema,
   // ⚠ The invoice IS fully and correctly recorded at this point — both the
   // InvoiceItem batch and the Invoice header row were written successfully.
-  // Only the OrderForm-side linkage (OrderForm.invoice_id) failed or came
-  // back unconfirmed. The UI must NEVER offer a retry here: resubmitting
-  // would create a SECOND invoice for money that's already correctly
-  // billed. An admin must look up sourceOrderId and set invoice_id by hand.
+  // Only the OrderForm-side linkage (OrderForm.invoice_id) failed
+  // ('rejected') or came back unconfirmed ('unknown'). The UI must NEVER
+  // offer a retry here in either case: resubmitting would create a SECOND
+  // invoice for money that's already correctly billed. An admin must look up
+  // sourceOrderId and set invoice_id by hand.
 })
 
 export const createInvoiceViewSyncFailedSchema = z.object({
   kind: z.literal('invoice_view_sync_failed'),
   invoiceNumber: z.string(),
   message: z.string(),
-  // The invoice, items, and order link are complete; only InvoicesView is stale.
-  // The client must not create the invoice again.
+  certainty: invoiceWriteFailureCertaintySchema,
+  // The invoice, items, and order link are complete either way; only
+  // InvoicesView is stale. The client must not create the invoice again
+  // regardless of `certainty` — it describes only whether the view-sync
+  // endpoint gave a definite answer, never whether the invoice itself needs
+  // resubmitting.
 })
 
 export const createInvoiceResponseSchema = z.discriminatedUnion('kind', [
