@@ -5,8 +5,8 @@ Status: **implementation in progress**.
 ## Goal
 
 Make the Appointment backend write path use the refactored `GSheetRepository`
-and the deployed MagicwashGateway SheetLib protocol. The frontend's existing
-direct gateway writes remain unchanged until the backend path is verified.
+and the deployed MagicwashGateway SheetLib protocol, then migrate the
+Appointment frontend writes after the backend path is verified.
 
 ## Verified Appointment contract
 
@@ -65,7 +65,9 @@ live contract.
 
 - No DELETE support.
 - No Customer, Invoice, InvoiceItem, or OrderForm migration in this plan.
-- No frontend direct-write migration in this plan.
+- Appointment frontend create/update now uses `/api/appointments`; its legacy
+  direct Apps Script write URL has been removed. `admin` is a temporary actor
+  until the future authentication scope supplies the real user.
 
 ## Dependency: persisted write responses
 
@@ -117,7 +119,8 @@ write.
   the Development Apps Script endpoint.
 - [x] Enable and test backend Appointment create/update end-to-end in
   Development.
-- [ ] In a later, separately approved scope, migrate frontend direct writes.
+- [x] Migrate frontend direct Appointment writes to `/api/appointments` after
+  backend verification, with temporary actor `admin` pending authentication.
 
 ## Expected file scope
 
@@ -135,5 +138,5 @@ write.
   timestamps.
 - The gateway receives all required create fields and update uses `key_value`.
 - Stored API responses are mapped back through the existing shared contract.
-- Direct frontend Appointment writes remain untouched until backend verification
-  completes.
+- Frontend Appointment writes call the backend API and never call the legacy
+  direct Apps Script appointment write URL.

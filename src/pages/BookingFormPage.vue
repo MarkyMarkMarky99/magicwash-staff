@@ -90,14 +90,20 @@ async function handleConfirm() {
         data.reason,
       )
     } else {
-      await createAppointment(
-        data.customerId,
-        data.date,
-        data.time,
-        data.serviceType,
-        data.notes,
-        data.deliveryOrderId,
-      )
+      await createAppointment({
+        customerId: data.customerId,
+        customerName: data.customerName,
+        customerCode: data.customerCode,
+        phone: data.phone,
+        address: data.address,
+        location: data.location,
+        appointmentDate: data.date,
+        timeSlot: data.time,
+        appointmentType: data.serviceType,
+        pickupOrderId: null,
+        deliveryOrderId: data.deliveryOrderId,
+        notes: data.notes,
+      })
     }
 
     await router.back()

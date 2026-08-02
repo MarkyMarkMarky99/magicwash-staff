@@ -92,6 +92,17 @@ const selectedServiceIndex = computed(() =>
 )
 
 const isFixedDelivery = computed(() => Boolean(props.fixedServiceType))
+const hasCompleteCustomerSnapshot = computed(() => {
+  const selected = customer.value
+  return Boolean(
+    selected?.customerId?.trim() &&
+    selected.customerName?.trim() &&
+    selected.customerIndex?.trim() &&
+    selected.phone?.trim() &&
+    selected.address?.trim() &&
+    selected.location?.trim(),
+  )
+})
 
 const timeSlotOptions = computed(() =>
   TIME_SLOTS.map(slot => ({
@@ -114,6 +125,11 @@ const data = computed(() => {
     return {
       mode: 'new-booking',
       customerId: customer.value?.customerId ?? null,
+      customerName: customer.value?.customerName ?? null,
+      customerCode: customer.value?.customerIndex ?? null,
+      phone: customer.value?.phone ?? null,
+      address: customer.value?.address ?? null,
+      location: customer.value?.location ?? null,
       date: selectedDate.value,
       time: selectedTime.value,
       serviceType: selectedService.value,
@@ -134,7 +150,12 @@ const data = computed(() => {
 
 const isValid = computed(() => {
   if (isNewBooking.value) {
-    return Boolean(selectedDate.value && selectedTime.value && selectedService.value)
+    return Boolean(
+      hasCompleteCustomerSnapshot.value &&
+      selectedDate.value &&
+      selectedTime.value &&
+      selectedService.value,
+    )
   }
 
   return Boolean(appointment.value?.appointmentId && selectedDate.value && selectedTime.value)
@@ -166,6 +187,12 @@ defineExpose({ data, isValid })
         :date="selectedDate"
         :address="customer?.address"
       />
+      <p
+        v-if="!hasCompleteCustomerSnapshot"
+        class="mt-3 rounded-xl bg-error-container px-4 py-3 text-sm font-body text-on-error-container"
+      >
+        Booking requires the selected customer's name, customer code, phone, address, and location. Update the customer record before scheduling.
+      </p>
     </section>
 
     <section v-else aria-label="Current Appointment">

@@ -2,6 +2,10 @@ import { ref, computed } from 'vue'
 import { gvizQuery, toDateStr, parseGvizDate } from '../utils/gviz'
 import { APP_CONFIG, ICON_MAP } from '../utils/constants'
 import { pendingCount } from './usePendingCount'
+import {
+  createAppointment as createAppointmentRequest,
+  updateAppointment,
+} from '@/features/appointments/services/appointment.service'
 
 function apptCardStatus(status) {
   if (status === 'COMPLETED') return 'complete'
@@ -126,15 +130,7 @@ export function useAppointmentStore() {
 
   // ── Status update — mutates shared allItems ──
   async function handleStatusUpdate(appointmentId, newStatus) {
-    const url = APP_CONFIG.APPOINTMENTS_SCRIPT_URL
-    if (!url) throw new Error('APPOINTMENTS_SCRIPT_URL is not configured.')
-    const resp = await fetch(url, {
-      method: 'POST',
-      redirect: 'follow',
-      body: JSON.stringify({ action: 'UPDATE', appointmentId, status: newStatus }),
-    })
-    const json = await resp.json()
-    if (json.status !== 'success') throw new Error(json.message)
+    await updateAppointment(appointmentId, { status: newStatus })
 
     allItems.value = allItems.value.map(item =>
       item.appointmentId === appointmentId
@@ -145,43 +141,20 @@ export function useAppointmentStore() {
   }
 
   // ── Create new appointment ──
-  async function createAppointment(customerId, date, time, serviceType, notes, deliveryOrderId = null) {
-    const url = APP_CONFIG.APPOINTMENTS_SCRIPT_URL
-    if (!url) throw new Error('APPOINTMENTS_SCRIPT_URL is not configured.')
-    const resp = await fetch(url, {
-      method: 'POST',
-      redirect: 'follow',
-      body: JSON.stringify({
-        action: 'CREATE',
-        customerId,
-        appointmentDate: date,
-        timeSlot: time,
-        appointmentType: serviceType,
-        notes,
-        deliveryOrderId,
-      }),
-    })
-    const json = await resp.json()
-    if (json.status !== 'success') throw new Error(json.message)
+  async function createAppointment(data) {
+    await createAppointmentRequest(data)
 
     await refresh()
   }
 
   // ── Reschedule — re-fetch so KeepAlive pages see fresh data on return ──
   async function rescheduleAppointment(appointmentId, newDate, newTime, reason) {
-    const url = APP_CONFIG.APPOINTMENTS_SCRIPT_URL
-    if (!url) throw new Error('APPOINTMENTS_SCRIPT_URL is not configured.')
-    const resp = await fetch(url, {
-      method: 'POST',
-      redirect: 'follow',
-      body: JSON.stringify({
-        action: 'UPDATE', appointmentId,
-        appointmentDate: newDate, timeSlot: newTime,
-        status: 'PENDING', notes: reason,
-      }),
+    await updateAppointment(appointmentId, {
+      appointmentDate: newDate,
+      timeSlot: newTime,
+      status: 'PENDING',
+      notes: reason,
     })
-    const json = await resp.json()
-    if (json.status !== 'success') throw new Error(json.message)
 
     await refresh()
   }

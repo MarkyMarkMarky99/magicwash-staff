@@ -72,6 +72,46 @@ export async function apiGet<T>(path: string): Promise<T> {
   return body.data
 }
 
+interface WriteOptions<TRequest extends z.ZodTypeAny> {
+  /** Raw request body; validated against the shared API contract before sending. */
+  data: unknown
+  /** Contract request schema for this operation. */
+  requestSchema: TRequest
+}
+
+/** POST a resource and unwrap the standard success envelope. */
+export async function apiPost<TResponse, TRequest extends z.ZodTypeAny = z.ZodTypeAny>(
+  path: string,
+  options: WriteOptions<TRequest>,
+): Promise<TResponse> {
+  return apiWrite<TResponse, TRequest>(path, 'POST', options)
+}
+
+/** PATCH a resource and unwrap the standard success envelope. */
+export async function apiPatch<TResponse, TRequest extends z.ZodTypeAny = z.ZodTypeAny>(
+  path: string,
+  options: WriteOptions<TRequest>,
+): Promise<TResponse> {
+  return apiWrite<TResponse, TRequest>(path, 'PATCH', options)
+}
+
+async function apiWrite<TResponse, TRequest extends z.ZodTypeAny>(
+  path: string,
+  method: 'POST' | 'PATCH',
+  options: WriteOptions<TRequest>,
+): Promise<TResponse> {
+  const validatedData = options.requestSchema.parse(options.data)
+  const response = await fetch(path, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(validatedData),
+  })
+  if (!response.ok) throw await toApiError(response)
+
+  const body = (await response.json()) as { data: TResponse }
+  return body.data
+}
+
 /** Serialize a validated query object, skipping null/undefined and empty strings. */
 function buildQueryString(query: unknown): string {
   if (!query || typeof query !== 'object') return ''
