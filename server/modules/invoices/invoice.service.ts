@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import type { z } from 'zod'
 import {
   invoiceCreateSchema,
   type CreateInvoiceResponse,
@@ -10,15 +11,24 @@ import {
   roundMoney,
 } from '../../../contracts/invoices/invoice-calculator.js'
 import {
-  invoiceItemRowSchema,
-  invoiceRowSchema,
+  invoiceApiCreateSchema,
+  invoiceItemApiCreateSchema,
   type InvoiceAdjustment,
-  type InvoiceItemRow,
-  type InvoiceRow,
+  type InvoiceApiCreateCommand,
+  type InvoiceItemApiCreateCommand,
 } from './invoice.contract.js'
-import { appendInvoice, appendInvoiceItems } from './invoice.gateway-client.js'
-import { syncInvoiceView } from './invoice-view-sync-client.js'
-import { markOrderInvoiced } from '../orders/orderForm.repository.js'
+import { orderFormApiUpdateSchema, type OrderFormApiUpdateCommand } from '../orders/order.contract.js'
+import { getInvoiceRepository, getInvoiceItemRepository, getInvoiceViewRepository } from './invoice.repository.js'
+import { getOrderFormRepository } from '../orders/order.repository.js'
+import { syncInvoiceView as defaultSyncInvoiceView } from './invoice-view-sync-client.js'
+import type { InvoiceViewSyncResult } from './invoice-view-sync-client.js'
+import { SheetLibRejectedError, SheetLibTransportError } from '../../shared/repositories/sheetlib-errors.js'
+import { BaseCrudService, type ServiceListResult } from '../../shared/services/base-crud.service.js'
+import { invoiceViewContract } from './invoice.contract.js'
+import { ReadQueryDTO, type OmitReservedQueryFields } from '../../shared/dtos/read-query.dto.js'
+import { parseOrThrow } from '../../shared/http/validate.js'
+import type { ApiQueryParams } from '../../shared/http/api-handler.js'
+import type { GSheetRepository } from '../../shared/repositories/gsheet.repository.js'
 
 /**
  * `created_by` placeholder until this app has real staff identity — kept in
@@ -29,7 +39,7 @@ export const INVOICE_CREATED_BY = 'staff'
 /** The one id scheme used across this codebase: the first 8 hex characters
  *  of `crypto.randomUUID()` (its first hyphen-delimited group, no stripping
  *  needed) — not a per-entity format. */
-function generateShortId(): string {
+function defaultGenerateItemId(): string {
   return randomUUID().slice(0, 8)
 }
 
@@ -46,157 +56,403 @@ function toDbAdjustment(adjustment: InvoiceAdjustmentInput): InvoiceAdjustment {
   }
 }
 
+/** The classified shape every write-stage failure branch below builds its
+ *  outcome from. */
+interface WriteFailure {
+  certainty: 'rejected' | 'unknown'
+  message: string
+}
+
 /**
- * Creates one invoice: validates, computes every line's `subtotal`/
- * `net_total` server-side (authoritative — the client's own live preview is
- * never trusted), writes the `InvoiceItem` batch FIRST, then the `Invoice`
- * header row, then marks the source `OrderForm` row as invoiced, syncs the
- * materialized `InvoicesView` as the final external write, and returns one of
- * six distinct outcomes. Never throws for an expected outcome (bad
- * input, a rejected item batch, a failed header write, a failed order-link
- * write, or a failed view sync) — those are all represented in the return value per
- * `contracts/invoices/invoice-api.schema.ts`. Only a genuine programmer error
- * (e.g. this module building a row that fails its own DB-side schema) should
- * escape as a thrown error, and is not expected to happen against
- * already-validated input.
+ * `classifyWriteFailure` — the truthful internal error typing this rollout
+ * now ALSO surfaces on the public contract (see
+ * `docs/invoice-module-refactor-plan.md`'s Failure and Retry Semantics
+ * section, and `contracts/invoices/invoice-api.schema.ts`'s `certainty`
+ * field, added in a later, approved pass on top of the original six-outcome
+ * design). `SheetLibRejectedError`/`SheetLibTransportError`
+ * (`server/shared/repositories/sheetlib-errors.ts`) let this service tell
+ * "the gateway gave a definite answer" (`certainty: 'rejected'`) apart from
+ * "no definite answer ever came back" (`certainty: 'unknown'`), which the
+ * previous `Error`-only catch could not.
+ *
+ * Any error that is neither typed class (a genuine programmer bug, or a
+ * post-write validation failure inside `GSheetRepository` itself — see
+ * `SheetLibTransportError`'s use in `gsheet.repository.ts` for the
+ * batch-response-shape checks that fire AFTER the gateway already answered
+ * ok) is classified `'unknown'`, never `'rejected'` — this service never
+ * claims certainty it doesn't actually have.
  */
-export async function createInvoice(payload: unknown): Promise<CreateInvoiceResponse> {
-  const parsed = invoiceCreateSchema.safeParse(payload)
-  if (!parsed.success) {
+function classifyWriteFailure(error: unknown): WriteFailure {
+  if (error instanceof SheetLibRejectedError) {
+    return { certainty: 'rejected', message: error.message }
+  }
+  if (error instanceof SheetLibTransportError) {
     return {
-      kind: 'validation_error',
-      issues: parsed.error.issues.map((issue) => ({
-        path: issue.path.join('.') || '(root)',
-        message: issue.message,
-      })),
+      certainty: 'unknown',
+      message: `Write outcome unknown (transport failure, not a confirmed rejection): ${error.message}`,
     }
   }
+  return { certainty: 'unknown', message: error instanceof Error ? error.message : String(error) }
+}
 
-  const request = parsed.data
+/** Minimal write-side ports `InvoiceService` depends on — real `GSheetRepository`
+ *  instances satisfy these structurally; tests inject fakes that record calls
+ *  without needing to extend `BaseRepository`/mock `fetch`. */
+export interface InvoiceHeaderWriter {
+  create(data: InvoiceApiCreateCommand): Promise<unknown>
+}
+export interface InvoiceItemWriter {
+  batchAppend(rows: InvoiceItemApiCreateCommand[]): Promise<unknown[]>
+}
+export interface OrderFormWriter {
+  update(id: string, data: OrderFormApiUpdateCommand): Promise<unknown>
+}
+export type ViewSyncFn = (invoiceNumber: string) => Promise<InvoiceViewSyncResult>
 
-  // ── Compute every line server-side; nothing the browser sent for
-  //    subtotal/netTotal is read anywhere in this function. ──
-  const lineCalculations = request.items.map((item) =>
-    computeInvoiceLine({
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      adjustments: item.adjustments,
-    }),
-  )
+type InvoiceViewListQuery = z.infer<typeof invoiceViewContract.api.query.list>
+type InvoiceViewReadWhere = OmitReservedQueryFields<InvoiceViewListQuery>
 
-  const itemRows: InvoiceItemRow[] = request.items.map((item, index) =>
-    invoiceItemRowSchema.parse({
-      invoice_number: request.invoiceNumber,
-      invoice_item_id: generateShortId(),
-      item_no: index + 1, // 1-based, derived from array position — never client-sent
-      // The invoice's single sourceOrderId, fanned out onto every row —
-      // there is no per-line sourceOrderId in this request anymore.
-      source_order_id: request.sourceOrderId,
-      // Always null in this first version — no per-item traceability, only
-      // per-order via source_order_id above.
-      source_item_id: null,
-      service_type: null,
-      description: item.description,
-      quantity: item.quantity,
-      unit: item.unit ?? null,
-      unit_price: item.unitPrice,
-      subtotal: lineCalculations[index].subtotal,
-      adjustments: item.adjustments.map(toDbAdjustment),
-      net_total: lineCalculations[index].netTotal,
-    }),
-  )
+export interface InvoiceServiceOptions {
+  invoiceRepository?: InvoiceHeaderWriter
+  invoiceItemRepository?: InvoiceItemWriter
+  orderFormRepository?: OrderFormWriter
+  invoiceViewRepository?: GSheetRepository<typeof invoiceViewContract>
+  syncInvoiceView?: ViewSyncFn
+  generateItemId?: () => string
+  createdBy?: string
+}
 
-  // ── Items first, as ONE batch — never a loop. See invoice.contract.ts's
-  //    write-sequence comment for why this ordering is load-bearing. ──
-  const itemsWrite = await appendInvoiceItems(itemRows)
-  if (itemsWrite.status === 'error') {
-    // Nothing was written: Apps Script validates the whole batch before
-    // writing any of it. Safe for the caller to fix and resubmit as-is.
-    return { kind: 'items_write_failed', message: itemsWrite.message }
+/**
+ * Owns the whole multi-sheet Invoice create workflow plus Invoice list/detail
+ * reads — the one dedicated service `invoice.module.ts` wires up, per
+ * `docs/invoice-module-refactor-plan.md`. Validates the public request once
+ * at the boundary, computes every line's `subtotal`/`net_total` server-side
+ * (authoritative — the client's own live preview is never trusted), writes
+ * the `InvoiceItem` batch FIRST (exactly ONE `batchAppend()`), then the
+ * `Invoice` header row, then marks the source `OrderForm` row as invoiced,
+ * syncs the materialized `InvoicesView` as the final external write, and
+ * returns one of six distinct outcomes. Never throws for an expected outcome
+ * (bad input, a rejected item batch, a failed header write, a failed
+ * order-link write, or a failed view sync) — those are all represented in the
+ * return value per `contracts/invoices/invoice-api.schema.ts`. Only a genuine
+ * programmer error is expected to escape as a thrown error.
+ */
+export class InvoiceService {
+  private readonly invoiceRepository: InvoiceHeaderWriter
+  private readonly invoiceItemRepository: InvoiceItemWriter
+  private readonly orderFormRepository: OrderFormWriter
+  private readonly invoiceViewRepository: GSheetRepository<typeof invoiceViewContract>
+  private readonly syncInvoiceView: ViewSyncFn
+  private readonly generateItemId: () => string
+  private readonly createdBy: string
+  private readonly readService: BaseCrudService<
+    Record<string, unknown>,
+    InvoiceViewListQuery,
+    never,
+    never,
+    z.infer<typeof invoiceViewContract.api.response.list>,
+    z.infer<typeof invoiceViewContract.api.response.detail>
+  >
+
+  constructor(options: InvoiceServiceOptions = {}) {
+    this.invoiceRepository = options.invoiceRepository ?? getInvoiceRepository()
+    this.invoiceItemRepository = options.invoiceItemRepository ?? getInvoiceItemRepository()
+    this.orderFormRepository = options.orderFormRepository ?? getOrderFormRepository()
+    this.invoiceViewRepository = options.invoiceViewRepository ?? getInvoiceViewRepository()
+    this.syncInvoiceView = options.syncInvoiceView ?? defaultSyncInvoiceView
+    this.generateItemId = options.generateItemId ?? defaultGenerateItemId
+    this.createdBy = options.createdBy ?? INVOICE_CREATED_BY
+
+    this.readService = new BaseCrudService({
+      // invoiceNumber/customerId are the only flat, searchable columns — the
+      // rest of the row (customer, items, adjustments, payments) is
+      // serialized JSON.
+      repository: this.invoiceViewRepository,
+      api: invoiceViewContract.api,
+      searchFields: ['invoiceNumber', 'customerId'],
+    })
   }
 
-  const invoiceRow: InvoiceRow = invoiceRowSchema.parse({
-    invoice_number: request.invoiceNumber,
-    status: 'ISSUED',
-    // Only ORDER invoices exist for now — not a client choice, and
-    // billing_period_start/end are omitted entirely (see invoice.contract.ts).
-    billing_type: 'ORDER',
-    issued_date: request.issuedDate,
-    due_date: request.dueDate,
-    // Denormalized so GViz can filter without reaching into the JSON
-    // snapshot — must equal customer.customer_code exactly.
-    customer_id: request.customer.customerCode,
-    customer: {
-      customer_code: request.customer.customerCode,
-      customer_name: request.customer.customerName,
-      ...(request.customer.phone !== undefined ? { phone: request.customer.phone } : {}),
-      ...(request.customer.address !== undefined ? { address: request.customer.address } : {}),
-    },
-    adjustments: request.adjustments.map(toDbAdjustment),
-    created_by: INVOICE_CREATED_BY,
-    // created_at: omitted — Apps Script auto-stamps it.
-  })
+  /**
+   * Creates one invoice. See the class doc comment for the write sequence
+   * and outcome semantics.
+   */
+  async create(payload: unknown): Promise<CreateInvoiceResponse> {
+    const parsed = invoiceCreateSchema.safeParse(payload)
+    if (!parsed.success) {
+      return {
+        kind: 'validation_error',
+        issues: parsed.error.issues.map((issue) => ({
+          path: issue.path.join('.') || '(root)',
+          message: issue.message,
+        })),
+      }
+    }
 
-  const invoiceWrite = await appendInvoice(invoiceRow)
-  if (invoiceWrite.status === 'error') {
-    // ⚠ Worst-case outcome: the item batch above already succeeded, so
-    // itemRows.length rows now exist referencing an invoice_number with no
-    // header row. Reported as its own distinct kind — never collapsed into
-    // items_write_failed — because a person now has to reconcile this by
-    // hand, and a plain retry would append a second set of items.
-    return {
-      kind: 'invoice_write_failed',
+    const request = parsed.data
+
+    // ── Compute every line server-side; nothing the browser sent for
+    //    subtotal/netTotal is read anywhere in this function. ──
+    const lineCalculations = request.items.map((item) =>
+      computeInvoiceLine({
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        adjustments: item.adjustments,
+      }),
+    )
+
+    const itemCommands: InvoiceItemApiCreateCommand[] = request.items.map((item, index) =>
+      invoiceItemApiCreateSchema.parse({
+        invoiceNumber: request.invoiceNumber,
+        invoiceItemId: this.generateItemId(),
+        itemNo: index + 1, // 1-based, derived from array position — never client-sent
+        // The invoice's single sourceOrderId, fanned out onto every row —
+        // there is no per-line sourceOrderId in this request anymore.
+        sourceOrderId: request.sourceOrderId,
+        // Always null in this first version — no per-item traceability, only
+        // per-order via sourceOrderId above.
+        sourceItemId: null,
+        serviceType: null,
+        description: item.description,
+        quantity: item.quantity,
+        unit: item.unit ?? null,
+        unitPrice: item.unitPrice,
+        subtotal: lineCalculations[index].subtotal,
+        adjustments: item.adjustments.map(toDbAdjustment),
+        netTotal: lineCalculations[index].netTotal,
+      }),
+    )
+
+    // ── Items first, as ONE batch — never a loop. See invoice.contract.ts's
+    //    write-sequence comment for why this ordering is load-bearing. ──
+    try {
+      await this.invoiceItemRepository.batchAppend(itemCommands)
+    } catch (error) {
+      const failure = classifyWriteFailure(error)
+      return { kind: 'items_write_failed', message: failure.message, certainty: failure.certainty }
+    }
+
+    const invoiceCommand: InvoiceApiCreateCommand = invoiceApiCreateSchema.parse({
       invoiceNumber: request.invoiceNumber,
-      itemCount: itemRows.length,
-    }
-  }
+      status: 'ISSUED',
+      // Only ORDER invoices exist for now — not a client choice.
+      billingType: 'ORDER',
+      issuedDate: request.issuedDate,
+      dueDate: request.dueDate,
+      // Denormalized so GViz can filter without reaching into the JSON
+      // snapshot — must equal customer.customer_code exactly.
+      customerId: request.customer.customerCode,
+      customer: {
+        customer_code: request.customer.customerCode,
+        customer_name: request.customer.customerName,
+        ...(request.customer.phone !== undefined ? { phone: request.customer.phone } : {}),
+        ...(request.customer.address !== undefined ? { address: request.customer.address } : {}),
+      },
+      adjustments: request.adjustments.map(toDbAdjustment),
+      createdBy: this.createdBy,
+      // created_at: omitted — Apps Script auto-stamps it.
+    })
 
-  // ── Mark the source order as invoiced. The invoice IS fully and correctly
-  //    recorded at this point (items + header both written) — only the
-  //    OrderForm-side linkage is missing if this step fails. Reported as its
-  //    own distinct kind, never folded into invoice_write_failed, so the
-  //    caller never offers a retry here: a retry would create a SECOND
-  //    invoice for money that's already correctly billed. ──
-  const orderLink = await markOrderInvoiced(
-    request.sourceOrderId,
-    request.invoiceNumber,
-    INVOICE_CREATED_BY,
-  )
-  if (orderLink.outcome !== 'confirmed') {
+    try {
+      await this.invoiceRepository.create(invoiceCommand)
+    } catch (error) {
+      // ⚠ Worst-case outcome: the item batch above already succeeded, so
+      // itemCommands.length rows now exist referencing an invoice_number
+      // with no header row. Reported as its own distinct kind — never
+      // collapsed into items_write_failed — because a person now has to
+      // reconcile this by hand, and a plain retry would append a second set
+      // of items, regardless of `certainty`. This outcome carries no
+      // `message` field in the public contract — only `certainty`.
+      return {
+        kind: 'invoice_write_failed',
+        invoiceNumber: request.invoiceNumber,
+        itemCount: itemCommands.length,
+        certainty: classifyWriteFailure(error).certainty,
+      }
+    }
+
+    // ── Mark the source order as invoiced. The invoice IS fully and
+    //    correctly recorded at this point (items + header both written) —
+    //    only the OrderForm-side linkage is missing if this step fails.
+    //    Reported as its own distinct kind, never folded into
+    //    invoice_write_failed, so the caller never offers a retry here: a
+    //    retry would create a SECOND invoice for money that's already
+    //    correctly billed. ──
+    try {
+      await this.orderFormRepository.update(
+        request.sourceOrderId,
+        orderFormApiUpdateSchema.parse({
+          invoiceId: request.invoiceNumber,
+          updatedBy: this.createdBy,
+        }),
+      )
+    } catch (error) {
+      return {
+        kind: 'order_link_failed',
+        invoiceNumber: request.invoiceNumber,
+        sourceOrderId: request.sourceOrderId,
+        certainty: classifyWriteFailure(error).certainty,
+      }
+    }
+
+    // Line netTotals are already rounded money, but summing several 2-decimal
+    // floats can itself reintroduce binary drift — round the sum once, same
+    // as computeInvoiceTotal does for its linesTotal.
+    const itemsTotal = roundMoney(
+      lineCalculations.reduce((sum, calculation) => sum + calculation.netTotal, 0),
+    )
+    const invoiceTotal = computeInvoiceTotal(
+      lineCalculations.map((calculation) => calculation.netTotal),
+      request.adjustments,
+    )
+
+    // This MUST remain the final external write. The source invoice and
+    // order link are complete before refreshing the materialized view used
+    // by the UI.
+    //
+    // `this.syncInvoiceView` is injectable (`InvoiceServiceOptions`), and the
+    // real `syncInvoiceView` (invoice-view-sync-client.ts) is written to
+    // never throw — but this is the one stage whose implementation this
+    // service does not fully control, unlike the three write-side ports
+    // above. Left unwrapped, a thrown error here would propagate past this
+    // method entirely: `invoice.module.ts`'s route returns
+    // `CreateInvoiceResponse` directly (not the generic `{success,data,meta}`
+    // envelope), but a thrown error is caught by `ApiHandler`'s GENERIC
+    // catch, which DOES return that generic envelope — a body with no
+    // `kind` at all. The frontend's `result.kind` checks would then all
+    // miss, rendering a blank result panel after a fully successful,
+    // already-committed invoice. Wrapping this call closes that gap at the
+    // source (the frontend also hardens against it independently — see
+    // `invoice.service.ts` (frontend) and `synthesizeNetworkFailureOutcome`).
+    let viewSync: Awaited<ReturnType<ViewSyncFn>>
+    try {
+      viewSync = await this.syncInvoiceView(request.invoiceNumber)
+    } catch (error) {
+      viewSync = {
+        outcome: 'failed',
+        certainty: 'unknown',
+        message: error instanceof Error ? error.message : String(error),
+      }
+    }
+    if (viewSync.outcome !== 'confirmed') {
+      return {
+        kind: 'invoice_view_sync_failed',
+        invoiceNumber: request.invoiceNumber,
+        message: viewSync.message,
+        certainty: viewSync.certainty,
+      }
+    }
+
     return {
-      kind: 'order_link_failed',
+      kind: 'created',
       invoiceNumber: request.invoiceNumber,
-      sourceOrderId: request.sourceOrderId,
+      itemCount: itemCommands.length,
+      itemsTotal,
+      invoiceTotal,
     }
   }
 
-  // Line netTotals are already rounded money, but summing several 2-decimal
-  // floats can itself reintroduce binary drift — round the sum once, same as
-  // computeInvoiceTotal does for its linesTotal (see invoice-calculator.ts).
-  const itemsTotal = roundMoney(
-    lineCalculations.reduce((sum, calculation) => sum + calculation.netTotal, 0),
-  )
-  const invoiceTotal = computeInvoiceTotal(
-    lineCalculations.map((calculation) => calculation.netTotal),
-    request.adjustments,
-  )
+  /**
+   * List invoices. `dateFrom`/`dateTo` are a range filter against
+   * `issuedDate`, not a literal equality column — see `listWithDateRange`'s
+   * doc comment for why that one query shape bypasses the generic
+   * `BaseCrudService.list()` path.
+   */
+  async list(query: ApiQueryParams): Promise<ServiceListResult<z.infer<typeof invoiceViewContract.api.response.list>>> {
+    if (this.hasDateRangeFilter(query)) {
+      return this.listWithDateRange(query)
+    }
+    return this.readService.list(query)
+  }
 
-  // This MUST remain the final external write. The source invoice and order
-  // link are complete before refreshing the materialized view used by the UI.
-  const viewSync = await syncInvoiceView(request.invoiceNumber)
-  if (viewSync.outcome !== 'confirmed') {
+  async getById(id: string): Promise<z.infer<typeof invoiceViewContract.api.response.detail>> {
+    return this.readService.getById(id)
+  }
+
+  private hasDateRangeFilter(query: ApiQueryParams): boolean {
+    return query.dateFrom !== undefined || query.dateTo !== undefined
+  }
+
+  /**
+   * `BaseCrudService.list()` -> `ReadQueryDTO.fromQuery()` folds every
+   * non-reserved list-query field into a `where[field] = value` equality
+   * clause (api/CLAUDE.md's Key Engine Rules), and
+   * `GVizQueryBuilder.where()`/`resolveColumn()` has no concept of a range
+   * operator — it throws `No GViz column resolves for field 'dateFrom'`
+   * because `dateFrom` was never meant to resolve to a real column at all.
+   *
+   * No other module (appointments/orders/customers) has an existing
+   * date-range list filter to follow, so this is a smallest-possible,
+   * invoices-local fix: bypass `this.readService.list()` for this one query
+   * shape and hand-roll the read here. `dateFrom`/`dateTo` are stripped out
+   * of the where clause; every other filter (customerId, status, keyword,
+   * sort) still goes through the repository/GViz exactly as `ReadQueryDTO`
+   * would build it. The `pagination` field on `ReadQueryDTO` is
+   * intentionally left unset — `GVizQueryBuilder.pagination()` no-ops
+   * without it, so this fetches every row matching the OTHER filters (no
+   * sheet-side `limit`/`offset`). Date filtering then happens in JS
+   * (`issuedDate` is an ISO `YYYY-MM-DD` string; `<=`/`>=` compares
+   * correctly with no `Date` parsing, per this repo's own documented
+   * gotcha) against that FULL result set, and pagination is applied last,
+   * over the filtered set — never before it, or a later page could look
+   * emptier than it really is while matches sit on an earlier page's cut.
+   */
+  private async listWithDateRange(
+    query: ApiQueryParams,
+  ): Promise<ServiceListResult<z.infer<typeof invoiceViewContract.api.response.list>>> {
+    const validQuery = parseOrThrow(invoiceViewContract.api.query.list, query)
+
+    // dateFrom/dateTo are forced to null here (rather than omitted) so
+    // `where` still satisfies the repository's read-where type;
+    // GVizQueryBuilder.where() treats null as an "ignored value" and skips
+    // it, so no column ever needs to resolve for them — only
+    // customerId/status become real equality clauses, same as the generic
+    // path would build.
+    const where: InvoiceViewReadWhere = {
+      customerId: validQuery.customerId,
+      status: validQuery.status,
+      dateFrom: null,
+      dateTo: null,
+    }
+
+    const dto = new ReadQueryDTO<InvoiceViewReadWhere>({
+      where,
+      search: { keyword: validQuery.keyword, fields: ['invoiceNumber', 'customerId'] },
+      sort: { field: validQuery.sortBy, order: validQuery.sortOrder },
+      // pagination intentionally omitted — see the doc comment above.
+    })
+
+    const rows = await this.invoiceViewRepository.read(dto)
+
+    const filtered = rows.filter((row) => {
+      const issuedDate = (row as Record<string, unknown>).issuedDate
+      if (typeof issuedDate !== 'string') return false
+      if (validQuery.dateFrom && issuedDate < validQuery.dateFrom) return false
+      if (validQuery.dateTo && issuedDate > validQuery.dateTo) return false
+      return true
+    })
+
+    const start = (validQuery.page - 1) * validQuery.perPage
+    const pageRows = filtered.slice(start, start + validQuery.perPage)
+
     return {
-      kind: 'invoice_view_sync_failed',
-      invoiceNumber: request.invoiceNumber,
-      message: viewSync.message,
+      items: pageRows.map((row) => this.projectListRow(row as Record<string, unknown>)),
+      pagination: { page: validQuery.page, perPage: validQuery.perPage },
     }
   }
 
-  return {
-    kind: 'created',
-    invoiceNumber: request.invoiceNumber,
-    itemCount: itemRows.length,
-    itemsTotal,
-    invoiceTotal,
+  /**
+   * Mirrors `BaseCrudService`'s private `project()` — copies only the fields
+   * `invoiceViewContract.api.response.list` declares, so this hand-rolled
+   * path returns the exact same shape the generic path's projection would.
+   */
+  private projectListRow(
+    row: Record<string, unknown>,
+  ): z.infer<typeof invoiceViewContract.api.response.list> {
+    const output: Record<string, unknown> = {}
+    for (const field of Object.keys(invoiceViewContract.api.response.list.shape)) {
+      output[field] = row[field]
+    }
+    return output as z.infer<typeof invoiceViewContract.api.response.list>
   }
 }

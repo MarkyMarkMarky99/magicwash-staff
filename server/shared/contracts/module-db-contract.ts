@@ -16,7 +16,15 @@ import type { ModuleApiContract } from '../../../contracts/shared/module-api-con
  * The repository consumes only `row`, `fieldMap`, and `primaryKey` today;
  * `request`/`response` declare the DB write/read shapes even before every repo
  * path consumes them. Write slots (`create`/`update`/`delete`) are each
- * individually optional so read-only modules write `request: {}` explicitly.
+ * individually optional. A read-only module should declare `z.never()` for
+ * `create`/`update` (see `invoice-view.contract.ts`, `order.contract.ts`'s
+ * OrdersView, `invoice.contract.ts`'s Payment) rather than omitting the key —
+ * `z.never()` declares "this sheet must never be written" as intent, instead
+ * of protecting by omission (indistinguishable from "not filled in yet"). A
+ * genuinely absent key still works: `GSheetRepository`'s
+ * `isUnsupportedDbOperation` gates `create()`/`update()`/`batchAppend()` off
+ * EITHER form identically, so this is a documentation-strength upgrade only —
+ * it changes no runtime behavior.
  */
 
 /** DB column name -> API/domain field name. Re-exported so the DB contract lives in one place. */

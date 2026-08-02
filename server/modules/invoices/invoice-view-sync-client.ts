@@ -2,9 +2,27 @@ import { requireEnv } from '../../shared/utils/env.js'
 
 const REQUEST_TIMEOUT_MS = 15_000
 
+/**
+ * `certainty` mirrors the same vocabulary `SheetLibRejectedError`/
+ * `SheetLibTransportError` use for the SheetLib write path
+ * (`server/shared/repositories/sheetlib-errors.ts`):
+ *   - 'rejected' — the response is recognizably the endpoint's OWN failure
+ *     shape: an explicit `ok: false`, or a known `error`/`message` reason
+ *     string. A definite, understood rejection.
+ *   - 'unknown'  — no definite answer came back at all: network failure,
+ *     timeout, non-2xx, unparsable body, an unexpected response shape, OR a
+ *     well-formed object whose `ok` field is simply missing/not `true` with
+ *     no recognizable reason either (e.g. endpoint version skew). A response
+ *     this client doesn't recognize is not evidence of rejection — it must
+ *     not be upgraded to 'rejected' just because `ok !== true`.
+ * Both map to the SAME `invoice_view_sync_failed` outcome either way — the
+ * source invoice/items/order-link are already complete by the time this
+ * runs, so the UI never offers a retry here regardless of `certainty` (see
+ * `contracts/invoices/invoice-api.schema.ts`).
+ */
 export type InvoiceViewSyncResult =
   | { outcome: 'confirmed' }
-  | { outcome: 'failed'; message: string }
+  | { outcome: 'failed'; message: string; certainty: 'rejected' | 'unknown' }
 
 /**
  * Refreshes the materialized InvoicesView for one invoice. This is the final
@@ -25,6 +43,7 @@ export async function syncInvoiceView(invoiceNumber: string): Promise<InvoiceVie
   } catch (error) {
     return {
       outcome: 'failed',
+      certainty: 'unknown',
       message: `Invoice view sync request failed: ${error instanceof Error ? error.message : String(error)}`,
     }
   }
@@ -32,6 +51,7 @@ export async function syncInvoiceView(invoiceNumber: string): Promise<InvoiceVie
   if (!response.ok) {
     return {
       outcome: 'failed',
+      certainty: 'unknown',
       message: `Invoice view sync HTTP ${response.status} ${response.statusText}`,
     }
   }
@@ -40,26 +60,43 @@ export async function syncInvoiceView(invoiceNumber: string): Promise<InvoiceVie
   try {
     body = await response.json()
   } catch {
-    return { outcome: 'failed', message: 'Invoice view sync response was not valid JSON' }
+    return { outcome: 'failed', certainty: 'unknown', message: 'Invoice view sync response was not valid JSON' }
   }
 
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
-    return { outcome: 'failed', message: 'Invoice view sync response had an invalid shape' }
+    return { outcome: 'failed', certainty: 'unknown', message: 'Invoice view sync response had an invalid shape' }
   }
 
   const result = body as Record<string, unknown>
-  if (result.ok !== true) {
-    // The Apps Script endpoint names its reason field `error`, NOT `message`
-    // (see appscript/MagicwashPortal/InvoiceViewSync.js) — reading only
-    // `message` silently collapsed every real reason ("invoice not found",
-    // "invoice is deleted", a missing Script Property) into the generic
-    // fallback below. `message` stays as a second choice so a future response
-    // shape using it still surfaces something useful.
-    const reason = [result.error, result.message].find(
-      (candidate): candidate is string => typeof candidate === 'string' && candidate.length > 0,
-    )
-    return { outcome: 'failed', message: reason ?? 'Invoice view sync was rejected' }
+  if (result.ok === true) {
+    return { outcome: 'confirmed' }
   }
 
-  return { outcome: 'confirmed' }
+  // The Apps Script endpoint names its reason field `error`, NOT `message`
+  // (see appscript/MagicwashPortal/InvoiceViewSync.js) — reading only
+  // `message` would silently collapse every real reason ("invoice not
+  // found", "invoice is deleted", a missing Script Property) into the
+  // generic fallback below. `message` stays as a second choice so a future
+  // response shape using it still surfaces something useful.
+  const reason = [result.error, result.message].find(
+    (candidate): candidate is string => typeof candidate === 'string' && candidate.length > 0,
+  )
+
+  if (result.ok === false || reason !== undefined) {
+    // Recognizably the endpoint's own failure shape — either an explicit
+    // `ok: false`, or a known `error`/`message` reason string. This IS a
+    // well-formed, definite answer from the endpoint — 'rejected', not
+    // 'unknown'.
+    return { outcome: 'failed', certainty: 'rejected', message: reason ?? 'Invoice view sync was rejected' }
+  }
+
+  // `ok` is missing entirely (not `true`, not `false`) AND there is no
+  // recognizable error/message reason either — e.g. endpoint version skew,
+  // a shape this client has never seen. This is NOT a definite answer: do
+  // not guess that it means rejection.
+  return {
+    outcome: 'failed',
+    certainty: 'unknown',
+    message: 'Invoice view sync response had an unrecognized shape',
+  }
 }

@@ -54,13 +54,13 @@ async function main(): Promise<void> {
     (async () => response({ json: { ok: false, error: 'invoice not found' } })) as typeof fetch,
     () => syncInvoiceView('INV-0001'),
   )
-  assert.deepEqual(rejected, { outcome: 'failed', message: 'invoice not found' })
+  assert.deepEqual(rejected, { outcome: 'failed', certainty: 'rejected', message: 'invoice not found' })
 
   const rejectedWithMessage = await withFetch(
     (async () => response({ json: { ok: false, message: 'View unavailable' } })) as typeof fetch,
     () => syncInvoiceView('INV-0001'),
   )
-  assert.deepEqual(rejectedWithMessage, { outcome: 'failed', message: 'View unavailable' })
+  assert.deepEqual(rejectedWithMessage, { outcome: 'failed', certainty: 'rejected', message: 'View unavailable' })
 
   const rejectedWithNeither = await withFetch(
     (async () => response({ json: { ok: false } })) as typeof fetch,
@@ -68,32 +68,67 @@ async function main(): Promise<void> {
   )
   assert.deepEqual(rejectedWithNeither, {
     outcome: 'failed',
+    certainty: 'rejected',
     message: 'Invoice view sync was rejected',
   })
+
+  // Everything below never got a definite, well-formed `{ ok: false }` answer
+  // from the endpoint — all classified 'unknown', never 'rejected'.
 
   const nullBody = await withFetch(
     (async () => response({ json: null })) as typeof fetch,
     () => syncInvoiceView('INV-0001'),
   )
-  assert.deepEqual(nullBody, { outcome: 'failed', message: 'Invoice view sync response had an invalid shape' })
+  assert.deepEqual(nullBody, {
+    outcome: 'failed',
+    certainty: 'unknown',
+    message: 'Invoice view sync response had an invalid shape',
+  })
 
   const arrayBody = await withFetch(
     (async () => response({ json: [] })) as typeof fetch,
     () => syncInvoiceView('INV-0001'),
   )
-  assert.deepEqual(arrayBody, { outcome: 'failed', message: 'Invoice view sync response had an invalid shape' })
+  assert.deepEqual(arrayBody, {
+    outcome: 'failed',
+    certainty: 'unknown',
+    message: 'Invoice view sync response had an invalid shape',
+  })
 
-  const missingOk = await withFetch(
+  const missingOkWithMessage = await withFetch(
     (async () => response({ json: { message: 'Missing ok flag' } })) as typeof fetch,
     () => syncInvoiceView('INV-0001'),
   )
-  assert.deepEqual(missingOk, { outcome: 'failed', message: 'Missing ok flag' })
+  // `ok` is absent, but a recognizable `message` reason string IS present —
+  // still classified 'rejected' per the "has ok:false, OR a known
+  // error/message reason" rule, not because `ok !== true` alone.
+  assert.deepEqual(missingOkWithMessage, { outcome: 'failed', certainty: 'rejected', message: 'Missing ok flag' })
+
+  // ⚠ The bug this test locks in: `ok` missing AND no recognizable
+  // error/message reason either (e.g. endpoint version skew, a shape this
+  // client has never seen) is NOT a definite answer. It must NEVER be
+  // upgraded to 'rejected' just because `ok !== true` — that was the actual
+  // defect (this file previously treated ANY object with `ok !== true` as a
+  // definite rejection, contradicting its own doc comment).
+  const unrecognizedShape = await withFetch(
+    (async () => response({ json: { invoiceNumber: 'INV-0001', action: 'skipped' } })) as typeof fetch,
+    () => syncInvoiceView('INV-0001'),
+  )
+  assert.deepEqual(unrecognizedShape, {
+    outcome: 'failed',
+    certainty: 'unknown',
+    message: 'Invoice view sync response had an unrecognized shape',
+  })
 
   const invalidJson = await withFetch(
     (async () => response({ jsonError: new Error('bad json') })) as typeof fetch,
     () => syncInvoiceView('INV-0001'),
   )
-  assert.deepEqual(invalidJson, { outcome: 'failed', message: 'Invoice view sync response was not valid JSON' })
+  assert.deepEqual(invalidJson, {
+    outcome: 'failed',
+    certainty: 'unknown',
+    message: 'Invoice view sync response was not valid JSON',
+  })
 
   const httpFailure = await withFetch(
     (async () => response({ ok: false, status: 503, statusText: 'Service Unavailable' })) as typeof fetch,
@@ -101,6 +136,7 @@ async function main(): Promise<void> {
   )
   assert.deepEqual(httpFailure, {
     outcome: 'failed',
+    certainty: 'unknown',
     message: 'Invoice view sync HTTP 503 Service Unavailable',
   })
 
@@ -112,6 +148,7 @@ async function main(): Promise<void> {
   )
   assert.deepEqual(networkFailure, {
     outcome: 'failed',
+    certainty: 'unknown',
     message: 'Invoice view sync request failed: network down',
   })
 
