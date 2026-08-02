@@ -7,6 +7,8 @@ export interface GVizFetchInput {
   sheetName: string
   query: string
   columns: GSheetColumnMap
+  /** Parse JSON object/array text cells for materialized portal views. */
+  decodeJsonCells?: boolean
 }
 
 interface GVizCell {
@@ -46,7 +48,7 @@ export async function fetchGVizRows<TRow extends Record<string, unknown> = Recor
   }
 
   const table = parseGVizResponse(await response.text())
-  return tableToRows<TRow>(table, invertColumns(input.columns))
+  return tableToRows<TRow>(table, invertColumns(input.columns), input.decodeJsonCells ?? false)
 }
 
 function parseGVizResponse(body: string): GVizTable {
@@ -69,6 +71,7 @@ function parseGVizResponse(body: string): GVizTable {
 function tableToRows<TRow extends Record<string, unknown>>(
   table: GVizTable,
   letterToField: Record<string, string>,
+  decodeJsonCells: boolean,
 ): TRow[] {
   return table.rows.map((row) => {
     const result: Record<string, unknown> = {}
@@ -78,10 +81,29 @@ function tableToRows<TRow extends Record<string, unknown>>(
         throw new Error(`No DB field resolves for GViz column '${column.id}'`)
       }
       const cell = row.c[index]
-      result[field] = cell == null ? null : (cell.v ?? null)
+      const value = cell == null ? null : (cell.v ?? null)
+      result[field] = decodeJsonCells ? decodeJsonObjectOrArray(value) : value
     })
     return result as TRow
   })
+}
+
+/**
+ * Portal sheets store nested fields as JSON text because a Google Sheets cell
+ * cannot hold objects or arrays. Decode only that wire representation; do not
+ * coerce scalar values, repair malformed JSON, or apply per-field defaults.
+ */
+function decodeJsonObjectOrArray(value: unknown): unknown {
+  if (typeof value !== 'string') {
+    return value
+  }
+
+  const text = value.trim()
+  if (!text.startsWith('{') && !text.startsWith('[')) {
+    return value
+  }
+
+  return JSON.parse(text)
 }
 
 function invertColumns(columns: GSheetColumnMap): Record<string, string> {

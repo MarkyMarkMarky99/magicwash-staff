@@ -89,13 +89,48 @@ function customerTestRepo(): TestRepository {
 // Customers is the real, in-scope contract for the GSheet transport tests; column
 // order (1st key = column A) gives CustomerID=B, CustomerName=D, Line=J,
 // CustomerType=M — the letters the GViz assertions below expect.
-function customerSheetRepo(transformer?: RepositoryTransformer): GSheetRepository<typeof customerContract> {
+function customerSheetRepo(
+  transformer?: RepositoryTransformer,
+  target = 'Customers',
+): GSheetRepository<typeof customerContract> {
   return new GSheetRepository({
     contract: customerContract,
     sheetName: 'Customers',
+    target,
     spreadsheetId: 'TEST_SPREADSHEET_ID',
     scriptUrl: 'TEST_SCRIPT_URL',
     transformer,
+  })
+}
+
+const portalRowSchema = z.object({
+  invoiceNumber: z.string(),
+  issuedDate: z.string(),
+  customer: z.object({ customerName: z.string() }),
+  items: z.array(z.object({ description: z.string() })),
+})
+
+const portalContract = {
+  api: {
+    query: { list: z.object({}) },
+    response: { list: portalRowSchema },
+  },
+  db: {
+    row: portalRowSchema,
+    fieldMap: {},
+    primaryKey: 'invoiceNumber',
+    request: {},
+    response: { read: portalRowSchema.partial() },
+  },
+} satisfies ModuleContract
+
+function portalSheetRepo(): GSheetRepository<typeof portalContract> {
+  return new GSheetRepository({
+    contract: portalContract,
+    sheetName: 'InvoicesView',
+    spreadsheetId: 'TEST_SPREADSHEET_ID',
+    scriptUrl: 'TEST_SCRIPT_URL',
+    decodeJsonCells: true,
   })
 }
 
@@ -429,14 +464,74 @@ test('GSheetRepository throws when GViz returns an unknown column letter', async
   )
 })
 
-test('GSheetRepository create sends Apps Script append payload and maps response', async () => {
-  const repo = customerSheetRepo()
+test('GSheetRepository portal mode decodes JSON cells without changing scalar values', async () => {
+  const repo = portalSheetRepo()
+
+  await withMockFetch(
+    async () =>
+      response({
+        text: gvizBody({
+          cols: [{ id: 'A' }, { id: 'B' }, { id: 'C' }, { id: 'D' }],
+          rows: [
+            {
+              c: [
+                { v: 'INV-0001' },
+                { v: '2026-08-02' },
+                { v: '{"customerName":"Magic Wash"}' },
+                { v: '[{"description":"Laundry"}]' },
+              ],
+            },
+          ],
+        }),
+      }),
+    async () => {
+      assert.deepEqual(await repo.read(), [
+        {
+          invoiceNumber: 'INV-0001',
+          issuedDate: '2026-08-02',
+          customer: { customerName: 'Magic Wash' },
+          items: [{ description: 'Laundry' }],
+        },
+      ])
+    },
+  )
+})
+
+test('GSheetRepository portal mode exposes malformed JSON from the sheet', async () => {
+  const repo = portalSheetRepo()
+
+  await withMockFetch(
+    async () =>
+      response({
+        text: gvizBody({
+          cols: [{ id: 'A' }, { id: 'B' }, { id: 'C' }, { id: 'D' }],
+          rows: [
+            {
+              c: [
+                { v: 'INV-0001' },
+                { v: '2026-08-02' },
+                { v: '{malformed' },
+                { v: '[]' },
+              ],
+            },
+          ],
+        }),
+      }),
+    async () => {
+      await assert.rejects(() => repo.read(), SyntaxError)
+    },
+  )
+})
+
+test('GSheetRepository create sends a SheetLib APPEND envelope and maps persisted data', async () => {
+  const repo = customerSheetRepo(undefined, 'CustomerWriteTarget')
 
   await withMockFetch(
     async () =>
       response({
         json: {
-          success: true,
+          status: 'ok',
+          target: 'CustomerWriteTarget',
           data: {
             CustomerID: 'C001',
             CustomerName: 'Alice',
@@ -460,8 +555,9 @@ test('GSheetRepository create sends Apps Script append payload and maps response
       )
 
       assert.deepEqual(JSON.parse(calls[0].init?.body as string), {
+        resource: 'sheet',
         action: 'APPEND',
-        sheet: 'Customers',
+        target: 'CustomerWriteTarget',
         data: {
           CustomerName: 'Alice',
           Phone: '0812345678',
@@ -473,14 +569,15 @@ test('GSheetRepository create sends Apps Script append payload and maps response
   )
 })
 
-test('GSheetRepository update folds the route id into the doPost payload', async () => {
+test('GSheetRepository update sends the mapped route id as key_value and a patch-only payload', async () => {
   const repo = customerSheetRepo()
 
   await withMockFetch(
     async () =>
       response({
         json: {
-          success: true,
+          status: 'ok',
+          target: 'Customers',
           data: {
             CustomerID: 'C001',
             CustomerName: 'Alice Updated',
@@ -500,12 +597,13 @@ test('GSheetRepository update folds the route id into the doPost payload', async
       )
 
       assert.deepEqual(JSON.parse(calls[0].init?.body as string), {
+        resource: 'sheet',
         action: 'UPDATE',
-        sheet: 'Customers',
+        target: 'Customers',
+        key_value: 'C001',
         data: {
           CustomerName: 'Alice Updated',
           UpdatedBy: 'tester',
-          CustomerID: 'C001',
         },
       })
     },
@@ -537,7 +635,8 @@ test('GSheetRepository forwards the transformer to BaseRepository', async () => 
     async () =>
       response({
         json: {
-          success: true,
+          status: 'ok',
+          target: 'Customers',
           data: {
             CustomerID: 'C001',
             CustomerName: 'Original',
@@ -560,15 +659,15 @@ test('GSheetRepository forwards the transformer to BaseRepository', async () => 
   )
 })
 
-test('GSheetRepository write throws Apps Script errors and delete is future', async () => {
+test('GSheetRepository write throws SheetLib status errors and delete is future', async () => {
   const repo = customerSheetRepo()
 
   await withMockFetch(
     async () =>
       response({
         json: {
-          success: false,
-          error: 'bad request',
+          status: 'error',
+          message: 'bad request',
         },
       }),
     async () => {
@@ -579,7 +678,7 @@ test('GSheetRepository write throws Apps Script errors and delete is future', as
             phone: '0812345678',
             updatedBy: 'tester',
           }),
-        /Apps Script APPEND failed: bad request/,
+        /SheetLib APPEND failed: bad request/,
       )
     },
   )
@@ -587,6 +686,138 @@ test('GSheetRepository write throws Apps Script errors and delete is future', as
   await assert.rejects(
     () => repo.delete('C001'),
     /GSheetRepository.delete is not implemented yet/,
+  )
+})
+
+test('GSheetRepository write rejects HTTP failures before parsing a SheetLib response', async () => {
+  const repo = customerSheetRepo()
+
+  await withMockFetch(
+    async () => response({ ok: false, statusText: 'Bad Gateway' }),
+    async () => {
+      await assert.rejects(
+        () =>
+          repo.create({
+            customerName: 'Alice',
+            phone: '0812345678',
+            updatedBy: 'tester',
+          }),
+        /SheetLib request failed: 500 Bad Gateway/,
+      )
+    },
+  )
+})
+
+test('GSheetRepository write requires an explicit target before fetch', async () => {
+  const repo = new GSheetRepository({
+    contract: customerContract,
+    sheetName: 'Customers',
+    spreadsheetId: 'TEST_SPREADSHEET_ID',
+    scriptUrl: 'TEST_SCRIPT_URL',
+  })
+
+  await withMockFetch(
+    async () => {
+      assert.fail('fetch must not be called without a SheetLib target')
+      return response({ json: {} })
+    },
+    async (calls) => {
+      await assert.rejects(
+        () =>
+          repo.create({
+            customerName: 'Alice',
+            phone: '0812345678',
+            updatedBy: 'tester',
+          }),
+        /writes require an explicit SheetLib target/,
+      )
+      assert.equal(calls.length, 0)
+    },
+  )
+})
+
+test('GSheetRepository batchAppend transforms each object while issuing one APPEND request', async () => {
+  const requestInputs = [
+    { CustomerName: 'Alice', Phone: '0812345678', UpdatedBy: 'tester' },
+    { CustomerName: 'Bob', Phone: '0899999999', UpdatedBy: 'tester' },
+  ]
+  const storedRows = [
+    { CustomerID: 'C001', CustomerName: 'Alice' },
+    { CustomerID: 'C002', CustomerName: 'Bob' },
+  ]
+  let requestCalls = 0
+  let responseCalls = 0
+
+  const repo = customerSheetRepo({
+    request(request) {
+      if (Array.isArray(request.data)) {
+        throw new Error('request transformer rejects arrays')
+      }
+      assert.equal(request.operation, 'create')
+      assert.deepEqual(request.data, requestInputs[requestCalls])
+      requestCalls += 1
+      return {
+        ...request,
+        data: {
+          ...(request.data as Record<string, unknown>),
+          UpdatedBy: 'batch-system',
+        },
+      }
+    },
+    response(stored, context) {
+      if (Array.isArray(stored)) {
+        throw new Error('response transformer rejects arrays')
+      }
+      assert.deepEqual(stored, storedRows[responseCalls])
+      assert.deepEqual(context.request.data, {
+        ...requestInputs[responseCalls],
+        UpdatedBy: 'batch-system',
+      })
+      responseCalls += 1
+      return {
+        ...(stored as Record<string, unknown>),
+        CustomerName: `${(stored as Record<string, unknown>).CustomerName} (transformed)`,
+      }
+    },
+  })
+
+  await withMockFetch(
+    async () =>
+      response({
+        json: {
+          status: 'ok',
+          target: 'Customers',
+          data: [
+            { CustomerID: 'C001', CustomerName: 'Alice' },
+            { CustomerID: 'C002', CustomerName: 'Bob' },
+          ],
+        },
+      }),
+    async (calls) => {
+      assert.deepEqual(
+        await repo.batchAppend([
+          { customerName: 'Alice', phone: '0812345678', updatedBy: 'tester' },
+          { customerName: 'Bob', phone: '0899999999', updatedBy: 'tester' },
+        ]),
+        [
+          { customerId: 'C001', customerName: 'Alice (transformed)' },
+          { customerId: 'C002', customerName: 'Bob (transformed)' },
+        ],
+      )
+
+      assert.equal(calls.length, 1)
+      assert.equal(requestCalls, 2)
+      assert.equal(responseCalls, 2)
+      assert.deepEqual(JSON.parse(calls[0].init?.body as string), {
+        resource: 'sheet',
+        action: 'APPEND',
+        target: 'Customers',
+        data: [
+          { CustomerName: 'Alice', Phone: '0812345678', UpdatedBy: 'batch-system' },
+          { CustomerName: 'Bob', Phone: '0899999999', UpdatedBy: 'batch-system' },
+        ],
+      })
+    },
   )
 })
 
@@ -642,6 +873,7 @@ test('GSheetRepository update lets the route id win over a conflicting body prim
   const repo = new GSheetRepository({
     contract: widgetContract,
     sheetName: 'Widgets',
+    target: 'Widget',
     spreadsheetId: 'TEST_SPREADSHEET_ID',
     scriptUrl: 'TEST_SCRIPT_URL',
   })
@@ -649,18 +881,19 @@ test('GSheetRepository update lets the route id win over a conflicting body prim
   await withMockFetch(
     async () =>
       response({
-        json: { success: true, data: { WidgetID: 'W1', Name: 'New' } },
+        json: { status: 'ok', target: 'Widget', data: { WidgetID: 'W1', Name: 'New' } },
       }),
     async (calls) => {
       await repo.update('W1', { widgetId: 'WRONG', name: 'New' })
 
-      // data has WidgetID:'WRONG' from the body, but where (id) is pinned last
+      // The route id becomes key_value and the primary key is omitted from the patch.
       assert.deepEqual(JSON.parse(calls[0].init?.body as string), {
+        resource: 'sheet',
         action: 'UPDATE',
-        sheet: 'Widgets',
+        target: 'Widget',
+        key_value: 'W1',
         data: {
           Name: 'New',
-          WidgetID: 'W1',
         },
       })
     },

@@ -9,9 +9,7 @@ import { z } from 'zod'
  * OWN contract, not a widened version of this one. Nothing here is named or
  * shaped as though it will grow into an update.
  *
- * Agreed spec: `docs/contracts/invoice-api.contract.ts` — mirrors it field for
- * field; that file is the reference if the two ever seem to disagree. The
- * DB-shaped (snake_case) side this backend sends onward to Apps Script is
+ * The DB-shaped (snake_case) side this backend sends onward to Apps Script is
  * `server/modules/invoices/invoice.contract.ts`. The arithmetic both this
  * request and that write payload rely on lives once, in
  * `contracts/invoices/invoice-calculator.ts`, imported by both the server
@@ -124,9 +122,8 @@ export const invoiceCreateSchema = z
 export type CreateInvoiceRequest = z.infer<typeof invoiceCreateSchema>
 
 /*
- * Deliberately absent from `invoiceCreateSchema` — see
- * `docs/contracts/invoice-api.contract.ts` §2. Every one of these is owned by
- * the server or by Apps Script; accepting them from a browser would mean
+ * Deliberately absent from `invoiceCreateSchema`. Every one of these is owned
+ * by the server or by Apps Script; accepting them from a browser would mean
  * either trusting a forgeable value or carrying a field we then ignore:
  *
  *   subtotal, netTotal        the server computes them, authoritative

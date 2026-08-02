@@ -8,23 +8,17 @@ import type { ModuleApiContract } from '../shared/module-api-contract.js'
  *
  * `customer` does NOT reuse `invoiceCustomerSnapshotInputSchema` — that
  * schema models what a CLIENT sends on create, where an absent phone/address
- * is an omitted (`undefined`) key. The read side is the opposite direction:
- * `invoice-view.transformer.ts`'s `parseCustomer()` always emits every key,
- * `null` when the sheet's `customerJson` doesn't have it. `invoiceViewCustomerSchema`
- * below models that shape instead — `.nullable()`, never `.optional()`.
+ * is an omitted (`undefined`) key. This portal read model instead has one
+ * shared schema used directly by the sheet, backend, and frontend.
  *
  * Likewise `adjustments` (both invoice- and item-level) and `payments` do NOT
  * reuse `invoiceAdjustmentInputSchema` from `invoice-api.schema.ts` — that
  * schema models the create-only write direction (enum `calculation`,
- * non-null `value`, optional `refSource`/`refCode`). The read side is
- * `invoice-view.transformer.ts`'s `mapAdjustment()`/`mapPayment()`, which
- * always emit every key and use `toNullableString`/`toNullableNumber` with no
- * enum enforcement, so `invoiceViewAdjustmentSchema` and
- * `invoiceViewPaymentSchema` model every field as `.nullable()` generic
- * `z.string()`/`z.number()` instead.
+ * non-null `value`, optional `refSource`/`refCode`). The portal has its own
+ * response shapes because it is preprocessed specifically for display.
  *
  * ⚠ `invoiceViewPaymentSchema` is NOT grounded in a live example —
- * `InvoiceView.json`'s only example has an empty `paymentsJson`. Fields are
+ * `InvoiceView.json`'s only example has an empty payments array. Fields are
  * inferred from `Payment.json` translated to camelCase, minus `slip_data`
  * (marked "do not expose to customers" there) and audit fields. Flagged for
  * confirmation before this is relied on.
@@ -46,7 +40,7 @@ export const invoiceViewBillingTypeSchema = z.enum(['ORDER', 'CYCLE'])
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a YYYY-MM-DD date')
 
 // sortBy excludes `customerName` (unlike the old frontend-only `InvoiceFilter`
-// type) — it lives inside the serialized `customerJson` blob, which GViz
+// type) — it lives inside the serialized `customer` cell, which GViz
 // cannot sort into.
 export const invoiceViewSortFieldSchema = z.enum(['issuedDate', 'dueDate', 'status', 'grandTotal'])
 
@@ -69,9 +63,6 @@ export const invoiceListQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 })
 
-/** Matches `InvoiceViewCustomer` in `invoice-view.transformer.ts` exactly —
- *  every key always present, `null` (not omitted) when the sheet's
- *  `customerJson` lacks it. */
 export const invoiceViewCustomerSchema = z.object({
   customerCode: z.string().nullable(),
   customerName: z.string().nullable(),
@@ -79,9 +70,6 @@ export const invoiceViewCustomerSchema = z.object({
   address: z.string().nullable(),
 })
 
-/** Matches `InvoiceViewAdjustment` in `invoice-view.transformer.ts` exactly —
- *  every key always present, `null` (not omitted) and no enum enforcement,
- *  unlike the create-only `invoiceAdjustmentInputSchema`. */
 export const invoiceViewAdjustmentSchema = z.object({
   label: z.string().nullable(),
   calculation: z.string().nullable(),
@@ -90,16 +78,13 @@ export const invoiceViewAdjustmentSchema = z.object({
   refCode: z.string().nullable(),
 })
 
-/** Matches `InvoiceViewItem` in `invoice-view.transformer.ts` exactly — every
- *  field is `mapItem()`-produced via `toNullableString`/`toNullableNumber`,
- *  so a dirty row can legitimately leave any of them `null`. */
 export const invoiceViewItemSchema = z.object({
   description: z.string().nullable(),
   unit: z.string().nullable(),
   quantity: z.number().nullable(),
   unitPrice: z.number().nullable(),
   subtotal: z.number().nullable(),
-  adjustments: z.array(invoiceViewAdjustmentSchema).default([]),
+  adjustments: z.array(invoiceViewAdjustmentSchema),
   netTotal: z.number().nullable(),
 })
 
@@ -114,7 +99,12 @@ export const invoiceViewPaymentSchema = z.object({
   notes: z.string().nullable(),
 })
 
-export const invoiceListResponseSchema = z.object({
+/**
+ * The Portal Sheet's headers and their order. Nested values are JSON text in
+ * cells and decoded generically by the GViz transport; no module transformer
+ * normalizes or repairs them after reading.
+ */
+export const invoicePortalRowSchema = z.object({
   invoiceNumber: z.string(),
   status: invoiceViewStatusSchema,
   billingType: invoiceViewBillingTypeSchema,
@@ -124,18 +114,35 @@ export const invoiceListResponseSchema = z.object({
   dueDate: z.string(),
   customerId: z.string(),
   customer: invoiceViewCustomerSchema,
+  items: z.array(invoiceViewItemSchema),
+  adjustments: z.array(invoiceViewAdjustmentSchema),
+  payments: z.array(invoiceViewPaymentSchema),
   subtotal: z.number(),
   adjustmentTotal: z.number(),
-  adjustments: z.array(invoiceViewAdjustmentSchema).default([]),
   grandTotal: z.number(),
   paidAmount: z.number(),
   balanceDue: z.number(),
 })
 
-export const invoiceDetailResponseSchema = invoiceListResponseSchema.extend({
-  items: z.array(invoiceViewItemSchema).default([]),
-  payments: z.array(invoiceViewPaymentSchema).default([]),
+export const invoiceListResponseSchema = invoicePortalRowSchema.pick({
+  invoiceNumber: true,
+  status: true,
+  billingType: true,
+  billingPeriodStart: true,
+  billingPeriodEnd: true,
+  issuedDate: true,
+  dueDate: true,
+  customerId: true,
+  customer: true,
+  adjustments: true,
+  subtotal: true,
+  adjustmentTotal: true,
+  grandTotal: true,
+  paidAmount: true,
+  balanceDue: true,
 })
+
+export const invoiceDetailResponseSchema = invoicePortalRowSchema
 
 export const invoiceViewApiContract = {
   query: { list: invoiceListQuerySchema },

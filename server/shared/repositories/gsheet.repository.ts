@@ -56,30 +56,35 @@ type ModuleUpdate<TContract extends ModuleContract> = TContract['api'] extends {
 
 export type AppScriptAction = 'APPEND' | 'UPDATE'
 
-export interface AppScriptRequestInput<TData = unknown> {
+export interface SheetLibRequestInput<TData = unknown> {
   action: AppScriptAction
   data: TData
+  keyValue?: string
 }
 
-export interface AppScriptRequest<TData = unknown> {
+export interface SheetLibRequest<TData = unknown> {
+  resource: 'sheet'
   action: AppScriptAction
-  sheet: string
+  target: string
   data: TData
+  key_value?: string
 }
 
-export interface AppScriptSuccessResponse<TData = unknown> {
-  success: true
+export interface SheetLibSuccessResponse<TData = unknown> {
+  status: 'ok'
+  target: string
   data: TData
+  write?: Record<string, unknown>
 }
 
-export interface AppScriptErrorResponse {
-  success: false
-  error: string
+export interface SheetLibErrorResponse {
+  status: 'error'
+  message: string
 }
 
-export type AppScriptResponse<TData = unknown> =
-  | AppScriptSuccessResponse<TData>
-  | AppScriptErrorResponse
+export type SheetLibResponse<TData = unknown> =
+  | SheetLibSuccessResponse<TData>
+  | SheetLibErrorResponse
 
 export interface GSheetRepositoryOptions<TContract extends ModuleContract> {
   /**
@@ -89,10 +94,14 @@ export interface GSheetRepositoryOptions<TContract extends ModuleContract> {
    */
   contract: TContract
   sheetName: string
+  /** SheetLib write target. Required for APPEND and UPDATE; never inferred from sheetName. */
+  target?: string
   /** Env var KEY NAME holding the spreadsheet id — resolved via `requireEnv` at construction time. */
   spreadsheetId: string
-  /** Env var KEY NAME holding the Apps Script URL. Defaults to `'APPSCRIPT_URL'` when omitted. */
+  /** Env var KEY NAME holding the Apps Script URL. Defaults to `APPSCRIPT_URL`; tests may override it. */
   scriptUrl?: string
+  /** Decode JSON object/array text cells for a preprocessed portal sheet. */
+  decodeJsonCells?: boolean
   transformer?: RepositoryTransformer
 }
 
@@ -103,9 +112,13 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
   ModuleUpdate<TContract>
 > {
   private readonly sheetName: string
+  private readonly target?: string
   private readonly spreadsheetId: string
   private readonly scriptUrl: string
+  private readonly primaryKeyColumn: string
   private readonly columns: GSheetColumnMap
+  private readonly decodeJsonCells: boolean
+  private readonly batchTransformer?: RepositoryTransformer
   /** Kept for runtime capability checks on optional write slots. */
   private readonly contract: TContract
 
@@ -117,9 +130,15 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
     })
     this.contract = input.contract
     this.sheetName = input.sheetName
+    this.target = input.target
     this.spreadsheetId = requireEnv(input.spreadsheetId)
     this.scriptUrl = requireEnv(input.scriptUrl ?? 'APPSCRIPT_URL')
+    this.primaryKeyColumn = Object.entries(input.contract.db.fieldMap).find(
+      ([, apiField]) => apiField === input.contract.db.primaryKey,
+    )?.[0] ?? input.contract.db.primaryKey
     this.columns = deriveGVizColumns(input.contract.db.row)
+    this.decodeJsonCells = input.decodeJsonCells ?? false
+    this.batchTransformer = input.transformer
   }
 
   protected async execute<TResponse, TQuery = unknown, TData = unknown>(
@@ -137,7 +156,8 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
         return stored as TResponse
       }
       case 'update': {
-        const stored = await this.write('UPDATE', this.buildUpdatePayload(request))
+        const { keyValue, patch } = this.buildUpdateRequest(request)
+        const stored = await this.write('UPDATE', patch, keyValue)
         return stored as TResponse
       }
       case 'delete':
@@ -181,6 +201,53 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
     })
   }
 
+  async batchAppend(rows: Array<ModuleCreate<TContract>>): Promise<Array<ModuleApiRow<TContract>>> {
+    if (this.contract.db.request.create === undefined) {
+      throw new Error('batchAppend is not supported by this module')
+    }
+
+    const transformedRequests: Array<RepositoryRequest<unknown, unknown>> = []
+    for (const row of rows) {
+      const dbRequest: RepositoryRequest<unknown, unknown> = {
+        operation: 'create',
+        data: this.mapper.toDb(row as Record<string, unknown>),
+      }
+      const transformedRequest = this.batchTransformer?.request
+        ? await this.batchTransformer.request(dbRequest)
+        : dbRequest
+      if (
+        transformedRequest.data === null ||
+        typeof transformedRequest.data !== 'object' ||
+        Array.isArray(transformedRequest.data)
+      ) {
+        throw new Error('GSheetRepository.batchAppend transformer must return an object payload per row')
+      }
+      transformedRequests.push(transformedRequest)
+    }
+
+    const stored = await this.write(
+      'APPEND',
+      transformedRequests.map((request) => request.data),
+    )
+    if (!Array.isArray(stored)) {
+      throw new Error('SheetLib APPEND response data must be an array for batchAppend')
+    }
+    if (stored.length !== transformedRequests.length) {
+      throw new Error('SheetLib APPEND response row count must match batchAppend input')
+    }
+
+    const dbResponse: unknown[] = []
+    for (const [index, row] of stored.entries()) {
+      const transformedRow = this.batchTransformer?.response
+        ? await this.batchTransformer.response(row, { request: transformedRequests[index] })
+        : row
+      dbResponse.push(transformedRow)
+    }
+    return dbResponse.map((row) => this.mapper.toApi(row as Record<string, unknown>)) as Array<
+      ModuleApiRow<TContract>
+    >
+  }
+
   /** Future implementation. */
   async delete(_id: string): Promise<never> {
     throw new Error('GSheetRepository.delete is not implemented yet')
@@ -195,33 +262,49 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
       sheetName: this.sheetName,
       query: gvizQuery,
       columns: this.columns,
+      decodeJsonCells: this.decodeJsonCells,
     })
   }
 
-  // doPost UPDATE contract: send only the patched fields, then pin the filter
-  // (id) last so route id wins the merge.
-  private buildUpdatePayload(request: RepositoryRequest<unknown, unknown>): Record<string, unknown> {
+  private buildUpdateRequest(request: RepositoryRequest<unknown, unknown>): {
+    keyValue: string
+    patch: Record<string, unknown>
+  } {
     const data = (request.data as Record<string, unknown> | undefined) ?? {}
     const where =
       (request.query as MappedReadQuery<Record<string, unknown>> | undefined)?.where ?? {}
-    return { ...data, ...where }
+    const keyValue = where[this.primaryKeyColumn]
+    if (typeof keyValue !== 'string' || keyValue.trim() === '') {
+      throw new Error('GSheetRepository.update requires a mapped primary-key id')
+    }
+
+    const { [this.primaryKeyColumn]: _primaryKey, ...patch } = data
+    return { keyValue, patch }
   }
 
-  private async write(action: AppScriptAction, data: unknown): Promise<unknown> {
-    const response = await this.sendAppScriptRequest<Record<string, unknown>>({ action, data })
-    if (!response.success) {
-      throw new Error(`Apps Script ${action} failed: ${response.error}`)
+  private async write(action: AppScriptAction, data: unknown, keyValue?: string): Promise<unknown> {
+    const response = await this.sendSheetLibRequest<unknown>({ action, data, keyValue })
+    if (response.status === 'error') {
+      throw new Error(`SheetLib ${action} failed: ${response.message}`)
+    }
+    if (response.status !== 'ok') {
+      throw new Error(`SheetLib ${action} returned an invalid response status`)
     }
     return response.data
   }
 
-  private async sendAppScriptRequest<TResponse = unknown, TData = unknown>(
-    input: AppScriptRequestInput<TData>,
-  ): Promise<AppScriptResponse<TResponse>> {
-    const body: AppScriptRequest<TData> = {
+  private async sendSheetLibRequest<TResponse = unknown, TData = unknown>(
+    input: SheetLibRequestInput<TData>,
+  ): Promise<SheetLibResponse<TResponse>> {
+    const target = this.requireWriteTarget()
+    const body: SheetLibRequest<TData> = {
+      resource: 'sheet',
       action: input.action,
-      sheet: this.sheetName,
+      target,
       data: input.data,
+    }
+    if (input.action === 'UPDATE') {
+      body.key_value = input.keyValue
     }
 
     const response = await fetch(this.scriptUrl, {
@@ -231,9 +314,16 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
       redirect: 'follow',
     })
     if (!response.ok) {
-      throw new Error(`Apps Script request failed: ${response.status} ${response.statusText}`)
+      throw new Error(`SheetLib request failed: ${response.status} ${response.statusText}`)
     }
 
-    return (await response.json()) as AppScriptResponse<TResponse>
+    return (await response.json()) as SheetLibResponse<TResponse>
+  }
+
+  private requireWriteTarget(): string {
+    if (typeof this.target !== 'string' || this.target.trim() === '') {
+      throw new Error('GSheetRepository writes require an explicit SheetLib target')
+    }
+    return this.target
   }
 }
