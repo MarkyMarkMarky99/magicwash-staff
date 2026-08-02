@@ -105,7 +105,7 @@ write.
   update fields, including the confirmed `APPT-xxxxxxxx` ID format.
 - [x] Configure the Appointment repository with
   `sheetName: 'Appointments'` and `target: 'Appointment'`.
-- [ ] Add Appointment transport tests: create includes all enriched fields and
+- [x] Add Appointment transport tests: create includes all enriched fields and
   serialized `Address`; update changes only `UpdatedAt` and passes
   `AppointmentID` as `key_value`.
 - [ ] Implement and verify the deferred SheetLib persisted-row response in the

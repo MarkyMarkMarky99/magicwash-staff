@@ -73,6 +73,40 @@ const deliveryRow: AppointmentSheetRow = {
   DeletedBy: null,
 }
 
+const pickupCreateData: AppointmentSheetRow = {
+  AppointmentID: 'APPT-a1b2c3d4',
+  CustomerID: 'CUST-1001',
+  AppointmentType: 'PICKUP',
+  AppointmentDate: '2026-04-02',
+  TimeSlot: '10:00-12:00',
+  Status: 'CONFIRMED',
+  Address: pickupAddress,
+  PickupOrderID: null,
+  DeliveryOrderID: null,
+  Notes: 'โทรก่อนเข้ารับ 15 นาที',
+  CreatedBy: 'admin@magicwash',
+  ServiceTier: 'STANDARD',
+  CreatedAt: '2026-04-01 09:15:00',
+  UpdatedAt: '2026-04-01 09:15:00',
+}
+
+const deliveryCreateData: AppointmentSheetRow = {
+  AppointmentID: 'APPT-e5f6a7b8',
+  CustomerID: 'CUST-1002',
+  AppointmentType: 'DELIVERY',
+  AppointmentDate: '2026-04-03',
+  TimeSlot: '15:00-17:00',
+  Status: 'CONFIRMED',
+  Address: deliveryAddress,
+  PickupOrderID: 'PO-20260403-001',
+  DeliveryOrderID: null,
+  Notes: null,
+  CreatedBy: 'admin@magicwash',
+  ServiceTier: 'STANDARD',
+  CreatedAt: '2026-04-01 09:20:00',
+  UpdatedAt: '2026-04-01 09:20:00',
+}
+
 /**
  * Frontend payloads are public API input. SheetLib payloads are the expected
  * result after AppointmentService enrichment, field mapping, and Address JSON
@@ -100,13 +134,13 @@ export const appointmentWriteFixtures: AppointmentWriteFixture[] = [
       resource: 'sheet',
       action: 'APPEND',
       target: 'Appointment',
-      data: pickupRow,
+      data: pickupCreateData,
     },
     appScriptResponse: {
       status: 'ok',
       target: 'Appointment',
       data: pickupRow,
-      write: { updated_range: 'Appointments!A2:P2' },
+      write: { updated_range: 'Appointments!A2:Q2' },
     },
   },
   {
@@ -130,13 +164,13 @@ export const appointmentWriteFixtures: AppointmentWriteFixture[] = [
       resource: 'sheet',
       action: 'APPEND',
       target: 'Appointment',
-      data: deliveryRow,
+      data: deliveryCreateData,
     },
     appScriptResponse: {
       status: 'ok',
       target: 'Appointment',
       data: deliveryRow,
-      write: { updated_range: 'Appointments!A3:P3' },
+      write: { updated_range: 'Appointments!A3:Q3' },
     },
   },
   {
