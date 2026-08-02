@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useSelectedCustomer } from '../../composables/useSelectedCustomer'
+import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.store'
 import BaseSwipeCard from '../shared/BaseSwipeCard.vue'
 import CardLeadingIcon from '../../shared/components/CardLeadingIcon.vue'
 
@@ -17,7 +17,7 @@ const TYPE_COLORS = {
 
 const baseRef = ref(null)
 const router  = useRouter()
-const { customer: selectedCustomer } = useSelectedCustomer()
+const selectedCustomerStore = useSelectedCustomerStore()
 
 function onSwipeRight() {
   baseRef.value?.snapCard('none')
@@ -35,7 +35,15 @@ function openMaps(addr) {
 }
 
 function openNewBooking() {
-  selectedCustomer.value = props.customer
+  selectedCustomerStore.select({
+    customerId: props.customer.id || '',
+    customerIndex: props.customer.index,
+    customerName: props.customer.name || '',
+    phone: props.customer.phone,
+    address: props.customer.address,
+    location: props.customer.location,
+    customerType: props.customer.type || null,
+  })
   router.push('/new-booking')
 }
 </script>

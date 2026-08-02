@@ -7,7 +7,7 @@
 import { computed, defineAsyncComponent, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import FormOverlayLayout from '../layouts/FormOverlayLayout.vue'
-import { handleAppend, handleUpdate } from '../utils/gateway'
+import { handleAppend } from '../utils/gateway'
 
 // ── Form discovery ──────────────────────────────────────────────────────────
 const formModules = import.meta.glob('../components/forms/*.vue')
@@ -38,32 +38,6 @@ const formConfigs = {
   },
 }
 
-const scheduleConfigs = {
-  'new-booking': {
-    title: 'New Booking',
-    submitLabel: 'Confirm Booking',
-    submitIcon: 'add_circle',
-    submit: (data) => handleAppend('Appointments', {
-      customerId:      data.customerId,
-      appointmentDate: data.date,
-      timeSlot:        data.time,
-      appointmentType: data.serviceType,
-      notes:           data.notes,
-    }),
-  },
-  reschedule: {
-    title: 'Reschedule Appointment',
-    submitLabel: 'Confirm Reschedule',
-    submitIcon: 'check_circle',
-    submit: (data) => handleUpdate('Appointments', data.appointmentId, {
-      appointmentDate: data.date,
-      timeSlot:        data.time,
-      status:          'PENDING',
-      notes:           data.reason,
-    }),
-  },
-}
-
 // ── Route-driven state ───────────────────────────────────────────────────────
 const route   = useRoute()
 const router  = useRouter()
@@ -76,17 +50,11 @@ const routeKey = computed(() => {
   return _toKebabCase(String(Array.isArray(p) ? p[0] : p))
 })
 
-const formMode = computed(() => {
-  const q = route.query.mode
-  return (Array.isArray(q) ? q[0] : q) === 'reschedule' ? 'reschedule' : 'new-booking'
-})
-
 const formEntry     = computed(() => formMap[routeKey.value] || null)
 const formName      = computed(() => formEntry.value?.name || null)
 const formComponent = computed(() => formEntry.value?.component || null)
 
 const formConfig = computed(() => {
-  if (formName.value === 'AppointmentScheduleForm') return scheduleConfigs[formMode.value]
   return formConfigs[formName.value] ?? {
     title: formName.value || 'Form',
     submitLabel: 'Submit',
@@ -135,7 +103,6 @@ async function handleSubmit() {
     <component
       :is="formComponent"
       ref="formRef"
-      v-bind="formName === 'AppointmentScheduleForm' ? { mode: formMode } : {}"
     />
   </FormOverlayLayout>
 

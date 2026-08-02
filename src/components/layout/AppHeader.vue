@@ -1,8 +1,9 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
 import logoUrl from '../../assets/logo.png'
-import { pendingCount } from '../../composables/usePendingCount'
+import { useAppointmentStore } from '@/features/appointments/stores/appointment.store'
 import { useHeaderSearch } from '@/shared/composables/useHeaderSearch'
 import NavSidebar from './NavSidebar.vue'
 
@@ -10,6 +11,7 @@ const router = useRouter()
 const route  = useRoute()
 const sidebarOpen = ref(false)
 const { searchOpen, toggleSearch } = useHeaderSearch()
+const { pendingCount } = storeToRefs(useAppointmentStore())
 
 const SEARCHABLE_ROUTES = ['/customers', '/invoices']
 const canSearch = computed(() => SEARCHABLE_ROUTES.includes(route.path))
@@ -57,9 +59,9 @@ function goBack() {
         @click="goBack"
       >arrow_back</button>
 
-      <!-- Close button — shown on /pending and /customers -->
+      <!-- Close button — shown on collection pages outside the schedule -->
       <button
-        v-else-if="route.path === '/pending' || route.path === '/customers'"
+        v-else-if="route.name === 'appointment-pending' || route.path === '/customers'"
         class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
         aria-label="Close"
         @click="router.push('/')"

@@ -1,13 +1,11 @@
 <script setup>
 import { onMounted } from 'vue'
-import { useAppointmentStore } from './composables/useAppointmentStore'
-import { toDateStr } from './utils/gviz'
+import { useAppointmentStore } from '@/features/appointments/stores/appointment.store'
 
-const { loadMonth } = useAppointmentStore()
-const today = new Date()
+const appointmentStore = useAppointmentStore()
 
-// Pre-load today's month (includes all PENDING) so the badge count is ready
-onMounted(() => loadMonth(today.getFullYear(), today.getMonth(), toDateStr(today)))
+// Keep the schedule and pending badge ready from the same backend-backed store.
+onMounted(() => void appointmentStore.loadInitial())
 </script>
 
 <template>

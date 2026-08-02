@@ -139,6 +139,38 @@ Target stack: `BaseCrudService` (storage-agnostic service) + `BaseRepository`/`G
 - **Audit columns** (`UpdatedAt`/`UpdatedBy`/`DeletedAt`/…) appear in no response schema. The actor (`updatedBy`) is client input.
 - **No hooks in `BaseCrudService`:** the flow is fixed (validate → read/write → project). Business logic beyond CRUD+filter belongs in a dedicated service for that module, not in the generic engine.
 
+## Portal view sheets (InvoicesView, OrdersView, …)
+
+A portal view sheet is **not raw database data** — it is Apps Script's own pre-processed,
+join-and-total-already-computed, display-ready output, materialized into a sheet purely because
+that's the read mechanism (GViz) available to this backend. Ownership follows from that:
+
+- **If a field is wrong, missing when it shouldn't be, or malformed, that is an Apps Script bug —
+  fix it at the source.** Never paper over bad portal-view data with defensive coercion in the
+  transformer, the API contract, or the frontend. A field the sheet is *supposed* to always
+  populate (e.g. an item's `description`/`quantity`) coming back empty is a data-quality bug in
+  the script that builds the view, not a case for this codebase to guess around.
+- **A transformer's only legitimate job is decoding the SHEET STORAGE FORMAT, never guessing
+  around incomplete processing.** Two, and only two, real reasons a `<view>.transformer.ts` needs
+  to exist at all:
+  1. A sheet cell cannot hold a nested array/object — Apps Script must serialize
+     `items`/`payments`/`adjustments`/`customer` as JSON text, so the read side must
+     `JSON.parse()` it back. This is unavoidable as long as the view is one-row-per-record; it has
+     nothing to do with data quality.
+  2. GViz's own date wire format (`Date(Y,M,D)`, month zero-indexed) is a read-side quirk of any
+     Date-typed cell, independent of correctness — `normalizeGVizDate()` exists for this alone. If
+     Apps Script writes a date column as a plain ISO text string instead of a native Date value,
+     GViz returns it unchanged and this normalization becomes a no-op for that column with zero
+     code change on this side — prefer fixing it there over normalizing here when practical.
+- **A field that is legitimately `null` is not a bug.** `billingPeriodStart/End` being `null` for
+  an `ORDER`-type invoice, an adjustment's `refSource`/`refCode` being `null` when it isn't
+  promo-code-driven, a `paymentId` being `null` before one is assigned — these are real business
+  states, not missing data to chase down or paper over with a placeholder value.
+- The `toNullableString`/`toNullableNumber`-style guards in `gviz-cell.ts` exist as a cheap safety
+  net against the sheet ever drifting from what Apps Script is supposed to guarantee (a hand-edited
+  row, a script bug, a migration gap) — keep them, but they are a backstop, not a substitute for
+  fixing bad processing at the source.
+
 ## Singletons via the module cache
 
 Repository construction lives behind a lazy memoized getter in `<m>.repository.ts` (`getFooRepository()` caches into a module-scoped `let` on first call). `<m>.module.ts` calls that getter once at module scope to build the service and routes (`export const fooService = new BaseCrudService({ repository: getFooRepository(), ... })`, `export const fooRoutes = createCrudRoutes(...)`). Node's module cache makes the repository (after first `get`), service, and routes true singletons per cold start; env is read on the getter's first call (safe: `tsc` doesn't execute modules; Vercel cold start has env). `server/api/route-registry.ts` loads each `<m>.module.ts` lazily via a per-module literal `import()` (never computed from a request-time value — Vercel's file tracer only bundles statically-resolvable import specifiers, so a dynamic one silently ships an empty function), so an unrelated module's repository never constructs (and its env vars are never required) just because a different module's route was hit.
