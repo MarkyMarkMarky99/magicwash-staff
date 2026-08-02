@@ -115,7 +115,7 @@ write.
   and nested `write` response contract.
 - [x] Deploy the SheetLib change and verify the persisted-row response against
   the Development Apps Script endpoint.
-- [ ] Enable and test backend Appointment create/update end-to-end in
+- [x] Enable and test backend Appointment create/update end-to-end in
   Development.
 - [ ] In a later, separately approved scope, migrate frontend direct writes.
 
