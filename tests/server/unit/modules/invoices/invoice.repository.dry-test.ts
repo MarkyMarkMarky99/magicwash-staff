@@ -185,7 +185,6 @@ test('Invoice repository APPEND sends target "Invoice" and maps camelCase comman
     contract: invoiceContract,
     sheetName: 'Invoices',
     target: 'Invoice',
-    spreadsheetId: 'TEST_SPREADSHEET_ID',
     scriptUrl: 'TEST_SCRIPT_URL',
   })
 

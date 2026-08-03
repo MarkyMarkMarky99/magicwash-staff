@@ -132,8 +132,11 @@ export interface GSheetRepositoryOptions<TContract extends ModuleContract> {
   sheetName: string
   /** SheetLib write target. Required for APPEND and UPDATE; never inferred from sheetName. */
   target?: string
-  /** Env var KEY NAME holding the spreadsheet id — resolved via `requireEnv` at construction time. */
-  spreadsheetId: string
+  /**
+   * Env var KEY NAME holding the spreadsheet id. Required only when `read()`
+   * uses GViz; writer-only repositories may omit it.
+   */
+  spreadsheetId?: string
   /** Env var KEY NAME holding the Apps Script URL. Defaults to `APPSCRIPT_URL`; tests may override it. */
   scriptUrl?: string
   /** Decode JSON object/array text cells for a preprocessed portal sheet. */
@@ -149,7 +152,7 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
 > {
   private readonly sheetName: string
   private readonly target?: string
-  private readonly spreadsheetId: string
+  private readonly spreadsheetIdEnvVar?: string
   private readonly scriptUrl: string
   private readonly primaryKeyColumn: string
   private readonly columns: GSheetColumnMap
@@ -167,7 +170,7 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
     this.contract = input.contract
     this.sheetName = input.sheetName
     this.target = input.target
-    this.spreadsheetId = requireEnv(input.spreadsheetId)
+    this.spreadsheetIdEnvVar = input.spreadsheetId
     this.scriptUrl = requireEnv(input.scriptUrl ?? 'APPSCRIPT_URL')
     this.primaryKeyColumn = Object.entries(input.contract.db.fieldMap).find(
       ([, apiField]) => apiField === input.contract.db.primaryKey,
@@ -307,9 +310,15 @@ export class GSheetRepository<TContract extends ModuleContract> extends BaseRepo
   private async readRows(
     query: MappedReadQuery<Record<string, unknown>> | undefined,
   ): Promise<unknown[]> {
+    if (typeof this.spreadsheetIdEnvVar !== 'string' || this.spreadsheetIdEnvVar.trim() === '') {
+      throw new Error(
+        'GSheetRepository reads require a spreadsheetId environment variable name',
+      )
+    }
+
     const gvizQuery = GVizQueryBuilder.fromColumns(this.columns).fromQuery(query).build()
     return fetchGVizRows({
-      spreadsheetId: this.spreadsheetId,
+      spreadsheetId: requireEnv(this.spreadsheetIdEnvVar),
       sheetName: this.sheetName,
       query: gvizQuery,
       columns: this.columns,

@@ -31,11 +31,12 @@ export { invoiceViewContract, invoiceViewDbContract } from './invoice-view.contr
  *   InvoiceItem  → GViz tab "InvoiceItems", SheetLib target "InvoiceItem", PK invoice_item_id
  *   Payment      → GViz tab "Payments",     no SheetLib target (unsupported writes below)
  *
- * All three share one workbook (env var `INVOICES_SPREADSHEET_ID`) that is
- * NOT publicly readable — writes (APPEND/UPDATE) succeed against it but GViz
- * reads do not. Nothing in this module ever calls `.read()` on any of these
- * three repositories; all GET traffic is served by the separate, publicly
- * readable `InvoicesView` materialized view.
+ * All three share one private workbook that is NOT publicly readable. SheetLib
+ * resolves that workbook from each write target (`Invoice`, `InvoiceItem`, or
+ * `Payment`); the Node-side writer repositories therefore do not need a
+ * spreadsheet-id environment variable. Nothing in this module ever calls
+ * `.read()` on any of these three repositories; all GET traffic is served by
+ * the separate, publicly readable `InvoicesView` materialized view.
  *
  * Each of the three write-side sheets therefore needs a `ModuleApiContract`
  * only to satisfy `GSheetRepository<TContract extends ModuleContract>`'s
