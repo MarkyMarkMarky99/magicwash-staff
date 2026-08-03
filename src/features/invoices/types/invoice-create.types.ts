@@ -25,10 +25,16 @@ export interface AdjustmentFormRow {
   refCode: string
 }
 
+/** Units offered by the invoice form. `custom` keeps the select explicit while
+ * the entered label remains in `LineItemFormRow.unit` for the request payload. */
+export const invoiceUnitOptions = ['kg', 'piece', 'pair', 'package', 'set', 'load', 'custom'] as const
+export type InvoiceUnitOption = (typeof invoiceUnitOptions)[number]
+
 export interface LineItemFormRow {
   key: string
   description: string
   unit: string
+  unitOption: InvoiceUnitOption
   quantity: string
   unitPrice: string
   adjustments: AdjustmentFormRow[]
@@ -49,7 +55,8 @@ export function createEmptyLineItemRow(): LineItemFormRow {
   return {
     key: crypto.randomUUID(),
     description: '',
-    unit: '',
+    unit: 'piece',
+    unitOption: 'piece',
     quantity: '1',
     unitPrice: '',
     adjustments: [],

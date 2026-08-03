@@ -1,7 +1,12 @@
 <script setup lang="ts">
 /** Presentation only — props in, events out. */
 import { ref } from 'vue'
-import { createEmptyAdjustmentRow, type LineItemFormRow } from '../types/invoice-create.types'
+import {
+  createEmptyAdjustmentRow,
+  invoiceUnitOptions,
+  type InvoiceUnitOption,
+  type LineItemFormRow,
+} from '../types/invoice-create.types'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import InvoiceAdjustmentsEditor from './InvoiceAdjustmentsEditor.vue'
 
@@ -30,6 +35,17 @@ function updateLine(index: number, patch: Partial<LineItemFormRow>) {
 
 function updateLineAdjustments(index: number, adjustments: LineItemFormRow['adjustments']) {
   updateLine(index, { adjustments })
+}
+
+function updateUnit(index: number, unitOption: InvoiceUnitOption) {
+  updateLine(index, {
+    unitOption,
+    unit: unitOption === 'custom' ? '' : unitOption,
+  })
+}
+
+function updateCustomUnit(index: number, unit: string) {
+  updateLine(index, { unitOption: 'custom', unit })
 }
 
 function removeLine(index: number) {
@@ -92,12 +108,23 @@ function removeLine(index: number) {
           <div class="grid grid-cols-3 gap-2">
             <label class="space-y-1">
               <span class="font-label text-[10px] uppercase tracking-wide text-on-surface-variant">Unit</span>
+              <select
+                :value="line.unitOption"
+                class="h-9 w-full rounded-lg bg-surface-container px-2.5 font-body text-sm text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+                @change="updateUnit(index, ($event.target as HTMLSelectElement).value as InvoiceUnitOption)"
+              >
+                <option v-for="option in invoiceUnitOptions" :key="option" :value="option">
+                  {{ option === 'custom' ? 'Custom' : option }}
+                </option>
+              </select>
               <input
+                v-if="line.unitOption === 'custom'"
                 :value="line.unit"
                 type="text"
-                placeholder="Piece, kg…"
-                class="h-9 w-full rounded-lg bg-surface-container px-2.5 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-primary"
-                @input="updateLine(index, { unit: ($event.target as HTMLInputElement).value })"
+                placeholder="Enter custom unit"
+                aria-label="Custom unit"
+                class="mt-1 h-9 w-full rounded-lg bg-surface-container px-2.5 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-primary"
+                @input="updateCustomUnit(index, ($event.target as HTMLInputElement).value)"
               >
             </label>
 

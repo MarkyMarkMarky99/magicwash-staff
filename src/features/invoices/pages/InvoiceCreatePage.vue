@@ -149,7 +149,7 @@ const invoiceTotal = computed(() =>
   ),
 )
 
-// ── Validity: every line needs a description, a positive quantity, and a
+// ── Validity: every line needs a description, unit, positive quantity, and a
 //    unit price the staff has actually typed (order items carry no price). ──
 const isValid = computed(() => {
   if (!order.value || !customer.value) return false
@@ -158,6 +158,7 @@ const isValid = computed(() => {
   if (items.value.length === 0) return false
   return items.value.every((item) =>
     item.description.trim().length > 0
+    && item.unit.trim().length > 0
     && Number(item.quantity) > 0
     && item.unitPrice.trim() !== ''
     && Number.isFinite(Number(item.unitPrice)),
@@ -182,7 +183,7 @@ const requestPayload = computed<CreateInvoiceRequest | null>(() => {
     adjustments: toRealAdjustments(invoiceAdjustments.value),
     items: items.value.map((item) => ({
       description: item.description.trim(),
-      ...(item.unit.trim() ? { unit: item.unit.trim() } : {}),
+      unit: item.unit.trim(),
       quantity: Number(item.quantity) || 0,
       unitPrice: Number(item.unitPrice) || 0,
       adjustments: toRealAdjustments(item.adjustments),
@@ -207,7 +208,8 @@ function initializeForm(currentOrder: InvoiceCreateIntentOrder) {
     ? currentOrder.items.map((item) => ({
       key: crypto.randomUUID(),
       description: item.description ?? '',
-      unit: item.serviceType ?? '',
+      unit: 'piece',
+      unitOption: 'piece',
       quantity: item.quantity != null ? String(item.quantity) : '1',
       unitPrice: '',
       adjustments: [],
