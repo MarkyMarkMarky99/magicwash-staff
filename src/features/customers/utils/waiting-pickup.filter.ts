@@ -1,35 +1,13 @@
 import type { z } from 'zod'
 import type { appointmentListResponseSchema } from '../../../../contracts/appointments/appointment-api.schema'
+import { normalizeAppointmentDate } from '../../../shared/utils/appointment-date'
+
+export { normalizeAppointmentDate } from '../../../shared/utils/appointment-date'
 
 export type WaitingPickupAppointment = z.infer<typeof appointmentListResponseSchema>
 
 const BANGKOK_TIME_ZONE = 'Asia/Bangkok'
 const ACTIVE_PICKUP_STATUSES = new Set(['CONFIRMED', 'IN_TRANSIT'])
-const MONTHS = new Map([
-  ['jan', 1],
-  ['january', 1],
-  ['feb', 2],
-  ['february', 2],
-  ['mar', 3],
-  ['march', 3],
-  ['apr', 4],
-  ['april', 4],
-  ['may', 5],
-  ['jun', 6],
-  ['june', 6],
-  ['jul', 7],
-  ['july', 7],
-  ['aug', 8],
-  ['august', 8],
-  ['sep', 9],
-  ['september', 9],
-  ['oct', 10],
-  ['october', 10],
-  ['nov', 11],
-  ['november', 11],
-  ['dec', 12],
-  ['december', 12],
-])
 
 /**
  * Temporary MVP exception: waiting-pickup filtering stays client-side because
@@ -63,39 +41,6 @@ export function filterWaitingPickups(
     })
 }
 
-/** Normalize the known sheet/GViz appointment date shapes for comparison/UI. */
-export function normalizeAppointmentDate(value: unknown): string | null {
-  if (typeof value !== 'string') {
-    return null
-  }
-
-  const input = value.trim()
-  if (input === '') {
-    return null
-  }
-
-  const gvizMatch = input.match(/^Date\((\d+),(\d+),(\d+)\)$/)
-  if (gvizMatch) {
-    const [, year, month, day] = gvizMatch
-    return validDate(year, Number(month) + 1, day)
-  }
-
-  const displayMatch = input.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/)
-  if (displayMatch) {
-    const [, day, monthName, year] = displayMatch
-    const month = MONTHS.get(monthName.toLowerCase())
-    return month === undefined ? null : validDate(year, month, day)
-  }
-
-  const isoMatch = input.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T)/)
-  if (isoMatch) {
-    const [, year, month, day] = isoMatch
-    return validDate(year, month, day)
-  }
-
-  return null
-}
-
 function bangkokDate(now: Date): string {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: BANGKOK_TIME_ZONE,
@@ -105,21 +50,4 @@ function bangkokDate(now: Date): string {
   }).formatToParts(now)
   const values = Object.fromEntries(parts.map((part) => [part.type, part.value]))
   return `${values.year}-${values.month}-${values.day}`
-}
-
-function validDate(year: string, month: string | number, day: string): string | null {
-  const numericYear = Number(year)
-  const numericMonth = Number(month)
-  const numericDay = Number(day)
-  const date = new Date(Date.UTC(numericYear, numericMonth - 1, numericDay))
-
-  if (
-    date.getUTCFullYear() !== numericYear ||
-    date.getUTCMonth() !== numericMonth - 1 ||
-    date.getUTCDate() !== numericDay
-  ) {
-    return null
-  }
-
-  return `${year.padStart(4, '0')}-${String(numericMonth).padStart(2, '0')}-${String(numericDay).padStart(2, '0')}`
 }

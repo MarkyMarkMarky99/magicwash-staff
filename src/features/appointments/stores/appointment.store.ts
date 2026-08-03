@@ -8,7 +8,7 @@ import {
   type AppointmentListDto,
   type AppointmentUpdateDto,
 } from '../services/appointment.service'
-import { toAppointmentDate } from '../utils/appointment-date'
+import { normalizeAppointmentDate, toAppointmentDate } from '../utils/appointment-date'
 
 type AppointmentItem = AppointmentListDto | AppointmentCreateDto | AppointmentUpdateDto
 
@@ -49,18 +49,17 @@ export const useAppointmentStore = defineStore('appointments', () => {
     error.value = null
 
     try {
-      const result = await listAppointments({
-        appointmentDate: date,
-        page: 1,
-        perPage: MAX_LIST_SIZE,
-        sortBy: 'timeSlot',
-        sortOrder: 'asc',
-      })
+      // TEMP(frontend): the backend date filter currently emits a GViz string
+      // literal, so read sorted pages without appointmentDate and filter the
+      // normalized date locally until the backend query builder is fixed.
+      const items = await listAppointmentsForDate(date)
       if (request !== dailyRequest) return
 
       // Pending work belongs exclusively to the pending queue, matching the
       // existing schedule behaviour without reshaping API DTOs.
-      dailyItems.value = result.items.filter((item) => item.status !== 'PENDING')
+      dailyItems.value = items
+        .filter((item) => item.status !== 'PENDING')
+        .sort((left, right) => left.timeSlot.localeCompare(right.timeSlot))
       loadedDate = date
     } catch (reason) {
       if (request !== dailyRequest) return
@@ -90,7 +89,7 @@ export const useAppointmentStore = defineStore('appointments', () => {
       })
       if (request !== pendingRequest) return
 
-      pendingItems.value = result.items
+      pendingItems.value = normalizeAppointmentItems(result.items)
       pendingLoaded = true
     } catch (reason) {
       if (request !== pendingRequest) return
@@ -129,8 +128,9 @@ export const useAppointmentStore = defineStore('appointments', () => {
   }
 
   function applyPersisted(persisted: AppointmentItem) {
-    dailyItems.value = reconcileDaily(dailyItems.value, persisted, selectedDate.value)
-    pendingItems.value = reconcilePending(pendingItems.value, persisted)
+    const normalized = normalizeAppointmentItem(persisted)
+    dailyItems.value = reconcileDaily(dailyItems.value, normalized, selectedDate.value)
+    pendingItems.value = reconcilePending(pendingItems.value, normalized)
   }
 
   return {
@@ -149,6 +149,43 @@ export const useAppointmentStore = defineStore('appointments', () => {
     createNewAppointment,
   }
 })
+
+async function listAppointmentsForDate(date: string): Promise<AppointmentListDto[]> {
+  const matches: AppointmentListDto[] = []
+  let page = 1
+
+  while (true) {
+    const result = await listAppointments({
+      page,
+      perPage: MAX_LIST_SIZE,
+      sortBy: 'appointmentDate',
+      sortOrder: 'asc',
+    })
+    const normalizedItems = normalizeAppointmentItems(result.items)
+
+    matches.push(...normalizedItems.filter((item) => item.appointmentDate === date))
+
+    const reachedEnd = result.items.length < MAX_LIST_SIZE
+    const passedDate = normalizedItems.some((item) => {
+      const itemDate = normalizeAppointmentDate(item.appointmentDate)
+      return itemDate !== null && itemDate > date
+    })
+    if (reachedEnd || passedDate) return matches
+
+    page += 1
+  }
+}
+
+function normalizeAppointmentItems(items: AppointmentListDto[]): AppointmentListDto[] {
+  return items.map(normalizeAppointmentItem)
+}
+
+function normalizeAppointmentItem<T extends { appointmentDate: string }>(item: T): T {
+  const appointmentDate = normalizeAppointmentDate(item.appointmentDate)
+  if (!appointmentDate || appointmentDate === item.appointmentDate) return item
+
+  return { ...item, appointmentDate }
+}
 
 function reconcileDaily(
   items: AppointmentListDto[],
