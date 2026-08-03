@@ -15,10 +15,9 @@ import {
   SheetLibTransportError,
 } from '../../../../../server/shared/repositories/sheetlib-errors.js'
 
-// GSheetRepository now resolves `spreadsheetId`/`scriptUrl` via requireEnv at
-// construction time (callers pass env var KEY NAMES, not resolved values), so
-// the sheet-transport tests below stash the real values behind test env vars
-// and pass the key names through.
+// GSheetRepository resolves config values from env var KEY NAMES. Spreadsheet
+// config is resolved lazily only for GViz reads so writer-only repositories do
+// not need an unrelated spreadsheet id.
 process.env.TEST_SPREADSHEET_ID = 'spreadsheet-id'
 process.env.TEST_SCRIPT_URL = 'https://script.example/exec'
 
@@ -416,6 +415,53 @@ test('GSheetRepository read builds GViz query from mapped API fields', async () 
 
       // customerId -> CustomerID (column B); customerType -> CustomerType (column M)
       assert.equal(tqFrom(calls[0].url), "select B\nwhere M = 'Member'")
+    },
+  )
+})
+
+test('GSheetRepository read requires an explicit spreadsheetId config before fetch', async () => {
+  const repo = new GSheetRepository({
+    contract: customerContract,
+    sheetName: 'Customers',
+    scriptUrl: 'TEST_SCRIPT_URL',
+  })
+
+  await withMockFetch(
+    async () => {
+      assert.fail('fetch must not be called without spreadsheetId config')
+      return response({ text: '' })
+    },
+    async (calls) => {
+      await assert.rejects(
+        () => repo.read(),
+        /reads require a spreadsheetId environment variable name/,
+      )
+      assert.equal(calls.length, 0)
+    },
+  )
+})
+
+test('GSheetRepository read requires the configured spreadsheetId env value before fetch', async () => {
+  const missingEnvKey = 'TEST_MISSING_SPREADSHEET_ID'
+  delete process.env[missingEnvKey]
+  const repo = new GSheetRepository({
+    contract: customerContract,
+    sheetName: 'Customers',
+    spreadsheetId: missingEnvKey,
+    scriptUrl: 'TEST_SCRIPT_URL',
+  })
+
+  await withMockFetch(
+    async () => {
+      assert.fail('fetch must not be called when the spreadsheetId env value is missing')
+      return response({ text: '' })
+    },
+    async (calls) => {
+      await assert.rejects(
+        () => repo.read(),
+        new RegExp(`Missing required environment variable: ${missingEnvKey}`),
+      )
+      assert.equal(calls.length, 0)
     },
   )
 })

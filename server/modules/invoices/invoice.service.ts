@@ -138,9 +138,13 @@ export interface InvoiceServiceOptions {
  * programmer error is expected to escape as a thrown error.
  */
 export class InvoiceService {
-  private readonly invoiceRepository: InvoiceHeaderWriter
-  private readonly invoiceItemRepository: InvoiceItemWriter
-  private readonly orderFormRepository: OrderFormWriter
+  // Write-side repositories are lazy. GET /api/invoices only needs the
+  // materialized InvoicesView repository; constructing these here would make
+  // a read request depend on INVOICES_SPREADSHEET_ID and the write gateway
+  // configuration even though it never writes to those sheets.
+  private readonly invoiceRepository: () => InvoiceHeaderWriter
+  private readonly invoiceItemRepository: () => InvoiceItemWriter
+  private readonly orderFormRepository: () => OrderFormWriter
   private readonly invoiceViewRepository: GSheetRepository<typeof invoiceViewContract>
   private readonly syncInvoiceView: ViewSyncFn
   private readonly generateItemId: () => string
@@ -155,9 +159,15 @@ export class InvoiceService {
   >
 
   constructor(options: InvoiceServiceOptions = {}) {
-    this.invoiceRepository = options.invoiceRepository ?? getInvoiceRepository()
-    this.invoiceItemRepository = options.invoiceItemRepository ?? getInvoiceItemRepository()
-    this.orderFormRepository = options.orderFormRepository ?? getOrderFormRepository()
+    let invoiceRepository = options.invoiceRepository
+    this.invoiceRepository = () => invoiceRepository ??= getInvoiceRepository()
+
+    let invoiceItemRepository = options.invoiceItemRepository
+    this.invoiceItemRepository = () => invoiceItemRepository ??= getInvoiceItemRepository()
+
+    let orderFormRepository = options.orderFormRepository
+    this.orderFormRepository = () => orderFormRepository ??= getOrderFormRepository()
+
     this.invoiceViewRepository = options.invoiceViewRepository ?? getInvoiceViewRepository()
     this.syncInvoiceView = options.syncInvoiceView ?? defaultSyncInvoiceView
     this.generateItemId = options.generateItemId ?? defaultGenerateItemId
@@ -226,7 +236,7 @@ export class InvoiceService {
     // ── Items first, as ONE batch — never a loop. See invoice.contract.ts's
     //    write-sequence comment for why this ordering is load-bearing. ──
     try {
-      await this.invoiceItemRepository.batchAppend(itemCommands)
+      await this.invoiceItemRepository().batchAppend(itemCommands)
     } catch (error) {
       const failure = classifyWriteFailure(error)
       return { kind: 'items_write_failed', message: failure.message, certainty: failure.certainty }
@@ -254,7 +264,7 @@ export class InvoiceService {
     })
 
     try {
-      await this.invoiceRepository.create(invoiceCommand)
+      await this.invoiceRepository().create(invoiceCommand)
     } catch (error) {
       // ⚠ Worst-case outcome: the item batch above already succeeded, so
       // itemCommands.length rows now exist referencing an invoice_number
@@ -279,7 +289,7 @@ export class InvoiceService {
     //    retry would create a SECOND invoice for money that's already
     //    correctly billed. ──
     try {
-      await this.orderFormRepository.update(
+      await this.orderFormRepository().update(
         request.sourceOrderId,
         orderFormApiUpdateSchema.parse({
           invoiceId: request.invoiceNumber,

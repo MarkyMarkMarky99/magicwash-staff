@@ -11,10 +11,11 @@ import { invoiceContract, invoiceItemContract, paymentContract, invoiceViewContr
  *   Payment      → getPaymentRepository()       (no target — unsupported writes)
  *   InvoicesView → getInvoiceViewRepository()   (read-only, different workbook)
  *
- * Invoice/InvoiceItem/Payment share the `INVOICES_SPREADSHEET_ID` workbook,
- * which is NOT publicly readable — writes (APPEND/UPDATE) succeed against it
- * but GViz reads do not. Nothing in this module ever calls `.read()` on any
- * of those three; `InvoiceService` only calls `.create()`/`.batchAppend()` on
+ * Invoice/InvoiceItem/Payment belong to a workbook which is NOT publicly
+ * readable — writes (APPEND/UPDATE) succeed through SheetLib, but GViz reads
+ * do not. Nothing in this module ever calls `.read()` on any of those three,
+ * so their writer-only repositories intentionally have no `spreadsheetId`
+ * config. `InvoiceService` only calls `.create()`/`.batchAppend()` on
  * Invoice/InvoiceItem, and never writes to Payment at all in this rollout.
  * `InvoicesView` is a separate, publicly-readable materialized view (a
  * different spreadsheet env var, `ORDERS_SPREADSHEET_ID` — it shares that
@@ -38,7 +39,6 @@ export function getInvoiceRepository(): GSheetRepository<typeof invoiceContract>
     contract: invoiceContract,
     sheetName: 'Invoices',
     target: 'Invoice',
-    spreadsheetId: 'INVOICES_SPREADSHEET_ID',
   })
 }
 
@@ -49,7 +49,6 @@ export function getInvoiceItemRepository(): GSheetRepository<typeof invoiceItemC
     contract: invoiceItemContract,
     sheetName: 'InvoiceItems',
     target: 'InvoiceItem',
-    spreadsheetId: 'INVOICES_SPREADSHEET_ID',
   })
 }
 
@@ -59,7 +58,6 @@ export function getPaymentRepository(): GSheetRepository<typeof paymentContract>
   return paymentRepository ??= new GSheetRepository({
     contract: paymentContract,
     sheetName: 'Payments',
-    spreadsheetId: 'INVOICES_SPREADSHEET_ID',
     // No `target`: writes are unsupported for Payment in this rollout (see
     // invoice.contract.ts's Payment section) — `create()`/`update()` reject
     // before ever needing a write target, and this module never reads this

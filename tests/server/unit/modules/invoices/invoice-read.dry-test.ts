@@ -99,12 +99,6 @@ function createService(): InstanceType<typeof InvoiceService> {
 
   return new InvoiceService({
     invoiceViewRepository,
-    // The create-side writers are never exercised in these read tests; the
-    // service still constructs real ones via env when omitted, so supply
-    // harmless fakes instead of touching APPSCRIPT_URL/INVOICES_SPREADSHEET_ID.
-    invoiceRepository: { create: async () => ({}) },
-    invoiceItemRepository: { batchAppend: async () => [] },
-    orderFormRepository: { update: async () => ({}) },
   })
 }
 
