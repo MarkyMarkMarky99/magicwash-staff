@@ -1,0 +1,40 @@
+{
+  "id": "CP-20260803-0006",
+  "customer_id": "CUS-1006",
+  "customer_name": "อรทัย พรหมรักษา",
+  "customer_phone": "0882341006",
+  "customer_address": "กรุงเทพมหานคร",
+  "package_code": "PKG-DC-05",
+  "package_name": "Dry Clean 5",
+  "package_eligible_service": "DRY_CLEANING",
+  "start_date": "2026-08-03",
+  "expiry_date": "2026-11-01",
+  "status": "ACTIVE",
+  "service_day": "TUE",
+  "time_slot": "10:00-12:00",
+  "invoice_id": "INV260803006",
+  "notes": "Call before delivery",
+  "remaining_credit": 7,
+  "transactions": [
+    {
+      "id": "TX-20260803-0006",
+      "type": "PURCHASE",
+      "credit_change": 10,
+      "remaining_credit": 10,
+      "reference_source": "INVOICE",
+      "reference_id": "INV260803006",
+      "notes": "Initial package credit",
+      "created_at": "2026-08-03T05:50:00Z"
+    },
+    {
+      "id": "TX-20260804-0006",
+      "type": "USAGE",
+      "credit_change": -3,
+      "remaining_credit": 7,
+      "reference_source": "ORDER_ITEM",
+      "reference_id": "ITEM-260804-1006",
+      "notes": "Dry cleaning order",
+      "created_at": "2026-08-04T08:25:00Z"
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "id": "CP-20260620-0007",
+  "customer_id": "CUS-1007",
+  "customer_name": "พีรพล สุขใจ",
+  "customer_phone": "0912341007",
+  "customer_address": "นครปฐม",
+  "package_code": "PKG-WF-05",
+  "package_name": "Wash & Fold 5",
+  "package_eligible_service": "WASH_FOLD",
+  "start_date": "2026-06-20",
+  "expiry_date": "2026-09-18",
+  "status": "ACTIVE",
+  "service_day": null,
+  "time_slot": null,
+  "invoice_id": "INV260620007",
+  "notes": "Customer pickup only",
+  "remaining_credit": 0,
+  "transactions": [
+    {
+      "id": "TX-20260620-0007",
+      "type": "PURCHASE",
+      "credit_change": 5,
+      "remaining_credit": 5,
+      "reference_source": "INVOICE",
+      "reference_id": "INV260620007",
+      "notes": "Initial package credit",
+      "created_at": "2026-06-20T03:20:00Z"
+    },
+    {
+      "id": "TX-20260701-0007",
+      "type": "USAGE",
+      "credit_change": -2,
+      "remaining_credit": 3,
+      "reference_source": "ORDER_ITEM",
+      "reference_id": "ITEM-260701-1007",
+      "notes": "Laundry order",
+      "created_at": "2026-07-01T10:00:00Z"
+    },
+    {
+      "id": "TX-20260715-0007",
+      "type": "USAGE",
+      "credit_change": -3,
+      "remaining_credit": 0,
+      "reference_source": "ORDER_ITEM",
+      "reference_id": "ITEM-260715-1007",
+      "notes": "Laundry order",
+      "created_at": "2026-07-15T10:20:00Z"
+    }
+  ]
+}

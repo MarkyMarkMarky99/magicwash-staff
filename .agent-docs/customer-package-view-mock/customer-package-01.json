@@ -1,0 +1,50 @@
+{
+  "id": "CP-20260801-0001",
+  "customer_id": "CUS-1001",
+  "customer_name": "สมชาย ใจดี",
+  "customer_phone": "0812341001",
+  "customer_address": "กรุงเทพมหานคร",
+  "package_code": "PKG-WF-10",
+  "package_name": "Wash & Fold 10",
+  "package_eligible_service": "WASH_FOLD",
+  "start_date": "2026-08-01",
+  "expiry_date": "2026-10-29",
+  "status": "ACTIVE",
+  "service_day": "MON",
+  "time_slot": "10:00-12:00",
+  "invoice_id": "INV260801001",
+  "notes": null,
+  "remaining_credit": 7,
+  "transactions": [
+    {
+      "id": "TX-20260801-0001",
+      "type": "PURCHASE",
+      "credit_change": 10,
+      "remaining_credit": 10,
+      "reference_source": "INVOICE",
+      "reference_id": "INV260801001",
+      "notes": "Initial package credit",
+      "created_at": "2026-08-01T09:15:00Z"
+    },
+    {
+      "id": "TX-20260803-0001",
+      "type": "USAGE",
+      "credit_change": -1,
+      "remaining_credit": 9,
+      "reference_source": "ORDER_ITEM",
+      "reference_id": "ITEM-260803-1001",
+      "notes": "Wash and fold order",
+      "created_at": "2026-08-03T11:20:00Z"
+    },
+    {
+      "id": "TX-20260805-0001",
+      "type": "USAGE",
+      "credit_change": -2,
+      "remaining_credit": 7,
+      "reference_source": "ORDER_ITEM",
+      "reference_id": "ITEM-260805-1001",
+      "notes": "Two-piece usage",
+      "created_at": "2026-08-05T13:40:00Z"
+    }
+  ]
+}
