@@ -18,6 +18,11 @@ const canSearch = computed(() => SEARCHABLE_ROUTES.includes(route.path))
 const isGallery = computed(() => route.path.startsWith('/gallery/'))
 
 function goBack() {
+  if (route.name === 'customer-packages-preview') {
+    router.push({ name: 'customer-list' })
+    return
+  }
+
   if (route.name === 'invoice-detail') {
     router.push({ name: 'invoice-list' })
     return
@@ -53,7 +58,7 @@ function goBack() {
 
       <!-- Back button — shown on detail pages -->
       <button
-        v-if="route.name === 'customer-order-history' || route.name === 'invoice-create' || route.name === 'invoice-detail' || isGallery"
+        v-if="route.name === 'customer-packages-preview' || route.name === 'customer-order-history' || route.name === 'invoice-create' || route.name === 'invoice-detail' || isGallery"
         class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
         aria-label="Go back"
         @click="goBack"

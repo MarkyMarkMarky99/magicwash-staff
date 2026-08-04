@@ -5,6 +5,7 @@ import FormOverlayPage from '../pages/FormOverlayPage.vue'
 import { appointmentRoutes } from '@/features/appointments/routes'
 import { invoiceRoutes } from '@/features/invoices/routes'
 import { customerRoutes } from '@/features/customers/routes'
+import { customerPackagePreviewRoutes } from '@/features/customer-packages/preview/routes'
 
 const formModules = import.meta.glob('../components/forms/*.vue')
 
@@ -55,6 +56,7 @@ const routes = [
   ...appointmentRoutes,
   ...customerRoutes,
   ...invoiceRoutes,
+  ...customerPackagePreviewRoutes,
   { path: '/forms',        component: FormsIndexRoute },
   { path: '/forms/:formName', component: FormOverlayPage },
   { path: '/gallery/:key/camera', component: OrderGalleryPage, meta: { openCamera: true } },
