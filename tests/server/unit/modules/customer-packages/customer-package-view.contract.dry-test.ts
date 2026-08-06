@@ -52,14 +52,10 @@ assert.deepEqual(
   'row schema keys must match the sheet columns one-for-one, in sheet order',
 )
 
-// ── Read-only: writing this view must be impossible ─────────────────────────
+// ── The view sheet itself is never written, whatever the API exposes ────────
 assert.equal(customerPackageViewContract.db.primaryKey, 'customerPackageId')
 assert.deepEqual(customerPackageViewContract.db.fieldMap, {})
 assert.equal(customerPackageViewApiContract.response.detail, customerPackageDetailResponseSchema)
-assert.ok(
-  !('request' in customerPackageViewApiContract),
-  'the API contract must expose no write slots',
-)
 assert.throws(
   () => customerPackageViewContract.db.request.create.parse({}),
   'db create slot must be z.never()',
@@ -167,16 +163,23 @@ const orphanRow = {
 
 assert.doesNotThrow(() => customerPackageDetailResponseSchema.parse(orphanRow))
 
-// ── write schemas: defined, but deliberately not mounted yet ────────────────
-// The moment they land in the contract bundle, createCrudRoutes mounts POST and
-// PATCH against a repository that rejects every write.
-assert.ok(
-  !('create' in customerPackageViewApiContract.response),
-  'do not mount create until a write service exists',
+// ── write surface ───────────────────────────────────────────────────────────
+// Both halves of each slot must be present or createCrudRoutes silently skips
+// the route: it mounts POST only when request.create AND response.create exist,
+// and PATCH only when request.update AND response.update do.
+assert.ok(customerPackageViewApiContract.request.create)
+assert.ok(customerPackageViewApiContract.response.create)
+assert.ok(customerPackageViewApiContract.request.update)
+assert.ok(customerPackageViewApiContract.response.update)
+
+// writes answer with the whole document, so a client can replace its copy
+assert.equal(
+  customerPackageViewApiContract.response.create,
+  customerPackageDetailResponseSchema,
 )
-assert.ok(
-  !('update' in customerPackageViewApiContract.response),
-  'do not mount update until a write service exists',
+assert.equal(
+  customerPackageViewApiContract.response.update,
+  customerPackageDetailResponseSchema,
 )
 
 // create: server owns the id, timestamps and opening credit

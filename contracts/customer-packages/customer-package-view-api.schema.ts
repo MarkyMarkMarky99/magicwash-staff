@@ -156,15 +156,16 @@ export const customerPackageUpdateSchema = z.discriminatedUnion('intent', [
 export const customerPackageCreateResponseSchema = customerPackageDetailResponseSchema
 export const customerPackageUpdateResponseSchema = customerPackageDetailResponseSchema
 
-/**
- * Read-only for now. The write slots stay out until the service that fulfils
- * them exists: `createCrudRoutes` mounts POST/PATCH the moment they appear, and
- * this module's repository targets the view, which rejects every write.
- */
 export const customerPackageViewApiContract = {
   query: { list: customerPackageListQuerySchema },
+  request: {
+    create: customerPackageCreateSchema,
+    update: customerPackageUpdateSchema,
+  },
   response: {
     list: customerPackageListResponseSchema,
     detail: customerPackageDetailResponseSchema,
+    create: customerPackageCreateResponseSchema,
+    update: customerPackageUpdateResponseSchema,
   },
 } satisfies ModuleApiContract
