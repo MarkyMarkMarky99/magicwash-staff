@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 const environmentKeys = [
   'APPSCRIPT_URL',
   'ORDERS_SPREADSHEET_ID',
+  'PORTAL_SPREADSHEET_ID',
   'APPOINTMENTS_SPREADSHEET_ID',
   'CUSTOMERS_SPREADSHEET_ID',
   'INVOICES_SPREADSHEET_ID',
@@ -36,6 +37,7 @@ const [
 
 process.env.APPSCRIPT_URL = 'https://script.example/exec'
 process.env.ORDERS_SPREADSHEET_ID = 'orders-spreadsheet-id'
+process.env.PORTAL_SPREADSHEET_ID = 'portal-spreadsheet-id'
 process.env.APPOINTMENTS_SPREADSHEET_ID = 'appointments-spreadsheet-id'
 process.env.CUSTOMERS_SPREADSHEET_ID = 'customers-spreadsheet-id'
 process.env.INVOICES_SPREADSHEET_ID = 'invoices-spreadsheet-id'

@@ -13,7 +13,7 @@ import type { ApiHandlerRequest } from '../../../../server/shared/http/api-handl
 
 process.env.APPSCRIPT_URL = 'https://script.example/exec'
 process.env.INVOICES_SPREADSHEET_ID = 'invoices-spreadsheet-id'
-process.env.ORDERS_SPREADSHEET_ID = 'orders-spreadsheet-id'
+process.env.PORTAL_SPREADSHEET_ID = 'portal-spreadsheet-id'
 
 const { invoiceRoutes } = await import('../../../../server/modules/invoices/invoice.module.js')
 

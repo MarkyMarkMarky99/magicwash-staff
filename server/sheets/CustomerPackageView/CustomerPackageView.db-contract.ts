@@ -35,6 +35,6 @@ export const customerPackageViewDbContract = {
   // Database column: customerPackageId, as declared by the schema registry.
   primaryKey: 'customerPackageId',
   sheetName: 'CustomerPackageView',
-  spreadsheetId: 'ORDERS_SPREADSHEET_ID',
+  spreadsheetId: 'PORTAL_SPREADSHEET_ID',
   writes: { append: false, update: false, delete: false },
 } satisfies SheetContract

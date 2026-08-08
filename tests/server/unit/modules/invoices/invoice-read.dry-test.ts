@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import type { z } from 'zod'
 
-process.env.ORDERS_SPREADSHEET_ID = 'spreadsheet-id'
+process.env.PORTAL_SPREADSHEET_ID = 'spreadsheet-id'
 process.env.TEST_SCRIPT_URL = 'https://script.example/exec'
 
 const { InvoiceService } = await import('../../../../../server/modules/invoices/invoice.service.js')

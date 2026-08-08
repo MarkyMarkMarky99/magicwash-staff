@@ -47,6 +47,6 @@ export const invoicesViewDbContract = {
   // Database column: invoiceNumber, as declared by the schema registry.
   primaryKey: 'invoiceNumber',
   sheetName: 'InvoicesView',
-  spreadsheetId: 'ORDERS_SPREADSHEET_ID',
+  spreadsheetId: 'PORTAL_SPREADSHEET_ID',
   writes: { append: false, update: false, delete: false },
 } satisfies SheetContract

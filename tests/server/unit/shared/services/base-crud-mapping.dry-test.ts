@@ -134,7 +134,7 @@ function mapReadQueryToDb(
 }
 
 async function main(): Promise<void> {
-  process.env.ORDERS_SPREADSHEET_ID = 'mapping-characterization-spreadsheet-id'
+  process.env.PORTAL_SPREADSHEET_ID = 'mapping-characterization-spreadsheet-id'
   process.env.APPSCRIPT_URL = 'https://script.example/mapping-characterization'
 
   await withMockFetch(async (calls) => {

@@ -11,7 +11,7 @@ import assert from 'node:assert/strict'
 //    repository constructor which reads env. ESM evaluates imports before the
 //    module body, so the env has to be set first and the modules pulled in with
 //    a dynamic import inside each test rather than a static one at the top. ──
-process.env.ORDERS_SPREADSHEET_ID = 'characterization-spreadsheet-id'
+process.env.PORTAL_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 process.env.APPOINTMENTS_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 process.env.APPSCRIPT_URL = 'https://script.example/characterization'
 

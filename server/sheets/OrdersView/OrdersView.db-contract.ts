@@ -23,6 +23,6 @@ export const ordersViewDbContract = {
   // Database column: order_id, as declared by the schema registry.
   primaryKey: 'order_id',
   sheetName: 'OrdersView',
-  spreadsheetId: 'ORDERS_SPREADSHEET_ID',
+  spreadsheetId: 'PORTAL_SPREADSHEET_ID',
   writes: { append: false, update: false, delete: false },
 } satisfies SheetContract

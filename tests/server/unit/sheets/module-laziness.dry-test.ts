@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 
 const relevantEnvironmentKeys = [
-  'ORDERS_SPREADSHEET_ID',
+  'PORTAL_SPREADSHEET_ID',
   'CUSTOMERS_SPREADSHEET_ID',
   'APPOINTMENTS_SPREADSHEET_ID',
   'APPSCRIPT_URL',
