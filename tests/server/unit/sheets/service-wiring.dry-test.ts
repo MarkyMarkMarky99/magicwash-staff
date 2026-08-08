@@ -28,12 +28,13 @@ function test(name: string, run: () => Promise<void>): void {
   tests.push({ name, run })
 }
 
-function response(text: string): Response {
+function response(text: string, json?: unknown): Response {
   return {
     ok: true,
     status: 200,
     statusText: 'OK',
     text: async () => text,
+    json: async () => json,
   } as Response
 }
 
@@ -199,7 +200,7 @@ test('Appointments service wiring flattens the Address snapshot', async () => {
     Location: 'Bangkok',
   })
   const body = gvizBody(
-    ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q'],
+    ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'],
     [
       'APPT-a1b2c3d4',
       'customer-1',
@@ -216,8 +217,6 @@ test('Appointments service wiring flattens the Address snapshot', async () => {
       'staff-1',
       null,
       'STANDARD',
-      null,
-      null,
     ],
   )
 
@@ -234,6 +233,70 @@ test('Appointments service wiring flattens the Address snapshot', async () => {
       assert.equal(row.phone, '0812345678')
       assert.equal(row.location, 'Bangkok')
       assert.equal(row.address, '123 Main Road')
+    },
+  )
+})
+
+test('Appointments create wiring packs Address and uses the DB primary-key column', async () => {
+  await withMockFetch(
+    async (_url, init) => {
+      const request = JSON.parse(init?.body as string) as {
+        data: Record<string, unknown>
+      }
+      return response('', {
+        status: 'ok',
+        target: 'Appointment',
+        data: {
+          ...request.data,
+          UpdatedBy: null,
+        },
+      })
+    },
+    async (calls) => {
+      const result = await (await productionAppointmentService()).create({
+        customerId: 'customer-1',
+        customerName: 'ธนวดี',
+        customerCode: 'WIX',
+        phone: '0917382178',
+        address: '123 Main Road',
+        location: 'https://maps.example/appointment',
+        appointmentType: 'DELIVERY',
+        appointmentDate: '2026-02-29',
+        timeSlot: '18:00-20:00',
+        createdBy: 'test-user',
+      })
+
+      assert.equal(calls.length, 1)
+      const request = JSON.parse(calls[0].init?.body as string) as {
+        resource: string
+        action: string
+        target: string
+        data: Record<string, unknown>
+      }
+      assert.deepEqual(
+        {
+          resource: request.resource,
+          action: request.action,
+          target: request.target,
+        },
+        { resource: 'sheet', action: 'APPEND', target: 'Appointment' },
+      )
+      assert.match(String(request.data.AppointmentID), /^APPT-[0-9a-f]{8}$/)
+      assert.equal(request.data.appointmentId, undefined)
+      assert.equal(request.data.CustomerID, 'customer-1')
+      assert.deepEqual(JSON.parse(request.data.Address as string), {
+        CustomerName: 'ธนวดี',
+        CustomerLabel: 'WIX',
+        Phone: '0917382178',
+        Address: '123 Main Road',
+        Location: 'https://maps.example/appointment',
+      })
+      assert.equal(request.data.customerName, undefined)
+      assert.equal(request.data.customerCode, undefined)
+      assert.equal(request.data.phone, undefined)
+      assert.equal(request.data.location, undefined)
+      assert.equal(request.data.DeletedAt, undefined)
+      assert.equal(result.customerName, 'ธนวดี')
     },
   )
 })

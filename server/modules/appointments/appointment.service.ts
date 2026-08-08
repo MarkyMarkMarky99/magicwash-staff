@@ -3,15 +3,22 @@ import type { z } from 'zod'
 import type {
   ApiRowFromFieldMap,
   BaseRepository,
+  RepositoryTransformer,
 } from '../../shared/repositories/base.repository.js'
 import type { OmitReservedQueryFields } from '../../shared/dtos/read-query.dto.js'
 import { BaseCrudService } from '../../shared/services/base-crud.service.js'
+import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
 import { appointmentContract } from './appointment.contract.js'
+import { appointmentsRowSchema } from '../../sheets/Appointments/Appointments.db-contract.js'
 
 export type AppointmentDbRow = z.infer<typeof appointmentContract.db.row>
+export type AppointmentSheetDbRow = z.infer<typeof appointmentsRowSchema>
 export type AppointmentApiRow = ApiRowFromFieldMap<
   AppointmentDbRow,
   typeof appointmentContract.db.fieldMap
+>
+export type AppointmentSheetFieldMap = Partial<
+  Record<keyof AppointmentSheetDbRow & string, string>
 >
 export type AppointmentListQuery = z.infer<typeof appointmentContract.api.query.list>
 export type AppointmentReadWhere = OmitReservedQueryFields<AppointmentListQuery>
@@ -41,8 +48,17 @@ export type AppointmentRepository = BaseRepository<
   AppointmentUpdateInput
 >
 
+export type AppointmentSheetRepository = SheetRepositoryContract<AppointmentSheetDbRow>
+
 export interface AppointmentServiceOptions {
-  repository: AppointmentRepository
+  repository:
+    | AppointmentRepository
+    | AppointmentSheetRepository
+    | (() => AppointmentSheetRepository)
+  /** Supplied by the migrated module to select the DB-shaped sheet path. */
+  fieldMap?: AppointmentSheetFieldMap
+  /** Supplied by the migrated module for the Address snapshot shape change. */
+  transformer?: RepositoryTransformer
   generateAppointmentId?: () => string
   now?: () => Date
 }
@@ -60,7 +76,9 @@ export class AppointmentService extends BaseCrudService<
   AppointmentListResponse,
   AppointmentDetailResponse,
   AppointmentCreateResponse,
-  AppointmentUpdateResponse
+  AppointmentUpdateResponse,
+  AppointmentSheetDbRow,
+  AppointmentSheetFieldMap
 > {
   private readonly generateAppointmentId: () => string
   private readonly now: () => Date
@@ -70,6 +88,8 @@ export class AppointmentService extends BaseCrudService<
       repository: input.repository,
       api: appointmentContract.api,
       searchFields: ['appointmentId', 'customerId', 'notes'],
+      fieldMap: input.fieldMap,
+      transformer: input.transformer,
     })
     this.generateAppointmentId = input.generateAppointmentId ?? defaultAppointmentId
     this.now = input.now ?? (() => new Date())

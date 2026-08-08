@@ -2,6 +2,8 @@ import {
   Mapper,
   type ApiRowFromFieldMap,
   type BaseRepository,
+  type RepositoryRequest,
+  type RepositoryTransformer,
 } from '../repositories/base.repository.js'
 import type { SheetRepositoryContract } from '../repositories/sheet-repository.contract.js'
 import {
@@ -92,6 +94,9 @@ export interface BaseCrudServiceOptions<
 
   /** Explicit JSON text columns for a DB-shaped repository. */
   jsonColumns?: JsonColumnMap
+
+  /** Optional module-owned structural transform around DB-shaped transport. */
+  transformer?: RepositoryTransformer
 }
 
 export class BaseCrudService<
@@ -117,6 +122,7 @@ export class BaseCrudService<
   private readonly dbRepository?: RepositoryProvider<SheetRepositoryContract<TDbRow>>
   private readonly mapper: Mapper
   private readonly jsonColumns: JsonColumnMap
+  private readonly transformer?: RepositoryTransformer
   private readonly api: ModuleApiContractOf<
     TListQuery,
     TCreate,
@@ -144,11 +150,16 @@ export class BaseCrudService<
   ) {
     this.mapper = new Mapper((input.fieldMap ?? {}) as Record<string, string>)
     this.jsonColumns = input.jsonColumns ?? {}
+    this.transformer = input.transformer
 
     // The presence of an explicitly supplied mapping option selects the new
     // DB-shaped repository path. Existing consumers omit both options and
     // retain their API-shaped BaseRepository behavior exactly.
-    if (input.fieldMap !== undefined || input.jsonColumns !== undefined) {
+    if (
+      input.fieldMap !== undefined ||
+      input.jsonColumns !== undefined ||
+      input.transformer !== undefined
+    ) {
       this.dbRepository = input.repository as SheetRepositoryContract<TDbRow>
     } else {
       this.apiRepository = input.repository as BaseRepository<
@@ -268,8 +279,17 @@ export class BaseCrudService<
       return resolveRepository(this.apiRepository!).read(query)
     }
 
-    const dbRows = await resolveRepository(this.dbRepository).read(this.mapReadQueryToDb(query))
-    return dbRows.map((row) => this.mapDbRowToApi(row)) as Array<Partial<TApiRow>>
+    const dbQuery = this.mapReadQueryToDb(query)
+    const dbRows = await resolveRepository(this.dbRepository).read(dbQuery)
+    const transformedRows = await Promise.all(
+      dbRows.map((row) =>
+        this.transformDbResponse(row, {
+          operation: 'read',
+          query: dbQuery,
+        }),
+      ),
+    )
+    return transformedRows.map((row) => this.mapDbRowToApi(row)) as Array<Partial<TApiRow>>
   }
 
   private async createRow(data: TCreate): Promise<TApiRow> {
@@ -277,10 +297,15 @@ export class BaseCrudService<
       return resolveRepository(this.apiRepository!).create(data)
     }
 
+    const request = await this.transformDbRequest({
+      operation: 'create',
+      data: this.mapper.toDb(data as Record<string, unknown>),
+    })
     const dbRow = await resolveRepository(this.dbRepository).append(
-      this.mapper.toDb(data as Record<string, unknown>) as Partial<TDbRow>,
+      request.data as Partial<TDbRow>,
     )
-    return this.mapDbRowToApi(dbRow) as TApiRow
+    const transformedRow = await this.transformDbResponse(dbRow, request)
+    return this.mapDbRowToApi(transformedRow) as TApiRow
   }
 
   private async updateRow(id: string, data: TUpdate): Promise<TApiRow> {
@@ -288,11 +313,35 @@ export class BaseCrudService<
       return resolveRepository(this.apiRepository!).update(id, data)
     }
 
+    const request = await this.transformDbRequest({
+      operation: 'update',
+      data: this.mapper.toDb(data as Record<string, unknown>),
+    })
     const dbRow = await resolveRepository(this.dbRepository).update(
       id,
-      this.mapper.toDb(data as Record<string, unknown>) as Partial<TDbRow>,
+      request.data as Partial<TDbRow>,
     )
-    return this.mapDbRowToApi(dbRow) as TApiRow
+    const transformedRow = await this.transformDbResponse(dbRow, request)
+    return this.mapDbRowToApi(transformedRow) as TApiRow
+  }
+
+  private async transformDbRequest(
+    request: RepositoryRequest<unknown, unknown>,
+  ): Promise<RepositoryRequest<unknown, unknown>> {
+    if (this.transformer?.request === undefined) {
+      return request
+    }
+    return await this.transformer.request(request)
+  }
+
+  private async transformDbResponse(
+    response: unknown,
+    request: RepositoryRequest<unknown, unknown>,
+  ): Promise<Partial<TDbRow>> {
+    const transformed = this.transformer?.response
+      ? await this.transformer.response(response, { request })
+      : response
+    return transformed as Partial<TDbRow>
   }
 
   private mapReadQueryToDb(
