@@ -34,6 +34,60 @@ use case/route แต่ physical sheet คือ resource ที่ใช้ร
 
 ---
 
+## สถานะ (ปิด Phase 1 — 2026-08-09)
+
+**Phase 1 เสร็จครบทุกขั้น (1.1–1.8)** อยู่บน `refactor/sheet-layer` ยังไม่ merge เข้า main
+Phase 2 ยังไม่เริ่ม
+
+ผลลัพธ์: 1 repository ต่อ 1 physical sheet, repository ไม่รู้จัก API contract, DB↔API mapping
+อยู่ที่ module, `primaryKey` เป็นชื่อคอลัมน์ DB จริง, **module→module edge = 0** (ปัญหาตั้งต้น)
+และ stack เก่า (`GSheetRepository`, `ModuleContract`, module contract/repository เดิม) ถูกลบทิ้ง
+สุทธิ −3,900 บรรทัด
+
+### ยืนยันบน Google Sheets จริงแล้ว (preview deploy)
+
+`/api/invoices` `customer` เป็น object · `/api/customer-packages/:id` `transactions` เป็น array ·
+`/api/appointments` `Address` แกะเป็น 4 ฟิลด์แบน · `/api/orders` `items` เป็น array, `quantity`
+เป็น number — **การอ่านครบทั้ง 5 module**
+
+### ⬜ ยังค้าง — ต้องทำก่อน merge เข้า main
+
+**เส้นทางเขียนยังไม่เคยยืนยันกับของจริง** invoice create เขียน 4 ชีต ไม่ idempotent
+ไม่มีเทสต์อัตโนมัติครอบได้ ต้องกดผ่าน staff UI 1 ครั้งด้วย order ที่ทิ้งได้ แล้วเปิดชีตตรวจ:
+`Invoices.customer`/`.adjustments` ต้องเป็น JSON string ที่ parse ได้ (ไม่ใช่ `[object Object]`),
+`InvoiceItems` แถวครบและ `sku` ว่างไม่ใช่คอลัมน์เลื่อน, `OrderForm.invoice_id` ถูกเขียน
+บันทึกผลลง `docs/sheets-api-migration-smoke-checklist.md`
+
+### สิ่งที่ทำต่างจากแผนนี้ — ตั้งใจ ไม่ใช่ของตกหล่น
+
+- **`decodeJsonCells` ถูกถอดออกจาก database layer ทั้งหมด** แผนเดิม (§1.9) บอกให้เก็บไว้ใน repo
+  เจ้าของโปรเจกต์ตัดสินว่า JSON ใน cell ไม่ใช่โครงสร้างจริง เป็นวิธี materialize portal view
+  ⇒ คอลัมน์ nested ประกาศเป็น `z.string()` และ module parse เองผ่าน `jsonColumns`
+- **backend เลิก normalize วันที่ GViz** — format เป็นหน้าที่ frontend `/api/orders` จึงคืน
+  `Date(y,m,d)` เหมือน `/api/invoices` และ `/api/appointments` ที่ทำแบบนี้อยู่แล้ว
+  นี่เป็น behavior change ที่ตั้งใจ และเป็นจุดเดียวที่ characterization test ถูกแก้
+- **Customers write ตัดออกจาก scope** (M3) — เขียนผ่าน `appscript/customer-sheet/API.js`
+  ซึ่งเป็น Apps Script คนละโปรเจกต์ที่มี lock + CustomerIndex allocation + LINE notification
+  route POST/PATCH คงไว้ให้ fail แบบเดิม ไม่ถอดออก
+- **`Invoices`/`InvoiceItems` ยังไม่มี `spreadsheetId`** ต่างจากตาราง §1.5 — สองชีตนี้เขียน
+  อย่างเดียวไม่เคยอ่าน และ `INVOICES_SPREADSHEET_ID` ยังไม่มีบน Vercel ⇒ เพิ่มตอน §2.0
+- **`sheet-column-parity.ts` ไม่มีในแผนเดิม** เกิดจากบั๊กที่ทำ `/api/appointments` ล่มบน preview
+
+### บทเรียนที่แผนนี้ทำนายไม่ถูก
+
+§1.9 เตือนเรื่อง **ลำดับ** คอลัมน์ แต่สิ่งที่ระเบิดจริงคือ **จำนวน** คอลัมน์ — ชีต Appointments
+มี 17 คอลัมน์ แต่ registry ประกาศ 15 เราเชื่อ registry แล้วตัด `DeletedAt`/`DeletedBy` ทิ้ง
+GViz คืนคอลัมน์ที่ resolve ไม่ได้ → `tableToRows` throw → `INTERNAL_ERROR` บน production
+
+typecheck + dry-test 25 ไฟล์ + `npm run build` ไม่จับเลย เพราะ **fixture ถูกแก้ให้ตรงกับโค้ด
+แทนที่จะตรงกับชีต** — characterization test ที่บันทึกสิ่งที่โค้ดทำ แย่กว่าไม่มีเทสต์
+
+⇒ **registry เป็นเอกสารและตกยุคได้ ชีตคือความจริง** เวลาชุดคอลัมน์สำคัญให้ยืนยันกับชีตจริง
+ด้วย `tests/server/integration/sheet-column-parity.ts` ก่อน deploy ทุกครั้งที่แตะ contract
+(registry ถูกแก้ให้ตรงแล้วเมื่อ 2026-08-09 โดยได้รับอนุญาตเฉพาะครั้งนั้น)
+
+---
+
 ## แยกเป็น 2 เฟส
 
 การแยกนี้เป็นไปได้เพราะ `SheetRepository` เป็น **คลาสกลางคลาสเดียว** — พอมันไม่รู้จัก API แล้ว

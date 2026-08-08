@@ -58,6 +58,20 @@ async function productionCustomerService() {
   return customerService
 }
 
+async function productionCustomerRoutes() {
+  const { customerRoutes } = await import(
+    '../../../../server/modules/customers/customer.module.js'
+  )
+  return customerRoutes
+}
+
+async function productionCustomersRepository() {
+  const { getCustomersRepository } = await import(
+    '../../../../server/sheets/Customers/Customers.repository.js'
+  )
+  return getCustomersRepository()
+}
+
 test('Customers service wiring maps rows, folds detail ids, and preserves write failure', async () => {
   process.env.CUSTOMERS_SPREADSHEET_ID = 'characterization-spreadsheet-id'
   process.env.APPSCRIPT_URL = 'https://script.example/characterization'
@@ -124,6 +138,30 @@ test('Customers service wiring maps rows, folds detail ids, and preserves write 
             phone: '1234567890',
             updatedBy: 'test-user',
           }),
+        /SheetRepository writes require an explicit SheetLib target/,
+      )
+      assert.equal(calls.length, 0)
+    },
+  )
+
+  await withMockFetch(
+    async () => response(body),
+    async (calls) => {
+      const routes = await productionCustomerRoutes()
+      const repository = await productionCustomersRepository()
+
+      const methodNotAllowed = await routes.item?.handleRequest({
+        method: 'OPTIONS',
+        query: {},
+        body: undefined,
+        headers: {},
+        params: { id: 'e6741c92' },
+      })
+      assert.equal(methodNotAllowed?.status, 405)
+      assert.match(methodNotAllowed?.headers?.Allow ?? '', /PATCH/)
+
+      await assert.rejects(
+        () => repository.update('e6741c92', { CustomerName: 'TR' }),
         /SheetRepository writes require an explicit SheetLib target/,
       )
       assert.equal(calls.length, 0)
