@@ -12,17 +12,16 @@ import {
   roundMoney,
 } from '../../../contracts/invoices/invoice-calculator.js'
 import {
-  invoiceApiCreateSchema,
-  invoiceItemApiCreateSchema,
   type InvoiceAdjustment,
-  type InvoiceApiCreateCommand,
-  type InvoiceItemApiCreateCommand,
 } from './invoice.contract.js'
-import { orderFormApiUpdateSchema, type OrderFormApiUpdateCommand } from '../orders/order.contract.js'
-import { getInvoiceRepository, getInvoiceItemRepository } from './invoice.repository.js'
+import { getInvoicesRepository } from '../../sheets/Invoices/Invoices.repository.js'
+import { invoicesRowSchema } from '../../sheets/Invoices/Invoices.db-contract.js'
+import { getInvoiceItemsRepository } from '../../sheets/InvoiceItems/InvoiceItems.repository.js'
+import { invoiceItemsRowSchema } from '../../sheets/InvoiceItems/InvoiceItems.db-contract.js'
 import { getInvoicesViewRepository } from '../../sheets/InvoicesView/InvoicesView.repository.js'
 import { invoicesViewRowSchema } from '../../sheets/InvoicesView/InvoicesView.db-contract.js'
-import { getOrderFormRepository } from '../orders/order.repository.js'
+import { getOrderFormRepository } from '../../sheets/OrderForm/OrderForm.repository.js'
+import { orderFormRowSchema } from '../../sheets/OrderForm/OrderForm.db-contract.js'
 import { syncInvoiceView as defaultSyncInvoiceView } from './invoice-view-sync-client.js'
 import type { InvoiceViewSyncResult } from './invoice-view-sync-client.js'
 import { SheetLibRejectedError, SheetLibTransportError } from '../../shared/repositories/sheetlib-errors.js'
@@ -43,6 +42,73 @@ import type { SheetRepositoryContract } from '../../shared/repositories/sheet-re
  * one named constant so switching to a real actor is a one-line change.
  */
 export const INVOICE_CREATED_BY = 'staff'
+
+type InvoicesDbRow = z.infer<typeof invoicesRowSchema>
+type InvoiceItemsDbRow = z.infer<typeof invoiceItemsRowSchema>
+type OrderFormDbRow = z.infer<typeof orderFormRowSchema>
+
+/** DB column -> API/domain field, derived from the Invoices sheet contract. */
+export const invoicesFieldMap = {
+  invoice_number: 'invoiceNumber',
+  status: 'status',
+  billing_type: 'billingType',
+  billing_period_start: 'billingPeriodStart',
+  billing_period_end: 'billingPeriodEnd',
+  issued_date: 'issuedDate',
+  due_date: 'dueDate',
+  customer_id: 'customerId',
+  customer: 'customer',
+  adjustments: 'adjustments',
+  created_by: 'createdBy',
+  created_at: 'createdAt',
+  updated_at: 'updatedAt',
+  updated_by: 'updatedBy',
+  deleted_at: 'deletedAt',
+  deleted_by: 'deletedBy',
+} as const satisfies Record<keyof InvoicesDbRow & string, string>
+
+/** DB column -> API/domain field, derived from the InvoiceItems sheet contract. */
+export const invoiceItemsFieldMap = {
+  invoice_number: 'invoiceNumber',
+  invoice_item_id: 'invoiceItemId',
+  item_no: 'itemNo',
+  source_order_id: 'sourceOrderId',
+  source_item_id: 'sourceItemId',
+  sku: 'sku',
+  service_type: 'serviceType',
+  description: 'description',
+  quantity: 'quantity',
+  unit: 'unit',
+  unit_price: 'unitPrice',
+  subtotal: 'subtotal',
+  adjustments: 'adjustments',
+  net_total: 'netTotal',
+} as const satisfies Record<keyof InvoiceItemsDbRow & string, string>
+
+/** DB column -> API/domain field, derived from the OrderForm sheet contract. */
+export const orderFormFieldMap = {
+  id: 'id',
+  order_number: 'orderNumber',
+  customer_id: 'customerId',
+  received_date: 'receivedDate',
+  due_date: 'dueDate',
+  service_type: 'serviceType',
+  status: 'status',
+  quantity: 'quantity',
+  hangers: 'hangers',
+  bags: 'bags',
+  hangers_image: 'hangersImage',
+  bags_image: 'bagsImage',
+  form_image: 'formImage',
+  note: 'note',
+  timestamp: 'timestamp',
+  created_by: 'createdBy',
+  updated_at: 'updatedAt',
+  updated_by: 'updatedBy',
+  invoice_id: 'invoiceId',
+  order_name: 'orderName',
+  order_description: 'orderDescription',
+} as const satisfies Record<keyof OrderFormDbRow & string, string>
 
 /** The one id scheme used across this codebase: the first 8 hex characters
  *  of `crypto.randomUUID()` (its first hyphen-delimited group, no stripping
@@ -81,8 +147,8 @@ interface WriteFailure {
  * previous `Error`-only catch could not.
  *
  * Any error that is neither typed class (a genuine programmer bug, or a
- * post-write validation failure inside `GSheetRepository` itself — see
- * `SheetLibTransportError`'s use in `gsheet.repository.ts` for the
+ * post-write validation failure inside `SheetRepository` itself — see
+ * `SheetLibTransportError`'s use in `sheet.repository.ts` for the
  * batch-response-shape checks that fire AFTER the gateway already answered
  * ok) is classified `'unknown'`, never `'rejected'` — this service never
  * claims certainty it doesn't actually have.
@@ -100,17 +166,17 @@ function classifyWriteFailure(error: unknown): WriteFailure {
   return { certainty: 'unknown', message: error instanceof Error ? error.message : String(error) }
 }
 
-/** Minimal write-side ports `InvoiceService` depends on — real `GSheetRepository`
+/** Minimal write-side ports `InvoiceService` depends on — real `SheetRepository`
  *  instances satisfy these structurally; tests inject fakes that record calls
- *  without needing to extend `BaseRepository`/mock `fetch`. */
+ *  without needing to extend the repository or mock `fetch`. */
 export interface InvoiceHeaderWriter {
-  create(data: InvoiceApiCreateCommand): Promise<unknown>
+  append(data: Partial<InvoicesDbRow>): Promise<unknown>
 }
 export interface InvoiceItemWriter {
-  batchAppend(rows: InvoiceItemApiCreateCommand[]): Promise<unknown[]>
+  batchAppend(rows: Array<Partial<InvoiceItemsDbRow>>): Promise<unknown[]>
 }
 export interface OrderFormWriter {
-  update(id: string, data: OrderFormApiUpdateCommand): Promise<unknown>
+  update(id: string, data: Partial<OrderFormDbRow>): Promise<unknown>
 }
 export type ViewSyncFn = (invoiceNumber: string) => Promise<InvoiceViewSyncResult>
 
@@ -184,9 +250,9 @@ function adaptInvoiceViewReader(reader: InvoiceViewReader): InvoicesViewReposito
 }
 
 export interface InvoiceServiceOptions {
-  invoiceRepository?: InvoiceHeaderWriter
-  invoiceItemRepository?: InvoiceItemWriter
-  orderFormRepository?: OrderFormWriter
+  invoiceRepository?: () => InvoiceHeaderWriter
+  invoiceItemRepository?: () => InvoiceItemWriter
+  orderFormRepository?: () => OrderFormWriter
   invoiceViewRepository?: InvoiceViewReader
   syncInvoiceView?: ViewSyncFn
   generateItemId?: () => string
@@ -234,14 +300,11 @@ export class InvoiceService {
   >
 
   constructor(options: InvoiceServiceOptions = {}) {
-    let invoiceRepository = options.invoiceRepository
-    this.invoiceRepository = () => invoiceRepository ??= getInvoiceRepository()
+    this.invoiceRepository = options.invoiceRepository ?? getInvoicesRepository
 
-    let invoiceItemRepository = options.invoiceItemRepository
-    this.invoiceItemRepository = () => invoiceItemRepository ??= getInvoiceItemRepository()
+    this.invoiceItemRepository = options.invoiceItemRepository ?? getInvoiceItemsRepository
 
-    let orderFormRepository = options.orderFormRepository
-    this.orderFormRepository = () => orderFormRepository ??= getOrderFormRepository()
+    this.orderFormRepository = options.orderFormRepository ?? getOrderFormRepository
 
     let invoiceViewRepository = options.invoiceViewRepository
     this.invoiceViewRepository = () =>
@@ -299,27 +362,27 @@ export class InvoiceService {
       }),
     )
 
-    const itemCommands: InvoiceItemApiCreateCommand[] = request.items.map((item, index) =>
-      invoiceItemApiCreateSchema.parse({
-        invoiceNumber: request.invoiceNumber,
-        invoiceItemId: this.generateItemId(),
-        itemNo: index + 1, // 1-based, derived from array position — never client-sent
-        // The invoice's single sourceOrderId, fanned out onto every row —
-        // there is no per-line sourceOrderId in this request anymore.
-        sourceOrderId: request.sourceOrderId,
-        // Always null in this first version — no per-item traceability, only
-        // per-order via sourceOrderId above.
-        sourceItemId: null,
-        serviceType: null,
-        description: item.description,
-        quantity: item.quantity,
-        unit: item.unit ?? null,
-        unitPrice: item.unitPrice,
-        subtotal: lineCalculations[index].subtotal,
-        adjustments: item.adjustments.map(toDbAdjustment),
-        netTotal: lineCalculations[index].netTotal,
-      }),
-    )
+    const itemCommands: Array<Partial<InvoiceItemsDbRow>> = request.items.map((item, index) => ({
+      invoice_number: request.invoiceNumber,
+      invoice_item_id: this.generateItemId(),
+      item_no: index + 1, // 1-based, derived from array position — never client-sent
+      // The invoice's single sourceOrderId, fanned out onto every row —
+      // there is no per-line sourceOrderId in this request anymore.
+      source_order_id: request.sourceOrderId,
+      // Always null in this first version — no per-item traceability, only
+      // per-order via sourceOrderId above.
+      source_item_id: null,
+      service_type: null,
+      description: item.description,
+      quantity: item.quantity,
+      unit: item.unit ?? null,
+      unit_price: item.unitPrice,
+      subtotal: lineCalculations[index].subtotal,
+      // InvoiceItems.adjustments is a text cell; serialize it before the row
+      // reaches SheetRepository/SheetLib.
+      adjustments: JSON.stringify(item.adjustments.map(toDbAdjustment)),
+      net_total: lineCalculations[index].netTotal,
+    }))
 
     // ── Items first, as ONE batch — never a loop. See invoice.contract.ts's
     //    write-sequence comment for why this ordering is load-bearing. ──
@@ -330,28 +393,31 @@ export class InvoiceService {
       return { kind: 'items_write_failed', message: failure.message, certainty: failure.certainty }
     }
 
-    const invoiceCommand: InvoiceApiCreateCommand = invoiceApiCreateSchema.parse({
-      invoiceNumber: request.invoiceNumber,
+    const customerSnapshot = {
+      customer_code: request.customer.customerCode,
+      customer_name: request.customer.customerName,
+      ...(request.customer.phone !== undefined ? { phone: request.customer.phone } : {}),
+      ...(request.customer.address !== undefined ? { address: request.customer.address } : {}),
+    }
+    const invoiceCommand: Partial<InvoicesDbRow> = {
+      invoice_number: request.invoiceNumber,
       status: 'ISSUED',
-      billingType: 'ORDER',
-      issuedDate: request.issuedDate,
-      dueDate: request.dueDate,
+      billing_type: 'ORDER',
+      issued_date: request.issuedDate,
+      due_date: request.dueDate,
       // Denormalized so GViz can filter without reaching into the JSON
       // snapshot — must equal customer.customer_code exactly.
-      customerId: request.customer.customerCode,
-      customer: {
-        customer_code: request.customer.customerCode,
-        customer_name: request.customer.customerName,
-        ...(request.customer.phone !== undefined ? { phone: request.customer.phone } : {}),
-        ...(request.customer.address !== undefined ? { address: request.customer.address } : {}),
-      },
-      adjustments: request.adjustments.map(toDbAdjustment),
-      createdBy: this.createdBy,
+      customer_id: request.customer.customerCode,
+      // Invoices.customer and Invoices.adjustments are text cells; serialize
+      // them before the row reaches SheetRepository/SheetLib.
+      customer: JSON.stringify(customerSnapshot),
+      adjustments: JSON.stringify(request.adjustments.map(toDbAdjustment)),
+      created_by: this.createdBy,
       // created_at: omitted — Apps Script auto-stamps it.
-    })
+    }
 
     try {
-      await this.invoiceRepository().create(invoiceCommand)
+      await this.invoiceRepository().append(invoiceCommand)
     } catch (error) {
       // ⚠ Worst-case outcome: the item batch above already succeeded, so
       // itemCommands.length rows now exist referencing an invoice_number
@@ -376,13 +442,11 @@ export class InvoiceService {
     //    retry would create a SECOND invoice for money that's already
     //    correctly billed. ──
     try {
-      await this.orderFormRepository().update(
-        request.sourceOrderId,
-        orderFormApiUpdateSchema.parse({
-          invoiceId: request.invoiceNumber,
-          updatedBy: this.createdBy,
-        }),
-      )
+      await this.orderFormRepository().update(request.sourceOrderId, {
+        invoice_id: request.invoiceNumber,
+        updated_by: this.createdBy,
+        // updated_at: omitted — SheetLib stamps it on UPDATE.
+      })
     } catch (error) {
       return {
         kind: 'order_link_failed',

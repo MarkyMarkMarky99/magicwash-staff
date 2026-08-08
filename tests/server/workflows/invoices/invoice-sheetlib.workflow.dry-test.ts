@@ -123,12 +123,25 @@ async function main(): Promise<void> {
       // net_total server-computed: FIXED -10 per unit × quantity 10 = 400, not 490.
       assert.equal(itemRows[0].net_total, 400)
       assert.equal(itemRows[1].net_total, 60)
+      assert.equal(
+        itemRows[0].adjustments,
+        JSON.stringify([{ label: 'Line discount', calculation: 'FIXED', value: -10 }]),
+        'InvoiceItems.adjustments must be serialized before SheetLib receives the DB row',
+      )
+      assert.equal(itemRows[1].adjustments, '[]')
 
       // ── Invoice: one APPEND, alone ──
       const invoiceCall = calls[1]
       assert.equal(invoiceCall.body.action, 'APPEND')
-      assert.equal((invoiceCall.body.data as Record<string, unknown>).invoice_number, 'INV-0001')
-      assert.equal((invoiceCall.body.data as Record<string, unknown>).status, 'ISSUED')
+      const invoiceRow = invoiceCall.body.data as Record<string, unknown>
+      assert.equal(invoiceRow.invoice_number, 'INV-0001')
+      assert.equal(invoiceRow.status, 'ISSUED')
+      assert.equal(
+        invoiceRow.customer,
+        JSON.stringify({ customer_code: 'CUS-0001', customer_name: 'Somchai' }),
+        'Invoices.customer must be serialized before SheetLib receives the DB row',
+      )
+      assert.equal(invoiceRow.adjustments, '[]')
 
       // ── OrderForm: one UPDATE, key_value = sourceOrderId, PATCH-only body ──
       const orderFormCall = calls[2]

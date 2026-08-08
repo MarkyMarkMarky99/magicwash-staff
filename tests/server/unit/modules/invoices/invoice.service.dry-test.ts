@@ -54,7 +54,7 @@ function createService(config: FakeConfig = {}): Fakes {
   }
 
   const invoiceRepository: InvoiceHeaderWriter = {
-    async create(data) {
+    async append(data) {
       calls.push('Invoice.create')
       if (config.invoiceError) throw config.invoiceError
       return { ...data }
@@ -84,9 +84,9 @@ function createService(config: FakeConfig = {}): Fakes {
   })
 
   const service = new InvoiceService({
-    invoiceRepository,
-    invoiceItemRepository,
-    orderFormRepository,
+    invoiceRepository: () => invoiceRepository,
+    invoiceItemRepository: () => invoiceItemRepository,
+    orderFormRepository: () => orderFormRepository,
     invoiceViewRepository,
     syncInvoiceView,
     generateItemId: (() => {

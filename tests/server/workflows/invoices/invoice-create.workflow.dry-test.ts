@@ -12,7 +12,7 @@ import type {
  *
  * Uses real-shaped repository fakes that record calls and persisted rows,
  * asserting the exact sequence
- * `InvoiceItem.batchAppend -> Invoice.create -> OrderForm.update -> ViewSync`,
+ * `InvoiceItem.batchAppend -> Invoice.append -> OrderForm.update -> ViewSync`,
  * one call per stage, server-side totals/ids/status/audit fields, and no
  * automatic duplicate retry (the service never calls a failed stage twice).
  */
@@ -56,7 +56,7 @@ async function main(): Promise<void> {
     },
   }
   const invoiceRepository: InvoiceHeaderWriter = {
-    async create(data) {
+    async append(data) {
       headerCreateCallCount += 1
       calls.push('Invoice.create')
       persistedInvoiceCommand = data
@@ -80,9 +80,9 @@ async function main(): Promise<void> {
   })
 
   const service = new InvoiceService({
-    invoiceItemRepository,
-    invoiceRepository,
-    orderFormRepository,
+    invoiceItemRepository: () => invoiceItemRepository,
+    invoiceRepository: () => invoiceRepository,
+    orderFormRepository: () => orderFormRepository,
     invoiceViewRepository,
     syncInvoiceView: async () => {
       viewSyncCallCount += 1
@@ -103,13 +103,25 @@ async function main(): Promise<void> {
 
   // Server-side ids/status/audit fields: never client-supplied.
   assert.deepEqual(
-    (persistedItemRows as Array<Record<string, unknown>>).map((row) => row.invoiceItemId),
+    (persistedItemRows as Array<Record<string, unknown>>).map((row) => row.invoice_item_id),
     ['aaaaaaaa'],
   )
   const invoiceCommand = persistedInvoiceCommand as Record<string, unknown>
   assert.equal(invoiceCommand.status, 'ISSUED')
-  assert.equal(invoiceCommand.billingType, 'ORDER')
-  assert.equal(invoiceCommand.createdBy, 'staff')
+  assert.equal(invoiceCommand.billing_type, 'ORDER')
+  assert.equal(invoiceCommand.created_by, 'staff')
+  assert.equal(
+    invoiceCommand.customer,
+    JSON.stringify({ customer_code: 'CUS-0001', customer_name: 'Somchai' }),
+  )
+  assert.equal(
+    invoiceCommand.adjustments,
+    JSON.stringify([{ label: 'VAT', calculation: 'PERCENT', value: 7 }]),
+  )
+  assert.equal(
+    (persistedItemRows[0] as Record<string, unknown>).adjustments,
+    '[]',
+  )
 
   // Server-computed totals: 200 subtotal, then invoice-level VAT 7% once.
   if (result.kind === 'created') {
@@ -130,9 +142,9 @@ async function main(): Promise<void> {
   }
   itemBatchCallCount = 0
   const retryProbeService = new InvoiceService({
-    invoiceItemRepository: failingItemsRepo,
-    invoiceRepository,
-    orderFormRepository,
+    invoiceItemRepository: () => failingItemsRepo,
+    invoiceRepository: () => invoiceRepository,
+    orderFormRepository: () => orderFormRepository,
     invoiceViewRepository,
     syncInvoiceView: async () => ({ outcome: 'confirmed' }),
   })
