@@ -43,9 +43,8 @@ function defaultGenerateItemId(): string {
   return randomUUID().slice(0, 8)
 }
 
-/** camelCase adjustment input -> snake_case write-side adjustment. Drops a
- *  `refSource`/`refCode` pair only when BOTH are absent — the API schema
- *  already refines that they're never sent one without the other. */
+/** Safe to drop `refSource`/`refCode` only when BOTH are absent — the API
+ *  schema refines that one is never sent without the other. */
 function toDbAdjustment(adjustment: InvoiceAdjustmentInput): InvoiceAdjustment {
   return {
     label: adjustment.label,
@@ -56,8 +55,6 @@ function toDbAdjustment(adjustment: InvoiceAdjustmentInput): InvoiceAdjustment {
   }
 }
 
-/** The classified shape every write-stage failure branch below builds its
- *  outcome from. */
 interface WriteFailure {
   certainty: 'rejected' | 'unknown'
   message: string
@@ -183,10 +180,6 @@ export class InvoiceService {
     })
   }
 
-  /**
-   * Creates one invoice. See the class doc comment for the write sequence
-   * and outcome semantics.
-   */
   async create(payload: unknown): Promise<CreateInvoiceResponse> {
     const parsed = invoiceCreateSchema.safeParse(payload)
     if (!parsed.success) {
@@ -245,7 +238,6 @@ export class InvoiceService {
     const invoiceCommand: InvoiceApiCreateCommand = invoiceApiCreateSchema.parse({
       invoiceNumber: request.invoiceNumber,
       status: 'ISSUED',
-      // Only ORDER invoices exist for now — not a client choice.
       billingType: 'ORDER',
       issuedDate: request.issuedDate,
       dueDate: request.dueDate,

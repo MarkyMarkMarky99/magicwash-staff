@@ -1,12 +1,6 @@
 import { z } from 'zod'
 import type { ModuleContract, ModuleDbContract } from '../../shared/contracts/module-db-contract.js'
 import type { ModuleApiContract } from '../../../contracts/shared/module-api-contract.js'
-// Re-exported so `invoice.repository.ts` builds all four `GSheetRepository`
-// getters (Invoice, InvoiceItem, Payment, InvoicesView) from this one module
-// contract file, matching this file's header comment. The physical
-// definition still lives in `invoice-view.contract.ts` (not duplicated here)
-// — that file is a read-only-view sibling this module doesn't own the way it
-// owns the three write-side bundles below.
 export { invoiceViewContract, invoiceViewDbContract } from './invoice-view.contract.js'
 
 /**
@@ -123,7 +117,7 @@ export const invoiceAdjustmentSchema = z
     ref_source: z.string().min(1).optional(),
     ref_code: z.string().min(1).optional(),
   })
-  .strict() // additionalProperties: false in the live schema
+  .strict()
   .refine(
     (adjustment) => (adjustment.ref_source === undefined) === (adjustment.ref_code === undefined),
     { message: 'ref_source and ref_code must both be present or both be omitted' },
@@ -147,21 +141,12 @@ export const invoiceCustomerSnapshotSchema = z
     phone: z.string().min(1).optional(),
     address: z.string().min(1).optional(),
   })
-  .strict() // additionalProperties: false in the live schema
+  .strict()
 
 export type InvoiceCustomerSnapshot = z.infer<typeof invoiceCustomerSnapshotSchema>
 
-/** ISO 8601 calendar date (YYYY-MM-DD), no time component. */
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a YYYY-MM-DD date')
 
-// ── Internal, non-routed API placeholder ────────────────────────────────────
-//
-// Invoice/InvoiceItem/Payment are never read through BaseCrudService/
-// createCrudRoutes — InvoiceService calls repository.create()/batchAppend()
-// directly, and InvoicesView (a separate, publicly-readable materialized
-// view) serves all GET traffic. These trivial schemas exist ONLY so each
-// sheet's bundle satisfies `ModuleApiContract`'s required `query.list`/
-// `response.list` slots; nothing ever parses against them.
 const internalListQuerySchema = z.object({})
 const internalListResponseSchema = z.object({})
 
@@ -221,7 +206,7 @@ export const invoiceRowSchema = z
     deleted_at: z.string().nullable(),
     deleted_by: z.string().nullable(),
   })
-  .strict() // additionalProperties: false in the live schema
+  .strict()
 
 export type InvoiceRow = z.infer<typeof invoiceRowSchema>
 
@@ -260,10 +245,6 @@ export const invoiceDbCreateRequestSchema = z.object({
   created_by: z.string().min(1),
 })
 
-/** API/domain-facing create command — camelCase top-level fields (renamed by
- *  `invoiceFieldMap`), nested `customer`/`adjustments` content stays
- *  snake_case (see module header). This is what `InvoiceService` builds and
- *  passes to `getInvoiceRepository().create()`. */
 export const invoiceApiCreateSchema = z
   .object({
     invoiceNumber: z.string().min(1),
@@ -299,8 +280,6 @@ export const invoiceDbContract = {
   response: { read: invoiceRowSchema.partial(), create: invoiceRowSchema },
 } satisfies ModuleDbContract
 
-/** The `ModuleContract` `getInvoiceRepository()` constructs its
- *  `GSheetRepository` from. */
 export const invoiceContract = {
   api: invoiceApiContract,
   db: invoiceDbContract,
@@ -359,7 +338,7 @@ export const invoiceItemRowSchema = z
     /** Final line total after every adjustment. The service computes this. */
     net_total: z.number(),
   })
-  .strict() // additionalProperties: false in the live schema
+  .strict()
 
 export type InvoiceItemRow = z.infer<typeof invoiceItemRowSchema>
 
@@ -399,10 +378,6 @@ export const invoiceItemDbCreateRequestSchema = z.object({
   net_total: z.number(),
 })
 
-/** API/domain-facing create command — camelCase top-level fields (renamed by
- *  `invoiceItemFieldMap`), nested `adjustments` content stays snake_case. This
- *  is what `InvoiceService` builds and passes to
- *  `getInvoiceItemRepository().batchAppend()`. */
 export const invoiceItemApiCreateSchema = z
   .object({
     invoiceNumber: z.string().min(1),
@@ -425,8 +400,6 @@ export type InvoiceItemApiCreateCommand = z.infer<typeof invoiceItemApiCreateSch
 
 const invoiceItemApiContract = {
   query: { list: internalListQuerySchema },
-  // Placeholder sibling — see the identical note on `invoiceApiContract`.
-  // InvoiceItem rows are also create-only; `db.request` below omits `update`.
   request: { create: invoiceItemApiCreateSchema, update: invoiceItemApiCreateSchema },
   response: { list: internalListResponseSchema },
 } satisfies ModuleApiContract
@@ -439,8 +412,6 @@ export const invoiceItemDbContract = {
   response: { read: invoiceItemRowSchema.partial(), create: invoiceItemRowSchema },
 } satisfies ModuleDbContract
 
-/** The `ModuleContract` `getInvoiceItemRepository()` constructs its
- *  `GSheetRepository` from. */
 export const invoiceItemContract = {
   api: invoiceItemApiContract,
   db: invoiceItemDbContract,
@@ -490,7 +461,7 @@ export const paymentRowSchema = z
     deleted_at: z.string().nullable(),
     deleted_by: z.string().nullable(),
   })
-  .strict() // additionalProperties: false in the live schema
+  .strict()
 
 export type PaymentRow = z.infer<typeof paymentRowSchema>
 
@@ -535,9 +506,6 @@ export const paymentDbContract = {
   response: { read: paymentRowSchema.partial() },
 } satisfies ModuleDbContract
 
-/** The `ModuleContract` `getPaymentRepository()` constructs its
- *  `GSheetRepository` from. Read-only in this rollout — see the section
- *  header above. */
 export const paymentContract = {
   api: paymentApiContract,
   db: paymentDbContract,

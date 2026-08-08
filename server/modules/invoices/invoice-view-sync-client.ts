@@ -83,17 +83,9 @@ export async function syncInvoiceView(invoiceNumber: string): Promise<InvoiceVie
   )
 
   if (result.ok === false || reason !== undefined) {
-    // Recognizably the endpoint's own failure shape — either an explicit
-    // `ok: false`, or a known `error`/`message` reason string. This IS a
-    // well-formed, definite answer from the endpoint — 'rejected', not
-    // 'unknown'.
     return { outcome: 'failed', certainty: 'rejected', message: reason ?? 'Invoice view sync was rejected' }
   }
 
-  // `ok` is missing entirely (not `true`, not `false`) AND there is no
-  // recognizable error/message reason either — e.g. endpoint version skew,
-  // a shape this client has never seen. This is NOT a definite answer: do
-  // not guess that it means rejection.
   return {
     outcome: 'failed',
     certainty: 'unknown',
