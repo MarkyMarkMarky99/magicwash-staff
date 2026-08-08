@@ -321,16 +321,9 @@ export class BaseCrudService<
   private mapDbRowToApi(
     row: Partial<TDbRow>,
   ): Partial<ApiRowFromFieldMap<TDbRow, TFieldMap>> {
-    const output = this.mapper.toApi(row as Record<string, unknown>)
-    const dbRecord = row as Record<string, unknown>
-
-    for (const [dbColumn, definition] of Object.entries(this.jsonColumns)) {
-      if (Object.prototype.hasOwnProperty.call(row, dbColumn)) {
-        output[definition.field] = decodeJsonCell(dbRecord[dbColumn], definition.kind)
-      }
-    }
-
-    return output as Partial<ApiRowFromFieldMap<TDbRow, TFieldMap>>
+    return mapDbRowToApi(row, this.mapper, this.jsonColumns) as Partial<
+      ApiRowFromFieldMap<TDbRow, TFieldMap>
+    >
   }
 
   private requireId(id: string): string {
@@ -364,6 +357,27 @@ export class BaseCrudService<
 
     return output as TResponse
   }
+}
+
+/**
+ * Maps a DB-shaped row and decodes only the JSON columns declared by its owner.
+ * This is shared with service-specific read paths that intentionally bypass
+ * BaseCrudService for a different query semantic.
+ */
+export function mapDbRowToApi(
+  row: Partial<Record<string, unknown>>,
+  mapper: Mapper,
+  jsonColumns: JsonColumnMap,
+): Record<string, unknown> {
+  const output = mapper.toApi(row as Record<string, unknown>)
+
+  for (const [dbColumn, definition] of Object.entries(jsonColumns)) {
+    if (Object.prototype.hasOwnProperty.call(row, dbColumn)) {
+      output[definition.field] = decodeJsonCell(row[dbColumn], definition.kind)
+    }
+  }
+
+  return output
 }
 
 function resolveRepository<TRepository>(provider: RepositoryProvider<TRepository>): TRepository {

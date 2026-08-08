@@ -80,6 +80,20 @@ async function productionAppointmentService() {
   return appointmentService
 }
 
+/** The service the API actually serves `/api/invoices` with. */
+async function productionInvoiceService() {
+  const { invoiceService } = await import('../../../../server/modules/invoices/invoice.module.js')
+  return invoiceService
+}
+
+/** The service the API actually serves `/api/customer-packages` with. */
+async function productionCustomerPackageService() {
+  const { customerPackageViewService } = await import(
+    '../../../../server/modules/customer-packages/customer-package-view.module.js'
+  )
+  return customerPackageViewService
+}
+
 test('OrdersView service wiring maps DB columns and decodes the declared JSON cell', async () => {
   const itemsJson = JSON.stringify([
     {
@@ -220,6 +234,259 @@ test('Appointments service wiring flattens the Address snapshot', async () => {
       assert.equal(row.phone, '0812345678')
       assert.equal(row.location, 'Bangkok')
       assert.equal(row.address, '123 Main Road')
+    },
+  )
+})
+
+test('InvoicesView service wiring decodes object and array JSON cells', async () => {
+  const body = gvizBody(
+    ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q'],
+    [
+      'INV-2026-0001',
+      'PAID',
+      'ORDER',
+      null,
+      null,
+      'Date(2026,7,6)',
+      'Date(2026,7,8)',
+      'd2ec63e7',
+      JSON.stringify({
+        customer_code: 'd2ec63e7',
+        customer_name: 'Punch Aonny',
+        phone: '0812345678',
+        address: '123 Main Road',
+      }),
+      JSON.stringify([
+        {
+          description: 'Shirt',
+          unit: 'piece',
+          quantity: 1,
+          unit_price: 990,
+          subtotal: 990,
+          adjustments: [],
+          net_total: 990,
+        },
+      ]),
+      JSON.stringify([
+        {
+          label: 'Promo',
+          calculation: 'FIXED',
+          value: -10,
+          ref_source: null,
+          ref_code: null,
+        },
+      ]),
+      JSON.stringify([
+        {
+          payment_id: 'payment-1',
+          amount: 0,
+          method: 'CASH',
+          status: 'PENDING',
+          paid_at: null,
+          reference: null,
+          proof_url: null,
+          notes: null,
+        },
+      ]),
+      990,
+      0,
+      990,
+      0,
+      990,
+    ],
+  )
+
+  await withMockFetch(
+    async () => response(body),
+    async (calls) => {
+      const service = await productionInvoiceService()
+      const result = await service.list({ page: '1', perPage: '1' })
+      const listRow = result.items[0]
+
+      assert.equal(calls.length, 1)
+      assert.deepEqual(listRow.customer, {
+        customerCode: 'd2ec63e7',
+        customerName: 'Punch Aonny',
+        phone: '0812345678',
+        address: '123 Main Road',
+      })
+      assert.deepEqual(listRow.adjustments, [
+        {
+          label: 'Promo',
+          calculation: 'FIXED',
+          value: -10,
+          refSource: null,
+          refCode: null,
+        },
+      ])
+      assert.equal(listRow.issuedDate, 'Date(2026,7,6)')
+      assert.equal(listRow.subtotal, 990)
+      assert.equal(listRow.grandTotal, 990)
+      assert.equal(listRow.paidAmount, 0)
+      assert.equal(listRow.balanceDue, 990)
+
+      const detail = await service.getById('INV-2026-0001')
+      assert.deepEqual(detail.items, [
+        {
+          description: 'Shirt',
+          unit: 'piece',
+          quantity: 1,
+          unitPrice: 990,
+          subtotal: 990,
+          adjustments: [],
+          netTotal: 990,
+        },
+      ])
+      assert.deepEqual(detail.payments, [
+        {
+          paymentId: 'payment-1',
+          amount: 0,
+          method: 'CASH',
+          status: 'PENDING',
+          paidAt: null,
+          reference: null,
+          proofUrl: null,
+          notes: null,
+        },
+      ])
+      assert.equal(calls.length, 2)
+    },
+  )
+})
+
+test('InvoicesView date-range wiring maps DB rows before safe JSON fallbacks', async () => {
+  const values = [
+    'INV-2026-0002',
+    'UNPAID',
+    'ORDER',
+    null,
+    null,
+    '2026-08-06',
+    '2026-08-08',
+    'd2ec63e7',
+    '{bad json',
+    '',
+    'not an array',
+    null,
+    990,
+    0,
+    990,
+    0,
+    990,
+  ]
+
+  await withMockFetch(
+    async () =>
+      response(
+        gvizBody(
+          ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q'],
+          values,
+        ),
+      ),
+    async () => {
+      const result = await (
+        await productionInvoiceService()
+      ).list({ dateFrom: '2026-08-01', dateTo: '2026-08-31', page: '1', perPage: '1' })
+      const row = result.items[0]
+
+      assert.deepEqual(row.customer, null)
+      assert.deepEqual(row.adjustments, [])
+      assert.equal(row.issuedDate, '2026-08-06')
+    },
+  )
+})
+
+test('CustomerPackageView service wiring decodes and safely falls back for transactions JSON', async () => {
+  const validBody = gvizBody(
+    ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S'],
+    [
+      'package-1',
+      'd2ec63e7',
+      'Punch Aonny',
+      '0812345678',
+      '123 Main Road',
+      'PKG-10',
+      'Ten Washes',
+      'WSIR',
+      '2026-08-01',
+      '2026-09-01',
+      'ACTIVE',
+      'MON',
+      '10:00-12:00',
+      null,
+      null,
+      9,
+      1,
+      10,
+      JSON.stringify([
+        {
+          id: 'tx-1',
+          type: 'USAGE',
+          credit_change: -1,
+          remaining_credit: 9,
+          reference_source: 'ORDER',
+          reference_id: 'order-1',
+          notes: null,
+          created_at: '2026-08-02 10:00:00',
+        },
+      ]),
+    ],
+  )
+  const malformedBody = gvizBody(
+    ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S'],
+    [
+      'package-2',
+      'd2ec63e7',
+      'Punch Aonny',
+      '0812345678',
+      '123 Main Road',
+      'PKG-10',
+      'Ten Washes',
+      'WSIR',
+      '2026-08-01',
+      '2026-09-01',
+      'ACTIVE',
+      'MON',
+      '10:00-12:00',
+      null,
+      null,
+      10,
+      0,
+      10,
+      '{bad json',
+    ],
+  )
+
+  await withMockFetch(
+    async () => response(validBody),
+    async (calls) => {
+      const service = await productionCustomerPackageService()
+      const listRow = (await service.list({ page: 1, perPage: 1 })).items[0]
+      assert.equal(calls.length, 1)
+      assert.equal(listRow.customerName, 'Punch Aonny')
+
+      const detail = await service.getById('package-1')
+      assert.deepEqual(detail.transactions, [
+        {
+          id: 'tx-1',
+          type: 'USAGE',
+          creditChange: -1,
+          remainingCredit: 9,
+          referenceSource: 'ORDER',
+          referenceId: 'order-1',
+          notes: null,
+          createdAt: '2026-08-02 10:00:00',
+        },
+      ])
+      assert.equal(calls.length, 2)
+    },
+  )
+
+  await withMockFetch(
+    async () => response(malformedBody),
+    async () => {
+      const detail = await (await productionCustomerPackageService()).getById('package-2')
+      assert.deepEqual(detail.transactions, [])
     },
   )
 })

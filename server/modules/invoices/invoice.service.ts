@@ -5,6 +5,7 @@ import {
   type CreateInvoiceResponse,
   type InvoiceAdjustmentInput,
 } from '../../../contracts/invoices/invoice-api.schema.js'
+import { invoiceViewApiContract } from '../../../contracts/invoices/invoice-view-api.schema.js'
 import {
   computeInvoiceLine,
   computeInvoiceTotal,
@@ -18,17 +19,24 @@ import {
   type InvoiceItemApiCreateCommand,
 } from './invoice.contract.js'
 import { orderFormApiUpdateSchema, type OrderFormApiUpdateCommand } from '../orders/order.contract.js'
-import { getInvoiceRepository, getInvoiceItemRepository, getInvoiceViewRepository } from './invoice.repository.js'
+import { getInvoiceRepository, getInvoiceItemRepository } from './invoice.repository.js'
+import { getInvoicesViewRepository } from '../../sheets/InvoicesView/InvoicesView.repository.js'
+import { invoicesViewRowSchema } from '../../sheets/InvoicesView/InvoicesView.db-contract.js'
 import { getOrderFormRepository } from '../orders/order.repository.js'
 import { syncInvoiceView as defaultSyncInvoiceView } from './invoice-view-sync-client.js'
 import type { InvoiceViewSyncResult } from './invoice-view-sync-client.js'
 import { SheetLibRejectedError, SheetLibTransportError } from '../../shared/repositories/sheetlib-errors.js'
-import { BaseCrudService, type ServiceListResult } from '../../shared/services/base-crud.service.js'
-import { invoiceViewContract } from './invoice.contract.js'
-import { ReadQueryDTO, type OmitReservedQueryFields } from '../../shared/dtos/read-query.dto.js'
+import {
+  BaseCrudService,
+  mapDbRowToApi,
+  type JsonColumnMap,
+  type ServiceListResult,
+} from '../../shared/services/base-crud.service.js'
+import { Mapper, type ApiRowFromFieldMap } from '../../shared/repositories/base.repository.js'
+import { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import type { ApiQueryParams } from '../../shared/http/api-handler.js'
-import type { GSheetRepository } from '../../shared/repositories/gsheet.repository.js'
+import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
 
 /**
  * `created_by` placeholder until this app has real staff identity — kept in
@@ -106,14 +114,80 @@ export interface OrderFormWriter {
 }
 export type ViewSyncFn = (invoiceNumber: string) => Promise<InvoiceViewSyncResult>
 
-type InvoiceViewListQuery = z.infer<typeof invoiceViewContract.api.query.list>
-type InvoiceViewReadWhere = OmitReservedQueryFields<InvoiceViewListQuery>
+type InvoicesViewDbRow = z.infer<typeof invoicesViewRowSchema>
+
+/** DB column -> API/domain field. JSON columns retain their storage names
+ * here; `invoicesViewJsonColumns` declares the decoded fields below. */
+export const invoicesViewFieldMap = {
+  invoiceNumber: 'invoiceNumber',
+  status: 'status',
+  billingType: 'billingType',
+  billingPeriodStart: 'billingPeriodStart',
+  billingPeriodEnd: 'billingPeriodEnd',
+  issuedDate: 'issuedDate',
+  dueDate: 'dueDate',
+  customerId: 'customerId',
+  customerJson: 'customerJson',
+  itemsJson: 'itemsJson',
+  adjustmentsJson: 'adjustmentsJson',
+  paymentsJson: 'paymentsJson',
+  subtotal: 'subtotal',
+  adjustmentTotal: 'adjustmentTotal',
+  grandTotal: 'grandTotal',
+  paidAmount: 'paidAmount',
+  balanceDue: 'balanceDue',
+} as const satisfies Record<keyof InvoicesViewDbRow & string, string>
+
+export const invoicesViewJsonColumns = {
+  customerJson: { field: 'customer', kind: 'object' },
+  itemsJson: { field: 'items', kind: 'array' },
+  adjustmentsJson: { field: 'adjustments', kind: 'array' },
+  paymentsJson: { field: 'payments', kind: 'array' },
+} as const satisfies JsonColumnMap
+
+const invoicesViewMapper = new Mapper(invoicesViewFieldMap)
+
+function mapInvoicesViewRowToApi(
+  row: Partial<Record<string, unknown>>,
+): Record<string, unknown> {
+  return mapDbRowToApi(row, invoicesViewMapper, invoicesViewJsonColumns)
+}
+
+type InvoiceViewApiRow = ApiRowFromFieldMap<InvoicesViewDbRow, typeof invoicesViewFieldMap>
+type InvoiceViewListQuery = z.infer<typeof invoiceViewApiContract.query.list>
+type InvoiceViewListResponse = z.infer<typeof invoiceViewApiContract.response.list>
+type InvoiceViewDetailResponse = z.infer<typeof invoiceViewApiContract.response.detail>
+
+/** Read-only injection seam. The production getter returns DB-shaped rows;
+ * legacy invoice tests inject the old read-only repository, whose rows are
+ * already API-shaped. The shared mapper accepts either representation while
+ * the production path remains explicitly DB-mapped. */
+export interface InvoiceViewReader {
+  read(query?: unknown): Promise<Array<Partial<Record<string, unknown>>>>
+}
+
+type InvoicesViewRepository = SheetRepositoryContract<InvoicesViewDbRow>
+
+function adaptInvoiceViewReader(reader: InvoiceViewReader): InvoicesViewRepository {
+  const unsupported = (): never => {
+    throw new Error('InvoicesView is read-only')
+  }
+
+  return {
+    read: async (query) =>
+      (await reader.read(query)) as Array<Partial<InvoicesViewDbRow>>,
+    append: async () => unsupported(),
+    batchAppend: async () => unsupported(),
+    update: async () => unsupported(),
+    delete: async () => unsupported(),
+  }
+}
 
 export interface InvoiceServiceOptions {
   invoiceRepository?: InvoiceHeaderWriter
   invoiceItemRepository?: InvoiceItemWriter
   orderFormRepository?: OrderFormWriter
-  invoiceViewRepository?: GSheetRepository<typeof invoiceViewContract>
+  invoiceViewRepository?: InvoiceViewReader
   syncInvoiceView?: ViewSyncFn
   generateItemId?: () => string
   createdBy?: string
@@ -142,17 +216,21 @@ export class InvoiceService {
   private readonly invoiceRepository: () => InvoiceHeaderWriter
   private readonly invoiceItemRepository: () => InvoiceItemWriter
   private readonly orderFormRepository: () => OrderFormWriter
-  private readonly invoiceViewRepository: GSheetRepository<typeof invoiceViewContract>
+  private readonly invoiceViewRepository: () => InvoicesViewRepository
   private readonly syncInvoiceView: ViewSyncFn
   private readonly generateItemId: () => string
   private readonly createdBy: string
   private readonly readService: BaseCrudService<
-    Record<string, unknown>,
+    InvoiceViewApiRow,
     InvoiceViewListQuery,
     never,
     never,
-    z.infer<typeof invoiceViewContract.api.response.list>,
-    z.infer<typeof invoiceViewContract.api.response.detail>
+    InvoiceViewListResponse,
+    InvoiceViewDetailResponse,
+    never,
+    never,
+    InvoicesViewDbRow,
+    typeof invoicesViewFieldMap
   >
 
   constructor(options: InvoiceServiceOptions = {}) {
@@ -165,18 +243,35 @@ export class InvoiceService {
     let orderFormRepository = options.orderFormRepository
     this.orderFormRepository = () => orderFormRepository ??= getOrderFormRepository()
 
-    this.invoiceViewRepository = options.invoiceViewRepository ?? getInvoiceViewRepository()
+    let invoiceViewRepository = options.invoiceViewRepository
+    this.invoiceViewRepository = () =>
+      invoiceViewRepository === undefined
+        ? getInvoicesViewRepository()
+        : adaptInvoiceViewReader(invoiceViewRepository)
     this.syncInvoiceView = options.syncInvoiceView ?? defaultSyncInvoiceView
     this.generateItemId = options.generateItemId ?? defaultGenerateItemId
     this.createdBy = options.createdBy ?? INVOICE_CREATED_BY
 
-    this.readService = new BaseCrudService({
+    this.readService = new BaseCrudService<
+      InvoiceViewApiRow,
+      InvoiceViewListQuery,
+      never,
+      never,
+      InvoiceViewListResponse,
+      InvoiceViewDetailResponse,
+      never,
+      never,
+      InvoicesViewDbRow,
+      typeof invoicesViewFieldMap
+    >({
       // invoiceNumber/customerId are the only flat, searchable columns — the
       // rest of the row (customer, items, adjustments, payments) is
       // serialized JSON.
       repository: this.invoiceViewRepository,
-      api: invoiceViewContract.api,
+      api: invoiceViewApiContract,
       searchFields: ['invoiceNumber', 'customerId'],
+      fieldMap: invoicesViewFieldMap,
+      jsonColumns: invoicesViewJsonColumns,
     })
   }
 
@@ -360,14 +455,14 @@ export class InvoiceService {
    * doc comment for why that one query shape bypasses the generic
    * `BaseCrudService.list()` path.
    */
-  async list(query: ApiQueryParams): Promise<ServiceListResult<z.infer<typeof invoiceViewContract.api.response.list>>> {
+  async list(query: ApiQueryParams): Promise<ServiceListResult<InvoiceViewListResponse>> {
     if (this.hasDateRangeFilter(query)) {
       return this.listWithDateRange(query)
     }
     return this.readService.list(query)
   }
 
-  async getById(id: string): Promise<z.infer<typeof invoiceViewContract.api.response.detail>> {
+  async getById(id: string): Promise<InvoiceViewDetailResponse> {
     return this.readService.getById(id)
   }
 
@@ -401,30 +496,34 @@ export class InvoiceService {
    */
   private async listWithDateRange(
     query: ApiQueryParams,
-  ): Promise<ServiceListResult<z.infer<typeof invoiceViewContract.api.response.list>>> {
-    const validQuery = parseOrThrow(invoiceViewContract.api.query.list, query)
+  ): Promise<ServiceListResult<InvoiceViewListResponse>> {
+    const validQuery = parseOrThrow(invoiceViewApiContract.query.list, query)
 
-    // dateFrom/dateTo are forced to null here (rather than omitted) so
-    // `where` still satisfies the repository's read-where type;
-    // GVizQueryBuilder.where() treats null as an "ignored value" and skips
-    // it, so no column ever needs to resolve for them — only
-    // customerId/status become real equality clauses, same as the generic
-    // path would build.
-    const where: InvoiceViewReadWhere = {
+    // dateFrom/dateTo are intentionally omitted from the DB query: they are
+    // range semantics applied below in JavaScript, not physical columns.
+    // Only customerId/status become real equality clauses, same as the
+    // generic path would build.
+    const where = invoicesViewMapper.toDb({
       customerId: validQuery.customerId,
       status: validQuery.status,
-      dateFrom: null,
-      dateTo: null,
-    }
+    }) as Partial<InvoicesViewDbRow>
 
-    const dto = new ReadQueryDTO<InvoiceViewReadWhere>({
+    const dto = new ReadQueryDTO<Partial<InvoicesViewDbRow>>({
       where,
-      search: { keyword: validQuery.keyword, fields: ['invoiceNumber', 'customerId'] },
-      sort: { field: validQuery.sortBy, order: validQuery.sortOrder },
+      search: {
+        keyword: validQuery.keyword,
+        fields: ['invoiceNumber', 'customerId'].map((field) =>
+          invoicesViewMapper.toDbField(field),
+        ),
+      },
+      sort: {
+        field: invoicesViewMapper.toDbField(validQuery.sortBy),
+        order: validQuery.sortOrder,
+      },
       // pagination intentionally omitted — see the doc comment above.
     })
 
-    const rows = await this.invoiceViewRepository.read(dto)
+    const rows = (await this.invoiceViewRepository().read(dto)).map(mapInvoicesViewRowToApi)
 
     const filtered = rows.filter((row) => {
       const issuedDate = (row as Record<string, unknown>).issuedDate
@@ -445,16 +544,16 @@ export class InvoiceService {
 
   /**
    * Mirrors `BaseCrudService`'s private `project()` — copies only the fields
-   * `invoiceViewContract.api.response.list` declares, so this hand-rolled
+   * `invoiceViewApiContract.response.list` declares, so this hand-rolled
    * path returns the exact same shape the generic path's projection would.
    */
   private projectListRow(
     row: Record<string, unknown>,
-  ): z.infer<typeof invoiceViewContract.api.response.list> {
+  ): InvoiceViewListResponse {
     const output: Record<string, unknown> = {}
-    for (const field of Object.keys(invoiceViewContract.api.response.list.shape)) {
+    for (const field of Object.keys(invoiceViewApiContract.response.list.shape)) {
       output[field] = row[field]
     }
-    return output as z.infer<typeof invoiceViewContract.api.response.list>
+    return output as InvoiceViewListResponse
   }
 }
