@@ -1,5 +1,25 @@
 # CLAUDE.md - Vercel Serverless API
 
+> ## ⚠ The database sections below are being replaced
+>
+> `docs/database-layer-sheets-api-refactor-plan.md` is mid-rollout. This file still
+> calls the `ModuleContract` + `GSheetRepository` stack "the source of truth for new
+> and migrated modules" — **that sentence is no longer true for new work.**
+>
+> It remains an accurate description of what production runs today, so keep following
+> it when working on modules that have not migrated yet. Do not start anything new on
+> the old pattern, and do not revert code that already follows the new one.
+>
+> Specifically superseded: module-owned repository files; `ModuleContract` /
+> `GSheetRepository`; `fieldMap` and column mapping inside the repository;
+> `primaryKey` holding an API field name rather than the DB column; `decodeJsonCells`;
+> and Apps Script/`doPost` as the write path. See the plan for what replaces each and
+> in which step.
+>
+> The rest of this file — the ESM `.js` extension warning, response and validation
+> rules, portal-view semantics, and testing guidance — is unaffected and still
+> authoritative.
+
 Serverless backend for the Vue webapp. Data lives in Google Sheets — reads via GViz (unauthenticated), writes via Apps Script `doPost` (HTTP POST).
 
 ## Tech Stack

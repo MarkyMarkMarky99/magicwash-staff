@@ -1,6 +1,15 @@
 # Invoice Module Refactor Plan
 
-Status: **plan prepared; implementation is pending execution approval**.
+Status: **implemented and shipped.** The backend refactor and the automated test
+layers landed; only the manual Dev/Preview smoke run is still unsigned (see
+`docs/invoice-refactor-smoke-checklist.md`).
+
+> ⚠ **Architecture superseded.** The `GSheetRepository`/SheetLib/`ModuleContract`
+> stack this plan mandates — including "one repository file per module" and the
+> per-sheet `GSheetRepository` getters — is being replaced by
+> `docs/database-layer-sheets-api-refactor-plan.md`. Read this file as a record of
+> what was built and why, not as rules to follow. Its failure/retry semantics and
+> partial-persistence matrix are still accurate and still enforced.
 
 ## Goal
 

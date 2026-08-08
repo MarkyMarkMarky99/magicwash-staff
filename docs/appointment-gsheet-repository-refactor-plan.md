@@ -1,6 +1,13 @@
 # Appointment → GSheetRepository / SheetLib Refactor Plan
 
-Status: **implementation in progress**.
+Status: **complete.** Every checklist item shipped, including the Development
+deployment and the frontend migration.
+
+> ⚠ **Architecture superseded.** The `GSheetRepository` + SheetLib design described
+> here is being replaced by `docs/database-layer-sheets-api-refactor-plan.md`. Keep
+> this as a record — in particular the deployment verification and the `ServiceTier`
+> discrepancy between the Drive schema and the static registry, which are written
+> down nowhere else — but do not follow its structural rules for new work.
 
 ## Goal
 

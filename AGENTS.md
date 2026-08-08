@@ -1,5 +1,26 @@
 # AGENTS.md - Magic Wash Backend
 
+> ## ⚠ A refactor is replacing the database rules below
+>
+> `docs/database-layer-sheets-api-refactor-plan.md` is being rolled out. The rules in
+> this file still describe what production runs today, so **follow them for existing
+> code** — but do **not** extend the old pattern to anything new, and do not "fix" work
+> that follows the new one.
+>
+> Superseded, in the order they land:
+>
+> | This file still says | Being replaced by |
+> |---|---|
+> | Each module owns a `<module>.repository.ts`; one module has one repository file | One repository per physical sheet under `server/sheets/<Sheet>/` |
+> | Use `ModuleContract` + `GSheetRepository` | `SheetContract` + `SheetRepository`, which know nothing about the API |
+> | `fieldMap` and column mapping live in the repository | Mapping moves up into the owning module |
+> | `primaryKey` is the API/domain field name | `primaryKey` is the real DB column name |
+> | Transformers decode JSON cells (`decodeJsonCells`) | Nested columns are typed as the text they hold; callers parse |
+> | Apps Script/SheetLib performs writes | Google Sheets API writes; Apps Script keeps only view recompute |
+>
+> Everything else here — validation, testing, imports, ESM/deployment rules — is
+> unaffected and still authoritative.
+
 ## Overview
 
 TypeScript Vercel serverless API for the Vue portal. Google Sheets is the data
