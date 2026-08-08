@@ -131,12 +131,38 @@ node --env-file=.env.local --import=tsx/esm tests/server/integration/sheet-colum
 `tests/web` ต้องมี `--tsconfig` เพราะ import โค้ด `src/` ที่ใช้ `@/` alias ซึ่ง `tsx` เปล่าๆ resolve ไม่ได้
 ส่วน `tests/server` ใช้ relative `.js` จึงไม่ต้อง
 
-**preview ถูก Vercel SSO ป้องกัน** curl เปล่าๆ ได้ 302 ที่ผ่านมาต้องเปิดผ่าน Chrome ที่ login ค้าง
-(codex ต่อ Chrome profile ได้จริง แต่โดน extension บล็อกด้วย `ERR_BLOCKED_BY_CLIENT`)
+### ยิง API ทดสอบยังไง
 
-⚠ **ควรตั้ง Protection Bypass for Automation ก่อนเริ่ม Phase 2** — Settings → Deployment Protection
-→ Generate Secret → ใส่ `.env.local` แล้วยิงด้วย header `x-vercel-protection-bypass` ได้เลย
-Phase 2 ต้อง smoke test การเขียนหลายรอบ ถ้าไม่ทำจะติดคอขวดตรงนี้ทุกครั้ง
+**ตอนนี้ Vercel Authentication ถูกปิดอยู่** ⇒ `curl` ยิงตรงได้เลย ทั้ง preview และ production:
+
+```bash
+curl -s "<url>/api/appointments?perPage=1"
+curl -s "<url>/api/invoices?perPage=1"
+curl -s "<url>/api/customer-packages/tst00002"
+curl -s "<url>/api/orders?customerId=4fa28819&perPage=1"   # ต้องมี customerId เสมอ
+```
+
+หา URL ล่าสุดด้วย `vercel ls` (แถวบนสุด = ใหม่สุด)
+
+**ถ้าเปิด protection กลับแล้ว** `curl` จะได้ 302 ไป `vercel.com/sso-api` ต้องเปิดผ่าน Chrome
+ที่ login Vercel ค้างอยู่แทน (Chrome automation ขับ profile ของ user ได้ · codex ต่อ profile ได้
+แต่เคยโดน extension บล็อกด้วย `ERR_BLOCKED_BY_CLIENT`)
+
+### ⚠️ ความเสี่ยงที่ต้องรู้ — protection ที่ปิดอยู่ตอนนี้
+
+Hobby plan ปิด/เปิด Vercel Authentication **ได้แค่ทั้งหมดหรือไม่ทั้งหมด** เลือกเฉพาะ preview ไม่ได้
+และ **Protection Bypass for Automation เป็นฟีเจอร์ของ Pro** ใช้ไม่ได้บน Hobby
+
+การปิดจึงทำให้ **production เปิดโล่งไปด้วย** และตรวจแล้วว่า **API ไม่มี auth ชั้นของตัวเองเลย** —
+ไม่มี `Authorization` header, ไม่มี bearer token, ไม่มี `verifyIdToken` ที่ไหนใน gateway หรือ handler
+(Firebase ใช้ auth เฉพาะฝั่ง frontend ซึ่งไม่ได้ป้องกัน `/api/*`)
+
+ยืนยันด้วยการยิง production จริงแล้วได้ข้อมูลลูกค้า — ชื่อ เบอร์โทร ที่อยู่ ยอดเงิน — โดยไม่ต้อง login
+
+⇒ **เปิด Vercel Authentication กลับทันทีที่ทดสอบเสร็จ** อย่าเปิดค้างไว้
+⇒ **งานที่ควรทำแยกต่างหาก ไม่ใช่ส่วนหนึ่งของ Phase 2:** เพิ่ม auth ชั้น API เอง
+(ตรวจ Firebase ID token ที่ `server/shared/http/api-gateway.ts` จุดเดียว) แล้วระบบจะไม่ต้องพึ่ง
+Vercel Authentication อีก — ตอนนี้ความปลอดภัยอาศัยแค่ว่า URL เดายาก ซึ่งไม่ใช่การป้องกัน
 
 ---
 
