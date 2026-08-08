@@ -79,9 +79,11 @@ when you want client-side zod validation. Only camelCase API schemas/enums live 
 
 ## Testing
 
-No test runner is installed — tests are plain TypeScript files run directly with `npx tsx <path>`,
-asserting via `node:assert/strict`. They live under `tests/`, not colocated with the source they
-cover, split by project:
+No test runner is installed — tests are plain TypeScript files asserting via `node:assert/strict`.
+Run `tests/server/...` with `npx tsx <path>` (backend tests use relative `.js` imports and no
+alias). Run `tests/web/...` with `npx tsx --tsconfig jsconfig.json <path>` because web tests
+import `src/` code that uses the `@/` alias, which bare `tsx` cannot resolve. They live under
+`tests/`, not colocated with the source they cover, split by project:
 
 - `tests/web/unit/<mirrored src/ path>/<name>.dry-test.ts` — frontend unit tests; the subpath
   mirrors the file's path under `src/` (e.g. `src/features/customers/utils/waiting-pickup.filter.ts`
@@ -102,3 +104,46 @@ cover, split by project:
 - Do not put feature-specific code in `shared/`.
 - Do not create all folders upfront if they are unused.
 - Do not duplicate API calls in pages when a store/service already exists.
+
+## Delegating code to Codex luna
+
+Codex `gpt-5.6-luna` writes and edits the code in this repo. Claude writes the brief,
+orchestrates, and independently verifies — it does not edit files itself.
+
+```bash
+codex exec -s workspace-write -m gpt-5.6-luna -c model_reasoning_effort="xhigh" - < <brieffile>
+```
+
+Pass the brief on stdin; inlining a long prompt as a quoted argument mangles it.
+
+**`-s workspace-write` only.** Never `--full-auto` or a sandbox bypass. That flag is what
+structurally confines writes to this repo, and
+`G:\My Drive\Magicwash\Database\GoogleSheets\*.json` — the schema registry, shared with the
+Python project at the repo root — must never be written to. When registry and code
+disagree, the code changes. Say so in every brief that mentions the registry: an
+instruction to "make them match" always has two solutions and the wrong one silently
+rewrites the source of truth.
+
+Two independent tasks can run in parallel in this working tree when their files do not
+overlap (e.g. `src/` and `server/`). Give each brief the other's boundaries and its own
+verification command, so neither "fixes" the other's half-finished state.
+
+### Writing the brief
+
+The brief is the only lever on the result. Put in it: the traps, what must not change,
+what to report rather than fix, and which tests are allowed to change versus which must
+pass untouched. State why a constraint exists — a rule with a reason survives, a bare
+rule gets worked around.
+
+### Verifying
+
+Check the code, not the summary. Luna has reported success on work with real defects: a
+test that passed while the regression it guarded was live, and a "passing" test suite that
+had quietly broken the documented run command.
+
+For anything that guards a rule, break the rule and confirm the guard fails. Several rules
+here are invisible to `tsc` — schema key order, lazy repository construction, JSON column
+kinds — so a green typecheck proves nothing about them.
+
+If luna returns a workaround out of proportion to the problem, suspect the brief before
+the work. It usually means a constraint was stated that cannot actually hold.
