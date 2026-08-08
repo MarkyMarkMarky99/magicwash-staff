@@ -1,0 +1,199 @@
+import assert from 'node:assert/strict'
+
+// ── Drives the REAL production wiring: the services exported by
+//    order.module.ts / appointment.module.ts, built on the real repository
+//    getters, contracts and transformers. Rebuilding an "equivalent" service
+//    here would assert nothing — a test that wires the transformer in itself
+//    still passes when production stops wiring it in, which is exactly the
+//    regression this file exists to catch.
+//
+//    Both modules construct their service at import time, and that reaches a
+//    repository constructor which reads env. ESM evaluates imports before the
+//    module body, so the env has to be set first and the modules pulled in with
+//    a dynamic import inside each test rather than a static one at the top. ──
+process.env.ORDERS_SPREADSHEET_ID = 'characterization-spreadsheet-id'
+process.env.APPOINTMENTS_SPREADSHEET_ID = 'characterization-spreadsheet-id'
+process.env.APPSCRIPT_URL = 'https://script.example/characterization'
+
+interface FetchCall {
+  url: string
+  init?: RequestInit
+}
+
+type FetchHandler = (url: string, init?: RequestInit) => Promise<Response>
+
+const tests: Array<{ name: string; run: () => Promise<void> }> = []
+
+function test(name: string, run: () => Promise<void>): void {
+  tests.push({ name, run })
+}
+
+function response(text: string): Response {
+  return {
+    ok: true,
+    status: 200,
+    statusText: 'OK',
+    text: async () => text,
+  } as Response
+}
+
+function gvizBody(columns: string[], values: unknown[]): string {
+  return `google.visualization.Query.setResponse(${JSON.stringify({
+    status: 'ok',
+    table: {
+      cols: columns.map((id) => ({ id })),
+      rows: [{ c: values.map((value) => (value === null ? null : { v: value })) }],
+    },
+  })});`
+}
+
+async function withMockFetch<T>(
+  handler: FetchHandler,
+  run: (calls: FetchCall[]) => Promise<T>,
+): Promise<T> {
+  const originalFetch = globalThis.fetch
+  const calls: FetchCall[] = []
+  globalThis.fetch = (async (url: URL | string | { url?: string }, init?: RequestInit) => {
+    const stringUrl = String(url)
+    calls.push({ url: stringUrl, init })
+    return handler(stringUrl, init)
+  }) as typeof fetch
+
+  try {
+    return await run(calls)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+}
+
+/** The service the API actually serves `/api/orders` with. */
+async function productionOrdersService() {
+  const { ordersService } = await import('../../../../server/modules/orders/order.module.js')
+  return ordersService
+}
+
+/** The service the API actually serves `/api/appointments` with. */
+async function productionAppointmentService() {
+  const { appointmentService } = await import(
+    '../../../../server/modules/appointments/appointment.module.js'
+  )
+  return appointmentService
+}
+
+test('OrdersView service wiring parses, normalizes, and coerces the row', async () => {
+  const itemsJson = JSON.stringify([
+    {
+      id: 'item-1',
+      description: 'Shirt',
+      service_type: 'ซักรีด',
+      quantity: '2',
+    },
+  ])
+  const body = gvizBody(
+    ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'],
+    [
+      'AFT-1001',
+      'customer-1',
+      '1001',
+      null,
+      'Date(2026,6,21)',
+      'Date(2026,6,23)',
+      'ซักรีด',
+      'CONFIRM',
+      '3',
+      'Call before delivery',
+      itemsJson,
+      '2026-07-21 10:00:00',
+      null,
+    ],
+  )
+
+  await withMockFetch(
+    async () => response(body),
+    async (calls) => {
+      const result = await (await productionOrdersService()).list({
+        customerId: 'customer-1',
+        page: 1,
+        perPage: 1,
+      })
+      const row = result.items[0]
+
+      assert.equal(calls.length, 1)
+      assert.ok(calls[0].url.includes('/gviz/tq'))
+      assert.deepEqual(row.items, [
+        {
+          id: 'item-1',
+          description: 'Shirt',
+          serviceType: 'ซักรีด',
+          quantity: 2,
+        },
+      ])
+      assert.notEqual(row.items, itemsJson)
+      assert.notEqual(row.items, undefined)
+      assert.equal(row.receivedDate, '2026-07-21')
+      assert.equal(row.dueDate, '2026-07-23')
+      assert.equal(row.quantity, 3)
+      assert.equal(typeof row.quantity, 'number')
+    },
+  )
+})
+
+test('Appointments service wiring flattens the Address snapshot', async () => {
+  const addressJson = JSON.stringify({
+    CustomerName: 'Jane Doe',
+    CustomerLabel: 'C-001',
+    Phone: '0812345678',
+    Address: '123 Main Road',
+    Location: 'Bangkok',
+  })
+  const body = gvizBody(
+    ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q'],
+    [
+      'APPT-a1b2c3d4',
+      'customer-1',
+      'PICKUP',
+      '2026-07-21',
+      '10:00-12:00',
+      'CONFIRMED',
+      addressJson,
+      null,
+      null,
+      'Call before delivery',
+      '2026-07-21 10:00:00',
+      null,
+      'staff-1',
+      null,
+      'STANDARD',
+      null,
+      null,
+    ],
+  )
+
+  await withMockFetch(
+    async () => response(body),
+    async (calls) => {
+      const result = await (await productionAppointmentService()).list({ page: 1, perPage: 1 })
+      const row = result.items[0]
+
+      assert.equal(calls.length, 1)
+      assert.ok(calls[0].url.includes('/gviz/tq'))
+      assert.equal(row.customerName, 'Jane Doe')
+      assert.equal(row.customerCode, 'C-001')
+      assert.equal(row.phone, '0812345678')
+      assert.equal(row.location, 'Bangkok')
+      assert.equal(row.address, '123 Main Road')
+    },
+  )
+})
+
+async function main(): Promise<void> {
+  for (const item of tests) {
+    await item.run()
+  }
+  console.log(`${tests.length} service-wiring dry tests passed`)
+}
+
+main().catch((error) => {
+  console.error(error)
+  process.exitCode = 1
+})
