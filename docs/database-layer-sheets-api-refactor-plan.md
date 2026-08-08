@@ -277,10 +277,18 @@ re-export `invoiceViewContract` ที่ `invoice.contract.ts:10`
   ลำดับนี้ต้องคงไว้ ไม่งั้น fold ด้วยชื่อผิด
 - **row schema ต้องย้ายแบบคง key order เป๊ะ** — `deriveGVizColumns` map ตาม index
   (`gviz-query.builder.ts:14-22`) สลับ key เมื่อไหร่ read อ่านผิดคอลัมน์ทันที
-- `decodeJsonCells` เป็น storage behavior — **ต้องอยู่ใน repo ต่อ ห้ามขึ้น module**
-  มันทำงานตอนประกอบ DB row ก่อน transformer และก่อน mapping และ parse ทุก string ที่หน้าตาเป็น
-  object/array โดย JSON เสียจะ throw (`gviz-reader.ts:50,76`) ถ้าย้ายหรือทำหาย
-  `InvoicesView`/`CustomerPackageView` จะได้ nested value เป็น string แทน object/array
+- ⚠ **`decodeJsonCells` ถูกถอดออกจาก database layer แล้ว (กลับข้อสรุปเดิม)**
+  เดิมสรุปว่าเป็น storage behavior ต้องอยู่ใน repo เจ้าของโปรเจกต์ตัดสินว่า JSON ใน cell
+  ไม่ใช่โครงสร้างจริง เป็นแค่วิธี materialize portal view ⇒ คอลัมน์ nested ทุกตัวประกาศเป็น
+  `z.string()` ตามที่ชีตเก็บจริง และ DB layer ไม่แกะอะไรให้ใคร
+  (`SheetContract` ไม่มีฟิลด์นี้แล้ว)
+  **ผลที่ต้องรับมือใน §1.6:** วันนี้ repo เก่าแกะให้ (`gviz-reader.ts:50,76` ซึ่ง parse ทุก string
+  ที่หน้าตาเป็น object/array — เหวี่ยงแหทั้งชีต) พอย้ายมา layer ใหม่ **module ต้อง parse เอง**
+  ไม่งั้น response ของ `/api/invoices` และ `/api/customer-packages` จะเปลี่ยนจาก object/array
+  เป็น string ซึ่งเป็น behavior change ที่ผู้ใช้ปลายทางเห็น
+  8 คอลัมน์ที่กระทบ: `Invoices.customer`/`.adjustments`, `InvoiceItems.adjustments`,
+  `InvoicesView.customerJson`/`.itemsJson`/`.adjustmentsJson`/`.paymentsJson`,
+  `CustomerPackageView.transactionsJson`
 - ⚠ **`invoice.service.ts:410` เรียก repository ตรงๆ ข้าม `BaseCrudService`** (date-range read)
   เส้นนี้ต้องมี mapping ของตัวเอง — วันนี้รอดอยู่เพราะ fieldMap ของ InvoicesView เป็น identity
   ห้ามพึ่งความบังเอิญนั้นต่อ

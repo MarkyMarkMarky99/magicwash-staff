@@ -1,22 +1,6 @@
 import { z } from 'zod'
 import type { SheetContract } from '../../shared/contracts/sheet-contract.js'
 
-const invoiceAdjustmentCalculationSchema = z.enum(['FIXED', 'PERCENT'])
-
-const invoiceAdjustmentSchema = z
-  .object({
-    label: z.string().min(1),
-    calculation: invoiceAdjustmentCalculationSchema,
-    value: z.number().refine((value) => value !== 0, 'adjustment value must not be 0'),
-    ref_source: z.string().min(1).optional(),
-    ref_code: z.string().min(1).optional(),
-  })
-  .strict()
-  .refine(
-    (adjustment) => (adjustment.ref_source === undefined) === (adjustment.ref_code === undefined),
-    { message: 'ref_source and ref_code must both be present or both be omitted' },
-  )
-
 /** KEY ORDER = physical InvoiceItems sheet column order. */
 export const invoiceItemsRowSchema = z
   .object({
@@ -32,7 +16,8 @@ export const invoiceItemsRowSchema = z
     unit: z.string().nullable(),
     unit_price: z.number(),
     subtotal: z.number(),
-    adjustments: z.array(invoiceAdjustmentSchema).default([]),
+    // Stored as plain text: a JSON string in the cell, parsed above this layer.
+    adjustments: z.string(),
     net_total: z.number(),
   })
   .strict()

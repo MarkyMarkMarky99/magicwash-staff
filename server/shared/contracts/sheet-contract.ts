@@ -34,5 +34,4 @@ export type SheetContract = {
     update: boolean
     delete: boolean
   }
-  decodeJsonCells?: boolean
 }

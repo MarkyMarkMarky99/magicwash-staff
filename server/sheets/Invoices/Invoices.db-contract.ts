@@ -1,31 +1,6 @@
 import { z } from 'zod'
 import type { SheetContract } from '../../shared/contracts/sheet-contract.js'
 
-const invoiceAdjustmentCalculationSchema = z.enum(['FIXED', 'PERCENT'])
-
-const invoiceAdjustmentSchema = z
-  .object({
-    label: z.string().min(1),
-    calculation: invoiceAdjustmentCalculationSchema,
-    value: z.number().refine((value) => value !== 0, 'adjustment value must not be 0'),
-    ref_source: z.string().min(1).optional(),
-    ref_code: z.string().min(1).optional(),
-  })
-  .strict()
-  .refine(
-    (adjustment) => (adjustment.ref_source === undefined) === (adjustment.ref_code === undefined),
-    { message: 'ref_source and ref_code must both be present or both be omitted' },
-  )
-
-const invoiceCustomerSnapshotSchema = z
-  .object({
-    customer_code: z.string().min(1),
-    customer_name: z.string().min(1),
-    phone: z.string().min(1).optional(),
-    address: z.string().min(1).optional(),
-  })
-  .strict()
-
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a YYYY-MM-DD date')
 const invoiceStatusSchema = z.enum(['DRAFT', 'ISSUED', 'CANCELLED', 'VOID'])
 
@@ -40,8 +15,10 @@ export const invoicesRowSchema = z
     issued_date: isoDateSchema,
     due_date: isoDateSchema,
     customer_id: z.string().min(1),
-    customer: invoiceCustomerSnapshotSchema,
-    adjustments: z.array(invoiceAdjustmentSchema).default([]),
+    // Stored as plain text: the sheet holds a JSON string in this cell, not a
+    // structured value. Whoever needs the structure parses it above this layer.
+    customer: z.string(),
+    adjustments: z.string(),
     created_by: z.string().min(1),
     created_at: z.string().nullable(),
     updated_at: z.string().nullable(),
