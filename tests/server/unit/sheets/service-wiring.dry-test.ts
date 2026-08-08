@@ -200,7 +200,25 @@ test('Appointments service wiring flattens the Address snapshot', async () => {
     Location: 'Bangkok',
   })
   const body = gvizBody(
-    ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'],
+    [
+      'A',
+      'B',
+      'C',
+      'D',
+      'E',
+      'F',
+      'G',
+      'H',
+      'I',
+      'J',
+      'K',
+      'L',
+      'M',
+      'N',
+      'O',
+      'P',
+      'Q',
+    ],
     [
       'APPT-a1b2c3d4',
       'customer-1',
@@ -217,6 +235,8 @@ test('Appointments service wiring flattens the Address snapshot', async () => {
       'staff-1',
       null,
       'STANDARD',
+      null,
+      null,
     ],
   )
 

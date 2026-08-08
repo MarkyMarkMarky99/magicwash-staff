@@ -31,6 +31,8 @@ export const appointmentsRowSchema = z.object({
   CreatedBy: z.string().nullable(),
   UpdatedBy: z.string().nullable(),
   ServiceTier: serviceTierSchema.nullable(),
+  DeletedAt: z.string().nullable(),
+  DeletedBy: z.string().nullable(),
 })
 
 export const appointmentsDbContract = {

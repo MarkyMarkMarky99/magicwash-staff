@@ -162,8 +162,9 @@ const tests: ParityTest[] = [
       ['CreatedBy', 'CreatedBy'],
       ['UpdatedBy', 'UpdatedBy'],
       ['ServiceTier', 'ServiceTier'],
+      ['DeletedAt', 'DeletedAt'],
+      ['DeletedBy', 'DeletedBy'],
     ],
-    oldTail: ['DeletedAt', 'DeletedBy'],
   },
   {
     name: 'OrderForm',

@@ -70,6 +70,8 @@ const tests: ColumnOrderTest[] = [
       CreatedBy: 'M',
       UpdatedBy: 'N',
       ServiceTier: 'O',
+      DeletedAt: 'P',
+      DeletedBy: 'Q',
     },
     primaryKeyColumn: 'A',
   },

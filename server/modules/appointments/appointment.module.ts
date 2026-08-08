@@ -8,9 +8,8 @@ import { createAppointmentTransformer } from './appointment.transformer.js'
 
 type AppointmentsDbRow = z.infer<typeof appointmentsRowSchema>
 
-/** DB column -> API/domain field. This is derived from the authoritative
- * 15-column sheet contract; the legacy DeletedAt/DeletedBy columns are not
- * part of this migrated module's map. */
+/** DB column -> API/domain field. Keep this bijective and aligned with the
+ * physical Appointments sheet contract. */
 export const appointmentsFieldMap = {
   AppointmentID: 'appointmentId',
   CustomerID: 'customerId',
@@ -27,6 +26,8 @@ export const appointmentsFieldMap = {
   CreatedBy: 'createdBy',
   UpdatedBy: 'updatedBy',
   ServiceTier: 'serviceTier',
+  DeletedAt: 'deletedAt',
+  DeletedBy: 'deletedBy',
 } as const satisfies Record<keyof AppointmentsDbRow & string, string>
 
 // ── API behavior: BaseCrudService validates the request, builds the read query
