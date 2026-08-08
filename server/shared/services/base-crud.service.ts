@@ -1,4 +1,9 @@
-import type { BaseRepository } from '../repositories/base.repository.js'
+import {
+  Mapper,
+  type ApiRowFromFieldMap,
+  type BaseRepository,
+} from '../repositories/base.repository.js'
+import type { SheetRepositoryContract } from '../repositories/sheet-repository.contract.js'
 import {
   ReadQueryDTO,
   type GenericListQuery,
@@ -19,6 +24,20 @@ export interface ServiceListResult<TListResponse extends object> {
   }
 }
 
+export type RepositoryProvider<TRepository> = TRepository | (() => TRepository)
+
+export type JsonColumnKind = 'array' | 'object'
+
+export interface JsonColumnDefinition {
+  /** API/domain field that receives the decoded cell. */
+  field: string
+  /** Expected top-level JSON container and its deliberate malformed-cell fallback. */
+  kind: JsonColumnKind
+}
+
+/** DB column -> decoded API field, declared by the owning module. */
+export type JsonColumnMap = Readonly<Record<string, JsonColumnDefinition>>
+
 // The read filter is DERIVED from the list query: ReadQueryDTO.fromQuery() maps
 // every non-reserved list-query field into `where`, so the repository's read
 // where type is exactly `OmitReservedQueryFields<TListQuery>`. There is no
@@ -35,8 +54,20 @@ export interface BaseCrudServiceOptions<
   TDetailResponse extends object = never,
   TCreateResponse extends object = never,
   TUpdateResponse extends object = never,
+  TDbRow extends object = TApiRow,
+  TFieldMap extends Partial<Record<keyof TDbRow & string, string>> = Partial<
+    Record<keyof TDbRow & string, string>
+  >,
 > {
-  repository: BaseRepository<TApiRow, OmitReservedQueryFields<TListQuery>, TCreate, TUpdate>
+  /**
+   * Existing modules pass an API-shaped BaseRepository. A migrated module can
+   * pass a DB-shaped SheetRepositoryContract and opt into the mapping pipeline
+   * with `fieldMap` (an empty map is valid) and/or `jsonColumns`.
+   */
+  repository: RepositoryProvider<
+    | BaseRepository<TApiRow, OmitReservedQueryFields<TListQuery>, TCreate, TUpdate>
+    | SheetRepositoryContract<TDbRow>
+  >
 
   /**
    * The module's nested API contract bundle. The service reads the request/query
@@ -55,6 +86,12 @@ export interface BaseCrudServiceOptions<
 
   /** API/domain fields the list keyword searches against (ReadQueryDTO.fromQuery). */
   searchFields: readonly string[]
+
+  /** DB column name -> API/domain field name for a DB-shaped repository. */
+  fieldMap?: TFieldMap
+
+  /** Explicit JSON text columns for a DB-shaped repository. */
+  jsonColumns?: JsonColumnMap
 }
 
 export class BaseCrudService<
@@ -66,13 +103,20 @@ export class BaseCrudService<
   TDetailResponse extends object = never,
   TCreateResponse extends object = never,
   TUpdateResponse extends object = never,
+  TDbRow extends object = TApiRow,
+  TFieldMap extends Partial<Record<keyof TDbRow & string, string>> = Partial<
+    Record<keyof TDbRow & string, string>
+  >,
 > {
-  private readonly repository: BaseRepository<
+  private readonly apiRepository?: RepositoryProvider<BaseRepository<
     TApiRow,
     OmitReservedQueryFields<TListQuery>,
     TCreate,
     TUpdate
-  >
+  >>
+  private readonly dbRepository?: RepositoryProvider<SheetRepositoryContract<TDbRow>>
+  private readonly mapper: Mapper
+  private readonly jsonColumns: JsonColumnMap
   private readonly api: ModuleApiContractOf<
     TListQuery,
     TCreate,
@@ -93,10 +137,27 @@ export class BaseCrudService<
       TListResponse,
       TDetailResponse,
       TCreateResponse,
-      TUpdateResponse
+      TUpdateResponse,
+      TDbRow,
+      TFieldMap
     >,
   ) {
-    this.repository = input.repository
+    this.mapper = new Mapper((input.fieldMap ?? {}) as Record<string, string>)
+    this.jsonColumns = input.jsonColumns ?? {}
+
+    // The presence of an explicitly supplied mapping option selects the new
+    // DB-shaped repository path. Existing consumers omit both options and
+    // retain their API-shaped BaseRepository behavior exactly.
+    if (input.fieldMap !== undefined || input.jsonColumns !== undefined) {
+      this.dbRepository = input.repository as SheetRepositoryContract<TDbRow>
+    } else {
+      this.apiRepository = input.repository as BaseRepository<
+        TApiRow,
+        OmitReservedQueryFields<TListQuery>,
+        TCreate,
+        TUpdate
+      >
+    }
     this.api = input.api
     this.searchFields = input.searchFields
   }
@@ -104,7 +165,7 @@ export class BaseCrudService<
   async list(query: unknown): Promise<ServiceListResult<TListResponse>> {
     const validQuery = parseOrThrow(this.api.query.list, query)
     const readQuery = ReadQueryDTO.fromQuery(validQuery, this.searchFields)
-    const rows = await this.repository.read(readQuery)
+    const rows = await this.readRows(readQuery)
 
     return {
       items: rows.map((row) => this.project(row, this.api.response.list)),
@@ -127,7 +188,7 @@ export class BaseCrudService<
       throw new Error('getById is not supported by this module')
     }
     const safeId = this.requireId(id as string)
-    const rows = await this.repository.read(
+    const rows = await this.readRows(
       ReadQueryDTO.fromId<OmitReservedQueryFields<TListQuery>>(safeId),
     )
     const row = this.requireSingleRow(rows, safeId)
@@ -149,7 +210,7 @@ export class BaseCrudService<
       throw new Error('create is not supported by this module')
     }
     const data = parseOrThrow(this.api.request.create, payload)
-    const row = await this.repository.create(this.prepareCreate(data))
+    const row = await this.createRow(this.prepareCreate(data))
     return this.project(row, this.api.response.create)
   }
 
@@ -175,12 +236,12 @@ export class BaseCrudService<
     const safeId = this.requireId(id as string)
     const data = parseOrThrow(this.api.request.update, payload)
 
-    const rows = await this.repository.read(
+    const rows = await this.readRows(
       ReadQueryDTO.fromId<OmitReservedQueryFields<TListQuery>>(safeId),
     )
     this.requireSingleRow(rows, safeId)
 
-    const row = await this.repository.update(safeId, this.prepareUpdate(safeId, data))
+    const row = await this.updateRow(safeId, this.prepareUpdate(safeId, data))
     return this.project(row, this.api.response.update)
   }
 
@@ -198,6 +259,78 @@ export class BaseCrudService<
    */
   protected prepareUpdate(_id: string, data: TUpdate): TUpdate {
     return data
+  }
+
+  private async readRows(
+    query: ReadQueryDTO<OmitReservedQueryFields<TListQuery>>,
+  ): Promise<Array<Partial<TApiRow>>> {
+    if (this.dbRepository === undefined) {
+      return resolveRepository(this.apiRepository!).read(query)
+    }
+
+    const dbRows = await resolveRepository(this.dbRepository).read(this.mapReadQueryToDb(query))
+    return dbRows.map((row) => this.mapDbRowToApi(row)) as Array<Partial<TApiRow>>
+  }
+
+  private async createRow(data: TCreate): Promise<TApiRow> {
+    if (this.dbRepository === undefined) {
+      return resolveRepository(this.apiRepository!).create(data)
+    }
+
+    const dbRow = await resolveRepository(this.dbRepository).append(
+      this.mapper.toDb(data as Record<string, unknown>) as Partial<TDbRow>,
+    )
+    return this.mapDbRowToApi(dbRow) as TApiRow
+  }
+
+  private async updateRow(id: string, data: TUpdate): Promise<TApiRow> {
+    if (this.dbRepository === undefined) {
+      return resolveRepository(this.apiRepository!).update(id, data)
+    }
+
+    const dbRow = await resolveRepository(this.dbRepository).update(
+      id,
+      this.mapper.toDb(data as Record<string, unknown>) as Partial<TDbRow>,
+    )
+    return this.mapDbRowToApi(dbRow) as TApiRow
+  }
+
+  private mapReadQueryToDb(
+    query: ReadQueryDTO<OmitReservedQueryFields<TListQuery>>,
+  ): ReadQueryDTO<Partial<TDbRow>> {
+    return new ReadQueryDTO<Partial<TDbRow>>({
+      id: query.id,
+      where:
+        query.where === undefined
+          ? undefined
+          : this.mapper.toDb(query.where as Record<string, unknown>) as Partial<TDbRow>,
+      select: query.select?.map((field) => this.mapper.toDbField(field)),
+      search: query.search
+        ? {
+            keyword: query.search.keyword,
+            fields: query.search.fields.map((field) => this.mapper.toDbField(field)),
+          }
+        : undefined,
+      sort: query.sort
+        ? { field: this.mapper.toDbField(query.sort.field), order: query.sort.order }
+        : undefined,
+      pagination: query.pagination,
+    })
+  }
+
+  private mapDbRowToApi(
+    row: Partial<TDbRow>,
+  ): Partial<ApiRowFromFieldMap<TDbRow, TFieldMap>> {
+    const output = this.mapper.toApi(row as Record<string, unknown>)
+    const dbRecord = row as Record<string, unknown>
+
+    for (const [dbColumn, definition] of Object.entries(this.jsonColumns)) {
+      if (Object.prototype.hasOwnProperty.call(row, dbColumn)) {
+        output[definition.field] = decodeJsonCell(dbRecord[dbColumn], definition.kind)
+      }
+    }
+
+    return output as Partial<ApiRowFromFieldMap<TDbRow, TFieldMap>>
   }
 
   private requireId(id: string): string {
@@ -231,4 +364,61 @@ export class BaseCrudService<
 
     return output as TResponse
   }
+}
+
+function resolveRepository<TRepository>(provider: RepositoryProvider<TRepository>): TRepository {
+  if (typeof provider === 'function') {
+    return (provider as () => TRepository)()
+  }
+  return provider
+}
+
+/**
+ * JSON decoding is opt-in per physical column. Blank, malformed, or wrong-kind
+ * cells deliberately become [] for an array column and null for an object
+ * column, keeping dirty display data from turning a list into a 500. Nested
+ * keys are converted from the materialized snake_case names to API camelCase;
+ * scalar values are otherwise left untouched. No unlisted cell is parsed.
+ */
+function decodeJsonCell(value: unknown, kind: JsonColumnKind): unknown {
+  const fallback = kind === 'array' ? [] : null
+  if (typeof value !== 'string' || value.trim() === '') {
+    return fallback
+  }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(value)
+  } catch {
+    return fallback
+  }
+
+  if (kind === 'array' && !Array.isArray(parsed)) {
+    return fallback
+  }
+  if (kind === 'object' && !isJsonRecord(parsed)) {
+    return fallback
+  }
+
+  return camelCaseJsonKeys(parsed)
+}
+
+function camelCaseJsonKeys(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(camelCaseJsonKeys)
+  }
+  if (!isJsonRecord(value)) {
+    return value
+  }
+
+  const output: Record<string, unknown> = {}
+  for (const [key, nestedValue] of Object.entries(value)) {
+    output[key.replace(/_([a-z])/g, (_match, letter: string) => letter.toUpperCase())] =
+      camelCaseJsonKeys(nestedValue)
+  }
+  return output
+}
+
+function isJsonRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
 }

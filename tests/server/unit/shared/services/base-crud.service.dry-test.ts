@@ -180,6 +180,35 @@ test('list applies query defaults and forwards read query DTO', async () => {
   ])
 })
 
+test('repository factory stays lazy until a request method is called', async () => {
+  const BaseCrudService = await loadServiceCtor()
+  const repo = new FakeRepository()
+  let factoryCalls = 0
+  const service = new BaseCrudService({
+    repository: () => {
+      factoryCalls += 1
+      return repo
+    },
+    api: {
+      query: { list: listQuerySchema },
+      request: { create: createSchema, update: updateSchema },
+      response: {
+        list: listResponseSchema,
+        detail: detailResponseSchema,
+        create: createResponseSchema,
+        update: updateResponseSchema,
+      },
+    },
+    searchFields: ['customerName'],
+  })
+
+  assert.equal(factoryCalls, 0)
+
+  await service.list({})
+
+  assert.equal(factoryCalls, 1)
+})
+
 test('list coerces HTTP query strings before returning pagination', async () => {
   const BaseCrudService = await loadServiceCtor()
   const { service, repo } = makeService(BaseCrudService)

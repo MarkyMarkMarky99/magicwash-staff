@@ -11,7 +11,7 @@ export const ordersViewRowSchema = z.object({
   due_date: z.string().nullable(),
   service_type: z.string().nullable(),
   status: z.string().nullable(),
-  quantity: z.string().nullable(),
+  quantity: z.number().nullable(),
   note: z.string().nullable(),
   items_json: z.string().nullable(),
   synced_at: z.string(),

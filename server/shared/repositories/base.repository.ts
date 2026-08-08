@@ -99,6 +99,11 @@ export class Mapper {
   ): TOutput {
     return renameKeys(input, this.apiToDb) as TOutput
   }
+
+  /** API/domain field name -> DB column name for query controls. */
+  toDbField(field: string): string {
+    return this.apiToDb[field] ?? field
+  }
 }
 
 // All generics are API/domain shapes (camelCase) — what the service passes in and

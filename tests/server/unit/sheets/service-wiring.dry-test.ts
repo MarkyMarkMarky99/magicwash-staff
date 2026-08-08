@@ -80,13 +80,13 @@ async function productionAppointmentService() {
   return appointmentService
 }
 
-test('OrdersView service wiring parses, normalizes, and coerces the row', async () => {
+test('OrdersView service wiring maps DB columns and decodes the declared JSON cell', async () => {
   const itemsJson = JSON.stringify([
     {
       id: 'item-1',
       description: 'Shirt',
       service_type: 'ซักรีด',
-      quantity: '2',
+      quantity: 2,
     },
   ])
   const body = gvizBody(
@@ -100,7 +100,7 @@ test('OrdersView service wiring parses, normalizes, and coerces the row', async 
       'Date(2026,6,23)',
       'ซักรีด',
       'CONFIRM',
-      '3',
+      3,
       'Call before delivery',
       itemsJson,
       '2026-07-21 10:00:00',
@@ -130,10 +130,48 @@ test('OrdersView service wiring parses, normalizes, and coerces the row', async 
       ])
       assert.notEqual(row.items, itemsJson)
       assert.notEqual(row.items, undefined)
-      assert.equal(row.receivedDate, '2026-07-21')
-      assert.equal(row.dueDate, '2026-07-23')
+      // The backend no longer normalizes GViz dates; the frontend owns display
+      // formatting, matching the InvoicesView and Appointments read paths.
+      assert.equal(row.receivedDate, 'Date(2026,6,21)')
+      assert.equal(row.dueDate, 'Date(2026,6,23)')
       assert.equal(row.quantity, 3)
       assert.equal(typeof row.quantity, 'number')
+    },
+  )
+})
+
+test('OrdersView JSON declaration safely falls back for malformed and empty cells', async () => {
+  const values = [
+    'AFT-1001',
+    'customer-1',
+    '1001',
+    null,
+    'Date(2026,6,21)',
+    'Date(2026,6,23)',
+    'ซักรีด',
+    'CONFIRM',
+    3,
+    'Call before delivery',
+    '{bad json',
+    '2026-07-21 10:00:00',
+    null,
+  ]
+  const emptyValues = [...values]
+  emptyValues[10] = null
+  const bodies = [
+    gvizBody(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'], values),
+    gvizBody(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'], emptyValues),
+  ]
+
+  await withMockFetch(
+    async (_url, _init) => response(bodies.shift()!),
+    async () => {
+      const service = await productionOrdersService()
+      const malformed = await service.list({ customerId: 'customer-1', page: 1, perPage: 1 })
+      const empty = await service.list({ customerId: 'customer-1', page: 1, perPage: 1 })
+
+      assert.deepEqual(malformed.items[0].items, [])
+      assert.deepEqual(empty.items[0].items, [])
     },
   )
 })
