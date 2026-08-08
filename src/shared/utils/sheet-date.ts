@@ -24,8 +24,8 @@ const MONTHS = new Map([
   ['december', 12],
 ])
 
-/** Normalize the known sheet/GViz appointment date shapes for comparison/UI. */
-export function normalizeAppointmentDate(value: unknown): string | null {
+/** Normalize the known sheet/GViz date shapes for comparison/UI. */
+export function normalizeSheetDate(value: unknown): string | null {
   if (typeof value !== 'string') return null
 
   const input = value.trim()

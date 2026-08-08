@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import type { z } from 'zod'
 import type { appointmentListResponseSchema } from '../../../../../../contracts/appointments/appointment-api.schema'
-import { filterWaitingPickups, normalizeAppointmentDate } from '../../../../../../src/features/customers/utils/waiting-pickup.filter'
+import { filterWaitingPickups } from '../../../../../../src/features/customers/utils/waiting-pickup.filter'
+import { normalizeSheetDate } from '../../../../../../src/shared/utils/sheet-date'
 
 type AppointmentListDto = z.infer<typeof appointmentListResponseSchema>
 
@@ -71,9 +72,9 @@ test('excludes malformed and missing appointment dates', () => {
   const missing = appointment({ appointmentId: 'missing', appointmentDate: '' })
 
   assert.deepEqual(filterWaitingPickups([malformed, missing], now), [])
-  assert.equal(normalizeAppointmentDate('Date(2026,6,21)'), '2026-07-21')
-  assert.equal(normalizeAppointmentDate('21 Jul 2026'), '2026-07-21')
-  assert.equal(normalizeAppointmentDate('2026-99-99'), null)
+  assert.equal(normalizeSheetDate('Date(2026,6,21)'), '2026-07-21')
+  assert.equal(normalizeSheetDate('21 Jul 2026'), '2026-07-21')
+  assert.equal(normalizeSheetDate('2026-99-99'), null)
 })
 
 test('documents the current deletedAt gap instead of asserting false correctness', () => {
