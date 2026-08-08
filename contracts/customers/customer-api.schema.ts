@@ -5,7 +5,8 @@ import type { ModuleApiContract } from '../shared/module-api-contract.js'
 /**
  * The customers API ↔ frontend contract: request/query/response schemas and the
  * API-facing enums they share. The DB-side contract lives in
- * `server/modules/customers/customer.contract.ts` and never crosses this boundary.
+ * `server/sheets/Customers/Customers.db-contract.ts` and never crosses this
+ * boundary. The module declares DB-to-API mapping in its service wiring.
  */
 
 export const customerTypeSchema = z.enum(['Member', 'Regular', 'Corporate'])

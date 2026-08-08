@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict'
+import type { z } from 'zod'
 
-process.env.TEST_SPREADSHEET_ID = 'spreadsheet-id'
+process.env.ORDERS_SPREADSHEET_ID = 'spreadsheet-id'
 process.env.TEST_SCRIPT_URL = 'https://script.example/exec'
 
 const { InvoiceService } = await import('../../../../../server/modules/invoices/invoice.service.js')
-const { invoiceViewContract } = await import('../../../../../server/modules/invoices/invoice-view.contract.js')
-const { GSheetRepository } = await import('../../../../../server/shared/repositories/gsheet.repository.js')
+const { invoicesViewDbContract, invoicesViewRowSchema } = await import(
+  '../../../../../server/sheets/InvoicesView/InvoicesView.db-contract.js'
+)
+const { SheetRepository } = await import('../../../../../server/shared/repositories/sheet.repository.js')
 const { ApiError } = await import('../../../../../server/shared/http/api-error.js')
 
 const tests: Array<{ name: string; run: () => Promise<void> | void }> = []
@@ -89,12 +92,9 @@ function invoiceRow(overrides: {
 }
 
 function createService(): InstanceType<typeof InvoiceService> {
-  const invoiceViewRepository = new GSheetRepository({
-    contract: invoiceViewContract,
-    sheetName: 'InvoicesView',
-    spreadsheetId: 'TEST_SPREADSHEET_ID',
+  const invoiceViewRepository = new SheetRepository<z.infer<typeof invoicesViewRowSchema>>({
+    contract: invoicesViewDbContract,
     scriptUrl: 'TEST_SCRIPT_URL',
-    decodeJsonCells: true,
   })
 
   return new InvoiceService({

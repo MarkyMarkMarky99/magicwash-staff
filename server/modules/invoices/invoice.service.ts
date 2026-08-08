@@ -11,9 +11,6 @@ import {
   computeInvoiceTotal,
   roundMoney,
 } from '../../../contracts/invoices/invoice-calculator.js'
-import {
-  type InvoiceAdjustment,
-} from './invoice.contract.js'
 import { getInvoicesRepository } from '../../sheets/Invoices/Invoices.repository.js'
 import { invoicesRowSchema } from '../../sheets/Invoices/Invoices.db-contract.js'
 import { getInvoiceItemsRepository } from '../../sheets/InvoiceItems/InvoiceItems.repository.js'
@@ -119,7 +116,12 @@ function defaultGenerateItemId(): string {
 
 /** Safe to drop `refSource`/`refCode` only when BOTH are absent — the API
  *  schema refines that one is never sent without the other. */
-function toDbAdjustment(adjustment: InvoiceAdjustmentInput): InvoiceAdjustment {
+type InvoiceDbAdjustment = Omit<InvoiceAdjustmentInput, 'refSource' | 'refCode'> & {
+  ref_source?: string
+  ref_code?: string
+}
+
+function toDbAdjustment(adjustment: InvoiceAdjustmentInput): InvoiceDbAdjustment {
   return {
     label: adjustment.label,
     calculation: adjustment.calculation,
@@ -384,8 +386,8 @@ export class InvoiceService {
       net_total: lineCalculations[index].netTotal,
     }))
 
-    // ── Items first, as ONE batch — never a loop. See invoice.contract.ts's
-    //    write-sequence comment for why this ordering is load-bearing. ──
+    // ── Items first, as ONE batch — never a loop. This ordering is
+    //    load-bearing because a later header failure leaves these rows behind. ──
     try {
       await this.invoiceItemRepository().batchAppend(itemCommands)
     } catch (error) {

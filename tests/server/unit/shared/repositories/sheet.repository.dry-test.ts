@@ -333,6 +333,26 @@ async function run(): Promise<void> {
       jsonResponse({
         status: 'ok',
         target: 'Widget',
+        data: { WidgetID: 'W-4' },
+      }),
+    async () => {
+      await assert.rejects(
+        () => repository.batchAppend([{ NestedData: '{}', Label: 'one' }]),
+        (error: unknown) => {
+          assert.ok(error instanceof SheetLibTransportError)
+          assert.ok(!(error instanceof SheetLibRejectedError))
+          assert.match(error instanceof Error ? error.message : '', /data.*not an array/)
+          return true
+        },
+      )
+    },
+  )
+
+  await withMockFetch(
+    async () =>
+      jsonResponse({
+        status: 'ok',
+        target: 'Widget',
         data: [{ WidgetID: 'W-4' }],
       }),
     async () => {

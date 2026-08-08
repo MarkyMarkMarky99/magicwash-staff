@@ -1,4 +1,4 @@
-// Typed SheetLib write failures. Every `GSheetRepository` write (APPEND/UPDATE)
+// Typed SheetLib write failures. Every `SheetRepository` write (APPEND/UPDATE)
 // throws one of these two classes instead of a generic `Error`, so callers that
 // need to tell "the gateway gave a definite answer" apart from "no definite
 // answer ever came back" can `instanceof`-check instead of parsing `.message`.

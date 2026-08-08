@@ -6,7 +6,8 @@ import type { ModuleApiContract } from '../shared/module-api-contract.js'
  * The appointments API ↔ frontend contract: request/query schemas, response
  * schemas, and the API-facing enums they share. Everything the client sends
  * or receives is declared here — the DB-side contract lives in
- * `appointment.contract.ts` and never crosses the API boundary.
+ * `server/sheets/Appointments/Appointments.db-contract.ts` and never crosses
+ * the API boundary.
  */
 
 // ── Domain value sets — the single source for the API-facing enums; the db

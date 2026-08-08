@@ -1,11 +1,16 @@
 import assert from 'node:assert/strict'
+import type { z } from 'zod'
 import { AppointmentService } from '../../../../../server/modules/appointments/appointment.service.js'
-import { appointmentContract } from '../../../../../server/modules/appointments/appointment.contract.js'
 import { createAppointmentTransformer } from '../../../../../server/modules/appointments/appointment.transformer.js'
-import { GSheetRepository } from '../../../../../server/shared/repositories/gsheet.repository.js'
+import {
+  appointmentsDbContract,
+  appointmentsRowSchema,
+} from '../../../../../server/sheets/Appointments/Appointments.db-contract.js'
+import { SheetRepository } from '../../../../../server/shared/repositories/sheet.repository.js'
+import { appointmentsFieldMap } from '../../../../../server/modules/appointments/appointment.mapping.js'
 import { appointmentWriteFixtures } from './appointment-write.fixtures.js'
 
-process.env.TEST_APPOINTMENTS_SPREADSHEET_ID = 'appointment-spreadsheet-id'
+process.env.APPOINTMENTS_SPREADSHEET_ID = 'appointment-spreadsheet-id'
 process.env.TEST_APPOINTMENTS_SCRIPT_URL = 'https://script.example/exec'
 
 interface FetchCall {
@@ -58,17 +63,15 @@ async function withMockFetch<T>(
 }
 
 function createService(id: string, now: Date): AppointmentService {
-  const repository = new GSheetRepository({
-    contract: appointmentContract,
-    sheetName: 'Appointments',
-    target: 'Appointment',
-    spreadsheetId: 'TEST_APPOINTMENTS_SPREADSHEET_ID',
+  const repository = new SheetRepository<z.infer<typeof appointmentsRowSchema>>({
+    contract: appointmentsDbContract,
     scriptUrl: 'TEST_APPOINTMENTS_SCRIPT_URL',
-    transformer: createAppointmentTransformer(),
   })
 
   return new AppointmentService({
     repository,
+    fieldMap: appointmentsFieldMap,
+    transformer: createAppointmentTransformer(),
     generateAppointmentId: () => id,
     now: () => now,
   })

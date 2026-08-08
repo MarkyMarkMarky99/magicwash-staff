@@ -3,6 +3,7 @@ import type { CreateInvoiceRequest } from '../../../../../contracts/invoices/inv
 import type {
   InvoiceHeaderWriter,
   InvoiceItemWriter,
+  InvoiceViewReader,
   OrderFormWriter,
   ViewSyncFn,
 } from '../../../../../server/modules/invoices/invoice.service.js'
@@ -12,16 +13,9 @@ import {
   SheetLibTransportError,
 } from '../../../../../server/shared/repositories/sheetlib-errors.js'
 
-// Harmless — `InvoiceService` always constructs an InvoicesView repository
-// when one isn't injected; none of these tests ever call list()/getById(), so
-// no fetch ever fires against it, but `GSheetRepository`'s constructor still
-// resolves both env vars via `requireEnv`.
-process.env.TEST_SPREADSHEET_ID = 'spreadsheet-id'
-process.env.TEST_SCRIPT_URL = 'https://script.example/exec'
-
-const { InvoiceService } = await import('../../../../../server/modules/invoices/invoice.service.js')
-const { invoiceViewContract } = await import('../../../../../server/modules/invoices/invoice-view.contract.js')
-const { GSheetRepository } = await import('../../../../../server/shared/repositories/gsheet.repository.js')
+const { InvoiceService, invoicesFieldMap, invoiceItemsFieldMap } = await import(
+  '../../../../../server/modules/invoices/invoice.service.js'
+)
 
 const tests: Array<{ name: string; run: () => Promise<void> | void }> = []
 
@@ -75,13 +69,7 @@ function createService(config: FakeConfig = {}): Fakes {
     return config.viewSyncResult ?? { outcome: 'confirmed' }
   }
 
-  const invoiceViewRepository = new GSheetRepository({
-    contract: invoiceViewContract,
-    sheetName: 'InvoicesView',
-    spreadsheetId: 'TEST_SPREADSHEET_ID',
-    scriptUrl: 'TEST_SCRIPT_URL',
-    decodeJsonCells: true,
-  })
+  const invoiceViewRepository: InvoiceViewReader = { read: async () => [] }
 
   const service = new InvoiceService({
     invoiceRepository: () => invoiceRepository,
@@ -119,6 +107,43 @@ function baseRequest(): CreateInvoiceRequest {
     ],
   }
 }
+
+test('Invoices and InvoiceItems field maps pin every DB-to-API value', () => {
+  assert.deepEqual(invoicesFieldMap, {
+    invoice_number: 'invoiceNumber',
+    status: 'status',
+    billing_type: 'billingType',
+    billing_period_start: 'billingPeriodStart',
+    billing_period_end: 'billingPeriodEnd',
+    issued_date: 'issuedDate',
+    due_date: 'dueDate',
+    customer_id: 'customerId',
+    customer: 'customer',
+    adjustments: 'adjustments',
+    created_by: 'createdBy',
+    created_at: 'createdAt',
+    updated_at: 'updatedAt',
+    updated_by: 'updatedBy',
+    deleted_at: 'deletedAt',
+    deleted_by: 'deletedBy',
+  })
+  assert.deepEqual(invoiceItemsFieldMap, {
+    invoice_number: 'invoiceNumber',
+    invoice_item_id: 'invoiceItemId',
+    item_no: 'itemNo',
+    source_order_id: 'sourceOrderId',
+    source_item_id: 'sourceItemId',
+    sku: 'sku',
+    service_type: 'serviceType',
+    description: 'description',
+    quantity: 'quantity',
+    unit: 'unit',
+    unit_price: 'unitPrice',
+    subtotal: 'subtotal',
+    adjustments: 'adjustments',
+    net_total: 'netTotal',
+  })
+})
 
 test('create() returns "created" and calls stages in the exact required order, once each', async () => {
   const { service, calls } = createService()

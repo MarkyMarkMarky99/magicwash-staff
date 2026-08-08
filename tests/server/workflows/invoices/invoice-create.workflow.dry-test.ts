@@ -3,6 +3,7 @@ import type { CreateInvoiceRequest } from '../../../../contracts/invoices/invoic
 import type {
   InvoiceHeaderWriter,
   InvoiceItemWriter,
+  InvoiceViewReader,
   OrderFormWriter,
 } from '../../../../server/modules/invoices/invoice.service.js'
 
@@ -17,12 +18,7 @@ import type {
  * automatic duplicate retry (the service never calls a failed stage twice).
  */
 
-process.env.TEST_SPREADSHEET_ID = 'spreadsheet-id'
-process.env.TEST_SCRIPT_URL = 'https://script.example/exec'
-
 const { InvoiceService } = await import('../../../../server/modules/invoices/invoice.service.js')
-const { invoiceViewContract } = await import('../../../../server/modules/invoices/invoice-view.contract.js')
-const { GSheetRepository } = await import('../../../../server/shared/repositories/gsheet.repository.js')
 
 function baseRequest(): CreateInvoiceRequest {
   return {
@@ -71,13 +67,7 @@ async function main(): Promise<void> {
     },
   }
 
-  const invoiceViewRepository = new GSheetRepository({
-    contract: invoiceViewContract,
-    sheetName: 'InvoicesView',
-    spreadsheetId: 'TEST_SPREADSHEET_ID',
-    scriptUrl: 'TEST_SCRIPT_URL',
-    decodeJsonCells: true,
-  })
+  const invoiceViewRepository: InvoiceViewReader = { read: async () => [] }
 
   const service = new InvoiceService({
     invoiceItemRepository: () => invoiceItemRepository,

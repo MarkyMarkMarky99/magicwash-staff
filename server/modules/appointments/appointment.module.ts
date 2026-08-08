@@ -1,34 +1,11 @@
-import { z } from 'zod'
 import { appointmentApiContract } from '../../../contracts/appointments/appointment-api.schema.js'
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
 import { AppointmentService } from './appointment.service.js'
 import { getAppointmentsRepository } from '../../sheets/Appointments/Appointments.repository.js'
-import { appointmentsRowSchema } from '../../sheets/Appointments/Appointments.db-contract.js'
 import { createAppointmentTransformer } from './appointment.transformer.js'
+import { appointmentsFieldMap } from './appointment.mapping.js'
 
-type AppointmentsDbRow = z.infer<typeof appointmentsRowSchema>
-
-/** DB column -> API/domain field. Keep this bijective and aligned with the
- * physical Appointments sheet contract. */
-export const appointmentsFieldMap = {
-  AppointmentID: 'appointmentId',
-  CustomerID: 'customerId',
-  AppointmentType: 'appointmentType',
-  AppointmentDate: 'appointmentDate',
-  TimeSlot: 'timeSlot',
-  Status: 'status',
-  Address: 'address',
-  PickupOrderID: 'pickupOrderId',
-  DeliveryOrderID: 'deliveryOrderId',
-  Notes: 'notes',
-  CreatedAt: 'createdAt',
-  UpdatedAt: 'updatedAt',
-  CreatedBy: 'createdBy',
-  UpdatedBy: 'updatedBy',
-  ServiceTier: 'serviceTier',
-  DeletedAt: 'deletedAt',
-  DeletedBy: 'deletedBy',
-} as const satisfies Record<keyof AppointmentsDbRow & string, string>
+export { appointmentsFieldMap } from './appointment.mapping.js'
 
 // ── API behavior: BaseCrudService validates the request, builds the read query
 //    (ReadQueryDTO.fromQuery with searchFields), calls the repository, and

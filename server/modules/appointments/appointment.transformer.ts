@@ -1,18 +1,31 @@
-import type { z } from 'zod'
 import type {
   RepositoryRequest,
   RepositoryTransformer,
 } from '../../shared/repositories/base.repository.js'
-import type { appointmentContract } from './appointment.contract.js'
 import { isRecord } from '../../shared/repositories/utils/gviz-cell.js'
+import { appointmentsRowSchema } from '../../sheets/Appointments/Appointments.db-contract.js'
+import type { z } from 'zod'
 
-export type AppointmentDbRow = z.infer<typeof appointmentContract.db.row>
-export type AppointmentDbCreateRequest = z.infer<
-  typeof appointmentContract.db.request.create
->
-export type AppointmentDbUpdateRequest = z.infer<
-  typeof appointmentContract.db.request.update
->
+export type AppointmentDbRow = z.infer<typeof appointmentsRowSchema>
+
+type AppointmentDbCreateRequest = Omit<Partial<AppointmentDbRow>, 'Address'> & {
+  AppointmentID: string
+  CustomerID: string
+  AppointmentType: AppointmentDbRow['AppointmentType']
+  AppointmentDate: string
+  TimeSlot: AppointmentDbRow['TimeSlot']
+  Status: AppointmentDbRow['Status']
+  Address: string
+  CreatedBy: string
+  ServiceTier: 'STANDARD'
+  CreatedAt: string
+  UpdatedAt: string
+}
+
+type AppointmentDbUpdateRequest = Partial<AppointmentDbRow> & {
+  UpdatedBy: string
+  UpdatedAt: string
+}
 
 export interface AppointmentCustomerSnapshot {
   CustomerName: string

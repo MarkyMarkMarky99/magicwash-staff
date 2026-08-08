@@ -2,11 +2,14 @@ import type { z } from 'zod'
 import type {
   SheetLibRequest,
   SheetLibSuccessResponse,
-} from '../../../../../server/shared/repositories/gsheet.repository.js'
-import { appointmentContract } from '../../../../../server/modules/appointments/appointment.contract.js'
+} from '../../../../../server/shared/repositories/sheet.repository.js'
+import {
+  appointmentCreateSchema,
+  appointmentUpdateSchema,
+} from '../../../../../contracts/appointments/appointment-api.schema.js'
 
-type AppointmentCreateRequest = z.input<typeof appointmentContract.api.request.create>
-type AppointmentUpdateRequest = z.input<typeof appointmentContract.api.request.update>
+type AppointmentCreateRequest = z.input<typeof appointmentCreateSchema>
+type AppointmentUpdateRequest = z.input<typeof appointmentUpdateSchema>
 type AppointmentFrontendRequest = AppointmentCreateRequest | AppointmentUpdateRequest
 type AppointmentSheetRow = Record<string, unknown>
 

@@ -1,33 +1,24 @@
 import { randomUUID } from 'node:crypto'
 import type { z } from 'zod'
-import type {
-  ApiRowFromFieldMap,
-  BaseRepository,
-  RepositoryTransformer,
-} from '../../shared/repositories/base.repository.js'
-import type { OmitReservedQueryFields } from '../../shared/dtos/read-query.dto.js'
+import type { RepositoryTransformer } from '../../shared/repositories/base.repository.js'
 import { BaseCrudService } from '../../shared/services/base-crud.service.js'
 import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
-import { appointmentContract } from './appointment.contract.js'
+import { appointmentApiContract } from '../../../contracts/appointments/appointment-api.schema.js'
 import { appointmentsRowSchema } from '../../sheets/Appointments/Appointments.db-contract.js'
+import { appointmentsFieldMap } from './appointment.mapping.js'
 
-export type AppointmentDbRow = z.infer<typeof appointmentContract.db.row>
 export type AppointmentSheetDbRow = z.infer<typeof appointmentsRowSchema>
-export type AppointmentApiRow = ApiRowFromFieldMap<
-  AppointmentDbRow,
-  typeof appointmentContract.db.fieldMap
->
+export type AppointmentApiRow = z.infer<typeof appointmentApiContract.response.detail>
 export type AppointmentSheetFieldMap = Partial<
   Record<keyof AppointmentSheetDbRow & string, string>
 >
-export type AppointmentListQuery = z.infer<typeof appointmentContract.api.query.list>
-export type AppointmentReadWhere = OmitReservedQueryFields<AppointmentListQuery>
-export type AppointmentCreateInput = z.infer<typeof appointmentContract.api.request.create>
-export type AppointmentUpdateInput = z.infer<typeof appointmentContract.api.request.update>
-export type AppointmentListResponse = z.infer<typeof appointmentContract.api.response.list>
-export type AppointmentDetailResponse = z.infer<typeof appointmentContract.api.response.detail>
-export type AppointmentCreateResponse = z.infer<typeof appointmentContract.api.response.create>
-export type AppointmentUpdateResponse = z.infer<typeof appointmentContract.api.response.update>
+export type AppointmentListQuery = z.infer<typeof appointmentApiContract.query.list>
+export type AppointmentCreateInput = z.infer<typeof appointmentApiContract.request.create>
+export type AppointmentUpdateInput = z.infer<typeof appointmentApiContract.request.update>
+export type AppointmentListResponse = z.infer<typeof appointmentApiContract.response.list>
+export type AppointmentDetailResponse = z.infer<typeof appointmentApiContract.response.detail>
+export type AppointmentCreateResponse = z.infer<typeof appointmentApiContract.response.create>
+export type AppointmentUpdateResponse = z.infer<typeof appointmentApiContract.response.update>
 
 export type AppointmentCreateCommand = AppointmentCreateInput & {
   appointmentId: string
@@ -41,20 +32,10 @@ export type AppointmentUpdateCommand = AppointmentUpdateInput & {
   updatedAt: string
 }
 
-export type AppointmentRepository = BaseRepository<
-  AppointmentApiRow,
-  AppointmentReadWhere,
-  AppointmentCreateInput,
-  AppointmentUpdateInput
->
-
 export type AppointmentSheetRepository = SheetRepositoryContract<AppointmentSheetDbRow>
 
 export interface AppointmentServiceOptions {
-  repository:
-    | AppointmentRepository
-    | AppointmentSheetRepository
-    | (() => AppointmentSheetRepository)
+  repository: AppointmentSheetRepository | (() => AppointmentSheetRepository)
   /** Supplied by the migrated module to select the DB-shaped sheet path. */
   fieldMap?: AppointmentSheetFieldMap
   /** Supplied by the migrated module for the Address snapshot shape change. */
@@ -86,9 +67,9 @@ export class AppointmentService extends BaseCrudService<
   constructor(input: AppointmentServiceOptions) {
     super({
       repository: input.repository,
-      api: appointmentContract.api,
+      api: appointmentApiContract,
       searchFields: ['appointmentId', 'customerId', 'notes'],
-      fieldMap: input.fieldMap,
+      fieldMap: input.fieldMap ?? appointmentsFieldMap,
       transformer: input.transformer,
     })
     this.generateAppointmentId = input.generateAppointmentId ?? defaultAppointmentId

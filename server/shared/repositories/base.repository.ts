@@ -11,8 +11,7 @@ export type RepositoryOperation = 'read' | 'create' | 'update' | 'delete'
 
 /**
  * DB column name -> API/domain field name (e.g. `{ CustomerID: 'customerId' }`),
- * matching each module's `<m>-db.schema.ts` field map. Omit a column for an
- * identity rename.
+ * matching the owning module's field map. Omit a column for an identity rename.
  */
 export type FieldMap = Record<string, string>
 
@@ -62,7 +61,7 @@ export interface RepositoryTransformer {
     request: RepositoryRequest<unknown, unknown>,
   ): MaybePromise<RepositoryRequest<unknown, unknown>>
 
-  /** DB-side response escape hatch: output must match the expected *-db.schema.ts shape. */
+  /** DB-side response escape hatch: output must match the owning sheet row shape. */
   response?(
     response: unknown,
     context: RepositoryTransformerContext,
@@ -71,7 +70,7 @@ export interface RepositoryTransformer {
 
 /**
  * Renames object keys between DB column names and API/domain field names.
- * `fieldMap` is DB column -> API field (the module's `<m>-db.schema.ts` map).
+ * `fieldMap` is DB column -> API field, declared by the owning module.
  * Rename only — no projection, list/detail split, or business logic.
  * Maps one object; BaseRepository maps arrays by mapping each element.
  */
@@ -108,9 +107,9 @@ export class Mapper {
 }
 
 // All generics are API/domain shapes (camelCase) — what the service passes in and
-// gets back. mapper.toDb (+ transformer.request) turn inputs into the
-// *-db.schema.ts DB shape the storage layer sees; the DB shape is never a generic
-// here (it lives on the storage impl, e.g. GSheetRepository's TDbRow).
+// gets back. mapper.toDb (+ transformer.request) turn inputs into the physical
+// sheet DB shape the storage layer sees; the DB shape is never a generic here
+// (it lives on the storage implementation, e.g. SheetRepository's TDbRow).
 //   TApiRow    -> row the repo RETURNS (contracts/<m>/<m>-api.schema.ts)
 //   TReadWhere -> read filter (DB-backed API/domain fields)
 //   TCreate    -> create input the service passes in

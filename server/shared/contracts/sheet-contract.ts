@@ -4,10 +4,9 @@ import type { ZodSchema } from 'zod'
  * A DB row schema is a Zod OBJECT: column letters are derived from `row.shape`,
  * so the schema must expose it.
  *
- * Deliberately redeclared here rather than imported from `module-db-contract.ts`
- * — that file is deleted in §1.8 once every module stops using `ModuleContract`,
- * and the database layer must not hold a dependency that blocks its removal. The
- * duplication lasts only until then.
+ * This structural type belongs to the sheet repository layer and is intentionally
+ * independent of API contracts. Each physical sheet declares one contract beside
+ * its row schema under `server/sheets/<Sheet>/`.
  */
 export type DbRowSchema = ZodSchema & { shape: Record<string, unknown> }
 
@@ -27,7 +26,7 @@ export type SheetContract = {
   sheetName: string
   /** Environment variable key containing the spreadsheet id, not the id value. */
   spreadsheetId?: string
-  /** SheetLib / Apps Script write target. Removed in Phase 2 for Sheets API writes. */
+  /** SheetLib / Apps Script write target. The Sheets API swap is Phase 2, not current behavior. */
   target?: string
   writes: {
     append: boolean

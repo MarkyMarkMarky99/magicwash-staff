@@ -1,26 +1,5 @@
 # AGENTS.md - Magic Wash Backend
 
-> ## ⚠ A refactor is replacing the database rules below
->
-> `docs/database-layer-sheets-api-refactor-plan.md` is being rolled out. The rules in
-> this file still describe what production runs today, so **follow them for existing
-> code** — but do **not** extend the old pattern to anything new, and do not "fix" work
-> that follows the new one.
->
-> Superseded, in the order they land:
->
-> | This file still says | Being replaced by |
-> |---|---|
-> | Each module owns a `<module>.repository.ts`; one module has one repository file | One repository per physical sheet under `server/sheets/<Sheet>/` |
-> | Use `ModuleContract` + `GSheetRepository` | `SheetContract` + `SheetRepository`, which know nothing about the API |
-> | `fieldMap` and column mapping live in the repository | Mapping moves up into the owning module |
-> | `primaryKey` is the API/domain field name | `primaryKey` is the real DB column name |
-> | Transformers decode JSON cells (`decodeJsonCells`) | Nested columns are typed as the text they hold; callers parse |
-> | Apps Script/SheetLib performs writes | Google Sheets API writes; Apps Script keeps only view recompute |
->
-> Everything else here — validation, testing, imports, ESM/deployment rules — is
-> unaffected and still authoritative.
-
 ## Overview
 
 TypeScript Vercel serverless API for the Vue portal. Google Sheets is the data
@@ -37,7 +16,9 @@ store: GViz reads data and Apps Script/SheetLib performs writes.
 
 - `api/[...path].ts` - Single Vercel entry point.
 - `server/api/` - Lazy module route registry.
-- `server/modules/<module>/` - Feature contracts, repositories, services, queries, and route wiring.
+- `server/modules/<module>/` - Feature API contracts, services, queries, mapping, and route wiring.
+- `server/sheets/<Sheet>/` - One DB contract and one repository per physical sheet. The
+  repository is constructed only by its lazy memoized getter.
 - `server/shared/http/` - Gateway, handlers, validation, response helpers, and generic CRUD routes.
 - `server/shared/repositories/` - Storage abstractions and Google Sheet transport.
 - `server/shared/services/` - Shared storage-agnostic services, including `BaseCrudService`.
@@ -49,28 +30,30 @@ store: GViz reads data and Apps Script/SheetLib performs writes.
 - API typecheck: `npm run typecheck:api`
 - Backend dry test: `npx tsx tests/server/<path>/<name>.dry-test.ts`
 - Web build after contract changes: `npm run build`
+- Contract parity check before deploying a contract change:
+  `node --env-file=.env.local --import=tsx/esm tests/server/integration/sheet-column-parity.ts`
 - Final diff check: `git diff --check`
 
 ## Architecture Rules
 
 - Use `routes -> service -> repository -> queries`. Routes translate HTTP;
   services own business decisions; repositories own storage and transport.
-- Use `ModuleContract` + `GSheetRepository` + `BaseCrudService` +
+- Use `SheetContract` + `SheetRepository` + `BaseCrudService` +
   `createCrudRoutes` for normal single-sheet CRUD. Do not hand-write CRUD handlers.
 - Use a dedicated service and explicit route only for genuinely complex flows
   (multi-sheet writes, joins, or nonstandard result states); document why.
 - Every module owns a named service. Do not use `BaseCrudService` as a module's
   service when its workflow spans multiple sheets; for example, invoices uses
-  an `InvoiceService` that orchestrates its own repositories.
-- Construct each repository only in its `<module>.repository.ts` behind a lazy
-  memoized getter. One module has one repository file; it exports one
-  `GSheetRepository` getter per sheet it owns. For example, `invoice.repository.ts`
-  owns the Invoice, InvoiceItem, Payment, and InvoicesView repositories.
-- One physical sheet equals one `GSheetRepository` and one `ModuleDbContract`.
-  Do not combine row schemas, field maps, primary keys, or write capabilities
-  for multiple sheets into one repository or DB contract.
-- Repositories never import another module's repository or module; cross-module
-  workflows belong in a service.
+  an `InvoiceService` that orchestrates its sheet repositories.
+- Construct each repository only in `server/sheets/<Sheet>/<Sheet>.repository.ts`,
+  behind a lazy memoized getter. One physical sheet has one `SheetContract` and one
+  `SheetRepository`; the getter is the only construction site.
+- `SheetContract` and `SheetRepository` use physical DB column names and know nothing
+  about API contracts. The owning module declares its DB-to-API `fieldMap` and
+  `jsonColumns` on `BaseCrudService`.
+- `primaryKey` is the real physical DB column name. It is not an API/domain field name.
+- Cross-sheet workflows belong in a module service, which may obtain the relevant
+  sheet repositories through their getters.
 - Keep the single `api/[...path].ts` function. Registry imports must be literal
   lazy imports, and every backend relative import/export must end in `.js`.
 
@@ -78,8 +61,9 @@ store: GViz reads data and Apps Script/SheetLib performs writes.
 
 - Define public Zod contracts first in `contracts/`: camelCase request,
   response, enum, and query shapes shared with the frontend.
-- Keep Sheet rows, physical column order, write payloads, `fieldMap`, and keys
-  in the module's backend contract. Never expose DB row shapes to the frontend.
+- Keep sheet rows, physical column order, write payloads, and primary keys in the
+  owning sheet contract. Keep API fields in `contracts/`; never expose DB row shapes
+  to the frontend.
 - Validate all untrusted HTTP input with `parseOrThrow` at a public service
   boundary. Do not replace validation with `as` casts or duplicate it privately.
 - Use `ReadQueryDTO` for normal list filters, sorting, pagination, and id lookup.
@@ -89,26 +73,27 @@ store: GViz reads data and Apps Script/SheetLib performs writes.
 
 ## Google Sheets Rules
 
-- `GSheetRepository` alone owns GViz, SheetLib/App Script writes, and column mapping.
-- Every write has an explicit SheetLib target; UPDATE is a PATCH.
-- Portal views are Apps Script-owned read models. Transformers may decode JSON
-  cells and GViz dates only; fix wrong business data at its source.
+- `SheetRepository` owns GViz reads and SheetLib/App Script writes. It maps no API
+  fields; `BaseCrudService` owns the module's DB-to-API mapping and declared JSON
+  cell decoding.
+- Every write has an explicit SheetLib target; UPDATE is a PATCH. Writes still go
+  through Apps Script/SheetLib today. The Google Sheets API swap is Phase 2 and is
+  not current behavior.
+- Portal views are Apps Script-owned read models. Decode their JSON text columns only
+  through the owning module's `jsonColumns`; fix wrong business data at its source.
+- The backend returns GViz's raw date form. Date formatting belongs in the frontend.
 - Do not turn dirty legacy cells into 500 responses. DELETE remains unsupported
   until its SheetLib/App Script semantics are designed and verified.
 - Server environment variables never use the `VITE_*` prefix.
-
-## Refactor Workflow
-
-- Inspect the module, registry, API contract, sheet columns, and tests first.
-- Migrate one vertical slice: contract -> repository -> service -> routes -> registry -> tests.
-- Preserve behavior unless the new outcome is explicitly designed and tested.
-- Remove legacy code only after no imports or route references remain.
 
 ## Testing
 
 - Put dry tests under `tests/server/`, mirroring the relevant `server/` path.
 - Run the relevant dry tests and `npm run typecheck:api` for every backend change.
 - Run `npm run build` when a frontend-facing contract changes, then `git diff --check`.
+- Run `tests/server/integration/sheet-column-parity.ts` against the live sheets before
+  deploying a contract change; parity is checked against the live sheet, not the
+  route registry.
 
 ## Reference
 

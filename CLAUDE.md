@@ -116,6 +116,31 @@ codex exec -s workspace-write -m gpt-5.6-luna -c model_reasoning_effort="xhigh" 
 
 Pass the brief on stdin; inlining a long prompt as a quoted argument mangles it.
 
+### Resume or start fresh
+
+`codex exec` starts a cold session every time unless you pass `resume`. Decide by whether
+the work benefits from what the previous session already learned.
+
+**Resume the same session** when you are sending the same task back — a correction, a
+follow-up, a fix for something your verification caught. It already has the files loaded
+and remembers what it just changed and why, so it does not re-read the codebase from
+scratch. Frontend date formatting went back three times as three cold sessions, each one
+re-reading `src/` to change work it had written minutes earlier.
+
+```bash
+codex exec -s workspace-write resume <session-id> - < <brieffile>
+```
+
+The sandbox flag goes BEFORE `resume`. Capture the session id from the first call's output
+— do not `tail` it away, which is easy to do and leaves you unable to resume.
+
+**Start fresh** for a genuinely different task, or when the previous session's context
+would mislead more than help — a new step of a plan, a different area of the code, or a
+review that should not inherit the implementer's assumptions. Long sessions also die: one
+review session accumulated to 371k tokens and compacted itself away without producing its
+report, so do not thread a fourth or fifth unrelated task onto one session to save tokens.
+
+
 **`-s workspace-write` only.** Never `--full-auto` or a sandbox bypass. That flag is what
 structurally confines writes to this repo, and
 `G:\My Drive\Magicwash\Database\GoogleSheets\*.json` — the schema registry, shared with the
