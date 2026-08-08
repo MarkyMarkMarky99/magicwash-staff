@@ -213,7 +213,7 @@ Google Sheets ถาวร แล้ว §8.2 ก็เป็นแค่คำ�
 | `Invoices` / `InvoiceItems` | (ไม่มี → `INVOICES_SPREADSHEET_ID`) | SheetLib | `InvoiceItems` มี batchAppend |
 | `Payments` | — | ไม่รองรับ | ย้ายไฟล์เฉยๆ |
 | `Customers` | `CUSTOMERS_SPREADSHEET_ID` | **ไม่แตะ** (M3) | read อย่างเดียว |
-| `OrdersView` / `InvoicesView` / `CustomerPackageView` | `ORDERS_SPREADSHEET_ID` | read-only | `decodeJsonCells` 2 ตัวหลัง |
+| `OrdersView` / `InvoicesView` / `CustomerPackageView` | `ORDERS_SPREADSHEET_ID` | read-only | คอลัมน์ `*Json` คืนเป็น string ดิบ — ไม่มี `decodeJsonCells` แล้ว ดู §1.9 |
 
 **1.6** module รับ mapping — api contract import จาก `contracts/<feature>/<m>-api.schema.js` ตรงๆ
 
