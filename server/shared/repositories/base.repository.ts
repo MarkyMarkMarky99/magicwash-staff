@@ -83,6 +83,7 @@ export class Mapper {
 
   constructor(fieldMap: FieldMap = {}) {
     this.dbToApi = { ...fieldMap }
+    assertBijectiveFieldMap(fieldMap)
     this.apiToDb = invertFieldMap(fieldMap)
   }
 
@@ -279,6 +280,19 @@ function invertFieldMap(fieldMap: FieldMap): FieldMap {
     inverted[apiField] = dbColumn
   }
   return inverted
+}
+
+function assertBijectiveFieldMap(fieldMap: FieldMap): void {
+  const dbColumnByApiField = new Map<string, string>()
+  for (const [dbColumn, apiField] of Object.entries(fieldMap)) {
+    const previousDbColumn = dbColumnByApiField.get(apiField)
+    if (previousDbColumn !== undefined) {
+      throw new Error(
+        `Field map is not bijective: DB columns '${previousDbColumn}' and '${dbColumn}' both map to API field '${apiField}'`,
+      )
+    }
+    dbColumnByApiField.set(apiField, dbColumn)
+  }
 }
 
 function renameKeys(input: Record<string, unknown>, map: FieldMap): Record<string, unknown> {

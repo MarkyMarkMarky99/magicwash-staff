@@ -130,10 +130,8 @@ export const orderFormFieldMap = {
 
 /** DB-facing capability/documentation schema — snake_case, exactly what
  *  `InvoiceService` sends: only the invoice-link patch plus the audit actor,
- *  never a full-row PATCH. `updated_at` is NOT auto-stamped by SheetLib on
- *  UPDATE the way `created_at` is on APPEND, but this module doesn't stamp it
- *  either — `OrderForm.json` has no requirement forcing it, and the existing
- *  `markOrderInvoiced` this replaces never sent it. */
+ *  never a full-row PATCH. SheetLib supplies its normal UPDATE timestamp
+ *  behavior; this module does not add a separate stamp. */
 export const orderFormDbUpdateRequestSchema = z.object({
   invoice_id: z.string().min(1),
   updated_by: z.string().min(1),

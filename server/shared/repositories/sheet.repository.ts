@@ -65,6 +65,9 @@ interface GvizReadQuery {
   pagination?: ReadQueryPagination
 }
 
+// Every SheetLib write aborts after this long so a hung Apps Script call cannot hold the Vercel function indefinitely.
+const SHEETLIB_WRITE_TIMEOUT_MS = 15_000
+
 /** Google Sheets implementation of the storage-agnostic sheet repository. */
 export class SheetRepository<TDbRow extends object>
   implements SheetRepositoryContract<TDbRow>
@@ -281,7 +284,7 @@ export class SheetRepository<TDbRow extends object>
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
         redirect: 'follow',
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(SHEETLIB_WRITE_TIMEOUT_MS),
       })
     } catch (error) {
       throw new SheetLibTransportError(
