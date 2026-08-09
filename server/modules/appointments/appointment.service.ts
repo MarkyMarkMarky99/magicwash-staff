@@ -3,6 +3,7 @@ import type { z } from 'zod'
 import type { RepositoryTransformer } from '../../shared/repositories/base.repository.js'
 import { BaseCrudService } from '../../shared/services/base-crud.service.js'
 import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
+import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
 import { appointmentApiContract } from '../../../contracts/appointments/appointment-api.schema.js'
 import { appointmentsRowSchema } from '../../sheets/Appointments/Appointments.db-contract.js'
 import { appointmentsFieldMap } from './appointment.mapping.js'
@@ -98,26 +99,6 @@ export class AppointmentService extends BaseCrudService<
       updatedAt: formatBangkokTimestamp(this.now()),
     }
   }
-}
-
-export function formatBangkokTimestamp(date: Date): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Bangkok',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(date)
-  const value = Object.fromEntries(
-    parts
-      .filter((part) => part.type !== 'literal')
-      .map((part) => [part.type, part.value]),
-  )
-
-  return `${value.year}-${value.month}-${value.day} ${value.hour}:${value.minute}:${value.second}`
 }
 
 function defaultAppointmentId(): string {

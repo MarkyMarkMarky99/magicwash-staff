@@ -20,6 +20,8 @@ process.env.ORDERS_SPREADSHEET_ID = 'orders-spreadsheet-id'
 
 const { InvoiceService } = await import('../../../../server/modules/invoices/invoice.service.js')
 
+const fixedNow = new Date('2026-04-01T00:34:56.000Z')
+
 interface FetchCall {
   url: string
   body: Record<string, unknown>
@@ -87,6 +89,7 @@ async function main(): Promise<void> {
     // deliberately out of scope for this SheetLib-transport-only layer —
     // stub it so this test focuses purely on the three SheetLib writes.
     syncInvoiceView: async () => ({ outcome: 'confirmed' }),
+    now: () => fixedNow,
   })
 
   await withRoutedFetch(
@@ -147,7 +150,11 @@ async function main(): Promise<void> {
       const orderFormCall = calls[2]
       assert.equal(orderFormCall.body.action, 'UPDATE')
       assert.equal(orderFormCall.body.key_value, 'ORD-0001')
-      assert.deepEqual(orderFormCall.body.data, { invoice_id: 'INV-0001', updated_by: 'staff' })
+      assert.deepEqual(orderFormCall.body.data, {
+        invoice_id: 'INV-0001',
+        updated_by: 'staff',
+        updated_at: '2026-04-01 07:34:56',
+      })
     },
   )
 

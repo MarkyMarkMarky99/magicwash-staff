@@ -6,10 +6,10 @@ import {
   type AppointmentCreateInput,
   type AppointmentUpdateInput,
   AppointmentService,
-  formatBangkokTimestamp,
 } from '../../../../../server/modules/appointments/appointment.service.js'
 import { appointmentsFieldMap } from '../../../../../server/modules/appointments/appointment.mapping.js'
 import { createAppointmentTransformer } from '../../../../../server/modules/appointments/appointment.transformer.js'
+import { formatBangkokTimestamp } from '../../../../../server/shared/utils/bangkok-timestamp.js'
 
 class RecordingRepository implements SheetRepositoryContract<AppointmentSheetDbRow> {
   readonly appendCalls: Record<string, unknown>[] = []

@@ -12,6 +12,7 @@ import {
   SheetLibRejectedError,
   SheetLibTransportError,
 } from '../../../../../server/shared/repositories/sheetlib-errors.js'
+import { formatBangkokTimestamp } from '../../../../../server/shared/utils/bangkok-timestamp.js'
 
 const { InvoiceService, invoicesFieldMap, invoiceItemsFieldMap } = await import(
   '../../../../../server/modules/invoices/invoice.service.js'
@@ -26,6 +27,8 @@ function test(name: string, run: () => Promise<void> | void): void {
 interface Fakes {
   service: InstanceType<typeof InvoiceService>
   calls: string[]
+  invoiceAppendCalls: Record<string, unknown>[]
+  orderFormUpdateCalls: Array<{ id: string; data: Record<string, unknown> }>
 }
 
 interface FakeConfig {
@@ -36,8 +39,12 @@ interface FakeConfig {
   viewSyncError?: unknown
 }
 
+const fixedNow = new Date('2026-04-01T00:34:56.000Z')
+
 function createService(config: FakeConfig = {}): Fakes {
   const calls: string[] = []
+  const invoiceAppendCalls: Record<string, unknown>[] = []
+  const orderFormUpdateCalls: Array<{ id: string; data: Record<string, unknown> }> = []
 
   const invoiceItemRepository: InvoiceItemWriter = {
     async batchAppend(rows) {
@@ -50,6 +57,7 @@ function createService(config: FakeConfig = {}): Fakes {
   const invoiceRepository: InvoiceHeaderWriter = {
     async append(data) {
       calls.push('Invoice.create')
+      invoiceAppendCalls.push(data as Record<string, unknown>)
       if (config.invoiceError) throw config.invoiceError
       return { ...data }
     },
@@ -58,6 +66,7 @@ function createService(config: FakeConfig = {}): Fakes {
   const orderFormRepository: OrderFormWriter = {
     async update(id, data) {
       calls.push('OrderForm.update')
+      orderFormUpdateCalls.push({ id, data: data as Record<string, unknown> })
       if (config.orderFormError) throw config.orderFormError
       return { id, ...data }
     },
@@ -81,9 +90,10 @@ function createService(config: FakeConfig = {}): Fakes {
       let n = 0
       return () => `item${String(n++).padStart(4, '0')}`
     })(),
+    now: () => fixedNow,
   })
 
-  return { service, calls }
+  return { service, calls, invoiceAppendCalls, orderFormUpdateCalls }
 }
 
 function baseRequest(): CreateInvoiceRequest {
@@ -146,12 +156,14 @@ test('Invoices and InvoiceItems field maps pin every DB-to-API value', () => {
 })
 
 test('create() returns "created" and calls stages in the exact required order, once each', async () => {
-  const { service, calls } = createService()
+  const { service, calls, invoiceAppendCalls, orderFormUpdateCalls } = createService()
 
   const result = await service.create(baseRequest())
 
   assert.equal(result.kind, 'created')
   assert.deepEqual(calls, ['InvoiceItem.batchAppend', 'Invoice.create', 'OrderForm.update', 'ViewSync'])
+  assert.equal(invoiceAppendCalls[0]?.created_at, formatBangkokTimestamp(fixedNow))
+  assert.equal(orderFormUpdateCalls[0]?.data.updated_at, formatBangkokTimestamp(fixedNow))
   if (result.kind === 'created') {
     assert.equal(result.invoiceNumber, 'INV-0001')
     assert.equal(result.itemCount, 1)
