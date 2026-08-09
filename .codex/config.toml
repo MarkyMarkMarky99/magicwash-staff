@@ -1,0 +1,10 @@
+[agents]
+enabled = true
+
+[agents."luna-implementer"]
+description = "Implement narrowly scoped fixes from the brief while preserving ownership and unrelated changes."
+config_file = "agents/luna-implementer.toml"
+
+[agents."luna-test-guard"]
+description = "Create or update tests and perform mutation proof exactly as assigned in the brief."
+config_file = "agents/luna-test-guard.toml"
