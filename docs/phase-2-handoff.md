@@ -1,6 +1,11 @@
 # Handoff — เริ่ม Phase 2
 
-เขียนเมื่อ 2026-08-09 ตอนปิด Phase 1 สำหรับ session ใหม่ที่จะทำ Phase 2 ต่อ
+เขียนเมื่อ 2026-08-09 ตอนปิด Phase 1 · **อัปเดตล่าสุด 2026-08-10 ตอนปิด §2.8 + prerequisite
+ของ §2.9** (HEAD = `2f9e6ac`)
+
+**ขั้นถัดไปคือ §2.9** — ให้เริ่มด้วยการปล่อย `test-pipeline` เข้า Phase A เพื่อวาง test charter
+มาให้เจ้าของโปรเจกต์อนุมัติ **ก่อน** เขียน implementation (ดูหมวด 3) และอ่าน "ข้อที่ยังไม่ยืนยัน"
+ในหมวด 2 ก่อน deploy
 
 แผนเต็มอยู่ที่ `docs/database-layer-sheets-api-refactor-plan.md` — **อ่านหมวด "สถานะ (ปิด Phase 1)"
 ที่ต้นไฟล์นั้นก่อน** เอกสารนี้เสริมเรื่องที่แผนไม่ได้เขียน: วิธีทำงาน และสิ่งที่เรียนรู้มาด้วยราคาแพง
@@ -17,7 +22,10 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 
 **การอ่านยืนยันบน production จริงแล้วครบ 5 module** — ยิงผ่าน preview deploy จริง ไม่ใช่ stub
 
-### ⛔ ตัวบล็อกก่อน merge
+### ✅ ตัวบล็อกก่อน merge — ปิดไปแล้วตอน §2.7 (2026-08-09)
+
+เจ้าของกดผ่าน staff UI จริงและตรวจครบทุกข้อแล้ว รายละเอียดผลอยู่ในหมวด 1b
+**ข้อความด้านล่างเก็บไว้เป็นบันทึกว่าตรวจอะไรไปบ้าง ไม่ใช่งานค้าง**
 
 **invoice create ไม่เคยรันจริงเลยหลังย้ายมา stack ใหม่** มันเขียน 4 ชีต ไม่ idempotent
 เทสต์ครอบได้แค่ผ่าน stub ต้องกดผ่าน staff UI 1 ครั้งด้วย order ที่ทิ้งได้ แล้วเปิดชีตตรวจ:
@@ -47,8 +55,10 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 | §2.7 registry description fix | ✅ **เจ้าของโปรเจกต์ทำเอง** | |
 | §2.7 smoke test (invoice create + timestamp ใหม่ รวมรอบเดียว) | ✅ | |
 | §2.7 follow-up — Invoices/OrderForm timestamps ประกาศ `USER_ENTERED` (ดูหมวด "การตัดสินใจ" ด้านล่าง) | ✅ | `9f53013` |
-| **§2.8 keyed update — ยอมรับ race** | ⬜ **ขั้นถัดไป** | |
-| §2.9–§2.10 | ⬜ | |
+| §2.8 keyed update — ยอมรับ race + `sheet-row-lookup.ts` | ✅ | `037a4b8` |
+| prerequisite ก่อน §2.9 (env + parity 3 ชีต + ด่านกัน portal) | ✅ | `2f9e6ac` |
+| **§2.9 สลับ transport จริง** | ⬜ **ขั้นถัดไป — ต้องผ่าน `test-pipeline` Phase A ก่อน** | |
+| §2.10 | ⬜ | |
 
 **§2.2 ยังไม่ถูกต่อเข้า `SheetRepository`** — transport ปัจจุบันยังเป็น Apps Script และ write path
 ยังวิ่งผ่าน Apps Script อยู่; client เขียนเสร็จแต่ยังไม่มีใครเรียก §2.3 จงใจส่งมอบเป็น building
@@ -129,6 +139,56 @@ Plain Text) เพราะมีประโยชน์กับคนที�
 เช็ค raw data type ด้วย (ไม่ใช่แค่ดูค่าที่ format ให้สวยแล้ว) ถึงจะเจอเรื่องแบบนี้ ซึ่ง UI/สายตา
 มองไม่เห็นเลยเพราะ display value ถูกต้อง 100%
 
+### §2.8 (2026-08-10) — ขอบเขตถูกขยายจากที่แผนเขียนไว้ โดยตั้งใจ
+
+แผน §2.8 เดิมสั่งอย่างเดียว: "แปะ doc comment บน `update()` ว่ายอมรับ race" แต่ตรวจโค้ดจริงแล้ว
+พบ 2 เรื่องที่ทำให้ทำตามตัวอักษรไม่ได้:
+
+1. **`update()` วันนี้ยังไม่มี race** — ยังวิ่งผ่าน SheetLib ที่ทำ lookup+write ใต้ `LockService`
+   ⇒ comment จะบรรยายสิ่งที่ยังไม่จริง ซึ่งคือกับดักหมวด 4 ข้อ "comment ที่ตายแล้วเป็นคำสั่งสำหรับ agent"
+2. **ตัวที่ทำให้เกิด race ยังไม่มีในโค้ด** — ไม่มีฟังก์ชันหาเลขแถวจากค่า key เลย มีแค่ `readColumn`
+
+⇒ ขยาย §2.8 ให้ส่งมอบ `server/shared/repositories/sheet-row-lookup.ts` เป็น building block
+(**ไม่ต่อเข้า `SheetRepository`** เหมือน §2.2–§2.6 ทุกขั้น) แล้ววาง doc race ไว้ **ที่ตัว helper
+ซึ่งเป็นจุดที่ race อยู่จริง** + note บน `update()` ที่เขียนว่า "วันนี้ยังไม่มี race เพราะยังผ่าน
+SheetLib · จะมีตอน §2.9" ⇒ จริงทั้งวันนี้และวันหน้า ไม่กลายเป็น comment ตาย
+ตัวแผน §2.8 ถูกแก้ให้ตรงกับสิ่งที่ส่งมอบจริงแล้วใน commit เดียวกัน
+
+การตัดสินใจเชิงพฤติกรรมที่ล็อกไว้: **key ซ้ำ → throw ไม่ใช่คืนแถวแรก** เพราะ key ซ้ำแปลว่า
+ข้อมูลเสีย และการเขียนทับแถวแรกเงียบๆ คือการทำลายข้อมูล · **ไม่เจอ → คืน `null`** ให้ §2.9
+เป็นคนแปลงเป็น not-found เอง
+
+### prerequisite ของ §2.9 ปิดครบแล้ว (2026-08-10) — และเจอช่องโหว่ที่ไม่มีใครเห็นมาก่อน
+
+เจ้าของโปรเจกต์แก้ env ให้เอง: `ORDERS_SPREADSHEET_ID` ชี้ workbook OrderForm จริงแล้ว
+(เดิมชี้ portal ผิดเล่ม) และเพิ่ม `INVOICES_SPREADSHEET_ID` · ยืนยันแล้วว่า **ไม่มี read path
+ไหนพัง** เพราะ `ORDERS_SPREADSHEET_ID` ถูกอ้างในโค้ด production จุดเดียวคือ
+`OrderForm.db-contract.ts` และ OrderForm มี consumer เดียวคือ `invoice.service.ts` ที่เรียก
+`.update()` อย่างเดียว ส่วน `/api/orders` อ่านจาก OrdersView + `PORTAL_*`
+
+**ช่องโหว่ที่เจอ: `sheet-column-parity.ts` ไม่เคยครอบ OrderForm / Invoices / InvoiceItems เลย**
+— ครอบแค่ 5 ชีตที่อ่านผ่าน GViz ทั้งที่ 3 ชีตนี้คือชีตที่ §2.9 กำลังจะเขียนทับ และ §2.3 ทำให้การ
+เขียนใช้ header-map addressing ⇒ contract ไม่ตรงชีต = **เขียนผิดคอลัมน์** ไม่ใช่แค่อ่านพัง
+(ตรวจไม่ได้มาก่อนเพราะ 2 ใน 3 ยังไม่มี `spreadsheetId`)
+
+ผลหลังขยาย parity: **ทั้ง 8 ชีตผ่านหมด** — Appointments 17, OrderForm 21, Invoices 16,
+InvoiceItems 14, Customers 20, OrdersView 13, InvoicesView 17, CustomerPackageView 19
+⇒ ไม่มีบั๊กคอลัมน์ซ่อนอยู่ เดินหน้า §2.9 ได้
+
+ของใหม่ที่ได้มาด้วย (`2f9e6ac`):
+- `tests/server/unit/sheets/writing-workbook-binding.dry-test.ts` — **contract ที่ `writes`
+  เป็น true ห้ามผูก `PORTAL_SPREADSHEET_ID`** ตรวจแบบไล่ค้น contract เอง ไม่ hardcode รายชื่อ
+  (ชีตที่เพิ่มทีหลังจึงถูกคุมด้วย) มีไว้กันความผิดพลาดซ้ำแบบที่ `ORDERS_*` เพิ่งเป็นจนถึงเมื่อวาน
+  ซึ่งไม่มีอะไรในระบบจับได้เลย
+- `tests/server/integration/sheets-api-access-check.ts` — auth ด้วย service account แล้วอ่าน
+  ผ่าน **Sheets API** (ไม่ใช่ GViz) พิสูจน์ว่าเส้นทาง auth ใช้ได้จริง ซึ่งไม่เคยถูกใช้บน production
+  เลยสักครั้ง · ผ่านครบ 4 ชีต 3 workbook
+
+**ข้อจำกัดที่ต้องรู้ก่อนไปเชื่อสคริปต์ตัวหลัง:** ทุก workbook เปิด public read ⇒ **การอ่านสำเร็จ
+ไม่ได้แปลว่ามี Editor** สคริปต์นี้จึงพิสูจน์ได้แค่ "auth ทำงาน + เข้าถึงเล่มนั้นได้" ไม่ได้พิสูจน์
+สิทธิ์เขียน (เขียนกำกับไว้ในหัวไฟล์แล้ว) การพิสูจน์สิทธิ์เขียนตรงๆ ต้องใช้ Drive API + ขยาย scope
+ของ token ซึ่งพิจารณาแล้วว่าแลกไม่คุ้ม จึงเปลี่ยนไปกันที่ระดับ binding ด้วย dry-test ตัวข้างบนแทน
+
 ### บทเรียนจาก §2.2 — เพิ่มเข้ารายการหมวด 4
 
 รอบแรกของไฟล์นี้ถูกเขียนค้างตอนเครื่องค้าง แล้วมี 2 ปัญหาที่ **typecheck จับไม่ได้**:
@@ -145,13 +205,23 @@ Plain Text) เพราะมีประโยชน์กับคนที�
 
 ---
 
-## 2. Prerequisite ที่เหลือ
+## 2. Prerequisite — ปิดครบแล้ว (2026-08-10) เหลือข้อเดียวที่ยังไม่ยืนยัน
 
-| # | ทำอะไร | ทำไมต้องก่อน |
+| # | ทำอะไร | สถานะ |
 |---|---|---|
-| 1 | แยก `PORTAL_SPREADSHEET_ID` ออกจาก `ORDERS_SPREADSHEET_ID` (deploy 2 เฟส) | **ตอนนี้ `ORDERS_SPREADSHEET_ID` ชี้ผิด workbook สำหรับ OrderForm** วันนี้ไม่มีผลเพราะ OrderForm ไม่เคยถูก GViz อ่าน แต่พอเขียนผ่าน Sheets API ค่านี้ชี้ workbook จริง → เขียนผิดที่ |
-| 2 | เพิ่ม `INVOICES_SPREADSHEET_ID` = `1zfhguJ…` | `Invoices`/`InvoiceItems` ยังไม่มี `spreadsheetId` เพราะเขียนอย่างเดียว แต่ Sheets API ต้องใช้ |
-| 3 | Provision service account | แชร์ Editor **เฉพาะ 3 workbook ที่เขียนจริง** — `1tfgJvj` OrderForm, `1CvVl6a` Appointments, `1zfhguJ` Invoices · **ห้ามให้สิทธิ์ portal `1ucqeUq`** |
+| 1 | แยก `PORTAL_SPREADSHEET_ID` ออกจาก `ORDERS_SPREADSHEET_ID` | ✅ โค้ดแยกแล้ว + เจ้าของแก้ค่าให้ชี้ `1tfgJvj` (OrderForm) แล้ว · ยืนยันแล้วว่าไม่มี read path ไหนพัง |
+| 2 | เพิ่ม `INVOICES_SPREADSHEET_ID` = `1zfhguJ…` | ✅ อยู่ใน `.env.local` และผูกเข้า `Invoices`/`InvoiceItems` contract แล้ว |
+| 3 | Provision service account | ✅ แชร์ไว้แล้ว · `sheets-api-access-check.ts` ยิงผ่านครบ 3 workbook |
+
+### ⚠️ ข้อที่ยังไม่ยืนยัน — ต้องเช็คก่อน deploy §2.9
+
+**env บน Vercel (Production + Preview) ยังไม่ได้ตรวจ** — ทั้งหมดข้างบนยืนยันจาก `.env.local`
+เท่านั้น ถ้า `INVOICES_SPREADSHEET_ID` ไม่มีบน Vercel หรือ `ORDERS_SPREADSHEET_ID` บนนั้นยัง
+เป็นค่าเก่าที่ชี้ portal **§2.9 จะเขียนผิด workbook บน production ทั้งที่ทุกอย่าง local เขียว**
+เช็คด้วย `vercel env ls` แล้วเทียบกับ `.env.local` ก่อนปล่อยของ
+
+หมายเหตุ: `.env.local` ในเครื่องถูก pull ลงมาจาก Vercel (มี `VERCEL_OIDC_TOKEN` อยู่) แต่
+เจ้าของแก้ค่าด้วยมือหลังจากนั้น ⇒ **ห้ามสรุปว่า local ตรงกับ remote**
 
 รายละเอียดอยู่ใน §2.0–§2.10 ของแผน
 
@@ -179,6 +249,44 @@ finding), §2.6 (จบ turn ตัวเองก่อนเสร็จรอ
 (1 review cycle, ไม่มี finding) **บั๊ก "จบ turn ก่อนงานเสร็จ" ที่เจอตอน §2.6 ถูกแก้เข้าไปใน
 ตัว agent definition แล้ว** (ห้ามอ้างว่า "ตั้ง background monitor" อีก ต้องทำให้จบใน turn
 เดียวเสมอ) — ไม่ต้องเตือนซ้ำใน prompt ทุกครั้งที่เรียกอีกต่อไป
+
+**อัปเดต 2026-08-10: ใช้ 6 ครั้ง สำเร็จทั้ง 6** — เพิ่ม §2.8 (1 review cycle, ไม่มี finding)
+และ prerequisite ของ §2.9 (1 review cycle, ไม่มี finding)
+
+### `luna-pipeline` คือด่านตรวจรับ ไม่ใช่แค่คนรัน — Claude ห้ามตรวจซ้ำชั้นที่ 3
+
+เจ้าของโปรเจกต์ระบุชัด (2026-08-10): สายงานคือ **grok รีวิว 1 ชั้น → sonnet ตรวจรับ 1 ชั้น →
+Claude หลักเชื่อรายงานแล้วเดินต่อ** กฎ "ห้ามเชื่อรายงานของ agent" ในเอกสารนี้หมายถึง **luna
+กับ grok** ไม่ได้หมายถึงตัว sonnet wrapper ซึ่งมีหน้าที่เป็นคนที่ใช้ความไม่เชื่อนั้นไปแล้ว
+
+⇒ **เวลารายงานของ pipeline ดูไม่พอ ให้ไปแก้ที่ `.claude/agents/luna-pipeline.md` ไม่ใช่มา
+ตรวจเองซ้ำ หรือแปะคำสั่งพิเศษเพิ่มใน prompt ทุกครั้ง**
+
+สิ่งที่อุดเข้าไปแล้วรอบ 2026-08-10 (เดิมขาด ทำให้ต้องสั่งเสริมเองทุกครั้ง):
+- รัน **ชุด dry-test ของ server ทั้งหมด** ไม่ใช่แค่ไฟล์ที่ luna แตะ (เดิมพลาดมาแล้วที่ §2.7 —
+  grok เป็นคนเจอ regression ข้ามไฟล์ ไม่ใช่ pipeline)
+- `npm run build` เสมอแม้เป็นงาน backend ล้วน เพราะ frontend ไม่มี type-check เลย
+- ถ้า diff แตะ contract → รัน `sheet-column-parity.ts` ด้วย
+- **ไฟล์ใต้ `tests/` ถูกแก้โดยที่ brief ไม่ได้อนุญาต = blocker ห้ามรายงานว่าผ่าน**
+- report contract บังคับให้แนบ `git diff --stat` + ผล mutation test ทุกข้อ (พังยังไง แดงที่
+  assertion ไหน revert สะอาดไหม)
+- หมวดใหม่ "ห้ามรายงานว่าผ่านถ้า…" เพื่อให้คำว่า accepted มีความหมายเดียว
+
+### `test-pipeline` — agent ใหม่สำหรับ §2.9 (`.claude/agents/test-pipeline.md`)
+
+§2.9 ใหญ่และแตะข้อมูลจริงเป็นครั้งแรก จึงแยก **คนคิดเรื่องการทดสอบ** ออกจากคนเขียนโค้ด
+
+| ด้าน | ที่ตั้งไว้ |
+|---|---|
+| หน้าที่ | ตอบคำถามเดียว — "ถ้ามันผิด เราจะรู้ได้ยังไง" ไม่ออกแบบฟีเจอร์ ไม่เถียงสถาปัตยกรรม |
+| เขียนโค้ด | **ไม่เขียนเอง** สั่ง luna เขียนทั้งหมด ยกเว้น mutation test ชั่วคราวที่ revert เสมอ |
+| ลูกทีม | luna (เขียน/แก้), grok (สืบสาเหตุตอนเทสต์แดง + รีวิว diff) เรียกตรงผ่าน Bash ไม่ spawn subagent |
+| Phase A | วาง **test charter** ก่อน implementation: แต่ละข้อต้องพิสูจน์อะไร และจับได้ด้วยอะไร (dry-test offline / integration ยิงชีตจริง / เฉพาะ deploy จริง / เฉพาะคนเปิดชีตดู) แล้ว **หยุดรออนุมัติ** |
+| Phase B | รันจริงหลัง §2.9 เขียนเสร็จ + mutation test ทุก guard + วนแก้สูงสุด 3 รอบ |
+
+ข้อห้ามที่สำคัญที่สุดในตัวมัน: **ห้ามเขียนลงชีตเพื่อทดสอบเด็ดขาด** (ข้อมูลลูกค้าจริง) ถ้าต้อง
+เขียนถึงจะพิสูจน์ได้ ให้บอกเจ้าของแล้วเจ้าของเป็นคนกดเอง · และ **ห้ามลดความปลอดภัยของระบบ
+เพื่อให้เทสต์รันได้** (เปิด public, ขยาย scope, ปิด check)
 
 ### หัวใจ 4 ข้อ
 
@@ -262,6 +370,24 @@ command line ที่ตรงเป๊ะกับที่เราสั่�
 ⇒ **สโมคเทสต์ต้องเช็ค raw data type ผ่าน query จริง ไม่ใช่แค่เปิดชีตด้วยตาดูว่าค่าดูโอเค**
 (กรณีนี้จบด้วยการตัดสินใจเก็บ datetime ไว้ตั้งใจแทนที่จะแก้กลับ — ดูหมวด 1b ด้านบน)
 
+**อ่านสำเร็จไม่ได้แปลว่ามีสิทธิ์เขียน — ทุก workbook ในโปรเจกต์นี้เปิด public read**
+(2026-08-10) ตอนออกแบบด่านตรวจสิทธิ์ service account แผนแรกคือ "ยิงอ่าน portal แล้วต้องโดน
+ปฏิเสธ" ซึ่งใช้ไม่ได้เลย เพราะใครก็อ่านได้อยู่แล้ว ⇒ เทสต์จะเขียวหรือแดงโดยไม่เกี่ยวกับสิทธิ์เขียน
+สักนิด **เทสต์ที่ให้ความมั่นใจปลอมแย่กว่าไม่มีเทสต์** ⇒ เปลี่ยนไปกันที่ระดับ binding แทน
+(contract ที่เขียนได้ ห้ามผูก portal) ซึ่งจับความผิดพลาดที่เกิดจริงได้ตรงกว่าและไม่ต้องพึ่งสิทธิ์เลย
+⇒ **ก่อนเขียนเทสต์ ถามก่อนว่ามันแยกกรณีถูกออกจากกรณีผิดได้จริงไหม ไม่ใช่แค่ว่ามันรันผ่านไหม**
+
+**ด่านที่ hardcode รายชื่อจะไร้ค่าพอดีตอนที่ต้องการมันที่สุด**
+`writing-workbook-binding.dry-test.ts` ไล่ค้น contract ทุกตัวในระบบเอง ไม่ได้ลิสต์ชื่อชีตไว้
+เพราะชีตที่ถูกเพิ่มเข้ามาในอนาคตคือชีตที่ยังไม่มีใครเคยตรวจ — ถ้าลิสต์ไว้ มันจะเงียบพอดีตอนมี
+ของใหม่เข้ามา mutation test ข้อ 2 ของงานนั้นพิสูจน์เรื่องนี้โดยเฉพาะ (แก้ชีตที่เดิม read-only
+ให้เขียนได้ แล้วด่านต้องแดงเอง)
+
+**เมื่อแผนขัดกับความจริงของโค้ด ให้แก้แผนในคอมมิตเดียวกับที่ทำงาน**
+§2.8 สั่งให้แปะ comment บนสิ่งที่ยังไม่เกิด ทำตามตัวอักษรแล้วจะได้ comment โกหก ⇒ ขยายขอบเขต
+พร้อมเขียนข้อความแทนที่ §2.8 ในแผนให้ตรงกับของจริง **ในคอมมิตเดียวกัน** ถ้าปล่อยให้แผนค้างไว้
+แบบเดิม session ถัดไปจะอ่านแผนแล้วสับสนกับโค้ด และ agent จะเชื่อเอกสารที่ผิด
+
 ---
 
 ## 5. ตรวจอะไรได้บ้าง
@@ -273,6 +399,13 @@ npx tsx --tsconfig jsconfig.json tests/web/<path>/<name>.dry-test.ts
 npm run build
 git diff --check
 node --env-file=.env.local --import=tsx/esm tests/server/integration/sheet-column-parity.ts
+node --env-file=.env.local --import=tsx/esm tests/server/integration/sheets-api-access-check.ts
+```
+
+ไม่มี test runner ในโปรเจกต์ รันทั้งชุดด้วยลูปนี้ (PowerShell):
+
+```powershell
+$fail=@(); Get-ChildItem -Recurse -Path tests/server -Filter *.dry-test.ts | ForEach-Object { npx tsx $_.FullName *> $null; if ($LASTEXITCODE -ne 0) { $fail += $_.FullName } }; if ($fail) { "FAILED:"; $fail } else { "ALL PASS" }
 ```
 
 `tests/web` ต้องมี `--tsconfig` เพราะ import โค้ด `src/` ที่ใช้ `@/` alias ซึ่ง `tsx` เปล่าๆ resolve ไม่ได้
@@ -327,4 +460,9 @@ Vercel Authentication อีก — ตอนนี้ความปลอด�
 | `server/shared/repositories/sheet.repository.ts` | **ไฟล์เดียวที่ Phase 2 ต้องแก้** (write transport) |
 | `server/shared/repositories/sheet-repository.contract.ts` | interface ที่ storage-agnostic — seam ของ Supabase |
 | `server/shared/contracts/sheet-contract.ts` | structural guard ของ db-contract ทุกชีต |
-| `tests/server/integration/sheet-column-parity.ts` | ด่านเทียบ contract กับชีตจริง |
+| `server/shared/repositories/sheet-row-lookup.ts` | §2.8 — หาเลขแถวจากค่า key **+ doc เรื่อง race ที่ยอมรับไว้ อ่านก่อนแตะ §2.9** |
+| `tests/server/integration/sheet-column-parity.ts` | ด่านเทียบ contract กับชีตจริง — ครบ 8 ชีตแล้ว |
+| `tests/server/integration/sheets-api-access-check.ts` | ยืนยัน service account auth ใช้ได้จริง (ไม่ได้พิสูจน์สิทธิ์เขียน) |
+| `tests/server/unit/sheets/writing-workbook-binding.dry-test.ts` | ชีตที่เขียนได้ ห้ามผูก `PORTAL_SPREADSHEET_ID` |
+| `.claude/agents/luna-pipeline.md` | pipeline เขียนโค้ด + **ด่านตรวจรับ** (local เท่านั้น ไม่ push) |
+| `.claude/agents/test-pipeline.md` | test architect + ด่านตรวจรับสำหรับ §2.9 (local เท่านั้น) |
