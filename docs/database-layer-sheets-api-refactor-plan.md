@@ -459,10 +459,19 @@ write consumer การ wire ก่อนหน้านั้นทำได�
 `resolveRowValueInputOptions`) เป็น building block เดียวกับแนวทาง §2.2/§2.3 — **ยังไม่ต่อเข้า
 `SheetRepository`** ประชากร `valueInput` ครบ 4 sheet ที่เขียนจริง: `Appointments` มีข้อยกเว้น
 เดียวคือ `AppointmentDate: 'USER_ENTERED'` (คอลัมน์อื่นรวม `CreatedAt`/`UpdatedAt` ต้องเป็น
-`RAW` แม้หน้าตาเหมือนวันที่ เพราะ registry ระบุว่าต้องเป็น Plain Text) ส่วน `OrderForm` /
-`Invoices` / `InvoiceItems` ประกาศ `valueInput: {}` ชัดเจน (ไม่มีคอลัมน์ไหนต้องการข้อยกเว้น)
+`RAW` แม้หน้าตาเหมือนวันที่ เพราะ registry ระบุว่าต้องเป็น Plain Text — การตัดสินใจนี้ยังยืนอยู่
+ไม่เปลี่ยน) ส่วน `InvoiceItems` ประกาศ `valueInput: {}` ชัดเจน (ไม่มีคอลัมน์ไหนต้องการข้อยกเว้น)
 เทสต์ `value-serialization.dry-test.ts` ปัก guard นี้ด้วย real contract import (ไม่ใช่ fixture
 copy) และผ่าน mutation test แล้ว (ใส่ `CreatedAt: 'USER_ENTERED'` เข้าไปแล้วเห็นเทสต์แดงจริง)
+
+⚠ **อัปเดต 2026-08-09 หลัง smoke test §2.7** — `Invoices`/`OrderForm` **ไม่ใช่ `valueInput: {}`
+อีกต่อไป** สโมคเทสต์เจอว่า Google Sheets auto-convert ค่า plain-text ที่ส่งไปเป็น datetime cell
+จริง (คอลัมน์ไม่ได้ format เป็น Plain Text) เจ้าของโปรเจกต์ตัดสินใจ**เก็บพฤติกรรมนี้ไว้ตั้งใจ**
+เพราะมีประโยชน์ต่อคนดู/กรองข้อมูลตรงในชีตเอง ⇒ `Invoices.created_at`/`.updated_at`/`.deleted_at`
+และ `OrderForm.updated_at` ประกาศ `USER_ENTERED` แล้ว (commit ที่ตามมาหลัง §2.7) ต่างจาก
+Appointments' CreatedAt/UpdatedAt ที่ยังคง Plain Text ตามเดิม — สอง sheet นี้คนละการตัดสินใจกัน
+อย่าสับสน รายละเอียดเหตุผลอยู่ที่ comment ข้าง `valueInput` ใน `Invoices.db-contract.ts` /
+`OrderForm.db-contract.ts` โดยตรง
 
 **2.5 error classification ตาม phase — 3 สถานะภายใน, public เหลือ 2 เหมือนเดิม**
 
