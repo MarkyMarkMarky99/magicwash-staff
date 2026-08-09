@@ -37,7 +37,7 @@ use case/route แต่ physical sheet คือ resource ที่ใช้ร
 ## สถานะ (ปิด Phase 1 — 2026-08-09)
 
 **Phase 1 เสร็จครบทุกขั้น (1.1–1.8)** อยู่บน `refactor/sheet-layer` ยังไม่ merge เข้า main
-Phase 2 §2.0–§2.5 เสร็จแล้ว; §2.6 เป็นขั้นถัดไป
+Phase 2 §2.0–§2.6 เสร็จแล้ว; §2.7 เป็นขั้นถัดไป
 
 commits ของ Phase 2 ที่เสร็จแล้ว:
 
@@ -48,6 +48,7 @@ commits ของ Phase 2 ที่เสร็จแล้ว:
 - §2.3 — `0d1a975`
 - §2.4 — `d83f480`
 - §2.5 — `bedc81e`
+- §2.6 — `0e0ca23`
 
 ผลลัพธ์: 1 repository ต่อ 1 physical sheet, repository ไม่รู้จัก API contract, DB↔API mapping
 อยู่ที่ module, `primaryKey` เป็นชื่อคอลัมน์ DB จริง, **module→module edge = 0** (ปัญหาตั้งต้น)
@@ -481,6 +482,19 @@ invoice write
 - update → **ไม่ต้องใช้** `includeValuesInResponse` เพราะ `updatedRange` ของ batchUpdate คือ range
   เฉพาะ cell ที่ patch → ประกอบ range `A<row>:<lastCol><row>` เอง แล้ว **ตรวจว่า PK ของแถวที่อ่านกลับ
   ตรงกับ key ที่ขอ** ถ้าไม่ตรงแปลว่าแถวขยับ → error ไม่ใช่คืนแถวผิดเงียบๆ
+
+**Implementation note (commit `0e0ca23`)** — สร้างเป็น 4 ชิ้นเล็กกระจายตามไฟล์ที่ควรอยู่
+(ไม่ยัดรวมไฟล์เดียว): **Part A** — `appendRows` รับ `knownWidth?: number` เพิ่ม เดิม pad ตาม
+ความกว้างของ request เอง (`Math.max(...rows.map(r => r.length))`) ผิดเมื่อเขียน subset
+คอลัมน์ (§2.3 อนุญาตไว้) ตอนนี้ pad ตาม `Math.max(requestedWidth, knownWidth)` เมื่อผู้เรียกส่ง
+`knownWidth` มา — ไม่ส่งก็พฤติกรรมเดิมเป๊ะ (backward compatible) **Part B** — `buildRowRange`
+ใน `sheet-header-map.ts` (คู่กับ `columnLetterForIndex` ที่มีอยู่แล้ว), `parseRowValues` ใน
+`sheet-value-serializer.ts` (สลับทางกับ `buildRowValues`), `readRange` เมธอดใหม่บน
+`SheetsApiClient` (ทั่วไปกว่า `readColumn` เดิม), และไฟล์ใหม่ `sheet-row-identity.ts`
+(`verifyRowIdentity` + `WriteRowIdentityMismatchError` certainty `'unknown'`) — client เก็บ
+ขอบเขต "รับแค่ string range ไม่รู้จัก `SheetHeaderMap`" ตามที่ comment เดิมใน `updateCells`
+ระบุไว้ (`ความรับผิดชอบ verify PK เป็นของ repository flow ไม่ใช่ client`) ยังเป็น building
+block เดียวกับ §2.2–2.5 — ไม่ต่อเข้า `SheetRepository` รอ §2.9
 
 **2.7 timestamp ต่อ sheet**
 - `formatBangkokTimestamp` reuse ได้ (ตรงกับ `_now()` ของ SheetLib) ย้ายไป `server/shared/utils/`

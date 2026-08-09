@@ -31,7 +31,7 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 
 ---
 
-## 1b. Phase 2 เดินไปแล้ว 6 ขั้น (อัปเดต 2026-08-09)
+## 1b. Phase 2 เดินไปแล้ว 7 ขั้น (อัปเดต 2026-08-09)
 
 | ขั้น | สถานะ | commit |
 |---|---|---|
@@ -42,8 +42,9 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 | §2.3 header-map addressing | ✅ | `0d1a975` |
 | §2.4 serialization + `valueInputOption` | ✅ | `d83f480` |
 | §2.5 error classification ตาม phase | ✅ | `bedc81e` |
-| **§2.6 response ต้องเป็นแถวสมบูรณ์** | ⬜ **ขั้นถัดไป** | |
-| §2.7–§2.10 | ⬜ | |
+| §2.6 response ต้องเป็นแถวสมบูรณ์ | ✅ | `0e0ca23` |
+| **§2.7 timestamp ต่อ sheet** | ⬜ **ขั้นถัดไป** | |
+| §2.8–§2.10 | ⬜ | |
 
 **§2.2 ยังไม่ถูกต่อเข้า `SheetRepository`** — transport ปัจจุบันยังเป็น Apps Script และ write path
 ยังวิ่งผ่าน Apps Script อยู่; client เขียนเสร็จแต่ยังไม่มีใครเรียก §2.3 จงใจส่งมอบเป็น building
@@ -68,6 +69,19 @@ block ก่อน โดย actual resolver wiring จะทำใน §2.9 ซ
 phase ตามตาราง §2.5 อยู่แล้ว เหลือแค่เทสต์ 2 เคสที่ implement ไว้แต่ไม่มี dry-test คลุม (ปิด
 ไปแล้ว ไม่มีโค้ด production เปลี่ยน) รายละเอียดอยู่ที่ implementation note ใต้ §2.4/§2.5 ใน
 `docs/database-layer-sheets-api-refactor-plan.md`
+
+§2.6 (`0e0ca23`) มีโค้ด production จริง 4 ชิ้น: `appendRows` รับ `knownWidth?` (Part A),
+`buildRowRange` / `parseRowValues` / `readRange` / `sheet-row-identity.ts`'s
+`verifyRowIdentity` + `WriteRowIdentityMismatchError` (Part B) — รายละเอียดที่ implementation
+note ใต้ §2.6 ในแผน ยังเป็น building block ไม่ต่อเข้า `SheetRepository`
+
+**ครั้งแรกที่ `luna-pipeline` เจอ edge case ของตัวเอง** — รอบ §2.6 subagent จบ turn ตัวเองก่อน
+งานเสร็จจริง (อ้างว่า "ตั้ง background monitor รอ notification" ทั้งที่ subagent ไม่มีช่องทาง
+รับ notification แบบนั้น) ต้องส่งข้อความสั่งให้กลับไปทำต่อ รอบสองมันแก้ปัญหาได้เองถูกต้อง —
+เช็ค `git status` ก่อน, รัน verify เองแทนที่จะเชื่อผลจาก codex session ที่ยังไม่เสถียร (เจอ
+`CreateProcessAsUserW 1312` ระหว่างทางอีกแต่ฟื้นเองได้) แล้ว mutation-test ครบทั้ง 4 guard จริง
+⇒ **ต้องอ่าน result ของ `luna-pipeline` ก่อนเชื่อว่า "เสร็จ" เสมอ** ถ้ารายงานไม่มี verification
+output จริงและไม่มี grok verdict ให้ resume สั่งทำต่อ อย่าเพิ่งรายงานผู้ใช้ว่าเสร็จ
 
 ### บทเรียนจาก §2.2 — เพิ่มเข้ารายการหมวด 4
 
