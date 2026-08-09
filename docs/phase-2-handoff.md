@@ -31,7 +31,7 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 
 ---
 
-## 1b. Phase 2 เดินไปแล้ว 7 ขั้น (อัปเดต 2026-08-09)
+## 1b. Phase 2 เดินไปแล้ว 8 ขั้น (อัปเดต 2026-08-09)
 
 | ขั้น | สถานะ | commit |
 |---|---|---|
@@ -43,8 +43,11 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 | §2.4 serialization + `valueInputOption` | ✅ | `d83f480` |
 | §2.5 error classification ตาม phase | ✅ | `bedc81e` |
 | §2.6 response ต้องเป็นแถวสมบูรณ์ | ✅ | `0e0ca23` |
-| **§2.7 timestamp ต่อ sheet** | ⬜ **ขั้นถัดไป** | |
-| §2.8–§2.10 | ⬜ | |
+| §2.7 timestamp ต่อ sheet (โค้ด) | ✅ | `3f9a178` |
+| §2.7 registry description fix | ⬜ **เจ้าของโปรเจกต์ทำเอง** | |
+| §2.7 smoke test (invoice create + timestamp ใหม่ รวมรอบเดียว) | ⬜ | |
+| **§2.8 keyed update — ยอมรับ race** | ⬜ **ขั้นถัดไป** | |
+| §2.9–§2.10 | ⬜ | |
 
 **§2.2 ยังไม่ถูกต่อเข้า `SheetRepository`** — transport ปัจจุบันยังเป็น Apps Script และ write path
 ยังวิ่งผ่าน Apps Script อยู่; client เขียนเสร็จแต่ยังไม่มีใครเรียก §2.3 จงใจส่งมอบเป็น building
@@ -82,6 +85,18 @@ note ใต้ §2.6 ในแผน ยังเป็น building block ไม
 `CreateProcessAsUserW 1312` ระหว่างทางอีกแต่ฟื้นเองได้) แล้ว mutation-test ครบทั้ง 4 guard จริง
 ⇒ **ต้องอ่าน result ของ `luna-pipeline` ก่อนเชื่อว่า "เสร็จ" เสมอ** ถ้ารายงานไม่มี verification
 output จริงและไม่มี grok verdict ให้ resume สั่งทำต่อ อย่าเพิ่งรายงานผู้ใช้ว่าเสร็จ
+
+**§2.7 คือครั้งแรกที่ตัวแผนเองเปลี่ยนพฤติกรรมบน live path** ต่างจาก §2.2–2.6 ที่เป็น building
+block เฉยๆ ทั้งหมด แจ้ง `luna-pipeline` ชัดเจนในตัว brief ว่างานนี้ต่างออกไป (ระวังเป็นพิเศษ)
+ผลคือมันจับบั๊กตัวเองได้ก่อนส่ง grok (`fixedNow` ไม่ได้ประกาศ) และตอน grok รีวิวก็เจอ regression
+จริงในไฟล์เทสต์ที่ brief ไม่ได้เอ่ยถึงเลย (`invoice-sheetlib.workflow.dry-test.ts` มี strict
+`deepEqual` ที่ไม่รู้จัก field ใหม่) ⇒ **ยืนยันอีกครั้งว่าทำไมต้องให้ grok ตรวจ diff กว้างกว่าที่
+brief เอ่ยชื่อไฟล์ไว้** — brief เขียนได้ดีแค่ไหนก็ยังไล่ผลกระทบข้ามไฟล์ไม่ครบ
+
+**§2.7 ยังไม่จบสมบูรณ์** โค้ดผ่านหมดแล้วแต่เหลือ 2 อย่างที่เป็นงานคน ไม่ใช่ agent: (1) แก้
+registry `Invoice.json` (เจ้าของทำเอง) (2) smoke test invoice create ผ่าน staff UI จริง — รวม
+blocker เดิมจาก Phase 1 ที่ยังไม่เคยปิด เข้ากับการตรวจ `created_at`/`updated_at` ใหม่ เป็นรอบ
+เดียว (ตัดสินใจแล้วตอนวางแผน §2.7)
 
 ### บทเรียนจาก §2.2 — เพิ่มเข้ารายการหมวด 4
 

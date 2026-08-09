@@ -37,7 +37,8 @@ use case/route แต่ physical sheet คือ resource ที่ใช้ร
 ## สถานะ (ปิด Phase 1 — 2026-08-09)
 
 **Phase 1 เสร็จครบทุกขั้น (1.1–1.8)** อยู่บน `refactor/sheet-layer` ยังไม่ merge เข้า main
-Phase 2 §2.0–§2.6 เสร็จแล้ว; §2.7 เป็นขั้นถัดไป
+Phase 2 §2.0–§2.7 เสร็จแล้ว (โค้ด); §2.7 ยังค้าง smoke test จริง + registry fix ที่เจ้าของทำเอง;
+§2.8 เป็นขั้นถัดไป
 
 commits ของ Phase 2 ที่เสร็จแล้ว:
 
@@ -49,6 +50,7 @@ commits ของ Phase 2 ที่เสร็จแล้ว:
 - §2.4 — `d83f480`
 - §2.5 — `bedc81e`
 - §2.6 — `0e0ca23`
+- §2.7 — `3f9a178`
 
 ผลลัพธ์: 1 repository ต่อ 1 physical sheet, repository ไม่รู้จัก API contract, DB↔API mapping
 อยู่ที่ module, `primaryKey` เป็นชื่อคอลัมน์ DB จริง, **module→module edge = 0** (ปัญหาตั้งต้น)
@@ -502,6 +504,20 @@ block เดียวกับ §2.2–2.5 — ไม่ต่อเข้า `S
 - **OrderForm ต้อง stamp `updated_at`** — วันนี้ SheetLib stamp ให้อยู่ ไม่ทำ behavior เปลี่ยน
 - ⚠ `Invoice.json` บรรยาย `created_at` ว่า ISO-8601 แต่ของจริงเป็น `YYYY-MM-DD HH:mm:ss` ไม่มี
   offset → **แก้ registry ให้ตรงความจริง** (ไม่เปลี่ยน format จะได้ไม่ต้อง backfill)
+
+**Implementation note (commit `3f9a178`)** — ต่างจาก §2.2–2.6 ตรงที่แก้ payload บน
+**live SheetLib write path จริง** ไม่ใช่ building block เฉยๆ: `formatBangkokTimestamp`
+ย้ายไป `server/shared/utils/bangkok-timestamp.ts` (โค้ดเดิมเป๊ะ ไม่เปลี่ยน), `InvoiceService`
+ได้ `now?: () => Date` แบบเดียวกับ `AppointmentService`, invoice create ส่ง `created_at`
+และ OrderForm order-link update ส่ง `updated_at` แล้ว — เพิ่มแค่ 2 field ไม่แตะอะไรอื่น
+grok เจอ regression จริงตอนรีวิว: `invoice-sheetlib.workflow.dry-test.ts` มี strict
+`deepEqual` บน OrderForm UPDATE body ที่ไม่รู้จัก `updated_at` ใหม่ แก้โดยขยาย assertion
+(ไม่ใช่ลดความเข้ม) **สิ่งที่ยังค้าง — ไม่ใช่ส่วนของ commit นี้:**
+1. **แผนข้อ 4 (แก้ registry `Invoice.json`'s `created_at` description จาก ISO-8601 เป็น
+   format จริง) เจ้าของโปรเจกต์แก้เอง** — ไม่ได้ delegate ให้ agent ไหนทำ
+2. **สอง smoke test ที่ค้างมารวมกันเป็นรอบเดียว** — invoice create ยังไม่เคยกดผ่าน staff UI
+   จริงเลยตั้งแต่ย้าย stack (blocker เดิมจาก Phase 1 ที่ยังไม่ปิด) รวมกับตรวจ `created_at`/
+   `updated_at` ที่เพิ่งเพิ่ม — ดู §5 ใน `docs/phase-2-handoff.md`
 
 **2.8 keyed update — ยอมรับ race (ตัดสินใจแล้ว)**
 
