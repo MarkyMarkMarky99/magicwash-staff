@@ -137,6 +137,14 @@ Plain Text) เพราะมีประโยชน์กับคนที�
 - Appointments' `CreatedAt`/`UpdatedAt`/`DeletedAt` **ไม่เกี่ยว ไม่แตะ** — เป็นคนละการ
   ตัดสินใจที่ยังยืนอยู่ (ต้องเป็น Plain Text) อย่าสับสนสอง sheet นี้เข้าด้วยกัน
 
+  🔴 **แก้ไข 2026-08-10: ประโยคข้างบนไม่ตรงกับชีตจริง** ยิง GViz ตรงเข้าไปดู type ที่เก็บจริงแล้ว
+  พบว่า `CreatedAt` เป็น string จริง (20 แถว) แต่ **`UpdatedAt` เป็น datetime มาแล้ว 15 แถว**
+  ⇒ "Appointments ต้องเป็น Plain Text" ไม่ได้ยืนอยู่จริงอย่างที่เอกสารเชื่อ · พฤติกรรมถูกกำหนด
+  โดย **cell format ของแต่ละคอลัมน์** ซึ่งไม่สม่ำเสมอกันเองภายในชีตเดียวกัน ไม่ใช่โดย option
+  ตอนเขียน · รายละเอียดและสิ่งที่ต้องตัดสินอยู่ในหมวด 5 ของ
+  [`session-2026-08-10-overnight.md`](./session-2026-08-10-overnight.md)
+  ⇒ **ตรวจซ้ำได้ด้วย `tests/server/integration/raw-column-type-check.ts`**
+
 ⇒ **บทเรียน:** สโมคเทสต์ที่ดีไม่ใช่แค่ "กดผ่าน UI แล้วดูว่าไม่ error" — ต้องยิง query ตรงเข้าไป
 เช็ค raw data type ด้วย (ไม่ใช่แค่ดูค่าที่ format ให้สวยแล้ว) ถึงจะเจอเรื่องแบบนี้ ซึ่ง UI/สายตา
 มองไม่เห็นเลยเพราะ display value ถูกต้อง 100%
@@ -228,11 +236,13 @@ InvoiceItems 14, Customers 20, OrdersView 13, InvoicesView 17, CustomerPackageVi
 ยืนยันด้วย key ใน `.env.local` เท่านั้น **ยังไม่มีอะไรพิสูจน์ว่า key บน server เป็น account
 ตัวเดียวกัน** ⇒ **§2.9 stage แรกต้องพิสูจน์บน preview deploy จริง ไม่ใช่แค่ local**
 
-### 📄 มีเรื่องใหญ่ 4 ข้อรอตัดสินก่อนเขียน §2.9
+### 📄 มีเรื่องใหญ่ 6 ข้อรอตัดสินก่อนเขียน §2.9
 
 Customers จะเปลี่ยนจาก "พังเสียงดัง" เป็น "เขียนจริง" โดยไม่มีใครสั่ง · `valueInputOption`
 ต่อคอลัมน์ชนกับข้อจำกัดของ Sheets API · error bridge ทำให้ `certainty` ของ invoice เปลี่ยน
-ความหมายเงียบๆ · `delete` ไม่มีที่ยืนบน transport ใหม่
+ความหมายเงียบๆ · `delete` ไม่มีที่ยืนบน transport ใหม่ · **type ของคอลัมน์ timestamp ปนกันอยู่
+ในชีตจริงโดยไม่ได้ตั้งใจ** · **Appointments ไม่มี `certainty` ใน API contract เลย** error จาก
+transport ใหม่จะกลายเป็น `500 INTERNAL_ERROR` กลางๆ ทั้งหมด
 
 รายละเอียดครบพร้อมทางเลือกอยู่ในหมวด 3 ของ **[`session-2026-08-10-overnight.md`](./session-2026-08-10-overnight.md)**
 — รายงานงานที่ทำระหว่างเจ้าของโปรเจกต์นอน อ่านไฟล์นั้นก่อนเริ่ม §2.9

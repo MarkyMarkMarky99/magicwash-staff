@@ -113,16 +113,84 @@ building block ฝั่ง Sheets API **ไม่มีอะไรรองร
 
 ---
 
-## 4. test charter ของ §2.9
+## 4. test charter ของ §2.9 — เสร็จแล้ว (`29384c1`)
 
-ปล่อย `test-pipeline` (agent ใหม่ ดูหมวด 3 ของ handoff) เข้า Phase A เพื่อวางแผนว่า §2.9 ต้อง
-พิสูจน์อะไรบ้าง **ก่อน** เขียน implementation ผลจะอยู่ที่ `docs/phase-2-9-test-charter.md`
+`test-pipeline` Phase A ส่งมอบ 2 ชิ้นแล้วหยุดรอตามกติกา (ไม่เริ่ม Phase B เอง):
 
-Phase A จบแล้วมันจะหยุดรอ **ไม่เริ่ม Phase B เอง** — charter ต้องผ่านตาเจ้าของก่อน
+- **`docs/phase-2-9-test-charter.md`** — ครอบทั้ง 3 stage, จับคู่ความเสี่ยง 9 ข้อเข้ากับ stage,
+  ลำดับ deploy gate, และระบุชัดว่าข้อไหน **พิสูจน์ล่วงหน้าไม่ได้** ต้องรอ implementation
+- **`tests/server/integration/raw-column-type-check.ts`** — สคริปต์อ่านอย่างเดียว รายงาน
+  **type ที่ Sheets เก็บจริง** ของ 8 คอลัมน์ timestamp/date ที่ §2.9 จะเขียน (บทเรียน §2.7:
+  ค่าที่แสดงถูกไม่ได้แปลว่า type ถูก)
+
+มันสร้าง harness เท่าที่สร้างได้จริงโดยไม่ต้องเดา interface ของ §2.9 ส่วนที่ต้องเดาไม่สร้าง —
+เขียนเป็นข้อกำหนดใน charter แทน ซึ่งถูกต้องแล้ว
 
 ---
 
-## 5. สิ่งที่ **ไม่ได้** ทำ และเหตุผล
+## 5. 🔴 ผลรันจริงขัดกับสมมติฐานในเอกสาร — ต้องตัดสินเพิ่มอีกข้อ
+
+`test-pipeline` รันสคริปต์เองไม่ได้ (โดน permission classifier บล็อกตอนใช้ `--env-file`) และ
+**รายงานตรงๆ ว่ายังไม่ได้พิสูจน์** ⇒ ผมรันเอง ผลที่ได้:
+
+| คอลัมน์ | type ที่เก็บจริง | แถวที่มีข้อมูล |
+|---|---|---|
+| `OrderForm.updated_at` | **datetime** | 19 |
+| `Invoices.created_at` | **datetime** | 9 |
+| `Invoices.updated_at` | **string** (`2026-07-29T12:00:00+07:00`) | 1 |
+| `Invoices.deleted_at` | ตัดสินไม่ได้ (ว่างทั้งคอลัมน์) | 0 |
+| `Appointments.CreatedAt` | **string** (`27/03/2026 04:37:32`) | 20 |
+| `Appointments.UpdatedAt` | **datetime** ⚠️ | 15 |
+| `Appointments.DeletedAt` | ตัดสินไม่ได้ (ว่างทั้งคอลัมน์) | 0 |
+| `Appointments.AppointmentDate` | **date** | 20 |
+
+### สิ่งที่ผลนี้บอก
+
+**1. `phase-2-handoff.md` หมวด 1b พูดผิด** — มันเขียนว่า Appointments' `CreatedAt`/`UpdatedAt`/
+`DeletedAt` "ต้องเป็น Plain Text" และเป็นการตัดสินใจที่ "ยังยืนอยู่" แต่ **`UpdatedAt` เป็น
+datetime ในชีตจริงมาแล้ว 15 แถว** ⇒ การตัดสินใจนั้นไม่ได้ยืนอยู่จริงอย่างที่เอกสารเชื่อ
+(นี่คือกับดัก "เอกสารตกยุคได้ ชีตคือความจริง" ซ้ำรอบที่สอง — รอบแรกคือ `Appointment.json`
+บอก 15 คอลัมน์ ชีตจริงมี 17)
+
+**2. พฤติกรรมวันนี้ถูกกำหนดโดย cell format ของแต่ละคอลัมน์ ไม่ใช่โดย option ตอนเขียน**
+`CreatedAt` ยังเป็น string ทั้งที่ Apps Script `setValues` coerce ให้ ⇒ คอลัมน์นั้นถูก format
+เป็น Plain Text จริง ส่วน `UpdatedAt` ไม่ได้ format จึงโดน coerce · แปลว่าการ format ของคอลัมน์
+**ไม่สม่ำเสมอกันเองภายในชีตเดียวกัน** และไม่มีใครตั้งใจให้เป็นแบบนั้น
+
+**3. ข้อนี้สนับสนุนสมมติฐานในหมวด 3.2** — ถ้า cell format เป็นตัวตัดสิน `USER_ENTERED` ทั้งแถว
+จะให้ผลเท่ากับวันนี้เป๊ะ และไม่ต้องแตก request · **แต่ยังไม่พอจะสรุป** เพราะ
+`Invoices.updated_at` เป็น string ด้วยเหตุผลคนละอย่าง (ค่าเป็น ISO 8601 พร้อม timezone ซึ่ง
+Sheets แปลงเป็นวันที่ไม่ได้อยู่แล้ว ไม่ว่า option ไหน) ⇒ ตัวแปรมี 2 ชั้น: **format ของคอลัมน์**
+กับ **รูปแบบของค่าที่ส่งไป**
+
+### ⛔ ข้อ 3.5 ที่ต้องตัดสินเพิ่ม
+
+**คอลัมน์ timestamp ควรเป็น type อะไรกันแน่ ในแต่ละชีต** — วันนี้มันปนกันอยู่โดยไม่ได้ตั้งใจ
+ถ้าไม่ตัดสินก่อน §2.9 การสลับ transport จะไป "ทำให้มันเป็นระเบียบ" โดยบังเอิญ แล้วเราจะไม่รู้ว่า
+ค่าที่เปลี่ยนไปคือความตั้งใจหรือ regression
+
+ตัวเลือก: (ก) ปล่อยตามที่เป็น ให้ §2.9 รักษาพฤติกรรมเดิมทุกคอลัมน์เป๊ะ แล้วค่อยจัดระเบียบทีหลัง
+(ข) ตัดสินให้จบตอนนี้ว่าแต่ละคอลัมน์ควรเป็นอะไร แล้วแก้ format ในชีต + `valueInput` ให้ตรงกัน
+· ผมเอนไปทาง (ก) เพราะ §2.9 ควรเปลี่ยนแค่ transport ไม่ใช่เปลี่ยนข้อมูล และการเปลี่ยน 2 อย่าง
+พร้อมกันทำให้แยกไม่ออกว่าอะไรทำให้พัง — **แต่ไม่ตัดสินให้**
+
+---
+
+## 6. ⛔ ข้อ 3.6 — Appointments ไม่มีที่ทางให้ error ของ transport ใหม่เลย
+
+`test-pipeline` เจอตอนวาง charter: **`AppointmentService` ไม่มี `classifyWriteFailure`** และ
+API contract ของ Appointments **ไม่มี field `certainty`** ⇒ error ใดๆ จาก Sheets API write จะ
+ตกลงไปเป็น `500 INTERNAL_ERROR` แบบกลางๆ
+
+ต่างจาก Invoices ที่มีระบบ `certainty` (`rejected` / `unknown`) รองรับอยู่แล้ว ⇒ ผู้ใช้ที่กด
+สร้างนัดหมายแล้วเจอ error จะไม่มีทางรู้ว่า "ไม่ได้เขียน" หรือ "อาจเขียนไปแล้ว" ซึ่งสำคัญมาก
+เพราะ §2.5 สร้าง `WriteCommittedUnreadableError` มาเพื่อสื่อความหมายนี้โดยเฉพาะ
+
+เป็นคำถามเชิงออกแบบของ API contract ไม่ใช่เรื่องที่ agent ตัดสินได้
+
+---
+
+## 7. สิ่งที่ **ไม่ได้** ทำ และเหตุผล
 
 | ไม่ได้ทำ | ทำไม |
 |---|---|
@@ -134,10 +202,22 @@ Phase A จบแล้วมันจะหยุดรอ **ไม่เริ
 
 ---
 
-## 6. พรุ่งนี้เริ่มตรงไหน
+## 8. พรุ่งนี้เริ่มตรงไหน
 
-1. อ่านหมวด 3 ของไฟล์นี้ ตัดสิน 4 ข้อ (3.1 กับ 3.2 ต้องตัดสินก่อนเขียน §2.9 ได้)
+1. **ตัดสิน 6 ข้อ** — หมวด 3 (3.1–3.4), หมวด 5 (3.5 type ของคอลัมน์ timestamp), หมวด 6
+   (3.6 certainty ของ Appointments) · ข้อ **3.1 / 3.2 / 3.5 ต้องจบก่อน** ถึงจะเขียน §2.9 ได้
 2. อ่าน `docs/phase-2-9-test-charter.md` อนุมัติหรือแก้
 3. ให้ Claude เขียน brief ของ §2.9 stage 1 (OrderForm keyed PATCH) จาก charter ที่อนุมัติแล้ว
 4. §2.9 stage 1 ต้องพิสูจน์บน **preview deploy จริง** ไม่ใช่แค่ local — เพราะเป็นครั้งแรกที่
    `GOOGLE_SERVICE_ACCOUNT_KEY` ฝั่ง server ถูกใช้งาน (ดูหมวด 1)
+
+### คำสั่งที่จะได้ใช้บ่อยพรุ่งนี้
+
+```bash
+node --env-file=.env.local --import=tsx/esm tests/server/integration/raw-column-type-check.ts
+node --env-file=.env.local --import=tsx/esm tests/server/integration/sheet-column-parity.ts
+node --env-file=.env.local --import=tsx/esm tests/server/integration/sheets-api-access-check.ts
+```
+
+ตัวแรกคือด่านที่ต้องรัน **ก่อนและหลัง** ทุก stage ของ §2.9 — ถ้า type ของคอลัมน์ไหนเปลี่ยนไป
+โดยไม่ได้ตั้งใจ นี่คือที่เดียวที่จะเห็น
