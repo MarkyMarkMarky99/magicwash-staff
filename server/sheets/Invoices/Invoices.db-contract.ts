@@ -33,6 +33,7 @@ export const invoicesDbContract = {
   // API field: invoiceNumber; the current code field map resolves it to invoice_number.
   primaryKey: 'invoice_number',
   sheetName: 'Invoices',
+  spreadsheetId: 'INVOICES_SPREADSHEET_ID',
   // Removed in Phase 2 when writes move from SheetLib to the Sheets API.
   target: 'Invoice',
   // created_at/updated_at/deleted_at are intentionally real Sheets datetime cells, not

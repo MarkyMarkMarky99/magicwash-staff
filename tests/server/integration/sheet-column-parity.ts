@@ -9,9 +9,12 @@
 import { requireEnv } from '../../../server/shared/utils/env.js'
 import { appointmentsDbContract } from '../../../server/sheets/Appointments/Appointments.db-contract.js'
 import { customersDbContract } from '../../../server/sheets/Customers/Customers.db-contract.js'
+import { invoiceItemsDbContract } from '../../../server/sheets/InvoiceItems/InvoiceItems.db-contract.js'
+import { invoicesDbContract } from '../../../server/sheets/Invoices/Invoices.db-contract.js'
 import { ordersViewDbContract } from '../../../server/sheets/OrdersView/OrdersView.db-contract.js'
 import { invoicesViewDbContract } from '../../../server/sheets/InvoicesView/InvoicesView.db-contract.js'
 import { customerPackageViewDbContract } from '../../../server/sheets/CustomerPackageView/CustomerPackageView.db-contract.js'
+import { orderFormDbContract } from '../../../server/sheets/OrderForm/OrderForm.db-contract.js'
 
 const GVIZ_BASE_URL = 'https://docs.google.com/spreadsheets/d'
 
@@ -46,6 +49,24 @@ const readableSheets: readonly ReadableSheet[] = [
     sheetName: appointmentsDbContract.sheetName,
     spreadsheetIdEnv: appointmentsDbContract.spreadsheetId!,
     rowSchema: appointmentsDbContract.row,
+  },
+  {
+    name: 'OrderForm',
+    sheetName: orderFormDbContract.sheetName,
+    spreadsheetIdEnv: orderFormDbContract.spreadsheetId!,
+    rowSchema: orderFormDbContract.row,
+  },
+  {
+    name: 'Invoices',
+    sheetName: invoicesDbContract.sheetName,
+    spreadsheetIdEnv: invoicesDbContract.spreadsheetId!,
+    rowSchema: invoicesDbContract.row,
+  },
+  {
+    name: 'InvoiceItems',
+    sheetName: invoiceItemsDbContract.sheetName,
+    spreadsheetIdEnv: invoiceItemsDbContract.spreadsheetId!,
+    rowSchema: invoiceItemsDbContract.row,
   },
   {
     name: 'Customers',

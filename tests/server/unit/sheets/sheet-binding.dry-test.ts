@@ -47,13 +47,13 @@ const bindings = [
   {
     name: 'InvoiceItems',
     contract: invoiceItemsDbContract,
-    expectedSpreadsheetId: undefined,
+    expectedSpreadsheetId: 'INVOICES_SPREADSHEET_ID',
     expectedSheetName: 'InvoiceItems',
   },
   {
     name: 'Invoices',
     contract: invoicesDbContract,
-    expectedSpreadsheetId: undefined,
+    expectedSpreadsheetId: 'INVOICES_SPREADSHEET_ID',
     expectedSheetName: 'Invoices',
   },
   {
