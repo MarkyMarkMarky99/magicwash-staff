@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import type { SheetsApiValueRange } from '../../../../../server/shared/repositories/sheets-api.client.js'
 
 const clientModulePath = '../../../../../server/shared/repositories/sheets-api.client.js'
 const spreadsheetId = 'test-spreadsheet-id'
@@ -304,6 +305,36 @@ test('auth failure is rejected before fetch and cannot expose the token', async 
 
   await expectFailure(client.appendRows([['order-1']], 'RAW'), module.WriteRejectedError, 'rejected')
   assert.equal(fetchCalled, false)
+})
+
+test('pre-dispatch serialization failure is a rejected write and does not call fetch', async () => {
+  const { client, calls, module } = await makeClient('serialization-failure', async () => {
+    throw new Error('fetch must not be called')
+  })
+  const data = [{ range: 'Orders!B2', values: [[BigInt(1)]] }] as unknown as SheetsApiValueRange[]
+
+  await expectFailure(client.updateCells(data, 'RAW'), module.WriteRejectedError, 'rejected')
+  assert.equal(calls.length, 0)
+})
+
+test('a successful write with an unreadable response body is committed but must not be retried', async () => {
+  const { client, calls, module } = await makeClient('unreadable-body', async () => {
+    return {
+      ok: true,
+      status: 200,
+      json: async () => {
+        throw new Error('invalid JSON')
+      },
+    } as unknown as Response
+  })
+
+  await assert.rejects(client.appendRows([['order-1']], 'RAW'), (error: unknown) => {
+    assertFailureShape(error, module.WriteCommittedUnreadableError, 'unknown')
+    assert.ok(error instanceof Error)
+    assert.match(error.message, /do not retry/i)
+    return true
+  })
+  assert.equal(calls.length, 1)
 })
 
 test('all public write failure classes expose their certainty', async () => {
