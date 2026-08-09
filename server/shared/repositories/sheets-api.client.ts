@@ -212,7 +212,7 @@ export class SheetsApiClient {
       'POST',
       // §2.3 will replace this sheet-scoped append with the cached real header map.
       // Keeping the range at sheet scope now avoids the old A:Z ceiling.
-      buildUrl(this.spreadsheetId, encodeSheetName(this.sheetName), {
+      buildUrl(this.spreadsheetId, `${encodeSheetName(this.sheetName)}:append`, {
         valueInputOption: option,
         insertDataOption: 'INSERT_ROWS',
         includeValuesInResponse: 'true',
