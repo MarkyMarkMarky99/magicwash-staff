@@ -265,7 +265,22 @@ type alias ให้ derive ข้างที่ใช้
 abstract interface ที่ storage-agnostic (read/append/batchAppend/update/delete บน DB shape)
 `SheetRepository` (Google Sheets) เป็น implementation หนึ่งของมัน
 **นี่คือสิ่งที่ทำให้ seam ของ Supabase มีอยู่จริง** — ถ้าไม่มีชั้นนี้ `server/sheets/` จะผูกกับ
-Google Sheets ถาวร แล้ว §8.2 ก็เป็นแค่คำพูด
+Google Sheets ถาวร
+(หมายเหตุ 2026-08-09: ก่อนหน้านี้ตรงนี้อ้าง "§8.2" ซึ่งไม่มีอยู่จริงในเอกสารนี้หรือที่ไหนใน
+`docs/` — เป็น dangling reference ที่ค้างมา ลบทิ้งแล้ว ไม่มีแผน Supabase migration ฉบับเต็ม
+เขียนไว้ที่ไหนเลยตอนนี้ มีแค่ 3 ประโยคกระจายอยู่: Supabase คือปลายทางระยะยาว, GViz อยู่ต่อจนกว่า
+จะถึงตอนนั้น, และ interface ชั้นนี้มีไว้ให้สลับ implementation ได้โดยไม่รื้อ module ชั้นบน)
+
+**หลักการที่ต้องยึดต่อจากนี้: ทุก design ควรออกแบบให้สลับไป Supabase ได้ง่าย แม้จะยังไม่ทำตอนนี้**
+ตัวอย่างที่เพิ่งเจอจริง (2026-08-09, สืบเนื่องจาก §2.7 smoke test): audit timestamp
+(`created_at`/`updated_at`/`deleted_at`) เก็บเป็น Plain Text ใน Google Sheets เพราะ
+`GVizQueryBuilder.where()` วันนี้รองรับแค่ equality ไม่มี `>=`/`<=`/date-range — แต่**นี่ไม่ใช่
+ข้อจำกัดถาวร** พอย้ายไป Supabase จริง คอลัมน์เหล่านี้จะเป็น SQL `timestamp` type ตามปกติ และ
+`WHERE created_at >= ... AND created_at < ...` ใช้ได้ทันทีโดยไม่ต้องเปลี่ยน schema หรือ backfill
+— string ที่เก็บเป็น `YYYY-MM-DD HH:mm:ss` (zero-padded) เรียง lexicographic ตรงกับลำดับเวลาจริง
+อยู่แล้ว ระบบวันนี้ที่กรองช่วงวันที่ (เช่น invoice list ด้วย `issuedDate`) ก็ทำแบบ fetch-แล้ว-กรอง-
+ด้วย-JS ไม่ใช่ GViz-level query อยู่แล้ว ⇒ Plain Text วันนี้ไม่ปิดกั้นทั้งความสามารถปัจจุบันและ
+ตอนย้าย Supabase
 
 **1.4** สร้าง `server/shared/repositories/sheet.repository.ts` — implement
 `SheetRepositoryContract` **ยังใช้ SheetLib เขียนภายใน** ย้ายโค้ด transport จาก
