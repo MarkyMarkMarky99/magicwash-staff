@@ -549,9 +549,14 @@ grok เจอ regression จริงตอนรีวิว: `invoice-sheetli
 (`SheetService.js:171`) จึงทนต่อแถวขยับ นี่คือจุดเดียวที่ถอยหลังจริง และเจ้าของโปรเจกต์เลือกยอมรับ
 — ไม่ทำ verification read เพิ่ม, ไม่ทำ CAS, ไม่ตั้ง protected range
 
-**บังคับ:** เขียน doc comment บน `update()` ว่าเป็น **ความเสี่ยงที่ยอมรับโดยตั้งใจ ไม่ใช่การมองข้าม**
-พร้อมทางแก้ถ้าเกิดจริง ไม่งั้น agent ตัวถัดไปจะนึกว่าเป็นบั๊กแล้วไปแก้เอง
-(หมายเหตุ: การตรวจ PK ใน 2.6 จับได้เฉพาะกรณีแถวขยับ *ระหว่าง* write กับ read-back
+**ส่งมอบ:** `server/shared/repositories/sheet-row-lookup.ts` — ตัวหาเลขแถวจากค่า key column
+(header map → column letter → `readColumn` → เลขแถว 1-based, ไม่เจอคืน `null`, key ซ้ำ throw)
+พร้อม dry-test **เป็น building block เหมือน §2.2–§2.6 ไม่ต่อเข้า `SheetRepository` — wiring อยู่ที่ §2.9**
+
+**บังคับ:** เขียน doc comment บนฟังก์ชัน lookup นั้นว่าเป็น **ความเสี่ยงที่ยอมรับโดยตั้งใจ ไม่ใช่การ
+มองข้าม** พร้อมทางแก้ถ้าเกิดจริง ไม่งั้น agent ตัวถัดไปจะนึกว่าเป็นบั๊กแล้วไปแก้เอง และแปะ note สั้นๆ
+บน `SheetRepository.update()` ชี้มาที่ไฟล์นี้ (วันนี้ยังไม่มี race เพราะยังผ่าน SheetLib — ห้ามเขียน
+ว่ามีแล้ว) (หมายเหตุ: การตรวจ PK ใน 2.6 จับได้เฉพาะกรณีแถวขยับ *ระหว่าง* write กับ read-back
 ไม่ได้แก้ race ช่วง lookup→write)
 
 **2.9 ลำดับสลับ transport** — `OrderForm` (blast radius ต่ำสุด แต่**พิสูจน์ได้แค่ keyed PATCH**)

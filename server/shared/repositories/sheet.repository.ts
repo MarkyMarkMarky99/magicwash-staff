@@ -129,6 +129,10 @@ export class SheetRepository<TDbRow extends object>
 
   async update(keyValue: string, patch: Partial<TDbRow>): Promise<TDbRow> {
     this.requireWriteCapability('update')
+    // Today this path still uses SheetLib, which performs lookup + write under
+    // LockService. §2.9's Sheets API transport will introduce an intentionally
+    // accepted TOCTOU risk; the full decision and guardrails live in
+    // sheet-row-lookup.ts.
     const resolvedKeyValue = this.resolveWhere({ id: keyValue }, 'update')[
       this.contract.primaryKey
     ]

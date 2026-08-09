@@ -236,8 +236,8 @@ export class SheetsApiClient {
     const body = await this.requestJson(
       'appendRows',
       'POST',
-      // §2.3 will replace this sheet-scoped append with the cached real header map.
-      // Keeping the range at sheet scope now avoids the old A:Z ceiling.
+      // §2.3's header map now exists, but is not wired into this client or
+      // repository yet; that integration belongs to §2.9.
       buildUrl(this.spreadsheetId, `${encodeSheetName(this.sheetName)}:append`, {
         valueInputOption: option,
         insertDataOption: 'INSERT_ROWS',
