@@ -36,5 +36,7 @@ export const orderFormDbContract = {
   spreadsheetId: 'ORDERS_SPREADSHEET_ID',
   // Removed in Phase 2 when writes move from SheetLib to the Sheets API.
   target: 'OrderForm',
+  // No column needs a USER_ENTERED override; all values are plain text/number/enum, not real Sheets date/number types.
+  valueInput: {},
   writes: { append: false, update: true, delete: false },
 } satisfies SheetContract

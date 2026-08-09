@@ -35,5 +35,7 @@ export const invoicesDbContract = {
   sheetName: 'Invoices',
   // Removed in Phase 2 when writes move from SheetLib to the Sheets API.
   target: 'Invoice',
+  // No column needs a USER_ENTERED override; all values are plain text/number/enum, not real Sheets date/number types.
+  valueInput: {},
   writes: { append: true, update: false, delete: false },
 } satisfies SheetContract

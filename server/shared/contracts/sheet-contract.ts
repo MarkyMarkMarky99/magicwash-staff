@@ -28,6 +28,14 @@ export type SheetContract = {
   spreadsheetId?: string
   /** SheetLib / Apps Script write target. The Sheets API swap is Phase 2, not current behavior. */
   target?: string
+  /**
+   * Per-column Sheets API valueInputOption override. Absent column = 'RAW'.
+   * 'RAW' is the safe default (no cell-content coercion — phone numbers with
+   * a leading 0, or values starting with =/+/- do not turn into formulas).
+   * Only declare 'USER_ENTERED' for a column the sheet stores as a genuine
+   * Sheets date/number type that must be recognized as such.
+   */
+  valueInput?: Partial<Record<string, 'RAW' | 'USER_ENTERED'>>
   writes: {
     append: boolean
     update: boolean
