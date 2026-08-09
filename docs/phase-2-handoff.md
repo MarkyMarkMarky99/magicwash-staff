@@ -31,18 +31,22 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 
 ---
 
-## 1b. Phase 2 เดินไปแล้ว 3 ขั้น (อัปเดต 2026-08-09)
+## 1b. Phase 2 เดินไปแล้ว 4 ขั้น (อัปเดต 2026-08-09)
 
 | ขั้น | สถานะ | commit |
 |---|---|---|
 | §2.0 แยก `PORTAL_SPREADSHEET_ID` | ✅ | `93329fe` |
 | §2.1 google-auth (JWT RS256 → access token) | ✅ | `749393e` |
 | §2.2 `sheets-api.client.ts` | ✅ | `1e28213` |
-| **§2.3 header-map addressing** | ⬜ **ขั้นถัดไป** | |
-| §2.4–§2.10 | ⬜ | |
+| §2.2 append endpoint fix | ✅ | `07c8d55` |
+| **§2.3 header-map addressing** | ✅ | `0d1a975` |
+| **§2.4 serialization + `valueInputOption`** | ⬜ **ขั้นถัดไป** | |
+| §2.5–§2.10 | ⬜ | |
 
-**§2.2 ยังไม่ถูกต่อเข้า `SheetRepository`** — write path ยังวิ่งผ่าน Apps Script อยู่
-client เขียนเสร็จแต่ยังไม่มีใครเรียก การสลับ transport จริงเป็นขั้นหลัง
+**§2.2 ยังไม่ถูกต่อเข้า `SheetRepository`** — transport ปัจจุบันยังเป็น Apps Script และ write path
+ยังวิ่งผ่าน Apps Script อยู่; client เขียนเสร็จแต่ยังไม่มีใครเรียก §2.3 จงใจส่งมอบเป็น building
+block ก่อน โดย actual resolver wiring จะทำใน §2.9 ซึ่งเป็นจุดแรกที่มี Sheets API write consumer
+การสลับ transport จริงเป็นขั้นหลัง
 
 ### ของที่ §2.2 จงใจเลื่อนไป — มี comment กำกับในโค้ดแล้ว
 

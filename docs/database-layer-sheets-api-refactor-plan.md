@@ -37,7 +37,15 @@ use case/route แต่ physical sheet คือ resource ที่ใช้ร
 ## สถานะ (ปิด Phase 1 — 2026-08-09)
 
 **Phase 1 เสร็จครบทุกขั้น (1.1–1.8)** อยู่บน `refactor/sheet-layer` ยังไม่ merge เข้า main
-Phase 2 ยังไม่เริ่ม
+Phase 2 §2.0–§2.3 เสร็จแล้ว; §2.4 เป็นขั้นถัดไป
+
+commits ของ Phase 2 ที่เสร็จแล้ว:
+
+- §2.0 — `93329fe`
+- §2.1 — `749393e`
+- §2.2 — `1e28213`
+- §2.2 append endpoint fix — `07c8d55`
+- §2.3 — `0d1a975`
 
 ผลลัพธ์: 1 repository ต่อ 1 physical sheet, repository ไม่รู้จัก API contract, DB↔API mapping
 อยู่ที่ module, `primaryKey` เป็นชื่อคอลัมน์ DB จริง, **module→module edge = 0** (ปัญหาตั้งต้น)
@@ -406,6 +414,12 @@ cache token ที่ module scope หัก 60 วิ **กัน refresh ซ�
 ผลสำคัญ: **ไม่ต้องมีกติกา "ลำดับ key = ลำดับคอลัมน์" สำหรับ write** และเขียน subset ได้ปลอดภัย
 ซึ่งจำเป็นจริง — `InvoiceItem` create ไม่ส่ง `sku` ที่อยู่กลางแถว, `Invoice` ไม่ส่ง
 `updated_*`/`deleted_*`, `OrderForm` patch แตะ 2 จาก 21 คอลัมน์
+
+**Implementation note (commit `0d1a975`)** — สร้างและทดสอบ `sheet-header-map.ts` กับ
+`SheetHeaderMapResolver` แล้ว โดย resolver มี lazy, success-only และ in-flight cache semantics
+พร้อมใช้ แต่ ownership/wiring เข้า `SheetRepository` เลื่อนไป §2.9 ซึ่งเป็นจุดแรกที่มี Sheets API
+write consumer การ wire ก่อนหน้านั้นทำได้เพียงเพิ่ม dead field/public test hook หรือดึง header/auth
+เข้า SheetLib/GViz path จึง **ห้าม** ต่อ resolver เข้า constructor, read หรือ SheetLib write ก่อน §2.9
 
 **2.4 serialization + `valueInputOption`**
 - object/array (`customer`, `adjustments`, `Address`) ต้อง `JSON.stringify` — SheetLib ทำให้อยู่
