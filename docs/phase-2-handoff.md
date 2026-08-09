@@ -44,8 +44,9 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 | §2.5 error classification ตาม phase | ✅ | `bedc81e` |
 | §2.6 response ต้องเป็นแถวสมบูรณ์ | ✅ | `0e0ca23` |
 | §2.7 timestamp ต่อ sheet (โค้ด) | ✅ | `3f9a178` |
-| §2.7 registry description fix | ⬜ **เจ้าของโปรเจกต์ทำเอง** | |
-| §2.7 smoke test (invoice create + timestamp ใหม่ รวมรอบเดียว) | ⬜ | |
+| §2.7 registry description fix | ✅ **เจ้าของโปรเจกต์ทำเอง** | |
+| §2.7 smoke test (invoice create + timestamp ใหม่ รวมรอบเดียว) | ✅ | |
+| §2.7 follow-up — Invoices/OrderForm timestamps ประกาศ `USER_ENTERED` (ดูหมวด "การตัดสินใจ" ด้านล่าง) | ✅ | `9f53013` |
 | **§2.8 keyed update — ยอมรับ race** | ⬜ **ขั้นถัดไป** | |
 | §2.9–§2.10 | ⬜ | |
 
@@ -93,10 +94,40 @@ block เฉยๆ ทั้งหมด แจ้ง `luna-pipeline` ชัด�
 `deepEqual` ที่ไม่รู้จัก field ใหม่) ⇒ **ยืนยันอีกครั้งว่าทำไมต้องให้ grok ตรวจ diff กว้างกว่าที่
 brief เอ่ยชื่อไฟล์ไว้** — brief เขียนได้ดีแค่ไหนก็ยังไล่ผลกระทบข้ามไฟล์ไม่ครบ
 
-**§2.7 ยังไม่จบสมบูรณ์** โค้ดผ่านหมดแล้วแต่เหลือ 2 อย่างที่เป็นงานคน ไม่ใช่ agent: (1) แก้
-registry `Invoice.json` (เจ้าของทำเอง) (2) smoke test invoice create ผ่าน staff UI จริง — รวม
-blocker เดิมจาก Phase 1 ที่ยังไม่เคยปิด เข้ากับการตรวจ `created_at`/`updated_at` ใหม่ เป็นรอบ
-เดียว (ตัดสินใจแล้วตอนวางแผน §2.7)
+### §2.7 smoke test เจอเรื่องจริง — Invoices/OrderForm timestamp กลายเป็น real Sheets date
+
+เจ้าของกดผ่าน staff UI จริง (`order_id=2400fb5c` → `invoiceNumber=INV260851685113`) ปิด
+blocker เดิมจาก Phase 1 ที่ค้างมาตั้งแต่ก่อนเปิด Phase 2 ได้สำเร็จ — `customer`/`adjustments`
+เป็น JSON parse ได้, `InvoiceItems.sku` ว่างถูกตำแหน่ง, `OrderForm.invoice_id` เขียนถูก
+
+แต่ยิง GViz ตรงเข้าไปเช็ค (`curl` ตรงไปที่ `.../gviz/tq`, ไม่ผ่านแอป) เจอว่า
+**`Invoices.created_at` กับ `OrderForm.updated_at` ถูก Google Sheets auto-coerce เป็น
+datetime cell จริง** (GViz คืน `type: "datetime"` ไม่ใช่ `string` ทั้งที่โค้ดส่ง plain-text
+string ไป) — เกิดเพราะคอลัมน์ในชีตจริงไม่ได้ format เป็น Plain Text ตัวเลขที่**แสดงผล**ในชีต
+(`.f` value) ยังถูกต้องเป๊ะ (`2026-08-09 23:15:21`) ไม่มีอะไรผิดตา แต่ type ที่เก็บจริงต่างจาก
+ที่ contract ประกาศไว้ (`z.string()`)
+
+ไล่ผลกระทบจริงพบว่า `gviz-reader.ts` ดึงค่าจาก `.v` เท่านั้น ไม่เคยใช้ `.f` และไม่มี parser
+สำหรับ `Date(y,m,d,h,mi,s)` เลย — ถ้ามีอะไรอ่าน field นี้กลับมาจะได้ string ขยะ ไม่ crash
+เพราะ policy ของโปรเจกต์คือ **reads ไม่ validate type กับ Zod** (`api/CLAUDE.md`) แต่ตอนนี้
+รอดอยู่ได้เพราะ field นี้ไม่ถูก expose ผ่าน `/api/invoices`/`/api/orders` เลยในวันนี้
+
+**เจ้าของโปรเจกต์พิจารณาแล้วตัดสินใจเก็บพฤติกรรม datetime นี้ไว้ตั้งใจ** (ไม่ใช่แก้กลับเป็น
+Plain Text) เพราะมีประโยชน์กับคนที่เปิดชีตดู/กรองข้อมูลตรงๆ (อาจรวมถึงระบบอื่นที่อ่านชีตนี้ด้วย)
+⇒ อัปเดตให้ตรงกับความตั้งใจ:
+- **registry** (`Invoice.json`/`OrderForm.json`) — แก้ description ให้บอกว่าเป็น real
+  Sheets date ตั้งใจ (แก้ตรงเองโดย Claude หลัก ไม่ใช่ subagent — ทั้งสองรอบ)
+- **`valueInput`** ใน `Invoices.db-contract.ts`/`OrderForm.db-contract.ts` — เปลี่ยนจาก `{}`
+  เป็น `USER_ENTERED` (`created_at`/`updated_at`/`deleted_at` และ `updated_at` ตามลำดับ)
+  commit `9f53013` — **สำคัญเพราะ §2.9** ถ้าไม่ล็อก policy ไว้ตอนนี้ พอสลับ transport เป็น
+  Sheets API จริง โค้ดจะส่ง `RAW` ตามค่า default เดิม แล้วพฤติกรรมจะเปลี่ยนจาก datetime (แบบ
+  วันนี้) เป็น plain text แบบเงียบๆ โดยไม่ตั้งใจ
+- Appointments' `CreatedAt`/`UpdatedAt`/`DeletedAt` **ไม่เกี่ยว ไม่แตะ** — เป็นคนละการ
+  ตัดสินใจที่ยังยืนอยู่ (ต้องเป็น Plain Text) อย่าสับสนสอง sheet นี้เข้าด้วยกัน
+
+⇒ **บทเรียน:** สโมคเทสต์ที่ดีไม่ใช่แค่ "กดผ่าน UI แล้วดูว่าไม่ error" — ต้องยิง query ตรงเข้าไป
+เช็ค raw data type ด้วย (ไม่ใช่แค่ดูค่าที่ format ให้สวยแล้ว) ถึงจะเจอเรื่องแบบนี้ ซึ่ง UI/สายตา
+มองไม่เห็นเลยเพราะ display value ถูกต้อง 100%
 
 ### บทเรียนจาก §2.2 — เพิ่มเข้ารายการหมวด 4
 
@@ -140,7 +171,14 @@ blocker เดิมจาก Phase 1 ที่ยังไม่เคยปิ
 เพราะ `.claude/` อยู่ใน `.gitignore`) ทำ loop dispatch→verify→grok review→ส่งกลับไปแก้ที่ luna
 session เดิม→ทำซ้ำจนผ่าน ให้อัตโนมัติ **เมื่อ brief เขียนเสร็จแล้ว** มันไม่แก้/วิเคราะห์/เสนอ
 อะไรกับ brief เอง เป็น pure executor เท่านั้น — งานเขียน brief กับการตัดสินใจเชิงสถาปัตยกรรม
-ยังอยู่กับ Claude เหมือนเดิม ใช้ครั้งแรกกับ §2.5 สำเร็จ (1 review cycle ไม่มี finding)
+ยังอยู่กับ Claude เหมือนเดิม
+
+**สถิติจริงถึงตอนนี้ (2026-08-09): ใช้ 4 ครั้ง สำเร็จทั้ง 4** — §2.5 (1 review cycle, ไม่มี
+finding), §2.6 (จบ turn ตัวเองก่อนเสร็จรอบแรก ต้อง resume สั่งทำต่อ — ดูหมวด 1b ด้านบน — รอบสองผ่าน),
+§2.7 (2 review cycle, จับบั๊กตัวเอง 1 + grok เจอ regression ข้ามไฟล์ 1), valueInput fix
+(1 review cycle, ไม่มี finding) **บั๊ก "จบ turn ก่อนงานเสร็จ" ที่เจอตอน §2.6 ถูกแก้เข้าไปใน
+ตัว agent definition แล้ว** (ห้ามอ้างว่า "ตั้ง background monitor" อีก ต้องทำให้จบใน turn
+เดียวเสมอ) — ไม่ต้องเตือนซ้ำใน prompt ทุกครั้งที่เรียกอีกต่อไป
 
 ### หัวใจ 4 ข้อ
 
@@ -215,6 +253,14 @@ command line ที่ตรงเป๊ะกับที่เราสั่�
 เจน** อาจมี session อื่นที่ไม่เกี่ยวกันรันอยู่พร้อมกัน) `Stop-Process -Force` ตัวลูกก่อนแล้วค่อย
 ตัวแม่ แล้ว `resume` ใหม่ ⇒ runbook นี้ถูกฝังเข้า `luna-pipeline` subagent แล้วแบบคำต่อคำ
 ไม่ต้องมาไล่หาใหม่ทุกรอบ
+
+**ค่าที่แสดงในชีตถูกต้อง ไม่ได้แปลว่า type ที่เก็บจริงตรงกับที่ประกาศไว้**
+(2026-08-09, §2.7 smoke test) `Invoices.created_at` แสดงผล `2026-08-09 23:15:21` ถูกเป๊ะ
+ตา — แต่ GViz รายงาน column type เป็น `datetime` ไม่ใช่ `string` ตามที่ `z.string()` ประกาศไว้
+ใน db-contract เพราะคอลัมน์ในชีตไม่ได้ format เป็น Plain Text (Google Sheets auto-coerce
+ให้เอง) มองจาก UI/สายตาไม่มีทางเจอเลย ต้องยิง GViz query ตรงเข้าไปเช็ค raw response ถึงจะเห็น
+⇒ **สโมคเทสต์ต้องเช็ค raw data type ผ่าน query จริง ไม่ใช่แค่เปิดชีตด้วยตาดูว่าค่าดูโอเค**
+(กรณีนี้จบด้วยการตัดสินใจเก็บ datetime ไว้ตั้งใจแทนที่จะแก้กลับ — ดูหมวด 1b ด้านบน)
 
 ---
 
