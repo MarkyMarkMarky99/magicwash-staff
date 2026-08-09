@@ -37,7 +37,7 @@ use case/route แต่ physical sheet คือ resource ที่ใช้ร
 ## สถานะ (ปิด Phase 1 — 2026-08-09)
 
 **Phase 1 เสร็จครบทุกขั้น (1.1–1.8)** อยู่บน `refactor/sheet-layer` ยังไม่ merge เข้า main
-Phase 2 §2.0–§2.3 เสร็จแล้ว; §2.4 เป็นขั้นถัดไป
+Phase 2 §2.0–§2.5 เสร็จแล้ว; §2.6 เป็นขั้นถัดไป
 
 commits ของ Phase 2 ที่เสร็จแล้ว:
 
@@ -46,6 +46,8 @@ commits ของ Phase 2 ที่เสร็จแล้ว:
 - §2.2 — `1e28213`
 - §2.2 append endpoint fix — `07c8d55`
 - §2.3 — `0d1a975`
+- §2.4 — `d83f480`
+- §2.5 — `bedc81e`
 
 ผลลัพธ์: 1 repository ต่อ 1 physical sheet, repository ไม่รู้จัก API contract, DB↔API mapping
 อยู่ที่ module, `primaryKey` เป็นชื่อคอลัมน์ DB จริง, **module→module edge = 0** (ปัญหาตั้งต้น)
@@ -432,6 +434,18 @@ write consumer การ wire ก่อนหน้านั้นทำได�
 - แต่ `USER_ENTERED` ทั้งแถวก็อันตรายฝั่งตรงข้าม (เบอร์ขึ้นต้น 0, ค่าขึ้นต้น `=`/`+`/`-`
   กลายเป็นสูตร) → **policy ต่อคอลัมน์** ประกาศข้าง row schema ของแต่ละ sheet
 
+**Implementation note (commit `d83f480`)** — สร้าง `SheetContract.valueInput` (union
+`'RAW' | 'USER_ENTERED'` ประกาศเองในไฟล์ ไม่ import จาก `sheets-api.client.ts` เพื่อไม่ให้
+`contracts/` พึ่ง `repositories/`) และ `server/shared/repositories/sheet-value-serializer.ts`
+(`serializeCellValue`, `buildRowValues`, `resolveValueInputOption`,
+`resolveRowValueInputOptions`) เป็น building block เดียวกับแนวทาง §2.2/§2.3 — **ยังไม่ต่อเข้า
+`SheetRepository`** ประชากร `valueInput` ครบ 4 sheet ที่เขียนจริง: `Appointments` มีข้อยกเว้น
+เดียวคือ `AppointmentDate: 'USER_ENTERED'` (คอลัมน์อื่นรวม `CreatedAt`/`UpdatedAt` ต้องเป็น
+`RAW` แม้หน้าตาเหมือนวันที่ เพราะ registry ระบุว่าต้องเป็น Plain Text) ส่วน `OrderForm` /
+`Invoices` / `InvoiceItems` ประกาศ `valueInput: {}` ชัดเจน (ไม่มีคอลัมน์ไหนต้องการข้อยกเว้น)
+เทสต์ `value-serialization.dry-test.ts` ปัก guard นี้ด้วย real contract import (ไม่ใช่ fixture
+copy) และผ่าน mutation test แล้ว (ใส่ `CreatedAt: 'USER_ENTERED'` เข้าไปแล้วเห็นเทสต์แดงจริง)
+
 **2.5 error classification ตาม phase — 3 สถานะภายใน, public เหลือ 2 เหมือนเดิม**
 
 | phase | internal | public `certainty` |
@@ -447,6 +461,19 @@ write consumer การ wire ก่อนหน้านั้นทำได�
 → error ก่อนยิง write **ต้อง throw คลาสที่ถูกต้อง** ไม่งั้นถูกรายงานผิด
 
 **retry:** 429/401 สังเกตได้หลังยิงเท่านั้น → **ไม่ auto-retry write ใดๆ** retry เฉพาะ token acquisition
+
+**Implementation note (commit `bedc81e`)** — พบว่า taxonomy ทั้งหมดของ §2.5 **ถูกสร้างไปแล้วจริง
+ตั้งแต่ §2.2** (`sheets-api.client.ts`'s `requestJson` classify ครบทุก phase ตามตารางข้างบน
+อยู่แล้ว) เหลือแค่ช่องว่างเทสต์ 2 เคสที่ implement ไว้แต่ไม่มี dry-test คลุม: pre-dispatch
+serialization failure (ต้อง cast ผ่าน type system ด้วย `as unknown as SheetsApiValueRange[]`
+เพราะ `SheetsApiValue` ปิดไม่ให้ค่าที่ทำ `JSON.stringify` throw ผ่านเข้ามาได้ตาม type — ใช้
+`BigInt` จำลอง) และ 2xx-body-อ่านไม่ได้บนคำสั่งเขียน เพิ่มทั้งคู่ใน
+`sheets-api.client.dry-test.ts` ไฟล์เดิม ไม่สร้าง `write-phase-classification.dry-test.ts`
+ตามที่แผนเดิมตั้งชื่อไว้ เพราะ coverage อยู่ในไฟล์เดียวกับ client แล้ว แยกไฟล์จะกระจาย coverage
+ของ class เดียวกันโดยไม่มีประโยชน์ **ไม่มีโค้ด production เปลี่ยน**
+`classifyWriteFailure` (`invoice.service.ts`) ยังรู้จักแค่ `SheetLibRejectedError`/
+`SheetLibTransportError` — ตั้งใจเลื่อนอัปเดตไปพร้อม §2.9 ตอนที่ transport จริงถูกต่อเข้า
+invoice write
 
 **2.6 response ต้องเป็นแถวสมบูรณ์**
 - append → `updates.updatedData.values` ⚠ Sheets **ตัด trailing blank ทิ้ง** → pad เต็มความกว้าง

@@ -31,7 +31,7 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 
 ---
 
-## 1b. Phase 2 เดินไปแล้ว 4 ขั้น (อัปเดต 2026-08-09)
+## 1b. Phase 2 เดินไปแล้ว 6 ขั้น (อัปเดต 2026-08-09)
 
 | ขั้น | สถานะ | commit |
 |---|---|---|
@@ -39,9 +39,11 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 | §2.1 google-auth (JWT RS256 → access token) | ✅ | `749393e` |
 | §2.2 `sheets-api.client.ts` | ✅ | `1e28213` |
 | §2.2 append endpoint fix | ✅ | `07c8d55` |
-| **§2.3 header-map addressing** | ✅ | `0d1a975` |
-| **§2.4 serialization + `valueInputOption`** | ⬜ **ขั้นถัดไป** | |
-| §2.5–§2.10 | ⬜ | |
+| §2.3 header-map addressing | ✅ | `0d1a975` |
+| §2.4 serialization + `valueInputOption` | ✅ | `d83f480` |
+| §2.5 error classification ตาม phase | ✅ | `bedc81e` |
+| **§2.6 response ต้องเป็นแถวสมบูรณ์** | ⬜ **ขั้นถัดไป** | |
+| §2.7–§2.10 | ⬜ | |
 
 **§2.2 ยังไม่ถูกต่อเข้า `SheetRepository`** — transport ปัจจุบันยังเป็น Apps Script และ write path
 ยังวิ่งผ่าน Apps Script อยู่; client เขียนเสร็จแต่ยังไม่มีใครเรียก §2.3 จงใจส่งมอบเป็น building
@@ -50,10 +52,22 @@ block ก่อน โดย actual resolver wiring จะทำใน §2.9 ซ
 
 ### ของที่ §2.2 จงใจเลื่อนไป — มี comment กำกับในโค้ดแล้ว
 
-- header-map cache + ความกว้าง header ที่แน่นอน → §2.3 / §2.6
+- header-map cache + ความกว้าง header ที่แน่นอน → §2.3 (เสร็จแล้ว) / §2.6
 - full-row GET หลัง update + verify primary key → §2.6
-- serialize object/array และ `valueInputOption` ต่อคอลัมน์ → §2.4
+- serialize object/array และ `valueInputOption` ต่อคอลัมน์ → §2.4 (เสร็จแล้ว)
   (เทสต์ที่ยิงสำเร็จใช้ `USER_ENTERED` แล้ว เพราะ `RAW` จะทำให้ GViz filter วันที่พัง)
+
+### §2.4 / §2.5 เสร็จแล้ว — เหมือน §2.2/§2.3 ยังเป็น building block ไม่ต่อเข้า `SheetRepository`
+
+§2.4 (`d83f480`) ส่งมอบ `SheetContract.valueInput` + `sheet-value-serializer.ts`
+(`serializeCellValue`, `buildRowValues`, `resolveValueInputOption`,
+`resolveRowValueInputOptions`) พร้อม policy ประกาศครบ 4 sheet ที่เขียนจริง — ยังไม่มีใครเรียก
+รอ wiring ที่ §2.9 เหมือนเดิม
+
+§2.5 (`bedc81e`) พบว่า **ทำไปแล้วจริงตั้งแต่ §2.2** — `sheets-api.client.ts` classify ครบทุก
+phase ตามตาราง §2.5 อยู่แล้ว เหลือแค่เทสต์ 2 เคสที่ implement ไว้แต่ไม่มี dry-test คลุม (ปิด
+ไปแล้ว ไม่มีโค้ด production เปลี่ยน) รายละเอียดอยู่ที่ implementation note ใต้ §2.4/§2.5 ใน
+`docs/database-layer-sheets-api-refactor-plan.md`
 
 ### บทเรียนจาก §2.2 — เพิ่มเข้ารายการหมวด 4
 
@@ -92,6 +106,12 @@ block ก่อน โดย actual resolver wiring จะทำใน §2.9 ซ
 | **Grok** | สำรวจโค้ด, สืบหาสาเหตุบั๊ก, audit — ไม่แก้อะไร |
 
 คำสั่งเรียกอยู่ใน `CLAUDE.md` หมวด **Delegating code to Codex luna** — อ่านก่อนเริ่ม
+
+**subagent `luna-pipeline`** (`.claude/agents/luna-pipeline.md`, local เท่านั้น — ไม่ push
+เพราะ `.claude/` อยู่ใน `.gitignore`) ทำ loop dispatch→verify→grok review→ส่งกลับไปแก้ที่ luna
+session เดิม→ทำซ้ำจนผ่าน ให้อัตโนมัติ **เมื่อ brief เขียนเสร็จแล้ว** มันไม่แก้/วิเคราะห์/เสนอ
+อะไรกับ brief เอง เป็น pure executor เท่านั้น — งานเขียน brief กับการตัดสินใจเชิงสถาปัตยกรรม
+ยังอยู่กับ Claude เหมือนเดิม ใช้ครั้งแรกกับ §2.5 สำเร็จ (1 review cycle ไม่มี finding)
 
 ### หัวใจ 4 ข้อ
 
@@ -154,6 +174,18 @@ comment ชนะ — เคยเจอ comment อ้างว่ามี run
 **การลบเทสต์คือจุดที่งานลบพลาดง่ายที่สุด** เพราะชุดเทสต์เขียวเหมือนกันทั้งสองแบบ
 ตอนลบ stack เก่ามี 5 พฤติกรรมที่เหลือ **guard เดียวในระบบ** แล้วหายไปพร้อมเทสต์ที่ถูกลบ
 ต้อง audit เสมอว่าพฤติกรรมที่เทสต์เก่าคุมไว้ ยังมีใครคุมอยู่ไหม
+
+**`codex exec` บน Windows sandbox `elevated` มีบั๊ก upstream ที่เปิดอยู่** (ดู
+[[codex-windows-apply-patch-fix]] ในความจำ) — ระหว่างรันอาจโยน `CreateProcessAsUserW failed:
+1312` หรือ access violation ซ้ำๆ ตอนสั่ง shell และ background task อาจถูกรายงานว่า "killed"
+ทั้งที่ `codex.exe` ลูกไม่ได้ตายจริง เหลือเป็น orphan ถือ lock ของ session thread ไว้ อาการ:
+เรียก `resume` ซ้ำแล้วฟ้อง `thread ... already has an active writer`
+วิธีแก้: เช็ค `git status` ก่อนว่ามีอะไรถูกเขียนจริงหรือยัง (ปกติยังสะอาดเพราะบั๊กมักเกิดตอน
+อ่านไฟล์ ก่อนจะเขียนจริง) แล้วหา process ด้วย `Get-CimInstance Win32_Process` จับคู่ด้วย
+command line ที่ตรงเป๊ะกับที่เราสั่งเอง + เวลาสร้างใกล้เคียง (**ห้าม kill process ที่จับคู่ไม่ชัด
+เจน** อาจมี session อื่นที่ไม่เกี่ยวกันรันอยู่พร้อมกัน) `Stop-Process -Force` ตัวลูกก่อนแล้วค่อย
+ตัวแม่ แล้ว `resume` ใหม่ ⇒ runbook นี้ถูกฝังเข้า `luna-pipeline` subagent แล้วแบบคำต่อคำ
+ไม่ต้องมาไล่หาใหม่ทุกรอบ
 
 ---
 
