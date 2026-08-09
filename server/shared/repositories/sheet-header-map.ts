@@ -34,6 +34,23 @@ export function columnLetterForIndex(index: number): string {
   return letter
 }
 
+/** Build an A1 range covering one complete physical sheet row. */
+export function buildRowRange(headerMap: SheetHeaderMap, rowNumber: number): string {
+  if (!Number.isInteger(rowNumber) || rowNumber <= 0) {
+    throw new SheetHeaderMapError(
+      `Row number must be a positive integer, received ${String(rowNumber)}`,
+    )
+  }
+
+  if (headerMap.width === 0) {
+    throw new SheetHeaderMapError('Cannot build a row range for a zero-width header map')
+  }
+
+  const firstColumn = columnLetterForIndex(0)
+  const lastColumn = columnLetterForIndex(headerMap.width - 1)
+  return `${firstColumn}${rowNumber}:${lastColumn}${rowNumber}`
+}
+
 /**
  * Build an address map from the live first-row headers.
  *

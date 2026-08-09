@@ -4,6 +4,7 @@ import { appointmentsDbContract } from '../../../../../server/sheets/Appointment
 import { buildSheetHeaderMap } from '../../../../../server/shared/repositories/sheet-header-map.js'
 import {
   buildRowValues,
+  parseRowValues,
   resolveRowValueInputOptions,
   resolveValueInputOption,
   serializeCellValue,
@@ -96,6 +97,54 @@ test('buildRowValues follows reordered live columns instead of schema key order'
     'CONFIRMED',
     '10:00-12:00',
   ])
+})
+
+test('parses a full-width row in live header order', async () => {
+  const headerMap = mapFor(appointmentHeaders)
+
+  assert.deepEqual(
+    parseRowValues(
+      ['APPT-003', 'CUS-001', 'PICKUP', '2030-03-03', '10:00-12:00', 'CONFIRMED'],
+      headerMap,
+    ),
+    {
+      AppointmentID: 'APPT-003',
+      CustomerID: 'CUS-001',
+      AppointmentType: 'PICKUP',
+      AppointmentDate: '2030-03-03',
+      TimeSlot: '10:00-12:00',
+      Status: 'CONFIRMED',
+    },
+  )
+})
+
+test('fills omitted trailing row values with null', async () => {
+  const headerMap = mapFor(appointmentHeaders)
+
+  assert.deepEqual(
+    parseRowValues(['APPT-004', 'CUS-002'], headerMap),
+    {
+      AppointmentID: 'APPT-004',
+      CustomerID: 'CUS-002',
+      AppointmentType: null,
+      AppointmentDate: null,
+      TimeSlot: null,
+      Status: null,
+    },
+  )
+})
+
+test('rejects more row values than the header map width', async () => {
+  const headerMap = mapFor(appointmentHeaders)
+
+  assert.throws(
+    () => parseRowValues([...appointmentHeaders, 'extra'], headerMap),
+    (error: unknown) => {
+      assert.ok(error instanceof RangeError)
+      assert.match(error.message, /received 7 values.*width 6/i)
+      return true
+    },
+  )
 })
 
 test('resolves value input policy defaults and overrides by column', async () => {

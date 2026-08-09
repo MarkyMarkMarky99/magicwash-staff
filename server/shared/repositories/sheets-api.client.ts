@@ -196,7 +196,30 @@ export class SheetsApiClient {
     return values
   }
 
-  async appendRows(rows: SheetsApiValues, valueInputOption: SheetsValueInputOption): Promise<SheetsApiAppendResponse> {
+  async readRange(range: string): Promise<SheetsApiValues> {
+    requireNonEmpty(range, 'range')
+
+    const body = await this.requestJson(
+      'readRange',
+      'GET',
+      buildUrl(this.spreadsheetId, encodeRange(this.sheetName, range)),
+      undefined,
+      false,
+    )
+
+    const values = isRecord(body) ? body.values : undefined
+    if (!isSheetsApiValues(values)) {
+      throw new WriteTransportError('readRange', 'The Sheets API returned an unreadable range response.')
+    }
+
+    return values
+  }
+
+  async appendRows(
+    rows: SheetsApiValues,
+    valueInputOption: SheetsValueInputOption,
+    knownWidth?: number,
+  ): Promise<SheetsApiAppendResponse> {
     if (rows.length === 0) {
       throw new WriteRejectedError('appendRows', 'Cannot append an empty set of rows.')
     }
@@ -207,6 +230,9 @@ export class SheetsApiClient {
 
     const option = requireValueInputOption(valueInputOption)
     const requestedWidth = Math.max(...rows.map((row) => row.length))
+    const responseWidth = knownWidth === undefined
+      ? requestedWidth
+      : Math.max(requestedWidth, knownWidth)
     const body = await this.requestJson(
       'appendRows',
       'POST',
@@ -237,9 +263,10 @@ export class SheetsApiClient {
       throw new WriteCommittedUnreadableError('appendRows')
     }
 
-    // §2.6's caller will provide the actual header width once §2.3 owns addressing;
-    // this low-level fallback still restores the width submitted in this append.
-    const normalizedValues = restoreTrailingBlanks(returnedValues, requestedWidth)
+    // A subset-column append can be narrower than the physical sheet. The caller
+    // supplies the cached header width when it knows it; omitted knownWidth keeps
+    // the transport client's request-width fallback for existing callers.
+    const normalizedValues = restoreTrailingBlanks(returnedValues, responseWidth)
 
     return {
       spreadsheetId: isRecord(body) && typeof body.spreadsheetId === 'string' ? body.spreadsheetId : undefined,

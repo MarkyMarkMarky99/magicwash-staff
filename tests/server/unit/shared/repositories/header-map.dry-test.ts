@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   SheetHeaderMapError,
   SheetHeaderMapResolver,
+  buildRowRange,
   buildSheetHeaderMap,
   columnLetterForIndex,
 } from '../../../../../server/shared/repositories/sheet-header-map.js'
@@ -127,6 +128,42 @@ test('rejects invalid column indexes', async () => {
       /column index must be a non-negative integer/i,
     )
   }
+})
+
+test('builds full-row A1 ranges from the header width', async () => {
+  assert.equal(buildRowRange(buildSheetHeaderMap(['OrderID'], ['OrderID'], 'OrderID'), 1), 'A1:A1')
+  assert.equal(buildRowRange(mapFor(['OrderID', 'Customer', 'Status']), 5), 'A5:C5')
+
+  const wideHeaders = [
+    'OrderID',
+    'Customer',
+    'Status',
+    ...Array.from({ length: 24 }, (_, index) => `Extra${index}`),
+  ]
+  assert.equal(buildRowRange(mapFor(wideHeaders), 12), 'A12:AA12')
+})
+
+test('rejects invalid row numbers when building a row range', async () => {
+  const headerMap = mapFor(['OrderID', 'Customer', 'Status'])
+
+  for (const invalid of [0, -1, 1.5]) {
+    expectSyncError(
+      () => buildRowRange(headerMap, invalid),
+      /row number must be a positive integer/i,
+    )
+  }
+})
+
+test('rejects a zero-width header map when building a row range', async () => {
+  expectSyncError(
+    () => buildRowRange({
+      orderedHeaders: [],
+      width: 0,
+      indexByName: {},
+      letterByName: {},
+    }, 1),
+    /zero-width header map/i,
+  )
 })
 
 test('resolver construction is lazy and does not read', async () => {

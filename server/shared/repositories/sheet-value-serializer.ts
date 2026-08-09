@@ -46,6 +46,23 @@ export function buildRowValues(
   )
 }
 
+export function parseRowValues(
+  values: readonly SheetsApiValue[],
+  headerMap: SheetHeaderMap,
+): Record<string, SheetsApiValue> {
+  if (values.length > headerMap.width) {
+    throw new RangeError(
+      `Cannot parse row values: received ${values.length} values for a header map with width ${headerMap.width}`,
+    )
+  }
+
+  const row: Record<string, SheetsApiValue> = {}
+  for (const [index, header] of headerMap.orderedHeaders.entries()) {
+    row[header] = index < values.length ? values[index]! : null
+  }
+  return row
+}
+
 export function resolveValueInputOption(
   column: string,
   policy: Partial<Record<string, SheetsValueInputOption>> | undefined,

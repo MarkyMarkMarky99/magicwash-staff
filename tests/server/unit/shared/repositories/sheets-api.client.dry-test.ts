@@ -123,6 +123,28 @@ test('readColumn sends the values:get request for one column', async () => {
   assert.equal(calls.length, 1)
 })
 
+test('readRange sends the values:get request for an arbitrary range', async () => {
+  const { client, calls } = await makeClient('read-range', async (call) => {
+    const url = assertAuthorizedRequest(call, 'GET', '/values/Orders!B5:F5')
+    assert.equal(url.search, '')
+    assert.equal(call.init?.body, undefined)
+    return jsonResponse(200, { values: [['order-1', 'Ready', 42, true, null]] })
+  })
+
+  assert.deepEqual(await client.readRange('B5:F5'), [['order-1', 'Ready', 42, true, null]])
+  assert.equal(calls.length, 1)
+})
+
+test('readRange rejects an unreadable response', async () => {
+  const { client, calls, module } = await makeClient('read-range-unreadable', async (call) => {
+    assertAuthorizedRequest(call, 'GET', '/values/Orders!B5:F5')
+    return jsonResponse(200, { values: [['valid'], ['not', 'a', 'valid', 'cell', {}]] })
+  })
+
+  await expectFailure(client.readRange('B5:F5'), module.WriteTransportError, 'unknown')
+  assert.equal(calls.length, 1)
+})
+
 test('appendRows sends the required append query and body', async () => {
   const { client, calls } = await makeClient('append-request', async () => {
     return jsonResponse(200, {
@@ -280,6 +302,20 @@ test('append restores trailing blank cells as null', async () => {
 
   const result = await client.appendRows([['order-1', '']], 'USER_ENTERED')
   assert.deepEqual(result.updates.updatedData.values, [['order-1', null]])
+  assert.equal(calls.length, 1)
+  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders:append')
+})
+
+test('append uses known header width when restoring trailing blank cells', async () => {
+  const { client, calls } = await makeClient('known-width-trailing-blanks', async () => jsonResponse(200, {
+    updates: {
+      updatedRows: 1,
+      updatedData: { values: [['order-1']] },
+    },
+  }))
+
+  const result = await client.appendRows([['order-1']], 'USER_ENTERED', 4)
+  assert.deepEqual(result.updates.updatedData.values, [['order-1', null, null, null]])
   assert.equal(calls.length, 1)
   assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders:append')
 })
