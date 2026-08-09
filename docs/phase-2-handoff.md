@@ -3,9 +3,11 @@
 เขียนเมื่อ 2026-08-09 ตอนปิด Phase 1 · **อัปเดตล่าสุด 2026-08-10 ตอนปิด §2.8 + prerequisite
 ของ §2.9** (HEAD = `2f9e6ac`)
 
-**ขั้นถัดไปคือ §2.9** — ให้เริ่มด้วยการปล่อย `test-pipeline` เข้า Phase A เพื่อวาง test charter
-มาให้เจ้าของโปรเจกต์อนุมัติ **ก่อน** เขียน implementation (ดูหมวด 3) และอ่าน "ข้อที่ยังไม่ยืนยัน"
-ในหมวด 2 ก่อน deploy
+**ขั้นถัดไปคือ §2.9** — charter ถูกวางไว้แล้วที่ `docs/phase-2-9-test-charter.md` (โดย
+`test-pipeline` Phase A) **ต้องผ่านการอนุมัติก่อนเขียน implementation**
+
+📄 **อ่าน [`session-2026-08-10-overnight.md`](./session-2026-08-10-overnight.md) ก่อนเริ่ม §2.9**
+— รายงานงานคืน 2026-08-10 มี **เรื่องใหญ่ 4 ข้อที่ต้องตัดสินก่อน** เขียนโค้ดได้
 
 แผนเต็มอยู่ที่ `docs/database-layer-sheets-api-refactor-plan.md` — **อ่านหมวด "สถานะ (ปิด Phase 1)"
 ที่ต้นไฟล์นั้นก่อน** เอกสารนี้เสริมเรื่องที่แผนไม่ได้เขียน: วิธีทำงาน และสิ่งที่เรียนรู้มาด้วยราคาแพง
@@ -213,15 +215,27 @@ InvoiceItems 14, Customers 20, OrdersView 13, InvoicesView 17, CustomerPackageVi
 | 2 | เพิ่ม `INVOICES_SPREADSHEET_ID` = `1zfhguJ…` | ✅ อยู่ใน `.env.local` และผูกเข้า `Invoices`/`InvoiceItems` contract แล้ว |
 | 3 | Provision service account | ✅ แชร์ไว้แล้ว · `sheets-api-access-check.ts` ยิงผ่านครบ 3 workbook |
 
-### ⚠️ ข้อที่ยังไม่ยืนยัน — ต้องเช็คก่อน deploy §2.9
+### ✅ env บน Vercel ตรวจแล้ว — ตรงกับ local ครบ
 
-**env บน Vercel (Production + Preview) ยังไม่ได้ตรวจ** — ทั้งหมดข้างบนยืนยันจาก `.env.local`
-เท่านั้น ถ้า `INVOICES_SPREADSHEET_ID` ไม่มีบน Vercel หรือ `ORDERS_SPREADSHEET_ID` บนนั้นยัง
-เป็นค่าเก่าที่ชี้ portal **§2.9 จะเขียนผิด workbook บน production ทั้งที่ทุกอย่าง local เขียว**
-เช็คด้วย `vercel env ls` แล้วเทียบกับ `.env.local` ก่อนปล่อยของ
+ตรวจคืน 2026-08-10 ด้วย `vercel env pull --environment=production` แล้วเทียบ prefix:
+`ORDERS_SPREADSHEET_ID` `1tfgJvj`, `INVOICES_SPREADSHEET_ID` `1zfhguJ`,
+`PORTAL_SPREADSHEET_ID` `1ucqeUq`, `APPOINTMENTS_SPREADSHEET_ID` `1CvVl6a` — **ตรงทั้ง 4**
 
-หมายเหตุ: `.env.local` ในเครื่องถูก pull ลงมาจาก Vercel (มี `VERCEL_OIDC_TOKEN` อยู่) แต่
-เจ้าของแก้ค่าด้วยมือหลังจากนั้น ⇒ **ห้ามสรุปว่า local ตรงกับ remote**
+### ⚠️ ข้อที่ยังพิสูจน์ไม่ได้ — `GOOGLE_SERVICE_ACCOUNT_KEY` ฝั่ง server
+
+`vercel env pull` **ไม่คืนค่าของ key นี้** ทั้ง production และ preview (น่าจะตั้งเป็น Sensitive —
+ถูกต้องแล้วด้านความปลอดภัย ไม่ต้องแก้) ⇒ ที่ยืนยันว่า "service account เข้าถึงชีตได้ครบ" เป็นการ
+ยืนยันด้วย key ใน `.env.local` เท่านั้น **ยังไม่มีอะไรพิสูจน์ว่า key บน server เป็น account
+ตัวเดียวกัน** ⇒ **§2.9 stage แรกต้องพิสูจน์บน preview deploy จริง ไม่ใช่แค่ local**
+
+### 📄 มีเรื่องใหญ่ 4 ข้อรอตัดสินก่อนเขียน §2.9
+
+Customers จะเปลี่ยนจาก "พังเสียงดัง" เป็น "เขียนจริง" โดยไม่มีใครสั่ง · `valueInputOption`
+ต่อคอลัมน์ชนกับข้อจำกัดของ Sheets API · error bridge ทำให้ `certainty` ของ invoice เปลี่ยน
+ความหมายเงียบๆ · `delete` ไม่มีที่ยืนบน transport ใหม่
+
+รายละเอียดครบพร้อมทางเลือกอยู่ในหมวด 3 ของ **[`session-2026-08-10-overnight.md`](./session-2026-08-10-overnight.md)**
+— รายงานงานที่ทำระหว่างเจ้าของโปรเจกต์นอน อ่านไฟล์นั้นก่อนเริ่ม §2.9
 
 รายละเอียดอยู่ใน §2.0–§2.10 ของแผน
 
