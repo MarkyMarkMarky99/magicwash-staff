@@ -9,7 +9,7 @@
 
 ## 1. อยู่ตรงไหนแล้ว
 
-`refactor/sheet-layer` — 18 commits, push แล้ว, **ยังไม่ merge เข้า main**
+`refactor/sheet-layer` — 24 commits, push แล้ว, **ยังไม่ merge เข้า main**
 
 Phase 1 จบครบ 8 ขั้น ได้สถาปัตยกรรม: 1 repository ต่อ 1 physical sheet ใต้ `server/sheets/`,
 repository ไม่รู้จัก API contract, DB↔API mapping อยู่ที่ module, `primaryKey` เป็นชื่อคอลัมน์ DB จริง,
@@ -31,7 +31,43 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 
 ---
 
-## 2. Phase 2 เริ่มไม่ได้ทันที — มี prerequisite
+## 1b. Phase 2 เดินไปแล้ว 3 ขั้น (อัปเดต 2026-08-09)
+
+| ขั้น | สถานะ | commit |
+|---|---|---|
+| §2.0 แยก `PORTAL_SPREADSHEET_ID` | ✅ | `93329fe` |
+| §2.1 google-auth (JWT RS256 → access token) | ✅ | `749393e` |
+| §2.2 `sheets-api.client.ts` | ✅ | `1e28213` |
+| **§2.3 header-map addressing** | ⬜ **ขั้นถัดไป** | |
+| §2.4–§2.10 | ⬜ | |
+
+**§2.2 ยังไม่ถูกต่อเข้า `SheetRepository`** — write path ยังวิ่งผ่าน Apps Script อยู่
+client เขียนเสร็จแต่ยังไม่มีใครเรียก การสลับ transport จริงเป็นขั้นหลัง
+
+### ของที่ §2.2 จงใจเลื่อนไป — มี comment กำกับในโค้ดแล้ว
+
+- header-map cache + ความกว้าง header ที่แน่นอน → §2.3 / §2.6
+- full-row GET หลัง update + verify primary key → §2.6
+- serialize object/array และ `valueInputOption` ต่อคอลัมน์ → §2.4
+  (เทสต์ที่ยิงสำเร็จใช้ `USER_ENTERED` แล้ว เพราะ `RAW` จะทำให้ GViz filter วันที่พัง)
+
+### บทเรียนจาก §2.2 — เพิ่มเข้ารายการหมวด 4
+
+รอบแรกของไฟล์นี้ถูกเขียนค้างตอนเครื่องค้าง แล้วมี 2 ปัญหาที่ **typecheck จับไม่ได้**:
+
+1. `A:Z` hardcode ในช่วง append — ตัน 26 คอลัมน์ ทั้งที่ Customers มี 20 แล้ว
+   เพิ่มอีกไม่กี่คอลัมน์จะหลุดช่วงเงียบๆ
+2. **เทสต์ classification ผ่านด้วยเหตุผลผิด** — mock assert พังแล้วโยน error,
+   transport catch แปลง throw ทุกชนิดเป็น `WriteTransportError`, เทสต์ 5xx/network/timeout
+   ก็คาด `WriteTransportError` พอดี ⇒ ผ่านไม่ว่า client จะตัดสินใจถูกหรือผิด
+
+ข้อ 2 พิสูจน์ว่าแก้แล้วด้วยการทำ 5xx ให้จัดประเภทผิด → เทสต์แดง 6 ตัว (ก่อนแก้แดง 0)
+
+⇒ **เวลาเขียนเทสต์ error classification ระวังว่า mock ที่พังเองอาจทำให้เทสต์ผ่าน**
+
+---
+
+## 2. Prerequisite ที่เหลือ
 
 | # | ทำอะไร | ทำไมต้องก่อน |
 |---|---|---|
