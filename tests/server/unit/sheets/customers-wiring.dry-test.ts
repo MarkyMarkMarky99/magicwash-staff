@@ -138,7 +138,7 @@ test('Customers service wiring maps rows, folds detail ids, and preserves write 
             phone: '1234567890',
             updatedBy: 'test-user',
           }),
-        /SheetRepository writes require an explicit SheetLib target/,
+        /append is not supported by sheet 'Customers'/,
       )
       assert.equal(calls.length, 0)
     },
@@ -162,7 +162,7 @@ test('Customers service wiring maps rows, folds detail ids, and preserves write 
 
       await assert.rejects(
         () => repository.update('e6741c92', { CustomerName: 'TR' }),
-        /SheetRepository writes require an explicit SheetLib target/,
+        /update is not supported by sheet 'Customers'/,
       )
       assert.equal(calls.length, 0)
     },

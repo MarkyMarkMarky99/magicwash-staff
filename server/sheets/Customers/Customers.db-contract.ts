@@ -42,10 +42,8 @@ export const customersDbContract = {
   // lives in `appscript/customer-sheet/API.js`, a different Apps Script project
   // with its own lock, CustomerIndex allocation and LINE notifications).
   //
-  // Declaring these false would be more honest about reality but would change
-  // WHICH error a caller gets — an earlier "not supported" rejection instead of
-  // the current missing-target throw. Phase 1 preserves behavior exactly, so the
-  // flags track the declared contract and the divergence is documented here.
-  // Fixing M2 properly means reimplementing that Apps Script flow — separate job.
-  writes: { append: true, update: true, delete: false },
+  // This physical sheet is not open for writes yet. Enable it only after the
+  // separate customer flow is implemented here, including CustomerIndex
+  // allocation, duplicate-phone checks, locking, and LINE notifications.
+  writes: { append: false, update: false, delete: false },
 } satisfies SheetContract
