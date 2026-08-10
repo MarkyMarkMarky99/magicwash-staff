@@ -5,8 +5,15 @@
 
 ไฟล์นี้คือสิ่งที่เกิดขึ้นในช่วงนั้น อ่านคู่กับ `phase-2-handoff.md` ซึ่งเป็นเอกสารหลัก
 
-**สรุปหนึ่งบรรทัด:** ไม่มีการแตะ implementation ของ §2.9 เลยตามที่ตกลงกันไว้ —
+> ⚠️ **นี่คือบันทึกลงวันที่ ไม่ใช่เอกสารสถานะ** — ทุกประโยคในไฟล์นี้บรรยายสภาพ ณ คืน 2026-08-10
+> **ก่อน** §2.9 stage 1 จะถูกเขียน · สิ่งที่ยังใช้อ้างอิงได้จริงคือ **หมวด 3 (ตารางคำตัดสิน)**
+> และ **หมวด 5 (ค่าที่วัดได้จากชีตจริง)** · ส่วนที่บรรยายสถานะโค้ด **ตกยุคไปแล้ว**
+> ⇒ สถานะปัจจุบันอยู่ที่ `phase-2-handoff.md` เท่านั้น อย่าอ่านไฟล์นี้เป็นความจริงวันนี้
+> ⇒ จุดที่ผิดตั้งแต่ตอนเขียน (ไม่ใช่แค่ตกยุค) ถูกแปะ 🔴 ไว้ตรงจุดแล้ว
+
+**สรุปหนึ่งบรรทัด (ณ คืนนั้น):** ไม่มีการแตะ implementation ของ §2.9 เลยตามที่ตกลงกันไว้ —
 งานที่ทำคือปิดช่องโหว่ที่ค้าง, สำรวจ write path เพื่อเตรียม §2.9, และวาง test charter
+(§2.9 stage 1 ถูกเขียนและผ่าน smoke test **หลังจากนั้น** ในวันเดียวกัน — `e7f75df`)
 
 ---
 
@@ -40,8 +47,12 @@ Sensitive ซึ่งอ่านย้อนไม่ได้ — เป็�
 
 ให้ grok สำรวจแบบ read-only ผลสรุปที่ใช้เขียน brief ได้:
 
-- จุดยิง HTTP ไป Apps Script มี **จุดเดียว** — `sendSheetLibRequest` (`sheet.repository.ts:267-314`)
-  ทุก write (`append` / `batchAppend` / `update` / `delete`) ไหลผ่าน private hub `write()` ก่อน
+- จุดยิง HTTP ไป Apps Script มี **จุดเดียว** — `sendSheetLibRequest` (ปัจจุบันอยู่ราว
+  `sheet.repository.ts:468` ไม่ใช่ `267-314` ตามที่เขียนไว้ตอนนั้น)
+  ~~ทุก write (`append` / `batchAppend` / `update` / `delete`) ไหลผ่าน private hub `write()` ก่อน~~
+  🔴 **ไม่จริงแล้วตั้งแต่ `e7f75df`** — `update()` ของชีตที่ประกาศ `writeTransport: 'sheets-api'`
+  **แยกออกก่อนถึง `write()`** ไปที่ `updateThroughSheetsApi` (`sheet.repository.ts:196-197`)
+  ⇒ ใครจะเขียน `appendThroughSheetsApi` ที่ stage 2 ต้องรู้ว่า hub เดียวไม่มีอยู่แล้ว
 - caller ของ write จริงมีแค่ **Appointments** (create/update ผ่าน `BaseCrudService`) และ
   **Invoices** (`batchAppend` InvoiceItems → `append` Invoice → `update` OrderForm)
 - `delete` **ไม่มี production caller เลย** มีแต่ dry-test
@@ -74,8 +85,20 @@ Sensitive ซึ่งอ่านย้อนไม่ได้ — เป็�
 > ล้าง format ก่อน 1 ครั้ง (เจ้าของกดเอง หรืออนุญาตให้ยิง `spreadsheets.batchUpdate` — เป็น
 > API คนละตัวที่ §2.9 ไม่ได้สร้าง) · แถวเก่าที่บันทึกไปแล้วยังไม่ได้ตัดสินว่าจะแปลงย้อนหลังไหม
 >
-> โค้ดที่ส่งค่าผิดรูปแบบวันนี้มี 2 จุดที่ต้องแก้: `Invoices.updated_at` ส่ง ISO 8601 พร้อม
-> timezone และ Appointments ส่ง `DD/MM/YYYY HH:MM:SS`
+> ~~โค้ดที่ส่งค่าผิดรูปแบบวันนี้มี 2 จุดที่ต้องแก้: `Invoices.updated_at` ส่ง ISO 8601 พร้อม
+> timezone และ Appointments ส่ง `DD/MM/YYYY HH:MM:SS`~~
+>
+> 🔴 **ประโยคข้างบนผิดทั้งสองครึ่ง — ตรวจโค้ดจริงแล้ว 2026-08-10 เย็น** ทั้งระบบมี formatter
+> **ตัวเดียว** คือ `formatBangkokTimestamp` (`server/shared/utils/bangkok-timestamp.ts:1-18`)
+> คืน `YYYY-MM-DD HH:MM:SS` (Asia/Bangkok, h23, ไม่มี `T` ไม่มี offset) และถูกใช้ร่วมกันหมด —
+> Appointments `CreatedAt`/`UpdatedAt`, Invoices `created_at`, OrderForm `updated_at` ·
+> ส่วนวันที่ล้วน (`AppointmentDate`, `issued_date`, `due_date`) ผ่าน `isoDateSchema`
+> (`^\d{4}-\d{2}-\d{2}$`) แล้วส่งต่อโดยไม่แปลง · **ไม่มีจุดไหนในโค้ดที่เขียนผิดรูปแบบเลย
+> และไม่มี `Invoices.updated_at` write path อยู่จริงด้วยซ้ำ** (`writes.update: false`)
+>
+> ⇒ ค่าเก่าในชีตที่หน้าตาเป็น `DD/MM/YYYY` คือข้อมูลจากยุคก่อนหน้า **ไม่ใช่ผลของโค้ดชุดนี้**
+> ตามกฎ `api/CLAUDE.md:128` ถือเป็น dirty legacy data ที่ปล่อยไหลผ่านได้ ไม่ต้องซ่อม
+> ⇒ **ไม่มี "2 จุดที่ต้องแก้" ตามที่บรรทัดนี้เคยสั่ง** — อย่าไปแก้ formatter ตามคำสั่งที่ตายแล้วนี้
 
 ### ที่มาของแต่ละข้อ (บันทึกไว้ตอนยังไม่ตัดสิน)
 

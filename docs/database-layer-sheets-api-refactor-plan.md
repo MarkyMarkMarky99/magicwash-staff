@@ -122,7 +122,13 @@ typecheck + dry-test 25 ไฟล์ + `npm run build` ไม่จับเล�
 ## แยกเป็น 2 เฟส
 
 การแยกนี้เป็นไปได้เพราะ `SheetRepository` เป็น **คลาสกลางคลาสเดียว** — พอมันไม่รู้จัก API แล้ว
-การสลับ transport คือแก้ไฟล์เดียว ไม่ใช่แก้ทีละ sheet **แต่ละ sheet ยังย้ายรอบเดียวเหมือนเดิม**
+transport logic ก็อยู่ที่เดียว ไม่ต้องเขียนซ้ำทุก sheet
+
+> 🔵 **แก้ 2026-08-10 หลัง stage 1 ลงจริง:** ประโยคเดิมเขียนว่า "สลับ transport คือแก้ไฟล์เดียว"
+> ซึ่ง**ไม่ตรงกับของที่ทำจริง** · stage 1 ออกแบบเป็น **opt-in ต่อ sheet** (`writeTransport` ใน
+> db-contract) จึงแตะ 8 ไฟล์: `sheet.repository.ts` + `sheet-contract.ts` + db-contract ของชีตนั้น
+> + service ที่ map error class ใหม่ + เทสต์ 4 ไฟล์ · การ opt-in ต่อ sheet เป็นสิ่งที่**ตั้งใจ**
+> (blast radius ต่อ stage) ไม่ใช่ความผิดพลาด — แต่ "แก้ไฟล์เดียว" ไม่ใช่ความจริงและอย่าวางแผนตามนั้น
 
 | | Phase 1 — layer split | Phase 2 — transport swap |
 |---|---|---|
@@ -303,7 +309,7 @@ Google Sheets ถาวร
 
 **หลักการที่ต้องยึดต่อจากนี้: ทุก design ควรออกแบบให้สลับไป Supabase ได้ง่าย แม้จะยังไม่ทำตอนนี้**
 ตัวอย่างที่เพิ่งเจอจริง (2026-08-09, สืบเนื่องจาก §2.7 smoke test): audit timestamp
-(`created_at`/`updated_at`/`deleted_at`) เก็บเป็น Plain Text ใน Google Sheets เพราะ
+(`created_at`/`updated_at`/`deleted_at`) **เดิมเข้าใจว่า**เก็บเป็น Plain Text ใน Google Sheets เพราะ
 `GVizQueryBuilder.where()` วันนี้รองรับแค่ equality ไม่มี `>=`/`<=`/date-range — แต่**นี่ไม่ใช่
 ข้อจำกัดถาวร** พอย้ายไป Supabase จริง คอลัมน์เหล่านี้จะเป็น SQL `timestamp` type ตามปกติ และ
 `WHERE created_at >= ... AND created_at < ...` ใช้ได้ทันทีโดยไม่ต้องเปลี่ยน schema หรือ backfill
@@ -312,9 +318,23 @@ Google Sheets ถาวร
 ด้วย-JS ไม่ใช่ GViz-level query อยู่แล้ว ⇒ Plain Text วันนี้ไม่ปิดกั้นทั้งความสามารถปัจจุบันและ
 ตอนย้าย Supabase
 
+> 🔵 **แก้ 2026-08-10 — ข้อเท็จจริงตั้งต้นของย่อหน้าข้างบนไม่ตรงกับชีตจริง** ตรวจ raw type แล้ว
+> พบว่า timestamp หลายคอลัมน์ **ไม่ได้เป็น Plain Text** — `Invoices.created_at`,
+> `OrderForm.updated_at` และ `Appointments.UpdatedAt` เป็น real Sheets datetime · ตัวกำหนดคือ
+> **cell format ของแต่ละคอลัมน์** ไม่ใช่ option ตอนเขียน (พิสูจน์ได้จากการที่
+> `Appointments.CreatedAt` กับ `UpdatedAt` ถูกเขียนด้วย `formatBangkokTimestamp` ตัวเดียวกัน
+> ค่ารูปแบบเดียวกัน ในคำสั่งเดียวกัน แต่เก็บคนละ type)
+> ⇒ **เหตุผลเรื่อง Supabase ยังใช้ได้ทั้งหมด** เพราะรูปแบบที่เขียนคือ `YYYY-MM-DD HH:MM:SS`
+> zero-padded อยู่แล้ว เรียง lexicographic ตรงกับเวลาจริง · เปลี่ยนแค่ข้ออ้างว่า "เป็น Plain Text"
+> ⇒ คำตัดสิน 3.5 (2026-08-10) กำหนดปลายทางเป็น datetime จริงทุกชีต ทำ**หลัง** §2.9
+
 **1.4** สร้าง `server/shared/repositories/sheet.repository.ts` — implement
-`SheetRepositoryContract` **ยังใช้ SheetLib เขียนภายใน** ย้ายโค้ด transport จาก
-`gsheet.repository.ts` มาตรงๆ ตัดส่วนที่เกี่ยวกับ API/fieldMap ออก
+`SheetRepositoryContract` **(ตอน Phase 1 ยังใช้ SheetLib เขียนภายในทั้งหมด)** ย้ายโค้ด transport
+จาก `gsheet.repository.ts` มาตรงๆ ตัดส่วนที่เกี่ยวกับ API/fieldMap ออก
+
+> 🔵 **สถานะวันนี้ (2026-08-10):** ไฟล์นี้เป็น **dual transport** แล้ว — sheet ที่ประกาศ
+> `writeTransport: 'sheets-api'` (วันนี้มี OrderForm ชีตเดียว) วิ่ง Sheets API ส่วนที่เหลือยัง
+> SheetLib ตาม default ⇒ อย่าอ่านประโยค "ยังใช้ SheetLib เขียนภายใน" เป็นสถานะปัจจุบัน
 
 **1.5** ย้าย 9 sheet เข้า `server/sheets/<Sheet>/` — commit ละ sheet ชื่อโฟลเดอร์ = ชื่อ tab จริง
 
@@ -497,9 +517,11 @@ OrderForm) resolver ทำงานจริงตอน `updateThroughSheetsApi
 2026-08-10 (`e7f75df`)** — `serializeCellValue`/`resolveValueInputOption` ถูกเรียกจริงใน
 `updateThroughSheetsApi()` สำหรับ OrderForm (ชีตอื่นยังไม่ถูกแตะ) — เดิมประโยคนี้เขียนว่า **ยังไม่ต่อเข้า
 `SheetRepository`** ประชากร `valueInput` ครบ 4 sheet ที่เขียนจริง: `Appointments` มีข้อยกเว้น
-เดียวคือ `AppointmentDate: 'USER_ENTERED'` (คอลัมน์อื่นรวม `CreatedAt`/`UpdatedAt` ต้องเป็น
-`RAW` แม้หน้าตาเหมือนวันที่ เพราะ registry ระบุว่าต้องเป็น Plain Text — การตัดสินใจนี้ยังยืนอยู่
-ไม่เปลี่ยน) ส่วน `InvoiceItems` ประกาศ `valueInput: {}` ชัดเจน (ไม่มีคอลัมน์ไหนต้องการข้อยกเว้น)
+เดียวคือ `AppointmentDate: 'USER_ENTERED'` (คอลัมน์อื่นรวม `CreatedAt`/`UpdatedAt` ไม่ประกาศ
+ค่าใดๆ 🔴 **เหตุผลเดิมที่เขียนไว้ว่า "ต้องเป็น `RAW` เพราะ registry ระบุ Plain Text และการตัดสินใจ
+นี้ยังยืนอยู่" ไม่จริง** — วัด raw type จริงแล้ว `UpdatedAt` เป็น datetime มาแล้ว 15 แถว ⇒ ชีตไม่ได้
+เป็น Plain Text ทั้งคอลัมน์อย่างที่เชื่อ และคำตัดสิน 3.5 ให้ปลายทางเป็น datetime ทุกชีตอยู่แล้ว)
+ส่วน `InvoiceItems` ประกาศ `valueInput: {}` ชัดเจน (ไม่มีคอลัมน์ไหนต้องการข้อยกเว้น)
 เทสต์ `value-serialization.dry-test.ts` ปัก guard นี้ด้วย real contract import (ไม่ใช่ fixture
 copy) และผ่าน mutation test แล้ว (ใส่ `CreatedAt: 'USER_ENTERED'` เข้าไปแล้วเห็นเทสต์แดงจริง)
 
@@ -507,10 +529,16 @@ copy) และผ่าน mutation test แล้ว (ใส่ `CreatedAt: 'U
 อีกต่อไป** สโมคเทสต์เจอว่า Google Sheets auto-convert ค่า plain-text ที่ส่งไปเป็น datetime cell
 จริง (คอลัมน์ไม่ได้ format เป็น Plain Text) เจ้าของโปรเจกต์ตัดสินใจ**เก็บพฤติกรรมนี้ไว้ตั้งใจ**
 เพราะมีประโยชน์ต่อคนดู/กรองข้อมูลตรงในชีตเอง ⇒ `Invoices.created_at`/`.updated_at`/`.deleted_at`
-และ `OrderForm.updated_at` ประกาศ `USER_ENTERED` แล้ว (commit ที่ตามมาหลัง §2.7) ต่างจาก
-Appointments' CreatedAt/UpdatedAt ที่ยังคง Plain Text ตามเดิม — สอง sheet นี้คนละการตัดสินใจกัน
-อย่าสับสน รายละเอียดเหตุผลอยู่ที่ comment ข้าง `valueInput` ใน `Invoices.db-contract.ts` /
+และ `OrderForm.updated_at` ประกาศ `USER_ENTERED` แล้ว (commit ที่ตามมาหลัง §2.7)
+รายละเอียดเหตุผลอยู่ที่ comment ข้าง `valueInput` ใน `Invoices.db-contract.ts` /
 `OrderForm.db-contract.ts` โดยตรง
+
+🔴 **แก้ไข 2026-08-10 — ประโยคเดิมที่ว่า "ต่างจาก Appointments' CreatedAt/UpdatedAt ที่ยังคง
+Plain Text ตามเดิม · สอง sheet นี้คนละการตัดสินใจกัน" ไม่จริง** วัดของจริงแล้ว
+`Appointments.UpdatedAt` เป็น datetime มาแล้ว 15 แถว (`CreatedAt` ยังเป็น string, `DeletedAt` ว่าง)
+⇒ ไม่ได้เป็นคนละการตัดสินใจ แต่เป็น **cell format ที่ไม่สม่ำเสมอกันเองภายในชีตเดียวกัน**
+⇒ **เกณฑ์ของ §2.9 stage 2 คือ "type ต้องไม่เปลี่ยนจากที่วัดได้วันนี้"** ส่วนการจัดให้เป็น datetime
+ทั้งหมดเป็นงานหลัง §2.9 ตามคำตัดสิน 3.5
 
 🔴 **แก้ไข 2026-08-10 — โมเดล "absent = `RAW`" ข้างบนไม่ตรงกับสิ่งที่เขียนจริงตอน §2.9 stage 1:**
 `updateThroughSheetsApi()` ส่งทั้ง batch เป็น `USER_ENTERED` เสมอ (`client.updateCells(ranges,
@@ -556,6 +584,19 @@ invoice create โยน error พวกนี้ได้จริงแล้�
 **2.6 response ต้องเป็นแถวสมบูรณ์**
 - append → `updates.updatedData.values` ⚠ Sheets **ตัด trailing blank ทิ้ง** → pad เต็มความกว้าง
   header แล้วแปลงกลับเป็น `null` ตาม blank semantics เดิม ระบุ `responseValueRenderOption` ให้ชัด
+
+  🔵 **เติมรายละเอียดที่แผนไม่เคยระบุ (2026-08-10)** — แผนบอกให้ "ระบุให้ชัด" แต่ไม่เคยบอกว่า
+  **ค่าไหน** และไม่เคยเทียบ append กับ read เข้าด้วยกัน · ของจริงที่โค้ดทำอยู่ตอนนี้ไม่สมมาตร และ
+  **ไม่มีเหตุผลเขียนไว้ที่ไหนเลย** (ไล่ประวัติ git ทุกคอมมิตของ `sheets-api.client.ts` แล้ว):
+  - `appendRows` → `responseValueRenderOption: 'UNFORMATTED_VALUE'` ตั้งแต่คอมมิตแรก (`1e28213`)
+    ไม่เคยแก้ · **ยังไม่มี production caller** จนถึงวันนี้
+  - `readRange` (เพิ่มทีหลังที่ `0e0ca23`) → **ไม่ส่ง query param ใดๆ** ⇒ ใช้ default ของ Google
+    คือ `FORMATTED_VALUE` · มีเทสต์ปักไว้ว่า `url.search === ''`
+    (`sheets-api.client.dry-test.ts:129`) และปัก `UNFORMATTED_VALUE` ไว้ที่ `:166`
+  ⇒ **stage 2 ต้องตัดสินใจเรื่องนี้อย่างตั้งใจตอนเขียน `appendThroughSheetsApi`** และถ้าจะเปลี่ยน
+  render option ต้องรู้ว่าจะชนเทสต์ 2 บรรทัดนั้น · หมายเหตุ: ตามกฎ `api/CLAUDE.md:128,132,203`
+  **reads ไม่ validate/แปลงค่า** และ "date formatting เป็นของ frontend" ⇒ ค่าที่อ่านกลับมาไม่ต้อง
+  ถูกดัดให้เป็นรูปแบบใด สิ่งที่ต้องถูกคือ**ค่าที่เขียนลงไป**
 - update → **ไม่ต้องใช้** `includeValuesInResponse` เพราะ `updatedRange` ของ batchUpdate คือ range
   เฉพาะ cell ที่ patch → ประกอบ range `A<row>:<lastCol><row>` เอง แล้ว **ตรวจว่า PK ของแถวที่อ่านกลับ
   ตรงกับ key ที่ขอ** ถ้าไม่ตรงแปลว่าแถวขยับ → error ไม่ใช่คืนแถวผิดเงียบๆ
@@ -610,7 +651,11 @@ grok เจอ regression จริงตอนรีวิว: `invoice-sheetli
 
 **ส่งมอบ:** `server/shared/repositories/sheet-row-lookup.ts` — ตัวหาเลขแถวจากค่า key column
 (header map → column letter → `readColumn` → เลขแถว 1-based, ไม่เจอคืน `null`, key ซ้ำ throw)
-พร้อม dry-test **เป็น building block เหมือน §2.2–§2.6 ไม่ต่อเข้า `SheetRepository` — wiring อยู่ที่ §2.9**
+พร้อม dry-test — ตอนส่งมอบเป็น building block ยังไม่ต่อเข้า `SheetRepository`
+
+🔴 **ต่อแล้วจริง 2026-08-10 (`e7f75df`)** — `updateThroughSheetsApi()` เรียก `findRowNumberByKey`
+จริง (`sheet.repository.ts:227-232`) ⇒ **race ที่ย่อหน้าข้างบนบอกว่า "จะมีตอน §2.9" มีอยู่จริงแล้ว
+วันนี้ สำหรับ OrderForm** ส่วนชีตที่ยังวิ่ง SheetLib ยังไม่มีเพราะ lookup+write อยู่ใต้ `LockService`
 
 **บังคับ:** เขียน doc comment บนฟังก์ชัน lookup นั้นว่าเป็น **ความเสี่ยงที่ยอมรับโดยตั้งใจ ไม่ใช่การ
 มองข้าม** พร้อมทางแก้ถ้าเกิดจริง ไม่งั้น agent ตัวถัดไปจะนึกว่าเป็นบั๊กแล้วไปแก้เอง และแปะ note สั้นๆ

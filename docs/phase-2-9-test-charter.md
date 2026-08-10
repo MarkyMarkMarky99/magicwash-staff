@@ -1,7 +1,12 @@
 # §2.9 Test Charter — สลับ write transport เป็น Google Sheets API
 
-เขียนโดย `test-pipeline` (Phase A) ก่อน implementation ของ §2.9 มีอยู่จริง — **ยังไม่มีใครแตะ
-`server/shared/repositories/sheet.repository.ts`** ตอนเขียนเอกสารนี้ (2026-08-10)
+เขียนโดย `test-pipeline` (Phase A) ก่อน implementation ของ §2.9 มีอยู่จริง — ตอนเขียนเอกสารนี้
+(2026-08-10 เช้า) ยังไม่มีใครแตะ `server/shared/repositories/sheet.repository.ts`
+
+> 🔵 **สถานะปัจจุบัน (อัปเดต 2026-08-10 เย็น): stage 1 ลงแล้วและผ่าน smoke test บน local dev**
+> (`e7f75df` + logging `1f00893`) ⇒ ประโยค "ยังไม่มีใครแตะ" ข้างบน และคอลัมน์สถานะ
+> **"รอ implementation" ในตาราง stage 1 เป็นบันทึกของ Phase A ไม่ใช่สถานะวันนี้**
+> เก็บไว้เพราะเหตุผลของแต่ละข้อยังใช้ได้ · **ตาราง stage 2/3 ยังเป็นสถานะจริง** (ยังไม่เริ่ม)
 
 อ้างอิง: `docs/database-layer-sheets-api-refactor-plan.md` §2.0–§2.10, `docs/phase-2-handoff.md`
 หมวด 4 (บทเรียนที่จ่ายด้วยของจริง)
@@ -36,8 +41,8 @@ Trigger จริงในระบบวันนี้: `invoice.service.ts`'s
 | 1.0 | write จริงวิ่งผ่าน Sheets API ไม่ใช่ SheetLib อีกต่อไป | โค้ดดู "สลับแล้ว" แต่ path จริงยังยิง `APPSCRIPT_URL` เดิม เพราะแก้ไม่ครบ/มี branch เก่าเหลือ | `dry-test`: spy/mock `fetch` แล้วยืนยันว่าไม่มี call ไป Apps Script URL เลยตอน update, มี call ไป `sheets.googleapis.com` แทน | รอ implementation (ต้องรู้ constructor wiring ของ §2.9 ก่อน) |
 | 1.1 | keyed PATCH เขียนถูกแถว (แถวที่ `id` ตรงกับ `sourceOrderId`) | เขียนผิดแถวเงียบๆ ถ้า header map/lookup ผิด ไม่มี error | `dry-test` ด้วย mock header+lookup (คลุม logic การ map key→row), `integration` ยิงอ่านจริงผ่าน GViz หลัง write เพื่อยืนยัน row ที่ถูกแก้คือแถวที่ขอจริง | dry-test ล่วงหน้าไม่ได้ (รอ interface); integration ต้องรอ implementation เสมอเพราะต้องมีของจริงให้ยิง |
 | 1.2 | เขียนแค่ 3 คอลัมน์ที่ patch (`invoice_id`, `updated_by`, `updated_at`) อีก 18 คอลัมน์บนแถวเดิมไม่ถูกแตะ | header map ผิด/ subset-write พลาด → เขียนทับทั้งแถวหรือคอลัมน์เลื่อน ข้อมูลอื่นบนแถวหาย | `dry-test`: ตรวจ `updateCells` request body ว่า range ครอบเฉพาะคอลัมน์ที่แก้จริงหรือ full-row-with-blanks ตามที่ §2.6 ออกแบบไว้ (ประกอบ range `A<row>:<lastCol><row>` แล้วอ่านครบแถวกลับมา ไม่ใช่เขียนทับ blank ทับคอลัมน์ที่ไม่ได้แตะ) — **ข้อนี้สำคัญมาก เพราะ §2.6 ออกแบบให้ full-row GET หลัง update แต่ไม่ได้บังคับว่า update ตัวเองต้อง patch เฉพาะคอลัมน์ หรือ เขียนทั้งแถวด้วยค่าเดิม+ค่าใหม่ผสมกัน — วิธีไหนก็ได้ตราบใดที่คอลัมน์ที่ไม่ได้ patch ไม่เปลี่ยนค่า, brief ของ implementation ต้องระบุให้ชัด** | `integration` (อ่านชีตจริงก่อน/หลัง เทียบ diff) ต้องรอของจริง; ไม่มี dry-test ไหนพิสูจน์ "ข้อมูลบนชีตจริงไม่เปลี่ยน" ได้เลยนอกจาก diff ก่อน/หลังกับ integration read |
-| 1.3 | `updated_at` เขียนด้วย `USER_ENTERED` (ตามที่ `OrderForm.db-contract.ts` ประกาศไว้แล้ว) → GViz อ่านกลับ column type ต้องเป็น `datetime` เหมือนวันนี้ (ตัดสินใจไว้แล้วว่าตั้งใจ ดู commit `9f53013`) | ถ้า §2.9 อ่าน `valueInput` ผิด/ลืม resolve ต่อคอลัมน์ ค่าจะกลายเป็น `RAW` (default) → `updated_at` เปลี่ยนจาก real Sheets datetime เป็น plain text แบบเงียบๆ — **display value ในชีตยังดูถูกต้อง 100% ตามบทเรียน §2.7 เดิม** เห็นได้เฉพาะเทียบ raw GViz column type เท่านั้น | `dry-test`: `value-serialization.dry-test.ts` มี guard นี้แล้วระดับ contract (`resolveValueInputOption`) — ต้องมี dry-test เพิ่มที่ยืนยันว่า `SheetRepository.update()` เรียก `resolveValueInputOption` จริงตอนประกอบ request ไม่ใช่แค่ policy ถูกประกาศไว้เฉยๆ; `integration`: **`raw-column-type-check.ts` (สร้างแล้ว ดูหมวด harness ด้านล่าง) ยิง GViz จริงเช็ค `OrderForm.updated_at` ต้องได้ `type: "datetime"` หลัง deploy+เขียนจริง** | policy-level guard ล่วงหน้าได้ (มีอยู่แล้ว); wiring-level guard รอ implementation; integration รอของจริงเสมอ |
-| 1.4 | error ก่อนยิง write (auth fail, header map fail, key lookup ไม่เจอแถว, key ซ้ำ) ต้อง classify เป็น `rejected` ไม่ใช่ `unknown` | `classifyWriteFailure` (`invoice.service.ts`) วันนี้รู้จักแค่ `SheetLibRejectedError`/`SheetLibTransportError` — ถ้า §2.9 ไม่เพิ่มการรู้จัก `WriteRejectedError`/`DuplicateRowKeyError`/`WriteRowIdentityMismatchError` ทุก error ใหม่จะตกไปที่ default `unknown` เงียบๆ (ปลอดภัยเพราะไม่ over-claim `rejected` ผิด แต่ผู้ใช้จะเห็น "ไม่แน่ใจ" ทั้งที่จริงๆ ระบบรู้แน่ชัดว่าปฏิเสธ) | `dry-test`: อัปเดต/เพิ่ม `invoice.service.dry-test.ts` (มีอยู่แล้วตามแผน §Tests) ยิง error ปลอมทุกคลาสของ Sheets API เข้า `classifyWriteFailure` แล้วยืนยัน `certainty` ที่ถูกต้อง — **นี่คือจุดเสี่ยง "เทสต์ผ่านด้วยเหตุผลผิด" ตามบทเรียน §2.2: ถ้า mock error object เอง throw ก่อนถึง code ที่จะ classify เทสต์จะเขียวไม่ว่าตัว classify ถูกหรือผิด ต้องยิง error instance จริงของแต่ละคลาส ไม่ใช่ throw string/plain Error** | รอ implementation (ต้องรู้ error class ที่จริงถูก throw จากจุดไหนก่อน) |
+| 1.3 | `updated_at` เขียนด้วย `USER_ENTERED` (ตามที่ `OrderForm.db-contract.ts` ประกาศไว้แล้ว) → GViz อ่านกลับ column type ต้องเป็น `datetime` เหมือนวันนี้ (ตัดสินใจไว้แล้วว่าตั้งใจ ดู commit `9f53013`) | 🔵 **แก้ 2026-08-10 เย็น — failure mode ที่เขียนไว้เดิม ("ค่าจะกลายเป็น `RAW` default") ไม่ตรงกับของที่ลงจริง** stage 1 ส่ง `USER_ENTERED` ทั้ง request เสมอ (`sheet.repository.ts:287`) และใช้ `resolveValueInputOption` เพียงเพื่อ **ปฏิเสธ** policy ที่ประกาศเป็นอย่างอื่น (`:260-270`) ⇒ ค่าตกไปเป็น `RAW` ไม่ได้ · failure mode จริงที่เหลือคือ **มีใครเปลี่ยนค่า hardcode นั้น หรือถอด guard ที่ปฏิเสธ policy อื่นออก** แล้ว `updated_at` เปลี่ยนจาก real Sheets datetime เป็น plain text แบบเงียบๆ — **display value ในชีตยังดูถูกต้อง 100% ตามบทเรียน §2.7 เดิม** เห็นได้เฉพาะเทียบ raw GViz column type เท่านั้น | `dry-test`: `value-serialization.dry-test.ts` มี guard นี้แล้วระดับ contract (`resolveValueInputOption`) — ต้องมี dry-test เพิ่มที่ยืนยันว่า `SheetRepository.update()` เรียก `resolveValueInputOption` จริงตอนประกอบ request ไม่ใช่แค่ policy ถูกประกาศไว้เฉยๆ; `integration`: **`raw-column-type-check.ts` (สร้างแล้ว ดูหมวด harness ด้านล่าง) ยิง GViz จริงเช็ค `OrderForm.updated_at` ต้องได้ `type: "datetime"` หลัง deploy+เขียนจริง** | policy-level guard ล่วงหน้าได้ (มีอยู่แล้ว); wiring-level guard รอ implementation; integration รอของจริงเสมอ |
+| 1.4 | error ก่อนยิง write (auth fail, header map fail, key lookup ไม่เจอแถว, key ซ้ำ) ต้อง classify เป็น `rejected` ไม่ใช่ `unknown` | 🔵 **ปิดไปแล้วที่ stage 1** — `classifyWriteFailure` (`invoice.service.ts:176-190`) รู้จัก `WriteRejectedError`/`DuplicateRowKeyError`/`WriteRowIdentityMismatchError`/`WriteTransportError`/`WriteCommittedUnreadableError` ครบแล้ว (ตอนเขียน charter นี้ยังรู้จักแค่ 2 คลาสของ SheetLib) · ที่เหลือเป็น **regression guard**: ถ้ามีใครเพิ่ม error class ใหม่แล้วลืม map ทุก error ใหม่จะตกไปที่ default `unknown` เงียบๆ (ปลอดภัยเพราะไม่ over-claim `rejected` ผิด แต่ผู้ใช้จะเห็น "ไม่แน่ใจ" ทั้งที่จริงๆ ระบบรู้แน่ชัดว่าปฏิเสธ) | `dry-test`: อัปเดต/เพิ่ม `invoice.service.dry-test.ts` (มีอยู่แล้วตามแผน §Tests) ยิง error ปลอมทุกคลาสของ Sheets API เข้า `classifyWriteFailure` แล้วยืนยัน `certainty` ที่ถูกต้อง — **นี่คือจุดเสี่ยง "เทสต์ผ่านด้วยเหตุผลผิด" ตามบทเรียน §2.2: ถ้า mock error object เอง throw ก่อนถึง code ที่จะ classify เทสต์จะเขียวไม่ว่าตัว classify ถูกหรือผิด ต้องยิง error instance จริงของแต่ละคลาส ไม่ใช่ throw string/plain Error** | รอ implementation (ต้องรู้ error class ที่จริงถูก throw จากจุดไหนก่อน) |
 | 1.5 | TOCTOU ระหว่าง lookup→write **ยอมรับแล้วเป็นความเสี่ยง** (`sheet-row-lookup.ts` doc) — ห้ามมีใครเสนอ lock/CAS/retry แก้ | เข้าใจผิดว่าเป็นบั๊กแล้วไปแก้ ทำให้ scope บวมและขัดกับการตัดสินใจที่ปิดไปแล้ว | ไม่มีเทสต์ไหนคลุม "ไม่มี race" ได้เพราะมันถูกยอมรับไว้แล้วว่ามี — สิ่งที่คลุมได้คือ 1.4 (verifyRowIdentity ต้องยัง fire ถูกเมื่อแถวขยับจริง) | ไม่ใช่ของที่ต้องพิสูจน์ — เป็นการตัดสินใจที่ปิดแล้ว ระบุไว้เพื่อกันไม่ให้ agent ตัวถัดไปหยิบมาแก้ |
 | 1.6 | response ที่ `update()` คืนเป็นแถวสมบูรณ์ (`BaseCrudService.update()` project จากแถวเต็มที่ repo คืน — ถ้า repo คืน patch บางส่วน field อื่นจะหายจาก response) | ผู้ใช้เห็น response ที่ field เก่าหายไปเงียบๆ (undefined แทนที่จะเป็นค่าจริง) | `dry-test` โครงสร้าง response shape เทียบ `TDbRow` เต็ม | รอ implementation |
 
@@ -48,7 +53,10 @@ part) ต้องมีของจริงให้ยิง — ไม่ม
 
 ---
 
-## Stage 2 — Appointments (append + JSON cell + date + Bangkok timestamp + CRUD เต็ม)
+## Stage 2 — Appointments (append + JSON cell + date + Bangkok timestamp + create/update)
+
+> **ไม่ใช่ "CRUD เต็ม"** — `delete` ปิดตายตามคำตัดสิน 3.4 (`writes.delete: false`, โยน "ยังไม่
+> รองรับ") ⇒ stage 2 พิสูจน์ **create + update** เท่านั้น ดูข้อ 2.7
 
 Trigger จริง: `AppointmentService extends BaseCrudService` — มี route POST/PATCH ผ่าน
 `createCrudRoutes` เปิดใช้งานจริงจาก staff UI (ไม่ใช่ internal-only แบบ OrderForm) **blast radius
@@ -60,16 +68,16 @@ Trigger จริง: `AppointmentService extends BaseCrudService` — มี ro
 | 2.1 | `append()` ใช้ `INSERT_ROWS` ไม่ต้อง lock (ตามที่ §2.2 ออกแบบ) เขียนแถวใหม่โดยไม่ชนกับแถวอื่นแม้มี concurrent append | ถ้า wiring เอา row-lookup มาปนกับ append (ใช้ผิดฟังก์ชัน) จะเกิด race ที่ไม่จำเป็นต้องมี | `dry-test`: ยืนยันว่า `append()` ไม่เคย เรียก `findRowNumberByKey`/`readColumn` เลย มีแต่ `appendRows` ตรงๆ | รอ implementation |
 | 2.2 | `Address` (JSON snapshot) ถูก `JSON.stringify` ก่อนส่งเป็น cell — parse กลับได้ ไม่ใช่ `[object Object]` | เหมือนความเสี่ยงข้อ 1 ของ brief ทั้งฉบับ — จุดที่พังเงียบที่สุดในระบบตามที่ mutation test เคยชี้มาแล้วรอบ invoice `customer`/`adjustments` | `dry-test`: `value-serialization.dry-test.ts` คลุม `serializeCellValue`/`buildRowValues` แล้วระดับฟังก์ชัน (มีอยู่แล้ว) — **ต้องมี dry-test เพิ่มที่ wiring จริงของ `SheetRepository.append()` เรียก `buildRowValues` ก่อนส่งจริง ไม่ใช่แค่ policy ถูกประกาศ**; `integration`: อ่าน `Address` กลับผ่าน GViz แล้ว `JSON.parse` ต้องไม่ throw | policy-level ล่วงหน้าได้ (มีอยู่แล้ว); wiring-level รอ implementation; integration รอของจริง |
 | 2.3 | `AppointmentDate` เขียนด้วย `USER_ENTERED` → GViz column type ต้องเป็น `datetime` (ตั้งใจ เพื่อให้ date-range filter ทำงาน) | เหมือน 1.3 แต่คนละ column — ถ้าพัง ฟีเจอร์ filter นัดหมายตามช่วงวันที่จะพังตามไปด้วย ไม่ error แค่ผลลัพธ์ผิดเงียบๆ | `dry-test` เหมือน 1.3; `integration`: `raw-column-type-check.ts` เช็ค `Appointments.AppointmentDate` ต้องได้ `datetime`; **GViz date-range filter ยังทำงานได้จริง เป็นเทสต์แยกที่ plan เองระบุไว้ว่า "mock ไม่พอ" (§Tests: "⚠ USER_ENTERED vs date/phone mock ไม่พอ ต้องยิงกับ spreadsheet ทิ้งได้จริงแล้วอ่านกลับผ่าน GViz")** | integration รอของจริงเสมอ |
-| 2.4 | 🔴 **แก้ 2026-08-10 — ข้อนี้เขียนไว้ก่อนเจ้าของตัดสิน และตั้งอยู่บนข้อเท็จจริงที่ผิด** วัดของจริงแล้ว: `CreatedAt` = `string`, **`UpdatedAt` = `datetime` มาแล้ว 15 แถว**, `DeletedAt` ว่าง ⇒ "Appointments ต้องเป็น Plain Text" ไม่เคยเป็นจริงทั้งชีต · และเจ้าของตัดสินแล้วว่า **metadata timestamp ทุกชีตควรเป็น datetime** แต่ให้ทำ **หลัง** §2.9 โดยใช้เป็น smoke test ⇒ **เกณฑ์ที่ถูกต้องของ stage 2 คือ: type ของ 3 คอลัมน์นี้ต้อง _ไม่เปลี่ยนจากที่วัดได้วันนี้_** (`string` / `datetime` / ว่าง) เพราะ §2.9 เปลี่ยนแค่ transport ไม่เปลี่ยนข้อมูล · ถ้าเปลี่ยน = regression ไม่ใช่การจัดระเบียบ | ถ้า implementer เอา valueInput policy ของ Invoices มาปนกับ Appointments (copy-paste ผิด sheet) ทุกอย่างจะดูทำงานถูกในเทสต์ mock (เพราะ mock ไม่ได้แยกว่าใครเป็นใคร) แต่ real Sheets จะ auto-coerce เป็น datetime เงียบๆ เหมือน §2.7 เดิม | `dry-test`: `value-serialization.dry-test.ts` มี guard นี้แล้วที่ contract level (mutation-tested แล้วตามแผน — ใส่ `CreatedAt: USER_ENTERED` แล้วเทสต์แดงจริง) — **ต้อง mutation-test ซ้ำใน Phase B ว่ายัง fail จริงหลัง wiring เข้า `SheetRepository` ด้วย ไม่ใช่แค่ที่ policy declaration**; `integration`: **บังคับ** — `raw-column-type-check.ts` เช็ค `Appointments.CreatedAt`/`UpdatedAt`/`DeletedAt` ต้องได้ `type` เป็น string/ไม่ใช่ `datetime` หลัง deploy จริง — เป็นข้อที่พลาดแล้วเคยมาแล้วครั้งหนึ่งกับชีตอื่น (Invoices/OrderForm) จึงมีโอกาสสูงสุดที่จะพลาดซ้ำ | policy ล่วงหน้าได้ (มีอยู่แล้ว); integration รอของจริง |
+| 2.4 | 🔴 **แก้ 2026-08-10 — ข้อนี้เขียนไว้ก่อนเจ้าของตัดสิน และตั้งอยู่บนข้อเท็จจริงที่ผิด** วัดของจริงแล้ว: `CreatedAt` = `string`, **`UpdatedAt` = `datetime` มาแล้ว 15 แถว**, `DeletedAt` ว่าง ⇒ "Appointments ต้องเป็น Plain Text" ไม่เคยเป็นจริงทั้งชีต · และเจ้าของตัดสินแล้วว่า **metadata timestamp ทุกชีตควรเป็น datetime** แต่ให้ทำ **หลัง** §2.9 โดยใช้เป็น smoke test ⇒ **เกณฑ์ที่ถูกต้องของ stage 2 คือ: type ของ 3 คอลัมน์นี้ต้อง _ไม่เปลี่ยนจากที่วัดได้วันนี้_** (`string` / `datetime` / ว่าง) เพราะ §2.9 เปลี่ยนแค่ transport ไม่เปลี่ยนข้อมูล · ถ้าเปลี่ยน = regression ไม่ใช่การจัดระเบียบ | ถ้า implementer เอา valueInput policy ของ Invoices มาปนกับ Appointments (copy-paste ผิด sheet) ทุกอย่างจะดูทำงานถูกในเทสต์ mock (เพราะ mock ไม่ได้แยกว่าใครเป็นใคร) แต่ real Sheets จะ auto-coerce เป็น datetime เงียบๆ เหมือน §2.7 เดิม | `dry-test`: `value-serialization.dry-test.ts` มี guard นี้แล้วที่ contract level (mutation-tested แล้วตามแผน — ใส่ `CreatedAt: USER_ENTERED` แล้วเทสต์แดงจริง) — **ต้อง mutation-test ซ้ำใน Phase B ว่ายัง fail จริงหลัง wiring เข้า `SheetRepository` ด้วย ไม่ใช่แค่ที่ policy declaration**; `integration`: **บังคับ** — `raw-column-type-check.ts` เช็คว่า `Appointments.CreatedAt` ยังเป็น `string`, **`UpdatedAt` ยังเป็น `datetime`**, `DeletedAt` ยังว่าง หลัง deploy จริง ⇒ **เกณฑ์คือ "ไม่เปลี่ยนจากที่วัดได้" ไม่ใช่ "ต้องเป็น string ทั้งสามตัว"** (เกณฑ์เดิมเขียนผิดตามข้อเท็จจริงที่ผิด) — เป็นข้อที่พลาดแล้วเคยมาแล้วครั้งหนึ่งกับชีตอื่น (Invoices/OrderForm) จึงมีโอกาสสูงสุดที่จะพลาดซ้ำ | policy ล่วงหน้าได้ (มีอยู่แล้ว); integration รอของจริง |
 | 2.5 | `formatBangkokTimestamp` เขียนถูก format เดียวกับที่ `CreatedAt`/`UpdatedAt` มีอยู่วันนี้ (ไม่เปลี่ยน format ตอนสลับ transport) | timestamp format เปลี่ยนเงียบๆ ทำให้ sort/filter ที่พึ่ง lexicographic order (ตามที่แผนอธิบายไว้ว่า string `YYYY-MM-DD HH:mm:ss` เรียงตรงกับเวลาจริง) พัง | `dry-test` มีอยู่แล้วสำหรับ `formatBangkokTimestamp` เอง — ของใหม่ที่ต้องเพิ่มคือยืนยันว่า write path เรียกมันแล้วส่งค่าตรงไปที่ cell ไม่ถูกแปลงซ้ำ | รอ implementation (wiring) |
 | 2.6 | append คืนแถวสมบูรณ์เต็มความกว้าง (`PickupOrderID`/`DeliveryOrderID`/`ServiceTier` ที่เป็น `null` ต้องอยู่ตำแหน่งถูก ไม่ใช่คอลัมน์เลื่อน) — เหมือนความเสี่ยงข้อ 3 ของ brief แต่คนละชีต | คอลัมน์ nullable กลางแถวว่างผิดตำแหน่ง → response ที่ frontend เห็นข้อมูลเลื่อนคอลัมน์ | `dry-test`: `response-shape.dry-test.ts` ตามที่แผนระบุ (trailing blank ต้อง pad + คืน `null`) — ต้องมี case ที่ nullable อยู่ กลาง แถวไม่ใช่ท้ายแถว เพราะ `restoreTrailingBlanks` ใน `sheets-api.client.ts` จัดการเฉพาะ trailing blank เท่านั้น (อ่านโค้ดแล้ว: ไล่จากท้ายมาหน้า หยุดที่ค่าที่ไม่ว่าง) กลาง-แถวที่ไม่ใช่ trailing ต้องพึ่งว่า request ส่งค่าครบทุกตำแหน่งอยู่แล้ว (`buildRowValues` ใส่ `''` ให้ทุก field ที่ไม่ส่ง ไม่ข้าม) — จุดนี้ควร dry-test ยืนยันตรงๆ ว่า `buildRowValues` ไม่เคยข้าม index กลางแถว | ฟังก์ชัน-level guard ล่วงหน้าได้บางส่วน (มีอยู่แล้ว); wiring รอ implementation |
-| 2.7 | full CRUD: create/read/update ทำงานสอดคล้องกัน (delete ของ Appointments ปิดไว้ `writes.delete: false` — ไม่ต้องพิสูจน์ delete เพราะไม่ได้เปิด) | ถ้า implementer เผลอเปิด delete โดยไม่ได้ตั้งใจ (เปลี่ยน `writes.delete` โดยไม่มีใครอนุมัติ) จะเป็นการเปลี่ยน business behavior ที่ไม่มีใครขอ | `dry-test`: `sheet-binding.dry-test.ts`/db-contract โดยตรง — ยืนยัน `writes.delete === false` ยังคงอยู่ (regression guard ง่ายๆ) | ล่วงหน้าได้ (เพิ่มบรรทัดเดียวในเทสต์ contract ที่มีอยู่แล้ว ไม่ต้องรอ wiring) |
+| 2.7 | create/read/update ทำงานสอดคล้องกัน · **`delete` ปิดไว้ `writes.delete: false` และต้องปิดต่อไป** (คำตัดสิน 3.4: โยน "ยังไม่รองรับ" ไม่ใช่ทำครึ่งๆ) — ไม่ต้องพิสูจน์ delete เพราะไม่ได้เปิด | ถ้า implementer เผลอเปิด delete โดยไม่ได้ตั้งใจ (เปลี่ยน `writes.delete` โดยไม่มีใครอนุมัติ) จะเป็นการเปลี่ยน business behavior ที่ไม่มีใครขอ | `dry-test`: `sheet-binding.dry-test.ts`/db-contract โดยตรง — ยืนยัน `writes.delete === false` ยังคงอยู่ (regression guard ง่ายๆ) | ล่วงหน้าได้ (เพิ่มบรรทัดเดียวในเทสต์ contract ที่มีอยู่แล้ว ไม่ต้องรอ wiring) |
 | 2.8 | **error classification ที่ผู้ใช้เห็นจริงทาง HTTP** — วันนี้ตรวจโค้ดแล้วพบว่า `AppointmentService` ไม่มี `classifyWriteFailure` ของตัวเอง และ `contracts/appointments/appointment-api.schema.ts` ไม่มี `certainty`/`outcome` field เลย ⇒ error ใดๆ ที่ไม่ใช่ `ApiError` (รวม `WriteRejectedError`/`WriteTransportError`/`DuplicateRowKeyError` ทุกตัวที่ §2.9 จะโยน) จะตกไปที่ `ApiHandler`'s catch-all กลายเป็น generic `500 INTERNAL_ERROR` เสมอ — **นี่ไม่ใช่บั๊กที่ test-pipeline ตัดสินใจแก้เอง เป็นช่องว่างการออกแบบที่ต้องรายงานให้เจ้าของโปรเจกต์/ผู้วางแผนตัดสิน** ว่าตั้งใจให้ Appointments เขียนพลาดแสดงเป็น 500 เสมอ (พฤติกรรมเดิมของ SheetLib ก็ทำแบบนี้อยู่แล้วหรือไม่ — ต้องตรวจ) หรือต้องเพิ่ม mapping | ถ้าไม่มีใครตัดสิน ผู้ใช้จะเห็น "500 error" ไม่ว่ากรณีไหนแม้ Sheets API รู้ชัดว่าข้อมูล validation ผิด (`rejected`) ต่างจาก network ล่ม (`unknown`) — เสีย UX แต่ไม่เสียข้อมูล | `dry-test`: เขียน guard ได้แค่ "error ไม่ crash เป็น 500 พร้อม message ที่เข้าใจได้" แต่ ไม่มีเทสต์ไหนพิสูจน์ได้ว่านี่คือพฤติกรรมที่ "ตั้งใจ" เพราะยังไม่มีการตัดสินใจ | 🟢 **ตัดสินแล้ว 2026-08-10: ต้องเพิ่ม mapping ไม่ปล่อยให้เป็น 500 เสมอ** · แต่การเพิ่ม `certainty` เข้า `appointment-api.schema.ts` เป็นการแก้ **API contract** ซึ่งกระทบ frontend ⇒ **แยกเป็นงานต่างหากหลัง §2.9 ไม่ทำปนใน stage 2** · สิ่งที่ stage 2 ต้องทำคือ **ไม่ทำให้แย่ลงกว่าวันนี้** และต้องมี dry-test ยืนยันว่า error จาก transport ใหม่ยังไปถึง handler ในรูปแบบที่ map ต่อได้ ไม่ถูกกลืนหาย |
 
 **สรุป stage 2 ที่พิสูจน์ล่วงหน้าไม่ได้เลย และทำไม:** 2.3 (GViz date-range filter จริง) — แผนเองระบุ
 ตรงๆ ว่า mock ไม่พอ ต้องมี spreadsheet ทิ้งได้จริง (ดูหมวด "สิ่งที่เจ้าของโปรเจกต์ต้องตัดสินใจ/กดเอง"
 ด้านล่าง — ไม่มี spreadsheet ทิ้งได้อยู่ในมือ agent ตอนนี้); 2.4 integration ก็รอของจริงเสมอด้วยเหตุผล
-เดียวกับ 1.3; 2.8 เป็น open question ไม่ใช่สิ่งที่พิสูจน์ได้เลยจนกว่าจะมีการตัดสินใจ
+เดียวกับ 1.3 · **2.8 ไม่ใช่ open question อีกแล้ว** — ตัดสินเมื่อ 2026-08-10 (ดูช่องสถานะของ 2.8)
 
 ---
 
@@ -100,10 +108,10 @@ order ที่เจ้าของโปรเจกต์เลือกว�
 | ความเสี่ยงจาก brief | อยู่ที่ stage ไหน | จับได้ด้วยอะไร |
 |---|---|---|
 | 1. serialize JSON column | stage 2 (`Address`), stage 3 (`customer`/`adjustments` ×2 ชีต) | dry-test (policy มีแล้ว, wiring รอ) + integration (รอของจริง) |
-| 2. `valueInputOption` ต่อคอลัมน์ — Invoices/OrderForm ตั้งใจเป็น datetime, Appointments CreatedAt/UpdatedAt/DeletedAt ตั้งใจเป็น Plain Text | stage 1 (1.3), stage 2 (2.3, 2.4) | dry-test (policy มีแล้ว + mutation-tested แล้ว) + **integration บังคับด้วย `raw-column-type-check.ts`** |
+| 2. type ของคอลัมน์วันที่/เวลา — Invoices/OrderForm ตั้งใจเป็น datetime · Appointments วัดจริงได้ `CreatedAt`=string, `UpdatedAt`=datetime, `DeletedAt` ว่าง **และ stage 2 ต้องไม่ทำให้เปลี่ยน** (ไม่ใช่ "ตั้งใจเป็น Plain Text" ตามที่เคยเขียนไว้ผิด) · หมายเหตุ: `valueInput` ใน contract เป็น **เจตนา/ตัวตรวจ** ไม่ใช่ตัวเลือกค่าส่งจริง — request ส่ง `USER_ENTERED` ทั้งแถวตามคำตัดสิน 3.2 | stage 1 (1.3), stage 2 (2.3, 2.4) | dry-test (policy มีแล้ว + mutation-tested แล้ว) + **integration บังคับด้วย `raw-column-type-check.ts`** |
 | 3. ความกว้างของ append — `sku` ว่างถูกตำแหน่ง | stage 3 (3.2), เทียบเคียง stage 2 (2.6) | dry-test ฟังก์ชัน-level (บางส่วนมีแล้ว) + integration |
 | 4. keyed update เขียนถูกแถว, race ยอมรับแล้ว ห้ามแก้ด้วย lock/CAS/retry | stage 1 (1.1, 1.5), stage 2 (update ของ Appointments ก็เป็น keyed — ยังไม่ได้แยกข้อในตารางเพราะ Appointments update ไม่มี consumer จริงในระบบวันนี้ผ่าน API ปกติชัดเจน — **ต้องตรวจว่า `PATCH /api/appointments/:id` เปิดใช้งานจริงหรือยัง ถ้าเปิดแล้วต้องพิสูจน์เหมือน stage 1 ทุกข้อ**) | dry-test + integration รอของจริง |
-| 5. error classification ต่อ phase | stage 1 (1.4), stage 2 (2.8 — เป็น open question), stage 3 (3.3) | dry-test รอ implementation; 2.8 ไม่มีเทสต์คลุมได้จนกว่าจะมีการตัดสินใจ |
+| 5. error classification ต่อ phase | stage 1 (1.4 — ปิดแล้ว), stage 2 (2.8 — **ตัดสินแล้ว** ไม่ใช่ open question), stage 3 (3.3) | dry-test; 2.8 คลุมได้แล้วในระดับ "error ใหม่ต้องไปถึง handler ไม่ถูกกลืน" ส่วนการเพิ่ม `certainty` เข้า API contract เป็นงานหลัง §2.9 |
 | 6. read-back verify PK (`verifyRowIdentity`) | stage 1, stage 2 (update flow) | dry-test: บังคับให้ error ตอน mock แถวขยับระหว่าง write→read-back |
 | 7. invoice create เขียน 4 ชีต ไม่ idempotent | stage 3 (3.3, 3.4) | dry-test (outcome kind + certainty) — ส่วน "ข้อมูลค้างครึ่งๆ จริงบนชีต" ไม่มีเทสต์ไหนคลุมได้เลย เป็น `human`-only: ต้องมีคนเปิดชีตดูว่าถ้าจงใจทำให้ header write ล้มเหลว (เช่น ตัด network ตอน integration test) แล้วดูว่า `InvoiceItems` ที่เขียนไปแล้วยังอยู่จริงและ reconcile ได้ด้วยมือ |
 | 8. `.js` extension ใน ESM import | ทุก stage | **`deploy` เท่านั้น** — ยืนยันแล้วจากบทเรียนโปรเจกต์ว่า `tsc`, `npx tsx` (dry-test), และ `vercel dev` ทั้งสามตัวพลาดมาแล้วจริง เหตุผลที่ตรวจแล้ว: `tsx` มี module resolution ที่ผ่อนกว่า Node ESM ดิบ (auto-resolve extension ให้) ในขณะที่ `@vercel/node` บน production ใช้ Node ESM ดิบที่เข้มงวด — ต่างจาก dry-test runner โดยเนื้อแท้ ไม่ใช่แค่ไม่มีเทสต์ครอบ ⇒ **ต้อง deploy จริง + curl จริงทุก stage ก่อนไป stage ถัดไป ห้ามข้าม** |
@@ -118,8 +126,9 @@ order ที่เจ้าของโปรเจกต์เลือกว�
 รายงานกลับสำหรับ 8 คอลัมน์เสี่ยงที่ระบุไว้ในความเสี่ยงข้อ 2: `OrderForm.updated_at`,
 `Invoices.created_at`/`.updated_at`/`.deleted_at`, `Appointments.CreatedAt`/`.UpdatedAt`/`.DeletedAt`/
 `.AppointmentDate` — เป็นเครื่องมือสำหรับ Phase B ใช้ยืนยัน "ค่าที่แสดงถูก ไม่ได้แปลว่า type ที่เก็บ
-จริงตรง" (บทเรียน §2.7) หลัง deploy จริงของแต่ละ stage ไม่ใช่หลักฐานของ §2.9 เอง (ยังไม่มี §2.9
-ให้พิสูจน์ตอนนี้) — รายละเอียดผลรันจริงและ verification อยู่ท้ายรายงานนี้
+จริงตรง" (บทเรียน §2.7) หลัง deploy จริงของแต่ละ stage — รายละเอียดผลรันจริงและ verification อยู่
+ท้ายรายงานนี้ · 🔵 ประโยคเดิม "ยังไม่มี §2.9 ให้พิสูจน์ตอนนี้" **หมดอายุแล้ว** stage 1 ลงและถูก
+ตรวจด้วยสคริปต์นี้ไปแล้วจริง (`OrderForm.updated_at` = `datetime` ✅)
 
 **ทำไมไม่สร้างอะไรมากกว่านี้ตอนนี้:** ของที่เหลือทั้งหมดในตาราง (`dry-test` ระดับ wiring,
 `classifyWriteFailure` guard, `fetch`-spy ว่า SheetLib ไม่ถูกเรียกอีก) ต้องรู้ constructor/interface
@@ -133,16 +142,19 @@ order ที่เจ้าของโปรเจกต์เลือกว�
 
 **ต้องเขียวก่อนถึงจะยอม deploy stage ถัดไป (บังคับตามลำดับ ห้ามข้าม):**
 
-1. **ก่อนแตะโค้ด §2.9 เลย:** เจ้าของโปรเจกต์ตัดสินข้อ 2.8 (Appointments error mapping) และยืนยัน
-   env บน Vercel Production+Preview ตรงกับ `.env.local` (`vercel env ls` เทียบชื่อ key — ไม่ใช่ค่า)
-   — ทั้งสองเป็น blocker ที่ handoff ระบุไว้แล้วว่ายังไม่ปิด
+1. ~~**ก่อนแตะโค้ด §2.9 เลย:** เจ้าของโปรเจกต์ตัดสินข้อ 2.8 + ยืนยัน env บน Vercel~~
+   ✅ **ปิดครบแล้ว 2026-08-10** — 2.8 ตัดสินแล้ว (ดูช่องสถานะของ 2.8) · env Production ตรวจแล้ว
+   ตรงทั้ง 4 ตัว · `GOOGLE_SERVICE_ACCOUNT_KEY` พิสูจน์แล้วว่าเขียนได้จริง **แต่ผ่าน local dev
+   เท่านั้น ยังไม่เคยพิสูจน์บน preview/production deploy**
 2. **Stage 1 (OrderForm):** dry-test ทั้งหมดเขียว (รวม mutation test ทุก guard ในตาราง stage 1) →
    deploy ไป preview จริง → invoice create ผ่าน staff UI 1 ครั้งด้วย order ที่เจ้าของโปรเจกต์เลือกว่า
    ทิ้งได้ (ดูหมวดถัดไป) → `raw-column-type-check.ts` ยืนยัน `OrderForm.updated_at` เป็น `datetime`
    → เปิดชีตด้วยตาเช็คว่าอีก 18 คอลัมน์บนแถวเดียวกันไม่เปลี่ยน → **ผ่านครบถึงจะแตะ Appointments**
 3. **Stage 2 (Appointments):** dry-test ทั้งหมดเขียว → deploy → สร้าง/แก้นัดหมายจริง 1 ครั้งผ่าน
    staff UI ด้วยข้อมูลที่เจ้าของโปรเจกต์เลือกว่าทิ้งได้ → `raw-column-type-check.ts` ยืนยันทั้ง
-   `AppointmentDate=datetime` และ `CreatedAt/UpdatedAt/DeletedAt=string` (ไม่ใช่ datetime) →
+   `AppointmentDate=datetime` และ **`CreatedAt=string` / `UpdatedAt=datetime` / `DeletedAt` ว่าง
+   ไม่เปลี่ยนจากก่อน deploy** (เกณฑ์เดิมที่เขียนว่า "ทั้งสามตัวต้องเป็น string" ผิด — ถ้าใช้เกณฑ์นั้น
+   พฤติกรรมที่ถูกต้องจะถูกตัดสินว่าแดง) →
    ยืนยัน GViz date-range filter ยังทำงาน (แผนระบุ mock ไม่พอ) → **ผ่านครบถึงจะแตะ Invoices**
 4. **Stage 3 (Invoices/InvoiceItems):** dry-test ทั้งหมดเขียว → deploy → invoice create ผ่าน staff
    UI ด้วย order ที่ทิ้งได้ → ตรวจ `customer`/`adjustments` (ทั้ง 2 ชีต) parse ได้, `sku` ว่างถูก
@@ -161,9 +173,11 @@ order ที่เจ้าของโปรเจกต์เลือกว�
 
 ## สิ่งที่ต้องให้เจ้าของโปรเจกต์ตัดสินใจ/กดเอง — ห้าม agent ทำแทนหรือหาทางอ้อม
 
-1. **ข้อ 2.8** — Appointments write error ควรแสดงเป็น 500 เสมอ (พฤติกรรมปัจจุบัน ยังไม่เปลี่ยน) หรือ
-   ต้องเพิ่ม mapping ให้ certainty แสดงผ่าน HTTP status ที่แม่นยำกว่า — เป็นการตัดสินใจ scope ของ §2.9
-   ไม่ใช่ implementation detail
+1. ~~**ข้อ 2.8** — Appointments write error ควรแสดงเป็น 500 เสมอ หรือต้องเพิ่ม mapping~~
+   ✅ **ตัดสินแล้ว 2026-08-10:** ต้องเพิ่ม mapping ไม่ปล่อยเป็น 500 เสมอ · **แต่ไม่ทำใน stage 2**
+   เพราะการเพิ่ม `certainty` เข้า `appointment-api.schema.ts` กระทบ frontend ⇒ เป็นงานแยกหลัง §2.9
+   · stage 2 ต้อง "ไม่แย่ลงกว่าวันนี้" (วันนี้ทุกคลาสตกเป็น `500 INTERNAL_ERROR` ข้อความจริงถูก
+   `console.error` ไว้แต่ไม่ถึง client — `api-handler.ts:58-71`)
 2. **ยืนยัน env บน Vercel Production + Preview** ตรงกับ `.env.local` (`ORDERS_SPREADSHEET_ID`,
    `INVOICES_SPREADSHEET_ID`, `APPOINTMENTS_SPREADSHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_KEY`) — ระบุไว้
    แล้วใน `docs/phase-2-handoff.md` หมวด 2 ว่ายังไม่ปิด และ **`GOOGLE_SERVICE_ACCOUNT_KEY` บน Vercel
@@ -188,8 +202,9 @@ order ที่เจ้าของโปรเจกต์เลือกว�
 
 ## สรุปย่อ — ข้อไหน "ไม่มีอะไรจับได้เลยตอนนี้"
 
-- **2.8 (Appointments error mapping)** — ไม่มีคำตอบที่ถูกให้เทียบจนกว่าจะมีการตัดสินใจ (ไม่ใช่แค่รอ
-  implementation แต่รอการตัดสินใจเชิงสถาปัตยกรรมก่อน)
+- ~~**2.8 (Appointments error mapping)** — ไม่มีคำตอบที่ถูกให้เทียบจนกว่าจะมีการตัดสินใจ~~
+  ✅ ตัดสินแล้ว 2026-08-10 · สิ่งที่ stage 2 ต้องคลุมคือ "error ใหม่ไปถึง handler ได้ ไม่ถูกกลืน"
+  เท่านั้น ส่วน mapping จริงเป็นงานหลัง §2.9
 - **7 (ข้อมูลค้างครึ่งๆ บนชีตจริงหลัง partial failure)** — ต้องมีคนเปิดชีตดูเองเท่านั้น ไม่มีเทสต์ไหน
   ยืนยัน "reconcile ได้จริงด้วยมือ" ได้
 - **2.3/GViz date-range filter ของจริง** — แผนเองยืนยันว่า mock ไม่พอ ต้องยิงกับ spreadsheet จริง

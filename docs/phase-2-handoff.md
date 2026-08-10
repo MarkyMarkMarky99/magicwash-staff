@@ -1,7 +1,7 @@
 # Handoff — เริ่ม Phase 2
 
 เขียนเมื่อ 2026-08-09 ตอนปิด Phase 1 · **อัปเดตล่าสุด 2026-08-10 ตอน §2.9 stage 1 ผ่าน smoke
-test จริงบน local dev** (HEAD = `1f00893`)
+test จริงบน local dev** (HEAD = `7c1080a`)
 
 **✅ §2.9 stage 1 (OrderForm) ผ่าน smoke test แล้ว (2026-08-10)** — รายละเอียดเต็มอยู่หมวด 1b
 ใต้หัวข้อ "§2.9 stage 1 smoke test" **ขั้นถัดไปคือ §2.9 stage 2 (Appointments)** ยังไม่เริ่ม
@@ -66,16 +66,19 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 | prerequisite ก่อน §2.9 (env + parity 3 ชีต + ด่านกัน portal) | ✅ | `2f9e6ac` |
 | §2.9 test charter (`test-pipeline` Phase A) | ✅ | `29384c1` `e4341f3` |
 | §2.9 **stage 1 — OrderForm keyed PATCH ผ่าน Sheets API** | ✅ **ผ่าน smoke test จริงแล้ว (2026-08-10)** | `e7f75df` + logging `1f00893` |
-| §2.9 stage 2 — Appointments (CRUD เต็ม) | ⬜ **ขั้นถัดไป** | |
+| §2.9 stage 2 — Appointments (create + update · `delete` ปิดตายตามคำตัดสิน 3.4) | ⬜ **ขั้นถัดไป** | |
 | §2.9 stage 3 — Invoices/InvoiceItems (batchAppend) | ⬜ | |
 | งานแยกหลัง §2.9 — จัดระเบียบ timestamp ทุกชีตเป็น datetime | ⬜ | |
 | งานแยกหลัง §2.9 — `certainty` ของ Appointments (แก้ API contract) | ⬜ | |
 | §2.10 | ⬜ | |
 
-**§2.2 ยังไม่ถูกต่อเข้า `SheetRepository`** — transport ปัจจุบันยังเป็น Apps Script และ write path
-ยังวิ่งผ่าน Apps Script อยู่; client เขียนเสร็จแต่ยังไม่มีใครเรียก §2.3 จงใจส่งมอบเป็น building
-block ก่อน โดย actual resolver wiring จะทำใน §2.9 ซึ่งเป็นจุดแรกที่มี Sheets API write consumer
-การสลับ transport จริงเป็นขั้นหลัง
+**§2.2/§2.3 ต่อเข้า `SheetRepository` แล้วตั้งแต่ §2.9 stage 1 (`e7f75df`)** — ctor สร้าง
+`SheetsApiClient` + `SheetHeaderMapResolver` เมื่อ contract ประกาศ `writeTransport: 'sheets-api'`
+(`sheet.repository.ts:114-141`) และ `update()` แยกไปที่ `updateThroughSheetsApi` (`:196-197`)
+
+**วันนี้มี OrderForm ชีตเดียวที่ opt-in** ชีตที่เหลือไม่ประกาศ `writeTransport` จึงยังวิ่ง SheetLib
+ตาม default ⇒ อย่าอ่านว่า "ทั้งระบบยังเป็น Apps Script" และอย่าอ่านว่า "ทั้งระบบย้ายแล้ว" —
+มันเป็น dual path ต่อชีต
 
 ### ของที่ §2.2 จงใจเลื่อนไป — มี comment กำกับในโค้ดแล้ว
 
@@ -84,12 +87,15 @@ block ก่อน โดย actual resolver wiring จะทำใน §2.9 ซ
 - serialize object/array และ `valueInputOption` ต่อคอลัมน์ → §2.4 (เสร็จแล้ว)
   (เทสต์ที่ยิงสำเร็จใช้ `USER_ENTERED` แล้ว เพราะ `RAW` จะทำให้ GViz filter วันที่พัง)
 
-### §2.4 / §2.5 เสร็จแล้ว — เหมือน §2.2/§2.3 ยังเป็น building block ไม่ต่อเข้า `SheetRepository`
+### §2.4 / §2.5 เสร็จแล้ว และต่อเข้า `SheetRepository` แล้วบางส่วนที่ stage 1
 
 §2.4 (`d83f480`) ส่งมอบ `SheetContract.valueInput` + `sheet-value-serializer.ts`
 (`serializeCellValue`, `buildRowValues`, `resolveValueInputOption`,
-`resolveRowValueInputOptions`) พร้อม policy ประกาศครบ 4 sheet ที่เขียนจริง — ยังไม่มีใครเรียก
-รอ wiring ที่ §2.9 เหมือนเดิม
+`resolveRowValueInputOptions`) พร้อม policy ประกาศครบ 4 sheet ที่เขียนจริง
+
+`serializeCellValue` + `resolveValueInputOption` **ถูกเรียกจริงแล้ว** ใน `updateThroughSheetsApi`
+(`sheet.repository.ts:264-287`) แต่ **`buildRowValues` / `resolveRowValueInputOptions` ยังไม่มี
+caller** เพราะเป็นของฝั่ง append ซึ่ง `append()` ยังไม่มีสาขา Sheets API ⇒ **นั่นคืองานของ stage 2**
 
 §2.5 (`bedc81e`) พบว่า **ทำไปแล้วจริงตั้งแต่ §2.2** — `sheets-api.client.ts` classify ครบทุก
 phase ตามตาราง §2.5 อยู่แล้ว เหลือแค่เทสต์ 2 เคสที่ implement ไว้แต่ไม่มี dry-test คลุม (ปิด
@@ -99,7 +105,11 @@ phase ตามตาราง §2.5 อยู่แล้ว เหลือแ
 §2.6 (`0e0ca23`) มีโค้ด production จริง 4 ชิ้น: `appendRows` รับ `knownWidth?` (Part A),
 `buildRowRange` / `parseRowValues` / `readRange` / `sheet-row-identity.ts`'s
 `verifyRowIdentity` + `WriteRowIdentityMismatchError` (Part B) — รายละเอียดที่ implementation
-note ใต้ §2.6 ในแผน ยังเป็น building block ไม่ต่อเข้า `SheetRepository`
+note ใต้ §2.6 ในแผน
+
+**Part B ต่อเข้า `updateThroughSheetsApi` แล้ว** (`buildRowRange` / `readRange` / `parseRowValues` /
+`verifyRowIdentity` ที่ `sheet.repository.ts:291-320`) ส่วน **Part A (`appendRows` + `knownWidth`)
+ยังไม่มี caller** เพราะ `append()` ยังไม่มีสาขา Sheets API — งานของ stage 2
 
 **ครั้งแรกที่ `luna-pipeline` เจอ edge case ของตัวเอง** — รอบ §2.6 subagent จบ turn ตัวเองก่อน
 งานเสร็จจริง (อ้างว่า "ตั้ง background monitor รอ notification" ทั้งที่ subagent ไม่มีช่องทาง
@@ -144,16 +154,21 @@ Plain Text) เพราะมีประโยชน์กับคนที�
   commit `9f53013` — **สำคัญเพราะ §2.9** ถ้าไม่ล็อก policy ไว้ตอนนี้ พอสลับ transport เป็น
   Sheets API จริง โค้ดจะส่ง `RAW` ตามค่า default เดิม แล้วพฤติกรรมจะเปลี่ยนจาก datetime (แบบ
   วันนี้) เป็น plain text แบบเงียบๆ โดยไม่ตั้งใจ
-- Appointments' `CreatedAt`/`UpdatedAt`/`DeletedAt` **ไม่เกี่ยว ไม่แตะ** — เป็นคนละการ
-  ตัดสินใจที่ยังยืนอยู่ (ต้องเป็น Plain Text) อย่าสับสนสอง sheet นี้เข้าด้วยกัน
+- Appointments' `CreatedAt`/`UpdatedAt`/`DeletedAt` — **§2.7 ไม่แตะ** แต่ข้ออ้างเดิมที่ว่า
+  "ต้องเป็น Plain Text และการตัดสินใจนั้นยังยืนอยู่" **ไม่จริง** (ตรวจ 2026-08-10) ของจริงคือ:
 
-  🔴 **แก้ไข 2026-08-10: ประโยคข้างบนไม่ตรงกับชีตจริง** ยิง GViz ตรงเข้าไปดู type ที่เก็บจริงแล้ว
-  พบว่า `CreatedAt` เป็น string จริง (20 แถว) แต่ **`UpdatedAt` เป็น datetime มาแล้ว 15 แถว**
-  ⇒ "Appointments ต้องเป็น Plain Text" ไม่ได้ยืนอยู่จริงอย่างที่เอกสารเชื่อ · พฤติกรรมถูกกำหนด
-  โดย **cell format ของแต่ละคอลัมน์** ซึ่งไม่สม่ำเสมอกันเองภายในชีตเดียวกัน ไม่ใช่โดย option
-  ตอนเขียน · รายละเอียดและสิ่งที่ต้องตัดสินอยู่ในหมวด 5 ของ
-  [`session-2026-08-10-overnight.md`](./session-2026-08-10-overnight.md)
+  | คอลัมน์ | type ที่เก็บจริง | จำนวนแถว |
+  |---|---|---|
+  | `CreatedAt` | string | 20 |
+  | `UpdatedAt` | **datetime** | 15 |
+  | `DeletedAt` | ตัดสินไม่ได้ (ว่างหมด) | 0 |
+
+  ⇒ พฤติกรรมถูกกำหนดโดย **cell format ของแต่ละคอลัมน์** ซึ่งไม่สม่ำเสมอกันเองภายในชีตเดียวกัน
+  **ไม่ใช่โดย option ตอนเขียน** — พิสูจน์ได้จากการที่ทั้งสองคอลัมน์ถูกเขียนด้วย
+  `formatBangkokTimestamp` ตัวเดียวกัน ในคำสั่งเดียวกัน ด้วยรูปแบบเดียวกัน แต่ผลต่างกัน
   ⇒ **ตรวจซ้ำได้ด้วย `tests/server/integration/raw-column-type-check.ts`**
+  ⇒ คำตัดสิน 3.5 (2026-08-10) กำหนดปลายทางเป็น datetime จริงทุกชีต แต่ **ทำหลัง §2.9**
+  รายละเอียดอยู่หมวด 3 ของ [`session-2026-08-10-overnight.md`](./session-2026-08-10-overnight.md)
 
 ⇒ **บทเรียน:** สโมคเทสต์ที่ดีไม่ใช่แค่ "กดผ่าน UI แล้วดูว่าไม่ error" — ต้องยิง query ตรงเข้าไป
 เช็ค raw data type ด้วย (ไม่ใช่แค่ดูค่าที่ format ให้สวยแล้ว) ถึงจะเจอเรื่องแบบนี้ ซึ่ง UI/สายตา
@@ -169,9 +184,14 @@ Plain Text) เพราะมีประโยชน์กับคนที�
 2. **ตัวที่ทำให้เกิด race ยังไม่มีในโค้ด** — ไม่มีฟังก์ชันหาเลขแถวจากค่า key เลย มีแค่ `readColumn`
 
 ⇒ ขยาย §2.8 ให้ส่งมอบ `server/shared/repositories/sheet-row-lookup.ts` เป็น building block
-(**ไม่ต่อเข้า `SheetRepository`** เหมือน §2.2–§2.6 ทุกขั้น) แล้ววาง doc race ไว้ **ที่ตัว helper
-ซึ่งเป็นจุดที่ race อยู่จริง** + note บน `update()` ที่เขียนว่า "วันนี้ยังไม่มี race เพราะยังผ่าน
-SheetLib · จะมีตอน §2.9" ⇒ จริงทั้งวันนี้และวันหน้า ไม่กลายเป็น comment ตาย
+(ตอนนั้นยังไม่ต่อเข้า `SheetRepository`) แล้ววาง doc race ไว้ **ที่ตัว helper ซึ่งเป็นจุดที่ race
+อยู่จริง** + note บน `update()`
+
+🔴 **สถานะเปลี่ยนแล้วที่ stage 1 (`e7f75df`)** — `findRowNumberByKey` ถูกเรียกจริงใน
+`updateThroughSheetsApi` (`sheet.repository.ts:227-232`) ⇒ **race ที่เอกสาร §2.8 เขียนว่า
+"จะมีตอน §2.9" มีอยู่จริงแล้ววันนี้ สำหรับ OrderForm** ส่วนชีตที่ยังวิ่ง SheetLib ยังไม่มี
+เพราะ lookup+write อยู่ใต้ `LockService` ⇒ ใครอ่าน note บน `update()` ต้องรู้ว่ามันจริงเฉพาะ
+สาขา SheetLib ไม่ใช่ทั้งฟังก์ชัน
 ตัวแผน §2.8 ถูกแก้ให้ตรงกับสิ่งที่ส่งมอบจริงแล้วใน commit เดียวกัน
 
 การตัดสินใจเชิงพฤติกรรมที่ล็อกไว้: **key ซ้ำ → throw ไม่ใช่คืนแถวแรก** เพราะ key ซ้ำแปลว่า
@@ -541,7 +561,7 @@ Vercel Authentication อีก — ตอนนี้ความปลอด�
 | `docs/database-layer-sheets-api-refactor-plan.md` | แผนเต็ม + สถานะปิด Phase 1 |
 | `CLAUDE.md` | กฎ frontend + **วิธี delegate ให้ luna** |
 | `AGENTS.md` / `api/CLAUDE.md` | กฎ backend — เขียนใหม่แล้วให้ตรงสถาปัตยกรรมปัจจุบัน |
-| `server/shared/repositories/sheet.repository.ts` | **ไฟล์เดียวที่ Phase 2 ต้องแก้** (write transport) |
+| `server/shared/repositories/sheet.repository.ts` | หัวใจของ write transport — แต่ **ไม่ใช่ไฟล์เดียวที่ต้องแก้** stage 1 แตะ 8 ไฟล์ (repo + `sheet-contract.ts` + db-contract ของชีตนั้น + service ที่ map error + เทสต์ 4 ไฟล์) |
 | `server/shared/repositories/sheet-repository.contract.ts` | interface ที่ storage-agnostic — seam ของ Supabase |
 | `server/shared/contracts/sheet-contract.ts` | structural guard ของ db-contract ทุกชีต |
 | `server/shared/repositories/sheet-row-lookup.ts` | §2.8 — หาเลขแถวจากค่า key **+ doc เรื่อง race ที่ยอมรับไว้ อ่านก่อนแตะ §2.9** |
