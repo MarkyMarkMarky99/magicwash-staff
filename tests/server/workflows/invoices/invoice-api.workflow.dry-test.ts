@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import { generateKeyPairSync } from 'node:crypto'
 import type { ApiHandlerRequest } from '../../../../server/shared/http/api-handler.js'
+import { invoiceItemsRowSchema } from '../../../../server/sheets/InvoiceItems/InvoiceItems.db-contract.js'
+import { invoicesRowSchema } from '../../../../server/sheets/Invoices/Invoices.db-contract.js'
 
 /**
  * API boundary workflow.
@@ -31,13 +33,20 @@ function test(name: string, run: () => Promise<void> | void): void {
 }
 
 function response(input: { json?: unknown; ok?: boolean; status?: number }): Response {
+  // SheetsApiClient reads failed responses via response.text() for the excerpt
+  // that lands in WriteRejectedError / WriteTransportError messages.
+  const bodyText = input.json === undefined ? '' : JSON.stringify(input.json)
   return {
     ok: input.ok ?? true,
     status: input.status ?? (input.ok === false ? 502 : 200),
     statusText: 'OK',
     json: async () => input.json,
+    text: async () => bodyText,
   } as Response
 }
+
+const invoiceItemsHeaders = Object.keys(invoiceItemsRowSchema.shape)
+const invoicesHeaders = Object.keys(invoicesRowSchema.shape)
 
 const orderFormHeaders = [
   'id', 'order_number', 'customer_id', 'received_date', 'due_date',
@@ -50,14 +59,54 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-type MockHandler = (body: Record<string, unknown>) => Promise<Response>
+/**
+ * Logical write target used by per-test handlers to inject success/failure
+ * without caring which transport owns the sheet. InvoiceItem / Invoice now
+ * arrive from Sheets API appends; OrderForm still arrives from batchUpdate.
+ */
+type LogicalTarget = 'InvoiceItem' | 'Invoice' | 'OrderForm'
+
+type MockHandler = (body: Record<string, unknown> & { target: LogicalTarget }) => Promise<Response>
 let activeHandler: MockHandler | undefined
 
-function dispatchToActiveHandler(body: Record<string, unknown>): Promise<Response> {
+function dispatchToActiveHandler(
+  body: Record<string, unknown> & { target: LogicalTarget },
+): Promise<Response> {
   if (activeHandler === undefined) {
     throw new Error('No invoice workflow fetch handler is active')
   }
   return activeHandler(body)
+}
+
+function appendOk(spreadsheetId: string, values: unknown[][]): Response {
+  return response({
+    json: {
+      spreadsheetId,
+      updates: {
+        updatedRows: values.length,
+        updatedData: { values },
+      },
+    },
+  })
+}
+
+/**
+ * Map a handler's logical response onto a real Sheets API HTTP result.
+ * status:'error' → HTTP 400 WriteRejectedError (certainty rejected).
+ * ok:false       → HTTP 502 WriteTransportError (certainty unknown).
+ */
+async function resolveWriteResponse(
+  configured: Response,
+  onSuccess: () => Response,
+): Promise<Response> {
+  if (configured.ok === false) {
+    return response({ ok: false, status: configured.status || 502, json: await configured.json().catch(() => ({})) })
+  }
+  const configuredBody = await configured.json() as unknown
+  if (isRecord(configuredBody) && configuredBody.status === 'error') {
+    return response({ json: configuredBody, ok: false, status: 400 })
+  }
+  return onSuccess()
 }
 
 async function withMockFetch<T>(
@@ -75,14 +124,34 @@ async function withMockFetch<T>(
     if (stringUrl === process.env.APPSCRIPT_INVOICE_VIEW_SYNC_URL) {
       return response({ json: { ok: true } })
     }
-    if (stringUrl === process.env.APPSCRIPT_URL) {
-      const body = JSON.parse(String(init?.body)) as Record<string, unknown>
-      return dispatchToActiveHandler(body)
-    }
 
     const parsedUrl = new URL(stringUrl)
     assert.equal(parsedUrl.origin, 'https://sheets.googleapis.com')
     const path = decodeURIComponent(parsedUrl.pathname)
+    const body = init?.body === undefined
+      ? {}
+      : JSON.parse(String(init.body)) as Record<string, unknown>
+
+    // InvoiceItems / Invoices headers — always succeed so failure cases can
+    // target the append itself.
+    if (init?.method === 'GET' && path.endsWith('/values/InvoiceItems!1:1')) {
+      return response({ json: { values: [invoiceItemsHeaders] } })
+    }
+    if (init?.method === 'GET' && path.endsWith('/values/Invoices!1:1')) {
+      return response({ json: { values: [invoicesHeaders] } })
+    }
+
+    if (init?.method === 'POST' && path.endsWith('/values/InvoiceItems:append')) {
+      const values = body.values as unknown[][]
+      const configured = await dispatchToActiveHandler({ ...body, target: 'InvoiceItem' })
+      return resolveWriteResponse(configured, () => appendOk('invoices-spreadsheet-id', values))
+    }
+
+    if (init?.method === 'POST' && path.endsWith('/values/Invoices:append')) {
+      const values = body.values as unknown[][]
+      const configured = await dispatchToActiveHandler({ ...body, target: 'Invoice' })
+      return resolveWriteResponse(configured, () => appendOk('invoices-spreadsheet-id', values))
+    }
 
     if (init?.method === 'GET' && path.endsWith('/values/OrderForm!1:1')) {
       return response({ json: { values: [orderFormHeaders] } })
@@ -91,7 +160,6 @@ async function withMockFetch<T>(
       return response({ json: { values: [['id'], ['ORD-0001']] } })
     }
     if (init?.method === 'POST' && path.endsWith('/values:batchUpdate')) {
-      const body = JSON.parse(String(init.body)) as Record<string, unknown>
       const configuredResponse = await dispatchToActiveHandler({ ...body, target: 'OrderForm' })
       const configuredBody = await configuredResponse.json() as unknown
       if (isRecord(configuredBody) && configuredBody.status === 'error') {
@@ -137,15 +205,7 @@ function validPayload(): Record<string, unknown> {
   }
 }
 
-const okAppend = async () => response({ json: { status: 'ok', target: 'x', data: { a: 1 } } })
-const okBatchAppend = async (body: Record<string, unknown>) =>
-  response({
-    json: {
-      status: 'ok',
-      target: 'InvoiceItem',
-      data: (body.data as unknown[]).map(() => ({ invoice_item_id: 'aaaaaaaa' })),
-    },
-  })
+const okWrite = async () => response({ json: { status: 'ok' } })
 
 test('POST returns 422 and calls no external write for invalid input', async () => {
   let fetchCalled = false
@@ -182,10 +242,7 @@ test('POST returns 422 when the client sends a system-owned field (status) inste
 
 test('POST returns 201 "created" with the server-computed totals on success', async () => {
   await withMockFetch(
-    async (body) => {
-      if (body.target === 'InvoiceItem') return okBatchAppend(body)
-      return okAppend()
-    },
+    async () => okWrite(),
     async () => {
       const result = await invoiceRoutes.collection.handleRequest(postRequest(validPayload()))
       assert.equal(result.status, 201)
@@ -206,14 +263,19 @@ test('POST returns 502 items_write_failed with certainty "rejected" when the gat
       if (body.target === 'InvoiceItem') {
         return response({ json: { status: 'error', message: 'validation failed at data[0]' } })
       }
-      return okAppend()
+      return okWrite()
     },
     async () => {
       const result = await invoiceRoutes.collection.handleRequest(postRequest(validPayload()))
       assert.equal(result.status, 502)
-      const body = result.body as { kind: string; certainty: string }
-      assert.equal(body.kind, 'items_write_failed')
-      assert.equal(body.certainty, 'rejected')
+      // Full body: items_write_failed is the only retry-gated outcome; message is
+      // required by createInvoiceItemsFailedSchema and must stay non-empty.
+      assert.deepEqual(result.body, {
+        kind: 'items_write_failed',
+        message:
+          'The Sheets API rejected appendRows with HTTP 400. Response body: {"status":"error","message":"validation failed at data[0]"}',
+        certainty: 'rejected',
+      })
     },
   )
 })
@@ -228,24 +290,26 @@ test('POST returns 502 items_write_failed with certainty "unknown" when the item
       if (body.target === 'InvoiceItem') {
         return response({ ok: false })
       }
-      return okAppend()
+      return okWrite()
     },
     async () => {
       const result = await invoiceRoutes.collection.handleRequest(postRequest(validPayload()))
       assert.equal(result.status, 502)
-      const body = result.body as { kind: string; certainty: string }
-      assert.equal(body.kind, 'items_write_failed')
-      assert.equal(body.certainty, 'unknown')
+      assert.deepEqual(result.body, {
+        kind: 'items_write_failed',
+        message:
+          'Write outcome unknown: appendRows received no authoritative result from the Sheets API. Response body: ',
+        certainty: 'unknown',
+      })
     },
   )
 })
 
-test('POST returns 500 invoice_write_failed when items succeed but the header write fails', async () => {
+test('POST returns 500 invoice_write_failed with certainty "rejected" when items succeed but the header write is refused', async () => {
   await withMockFetch(
     async (body) => {
-      if (body.target === 'InvoiceItem') return okBatchAppend(body)
       if (body.target === 'Invoice') return response({ json: { status: 'error', message: 'duplicate' } })
-      return okAppend()
+      return okWrite()
     },
     async () => {
       const result = await invoiceRoutes.collection.handleRequest(postRequest(validPayload()))
@@ -260,13 +324,31 @@ test('POST returns 500 invoice_write_failed when items succeed but the header wr
   )
 })
 
+test('POST returns 500 invoice_write_failed with certainty "unknown" when the header append fails at the transport level', async () => {
+  await withMockFetch(
+    async (body) => {
+      if (body.target === 'Invoice') return response({ ok: false })
+      return okWrite()
+    },
+    async () => {
+      const result = await invoiceRoutes.collection.handleRequest(postRequest(validPayload()))
+      assert.equal(result.status, 500)
+      // No message field on this outcome — full body is kind + invoiceNumber + itemCount + certainty.
+      assert.deepEqual(result.body, {
+        kind: 'invoice_write_failed',
+        invoiceNumber: 'INV-0001',
+        itemCount: 1,
+        certainty: 'unknown',
+      })
+    },
+  )
+})
+
 test('POST returns 500 order_link_failed when items and header succeed but the OrderForm link fails', async () => {
   await withMockFetch(
     async (body) => {
-      if (body.target === 'InvoiceItem') return okBatchAppend(body)
-      if (body.target === 'Invoice') return okAppend()
       if (body.target === 'OrderForm') return response({ json: { status: 'error', message: 'not found' } })
-      return okAppend()
+      return okWrite()
     },
     async () => {
       const result = await invoiceRoutes.collection.handleRequest(postRequest(validPayload()))
