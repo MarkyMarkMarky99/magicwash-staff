@@ -3,8 +3,9 @@
 เขียนเมื่อ 2026-08-09 ตอนปิด Phase 1 · **อัปเดตล่าสุด 2026-08-11 ตอน §2.9 stage 2 ผ่าน smoke
 test จริง และ stage 3A ลงบน branch แยก** (HEAD ของ `refactor/sheet-layer` = `1f88fc8`)
 
-**✅ §2.9 stage 1 (OrderForm) ผ่าน smoke test แล้ว (2026-08-10)** — รายละเอียดเต็มอยู่หมวด 1b
-ใต้หัวข้อ "§2.9 stage 1 smoke test" **ขั้นถัดไปคือ §2.9 stage 2 (Appointments)** ยังไม่เริ่ม
+**✅ §2.9 stage 1 (OrderForm) และ stage 2 (Appointments) ผ่าน smoke test จริงแล้วทั้งคู่**
+รายละเอียดอยู่หมวด 1b · **สถานะปัจจุบันและสิ่งที่เหลืออยู่หมวด 1c** — อ่านหมวดนั้นก่อน
+ถ้าจะเริ่มทำงานต่อ
 
 **นี่คือครั้งแรกที่ `GOOGLE_SERVICE_ACCOUNT_KEY` ฝั่ง server ถูกใช้เขียนจริง** — เจอปัญหาจริง 1 ข้อ
 ระหว่างทาง (env var scope บน Vercel) แก้แล้ว รายละเอียดอยู่หมวด 2
