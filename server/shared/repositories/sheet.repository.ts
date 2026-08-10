@@ -31,6 +31,7 @@ import {
   type SheetHeaderMapLoader,
 } from './sheet-header-map.js'
 import {
+  buildRowValues,
   parseRowValues,
   resolveValueInputOption,
   serializeCellValue,
@@ -171,7 +172,98 @@ export class SheetRepository<TDbRow extends object>
 
   async append(row: Partial<TDbRow>): Promise<TDbRow> {
     this.requireWriteCapability('append')
+    if (this.contract.writeTransport === 'sheets-api') {
+      return this.appendThroughSheetsApi(row)
+    }
     return (await this.write('APPEND', row)) as TDbRow
+  }
+
+  private async appendThroughSheetsApi(row: Partial<TDbRow>): Promise<TDbRow> {
+    const client = this.sheetsApiClient
+    if (client === undefined) {
+      throw new WriteRejectedError('APPEND', 'Sheets API client is not configured')
+    }
+
+    try {
+      for (const column of Object.keys(this.contract.valueInput ?? {})) {
+        const declaredValueInput = Object.prototype.hasOwnProperty.call(
+          this.contract.valueInput ?? {},
+          column,
+        )
+        const valueInput = resolveValueInputOption(column, this.contract.valueInput)
+        if (declaredValueInput && valueInput !== 'USER_ENTERED') {
+          throw new WriteRejectedError(
+            'APPEND',
+            `Column '${column}' declares valueInput '${valueInput}', which conflicts with the USER_ENTERED request policy.`,
+          )
+        }
+      }
+    } catch (error) {
+      if (error instanceof WriteRejectedError) {
+        throw error
+      }
+      throw new WriteRejectedError(
+        'APPEND',
+        error instanceof Error ? error.message : String(error),
+      )
+    }
+
+    const loader = this.sheetHeaderMapLoader
+    if (loader === undefined) {
+      throw new WriteRejectedError('APPEND', 'Sheets API header map is not configured')
+    }
+
+    let headerMap
+    try {
+      headerMap = await loader.load()
+    } catch (error) {
+      if (error instanceof SheetHeaderMapError) {
+        throw new WriteRejectedError('APPEND', error.message)
+      }
+      throw error
+    }
+
+    let sentValues: SheetsApiValue[]
+    let sentRow: Record<string, SheetsApiValue>
+    try {
+      sentValues = buildRowValues(row as Record<string, unknown>, headerMap)
+      sentRow = parseRowValues(sentValues, headerMap)
+    } catch (error) {
+      if (error instanceof WriteRejectedError) {
+        throw error
+      }
+      throw new WriteRejectedError(
+        'APPEND',
+        error instanceof Error ? error.message : String(error),
+      )
+    }
+
+    const response = await client.appendRows([sentValues], 'USER_ENTERED', headerMap.width)
+
+    let echoedRow: Record<string, SheetsApiValue>
+    try {
+      const returnedValues = response.updates.updatedData.values
+      if (returnedValues.length !== 1) {
+        throw new Error(
+          `APPEND committed, but the persisted row read-back returned ${returnedValues.length} rows instead of one.`,
+        )
+      }
+      echoedRow = parseRowValues(returnedValues[0]!, headerMap)
+    } catch (error) {
+      throw new WriteCommittedUnreadableError(
+        'APPEND',
+        `APPEND committed, but the persisted row could not be parsed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      )
+    }
+
+    verifyRowIdentity(
+      echoedRow,
+      this.contract.primaryKey,
+      String(sentRow[this.contract.primaryKey] ?? ''),
+    )
+    return sentRow as TDbRow
   }
 
   async batchAppend(rows: Array<Partial<TDbRow>>): Promise<TDbRow[]> {
