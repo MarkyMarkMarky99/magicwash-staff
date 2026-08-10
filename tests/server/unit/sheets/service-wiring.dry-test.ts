@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { generateKeyPairSync } from 'node:crypto'
 
 // ── Drives the REAL production wiring: the services exported by
 //    order.module.ts / appointment.module.ts, built on the real repository
@@ -14,6 +15,11 @@ import assert from 'node:assert/strict'
 process.env.PORTAL_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 process.env.APPOINTMENTS_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 process.env.APPSCRIPT_URL = 'https://script.example/characterization'
+const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
+process.env.GOOGLE_SERVICE_ACCOUNT_KEY = Buffer.from(JSON.stringify({
+  client_email: 'service-wiring@example.test',
+  private_key: String(privateKey.export({ format: 'pem', type: 'pkcs8' })),
+})).toString('base64')
 
 interface FetchCall {
   url: string
@@ -191,6 +197,115 @@ test('OrdersView JSON declaration safely falls back for malformed and empty cell
   )
 })
 
+test('Appointments create wiring packs Address and uses the DB primary-key column', async () => {
+  const appointmentHeaders = [
+    'AppointmentID',
+    'CustomerID',
+    'AppointmentType',
+    'AppointmentDate',
+    'TimeSlot',
+    'Status',
+    'Address',
+    'PickupOrderID',
+    'DeliveryOrderID',
+    'Notes',
+    'CreatedAt',
+    'UpdatedAt',
+    'CreatedBy',
+    'UpdatedBy',
+    'ServiceTier',
+    'DeletedAt',
+    'DeletedBy',
+  ] as const
+
+  await withMockFetch(
+    async (url, init) => {
+      if (url === 'https://oauth2.googleapis.com/token') {
+        return response('', { access_token: 'test-access-token', expires_in: 3600 })
+      }
+
+      const path = decodeURIComponent(new URL(url).pathname)
+      if (init?.method === 'GET' && path.endsWith('/values/Appointments!1:1')) {
+        return response('', { values: [appointmentHeaders] })
+      }
+      if (init?.method === 'POST' && path.endsWith('/values/Appointments:append')) {
+        const request = JSON.parse(String(init.body)) as {
+          majorDimension: string
+          values: unknown[][]
+        }
+        return response('', {
+          spreadsheetId: 'characterization-spreadsheet-id',
+          updates: {
+            updatedRows: 1,
+            updatedData: { values: request.values },
+          },
+        })
+      }
+
+      throw new Error(`Unexpected Appointments Sheets API request: ${init?.method} ${path}`)
+    },
+    async (calls) => {
+      const result = await (await productionAppointmentService()).create({
+        customerId: 'customer-1',
+        customerName: 'ธนวดี',
+        customerCode: 'WIX',
+        phone: '0917382178',
+        address: '123 Main Road',
+        location: 'https://maps.example/appointment',
+        appointmentType: 'DELIVERY',
+        appointmentDate: '2026-02-29',
+        timeSlot: '18:00-20:00',
+        createdBy: 'test-user',
+      })
+
+      assert.equal(calls.length, 3)
+      assert.equal(calls[0].url, 'https://oauth2.googleapis.com/token')
+      assert.equal(calls[1].init?.method, 'GET')
+      assert.equal(
+        decodeURIComponent(new URL(calls[1].url).pathname).endsWith('/values/Appointments!1:1'),
+        true,
+      )
+      assert.equal(calls[2].init?.method, 'POST')
+
+      const appendUrl = new URL(calls[2].url)
+      assert.equal(appendUrl.searchParams.get('valueInputOption'), 'USER_ENTERED')
+      assert.equal(appendUrl.searchParams.get('insertDataOption'), 'INSERT_ROWS')
+      assert.equal(appendUrl.searchParams.get('includeValuesInResponse'), 'true')
+      assert.equal(appendUrl.searchParams.get('responseValueRenderOption'), 'UNFORMATTED_VALUE')
+
+      const request = JSON.parse(calls[2].init?.body as string) as {
+        majorDimension: string
+        values: unknown[][]
+      }
+      assert.deepEqual(Object.keys(request), ['majorDimension', 'values'])
+      assert.equal(request.majorDimension, 'ROWS')
+      assert.equal(request.values.length, 1)
+
+      const row = request.values[0]
+      assert.equal(row?.length, appointmentHeaders.length)
+      assert.equal(appointmentHeaders[0], 'AppointmentID')
+      assert.match(String(row?.[0]), /^APPT-[0-9a-f]{8}$/)
+      assert.equal(row?.[1], 'customer-1')
+      assert.equal(row?.[2], 'DELIVERY')
+      assert.equal(row?.[3], '2026-02-29')
+      assert.equal(row?.[5], 'CONFIRMED')
+      assert.deepEqual(JSON.parse(String(row?.[6])), {
+        CustomerName: 'ธนวดี',
+        CustomerLabel: 'WIX',
+        Phone: '0917382178',
+        Address: '123 Main Road',
+        Location: 'https://maps.example/appointment',
+      })
+      assert.equal(row?.[9], '')
+      assert.equal(row?.[13], '')
+      assert.equal(row?.[14], 'STANDARD')
+      assert.equal(row?.[15], '')
+      assert.equal(row?.[16], '')
+      assert.equal(result.customerName, 'ธนวดี')
+    },
+  )
+})
+
 test('Appointments service wiring flattens the Address snapshot', async () => {
   const addressJson = JSON.stringify({
     CustomerName: 'Jane Doe',
@@ -253,70 +368,6 @@ test('Appointments service wiring flattens the Address snapshot', async () => {
       assert.equal(row.phone, '0812345678')
       assert.equal(row.location, 'Bangkok')
       assert.equal(row.address, '123 Main Road')
-    },
-  )
-})
-
-test('Appointments create wiring packs Address and uses the DB primary-key column', async () => {
-  await withMockFetch(
-    async (_url, init) => {
-      const request = JSON.parse(init?.body as string) as {
-        data: Record<string, unknown>
-      }
-      return response('', {
-        status: 'ok',
-        target: 'Appointment',
-        data: {
-          ...request.data,
-          UpdatedBy: null,
-        },
-      })
-    },
-    async (calls) => {
-      const result = await (await productionAppointmentService()).create({
-        customerId: 'customer-1',
-        customerName: 'ธนวดี',
-        customerCode: 'WIX',
-        phone: '0917382178',
-        address: '123 Main Road',
-        location: 'https://maps.example/appointment',
-        appointmentType: 'DELIVERY',
-        appointmentDate: '2026-02-29',
-        timeSlot: '18:00-20:00',
-        createdBy: 'test-user',
-      })
-
-      assert.equal(calls.length, 1)
-      const request = JSON.parse(calls[0].init?.body as string) as {
-        resource: string
-        action: string
-        target: string
-        data: Record<string, unknown>
-      }
-      assert.deepEqual(
-        {
-          resource: request.resource,
-          action: request.action,
-          target: request.target,
-        },
-        { resource: 'sheet', action: 'APPEND', target: 'Appointment' },
-      )
-      assert.match(String(request.data.AppointmentID), /^APPT-[0-9a-f]{8}$/)
-      assert.equal(request.data.appointmentId, undefined)
-      assert.equal(request.data.CustomerID, 'customer-1')
-      assert.deepEqual(JSON.parse(request.data.Address as string), {
-        CustomerName: 'ธนวดี',
-        CustomerLabel: 'WIX',
-        Phone: '0917382178',
-        Address: '123 Main Road',
-        Location: 'https://maps.example/appointment',
-      })
-      assert.equal(request.data.customerName, undefined)
-      assert.equal(request.data.customerCode, undefined)
-      assert.equal(request.data.phone, undefined)
-      assert.equal(request.data.location, undefined)
-      assert.equal(request.data.DeletedAt, undefined)
-      assert.equal(result.customerName, 'ธนวดี')
     },
   )
 })
