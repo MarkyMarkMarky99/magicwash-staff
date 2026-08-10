@@ -3,8 +3,7 @@ import { generateKeyPairSync } from 'node:crypto'
 import type { CreateInvoiceRequest } from '../../../../contracts/invoices/invoice-api.schema.js'
 
 /**
- * Layer 2 — mixed transport workflow
- * (docs/invoice-module-refactor-plan.md's Workflow Test Plan).
+ * Mixed transport workflow.
  *
  * Exercises the REAL `InvoiceService` (default-constructed repositories, no
  * injected fakes) against a mocked `fetch`, asserting the exact wire-level

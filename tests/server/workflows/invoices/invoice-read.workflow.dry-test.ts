@@ -2,8 +2,7 @@ import assert from 'node:assert/strict'
 import type { ApiHandlerRequest } from '../../../../server/shared/http/api-handler.js'
 
 /**
- * Layer 4 — Read API workflow
- * (docs/invoice-module-refactor-plan.md's Workflow Test Plan).
+ * Read API workflow.
  *
  * Exercises `invoiceRoutes` (the actual routes `invoice.module.ts` builds)
  * for GET list/detail: response envelopes, keyword/customer/status/sort,

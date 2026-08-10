@@ -106,7 +106,7 @@ function test(name: string, run: () => Promise<void> | void): void {
   tests.push({ name, run })
 }
 
-// The service now builds the read query via ReadQueryDTO.fromQuery: reserved
+// The service builds the read query via ReadQueryDTO.fromQuery: reserved
 // fields become search/sort/pagination, every other field (customerType) becomes
 // `where`, and null is preserved (the repository decides what to ignore).
 function expectedReadQuery(query: ListQuery): ReadQueryDTO<unknown> {
@@ -114,7 +114,6 @@ function expectedReadQuery(query: ListQuery): ReadQueryDTO<unknown> {
 }
 
 async function loadServiceCtor(): Promise<BaseCrudServiceCtor> {
-  // Keep this dry test type-checkable before BaseCrudService is implemented.
   const modulePath = '../../../../../server/shared/services/base-crud.service.js'
   const module = (await import(modulePath)) as { BaseCrudService: BaseCrudServiceCtor }
   return module.BaseCrudService

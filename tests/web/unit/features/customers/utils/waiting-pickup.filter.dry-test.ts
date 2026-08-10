@@ -79,7 +79,7 @@ test('excludes malformed and missing appointment dates', () => {
 
 test('documents the current deletedAt gap instead of asserting false correctness', () => {
   // deletedAt is intentionally absent from the API contract and filter input.
-  // A soft-deleted row therefore remains visible until the backend contract is expanded.
+  // A soft-deleted row therefore remains visible.
   const softDeleted = { ...appointment({ appointmentId: 'soft-deleted' }), deletedAt: '2026-07-20' }
   assert.deepEqual(filterWaitingPickups([softDeleted], now), [softDeleted])
 })

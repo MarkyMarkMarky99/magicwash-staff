@@ -20,8 +20,7 @@ import type { ModuleApiContract } from '../shared/module-api-contract.js'
  * ⚠ `invoiceViewPaymentSchema` is NOT grounded in a live example —
  * `InvoiceView.json`'s only example has an empty payments array. Fields are
  * inferred from `Payment.json` translated to camelCase, minus `slip_data`
- * (marked "do not expose to customers" there) and audit fields. Flagged for
- * confirmation before this is relied on.
+ * (marked "do not expose to customers" there) and audit fields.
  */
 
 export const invoiceViewStatusSchema = z.enum([
@@ -39,9 +38,8 @@ export const invoiceViewBillingTypeSchema = z.enum(['ORDER', 'CYCLE'])
 /** ISO 8601 calendar date (YYYY-MM-DD), no time component. */
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a YYYY-MM-DD date')
 
-// sortBy excludes `customerName` (unlike the old frontend-only `InvoiceFilter`
-// type) — it lives inside the serialized `customer` cell, which GViz
-// cannot sort into.
+// sortBy excludes `customerName` — it lives inside the serialized `customer`
+// cell, which GViz cannot sort into.
 export const invoiceViewSortFieldSchema = z.enum(['issuedDate', 'dueDate', 'status', 'grandTotal'])
 
 export const MAX_INVOICES_PER_PAGE = 100

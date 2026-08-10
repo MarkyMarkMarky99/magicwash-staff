@@ -267,7 +267,7 @@ export class SheetsApiClient {
 
     // A subset-column append can be narrower than the physical sheet. The caller
     // supplies the cached header width when it knows it; omitted knownWidth keeps
-    // the transport client's request-width fallback for existing callers.
+    // the transport client's request-width fallback.
     const normalizedValues = restoreTrailingBlanks(returnedValues, responseWidth)
 
     return {
@@ -284,7 +284,7 @@ export class SheetsApiClient {
     data: readonly SheetsApiValueRange[],
     valueInputOption: SheetsValueInputOption,
   ): Promise<SheetsApiBatchUpdateResponse> {
-    // Full-row GET plus primary-key verification belongs to the §2.6 repository flow;
+    // Full-row GET plus primary-key verification belongs to the repository;
     // this client owns only the raw values:batchUpdate operation.
     if (data.length === 0) {
       throw new WriteRejectedError('updateCells', 'Cannot update an empty set of ranges.')

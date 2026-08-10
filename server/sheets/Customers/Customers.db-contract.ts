@@ -35,15 +35,7 @@ export const customersDbContract = {
   primaryKey: 'CustomerID',
   sheetName: 'Customers',
   spreadsheetId: 'CUSTOMERS_SPREADSHEET_ID',
-  // Mirrors `customerContract.db.request`, which declares create AND update as
-  // supported — NOT what actually happens at runtime. This sheet has no
-  // `target`, so a write gets past the capability gate and then throws at
-  // `requireWriteTarget()` instead (M2 in the plan; the real customer write path
-  // lives in `appscript/customer-sheet/API.js`, a different Apps Script project
-  // with its own lock, CustomerIndex allocation and LINE notifications).
-  //
-  // This physical sheet is not open for writes yet. Enable it only after the
-  // separate customer flow is implemented here, including CustomerIndex
-  // allocation, duplicate-phone checks, locking, and LINE notifications.
+  // Writes are disabled. Enable only when CustomerIndex allocation,
+  // duplicate-phone checks, locking, and LINE notifications are implemented here.
   writes: { append: false, update: false, delete: false },
 } satisfies SheetContract

@@ -43,8 +43,8 @@ import type { SheetRepositoryContract } from '../../shared/repositories/sheet-re
 import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
 
 /**
- * `created_by` placeholder until this app has real staff identity — kept in
- * one named constant so switching to a real actor is a one-line change.
+ * Named constant for `created_by` when no real staff identity is available —
+ * one place to switch to a real actor.
  */
 export const INVOICE_CREATED_BY = 'staff'
 
@@ -247,9 +247,8 @@ type InvoiceViewListResponse = z.infer<typeof invoiceViewApiContract.response.li
 type InvoiceViewDetailResponse = z.infer<typeof invoiceViewApiContract.response.detail>
 
 /** Read-only injection seam. The production getter returns DB-shaped rows;
- * legacy invoice tests inject the old read-only repository, whose rows are
- * already API-shaped. The shared mapper accepts either representation while
- * the production path remains explicitly DB-mapped. */
+ * adapters may inject a reader whose rows are already API-shaped. The shared
+ * mapper accepts either representation; the production path is DB-mapped. */
 export interface InvoiceViewReader {
   read(query?: unknown): Promise<Array<Partial<Record<string, unknown>>>>
 }
@@ -284,8 +283,7 @@ export interface InvoiceServiceOptions {
 
 /**
  * Owns the whole multi-sheet Invoice create workflow plus Invoice list/detail
- * reads — the one dedicated service `invoice.module.ts` wires up, per
- * `docs/invoice-module-refactor-plan.md`. Validates the public request once
+ * reads. Validates the public request once
  * at the boundary, computes every line's `subtotal`/`net_total` server-side
  * (authoritative — the client's own live preview is never trusted), writes
  * the `InvoiceItem` batch FIRST (exactly ONE `batchAppend()`), then the
@@ -392,9 +390,9 @@ export class InvoiceService {
       invoice_item_id: this.generateItemId(),
       item_no: index + 1, // 1-based, derived from array position — never client-sent
       // The invoice's single sourceOrderId, fanned out onto every row —
-      // there is no per-line sourceOrderId in this request anymore.
+      // there is no per-line sourceOrderId in this request.
       source_order_id: request.sourceOrderId,
-      // Always null in this first version — no per-item traceability, only
+      // Always null — no per-item traceability, only
       // per-order via sourceOrderId above.
       source_item_id: null,
       service_type: null,
@@ -565,28 +563,16 @@ export class InvoiceService {
   }
 
   /**
-   * `BaseCrudService.list()` -> `ReadQueryDTO.fromQuery()` folds every
-   * non-reserved list-query field into a `where[field] = value` equality
-   * clause (api/CLAUDE.md's Key Engine Rules), and
-   * `GVizQueryBuilder.where()`/`resolveColumn()` has no concept of a range
-   * operator — it throws `No GViz column resolves for field 'dateFrom'`
-   * because `dateFrom` was never meant to resolve to a real column at all.
-   *
-   * No other module (appointments/orders/customers) has an existing
-   * date-range list filter to follow, so this is a smallest-possible,
-   * invoices-local fix: bypass `this.readService.list()` for this one query
-   * shape and hand-roll the read here. `dateFrom`/`dateTo` are stripped out
-   * of the where clause; every other filter (customerId, status, keyword,
-   * sort) still goes through the repository/GViz exactly as `ReadQueryDTO`
-   * would build it. The `pagination` field on `ReadQueryDTO` is
-   * intentionally left unset — `GVizQueryBuilder.pagination()` no-ops
-   * without it, so this fetches every row matching the OTHER filters (no
-   * sheet-side `limit`/`offset`). Date filtering then happens in JS
-   * (`issuedDate` is an ISO `YYYY-MM-DD` string; `<=`/`>=` compares
-   * correctly with no `Date` parsing, per this repo's own documented
-   * gotcha) against that FULL result set, and pagination is applied last,
-   * over the filtered set — never before it, or a later page could look
-   * emptier than it really is while matches sit on an earlier page's cut.
+   * `dateFrom`/`dateTo` are range filters, not equality columns, so they are
+   * stripped out of the where clause; every other filter (customerId, status,
+   * keyword, sort) still goes through the repository/GViz. The `pagination`
+   * field on `ReadQueryDTO` is intentionally left unset so this fetches every
+   * row matching the OTHER filters (no sheet-side `limit`/`offset`). Date
+   * filtering then happens in JS (`issuedDate` is an ISO `YYYY-MM-DD` string;
+   * `<=`/`>=` compares correctly with no `Date` parsing) against that FULL
+   * result set, and pagination is applied last, over the filtered set — never
+   * before it, or a later page could look emptier than it really is while
+   * matches sit on an earlier page's cut.
    */
   private async listWithDateRange(
     query: ApiQueryParams,

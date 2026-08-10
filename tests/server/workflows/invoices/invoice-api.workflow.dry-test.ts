@@ -3,16 +3,13 @@ import { generateKeyPairSync } from 'node:crypto'
 import type { ApiHandlerRequest } from '../../../../server/shared/http/api-handler.js'
 
 /**
- * Layer 1 — API boundary workflow
- * (docs/invoice-module-refactor-plan.md's Workflow Test Plan).
+ * API boundary workflow.
  *
  * Exercises `invoiceRoutes` (the actual Vercel-facing routes built by
  * `invoice.module.ts`) end to end: sends the public camelCase create
  * payload and asserts the HTTP status plus the exact top-level response
  * body for every existing outcome, and that invalid input / extra fields /
- * client-supplied system fields cause no external write at all. All six
- * POST outcomes and their status codes are unchanged from before this
- * rollout.
+ * client-supplied system fields cause no external write at all.
  */
 
 process.env.APPSCRIPT_URL = 'https://script.example/exec'
@@ -221,13 +218,10 @@ test('POST returns 502 items_write_failed with certainty "rejected" when the gat
   )
 })
 
-// Renamed from a prior version of this test that (incorrectly) named this
-// case "rejected — safe to retry" while driving it with an HTTP-level
-// failure — which this codebase's own SheetLibTransportError classifies as
-// 'unknown', not a definite rejection. An HTTP 502/non-2xx from the gateway
-// itself is exactly the kind of platform failure most likely to have
-// persisted the batch server-side despite the client never seeing a
-// response — never safe to retry.
+// An HTTP 502/non-2xx from the gateway is a transport-level failure with no
+// definite rejection: the batch may already have persisted server-side
+// despite the client never seeing a response — certainty is 'unknown', never
+// safe to retry.
 test('POST returns 502 items_write_failed with certainty "unknown" when the item batch call fails at the transport level — never safe to retry', async () => {
   await withMockFetch(
     async (body) => {

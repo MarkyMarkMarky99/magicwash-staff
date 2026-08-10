@@ -114,16 +114,11 @@ test('items_write_failed is retryable ONLY when certainty is "rejected" — the 
 })
 
 test('the Try-again-button condition and the unconfirmed-panel condition partition items_write_failed exactly along canRetry — locking the fix that the template no longer re-types this rule inline', () => {
-  // `InvoiceCreatePage.vue`'s Try again section used
-  // `result.kind === 'items_write_failed' && result.certainty === 'rejected'`
-  // and its sibling used `... && result.certainty === 'unknown'` — two
-  // independently-typed conditions the footnote's `canRetry` never actually
-  // gated. Both now read `result.kind === 'items_write_failed' && canRetry`
-  // and `... && !canRetry`. This test proves those two conditions are
+  // Try-again and unconfirmed panels for items_write_failed must partition
+  // exactly along canRetryInvoiceOutcome: canRetry vs !canRetry are
   // exhaustive and mutually exclusive for every certainty
-  // items_write_failed can carry, using the real canRetryInvoiceOutcome —
-  // so a regression back to an inline re-typed condition would have to
-  // diverge from this assertion to reintroduce the bug.
+  // items_write_failed can carry. A regression to an inline re-typed
+  // certainty check would diverge from this assertion.
   for (const certainty of ['rejected', 'unknown'] as const) {
     const result = itemsWriteFailed(certainty)
     const showsTryAgainButton = result.kind === 'items_write_failed' && canRetryInvoiceOutcome(result)

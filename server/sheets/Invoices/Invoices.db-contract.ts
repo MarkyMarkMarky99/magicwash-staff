@@ -34,13 +34,12 @@ export const invoicesDbContract = {
   primaryKey: 'invoice_number',
   sheetName: 'Invoices',
   spreadsheetId: 'INVOICES_SPREADSHEET_ID',
-  // Removed in Phase 2 when writes move from SheetLib to the Sheets API.
   target: 'Invoice',
   // created_at/updated_at/deleted_at are intentionally real Sheets datetime cells, not
   // Plain Text — decision recorded 2026-08-09 after a smoke test showed Google Sheets
   // auto-converting the plain-text-formatted stamp into a datetime cell; the project owner
   // chose to keep that behavior (useful for direct-sheet sorting/filtering by other
-  // consumers) rather than fight it. Must stay USER_ENTERED so §2.9's Sheets API transport
+  // consumers) rather than fight it. Must stay USER_ENTERED so the Sheets API transport
   // preserves this instead of silently reverting to plain text under RAW.
   valueInput: { created_at: 'USER_ENTERED', updated_at: 'USER_ENTERED', deleted_at: 'USER_ENTERED' },
   writes: { append: true, update: false, delete: false },

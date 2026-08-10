@@ -1,8 +1,7 @@
 /**
- * Read-only Sheets API access check for the workbooks in the §2.9 write migration.
- * OrderForm's workbook is already written through the Sheets API; Appointments and
- * Invoices/InvoiceItems are not yet. Reading successfully does NOT prove write
- * permission — every workbook in this project is public-read.
+ * Read-only Sheets API access check for the configured workbooks.
+ * Reading successfully does NOT prove write permission — every workbook in
+ * this project is public-read.
  *
  * This proves service-account authentication and read access to each workbook, and
  * this script never writes.

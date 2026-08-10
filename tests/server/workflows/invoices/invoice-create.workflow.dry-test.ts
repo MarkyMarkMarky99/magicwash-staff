@@ -8,8 +8,7 @@ import type {
 } from '../../../../server/modules/invoices/invoice.service.js'
 
 /**
- * Layer 3 — Service orchestration workflow
- * (docs/invoice-module-refactor-plan.md's Workflow Test Plan).
+ * Service orchestration workflow.
  *
  * Uses real-shaped repository fakes that record calls and persisted rows,
  * asserting the exact sequence

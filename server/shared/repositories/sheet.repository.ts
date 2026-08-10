@@ -197,11 +197,10 @@ export class SheetRepository<TDbRow extends object>
       return this.updateThroughSheetsApi(keyValue, patch)
     }
 
-    // Today this path still uses SheetLib, which performs lookup + write under
-    // LockService. The Sheets API branch above does not have that protection: it
-    // looks the row up and writes in two separate calls, an intentionally accepted
-    // TOCTOU risk. The decision and its guardrails live in sheet-row-lookup.ts.
-    // This SheetLib branch is not affected.
+    // This branch performs lookup + write under LockService. The Sheets API
+    // branch above does not: it looks the row up and writes in two separate
+    // calls, an intentionally accepted TOCTOU risk. The decision and its
+    // guardrails live in sheet-row-lookup.ts. This branch is not affected.
     const resolvedKeyValue = this.resolveWhere({ id: keyValue }, 'update')[
       this.contract.primaryKey
     ]

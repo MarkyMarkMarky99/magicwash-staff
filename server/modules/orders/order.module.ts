@@ -50,9 +50,7 @@ type OrdersService = BaseCrudService<
   typeof ordersViewFieldMap
 >
 
-// ── API behavior: BaseCrudService.list only. searchFields is [] — today's
-//    OrdersService had no keyword search; adding ['orderNumber'] would be new
-//    functionality, out of scope for this shape-conformance refactor. ──
+// searchFields is []: this list has no keyword search.
 export const ordersService: OrdersService = new BaseCrudService({
   repository: getOrdersViewRepository,
   api: orderApiContract,

@@ -13,7 +13,7 @@ export const MAX_ORDERS_PER_PAGE = 500
 
 export const orderListQuerySchema = z.object({
   // Required by ReadQueryDTO.fromQuery / GenericListQuery. Empty default is a
-  // no-op: nothing sends keyword today, and GViz ignores an empty keyword.
+  // no-op: GViz ignores an empty keyword.
   keyword: z.string().default(''),
   customerId: z.string().trim().min(1),
   page: z.coerce.number().int().positive().default(API_PAGINATION_DEFAULTS.page),

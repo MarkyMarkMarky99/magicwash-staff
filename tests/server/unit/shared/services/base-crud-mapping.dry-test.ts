@@ -20,7 +20,7 @@ type OrdersListQuery = z.infer<typeof orderApiContract.query.list>
 type OrdersListResponse = z.infer<typeof orderApiContract.response.list>
 
 // OrdersView is list-only in production. This local contract adds the same
-// response as a detail slot so the migrated BaseCrudService read-by-id path can
+// response as a detail slot so the BaseCrudService read-by-id path can
 // be characterized here without changing the public production contract.
 const mappingApiContract = {
   query: orderApiContract.query,
@@ -113,7 +113,7 @@ function makeService(repository: SheetRepository<OrdersDbRow>) {
   >({
     repository,
     api: mappingApiContract,
-    // The production OrdersView module uses this same migrated field map and
+    // The production OrdersView module uses this same field map and
     // JSON declaration. The keyword field is enabled only in this local probe
     // so the service-to-repository search-field translation is observable.
     searchFields: ['orderNumber'],

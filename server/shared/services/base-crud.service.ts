@@ -62,9 +62,9 @@ export interface BaseCrudServiceOptions<
   >,
 > {
   /**
-   * Existing modules pass an API-shaped BaseRepository. A migrated module can
-   * pass a DB-shaped SheetRepositoryContract and opt into the mapping pipeline
-   * with `fieldMap` (an empty map is valid) and/or `jsonColumns`.
+   * Pass an API-shaped BaseRepository, or a DB-shaped SheetRepositoryContract
+   * and opt into the mapping pipeline with `fieldMap` (an empty map is valid)
+   * and/or `jsonColumns`.
    */
   repository: RepositoryProvider<
     | BaseRepository<TApiRow, OmitReservedQueryFields<TListQuery>, TCreate, TUpdate>
@@ -152,9 +152,9 @@ export class BaseCrudService<
     this.jsonColumns = input.jsonColumns ?? {}
     this.transformer = input.transformer
 
-    // The presence of an explicitly supplied mapping option selects the new
-    // DB-shaped repository path. Existing consumers omit both options and
-    // retain their API-shaped BaseRepository behavior exactly.
+    // The presence of an explicitly supplied mapping option selects the
+    // DB-shaped repository path. Omitting those options selects the
+    // API-shaped BaseRepository path.
     if (
       input.fieldMap !== undefined ||
       input.jsonColumns !== undefined ||

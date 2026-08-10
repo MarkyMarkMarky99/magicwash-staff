@@ -130,7 +130,7 @@ export const appointmentDetailResponseSchema = appointmentListResponseSchema.ext
 export const appointmentCreateResponseSchema = appointmentDetailResponseSchema
 export const appointmentUpdateResponseSchema = appointmentDetailResponseSchema
 
-/** The nested API contract consumed by the new BaseCrudService flow. */
+/** Nested API contract for this module (query / request / response). */
 export const appointmentApiContract = {
   query: {
     list: appointmentListQuerySchema,

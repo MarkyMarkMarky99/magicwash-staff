@@ -41,7 +41,6 @@ export const appointmentsDbContract = {
   primaryKey: 'AppointmentID',
   sheetName: 'Appointments',
   spreadsheetId: 'APPOINTMENTS_SPREADSHEET_ID',
-  // Removed in Phase 2 when writes move from SheetLib to the Sheets API.
   target: 'Appointment',
   // Appointment.json documents AppointmentDate as a real Sheets date so GViz localization and date-range queries work.
   valueInput: { AppointmentDate: 'USER_ENTERED' },

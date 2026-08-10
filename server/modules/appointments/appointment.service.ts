@@ -37,9 +37,9 @@ export type AppointmentSheetRepository = SheetRepositoryContract<AppointmentShee
 
 export interface AppointmentServiceOptions {
   repository: AppointmentSheetRepository | (() => AppointmentSheetRepository)
-  /** Supplied by the migrated module to select the DB-shaped sheet path. */
+  /** Optional DB column -> API field map for the sheet path. */
   fieldMap?: AppointmentSheetFieldMap
-  /** Supplied by the migrated module for the Address snapshot shape change. */
+  /** Optional transformer for Address snapshot pack/unpack. */
   transformer?: RepositoryTransformer
   generateAppointmentId?: () => string
   now?: () => Date

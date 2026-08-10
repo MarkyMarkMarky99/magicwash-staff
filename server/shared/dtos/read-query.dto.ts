@@ -3,7 +3,7 @@
  *
  * Data-only and immutable. It speaks API/domain field names; the repository maps
  * them to DB columns. It does NOT map DB columns, build GViz/SQL query strings,
- * or support operation/range/null/or filters (future repository-layer work).
+ * or support operation/range/null/or filters.
  *
  * `fromQuery()` convention (generic simple-CRUD list queries only):
  *   - reserved fields (keyword, page, perPage, sortBy, sortOrder) drive

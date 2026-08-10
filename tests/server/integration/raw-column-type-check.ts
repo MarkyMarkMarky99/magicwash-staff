@@ -1,7 +1,6 @@
 /**
- * Read-only GViz inspector for risky physical column types used during Phase B
- * of the §2.9 write-transport migration. It reports the type that GViz returns
- * for a small set of columns without writing to Google Sheets.
+ * Read-only GViz inspector for risky physical column types. It reports the type
+ * that GViz returns for a small set of columns without writing to Google Sheets.
  *
  * Example: node --env-file=.env.local --import=tsx/esm tests/server/integration/raw-column-type-check.ts
  */

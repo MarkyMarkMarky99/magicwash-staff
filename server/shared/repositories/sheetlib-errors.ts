@@ -3,9 +3,6 @@
 // the Sheets API transport throw their own classes instead (WriteRejectedError,
 // WriteTransportError, WriteCommittedUnreadableError, WriteRowIdentityMismatchError,
 // DuplicateRowKeyError) — anything that catches write failures must handle both sets.
-// Both extend `Error` with the exact same message text the shared repository
-// tests already assert on, so this is purely additive: nothing that only does
-// `assert.rejects(fn, /pattern/)` against the existing message format breaks.
 //
 //   - SheetLibRejectedError    the gateway responded `{ status: 'error' }` —
 //     a definite rejection. Nothing was written for that one request.

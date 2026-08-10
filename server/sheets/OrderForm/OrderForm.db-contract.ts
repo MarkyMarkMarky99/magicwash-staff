@@ -31,15 +31,11 @@ export const orderFormDbContract = {
   // API field: id.
   primaryKey: 'id',
   sheetName: 'OrderForm',
-  // M1 in docs/database-layer-sheets-api-refactor-plan.md: this tab's
-  // registry workbook differs from the current ORDERS_SPREADSHEET_ID value.
+  // This tab's registry workbook may differ from the ORDERS_SPREADSHEET_ID value.
   spreadsheetId: 'ORDERS_SPREADSHEET_ID',
-  // Removed in Phase 2 when writes move from SheetLib to the Sheets API.
   target: 'OrderForm',
-  // updated_at is intentionally a real Sheets datetime, not plain text (decided
-  // after the §2.7 smoke test). OrderForm writes through the Sheets API today and
-  // this declaration is what keeps that intent enforced — see the valueInput doc in
-  // sheet-contract.ts for how it is applied.
+  // updated_at is intentionally a real Sheets datetime, not plain text.
+  // This valueInput declaration records that intent and guards against a conflict.
   valueInput: { updated_at: 'USER_ENTERED' },
   writeTransport: 'sheets-api',
   writes: { append: false, update: true, delete: false },

@@ -217,7 +217,7 @@ async function refreshAccessToken(): Promise<string> {
  * to the still-valid old token when that refresh fails, is an intentional risk
  * decision. A near-expiry token could receive a 401 after a write has already
  * been sent, changing a safe `rejected` pre-write failure into an `unknown`
- * post-write outcome under §2.5. If this causes a real operational problem,
+ * post-write outcome. If this causes a real operational problem,
  * fix token acquisition or increase the safety window; do not reintroduce the
  * fallback without a write-deadline and outcome-classification design.
  */

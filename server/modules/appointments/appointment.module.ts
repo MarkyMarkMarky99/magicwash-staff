@@ -13,7 +13,7 @@ export { appointmentsFieldMap } from './appointment.mapping.js'
 //    queryable columns only — `address` is excluded on purpose because at query
 //    time it is still the raw serialized snapshot JSON, so searching it would
 //    match constant JSON keys (Phone/Line/Email/…) on every row. Customer-name
-//    keyword search needs a real column and is out of scope. ──
+//    keyword search needs a real column. ──
 export const appointmentService = new AppointmentService({
   repository: getAppointmentsRepository,
   fieldMap: appointmentsFieldMap,
