@@ -1,22 +1,26 @@
 import assert from 'node:assert/strict'
+import { generateKeyPairSync } from 'node:crypto'
 import type { CreateInvoiceRequest } from '../../../../contracts/invoices/invoice-api.schema.js'
 
 /**
- * Layer 2 — SheetLib transport workflow
+ * Layer 2 — mixed transport workflow
  * (docs/invoice-module-refactor-plan.md's Workflow Test Plan).
  *
  * Exercises the REAL `InvoiceService` (default-constructed repositories, no
  * injected fakes) against a mocked `fetch`, asserting the exact wire-level
- * requests: one `InvoiceItem` APPEND with an ordered `data[]` array, one
- * `Invoice` APPEND, and one `OrderForm` UPDATE with `key_value=sourceOrderId`
- * and only the invoice-link PATCH fields — all against `APPSCRIPT_URL` with
- * an explicit target, never `APPSCRIPT_GATEWAY_URL` and never a GViz
- * read-back.
+ * requests: one `InvoiceItem` APPEND and one `Invoice` APPEND through SheetLib,
+ * plus an OrderForm keyed PATCH through the Sheets API with only the invoice
+ * link fields.
  */
 
 process.env.APPSCRIPT_URL = 'https://script.example/exec'
 process.env.INVOICES_SPREADSHEET_ID = 'invoices-spreadsheet-id'
 process.env.ORDERS_SPREADSHEET_ID = 'orders-spreadsheet-id'
+const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
+process.env.GOOGLE_SERVICE_ACCOUNT_KEY = Buffer.from(JSON.stringify({
+  client_email: 'invoice-workflow@example.test',
+  private_key: String(privateKey.export({ format: 'pem', type: 'pkcs8' })),
+})).toString('base64')
 
 const { InvoiceService } = await import('../../../../server/modules/invoices/invoice.service.js')
 
@@ -24,7 +28,7 @@ const fixedNow = new Date('2026-04-01T00:34:56.000Z')
 
 interface FetchCall {
   url: string
-  body: Record<string, unknown>
+  body?: Record<string, unknown>
 }
 
 type FetchHandler = (body: Record<string, unknown>) => Promise<Response>
@@ -38,10 +42,13 @@ function response(input: { json?: unknown; ok?: boolean; statusText?: string }):
   } as Response
 }
 
-/** Dispatches by the envelope's `target` field — mirrors the real gateway
- *  routing InvoiceItem/Invoice/OrderForm requests that all land on the same
- *  APPSCRIPT_URL. Fails loudly if anything hits a URL other than
- *  APPSCRIPT_URL (e.g. a stray APPSCRIPT_GATEWAY_URL call or a GViz read). */
+const orderFormHeaders = [
+  'id', 'order_number', 'customer_id', 'received_date', 'due_date',
+  'service_type', 'status', 'quantity', 'hangers', 'bags', 'hangers_image',
+  'bags_image', 'form_image', 'note', 'timestamp', 'created_by', 'updated_at',
+  'updated_by', 'invoice_id', 'order_name', 'order_description',
+]
+
 async function withRoutedFetch<T>(
   handlers: Record<string, FetchHandler>,
   run: (calls: FetchCall[]) => Promise<T>,
@@ -50,15 +57,45 @@ async function withRoutedFetch<T>(
   const calls: FetchCall[] = []
   globalThis.fetch = (async (url: URL | string, init?: RequestInit) => {
     const stringUrl = String(url)
-    assert.equal(stringUrl, process.env.APPSCRIPT_URL, 'every write must target APPSCRIPT_URL, never a GViz read or a different gateway')
-    const body = JSON.parse(String(init?.body)) as Record<string, unknown>
-    calls.push({ url: stringUrl, body })
-    const target = body.target as string
-    const handler = handlers[target]
-    if (!handler) {
-      throw new Error(`No fetch handler configured for target ${target}`)
+    const parsedUrl = new URL(stringUrl)
+    if (stringUrl === 'https://oauth2.googleapis.com/token') {
+      return response({ json: { access_token: 'test-access-token', expires_in: 3600 } })
     }
-    return handler(body)
+    if (stringUrl === process.env.APPSCRIPT_URL) {
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>
+      calls.push({ url: stringUrl, body })
+      const target = body.target as string
+      const handler = handlers[target]
+      if (!handler) throw new Error(`No SheetLib handler configured for target ${target}`)
+      return handler(body)
+    }
+
+    assert.equal(parsedUrl.origin, 'https://sheets.googleapis.com')
+    const call: FetchCall = {
+      url: stringUrl,
+      body: init?.body === undefined ? undefined : JSON.parse(String(init.body)) as Record<string, unknown>,
+    }
+    calls.push(call)
+    const path = decodeURIComponent(parsedUrl.pathname)
+    if (init?.method === 'GET' && path.endsWith('/values/OrderForm!1:1')) {
+      return response({ json: { values: [orderFormHeaders] } })
+    }
+    if (init?.method === 'GET' && path.endsWith('/values/OrderForm!A:A')) {
+      return response({ json: { values: [['id'], ['ORD-0001']] } })
+    }
+    if (init?.method === 'POST' && path.endsWith('/values:batchUpdate')) {
+      assert.equal(call.body?.valueInputOption, 'USER_ENTERED')
+      assert.deepEqual(call.body?.data, [
+        { range: 'OrderForm!S2:S2', values: [['INV-0001']] },
+        { range: 'OrderForm!R2:R2', values: [['staff']] },
+        { range: 'OrderForm!Q2:Q2', values: [['2026-04-01 07:34:56']] },
+      ])
+      return response({ json: { spreadsheetId: 'orders-spreadsheet-id', responses: [{}, {}, {}] } })
+    }
+    if (init?.method === 'GET' && path.endsWith('/values/OrderForm!A2:U2')) {
+      return response({ json: { values: [['ORD-0001', ...Array(20).fill(null)]] } })
+    }
+    throw new Error(`Unexpected Sheets API request: ${init?.method} ${path}`)
   }) as typeof fetch
 
   try {
@@ -85,9 +122,8 @@ function baseRequest(): CreateInvoiceRequest {
 
 async function main(): Promise<void> {
   const service = new InvoiceService({
-    // The Apps Script view-sync integration is a separate URL/endpoint,
-    // deliberately out of scope for this SheetLib-transport-only layer —
-    // stub it so this test focuses purely on the three SheetLib writes.
+    // The Apps Script view-sync integration is a separate URL/endpoint;
+    // stub it so this test focuses on the three source-sheet writes.
     syncInvoiceView: async () => ({ outcome: 'confirmed' }),
     now: () => fixedNow,
   })
@@ -111,15 +147,22 @@ async function main(): Promise<void> {
       const result = await service.create(baseRequest())
       assert.equal(result.kind, 'created')
 
-      assert.equal(calls.length, 3, 'exactly one InvoiceItem APPEND, one Invoice APPEND, one OrderForm UPDATE')
-      assert.deepEqual(calls.map((call) => call.body.target), ['InvoiceItem', 'Invoice', 'OrderForm'])
+      assert.equal(calls.length, 6, 'two SheetLib writes plus four Sheets API OrderForm calls')
+      assert.deepEqual(calls.slice(0, 2).map((call) => call.body?.target), ['InvoiceItem', 'Invoice'])
+      assert.deepEqual(calls.slice(2).map((call) => new URL(call.url).origin), [
+        'https://sheets.googleapis.com',
+        'https://sheets.googleapis.com',
+        'https://sheets.googleapis.com',
+        'https://sheets.googleapis.com',
+      ])
 
       // ── InvoiceItem: one APPEND, ordered data[] array, no loop ──
       const itemsCall = calls[0]
-      assert.equal(itemsCall.body.resource, 'sheet')
-      assert.equal(itemsCall.body.action, 'APPEND')
-      assert.ok(Array.isArray(itemsCall.body.data))
-      const itemRows = itemsCall.body.data as Array<Record<string, unknown>>
+      const itemsBody = itemsCall.body!
+      assert.equal(itemsBody.resource, 'sheet')
+      assert.equal(itemsBody.action, 'APPEND')
+      assert.ok(Array.isArray(itemsBody.data))
+      const itemRows = itemsBody.data as Array<Record<string, unknown>>
       assert.equal(itemRows.length, 2)
       assert.deepEqual(itemRows.map((row) => row.item_no), [1, 2], 'array order must survive into the request')
       assert.deepEqual(itemRows.map((row) => row.invoice_number), ['INV-0001', 'INV-0001'])
@@ -135,8 +178,9 @@ async function main(): Promise<void> {
 
       // ── Invoice: one APPEND, alone ──
       const invoiceCall = calls[1]
-      assert.equal(invoiceCall.body.action, 'APPEND')
-      const invoiceRow = invoiceCall.body.data as Record<string, unknown>
+      const invoiceBody = invoiceCall.body!
+      assert.equal(invoiceBody.action, 'APPEND')
+      const invoiceRow = invoiceBody.data as Record<string, unknown>
       assert.equal(invoiceRow.invoice_number, 'INV-0001')
       assert.equal(invoiceRow.status, 'ISSUED')
       assert.equal(
@@ -147,14 +191,13 @@ async function main(): Promise<void> {
       assert.equal(invoiceRow.adjustments, '[]')
 
       // ── OrderForm: one UPDATE, key_value = sourceOrderId, PATCH-only body ──
-      const orderFormCall = calls[2]
-      assert.equal(orderFormCall.body.action, 'UPDATE')
-      assert.equal(orderFormCall.body.key_value, 'ORD-0001')
-      assert.deepEqual(orderFormCall.body.data, {
-        invoice_id: 'INV-0001',
-        updated_by: 'staff',
-        updated_at: '2026-04-01 07:34:56',
-      })
+      const orderFormCall = calls[4]
+      assert.equal(orderFormCall.body?.valueInputOption, 'USER_ENTERED')
+      assert.deepEqual(orderFormCall.body?.data, [
+        { range: 'OrderForm!S2:S2', values: [['INV-0001']] },
+        { range: 'OrderForm!R2:R2', values: [['staff']] },
+        { range: 'OrderForm!Q2:Q2', values: [['2026-04-01 07:34:56']] },
+      ])
     },
   )
 

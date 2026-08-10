@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { generateKeyPairSync } from 'node:crypto'
 import type { ApiHandlerRequest } from '../../../../server/shared/http/api-handler.js'
 
 /**
@@ -18,6 +19,11 @@ process.env.APPSCRIPT_URL = 'https://script.example/exec'
 process.env.INVOICES_SPREADSHEET_ID = 'invoices-spreadsheet-id'
 process.env.ORDERS_SPREADSHEET_ID = 'orders-spreadsheet-id'
 process.env.APPSCRIPT_INVOICE_VIEW_SYNC_URL = 'https://script.example/invoice-view-sync'
+const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
+process.env.GOOGLE_SERVICE_ACCOUNT_KEY = Buffer.from(JSON.stringify({
+  client_email: 'invoice-api-workflow@example.test',
+  private_key: String(privateKey.export({ format: 'pem', type: 'pkcs8' })),
+})).toString('base64')
 
 const { invoiceRoutes } = await import('../../../../server/modules/invoices/invoice.module.js')
 
@@ -27,30 +33,93 @@ function test(name: string, run: () => Promise<void> | void): void {
   tests.push({ name, run })
 }
 
-function response(input: { json?: unknown; ok?: boolean }): Response {
+function response(input: { json?: unknown; ok?: boolean; status?: number }): Response {
   return {
     ok: input.ok ?? true,
-    status: input.ok === false ? 502 : 200,
+    status: input.status ?? (input.ok === false ? 502 : 200),
     statusText: 'OK',
     json: async () => input.json,
   } as Response
 }
 
+const orderFormHeaders = [
+  'id', 'order_number', 'customer_id', 'received_date', 'due_date',
+  'service_type', 'status', 'quantity', 'hangers', 'bags', 'hangers_image',
+  'bags_image', 'form_image', 'note', 'timestamp', 'created_by', 'updated_at',
+  'updated_by', 'invoice_id', 'order_name', 'order_description',
+]
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+type MockHandler = (body: Record<string, unknown>) => Promise<Response>
+let activeHandler: MockHandler | undefined
+
+function dispatchToActiveHandler(body: Record<string, unknown>): Promise<Response> {
+  if (activeHandler === undefined) {
+    throw new Error('No invoice workflow fetch handler is active')
+  }
+  return activeHandler(body)
+}
+
 async function withMockFetch<T>(
-  handler: (body: Record<string, unknown>) => Promise<Response>,
+  handler: MockHandler,
   run: () => Promise<T>,
 ): Promise<T> {
   const originalFetch = globalThis.fetch
+  const previousHandler = activeHandler
+  activeHandler = handler
   globalThis.fetch = (async (url: URL | string, init?: RequestInit) => {
-    const body = JSON.parse(String(init?.body)) as Record<string, unknown>
-    if (String(url) === process.env.APPSCRIPT_INVOICE_VIEW_SYNC_URL) {
+    const stringUrl = String(url)
+    if (stringUrl === 'https://oauth2.googleapis.com/token') {
+      return response({ json: { access_token: 'test-access-token', expires_in: 3600 } })
+    }
+    if (stringUrl === process.env.APPSCRIPT_INVOICE_VIEW_SYNC_URL) {
       return response({ json: { ok: true } })
     }
-    return handler(body)
+    if (stringUrl === process.env.APPSCRIPT_URL) {
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>
+      return dispatchToActiveHandler(body)
+    }
+
+    const parsedUrl = new URL(stringUrl)
+    assert.equal(parsedUrl.origin, 'https://sheets.googleapis.com')
+    const path = decodeURIComponent(parsedUrl.pathname)
+
+    if (init?.method === 'GET' && path.endsWith('/values/OrderForm!1:1')) {
+      return response({ json: { values: [orderFormHeaders] } })
+    }
+    if (init?.method === 'GET' && path.endsWith('/values/OrderForm!A:A')) {
+      return response({ json: { values: [['id'], ['ORD-0001']] } })
+    }
+    if (init?.method === 'POST' && path.endsWith('/values:batchUpdate')) {
+      const body = JSON.parse(String(init.body)) as Record<string, unknown>
+      const configuredResponse = await dispatchToActiveHandler({ ...body, target: 'OrderForm' })
+      const configuredBody = await configuredResponse.json() as unknown
+      if (isRecord(configuredBody) && configuredBody.status === 'error') {
+        return response({ json: configuredBody, ok: false, status: 404 })
+      }
+
+      const data = body.data
+      assert.ok(Array.isArray(data))
+      return response({
+        json: {
+          spreadsheetId: 'orders-spreadsheet-id',
+          responses: data.map(() => ({})),
+        },
+      })
+    }
+    if (init?.method === 'GET' && path.endsWith('/values/OrderForm!A2:U2')) {
+      return response({ json: { values: [['ORD-0001', ...Array(20).fill(null)]] } })
+    }
+
+    throw new Error(`Unexpected Sheets API request: ${init?.method} ${path}`)
   }) as typeof fetch
   try {
     return await run()
   } finally {
+    activeHandler = previousHandler
     globalThis.fetch = originalFetch
   }
 }

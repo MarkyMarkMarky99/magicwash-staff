@@ -23,6 +23,13 @@ import { syncInvoiceView as defaultSyncInvoiceView } from './invoice-view-sync-c
 import type { InvoiceViewSyncResult } from './invoice-view-sync-client.js'
 import { SheetLibRejectedError, SheetLibTransportError } from '../../shared/repositories/sheetlib-errors.js'
 import {
+  WriteCommittedUnreadableError,
+  WriteRejectedError,
+  WriteTransportError,
+} from '../../shared/repositories/sheets-api.client.js'
+import { DuplicateRowKeyError } from '../../shared/repositories/sheet-row-lookup.js'
+import { WriteRowIdentityMismatchError } from '../../shared/repositories/sheet-row-identity.js'
+import {
   BaseCrudService,
   mapDbRowToApi,
   type JsonColumnMap,
@@ -164,6 +171,21 @@ function classifyWriteFailure(error: unknown): WriteFailure {
     return {
       certainty: 'unknown',
       message: `Write outcome unknown (transport failure, not a confirmed rejection): ${error.message}`,
+    }
+  }
+  if (error instanceof WriteRejectedError || error instanceof DuplicateRowKeyError) {
+    return { certainty: 'rejected', message: error.message }
+  }
+  if (error instanceof WriteCommittedUnreadableError) {
+    return {
+      certainty: 'unknown',
+      message: `Write committed but the persisted row could not be read back; do not retry: ${error.message}`,
+    }
+  }
+  if (error instanceof WriteTransportError || error instanceof WriteRowIdentityMismatchError) {
+    return {
+      certainty: 'unknown',
+      message: `Write outcome unknown: ${error.message}`,
     }
   }
   return { certainty: 'unknown', message: error instanceof Error ? error.message : String(error) }

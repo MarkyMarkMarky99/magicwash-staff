@@ -14,6 +14,29 @@ import { fetchGVizRows } from './utils/gviz-reader.js'
 import { requireEnv } from '../utils/env.js'
 import { SheetLibRejectedError, SheetLibTransportError } from './sheetlib-errors.js'
 import type { SheetRepositoryContract } from './sheet-repository.contract.js'
+import {
+  SheetsApiClient,
+  WriteCommittedUnreadableError,
+  WriteRejectedError,
+  type SheetsApiValue,
+  type SheetsApiValueRange,
+  type SheetsApiValues,
+  type SheetsApiClientOptions,
+} from './sheets-api.client.js'
+import {
+  buildRowRange,
+  buildSheetHeaderMap,
+  SheetHeaderMapError,
+  SheetHeaderMapResolver,
+  type SheetHeaderMapLoader,
+} from './sheet-header-map.js'
+import {
+  parseRowValues,
+  resolveValueInputOption,
+  serializeCellValue,
+} from './sheet-value-serializer.js'
+import { findRowNumberByKey } from './sheet-row-lookup.js'
+import { verifyRowIdentity } from './sheet-row-identity.js'
 
 export type AppScriptAction = 'APPEND' | 'UPDATE' | 'DELETE'
 
@@ -51,10 +74,16 @@ export type SheetLibResponse<TData = unknown> =
   | SheetLibSuccessResponse<TData>
   | SheetLibErrorResponse
 
-interface SheetRepositoryOptions {
+export interface SheetRepositoryOptions {
   contract: SheetContract
   /** Environment variable key containing the Apps Script URL. */
   scriptUrl?: string
+  /** Test seam for the authenticated Sheets API client. */
+  sheetsApiClient?: SheetsApiClient
+  /** Test seam for the Sheets API HTTP client and token provider. */
+  sheetsApiClientOptions?: Omit<SheetsApiClientOptions, 'spreadsheetId' | 'sheetName'>
+  /** Test seam for the live-header loader. */
+  sheetHeaderMapLoader?: SheetHeaderMapLoader
 }
 
 interface GvizReadQuery {
@@ -73,13 +102,48 @@ export class SheetRepository<TDbRow extends object>
   implements SheetRepositoryContract<TDbRow>
 {
   private readonly contract: SheetContract
-  private readonly scriptUrl: string
+  private readonly scriptUrl: string | undefined
   private readonly columns: GSheetColumnMap
+  private readonly sheetsApiClient: SheetsApiClient | undefined
+  private readonly sheetHeaderMapLoader: SheetHeaderMapLoader | undefined
 
   constructor(input: SheetRepositoryOptions) {
     this.contract = input.contract
-    this.scriptUrl = requireEnv(input.scriptUrl ?? 'APPSCRIPT_URL')
     this.columns = deriveGVizColumns(this.contract.row)
+
+    if (this.contract.writeTransport === 'sheets-api') {
+      if (
+        typeof this.contract.spreadsheetId !== 'string' ||
+        this.contract.spreadsheetId.trim() === ''
+      ) {
+        throw new Error(
+          'SheetRepository Sheets API writes require a spreadsheetId environment variable name',
+        )
+      }
+
+      this.sheetsApiClient =
+        input.sheetsApiClient ??
+        new SheetsApiClient({
+          spreadsheetId: requireEnv(this.contract.spreadsheetId),
+          sheetName: this.contract.sheetName,
+          ...input.sheetsApiClientOptions,
+        })
+      this.sheetHeaderMapLoader =
+        input.sheetHeaderMapLoader ??
+        new SheetHeaderMapResolver(async () =>
+          buildSheetHeaderMap(
+            await this.sheetsApiClient!.readHeader(),
+            Object.keys(this.contract.row.shape),
+            this.contract.primaryKey,
+          ),
+        )
+      this.scriptUrl = undefined
+      return
+    }
+
+    this.scriptUrl = requireEnv(input.scriptUrl ?? 'APPSCRIPT_URL')
+    this.sheetsApiClient = undefined
+    this.sheetHeaderMapLoader = undefined
   }
 
   async read(query?: ReadQueryDTO<Partial<TDbRow>>): Promise<Array<Partial<TDbRow>>> {
@@ -129,6 +193,10 @@ export class SheetRepository<TDbRow extends object>
 
   async update(keyValue: string, patch: Partial<TDbRow>): Promise<TDbRow> {
     this.requireWriteCapability('update')
+    if (this.contract.writeTransport === 'sheets-api') {
+      return this.updateThroughSheetsApi(keyValue, patch)
+    }
+
     // Today this path still uses SheetLib, which performs lookup + write under
     // LockService. §2.9's Sheets API transport will introduce an intentionally
     // accepted TOCTOU risk; the full decision and guardrails live in
@@ -141,6 +209,139 @@ export class SheetRepository<TDbRow extends object>
       unknown
     >
     return (await this.write('UPDATE', dbPatch, resolvedKeyValue as string)) as TDbRow
+  }
+
+  private async updateThroughSheetsApi(
+    keyValue: string,
+    patch: Partial<TDbRow>,
+  ): Promise<TDbRow> {
+    const client = this.requireSheetsApiClient()
+    const headerMap = await this.loadSheetsApiHeaderMap()
+    const resolvedKeyValue = this.resolveWhere({ id: keyValue }, 'update')[
+      this.contract.primaryKey
+    ]
+    const expectedKey = resolvedKeyValue as string
+
+    let rowNumber: number | null
+    try {
+      rowNumber = await findRowNumberByKey(
+        headerMap,
+        this.contract.primaryKey,
+        expectedKey,
+        (columnLetter) => client.readColumn(columnLetter),
+      )
+    } catch (error) {
+      if (error instanceof SheetHeaderMapError) {
+        throw new WriteRejectedError('UPDATE', error.message)
+      }
+      throw error
+    }
+
+    if (rowNumber === null) {
+      throw new WriteRejectedError(
+        'UPDATE',
+        `No row found for primary key '${this.contract.primaryKey}' with value '${expectedKey}'.`,
+      )
+    }
+
+    const { [this.contract.primaryKey]: _primaryKey, ...dbPatch } = patch as Record<
+      string,
+      unknown
+    >
+    const ranges: SheetsApiValueRange[] = []
+
+    try {
+      for (const [column, value] of Object.entries(dbPatch)) {
+        const columnLetter = headerMap.letterByName[column]
+        if (columnLetter === undefined) {
+          throw new Error(`Column '${column}' is not present in the sheet header map`)
+        }
+
+        const declaredValueInput = Object.prototype.hasOwnProperty.call(
+          this.contract.valueInput ?? {},
+          column,
+        )
+        const valueInput = resolveValueInputOption(column, this.contract.valueInput)
+        if (declaredValueInput && valueInput !== 'USER_ENTERED') {
+          throw new WriteRejectedError(
+            'UPDATE',
+            `Column '${column}' declares valueInput '${valueInput}', which conflicts with the USER_ENTERED request policy.`,
+          )
+        }
+
+        ranges.push({
+          range: `${this.contract.sheetName}!${columnLetter}${rowNumber}:${columnLetter}${rowNumber}`,
+          values: [[serializeCellValue(value)]],
+        })
+      }
+    } catch (error) {
+      if (error instanceof WriteRejectedError) {
+        throw error
+      }
+      throw new WriteRejectedError(
+        'UPDATE',
+        error instanceof Error ? error.message : String(error),
+      )
+    }
+
+    await client.updateCells(ranges, 'USER_ENTERED')
+
+    let returnedValues: SheetsApiValues
+    try {
+      returnedValues = await client.readRange(buildRowRange(headerMap, rowNumber))
+    } catch (error) {
+      throw new WriteCommittedUnreadableError(
+        'UPDATE',
+        `UPDATE committed, but the persisted row could not be read back: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      )
+    }
+
+    if (returnedValues.length !== 1) {
+      throw new WriteCommittedUnreadableError(
+        'UPDATE',
+        `UPDATE committed, but the persisted row read-back returned ${returnedValues.length} rows instead of one.`,
+      )
+    }
+
+    let storedRow: Record<string, SheetsApiValue>
+    try {
+      storedRow = parseRowValues(returnedValues[0]!, headerMap)
+    } catch (error) {
+      throw new WriteCommittedUnreadableError(
+        'UPDATE',
+        `UPDATE committed, but the persisted row could not be parsed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      )
+    }
+
+    verifyRowIdentity(storedRow, this.contract.primaryKey, expectedKey)
+    return storedRow as TDbRow
+  }
+
+  private async loadSheetsApiHeaderMap() {
+    const loader = this.sheetHeaderMapLoader
+    if (loader === undefined) {
+      throw new WriteRejectedError('UPDATE', 'Sheets API header map is not configured')
+    }
+
+    try {
+      return await loader.load()
+    } catch (error) {
+      if (error instanceof SheetHeaderMapError) {
+        throw new WriteRejectedError('UPDATE', error.message)
+      }
+      throw error
+    }
+  }
+
+  private requireSheetsApiClient(): SheetsApiClient {
+    if (this.sheetsApiClient === undefined) {
+      throw new WriteRejectedError('UPDATE', 'Sheets API client is not configured')
+    }
+    return this.sheetsApiClient
   }
 
   async delete(keyValue: string, deletedBy: string): Promise<TDbRow> {
@@ -268,6 +469,7 @@ export class SheetRepository<TDbRow extends object>
     input: SheetLibRequestInput<TData>,
   ): Promise<SheetLibResponse<TResponse>> {
     const target = this.requireWriteTarget()
+    const scriptUrl = this.requireScriptUrl()
     const body: SheetLibRequest<TData> = {
       resource: 'sheet',
       action: input.action,
@@ -283,7 +485,7 @@ export class SheetRepository<TDbRow extends object>
 
     let response: Response
     try {
-      response = await fetch(this.scriptUrl, {
+      response = await fetch(scriptUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -321,5 +523,12 @@ export class SheetRepository<TDbRow extends object>
       throw new Error('SheetRepository writes require an explicit SheetLib target')
     }
     return this.contract.target
+  }
+
+  private requireScriptUrl(): string {
+    if (this.scriptUrl === undefined) {
+      throw new Error('SheetLib write transport is not configured for this sheet')
+    }
+    return this.scriptUrl
   }
 }

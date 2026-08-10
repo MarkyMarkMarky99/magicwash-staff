@@ -41,5 +41,6 @@ export const orderFormDbContract = {
   // that file's comment). Must stay USER_ENTERED so §2.9's Sheets API transport preserves
   // this instead of silently reverting to plain text under RAW.
   valueInput: { updated_at: 'USER_ENTERED' },
+  writeTransport: 'sheets-api',
   writes: { append: false, update: true, delete: false },
 } satisfies SheetContract
