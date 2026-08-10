@@ -3,8 +3,19 @@
 เขียนเมื่อ 2026-08-09 ตอนปิด Phase 1 · **อัปเดตล่าสุด 2026-08-10 ตอนปิด §2.8 + prerequisite
 ของ §2.9** (HEAD = `2f9e6ac`)
 
-**ขั้นถัดไปคือ §2.9** — charter ถูกวางไว้แล้วที่ `docs/phase-2-9-test-charter.md` (โดย
-`test-pipeline` Phase A) **ต้องผ่านการอนุมัติก่อนเขียน implementation**
+**ขั้นถัดไป: smoke test ของ §2.9 stage 1 บน preview — เป็นงานที่เจ้าของโปรเจกต์ต้องกดเอง**
+
+stage 1 (`e7f75df`) ทำให้ **OrderForm เขียนผ่าน Google Sheets API แล้ว** ชีตอื่นยังวิ่ง Apps
+Script เหมือนเดิม (`writeTransport` เป็น opt-in default = SheetLib) ⇒ deploy preview แล้วกด
+invoice create 1 ครั้งด้วย order ที่ทิ้งได้ แล้วตรวจตาม deploy gate ใน
+`docs/phase-2-9-test-charter.md`:
+`OrderForm.updated_at` ยังเป็น `datetime` (ตรวจด้วย `raw-column-type-check.ts`) และอีก 18
+คอลัมน์ของแถวนั้นต้องไม่ขยับ (ต้องเปิดชีตดูด้วยตา ไม่มีเทสต์ไหนแทนได้)
+
+**นี่คือครั้งแรกที่ `GOOGLE_SERVICE_ACCOUNT_KEY` ฝั่ง server ถูกใช้จริง** — ถ้า key บน Vercel
+เป็นคนละ service account กับที่ทดสอบใน local จะรู้ตอนนี้เท่านั้น (ดูหมวด 2)
+
+charter อยู่ที่ `docs/phase-2-9-test-charter.md` แก้ให้ตรงกับคำตัดสินของเจ้าของแล้ว (`e4341f3`)
 
 📄 **อ่าน [`session-2026-08-10-overnight.md`](./session-2026-08-10-overnight.md) ก่อนเริ่ม §2.9**
 — รายงานงานคืน 2026-08-10 มี **เรื่องใหญ่ 4 ข้อที่ต้องตัดสินก่อน** เขียนโค้ดได้
@@ -59,7 +70,12 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 | §2.7 follow-up — Invoices/OrderForm timestamps ประกาศ `USER_ENTERED` (ดูหมวด "การตัดสินใจ" ด้านล่าง) | ✅ | `9f53013` |
 | §2.8 keyed update — ยอมรับ race + `sheet-row-lookup.ts` | ✅ | `037a4b8` |
 | prerequisite ก่อน §2.9 (env + parity 3 ชีต + ด่านกัน portal) | ✅ | `2f9e6ac` |
-| **§2.9 สลับ transport จริง** | ⬜ **ขั้นถัดไป — ต้องผ่าน `test-pipeline` Phase A ก่อน** | |
+| §2.9 test charter (`test-pipeline` Phase A) | ✅ | `29384c1` `e4341f3` |
+| §2.9 **stage 1 — OrderForm keyed PATCH ผ่าน Sheets API** | ✅ โค้ดเสร็จ · ⬜ **รอ smoke test บน preview** | `e7f75df` |
+| §2.9 stage 2 — Appointments (CRUD เต็ม) | ⬜ | |
+| §2.9 stage 3 — Invoices/InvoiceItems (batchAppend) | ⬜ | |
+| งานแยกหลัง §2.9 — จัดระเบียบ timestamp ทุกชีตเป็น datetime | ⬜ | |
+| งานแยกหลัง §2.9 — `certainty` ของ Appointments (แก้ API contract) | ⬜ | |
 | §2.10 | ⬜ | |
 
 **§2.2 ยังไม่ถูกต่อเข้า `SheetRepository`** — transport ปัจจุบันยังเป็น Apps Script และ write path
