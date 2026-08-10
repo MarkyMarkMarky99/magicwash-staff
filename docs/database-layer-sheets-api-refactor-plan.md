@@ -37,8 +37,13 @@ use case/route แต่ physical sheet คือ resource ที่ใช้ร
 ## สถานะ (ปิด Phase 1 — 2026-08-09)
 
 **Phase 1 เสร็จครบทุกขั้น (1.1–1.8)** อยู่บน `refactor/sheet-layer` ยังไม่ merge เข้า main
-Phase 2 §2.0–§2.7 เสร็จแล้ว (โค้ด); §2.7 ยังค้าง smoke test จริง + registry fix ที่เจ้าของทำเอง;
-§2.8 เป็นขั้นถัดไป
+
+🔴 **อัปเดต 2026-08-10 — ส่วนนี้ค้างมาตั้งแต่ §2.7 ไม่ตรงกับความจริงแล้ว:** §2.7 smoke test
+ผ่านแล้ว, §2.8 เสร็จแล้ว, **§2.9 stage 1 (OrderForm keyed UPDATE ผ่าน Sheets API) เสร็จและผ่าน
+smoke test จริงแล้ว** ตอนนี้ transport ของ OrderForm's `update()` เป็น Sheets API จริง ไม่ใช่แค่
+building block รอต่ออีกต่อไป — รายละเอียดเต็มอยู่ `docs/phase-2-handoff.md` หมวด 1b/1
+(หมายเหตุ: ไฟล์นั้นคือ log ที่อัปเดตสดตลอด ส่วนไฟล์นี้คือแผนต้นฉบับที่แก้ตามหลัง จึงมักตามหลังเสมอ
+— ถ้าสองไฟล์ขัดกัน ให้เชื่อ `phase-2-handoff.md`) ขั้นถัดไปคือ §2.9 stage 2 (Appointments)
 
 commits ของ Phase 2 ที่เสร็จแล้ว:
 
@@ -51,6 +56,13 @@ commits ของ Phase 2 ที่เสร็จแล้ว:
 - §2.5 — `bedc81e`
 - §2.6 — `0e0ca23`
 - §2.7 — `3f9a178`
+- §2.7 timestamp `valueInput` follow-up — `9f53013`
+- §2.8 (`sheet-row-lookup.ts`) — `037a4b8`
+- prerequisite ของ §2.9 (env + parity 8 ชีต + ด่านกัน portal) — `2f9e6ac`
+- §2.9 test charter — `29384c1` `e4341f3`
+- Customers `writes: false` ชั่วคราว — `9891c4e`
+- **§2.9 stage 1 (OrderForm → Sheets API)** — `e7f75df`
+- write-failure logging (observability) — `1f00893`
 
 ผลลัพธ์: 1 repository ต่อ 1 physical sheet, repository ไม่รู้จัก API contract, DB↔API mapping
 อยู่ที่ module, `primaryKey` เป็นชื่อคอลัมน์ DB จริง, **module→module edge = 0** (ปัญหาตั้งต้น)
@@ -63,13 +75,14 @@ commits ของ Phase 2 ที่เสร็จแล้ว:
 `/api/appointments` `Address` แกะเป็น 4 ฟิลด์แบน · `/api/orders` `items` เป็น array, `quantity`
 เป็น number — **การอ่านครบทั้ง 5 module**
 
-### ⬜ ยังค้าง — ต้องทำก่อน merge เข้า main
+### ✅ เขียนจริงยืนยันแล้ว — ปิดไปตั้งแต่ §2.7 smoke test (2026-08-09) ⬜ merge เข้า main ยังไม่ทำ
 
-**เส้นทางเขียนยังไม่เคยยืนยันกับของจริง** invoice create เขียน 4 ชีต ไม่ idempotent
-ไม่มีเทสต์อัตโนมัติครอบได้ ต้องกดผ่าน staff UI 1 ครั้งด้วย order ที่ทิ้งได้ แล้วเปิดชีตตรวจ:
-`Invoices.customer`/`.adjustments` ต้องเป็น JSON string ที่ parse ได้ (ไม่ใช่ `[object Object]`),
-`InvoiceItems` แถวครบและ `sku` ว่างไม่ใช่คอลัมน์เลื่อน, `OrderForm.invoice_id` ถูกเขียน
-บันทึกผลลง `docs/sheets-api-migration-smoke-checklist.md`
+🔴 หมวดนี้เดิมเป็น "ยังค้าง" ค้างมาตั้งแต่ก่อนเปิด Phase 2 — ปิดจริงแล้ว: invoice create กดผ่าน
+staff UI จริงทั้ง §2.7 (`order_id=2400fb5c` → `INV260851685113`) และ §2.9 stage 1 smoke test
+(→ `INV260848367235`) `Invoices.customer`/`.adjustments` เป็น JSON parse ได้,
+`InvoiceItems.sku` ว่างถูกตำแหน่ง, `OrderForm.invoice_id` เขียนถูก — ผลบันทึกอยู่ที่
+`docs/phase-2-handoff.md` (ไฟล์ `docs/sheets-api-migration-smoke-checklist.md` ที่อ้างไว้เดิม
+**ไม่เคยถูกสร้างจริง** ผลถูกบันทึกในไฟล์ handoff แทน)
 
 ### สิ่งที่ทำต่างจากแผนนี้ — ตั้งใจ ไม่ใช่ของตกหล่น
 
@@ -82,8 +95,13 @@ commits ของ Phase 2 ที่เสร็จแล้ว:
 - **Customers write ตัดออกจาก scope** (M3) — เขียนผ่าน `appscript/customer-sheet/API.js`
   ซึ่งเป็น Apps Script คนละโปรเจกต์ที่มี lock + CustomerIndex allocation + LINE notification
   route POST/PATCH คงไว้ให้ fail แบบเดิม ไม่ถอดออก
+  🔴 **แก้แล้ว 2026-08-10** — ไม่ใช่ fail แบบเดิม (M2, ไม่มี `target`) อีกต่อไป เปลี่ยนเป็นปิดผ่าน
+  `writes: {append:false,update:false,delete:false}` ตรงๆ (`9891c4e`) ตั้งใจ ไม่ใช่ของตกหล่น —
+  fail message เปลี่ยนจาก "ไม่มี target" เป็น "ไม่รองรับ" แต่ผลลัพธ์ (เขียนไม่ได้) เหมือนเดิม
 - **`Invoices`/`InvoiceItems` ยังไม่มี `spreadsheetId`** ต่างจากตาราง §1.5 — สองชีตนี้เขียน
   อย่างเดียวไม่เคยอ่าน และ `INVOICES_SPREADSHEET_ID` ยังไม่มีบน Vercel ⇒ เพิ่มตอน §2.0
+  🔴 **แก้แล้ว 2026-08-10** — ทั้งสอง contract ผูก `spreadsheetId: 'INVOICES_SPREADSHEET_ID'`
+  แล้ว (`2f9e6ac`) ตอนเปิด prerequisite ของ §2.9 (ต้องอ่านเช็ค parity ก่อนเขียนทับ)
 - **`sheet-column-parity.ts` ไม่มีในแผนเดิม** เกิดจากบั๊กที่ทำ `/api/appointments` ล่มบน preview
 
 ### บทเรียนที่แผนนี้ทำนายไม่ถูก
@@ -176,7 +194,9 @@ module CRUD ธรรมดายัง declarative เหมือนเดิ�
 - **SheetLib เขียนด้วย `USER_ENTERED` ไม่ใช่ `RAW`** (`SheetService.js:106`)
 - **OrderForm ถูก auto-stamp `updated_at` อยู่จริง** — `Handler.js:30` เรียก `SheetService.update()`
   ไม่ส่ง `stamp` → default `true` → `updated_at = updated_at || _now()` (`SheetService.js:171`)
-  **comment ที่ `order.contract.ts:133` ว่าไม่ stamp นั้นผิด**
+  **comment ที่ `order.contract.ts:133` ว่าไม่ stamp นั้นผิด** (ข้อเท็จจริงเกี่ยวกับตัว SheetLib
+  เอง ยังจริงอยู่ — 🔴 แต่ **OrderForm ไม่ผ่านเส้นทางนี้แล้วตั้งแต่ 2026-08-10** เขียนผ่าน Sheets
+  API โดยแอปเป็นคน stamp เองแทน ดู §2.7/§2.9 stage 1)
 - **SheetLib DELETE = soft delete** — `Handler.js:31-35` แปลง DELETE เป็น `update()` ที่เซ็ต
   `deleted_at`/`deleted_by` → `SheetRepository.delete()` ทำแบบเดียวกัน
 - **`formatBangkokTimestamp` (`appointment.service.ts:102`) ตรงกับ `_now()` ของ SheetLib**
@@ -190,9 +210,14 @@ module CRUD ธรรมดายัง declarative เหมือนเดิ�
 `.env.local ORDERS_SPREADSHEET_ID = 1ucqeUq…` (portal) วันนี้ไม่มีผลเพราะ OrderForm ไม่เคยถูก
 GViz อ่าน แต่พอเขียนผ่าน Sheets API ค่านี้ชี้ workbook จริงทันที
 **ยืนยันแล้ว: registry ถูก** → แยก env เป็น prerequisite ของ Phase 2
+🔴 **แก้แล้ว 2026-08-10** — เจ้าของแก้ `.env.local` เอง `ORDERS_SPREADSHEET_ID` ชี้ `1tfgJvj…`
+(OrderForm จริง) แล้ว ยืนยันแล้วว่าไม่มี read path ไหนพัง (`2f9e6ac`)
 
-**M2 — Customers write พังอยู่แล้ววันนี้** `customer.repository.ts` ไม่มี `target` แต่
-`customer.module.ts:19` mount POST/PATCH → `requireWriteTarget()` throw
+**M2 — Customers write พังอยู่แล้ววันนี้ (ข้อเท็จจริง ณ วันที่เขียนแผนนี้)**
+`customer.repository.ts` ไม่มี `target` แต่ `customer.module.ts:19` mount POST/PATCH →
+`requireWriteTarget()` throw · 🔴 **เปลี่ยนกลไกแล้ว 2026-08-10** — ตอนนี้ปิดผ่าน
+`writes: false` ตรงๆ (`9891c4e`) ไม่ใช่ throw เพราะไม่มี `target` แบบเดิมอีกต่อไป (M2 เป็นข้อเท็จจริง
+เชิงประวัติศาสตร์ ไม่ใช่กลไกปัจจุบัน)
 
 **M3 — Customers ไม่ได้เขียนผ่าน SheetLib เลย** `appscript/customer-sheet/API.js` เป็น Apps Script
 คนละโปรเจกต์ มี `LockService` ของตัวเอง (`:302-305`) ตอน CREATE จอง `CustomerIndex` จากชีต
@@ -251,6 +276,11 @@ decodeJsonCells?  boolean
 valueInput?    Record<column, 'RAW' | 'USER_ENTERED'>   // ใส่จริงตอน Phase 2
 ```
 
+🔴 **เพิ่มแล้วจริง 2026-08-10 (`e7f75df`), ไม่มีในสเก็ตช์ข้างบน:**
+`writeTransport?: 'sheetlib' | 'sheets-api'` — opt-in ต่อชีต, ไม่ประกาศ = SheetLib เดิม (ดู
+`server/shared/contracts/sheet-contract.ts`) นี่คือกลไกจริงที่ทำให้สลับ transport ทีละชีตได้
+ตามลำดับที่ §2.9 วางไว้ โดยไม่ต้องสลับทั้งคลาส `SheetRepository` พร้อมกันทีเดียว
+
 `writes` มาแทน convention เดิมที่ใช้ `z.never()` ประกาศ "ชีตนี้ห้ามเขียน"
 (`customer-package-view.contract.ts:16`, `invoice-view.contract.ts:26`,
 `invoice.contract.ts:534` Payments, `order.contract.ts:53` OrdersView)
@@ -290,11 +320,11 @@ Google Sheets ถาวร
 
 | Sheet | spreadsheetId env | write วันนี้ | หมายเหตุ |
 |---|---|---|---|
-| `OrderForm` | `ORDERS_SPREADSHEET_ID` | SheetLib | ผูกกับ M1 |
+| `OrderForm` | `ORDERS_SPREADSHEET_ID` | ~~SheetLib~~ 🔴 **Sheets API ตั้งแต่ 2026-08-10** (`update()` เท่านั้น, `append`/`delete` ยังปิด) | ผูกกับ M1 |
 | `Appointments` | `APPOINTMENTS_SPREADSHEET_ID` | SheetLib | transformer ขึ้น module |
-| `Invoices` / `InvoiceItems` | (ไม่มี → `INVOICES_SPREADSHEET_ID`) | SheetLib | `InvoiceItems` มี batchAppend |
+| `Invoices` / `InvoiceItems` | ~~(ไม่มี → `INVOICES_SPREADSHEET_ID`)~~ 🔴 มีแล้ว `INVOICES_SPREADSHEET_ID` (`2f9e6ac`) | SheetLib | `InvoiceItems` มี batchAppend |
 | `Payments` | — | ไม่รองรับ | ย้ายไฟล์เฉยๆ |
-| `Customers` | `CUSTOMERS_SPREADSHEET_ID` | **ไม่แตะ** (M3) | read อย่างเดียว |
+| `Customers` | `CUSTOMERS_SPREADSHEET_ID` | **ไม่แตะ** (M3) | read อย่างเดียว 🔴 **แก้แล้ว 2026-08-10**: ปิดผ่าน `writes: {append:false,update:false,delete:false}` ตรงๆ (`9891c4e`) ไม่ใช่ fail แบบ M2 (ไม่มี `target`) เหมือนที่แผนนี้เคยว่าไว้ — คนละกลไก ผลลัพธ์คล้ายกัน (เขียนไม่ได้ทั้งคู่) แต่ error message ต่างกัน |
 | `OrdersView` / `InvoicesView` / `CustomerPackageView` | `ORDERS_SPREADSHEET_ID` (§2.0 เฟส A → `PORTAL_SPREADSHEET_ID`) | read-only | คอลัมน์ `*Json` คืนเป็น string ดิบ — ไม่มี `decodeJsonCells` แล้ว ดู §1.9 |
 
 **1.6** module รับ mapping — api contract import จาก `contracts/<feature>/<m>-api.schema.js` ตรงๆ
@@ -339,6 +369,8 @@ re-export `invoiceViewContract` ที่ `invoice.contract.ts:10`
   (`crud-routes.ts:17`) วันนี้มัน fail เพราะ repo ไม่มี `target` (M2) การถอด route ออกจะเปลี่ยน
   "fail แบบ 500" เป็น "404/unsupported" ซึ่งคือ behavior change
   ⇒ **คงพื้นผิว route ไว้เหมือนเดิม พังเหมือนเดิม** แค่ไม่ย้าย write transport เท่านั้น
+  🔴 **กลไก fail เปลี่ยนแล้ว 2026-08-10** — ไม่ fail เพราะไม่มี `target` (M2) อีกต่อไป ตอนนี้ปิดผ่าน
+  `writes: false` ตรงๆ (`9891c4e`) — ผลลัพธ์คล้ายกัน (เขียนไม่ได้) แต่คนละกลไกแล้ว
 - ⚠ **`primaryKey` เปลี่ยนความหมาย — กระทบ 8 จาก 9 sheet** วันนี้ `ModuleDbContract.primaryKey`
   คือ **ชื่อ field ฝั่ง API** (`module-db-contract.ts:45` ระบุชัด "NOT the DB column") และ
   `GSheetRepository` ต้อง invert fieldMap เพื่อหาชื่อคอลัมน์จริง (`:175-177`)
@@ -441,6 +473,11 @@ cache token ที่ module scope หัก 60 วิ **กัน refresh ซ�
 write consumer การ wire ก่อนหน้านั้นทำได้เพียงเพิ่ม dead field/public test hook หรือดึง header/auth
 เข้า SheetLib/GViz path จึง **ห้าม** ต่อ resolver เข้า constructor, read หรือ SheetLib write ก่อน §2.9
 
+🔴 **ต่อแล้วจริง 2026-08-10 (`e7f75df`)** — `sheet.repository.ts`'s constructor สร้าง
+`SheetHeaderMapResolver` ให้ contract ที่ `writeTransport === 'sheets-api'` (วันนี้มีแค่
+OrderForm) resolver ทำงานจริงตอน `updateThroughSheetsApi()` เรียก ชีตที่ยังไม่สลับ transport
+ไม่ถูกแตะเลย ยังใช้ SheetLib เหมือนเดิม 100%
+
 **2.4 serialization + `valueInputOption`**
 - object/array (`customer`, `adjustments`, `Address`) ต้อง `JSON.stringify` — SheetLib ทำให้อยู่
   (`invoice.contract.ts:59`)
@@ -456,7 +493,9 @@ write consumer การ wire ก่อนหน้านั้นทำได�
 `'RAW' | 'USER_ENTERED'` ประกาศเองในไฟล์ ไม่ import จาก `sheets-api.client.ts` เพื่อไม่ให้
 `contracts/` พึ่ง `repositories/`) และ `server/shared/repositories/sheet-value-serializer.ts`
 (`serializeCellValue`, `buildRowValues`, `resolveValueInputOption`,
-`resolveRowValueInputOptions`) เป็น building block เดียวกับแนวทาง §2.2/§2.3 — **ยังไม่ต่อเข้า
+`resolveRowValueInputOptions`) เป็น building block เดียวกับแนวทาง §2.2/§2.3 🔴 **ต่อแล้วจริง
+2026-08-10 (`e7f75df`)** — `serializeCellValue`/`resolveValueInputOption` ถูกเรียกจริงใน
+`updateThroughSheetsApi()` สำหรับ OrderForm (ชีตอื่นยังไม่ถูกแตะ) — เดิมประโยคนี้เขียนว่า **ยังไม่ต่อเข้า
 `SheetRepository`** ประชากร `valueInput` ครบ 4 sheet ที่เขียนจริง: `Appointments` มีข้อยกเว้น
 เดียวคือ `AppointmentDate: 'USER_ENTERED'` (คอลัมน์อื่นรวม `CreatedAt`/`UpdatedAt` ต้องเป็น
 `RAW` แม้หน้าตาเหมือนวันที่ เพราะ registry ระบุว่าต้องเป็น Plain Text — การตัดสินใจนี้ยังยืนอยู่
@@ -472,6 +511,13 @@ copy) และผ่าน mutation test แล้ว (ใส่ `CreatedAt: 'U
 Appointments' CreatedAt/UpdatedAt ที่ยังคง Plain Text ตามเดิม — สอง sheet นี้คนละการตัดสินใจกัน
 อย่าสับสน รายละเอียดเหตุผลอยู่ที่ comment ข้าง `valueInput` ใน `Invoices.db-contract.ts` /
 `OrderForm.db-contract.ts` โดยตรง
+
+🔴 **แก้ไข 2026-08-10 — โมเดล "absent = `RAW`" ข้างบนไม่ตรงกับสิ่งที่เขียนจริงตอน §2.9 stage 1:**
+`updateThroughSheetsApi()` ส่งทั้ง batch เป็น `USER_ENTERED` เสมอ (`client.updateCells(ranges,
+'USER_ENTERED')`) ไม่ใช่ต่อคอลัมน์ตามที่ `valueInput` ประกาศ `resolveValueInputOption` ยัง default
+เป็น `RAW` เหมือนเดิม แต่ค่านั้นถูกใช้แค่ตรวจว่าคอลัมน์ที่ **ประกาศ** ค่าอื่นที่ไม่ใช่ `USER_ENTERED`
+จะถูก reject ก่อนเขียน (กันความขัดแย้งเงียบๆ) ไม่ใช่ค่าที่ถูกส่งจริงไปยัง Sheets API ⇒ คอลัมน์ที่
+ไม่ได้ประกาศ `valueInput` จะได้ `USER_ENTERED` จริงบน wire เหมือนคอลัมน์ที่ประกาศ ไม่ใช่ `RAW`
 
 **2.5 error classification ตาม phase — 3 สถานะภายใน, public เหลือ 2 เหมือนเดิม**
 
@@ -502,6 +548,11 @@ serialization failure (ต้อง cast ผ่าน type system ด้วย `
 `SheetLibTransportError` — ตั้งใจเลื่อนอัปเดตไปพร้อม §2.9 ตอนที่ transport จริงถูกต่อเข้า
 invoice write
 
+🔴 **อัปเดตแล้ว 2026-08-10 (`e7f75df`)** — `classifyWriteFailure` แม็ป error class ของ Sheets API
+ครบแล้ว: `WriteRejectedError`, `WriteTransportError`, `WriteCommittedUnreadableError`,
+`DuplicateRowKeyError`, `WriteRowIdentityMismatchError` จำเป็นเพราะ OrderForm order-link ตอน
+invoice create โยน error พวกนี้ได้จริงแล้ว
+
 **2.6 response ต้องเป็นแถวสมบูรณ์**
 - append → `updates.updatedData.values` ⚠ Sheets **ตัด trailing blank ทิ้ง** → pad เต็มความกว้าง
   header แล้วแปลงกลับเป็น `null` ตาม blank semantics เดิม ระบุ `responseValueRenderOption` ให้ชัด
@@ -522,10 +573,16 @@ invoice write
 ระบุไว้ (`ความรับผิดชอบ verify PK เป็นของ repository flow ไม่ใช่ client`) ยังเป็น building
 block เดียวกับ §2.2–2.5 — ไม่ต่อเข้า `SheetRepository` รอ §2.9
 
+🔴 **ต่อแล้วจริง 2026-08-10 (`e7f75df`)** — `updateThroughSheetsApi()` เรียก `readRange` +
+`parseRowValues` + `verifyRowIdentity` จริงหลัง `updateCells` ทุกครั้งที่ OrderForm update
+(เฉพาะชีตที่ `writeTransport: 'sheets-api'` เท่านั้น ชีตอื่นยังไม่ถูกแตะ)
+
 **2.7 timestamp ต่อ sheet**
 - `formatBangkokTimestamp` reuse ได้ (ตรงกับ `_now()` ของ SheetLib) ย้ายไป `server/shared/utils/`
 - Invoice `created_at` ที่ SheetLib เคย stamp → stamp ใน `InvoiceService` ด้วยตัวเดียวกัน
 - **OrderForm ต้อง stamp `updated_at`** — วันนี้ SheetLib stamp ให้อยู่ ไม่ทำ behavior เปลี่ยน
+  🔴 **transport เปลี่ยนแล้ว 2026-08-10** — ค่าที่ stamp เหมือนเดิม (แอปเป็นคน stamp เหมือนที่
+  §2.7 ตั้งใจ) แต่ตอนนี้เขียนผ่าน Sheets API ไม่ใช่ SheetLib แล้วสำหรับ OrderForm (§2.9 stage 1)
 - ⚠ `Invoice.json` บรรยาย `created_at` ว่า ISO-8601 แต่ของจริงเป็น `YYYY-MM-DD HH:mm:ss` ไม่มี
   offset → **แก้ registry ให้ตรงความจริง** (ไม่เปลี่ยน format จะได้ไม่ต้อง backfill)
 
@@ -542,6 +599,8 @@ grok เจอ regression จริงตอนรีวิว: `invoice-sheetli
 2. **สอง smoke test ที่ค้างมารวมกันเป็นรอบเดียว** — invoice create ยังไม่เคยกดผ่าน staff UI
    จริงเลยตั้งแต่ย้าย stack (blocker เดิมจาก Phase 1 ที่ยังไม่ปิด) รวมกับตรวจ `created_at`/
    `updated_at` ที่เพิ่งเพิ่ม — ดู §5 ใน `docs/phase-2-handoff.md`
+   🔴 **ปิดแล้ว 2026-08-09** (ณ ตอนเขียนบรรทัดนี้ยังค้างจริง ตอนนี้ไม่ค้างแล้ว) — ดูหมวด "สถานะ"
+   ต้นไฟล์นี้
 
 **2.8 keyed update — ยอมรับ race (ตัดสินใจแล้ว)**
 
@@ -559,9 +618,21 @@ grok เจอ regression จริงตอนรีวิว: `invoice-sheetli
 ว่ามีแล้ว) (หมายเหตุ: การตรวจ PK ใน 2.6 จับได้เฉพาะกรณีแถวขยับ *ระหว่าง* write กับ read-back
 ไม่ได้แก้ race ช่วง lookup→write)
 
+🔴 **ต่อแล้วจริง 2026-08-10 (`e7f75df`)** — `findRowNumberByKey` ถูกเรียกจริงใน
+`updateThroughSheetsApi()` สำหรับ OrderForm race ที่ comment ข้างบนบอกว่า "วันนี้ยังไม่มี" **ตอนนี้
+มีจริงแล้วสำหรับ OrderForm** (ชีตอื่นยังผ่าน SheetLib เหมือนเดิม ไม่มี race) — comment บน
+`SheetRepository.update()` ต้องอัปเดตด้วยถ้ายังเขียนว่า "วันนี้ยังไม่มี race" เฉยๆ โดยไม่แยกตาม
+`writeTransport`
+
 **2.9 ลำดับสลับ transport** — `OrderForm` (blast radius ต่ำสุด แต่**พิสูจน์ได้แค่ keyed PATCH**)
 → `Appointments` (ตัวจริงที่พิสูจน์ append + JSON cell + date + Bangkok timestamp + CRUD response
 เต็ม) → `Invoices`/`InvoiceItems` (batchAppend + partial-persistence outcomes)
+
+🔴 **stage 1 (`OrderForm`) เสร็จและผ่าน smoke test จริงแล้ว 2026-08-10** (`e7f75df`, สโมคเทสต์บน
+local dev) — **เฉพาะ `update()` เท่านั้น** `append`/`delete` ของ OrderForm ยังปิดอยู่
+(`writes: {append:false, update:true, delete:false}`) ยังไม่ได้พิสูจน์ผ่าน append/JSON
+cell/CRUD เต็มรูปแบบตามที่ประโยคข้างบนตั้งเป้าไว้สำหรับ stage ถัดไป — stage 2 (Appointments)
+ยังไม่เริ่ม รายละเอียดที่ `docs/phase-2-handoff.md`
 
 **2.10 ลบของเก่า** — SheetLib write path, `write-errors.ts` alias ชื่อเดิม, env `APPSCRIPT_URL` /
 `APPSCRIPT_GATEWAY_URL` / `APPSCRIPT_APPOINTMENT_URL`
@@ -610,6 +681,12 @@ Phase 2 เพิ่มใต้ `tests/server/unit/shared/repositories/`:
 - **`AGENTS.md` (root) `:33-45`** — บังคับ `ModuleContract` + module-owned repository + SheetLib
 - **`api/CLAUDE.md`** — Project Structure, Complex modules, Architecture Rules, Testing
 
+🔴 **ทำแล้ว** — `ModuleContract` ถูกลบตั้งแต่ Phase 1 (§1.8) และทั้งสองไฟล์ถูกแก้ให้ตรงสถาปัตยกรรม
+sheet-layer แล้ว ล่าสุดแก้เพิ่มอีกรอบ 2026-08-10 เพื่อลบคำว่า "Sheets API is Phase 2 and not
+current behavior" ที่ค้างผิดหลัง §2.9 stage 1 ขึ้นจริง (Overview + Google Sheets
+Rules/Key Engine Rules) — Tech Stack bullet สั้นๆ ใน `AGENTS.md`/`api/CLAUDE.md` ก็แก้ตามแล้ว
+เช่นกัน
+
 เนื้อหาใหม่: sheet เป็นเจ้าของ repository ไม่ใช่ module; repository ไม่รู้จัก API contract;
 mapping อยู่ที่ module; writes = Sheets API, reads = GViz, Apps Script เหลือเฉพาะ view recompute;
 คงข้อห้าม central registry/barrel; เพิ่ม `tests/server/unit/sheets/`
@@ -657,6 +734,8 @@ serialization/error paths กับ **spreadsheet ทิ้งได้** ก่
 
 บันทึกผลลง `docs/sheets-api-migration-smoke-checklist.md` (ตามแบบ
 `docs/invoice-refactor-smoke-checklist.md` ที่มีอยู่แล้ว)
+🔴 **ไฟล์นี้ไม่เคยถูกสร้างจริง** — ผลของ §2.7 และ §2.9 stage 1 smoke test ถูกบันทึกใน
+`docs/phase-2-handoff.md` แทน (ดูหมวด "สถานะ" ต้นไฟล์นี้)
 
 ---
 
@@ -665,6 +744,8 @@ serialization/error paths กับ **spreadsheet ทิ้งได้** ก่
 - ไม่ย้าย read ไป Sheets API (GViz อยู่ต่อ — Supabase คือปลายทาง)
 - **ไม่แตะ Customers write** (M3) — read ย้ายเข้า `server/sheets/Customers/` ได้ปกติ
   แต่ **route POST/PATCH ต้องคงไว้ให้ fail เหมือนเดิม** ห้ามถอดออก (จะกลายเป็น behavior change)
+  🔴 **กลไก fail เปลี่ยนเป็น `writes: false` capability gate แล้ว 2026-08-10** (`9891c4e`)
+  ไม่ใช่ M2's no-target throw อีกต่อไป — route ยังคงอยู่ ยังเขียนไม่ได้เหมือนกัน แค่คนละ error path
   การซ่อม M2 ให้ถูกต้องคือการ implement flow ของ `appscript/customer-sheet/API.js` ใหม่ — งานแยก
 - ไม่ทำ multi-sheet transaction สำหรับ invoice create — วันนี้ก็ไม่มี และ
   `invoice.service.ts:236-306` มี outcome kind รับมือ partial failure อยู่แล้ว

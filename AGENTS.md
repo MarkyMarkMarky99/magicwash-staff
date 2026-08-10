@@ -3,13 +3,17 @@
 ## Overview
 
 TypeScript Vercel serverless API for the Vue portal. Google Sheets is the data
-store: GViz reads data and Apps Script/SheetLib performs writes.
+store: GViz reads data. Writes are migrating sheet-by-sheet from Apps
+Script/SheetLib to the Google Sheets API (opt-in per sheet via
+`SheetContract.writeTransport`); most sheets still write through SheetLib
+today, see Google Sheets Rules below for the current split.
 
 ## Tech Stack
 
 - TypeScript (strict) + Vercel serverless functions
 - Zod v3 for shared API contracts and request validation
-- Google Sheets: GViz reads and Apps Script/SheetLib writes
+- Google Sheets: GViz reads; writes via Apps Script/SheetLib or, per sheet
+  opt-in, the Google Sheets API (`SheetContract.writeTransport`)
 - Native `fetch`; plain TypeScript dry tests with `node:assert/strict`
 
 ## Project Structure
@@ -73,12 +77,18 @@ store: GViz reads data and Apps Script/SheetLib performs writes.
 
 ## Google Sheets Rules
 
-- `SheetRepository` owns GViz reads and SheetLib/App Script writes. It maps no API
-  fields; `BaseCrudService` owns the module's DB-to-API mapping and declared JSON
-  cell decoding.
-- Every write has an explicit SheetLib target; UPDATE is a PATCH. Writes still go
-  through Apps Script/SheetLib today. The Google Sheets API swap is Phase 2 and is
-  not current behavior.
+- `SheetRepository` owns GViz reads and writes via either SheetLib/App Script or
+  the Google Sheets API, chosen per sheet by `SheetContract.writeTransport`
+  (`'sheetlib'` default, or `'sheets-api'` opt-in). It maps no API fields;
+  `BaseCrudService` owns the module's DB-to-API mapping and declared JSON cell
+  decoding.
+- SheetLib sheets: every write has an explicit SheetLib target; UPDATE is a PATCH.
+  Sheets-API sheets: UPDATE looks up the row by primary key, then patches only the
+  changed columns (see `sheet-row-lookup.ts` for the accepted lookup-to-write race).
+  As of 2026-08-10 only `OrderForm.update()` uses the Sheets API transport; every
+  other sheet still writes through SheetLib. OrderForm's own append/delete are
+  disabled (`writes: {append:false, delete:false}`), not routed to SheetLib —
+  its `scriptUrl` is unset.
 - Portal views are Apps Script-owned read models. Decode their JSON text columns only
   through the owning module's `jsonColumns`; fix wrong business data at its source.
 - The backend returns GViz's raw date form. Date formatting belongs in the frontend.

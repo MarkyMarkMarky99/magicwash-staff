@@ -1,14 +1,17 @@
 # CLAUDE.md - Vercel Serverless API
 
 Serverless backend for the Vue webapp. Data lives in Google Sheets — reads use GViz
-(unauthenticated), and writes use Apps Script/SheetLib `doPost` (HTTP POST). The
-Google Sheets API swap is Phase 2; it is not current behavior.
+(unauthenticated). Writes are migrating sheet-by-sheet from Apps Script/SheetLib
+`doPost` to the authenticated Google Sheets API, opt-in per sheet via
+`SheetContract.writeTransport`. As of 2026-08-10 only `OrderForm.update()` uses
+the Sheets API transport; every other write still goes through SheetLib.
 
 ## Tech Stack
 
 - TypeScript (strict), Vercel serverless — no HTTP framework, file-based routing
 - Zod v3 — runtime validation and type inference
-- Google Sheets — GViz reads, Apps Script/SheetLib writes
+- Google Sheets — GViz reads; writes via Apps Script/SheetLib or, per sheet
+  opt-in, the Google Sheets API (`SheetContract.writeTransport`)
 - Native `fetch` for outbound HTTP
 
 ## Project Structure
@@ -111,7 +114,7 @@ owns the cross-sheet workflow; there is no central repository registry.
 - **Module route wiring is generic, not hand-written** — `createCrudRoutes(service, api)` (`server/shared/http/crud-routes.ts`) builds every module's collection/item `ApiHandler`s from the API contract capability slots; a module never writes its own `ApiHandler`/`ok`/`created`/`okPaged` wiring. Business logic beyond CRUD+filter belongs in the service.
 - **Dependency direction:** `routes → service → sheet repository → queries`.
 - **Sheet ownership is physical:** `server/sheets/<Sheet>/<Sheet>.repository.ts` is the only file that constructs that sheet's `SheetRepository`, behind a lazy memoized `get<Sheet>Repository()` getter. A physical sheet has one row schema, one `SheetContract`, one primary key, and one write-capability declaration.
-- **SheetRepository is DB-only:** it owns GViz queries, column-letter derivation, and Apps Script/SheetLib transport using DB column names. It does not import or understand an API contract.
+- **SheetRepository is DB-only:** it owns GViz queries, column-letter derivation, and write transport (Apps Script/SheetLib, or the Google Sheets API for sheets that opt in via `writeTransport`) using DB column names. It does not import or understand an API contract.
 - **Module mapping is load-bearing:** each DB-shaped service declares `fieldMap` (DB column → API field) and, when needed, `jsonColumns` on `BaseCrudService`. Mapping applies to queries, payloads, and response rows; JSON decoding applies only to the listed text columns.
 - **Primary keys are physical:** `SheetContract.primaryKey` is the real DB column name. The service maps the API id to that column before the repository reads, updates, or deletes.
 - **Type import direction:** feature API schemas in `contracts/` do not import from `server/`; sheet DB contracts may reuse API enums, but API contracts never depend on DB shapes. `ModuleApiContract` is the shared API-side structural type.
@@ -119,12 +122,13 @@ owns the cross-sheet workflow; there is no central repository registry.
 
 ### Key Engine Rules
 
-- **Repository contract:** `BaseCrudService` can consume a DB-shaped `SheetRepositoryContract`; `SheetRepository` implements it with GViz reads and SheetLib/App Script writes. Storage and transport details stay in the repository; API mapping stays in the module service.
+- **Repository contract:** `BaseCrudService` can consume a DB-shaped `SheetRepositoryContract`; `SheetRepository` implements it with GViz reads and, per sheet, either SheetLib/App Script or Google Sheets API writes (`SheetContract.writeTransport`). Storage and transport details stay in the repository; API mapping stays in the module service.
 - **Read pipeline:** `BaseCrudService` validates `api.query.list`, builds `ReadQueryDTO.fromQuery(query, searchFields)` (keyword→search; page/perPage/sort reserved; every other field→`where`), maps API fields to DB fields, and calls the sheet repository. `getById` and `update` address the service id through the physical `primaryKey`.
 - **Contracts are machine-checked:** API bundles use `satisfies ModuleApiContract`, sheet bundles use `satisfies SheetContract`, and field maps use `satisfies Record<keyof row & string, string>`. Runtime tests must pin field-map values because `satisfies` checks keys and types, not semantic string values.
 - **Cell values are not runtime-validated on reads:** legacy dirty rows must flow through reads and write responses without 500. Response schemas drive projection through their `.shape` key set. A GViz column that resolves to no DB field throws because that is contract drift, not dirty data.
 - **SheetLib contract:** APPEND/UPDATE return the stored row in `data`; UPDATE is PATCH and sends only changed fields. Every write has an explicit target. A confirmed write with an unusable response shape is a transport-unknown outcome and must not be classified as a rejection, because retrying could duplicate persisted rows.
-- **Current write path:** writes go through Apps Script/SheetLib today. The Google Sheets API replacement is Phase 2 and is not implemented; do not document or build it as current behavior.
+- **Sheets API contract:** for a sheet with `writeTransport: 'sheets-api'`, UPDATE looks up the row's line number by primary key (`findRowNumberByKey`, an accepted lookup-to-write race — see that file's doc comment), patches only the changed columns via `values:batchUpdate` under `USER_ENTERED`, then reads the row back and verifies its primary key still matches before returning it. `WriteRejectedError`/`WriteTransportError`/`WriteCommittedUnreadableError`/`DuplicateRowKeyError`/`WriteRowIdentityMismatchError` classify into the same `rejected`/`unknown` certainty taxonomy as SheetLib errors.
+- **Current write path:** writes go sheet-by-sheet. As of 2026-08-10 only OrderForm's `update()` uses the Sheets API; every other sheet still writes through Apps Script/SheetLib. OrderForm's own append/delete are disabled (`writes: {append:false, delete:false}`), not routed to SheetLib — its `scriptUrl` is unset. Do not assume a sheet is on the new transport without checking its `db-contract.ts`'s `writeTransport`.
 - **Date values:** the backend returns GViz's raw date form (`Date(Y,M,D)` or the raw text returned by GViz). Date formatting belongs to the frontend.
 - **Audit columns** (`updated_at`/`updated_by`/`deleted_at`/…) normally appear in no response schema. The actor is client input only where the feature contract explicitly permits it.
 - **No business hooks in the generic engine:** the normal flow is validate → read/write → module mapping/decoding → project. Multi-sheet or nonstandard business decisions belong in a dedicated service.
