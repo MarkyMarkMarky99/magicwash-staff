@@ -236,13 +236,17 @@ InvoiceItems 14, Customers 20, OrdersView 13, InvoicesView 17, CustomerPackageVi
 ยืนยันด้วย key ใน `.env.local` เท่านั้น **ยังไม่มีอะไรพิสูจน์ว่า key บน server เป็น account
 ตัวเดียวกัน** ⇒ **§2.9 stage แรกต้องพิสูจน์บน preview deploy จริง ไม่ใช่แค่ local**
 
-### 📄 มีเรื่องใหญ่ 6 ข้อรอตัดสินก่อนเขียน §2.9
+### ✅ เรื่องใหญ่ 6 ข้อ — ตัดสินครบแล้ว 2026-08-10
 
-Customers จะเปลี่ยนจาก "พังเสียงดัง" เป็น "เขียนจริง" โดยไม่มีใครสั่ง · `valueInputOption`
-ต่อคอลัมน์ชนกับข้อจำกัดของ Sheets API · error bridge ทำให้ `certainty` ของ invoice เปลี่ยน
-ความหมายเงียบๆ · `delete` ไม่มีที่ยืนบน transport ใหม่ · **type ของคอลัมน์ timestamp ปนกันอยู่
-ในชีตจริงโดยไม่ได้ตั้งใจ** · **Appointments ไม่มี `certainty` ใน API contract เลย** error จาก
-transport ใหม่จะกลายเป็น `500 INTERNAL_ERROR` กลางๆ ทั้งหมด
+`writes: false` สำหรับ Customers (ชั่วคราว จะเปิดหลัง refactor) · `USER_ENTERED` ทั้งแถว ·
+map error class ใหม่ให้ครบ · `delete` โยน "ยังไม่รองรับ" · **metadata timestamp ทุกชีตต้องเป็น
+`2026-08-09 23:15:21` และเป็น datetime จริง** · Appointments ต้องมี `certainty`
+
+**ตารางคำตัดสินเต็ม + ที่มา + ข้อจำกัดที่ต้องรู้** อยู่ที่หมวด 3 ของ
+[`session-2026-08-10-overnight.md`](./session-2026-08-10-overnight.md)
+
+**ลำดับที่เจ้าของกำหนด:** §2.9 ให้จบก่อน แล้วใช้การแก้ timestamp เป็น **smoke test ของ
+transport ใหม่** (เขียน 1 แถว → ตรวจ → ยิงที่เหลือ)
 
 รายละเอียดครบพร้อมทางเลือกอยู่ในหมวด 3 ของ **[`session-2026-08-10-overnight.md`](./session-2026-08-10-overnight.md)**
 — รายงานงานที่ทำระหว่างเจ้าของโปรเจกต์นอน อ่านไฟล์นั้นก่อนเริ่ม §2.9
