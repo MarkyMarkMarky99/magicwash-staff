@@ -128,11 +128,18 @@ scratch. Frontend date formatting went back three times as three cold sessions, 
 re-reading `src/` to change work it had written minutes earlier.
 
 ```bash
-codex exec -s workspace-write resume <session-id> - < <brieffile>
+codex exec -s workspace-write resume <session-id> -m gpt-5.6-luna -c model_reasoning_effort="xhigh" - < <brieffile>
 ```
 
 The sandbox flag goes BEFORE `resume`. Capture the session id from the first call's output
 — do not `tail` it away, which is easy to do and leaves you unable to resume.
+
+**Repeat `-m` and the reasoning effort on every resume.** They are per-invocation flags, not
+properties the session remembers. Omit them and the resume silently falls back to whatever
+`~/.codex/config.toml` sets — today `model = "gpt-5.6-sol"` and `model_reasoning_effort = "high"`
+— so the fix round runs on a different model, at lower effort, than the round it is fixing.
+Nothing in the output says so. This was found only by comparing a pipeline's own report of
+which model answered against the flags it had passed.
 
 **Start fresh** for a genuinely different task, or when the previous session's context
 would mislead more than help — a new step of a plan, a different area of the code, or a

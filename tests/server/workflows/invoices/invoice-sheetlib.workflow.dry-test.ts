@@ -5,11 +5,14 @@ import type { CreateInvoiceRequest } from '../../../../contracts/invoices/invoic
 /**
  * Mixed transport workflow.
  *
- * Exercises the REAL `InvoiceService` (default-constructed repositories, no
- * injected fakes) against a mocked `fetch`, asserting the exact wire-level
- * requests: one `InvoiceItem` APPEND and one `Invoice` APPEND through SheetLib,
- * plus an OrderForm keyed PATCH through the Sheets API with only the invoice
- * link fields.
+ * Exercises the REAL `InvoiceService` against a mocked `fetch`, asserting the
+ * exact wire-level requests: one `InvoiceItem` APPEND and one `Invoice` APPEND
+ * through SheetLib, plus an OrderForm keyed PATCH through the Sheets API with
+ * only the invoice link fields.
+ *
+ * The repositories are the real, default-constructed ones — no fake repository
+ * is injected, which is what makes the asserted request bodies meaningful. Only
+ * the clock and the separate view-sync endpoint are stubbed (see the call site).
  */
 
 process.env.APPSCRIPT_URL = 'https://script.example/exec'

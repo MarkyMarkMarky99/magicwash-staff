@@ -181,6 +181,8 @@ GET /api/invoices/INV-2026-0034
 }
 ```
 
-⚠️ The `payments[]` shape here is the unverified guess flagged in
-`invoice-view-api.schema.ts` — everything else is grounded in
-`InvoiceView.json` / `Payment.json`.
+⚠️ The `payments[]` shape here is inferred, not observed: `InvoiceView.json`'s
+only example has an empty payments array, so the fields come from `Payment.json`
+translated to camelCase. Treat it as unconfirmed until a real populated row is
+seen. Everything else on this page is grounded in `InvoiceView.json` /
+`Payment.json`.

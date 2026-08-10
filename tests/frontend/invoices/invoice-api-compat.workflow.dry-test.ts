@@ -9,37 +9,31 @@ import {
 } from '../../../src/features/invoices/utils/invoice-outcome.utils'
 
 /**
- * Layer 5 — Frontend compatibility workflow
- * (docs/invoice-module-refactor-plan.md's Workflow Test Plan).
+ * Frontend compatibility workflow.
  *
- * This is the test whose acceptance criterion is "retry is offered only for
- * a definite rejection that proves nothing persisted" — the exact release
- * gate `InvoiceCreatePage.vue` previously failed (a lost response after
- * `InvoiceItem` rows were written rendered "Safe to try again — no invoice
- * or line items were written" underneath a Try again button). It imports and
- * exercises the REAL, production `canRetryInvoiceOutcome`/
- * `synthesizeNetworkFailureOutcome` functions `InvoiceCreatePage.vue` itself
- * calls (`src/features/invoices/utils/invoice-outcome.utils.ts`) — not a
+ * Asserts retry is offered only for a definite rejection that proves nothing
+ * persisted (a lost response after `InvoiceItem` rows were written must not
+ * render "Safe to try again" under a Try again button). Imports and exercises
+ * the REAL production `canRetryInvoiceOutcome` /
+ * `synthesizeNetworkFailureOutcome` functions
+ * (`src/features/invoices/utils/invoice-outcome.utils.ts`) — not a
  * re-implementation of the policy — against the real
  * `createInvoiceResponseSchema` union every one of the six outcome kinds
  * must satisfy.
  *
  * ⚠ SCOPE NOTE: this repo has no frontend tsconfig and no bundler-backed test
- * runner (`tests/web/`'s only existing dry-test avoids the same issue for
- * the same reason — see its header) — `@/*`/`@contracts/*` are Vite-only
- * aliases, and a plain `npx tsx` run cannot resolve a VALUE import through
- * them (only `import type` is safe, because it's erased at transpile time
- * and never needs runtime resolution). `invoice.service.ts` / `api-client.ts`
- * both have real (non-type-only) alias value imports
- * (`@contracts/...`, `@/shared/api/api-client`), so `getInvoices()` /
- * `createInvoice()` / `getInvoiceDetail()` cannot be imported directly by
- * this file the way `canRetryInvoiceOutcome` can (that function's only
- * cross-alias import is `import type`, which is erased). List-unwrapping and
- * detail-404 handling in those three functions are therefore validated by
- * `npm run build` (this repo's established frontend compile-time gate, run
- * and passing — see this fix round's report) plus direct code reading, NOT
- * by an executed assertion in this file. This is a real, disclosed gap, not
- * a claim that those paths were exercised here.
+ * runner — `@/*`/`@contracts/*` are Vite-only aliases, and a plain `npx tsx`
+ * run cannot resolve a VALUE import through them (only `import type` is safe,
+ * because it's erased at transpile time and never needs runtime resolution).
+ * `invoice.service.ts` / `api-client.ts` both have real (non-type-only) alias
+ * value imports (`@contracts/...`, `@/shared/api/api-client`), so
+ * `getInvoices()` / `createInvoice()` / `getInvoiceDetail()` cannot be imported
+ * directly by this file the way `canRetryInvoiceOutcome` can (that function's
+ * only cross-alias import is `import type`, which is erased). List-unwrapping
+ * and detail-404 handling in those three functions are therefore validated by
+ * `npm run build` plus direct code reading, NOT by an executed assertion in
+ * this file. This is a real, disclosed gap, not a claim that those paths were
+ * exercised here.
  */
 
 const tests: Array<{ name: string; run: () => void }> = []

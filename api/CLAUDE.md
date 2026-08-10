@@ -3,8 +3,9 @@
 Serverless backend for the Vue webapp. Data lives in Google Sheets — reads use GViz
 (unauthenticated). Writes are migrating sheet-by-sheet from Apps Script/SheetLib
 `doPost` to the authenticated Google Sheets API, opt-in per sheet via
-`SheetContract.writeTransport`. As of 2026-08-10 only `OrderForm.update()` uses
-the Sheets API transport; every other write still goes through SheetLib.
+`SheetContract.writeTransport`. Read that field in the sheet's own `db-contract.ts`
+to know which transport it uses — do not assume, and do not rely on a count of
+migrated sheets written down anywhere, including here.
 
 ## Tech Stack
 
@@ -128,7 +129,7 @@ owns the cross-sheet workflow; there is no central repository registry.
 - **Cell values are not runtime-validated on reads:** legacy dirty rows must flow through reads and write responses without 500. Response schemas drive projection through their `.shape` key set. A GViz column that resolves to no DB field throws because that is contract drift, not dirty data.
 - **SheetLib contract:** APPEND/UPDATE return the stored row in `data`; UPDATE is PATCH and sends only changed fields. Every write has an explicit target. A confirmed write with an unusable response shape is a transport-unknown outcome and must not be classified as a rejection, because retrying could duplicate persisted rows.
 - **Sheets API contract:** for a sheet with `writeTransport: 'sheets-api'`, UPDATE looks up the row's line number by primary key (`findRowNumberByKey`, an accepted lookup-to-write race — see that file's doc comment), patches only the changed columns via `values:batchUpdate` under `USER_ENTERED`, then reads the row back and verifies its primary key still matches before returning it. `WriteRejectedError`/`WriteTransportError`/`WriteCommittedUnreadableError`/`DuplicateRowKeyError`/`WriteRowIdentityMismatchError` classify into the same `rejected`/`unknown` certainty taxonomy as SheetLib errors.
-- **Current write path:** writes go sheet-by-sheet. As of 2026-08-10 only OrderForm's `update()` uses the Sheets API; every other sheet still writes through Apps Script/SheetLib. OrderForm's own append/delete are disabled (`writes: {append:false, delete:false}`), not routed to SheetLib — its `scriptUrl` is unset. Do not assume a sheet is on the new transport without checking its `db-contract.ts`'s `writeTransport`.
+- **Which write path a sheet uses:** read `writeTransport` in that sheet's `db-contract.ts`. Absent means SheetLib. A sheet on `'sheets-api'` has no `scriptUrl` at all, so any operation its `writes` flags leave enabled must have a Sheets API implementation — there is no SheetLib fallback to catch it. Never assume from a migration count written in prose; it will be out of date.
 - **Date values:** the backend returns GViz's raw date form (`Date(Y,M,D)` or the raw text returned by GViz). Date formatting belongs to the frontend.
 - **Audit columns** (`updated_at`/`updated_by`/`deleted_at`/…) normally appear in no response schema. The actor is client input only where the feature contract explicitly permits it.
 - **No business hooks in the generic engine:** the normal flow is validate → read/write → module mapping/decoding → project. Multi-sheet or nonstandard business decisions belong in a dedicated service.
