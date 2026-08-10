@@ -1,7 +1,7 @@
 # Handoff — เริ่ม Phase 2
 
-เขียนเมื่อ 2026-08-09 ตอนปิด Phase 1 · **อัปเดตล่าสุด 2026-08-10 ตอน §2.9 stage 1 ผ่าน smoke
-test จริงบน local dev** (HEAD = `7c1080a`)
+เขียนเมื่อ 2026-08-09 ตอนปิด Phase 1 · **อัปเดตล่าสุด 2026-08-11 ตอน §2.9 stage 2 ผ่าน smoke
+test จริง และ stage 3A ลงบน branch แยก** (HEAD ของ `refactor/sheet-layer` = `1f88fc8`)
 
 **✅ §2.9 stage 1 (OrderForm) ผ่าน smoke test แล้ว (2026-08-10)** — รายละเอียดเต็มอยู่หมวด 1b
 ใต้หัวข้อ "§2.9 stage 1 smoke test" **ขั้นถัดไปคือ §2.9 stage 2 (Appointments)** ยังไม่เริ่ม
@@ -68,8 +68,10 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 | §2.9 **stage 1 — OrderForm keyed PATCH ผ่าน Sheets API** | ✅ **ผ่าน smoke test จริงแล้ว (2026-08-10)** | `e7f75df` + logging `1f00893` |
 | §2.9 stage 2A — `appendThroughSheetsApi` (ไม่แตะ contract ใด) | ✅ | `ef521d8` |
 | §2.9 stage 2B — Appointments opt-in `writeTransport: 'sheets-api'` | ✅ **โค้ดเสร็จ ยังไม่ผ่าน smoke test** | `ddc1323` |
-| §2.9 stage 2C — smoke test จริง (เจ้าของกดผ่าน staff UI) | ⬜ **ขั้นถัดไป** | |
-| §2.9 stage 3 — Invoices/InvoiceItems (batchAppend) | ⬜ | |
+| §2.9 stage 2C — smoke test จริง (เจ้าของกดผ่าน staff UI) | ✅ **ผ่านครบ 5 ข้อ (2026-08-11)** | |
+| §2.9 stage 3A — `batchAppendThroughSheetsApi` (ไม่แตะ contract ใด) | ✅ | `21a53ef` **อยู่บน branch แยก** |
+| §2.9 stage 3B — Invoices + InvoiceItems opt-in | 🔄 กำลังรัน ณ เวลาที่เขียน | |
+| §2.9 stage 3C — smoke test จริง (สร้าง invoice) | ⬜ **เจ้าของกดเอง** | |
 | งานแยกหลัง §2.9 — จัดระเบียบ timestamp ทุกชีตเป็น datetime | ⬜ | |
 | งานแยกหลัง §2.9 — `certainty` ของ Appointments (แก้ API contract) | ⬜ | |
 | §2.10 | ⬜ | |
@@ -289,7 +291,38 @@ response body (สูงสุด 500 ตัวอักษร) ของ Sheets
 business logic/response shape เลย (grok review ยืนยันแล้ว) เก็บไว้ถาวรเพราะแก้ observability gap
 จริงที่จะเกิดกับ write failure ในอนาคตด้วย ไม่ใช่แค่ครั้งนี้ครั้งเดียว
 
-### §2.9 stage 2C — สิ่งที่ต้องกดและต้องตรวจ (ยังไม่ทำ)
+### 🔴 อ่านก่อนหาโค้ด stage 3 — มันไม่ได้อยู่บน `refactor/sheet-layer`
+
+```
+branch    refactor/sheet-layer-stage-3     แตกจาก refactor/sheet-layer
+worktree  .worktrees\refactor-sheet-layer-stage-3
+```
+
+`git log` บน `refactor/sheet-layer` **จะไม่เห็นงาน stage 3 เลย** ต้อง merge กลับเองเมื่อพร้อม
+(`.worktrees/` ถูก gitignore ⇒ ไม่โผล่ใน `git status` ของ checkout หลัก)
+
+เหตุผลที่แยก: stage 3 รันด้วย **`grok-pipeline`** ซึ่งให้ Grok ทำงานใน Docker ที่ mount เห็นแค่
+worktree เท่านั้น ⇒ `.env.local` และ secret อื่นไปไม่ถึงมันโดยโครงสร้าง ไม่ใช่ด้วยการกรองชื่อไฟล์
+
+### §2.9 stage 2C — ผลตรวจจริง (2026-08-11) ✅
+
+เจ้าของกด create + เลื่อนนัดผ่าน UI จริง (`APPT-4ad2901e`) ตรวจครบ 5 ข้อ ผ่านหมด:
+
+| ตรวจ | ผล |
+|---|---|
+| type ทั้ง 4 คอลัมน์ไม่เปลี่ยนจากก่อน deploy | `CreatedAt` string · `UpdatedAt` datetime · `DeletedAt` ว่าง · `AppointmentDate` date ✅ |
+| คอลัมน์ไม่เลื่อน | `PickupOrderID`/`DeliveryOrderID` ว่างอยู่ตำแหน่งถูก ✅ |
+| `Address` JSON ชั้นเดียว parse เป็นอ็อบเจ็กต์ | ✅ |
+| GViz date-range filter | ✅ query ช่วง 12-14 ส.ค. เจอแถวใหม่ |
+| update แตะเฉพาะที่แก้ | `UpdatedAt` ขยับ ที่เหลือคงเดิม ✅ |
+
+**ของแถม:** `CreatedAt` ที่เราเขียนเป็น `2026-08-11 03:00:56` — รูปแบบมาตรฐาน ต่างจากแถวเก่าใน
+ชีตที่เป็น `27/03/2026 04:37:32` (ข้อมูลยุคก่อนหน้า ไม่ใช่ผลของโค้ดชุดนี้) ⇒ ข้อมูลใหม่สะอาด
+ตั้งแต่วันนี้ · และ **`PATCH` คืนค่าให้ frontend ได้ปกติ** ⇒ ไม่ต้องแตะ `updateThroughSheetsApi`
+
+⚠️ ทั้งหมดนี้ทดสอบบน **local dev** ยังไม่เคยผ่าน preview/production deploy สักครั้ง
+
+### §2.9 stage 2C — สิ่งที่ต้องกดและต้องตรวจ (บันทึกไว้เป็นแบบให้ 3C ใช้ซ้ำ)
 
 โค้ดฝั่ง Appointments พร้อมแล้ว แต่ **ยังไม่เคยยิงถึง Google เลยสักครั้ง** ทุกอย่างที่ผ่านมาเป็น
 mock ทั้งหมด สิ่งที่ mock พิสูจน์ไม่ได้คือ Google เก็บอะไรจริง
@@ -315,6 +348,21 @@ mock ทั้งหมด สิ่งที่ mock พิสูจน์ไ�
 **ควร deploy preview ไม่ใช่ local dev** — stage 1 พิสูจน์บน local เท่านั้น และบั๊กคลาส `.js`
 extension ที่หายใน ESM import จับได้เฉพาะ deploy จริง (`tsc`/dry-test/`vercel dev` พลาดทั้งสามตัว
 เคยทำ production ล่มมาแล้ว) · stage 2 เพิ่ม code path ใหม่ ⇒ ความเสี่ยงนี้กลับมา
+
+---
+
+## 1c. เหลืออีก 6 ข้อจบ Phase 2 (สถานะ 2026-08-11)
+
+| # | อะไร | ใคร | ติดอะไร |
+|---|---|---|---|
+| 1 | **3B** — Invoices + InvoiceItems opt-in | `grok-pipeline` | กำลังรัน |
+| 2 | **3C** — สร้าง invoice จริง 1 ใบด้วย order ที่ทิ้งได้ | **เจ้าของ** | เสี่ยงสูงสุดในแผน: เขียน 4 ชีต **ไม่ idempotent** พังกลางทางแล้วเหลือข้อมูลค้างครึ่งๆ ที่ต้อง reconcile ด้วยมือ |
+| 3 | **§2.10** — ลบ SheetLib write path, alias ใน `write-errors.ts`, env `APPSCRIPT_URL`/`APPSCRIPT_GATEWAY_URL`/`APPSCRIPT_APPOINTMENT_URL` · **ห้ามลบ `APPSCRIPT_INVOICE_VIEW_SYNC_URL`** | pipeline | ทำได้ต่อเมื่อ 3B ผ่าน — ต้องย้ายครบทุกชีตที่เขียนได้ก่อน |
+| 4 | timestamp ทุกชีตเป็น datetime จริง (คำตัดสิน 3.5) | pipeline + เจ้าของตรวจ | `Appointments.CreatedAt` ต้องเคลียร์ cell format ก่อน ซึ่งต้องใช้ `spreadsheets.batchUpdate` คนละ API — §2.9 ไม่ได้สร้างไว้ |
+| 5 | `certainty` ของ Appointments เข้า API contract | pipeline | กระทบ frontend |
+| 6 | **พิสูจน์บน preview deploy** | **เจ้าของ** | ยังไม่เคยสักครั้งทั้ง stage 1/2/3 — บั๊ก `.js` extension ใน ESM จับได้เฉพาะ deploy จริง เคยทำ production ล่มทั้งระบบ ⇒ **ด่านบังคับก่อน merge เข้า main** |
+
+ข้อ 4 กับ 5 เป็น "งานแยกหลัง §2.9" ตามที่เจ้าของกำหนดลำดับไว้ ไม่ใช่ตัวบล็อก §2.9
 
 ---
 
