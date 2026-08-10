@@ -418,6 +418,7 @@ export class InvoiceService {
       await this.invoiceItemRepository().batchAppend(itemCommands)
     } catch (error) {
       const failure = classifyWriteFailure(error)
+      console.error('items_write_failed', error instanceof Error ? error.stack ?? error.message : String(error))
       return { kind: 'items_write_failed', message: failure.message, certainty: failure.certainty }
     }
 
@@ -454,11 +455,13 @@ export class InvoiceService {
       // reconcile this by hand, and a plain retry would append a second set
       // of items, regardless of `certainty`. This outcome carries no
       // `message` field in the public contract — only `certainty`.
+      const failure = classifyWriteFailure(error)
+      console.error('invoice_write_failed', error instanceof Error ? error.stack ?? error.message : String(error))
       return {
         kind: 'invoice_write_failed',
         invoiceNumber: request.invoiceNumber,
         itemCount: itemCommands.length,
-        certainty: classifyWriteFailure(error).certainty,
+        certainty: failure.certainty,
       }
     }
 
@@ -476,11 +479,13 @@ export class InvoiceService {
         updated_at: formatBangkokTimestamp(this.now()),
       })
     } catch (error) {
+      const failure = classifyWriteFailure(error)
+      console.error('order_link_failed', error instanceof Error ? error.stack ?? error.message : String(error))
       return {
         kind: 'order_link_failed',
         invoiceNumber: request.invoiceNumber,
         sourceOrderId: request.sourceOrderId,
-        certainty: classifyWriteFailure(error).certainty,
+        certainty: failure.certainty,
       }
     }
 

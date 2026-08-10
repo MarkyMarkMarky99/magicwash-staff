@@ -353,11 +353,20 @@ export class SheetsApiClient {
     }
 
     if (response.status < 200 || response.status >= 300) {
-      if (response.status === 400 || response.status === 403 || response.status === 404 || response.status === 409) {
-        throw new WriteRejectedError(operation, `The Sheets API rejected ${operation} with HTTP ${response.status}.`)
+      let responseBodyExcerpt: string
+      try {
+        responseBodyExcerpt = (await response.text()).slice(0, 500)
+      } catch {
+        responseBodyExcerpt = '[unavailable]'
       }
 
-      throw new WriteTransportError(operation, `${operation} received no authoritative result from the Sheets API.`)
+      const responseBodyMessage = ` Response body: ${responseBodyExcerpt}`
+
+      if (response.status === 400 || response.status === 403 || response.status === 404 || response.status === 409) {
+        throw new WriteRejectedError(operation, `The Sheets API rejected ${operation} with HTTP ${response.status}.${responseBodyMessage}`)
+      }
+
+      throw new WriteTransportError(operation, `${operation} received no authoritative result from the Sheets API.${responseBodyMessage}`)
     }
 
     try {
