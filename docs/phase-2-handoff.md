@@ -71,7 +71,7 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 | §2.9 stage 2B — Appointments opt-in `writeTransport: 'sheets-api'` | ✅ **โค้ดเสร็จ ยังไม่ผ่าน smoke test** | `ddc1323` |
 | §2.9 stage 2C — smoke test จริง (เจ้าของกดผ่าน staff UI) | ✅ **ผ่านครบ 5 ข้อ (2026-08-11)** | |
 | §2.9 stage 3A — `batchAppendThroughSheetsApi` (ไม่แตะ contract ใด) | ✅ | `21a53ef` **อยู่บน branch แยก** |
-| §2.9 stage 3B — Invoices + InvoiceItems opt-in | 🔄 กำลังรัน ณ เวลาที่เขียน | |
+| §2.9 stage 3B — Invoices + InvoiceItems opt-in | ✅ | `0927dd4` **อยู่บน branch แยก** |
 | §2.9 stage 3C — smoke test จริง (สร้าง invoice) | ⬜ **เจ้าของกดเอง** | |
 | งานแยกหลัง §2.9 — จัดระเบียบ timestamp ทุกชีตเป็น datetime | ⬜ | |
 | งานแยกหลัง §2.9 — `certainty` ของ Appointments (แก้ API contract) | ⬜ | |
@@ -354,16 +354,30 @@ extension ที่หายใน ESM import จับได้เฉพาะ 
 
 ## 1c. เหลืออีก 6 ข้อจบ Phase 2 (สถานะ 2026-08-11)
 
+**โค้ดของ §2.9 เสร็จครบทุก stage แล้ว** — ทั้ง 4 ชีตที่ระบบเขียนได้ (OrderForm, Appointments,
+Invoices, InvoiceItems) ย้ายมา Sheets API หมด ชีตที่เหลือเป็น read-only ทั้งสิ้น
+**ที่เหลือคือการพิสูจน์กับของจริง และงานเก็บกวาด**
+
 | # | อะไร | ใคร | ติดอะไร |
 |---|---|---|---|
-| 1 | **3B** — Invoices + InvoiceItems opt-in | `grok-pipeline` | กำลังรัน |
-| 2 | **3C** — สร้าง invoice จริง 1 ใบด้วย order ที่ทิ้งได้ | **เจ้าของ** | เสี่ยงสูงสุดในแผน: เขียน 4 ชีต **ไม่ idempotent** พังกลางทางแล้วเหลือข้อมูลค้างครึ่งๆ ที่ต้อง reconcile ด้วยมือ |
+| ~~1~~ | ~~3B~~ | | ✅ `0927dd4` |
+| 2 | **3C** — สร้าง invoice จริง 1 ใบด้วย order ที่ทิ้งได้ | **เจ้าของ** | เสี่ยงสูงสุดในแผน: เขียน 4 ชีต **ไม่ idempotent** พังกลางทางแล้วเหลือข้อมูลค้างครึ่งๆ ที่ต้อง reconcile ด้วยมือ · ตรวจตามแม่แบบ 5 ข้อของ 2C + `Invoices.customer`/`adjustments` และ `InvoiceItems.adjustments` ต้อง parse เป็นอ็อบเจ็กต์ + `sku` ว่างอยู่ตำแหน่งที่ 6 |
 | 3 | **§2.10** — ลบ SheetLib write path, alias ใน `write-errors.ts`, env `APPSCRIPT_URL`/`APPSCRIPT_GATEWAY_URL`/`APPSCRIPT_APPOINTMENT_URL` · **ห้ามลบ `APPSCRIPT_INVOICE_VIEW_SYNC_URL`** | pipeline | ทำได้ต่อเมื่อ 3B ผ่าน — ต้องย้ายครบทุกชีตที่เขียนได้ก่อน |
 | 4 | timestamp ทุกชีตเป็น datetime จริง (คำตัดสิน 3.5) | pipeline + เจ้าของตรวจ | `Appointments.CreatedAt` ต้องเคลียร์ cell format ก่อน ซึ่งต้องใช้ `spreadsheets.batchUpdate` คนละ API — §2.9 ไม่ได้สร้างไว้ |
 | 5 | `certainty` ของ Appointments เข้า API contract | pipeline | กระทบ frontend |
 | 6 | **พิสูจน์บน preview deploy** | **เจ้าของ** | ยังไม่เคยสักครั้งทั้ง stage 1/2/3 — บั๊ก `.js` extension ใน ESM จับได้เฉพาะ deploy จริง เคยทำ production ล่มทั้งระบบ ⇒ **ด่านบังคับก่อน merge เข้า main** |
 
 ข้อ 4 กับ 5 เป็น "งานแยกหลัง §2.9" ตามที่เจ้าของกำหนดลำดับไว้ ไม่ใช่ตัวบล็อก §2.9
+
+### ช่องว่างที่รู้ตัวแล้ว ไม่ใช่บั๊กที่เพิ่งทำพัง
+
+- **`order_link_failed` มีเทสต์คลุมแค่ `rejected` ไม่มี `unknown`** — มีมาก่อน stage 3B และ
+  OrderForm ไม่ได้เปลี่ยน transport ในขั้นนั้น จึงอยู่นอกขอบเขต (coder เผลอไปเพิ่มให้แล้วถูกสั่ง
+  revert เพราะ brief ห้ามแตะ OrderForm)
+- **ไม่มี idempotency key บน `invoice_number`** ⇒ retry หลัง `items_write_failed` ที่ certainty
+  เป็น `unknown` จริงๆ ยังทำให้ line item ซ้ำได้ถ้ารอบแรกเขียนสำเร็จไปแล้ว
+- **คอมเมนต์ในเส้นทาง serialize ยังเขียนว่า SheetLib** ทั้งที่สองชีตนี้ย้ายแล้ว — **§2.10 จะลบ
+  เส้นทางนั้นทิ้งอยู่แล้ว จึงต้องเขียนคอมเมนต์ใหม่ตอนนั้น** แก้ตอนนี้จะเสียเปล่า
 
 ---
 
