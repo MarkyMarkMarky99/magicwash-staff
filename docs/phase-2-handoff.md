@@ -66,7 +66,9 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 | prerequisite ก่อน §2.9 (env + parity 3 ชีต + ด่านกัน portal) | ✅ | `2f9e6ac` |
 | §2.9 test charter (`test-pipeline` Phase A) | ✅ | `29384c1` `e4341f3` |
 | §2.9 **stage 1 — OrderForm keyed PATCH ผ่าน Sheets API** | ✅ **ผ่าน smoke test จริงแล้ว (2026-08-10)** | `e7f75df` + logging `1f00893` |
-| §2.9 stage 2 — Appointments (create + update · `delete` ปิดตายตามคำตัดสิน 3.4) | ⬜ **ขั้นถัดไป** | |
+| §2.9 stage 2A — `appendThroughSheetsApi` (ไม่แตะ contract ใด) | ✅ | `ef521d8` |
+| §2.9 stage 2B — Appointments opt-in `writeTransport: 'sheets-api'` | ✅ **โค้ดเสร็จ ยังไม่ผ่าน smoke test** | `ddc1323` |
+| §2.9 stage 2C — smoke test จริง (เจ้าของกดผ่าน staff UI) | ⬜ **ขั้นถัดไป** | |
 | §2.9 stage 3 — Invoices/InvoiceItems (batchAppend) | ⬜ | |
 | งานแยกหลัง §2.9 — จัดระเบียบ timestamp ทุกชีตเป็น datetime | ⬜ | |
 | งานแยกหลัง §2.9 — `certainty` ของ Appointments (แก้ API contract) | ⬜ | |
@@ -286,6 +288,33 @@ response body (สูงสุด 500 ตัวอักษร) ของ Sheets
 ทิ้งไป และ `invoice.service.ts` เพิ่ม `console.error` ก่อน return ทุก `*_failed` outcome — ไม่แตะ
 business logic/response shape เลย (grok review ยืนยันแล้ว) เก็บไว้ถาวรเพราะแก้ observability gap
 จริงที่จะเกิดกับ write failure ในอนาคตด้วย ไม่ใช่แค่ครั้งนี้ครั้งเดียว
+
+### §2.9 stage 2C — สิ่งที่ต้องกดและต้องตรวจ (ยังไม่ทำ)
+
+โค้ดฝั่ง Appointments พร้อมแล้ว แต่ **ยังไม่เคยยิงถึง Google เลยสักครั้ง** ทุกอย่างที่ผ่านมาเป็น
+mock ทั้งหมด สิ่งที่ mock พิสูจน์ไม่ได้คือ Google เก็บอะไรจริง
+
+**ต้องกด:** create 1 ครั้ง + update 1 ครั้ง ผ่าน staff UI ด้วยนัดหมายที่เจ้าของเลือกว่าทิ้งได้
+(agent ห้ามเลือกเอง — เป็นข้อมูลลูกค้าจริง)
+
+**ต้องตรวจหลังกด — ยิง query ตรง ไม่ใช่เปิดชีตดูด้วยตา:**
+
+1. `raw-column-type-check.ts` — `CreatedAt` ต้องยัง**เป็น string**, `UpdatedAt` ต้องยัง**เป็น
+   datetime**, `DeletedAt` ยังว่าง, `AppointmentDate` ยังเป็น date
+   ⇒ เกณฑ์คือ **"ไม่เปลี่ยนจากที่วัดได้ก่อน deploy"** ไม่ใช่ "ต้องเป็น string ทั้งสามตัว"
+2. คอลัมน์ไม่เลื่อน — Appointments มี nullable กลางแถว 5 ตัว เปิดแถวที่เพิ่งสร้างแล้วดูว่าค่าอยู่
+   ตรงหัวคอลัมน์ที่ถูก
+3. `Address` parse กลับได้เป็นอ็อบเจ็กต์ **ไม่ใช่ string ซ้อน string**
+4. GViz date-range filter ยังใช้งานได้ (แผนระบุเองว่า mock พิสูจน์ข้อนี้ไม่ได้)
+5. update แตะเฉพาะคอลัมน์ที่แก้ อีก 14 คอลัมน์บนแถวนั้นค่าเดิม
+
+**คำถามที่จะได้คำตอบฟรีจากการกดครั้งนี้:** `POST` คืน `appointmentDate` จากค่าที่เราเขียน (ISO)
+ส่วน `PATCH` คืนจากแถวที่อ่านกลับ ⇒ ดูว่า `PATCH` คืนรูปแบบไหน ถ้าเป็น ISO อยู่แล้วก็ไม่ต้องแก้อะไร
+ถ้าไม่ ค่อยชั่งว่าคุ้มไหมที่จะแตะ `updateThroughSheetsApi` ซึ่งเป็น live path ของ OrderForm
+
+**ควร deploy preview ไม่ใช่ local dev** — stage 1 พิสูจน์บน local เท่านั้น และบั๊กคลาส `.js`
+extension ที่หายใน ESM import จับได้เฉพาะ deploy จริง (`tsc`/dry-test/`vercel dev` พลาดทั้งสามตัว
+เคยทำ production ล่มมาแล้ว) · stage 2 เพิ่ม code path ใหม่ ⇒ ความเสี่ยงนี้กลับมา
 
 ---
 
