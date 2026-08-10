@@ -96,6 +96,45 @@ today, see Google Sheets Rules below for the current split.
   until its SheetLib/App Script semantics are designed and verified.
 - Server environment variables never use the `VITE_*` prefix.
 
+## Comments in Source Code
+
+A comment sits closer to the code than any document, so when the two disagree the comment wins —
+including for the next agent reading it. A stale comment is therefore not clutter, it is a false
+instruction. This has already caused a reviewer to certify a real bug as safe, on the strength of a
+comment describing a runtime check that did not exist.
+
+The fix is not "write fewer comments", it is "never write a comment that expires".
+
+**Never put project status in source code.** These all have an expiry date and nothing enforces it:
+
+- Phase or plan numbers — `§2.9`, "belongs to Phase 2", "the §2.6 flow". Plan numbering moves on;
+  the code does not follow it. Describe the behaviour, not the ticket that introduced it.
+- Wiring status — "not wired in yet", "no caller yet", "still a building block".
+- Tense that points at a plan — "will introduce", "must be handled in the next phase",
+  "today this still goes through X".
+
+Status belongs in `docs/phase-*.md`, which is maintained as a whole. In source, it rots in place.
+
+**Do write the comment that stops the next change from being wrong.** These do not expire, because
+they describe intent rather than state:
+
+- A decision plus its prohibition — "this lookup-then-write race is accepted; do not add a lock,
+  CAS, or retry", "a duplicate key must never be retried".
+- A non-obvious invariant a reader would otherwise break — "this field declares intent and acts as
+  a guard; it is not the value sent on the wire".
+- Why something is deliberately absent, where its absence looks like an oversight.
+
+**Do not restate what other files do.** A comment describing another module's behaviour goes stale
+the moment that module changes, and nothing links the two. Point at the file and let it speak.
+
+**Prefer a guard over a comment for anything that matters.** A comment cannot fail; a dry test can.
+`tests/server/unit/sheets/writing-workbook-binding.dry-test.ts` is the model — it enforces a rule by
+discovering every contract itself, so a sheet added later is covered without anyone remembering.
+If a rule is important enough to comment, ask whether it is important enough to assert.
+
+**When you change behaviour, hunt the comments that describe it in the same commit.** A behaviour
+change that leaves its old description standing has created the exact failure above.
+
 ## Testing
 
 - Put dry tests under `tests/server/`, mirroring the relevant `server/` path.
