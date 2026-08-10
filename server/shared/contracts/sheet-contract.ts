@@ -36,11 +36,12 @@ export type SheetContract = {
    */
   writeTransport?: SheetWriteTransport
   /**
-   * Per-column Sheets API valueInputOption override. Absent column = 'RAW'.
-   * 'RAW' is the safe default (no cell-content coercion — phone numbers with
-   * a leading 0, or values starting with =/+/- do not turn into formulas).
-   * Only declare 'USER_ENTERED' for a column the sheet stores as a genuine
-   * Sheets date/number type that must be recognized as such.
+   * Declares the intended Sheets API input handling for specific columns. This is
+   * an intent declaration and a guard, NOT the value sent on the wire: the write
+   * path sends a single request-wide valueInputOption of 'USER_ENTERED' and uses
+   * this map only to reject a column that declares anything else, so a contract and
+   * the transport can never disagree silently. An absent column is NOT sent as RAW.
+   * Do not build per-column request splitting from this field.
    */
   valueInput?: Partial<Record<string, 'RAW' | 'USER_ENTERED'>>
   writes: {

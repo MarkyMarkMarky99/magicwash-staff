@@ -145,23 +145,20 @@ interface WriteFailure {
 }
 
 /**
- * `classifyWriteFailure` — the truthful internal error typing this rollout
- * now ALSO surfaces on the public contract (see
- * `docs/invoice-module-refactor-plan.md`'s Failure and Retry Semantics
- * section, and `contracts/invoices/invoice-api.schema.ts`'s `certainty`
- * field, added in a later, approved pass on top of the original six-outcome
- * design). `SheetLibRejectedError`/`SheetLibTransportError`
- * (`server/shared/repositories/sheetlib-errors.ts`) let this service tell
- * "the gateway gave a definite answer" (`certainty: 'rejected'`) apart from
- * "no definite answer ever came back" (`certainty: 'unknown'`), which the
- * previous `Error`-only catch could not.
+ * Maps a write failure to the public certainty value.
  *
- * Any error that is neither typed class (a genuine programmer bug, or a
- * post-write validation failure inside `SheetRepository` itself — see
- * `SheetLibTransportError`'s use in `sheet.repository.ts` for the
- * batch-response-shape checks that fire AFTER the gateway already answered
- * ok) is classified `'unknown'`, never `'rejected'` — this service never
- * claims certainty it doesn't actually have.
+ * rejected  — SheetLibRejectedError, WriteRejectedError, DuplicateRowKeyError:
+ *             the write was refused before or by the sheet, nothing was stored.
+ * unknown   — SheetLibTransportError, WriteTransportError:
+ *             the transport outcome does not prove whether the row was stored.
+ * unknown   — WriteCommittedUnreadableError, WriteRowIdentityMismatchError:
+ *             the write completed, but its persisted result could not be safely
+ *             read or identified. Neither group may be auto-retried.
+ *
+ * Any error that is not one of these typed classes is classified 'unknown',
+ * never 'rejected' — over-claiming 'rejected' would invite a retry that
+ * duplicates data. A new write error class must be added here explicitly; the
+ * default is deliberately the cautious one, not the correct one.
  */
 function classifyWriteFailure(error: unknown): WriteFailure {
   if (error instanceof SheetLibRejectedError) {

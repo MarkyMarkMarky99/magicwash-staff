@@ -1,7 +1,8 @@
-// Typed SheetLib write failures. Every `SheetRepository` write (APPEND/UPDATE)
-// throws one of these two classes instead of a generic `Error`, so callers that
-// need to tell "the gateway gave a definite answer" apart from "no definite
-// answer ever came back" can `instanceof`-check instead of parsing `.message`.
+// Typed SheetLib write failures. Writes that go through the SheetLib/Apps Script
+// transport throw one of these two classes instead of a generic Error. Writes on
+// the Sheets API transport throw their own classes instead (WriteRejectedError,
+// WriteTransportError, WriteCommittedUnreadableError, WriteRowIdentityMismatchError,
+// DuplicateRowKeyError) — anything that catches write failures must handle both sets.
 // Both extend `Error` with the exact same message text the shared repository
 // tests already assert on, so this is purely additive: nothing that only does
 // `assert.rejects(fn, /pattern/)` against the existing message format breaks.

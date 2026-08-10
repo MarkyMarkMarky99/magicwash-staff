@@ -36,10 +36,10 @@ export const orderFormDbContract = {
   spreadsheetId: 'ORDERS_SPREADSHEET_ID',
   // Removed in Phase 2 when writes move from SheetLib to the Sheets API.
   target: 'OrderForm',
-  // updated_at is intentionally a real Sheets datetime cell, not Plain Text — decision
-  // recorded 2026-08-09, same rationale as Invoices' created_at/updated_at/deleted_at (see
-  // that file's comment). Must stay USER_ENTERED so §2.9's Sheets API transport preserves
-  // this instead of silently reverting to plain text under RAW.
+  // updated_at is intentionally a real Sheets datetime, not plain text (decided
+  // after the §2.7 smoke test). OrderForm writes through the Sheets API today and
+  // this declaration is what keeps that intent enforced — see the valueInput doc in
+  // sheet-contract.ts for how it is applied.
   valueInput: { updated_at: 'USER_ENTERED' },
   writeTransport: 'sheets-api',
   writes: { append: false, update: true, delete: false },

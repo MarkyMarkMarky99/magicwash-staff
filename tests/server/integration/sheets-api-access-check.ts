@@ -1,8 +1,11 @@
 /**
- * Read-only Sheets API access check for the workbooks that Phase 2 §2.9 will
- * write. This proves service-account authentication and read access to each
- * workbook; it does not prove write permission. Every workbook is public-read,
- * so a successful read cannot establish write access and this script never writes.
+ * Read-only Sheets API access check for the workbooks in the §2.9 write migration.
+ * OrderForm's workbook is already written through the Sheets API; Appointments and
+ * Invoices/InvoiceItems are not yet. Reading successfully does NOT prove write
+ * permission — every workbook in this project is public-read.
+ *
+ * This proves service-account authentication and read access to each workbook, and
+ * this script never writes.
  *
  * Run with:
  * node --env-file=.env.local --import=tsx/esm tests/server/integration/sheets-api-access-check.ts

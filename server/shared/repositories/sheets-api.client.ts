@@ -4,8 +4,9 @@ export const SHEETS_API_TIMEOUT_MS = 15_000
 
 const SHEETS_API_BASE_URL = 'https://sheets.googleapis.com/v4/spreadsheets'
 
-// §2.4's sheet layer serializes objects/arrays and selects per-column input policy
-// before handing primitive cell values to this transport client.
+// The sheet layer serializes objects/arrays into cell strings before handing
+// primitive values to this transport client. The valueInputOption is chosen once
+// per request, not per column.
 export type SheetsApiValue = string | number | boolean | null
 export type SheetsApiValues = readonly (readonly SheetsApiValue[])[]
 export type SheetsValueInputOption = 'RAW' | 'USER_ENTERED'
@@ -236,8 +237,9 @@ export class SheetsApiClient {
     const body = await this.requestJson(
       'appendRows',
       'POST',
-      // §2.3's header map now exists, but is not wired into this client or
-      // repository yet; that integration belongs to §2.9.
+      // The header map lives in SheetRepository, which resolves ranges before calling
+      // this client; the client deliberately stays at the level of plain A1 ranges and
+      // knows nothing about SheetHeaderMap.
       buildUrl(this.spreadsheetId, `${encodeSheetName(this.sheetName)}:append`, {
         valueInputOption: option,
         insertDataOption: 'INSERT_ROWS',
