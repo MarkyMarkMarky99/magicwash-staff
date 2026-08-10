@@ -1,19 +1,13 @@
 # Handoff — เริ่ม Phase 2
 
-เขียนเมื่อ 2026-08-09 ตอนปิด Phase 1 · **อัปเดตล่าสุด 2026-08-10 ตอนปิด §2.8 + prerequisite
-ของ §2.9** (HEAD = `2f9e6ac`)
+เขียนเมื่อ 2026-08-09 ตอนปิด Phase 1 · **อัปเดตล่าสุด 2026-08-10 ตอน §2.9 stage 1 ผ่าน smoke
+test จริงบน local dev** (HEAD = `1f00893`)
 
-**ขั้นถัดไป: smoke test ของ §2.9 stage 1 บน preview — เป็นงานที่เจ้าของโปรเจกต์ต้องกดเอง**
+**✅ §2.9 stage 1 (OrderForm) ผ่าน smoke test แล้ว (2026-08-10)** — รายละเอียดเต็มอยู่หมวด 1b
+ใต้หัวข้อ "§2.9 stage 1 smoke test" **ขั้นถัดไปคือ §2.9 stage 2 (Appointments)** ยังไม่เริ่ม
 
-stage 1 (`e7f75df`) ทำให้ **OrderForm เขียนผ่าน Google Sheets API แล้ว** ชีตอื่นยังวิ่ง Apps
-Script เหมือนเดิม (`writeTransport` เป็น opt-in default = SheetLib) ⇒ deploy preview แล้วกด
-invoice create 1 ครั้งด้วย order ที่ทิ้งได้ แล้วตรวจตาม deploy gate ใน
-`docs/phase-2-9-test-charter.md`:
-`OrderForm.updated_at` ยังเป็น `datetime` (ตรวจด้วย `raw-column-type-check.ts`) และอีก 18
-คอลัมน์ของแถวนั้นต้องไม่ขยับ (ต้องเปิดชีตดูด้วยตา ไม่มีเทสต์ไหนแทนได้)
-
-**นี่คือครั้งแรกที่ `GOOGLE_SERVICE_ACCOUNT_KEY` ฝั่ง server ถูกใช้จริง** — ถ้า key บน Vercel
-เป็นคนละ service account กับที่ทดสอบใน local จะรู้ตอนนี้เท่านั้น (ดูหมวด 2)
+**นี่คือครั้งแรกที่ `GOOGLE_SERVICE_ACCOUNT_KEY` ฝั่ง server ถูกใช้เขียนจริง** — เจอปัญหาจริง 1 ข้อ
+ระหว่างทาง (env var scope บน Vercel) แก้แล้ว รายละเอียดอยู่หมวด 2
 
 charter อยู่ที่ `docs/phase-2-9-test-charter.md` แก้ให้ตรงกับคำตัดสินของเจ้าของแล้ว (`e4341f3`)
 
@@ -71,8 +65,8 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 | §2.8 keyed update — ยอมรับ race + `sheet-row-lookup.ts` | ✅ | `037a4b8` |
 | prerequisite ก่อน §2.9 (env + parity 3 ชีต + ด่านกัน portal) | ✅ | `2f9e6ac` |
 | §2.9 test charter (`test-pipeline` Phase A) | ✅ | `29384c1` `e4341f3` |
-| §2.9 **stage 1 — OrderForm keyed PATCH ผ่าน Sheets API** | ✅ โค้ดเสร็จ · ⬜ **รอ smoke test บน preview** | `e7f75df` |
-| §2.9 stage 2 — Appointments (CRUD เต็ม) | ⬜ | |
+| §2.9 **stage 1 — OrderForm keyed PATCH ผ่าน Sheets API** | ✅ **ผ่าน smoke test จริงแล้ว (2026-08-10)** | `e7f75df` + logging `1f00893` |
+| §2.9 stage 2 — Appointments (CRUD เต็ม) | ⬜ **ขั้นถัดไป** | |
 | §2.9 stage 3 — Invoices/InvoiceItems (batchAppend) | ⬜ | |
 | งานแยกหลัง §2.9 — จัดระเบียบ timestamp ทุกชีตเป็น datetime | ⬜ | |
 | งานแยกหลัง §2.9 — `certainty` ของ Appointments (แก้ API contract) | ⬜ | |
@@ -229,6 +223,50 @@ InvoiceItems 14, Customers 20, OrdersView 13, InvoicesView 17, CustomerPackageVi
 
 ⇒ **เวลาเขียนเทสต์ error classification ระวังว่า mock ที่พังเองอาจทำให้เทสต์ผ่าน**
 
+### §2.9 stage 1 smoke test (2026-08-10) — ผ่านจริงบน local dev, เจอ 2 เรื่องระหว่างทาง
+
+เจ้าของกด invoice create ผ่าน local dev (ไม่ใช่ preview — `npm run dev` มีแค่ vite/frontend,
+backend จริงรันผ่าน `vercel dev` แยกต่างหาก) ด้วย `order_id=2400fb5c`
+
+**เรื่องที่ 1 — false lead ที่ผมสร้างเอง อย่าเชื่อ history:** ตอนแรกเจอ `order_link_failed` /
+`certainty: rejected` ไม่มี log อะไรเลยฝั่ง server ผมตั้งสมมติฐานว่า header ของ OrderForm ว่าง
+7 คอลัมน์ (D/E/H/I/J/O/Q) จากสคริปต์ GViz ที่เขียนเอง — **สมมติฐานนี้ผิดทั้งหมด** สาเหตุคือสคริปต์
+ใช้ `headers=0` แล้วอ่านค่าจาก row data โดยตรง ซึ่ง GViz จะ coerce ค่า text เป็น `null` เงียบๆ
+เมื่อคอลัมน์นั้น majority type เป็น date/number/datetime (ผู้ใช้เปิด Google Sheets ตรวจด้วยตา
+เจอว่า header มีครบ แล้วทักท้วง) ⇒ **บทเรียนใหม่: ตรวจ header ด้วย GViz ต้องใช้ `headers=1` แล้ว
+อ่านจาก `table.cols[].label` เท่านั้น ห้ามอ่านจาก row data ของคอลัมน์ที่ typed** หรือใช้ Sheets
+API v4 ตัวจริง (`SheetsApiClient.readHeader()`) ยืนยันแทน — สมมติฐานผิดนี้ยังถูกส่งต่อให้
+grok-investigator ยืนยันไปแล้วรอบหนึ่งด้วย (มันตรวจ logic ถูกจากสมมติฐานที่ผิด = confirm ผิดตาม)
+⇒ **agent ที่ตรวจสอบต้อง verify ข้อเท็จจริงเอง ไม่ใช่เชื่อ "fact" ที่ผู้เรียกป้อนให้**
+
+**เรื่องที่ 2 — สาเหตุจริง หลังเพิ่ม logging (`1f00893`):** error ตัวจริงคือ
+`WriteRejectedError: Google authentication failed before the request was sent.` เกิดเพราะ
+`GOOGLE_SERVICE_ACCOUNT_KEY` บน Vercel ถูก mark เป็น **Sensitive** ตอนสร้าง ซึ่งจำกัด scope ให้
+เลือกได้แค่ Production/Preview เท่านั้น (เลือก Development ไม่ได้) ⇒ `vercel dev` ที่รัน backend
+local ไม่เคยเห็นค่านี้เลย เจ้าของเพิ่มตัวแยกสำหรับ Development แล้วแก้หาย ⇒ **บทเรียน:
+env var ที่ mark Sensitive บน Vercel อาจไม่ครอบ Development tier แม้จะเลือก 3 environment ทั่วไป
+ได้ปกติ — ต้องเช็คทุกตัวที่ backend local (`vercel dev`) ต้องใช้**
+
+**เรื่องที่ 3 — ไม่เกี่ยว §2.9 แต่เจอระหว่างทาง:** retry รอบถัดมาเจอ `items_write_failed` /
+`SheetLibTransportError: … aborted due to timeout` ที่ขั้นเขียน `InvoiceItems` (ยังวิ่ง Apps
+Script อยู่ ไม่ใช่ Sheets API) — นี่คือพฤติกรรมเดิมที่มีอยู่แล้ว (`SHEETLIB_WRITE_TIMEOUT_MS =
+15_000`, ไม่มี retry โดยตั้งใจ เพราะ timeout แปลว่า "ไม่รู้ว่าเขียนสำเร็จจริงหรือเปล่า" ห้าม
+auto-retry) ตรวจ live ผ่าน GViz ยืนยันว่า **ไม่มีอะไรถูกเขียนค้างเลย** (0 แถวทั้ง Invoices/
+InvoiceItems) ก่อนให้เจ้าของ resubmit อย่างปลอดภัย
+
+**ผลตรวจ live หลัง resubmit สำเร็จ (`INV260848367235`, order `2400fb5c`):**
+- `OrderForm.invoice_id` = `INV260848367235` ✅
+- `OrderForm.updated_at` type = **`datetime` จริง** (ไม่ใช่ string) ✅ ตรงตาม `valueInput:
+  USER_ENTERED` ที่ตั้งใจไว้
+- อีก 18 คอลัมน์ของแถวนั้นค่าเดิมทั้งหมด ไม่ขยับ ✅
+- `Invoices`/`InvoiceItems` เขียนครบตรงกับ response (`itemCount:1, invoiceTotal:140`) ✅
+
+**เพิ่ม logging ถาวร (`1f00893`, ไม่ใช่โค้ด debug ชั่วคราว):** `sheets-api.client.ts` เก็บ
+response body (สูงสุด 500 ตัวอักษร) ของ Sheets API เวลา non-2xx แนบเข้า error message แทนที่จะ
+ทิ้งไป และ `invoice.service.ts` เพิ่ม `console.error` ก่อน return ทุก `*_failed` outcome — ไม่แตะ
+business logic/response shape เลย (grok review ยืนยันแล้ว) เก็บไว้ถาวรเพราะแก้ observability gap
+จริงที่จะเกิดกับ write failure ในอนาคตด้วย ไม่ใช่แค่ครั้งนี้ครั้งเดียว
+
 ---
 
 ## 2. Prerequisite — ปิดครบแล้ว (2026-08-10) เหลือข้อเดียวที่ยังไม่ยืนยัน
@@ -245,12 +283,14 @@ InvoiceItems 14, Customers 20, OrdersView 13, InvoicesView 17, CustomerPackageVi
 `ORDERS_SPREADSHEET_ID` `1tfgJvj`, `INVOICES_SPREADSHEET_ID` `1zfhguJ`,
 `PORTAL_SPREADSHEET_ID` `1ucqeUq`, `APPOINTMENTS_SPREADSHEET_ID` `1CvVl6a` — **ตรงทั้ง 4**
 
-### ⚠️ ข้อที่ยังพิสูจน์ไม่ได้ — `GOOGLE_SERVICE_ACCOUNT_KEY` ฝั่ง server
+### ✅ `GOOGLE_SERVICE_ACCOUNT_KEY` ฝั่ง server — พิสูจน์แล้ว (2026-08-10, ผ่าน local ไม่ใช่ preview)
 
-`vercel env pull` **ไม่คืนค่าของ key นี้** ทั้ง production และ preview (น่าจะตั้งเป็น Sensitive —
-ถูกต้องแล้วด้านความปลอดภัย ไม่ต้องแก้) ⇒ ที่ยืนยันว่า "service account เข้าถึงชีตได้ครบ" เป็นการ
-ยืนยันด้วย key ใน `.env.local` เท่านั้น **ยังไม่มีอะไรพิสูจน์ว่า key บน server เป็น account
-ตัวเดียวกัน** ⇒ **§2.9 stage แรกต้องพิสูจน์บน preview deploy จริง ไม่ใช่แค่ local**
+`vercel env pull` **ไม่คืนค่าของ key นี้** (ตั้งเป็น Sensitive — ถูกต้องแล้วด้านความปลอดภัย)
+เดิมกังวลว่า key บน server อาจเป็นคนละ service account กับ local — **สิ่งที่เจอจริงคือคนละเรื่อง:**
+key ที่ mark Sensitive ไม่ได้ครอบ Development tier เลย (`vercel dev` จึงไม่เห็นค่า) เจ้าของเพิ่ม
+key แยกสำหรับ Development แล้ว ตอนนี้พิสูจน์แล้วว่าเป็น service account เดียวกันและเขียนได้จริง
+ผ่าน §2.9 stage 1 smoke test (ดูหมวด 1b) — **ยังไม่เคยพิสูจน์บน preview/production deploy จริง**
+เพียงแต่ local dev ผ่านแล้วเท่านั้น ก่อน merge ควรพิสูจน์บน preview อย่างน้อยหนึ่งครั้งเช่นกัน
 
 ### ✅ เรื่องใหญ่ 6 ข้อ — ตัดสินครบแล้ว 2026-08-10
 
