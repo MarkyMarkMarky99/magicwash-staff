@@ -8,17 +8,8 @@ import { synthesizeNetworkFailureOutcome } from '../utils/invoice-outcome.utils'
 const INVOICES_ENDPOINT = '/api/invoices'
 
 /**
- * GET /api/invoices — real network call via the shared apiGetList helper,
- * same pattern as customer.service.ts / order.service.ts. Validates `filter`
- * against the same `invoiceListQuerySchema` the backend validates against
- * (contracts/invoices/invoice-view-api.schema.ts).
- *
- * `total` is NOT provided by the backend today — BaseCrudService/okPaged
- * only returns page-only pagination meta `{ page, perPage }` (see
- * api/CLAUDE.md's Key Engine Rules), the same limitation customer/order
- * lists already have. InvoiceListPage only uses `total` as a display count
- * label, never for page-count navigation, so the current page's item count
- * is an honest stand-in, not a silent bug.
+ * The backend returns page-only pagination metadata, so `items.length` is the
+ * display count for the current page rather than a dataset total.
  */
 export async function getInvoices(filter: InvoiceFilter): Promise<InvoiceListResponseDto> {
   const { items, pagination } = await apiGetList<InvoiceListItemDto>(INVOICES_ENDPOINT, {

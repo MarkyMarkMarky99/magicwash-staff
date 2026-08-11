@@ -5,7 +5,7 @@ import { invoiceItemsRowSchema } from '../../../../server/sheets/InvoiceItems/In
 import { invoicesRowSchema } from '../../../../server/sheets/Invoices/Invoices.db-contract.js'
 
 /**
- * Mixed transport workflow.
+ * Sheets API workflow.
  *
  * Exercises the REAL `InvoiceService` against a mocked `fetch`, asserting the
  * exact wire-level requests: one InvoiceItems batch append and one Invoices
@@ -186,8 +186,8 @@ async function main(): Promise<void> {
     const result = await service.create(baseRequest())
     assert.equal(result.kind, 'created')
 
-    // Two invoice-sheet header loads + two appends + four OrderForm Sheets API
-    // calls. No SheetLib / Apps Script write for either invoice sheet.
+    // Source-sheet writes use the Sheets API; view synchronization is a
+    // separate endpoint.
     assert.equal(calls.length, 8, 'header×2 + append×2 + OrderForm×4')
     assert.deepEqual(
       calls.map((call) => `${call.method ?? 'GET'} ${sheetsPath(call.url).replace(/^\/v4\/spreadsheets\/[^/]+/, '')}`),

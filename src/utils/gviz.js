@@ -1,5 +1,4 @@
-// GViz JSONP helper — queries a public Google Sheet
-// Mirrors window.gvizQuery from daily-tasks.html
+// GViz JSONP helper.
 
 const _gvizPending = {}
 let _gvizReqId = 0

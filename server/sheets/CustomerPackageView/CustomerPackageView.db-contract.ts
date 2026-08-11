@@ -32,7 +32,6 @@ export const customerPackageViewRowSchema = z.object({
 
 export const customerPackageViewDbContract = {
   row: customerPackageViewRowSchema,
-  // Database column: customerPackageId, as declared by the schema registry.
   primaryKey: 'customerPackageId',
   sheetName: 'CustomerPackageView',
   spreadsheetId: 'PORTAL_SPREADSHEET_ID',

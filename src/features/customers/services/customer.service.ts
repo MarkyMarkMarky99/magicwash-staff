@@ -6,14 +6,7 @@ import {
 } from '@contracts/customers/customer-api.schema'
 import { apiGet, apiGetList } from '@/shared/api/api-client'
 
-/**
- * Customer API communication. Returns contract DTOs verbatim — no mapping,
- * renaming, or reshaping (the API already emits frontend-ready camelCase).
- *
- * The list endpoint returns every customer in one request, so the customer list
- * store loads once and filters in memory. Detail access is added below for the
- * direct customer order-history route.
- */
+/** Returns contract-derived camelCase DTOs without local mapping. */
 
 // DTO/query types derived from the shared contract, next to their consumer —
 // not a frontend-owned copy.
@@ -23,7 +16,7 @@ export type CustomerDetailDto = z.infer<typeof customerDetailResponseSchema>
 
 const CUSTOMERS_ENDPOINT = '/api/customers'
 
-/** Fetch the full customer list (server `perPage` defaults to the max). */
+/** Fetch the customer list. */
 export async function listCustomers(
   query: Partial<CustomerListQuery> = {},
 ): Promise<CustomerListDto[]> {

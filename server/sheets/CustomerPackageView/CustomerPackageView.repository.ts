@@ -7,7 +7,6 @@ import { SheetRepository } from '../../shared/repositories/sheet.repository.js'
 
 type CustomerPackageViewRow = z.infer<typeof customerPackageViewRowSchema>
 
-/** Serves the physical CustomerPackageView sheet; read-only. */
 let repository: SheetRepository<CustomerPackageViewRow> | undefined
 
 export function getCustomerPackageViewRepository(): SheetRepository<CustomerPackageViewRow> {

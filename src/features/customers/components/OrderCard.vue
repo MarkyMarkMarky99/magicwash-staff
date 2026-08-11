@@ -21,8 +21,7 @@ interface StatusPresentation {
   avatarClass: string
 }
 
-// Six known statuses from the React reference; anything else (legacy/unknown
-// sheet values) falls through to a neutral presentation rather than guessing.
+// Unknown status values fall through to a neutral presentation rather than guessing.
 const STATUS_PRESENTATION: Record<string, StatusPresentation> = {
   SUBMITTED: { icon: 'local_laundry_service', label: 'Submitted', badgeClass: 'bg-amber-100 text-amber-700', avatarClass: 'bg-amber-50 text-amber-600' },
   PENDING: { icon: 'schedule', label: 'Pending', badgeClass: 'bg-amber-100 text-amber-700', avatarClass: 'bg-amber-50 text-amber-600' },

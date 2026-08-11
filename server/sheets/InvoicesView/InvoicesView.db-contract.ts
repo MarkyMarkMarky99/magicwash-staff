@@ -44,7 +44,6 @@ export const invoicesViewRowSchema = z.object({
 
 export const invoicesViewDbContract = {
   row: invoicesViewRowSchema,
-  // Database column: invoiceNumber, as declared by the schema registry.
   primaryKey: 'invoiceNumber',
   sheetName: 'InvoicesView',
   spreadsheetId: 'PORTAL_SPREADSHEET_ID',

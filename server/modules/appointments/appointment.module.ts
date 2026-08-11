@@ -7,13 +7,8 @@ import { appointmentsFieldMap } from './appointment.mapping.js'
 
 export { appointmentsFieldMap } from './appointment.mapping.js'
 
-// ── API behavior: BaseCrudService validates the request, builds the read query
-//    (ReadQueryDTO.fromQuery with searchFields), calls the repository, and
-//    projects each response by its schema shape. searchFields stays on real
-//    queryable columns only — `address` is excluded on purpose because at query
-//    time it is still the raw serialized snapshot JSON, so searching it would
-//    match constant JSON keys (Phone/Line/Email/…) on every row. Customer-name
-//    keyword search needs a real column. ──
+// `address` is excluded from keyword search because its serialized snapshot JSON
+// would match constant keys instead of customer data.
 export const appointmentService = new AppointmentService({
   repository: getAppointmentsRepository,
   fieldMap: appointmentsFieldMap,

@@ -4,13 +4,7 @@ import type { LocationQuery, LocationQueryRaw } from 'vue-router'
 import type { z } from 'zod'
 import { customerTypeSchema } from '@contracts/customers/customer-api.schema'
 
-/**
- * Keeps the customer list filter in sync with the URL query string, which is the
- * single source of truth. `filter` is derived from the route; `updateFilter`
- * writes a clean query back, omitting any value that equals its default. Mirrors
- * `useInvoiceFilterRoute`. The filter never lives in a store — search and type
- * tabs apply it to the in-memory list (see CustomerListPage).
- */
+/** The URL query is the filter source of truth; default values are omitted. */
 
 type CustomerType = z.infer<typeof customerTypeSchema>
 

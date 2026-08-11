@@ -50,14 +50,11 @@ export const useAppointmentStore = defineStore('appointments', () => {
     error.value = null
 
     try {
-      // TEMP(frontend): the backend date filter currently emits a GViz string
-      // literal, so read sorted pages without appointmentDate and filter the
-      // normalized date locally until the backend query builder is fixed.
+      // Read date-sorted records and filter normalized dates locally.
       const items = await listAppointmentsForDate(date)
       if (request !== dailyRequest) return
 
-      // Pending work belongs exclusively to the pending queue, matching the
-      // existing schedule behaviour without reshaping API DTOs.
+      // Pending work belongs exclusively to the pending queue.
       dailyItems.value = items
         .filter((item) => item.status !== 'PENDING')
         .sort((left, right) => left.timeSlot.localeCompare(right.timeSlot))

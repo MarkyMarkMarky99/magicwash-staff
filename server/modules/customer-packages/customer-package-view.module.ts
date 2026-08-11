@@ -72,8 +72,7 @@ type CustomerPackageViewService = BaseCrudService<
   typeof customerPackageViewFieldMap
 >
 
-// List + detail, no writes. searchFields are flat columns only — GViz `contains`
-// cannot reach inside the serialized transactions cell.
+// GViz `contains` cannot search within the serialized transactions cell.
 export const customerPackageViewService: CustomerPackageViewService = new BaseCrudService({
   repository: getCustomerPackageViewRepository,
   api: customerPackageViewApiContract,

@@ -28,7 +28,7 @@ function statusForResponse(response: CreateInvoiceResponse): number {
     case 'validation_error':
       return 422
     case 'items_write_failed':
-      // Nothing was written — Apps Script rejected the whole batch. Still a
+      // Nothing was written — the Sheets API rejected the whole item batch. Still a
       // failed request, but a safe one to retry as-is.
       return 502
     case 'invoice_write_failed':

@@ -28,7 +28,6 @@ export const orderFormRowSchema = z.object({
 
 export const orderFormDbContract = {
   row: orderFormRowSchema,
-  // API field: id.
   primaryKey: 'id',
   sheetName: 'OrderForm',
   // This tab's registry workbook may differ from the ORDERS_SPREADSHEET_ID value.

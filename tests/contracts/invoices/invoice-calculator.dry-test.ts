@@ -87,7 +87,7 @@ test('computeInvoiceTotal with no adjustments returns the exact rounded sum', ()
   assert.equal(invoiceTotal, 866.8)
 })
 
-// ── itemsTotal (mirrors invoice.service.ts's response field) ────────────────
+// ── itemsTotal is the rounded sum of line net totals ─────────────────────────
 
 test('summing three already-rounded netTotals can drift in raw IEEE 754, roundMoney fixes it', () => {
   const netTotals = [316.8, 400, 150.15]

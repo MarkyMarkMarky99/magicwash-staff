@@ -20,17 +20,7 @@ export function normalizeInvoiceNumber(input: unknown): string {
   return parsed.data
 }
 
-/**
- * GET /api/invoices/:invoiceNumber — real network call via the shared
- * apiGet helper (same pattern as customer.service.ts's getCustomerById). The
- * response is returned as-is (typed via the generic, no re-validation — see
- * api-client.ts's doc comment on why services never `.parse()` responses). A
- * 404 (BaseCrudService.getById throws ApiError.notFound when 0 rows match)
- * is translated to `null`, matching the old mock's
- * "unknown invoiceNumber -> undefined -> null" contract the caller
- * (InvoiceDetailPage.vue) already expects. Any other failure re-throws so
- * the page's generic error state still fires.
- */
+/** Validates input, translates a 404 to `null`, and rethrows other failures. */
 export async function getInvoiceDetail(input: unknown): Promise<InvoiceDetailDto | null> {
   const invoiceNumber = normalizeInvoiceNumber(input)
 

@@ -50,7 +50,6 @@ type OrdersService = BaseCrudService<
   typeof ordersViewFieldMap
 >
 
-// searchFields is []: this list has no keyword search.
 export const ordersService: OrdersService = new BaseCrudService({
   repository: getOrdersViewRepository,
   api: orderApiContract,

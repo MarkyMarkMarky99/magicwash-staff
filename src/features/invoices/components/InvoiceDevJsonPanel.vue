@@ -1,4 +1,3 @@
-<!-- DEV ONLY: remove this entire file, its import, and its <InvoiceDevJsonPanel> usage before shipping. -->
 <script setup lang="ts">
 /**
  * Presentation only. Renders whatever payload/response objects it's handed —

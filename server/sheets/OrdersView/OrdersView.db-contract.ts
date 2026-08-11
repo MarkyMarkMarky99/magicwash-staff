@@ -20,7 +20,6 @@ export const ordersViewRowSchema = z.object({
 
 export const ordersViewDbContract = {
   row: ordersViewRowSchema,
-  // Database column: order_id, as declared by the schema registry.
   primaryKey: 'order_id',
   sheetName: 'OrdersView',
   spreadsheetId: 'PORTAL_SPREADSHEET_ID',

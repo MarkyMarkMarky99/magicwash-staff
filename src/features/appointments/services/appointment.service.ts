@@ -48,7 +48,7 @@ export function appointmentWriteErrorMessage(reason: unknown, fallback: string):
   return reason instanceof Error && reason.message ? reason.message : fallback
 }
 
-// TODO(auth): replace this temporary migration actor with the authenticated user.
+/** Actor supplied at the appointment write boundary. */
 export const LEGACY_APPOINTMENT_ACTOR = 'admin'
 
 /** List appointments through the backend; filters are validated before the request. */

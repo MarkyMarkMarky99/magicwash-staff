@@ -332,14 +332,8 @@ test('create() reports invoice_view_sync_failed with certainty "unknown" when th
 })
 
 test('create() catches a thrown/rejected syncInvoiceView instead of letting it escape — a blank result panel is worse than a reported failure', async () => {
-  // The real syncInvoiceView (invoice-view-sync-client.ts) never throws, but
-  // this is the one stage whose implementation is injectable
-  // (InvoiceServiceOptions.syncInvoiceView) and not fully controlled by this
-  // service. An uncaught throw here would propagate past create() entirely;
-  // invoice.module.ts's route returns CreateInvoiceResponse directly, but a
-  // thrown error is caught by ApiHandler's GENERIC catch instead, which
-  // returns the generic {success:false,error} envelope — a body with no
-  // `kind` — after the invoice was ALREADY fully and correctly written.
+  // An injected sync throw becomes an unknown outcome after earlier stages
+  // have completed, so callers still receive an invoice-create result.
   const { service, calls } = createService({
     viewSyncError: new Error('sync client blew up'),
   })

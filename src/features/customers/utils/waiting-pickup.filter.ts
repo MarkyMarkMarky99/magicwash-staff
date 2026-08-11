@@ -8,13 +8,9 @@ const BANGKOK_TIME_ZONE = 'Asia/Bangkok'
 const ACTIVE_PICKUP_STATUSES = new Set(['CONFIRMED', 'IN_TRANSIT'])
 
 /**
- * Temporary MVP exception: waiting-pickup filtering stays client-side because
- * the generic appointments list has no deletedAt/date-range query support.
- * The endpoint also caps a customer's unfiltered appointment page at 100.
- *
- * Known gap: appointmentListResponseSchema and appointment.module.ts expose no
- * deletedAt/server-side deletion filter, so a soft-deleted appointment can
- * still appear here. Do not treat this as backend deletion correctness.
+ * Waiting-pickup filtering stays client-side because the list contract has no
+ * deletedAt or date-range query. Soft-deleted rows may appear; this helper is
+ * not a deletion-correctness boundary.
  */
 export function filterWaitingPickups(
   appointments: readonly WaitingPickupAppointment[],

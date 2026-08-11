@@ -7,10 +7,9 @@ import { z } from 'zod'
  * invoice once issued. Do not widen this contract into an update; a privileged
  * edit path requires its own endpoint and contract.
  *
- * The DB-shaped (snake_case) rows this backend sends onward to Apps Script are
- * declared in `server/sheets/Invoices/Invoices.db-contract.ts` and
- * `server/sheets/InvoiceItems/InvoiceItems.db-contract.ts`; the module service
- * owns their DB-to-API mapping. The arithmetic both this request and the write
+ * DB-shaped (snake_case) rows are written to source sheets through
+ * `SheetRepository` and the Sheets API; the module service owns their
+ * DB-to-API mapping. The arithmetic both this request and the write
  * payload rely on lives once, in
  * `contracts/invoices/invoice-calculator.ts`, imported by both the server
  * (authoritative) and the client (live preview) — never duplicated.
@@ -122,7 +121,7 @@ export type CreateInvoiceRequest = z.infer<typeof invoiceCreateSchema>
 
 /*
  * Deliberately absent from `invoiceCreateSchema`. Every one of these is owned
- * by the server or by Apps Script; accepting them from a browser would mean
+ * by the server; accepting them from a browser would mean
  * either trusting a forgeable value or carrying a field we then ignore:
  *
  *   subtotal, netTotal        the server computes them, authoritative
@@ -132,7 +131,7 @@ export type CreateInvoiceRequest = z.infer<typeof invoiceCreateSchema>
  *   billingPeriodStart/End     only meaningful for CYCLE, which is not modeled
  *   status                     always ISSUED on create
  *   createdBy                  server constant (INVOICE_CREATED_BY)
- *   createdAt                  Apps Script stamps it
+ *   createdAt                  server timestamp
  *   customerId                 derived from customer.customerCode
  *   sku, taxId, branchCode,
  *   contactName, email         no source on this form
@@ -145,7 +144,7 @@ export type CreateInvoiceRequest = z.infer<typeof invoiceCreateSchema>
 
 // ── POST /api/invoices — response ───────────────────────────────────────────
 //
-// Five outcomes, kept distinct on purpose — the difference between them is
+// Create outcomes stay distinct on purpose — the difference between them is
 // whether anything was written, which decides whether resubmitting is safe.
 // Never collapse these into one generic error.
 
@@ -192,9 +191,8 @@ export const createInvoiceItemsFailedSchema = z.object({
   kind: z.literal('items_write_failed'),
   message: z.string(),
   certainty: invoiceWriteFailureCertaintySchema,
-  // 'rejected': nothing was written — Apps Script validates the whole item
-  // batch before writing any of it, so a rejected batch leaves the sheet
-  // untouched. Safe to retry as-is.
+  // 'rejected': the Sheets API definitively rejected the item batch before it
+  // committed. Safe to retry as-is.
   // 'unknown': no definite answer came back — the batch may already be in
   // the sheet. NEVER safe to retry; a retry could double every line item.
 })

@@ -37,7 +37,6 @@ export const appointmentsRowSchema = z.object({
 
 export const appointmentsDbContract = {
   row: appointmentsRowSchema,
-  // API field: appointmentId; the current code field map resolves it to AppointmentID.
   primaryKey: 'AppointmentID',
   sheetName: 'Appointments',
   spreadsheetId: 'APPOINTMENTS_SPREADSHEET_ID',

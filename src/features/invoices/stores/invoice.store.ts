@@ -11,9 +11,7 @@ export const useInvoiceStore = defineStore('invoices', () => {
   const perPage = ref(20)
   const loading = ref(false)
   const error = ref<string | null>(null)
-  // Guards against an older in-flight request's response overwriting a newer
-  // one (e.g. rapid filter changes firing several requests out of order) —
-  // same pattern as InvoiceDetailPage.vue's loadInvoice().
+  // Prevent an older response from overwriting a newer request.
   let latestRequest = 0
 
   async function fetchInvoices(filter: InvoiceFilter) {

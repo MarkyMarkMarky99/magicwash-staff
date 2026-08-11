@@ -41,17 +41,13 @@ import type { ApiQueryParams } from '../../shared/http/api-handler.js'
 import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
 import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
 
-/**
- * Named constant for `created_by` when no real staff identity is available —
- * one place to switch to a real actor.
- */
+/** Fallback actor recorded in `created_by` when no staff identity is supplied. */
 export const INVOICE_CREATED_BY = 'staff'
 
 type InvoicesDbRow = z.infer<typeof invoicesRowSchema>
 type InvoiceItemsDbRow = z.infer<typeof invoiceItemsRowSchema>
 type OrderFormDbRow = z.infer<typeof orderFormRowSchema>
 
-/** DB column -> API/domain field, derived from the Invoices sheet contract. */
 export const invoicesFieldMap = {
   invoice_number: 'invoiceNumber',
   status: 'status',
@@ -71,7 +67,6 @@ export const invoicesFieldMap = {
   deleted_by: 'deletedBy',
 } as const satisfies Record<keyof InvoicesDbRow & string, string>
 
-/** DB column -> API/domain field, derived from the InvoiceItems sheet contract. */
 export const invoiceItemsFieldMap = {
   invoice_number: 'invoiceNumber',
   invoice_item_id: 'invoiceItemId',
@@ -89,7 +84,6 @@ export const invoiceItemsFieldMap = {
   net_total: 'netTotal',
 } as const satisfies Record<keyof InvoiceItemsDbRow & string, string>
 
-/** DB column -> API/domain field, derived from the OrderForm sheet contract. */
 export const orderFormFieldMap = {
   id: 'id',
   order_number: 'orderNumber',
@@ -612,11 +606,7 @@ export class InvoiceService {
     }
   }
 
-  /**
-   * Mirrors `BaseCrudService`'s private `project()` — copies only the fields
-   * `invoiceViewApiContract.response.list` declares, so this hand-rolled
-   * path returns the exact same shape the generic path's projection would.
-   */
+  /** Projects only fields declared by the invoice-view list response. */
   private projectListRow(
     row: Record<string, unknown>,
   ): InvoiceViewListResponse {

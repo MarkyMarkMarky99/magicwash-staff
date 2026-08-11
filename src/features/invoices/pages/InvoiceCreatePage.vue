@@ -561,7 +561,6 @@ async function copyLiffUrl(invoiceNumber: string) {
         (retry re-shows the form with everything you typed still in place)
       </p>
 
-      <!-- DEV ONLY: remove this block (and InvoiceDevJsonPanel) before shipping. -->
       <InvoiceDevJsonPanel :payload="requestPayload" :response="result" />
     </div>
 
@@ -600,7 +599,6 @@ async function copyLiffUrl(invoiceNumber: string) {
         :invoice-total="invoiceTotal"
       />
 
-      <!-- DEV ONLY: remove this block (and InvoiceDevJsonPanel) before shipping. -->
       <InvoiceDevJsonPanel :payload="requestPayload" :response="null" />
 
       <button

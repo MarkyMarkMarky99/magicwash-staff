@@ -24,7 +24,6 @@ export const invoiceItemsRowSchema = z
 
 export const invoiceItemsDbContract = {
   row: invoiceItemsRowSchema,
-  // API field: invoiceItemId; the current code field map resolves it to invoice_item_id.
   primaryKey: 'invoice_item_id',
   sheetName: 'InvoiceItems',
   spreadsheetId: 'INVOICES_SPREADSHEET_ID',

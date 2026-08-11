@@ -8,13 +8,13 @@ import { customersRowSchema } from '../../sheets/Customers/Customers.db-contract
 
 type CustomerDbRow = z.infer<typeof customersRowSchema>
 
-/** DB column -> API/domain field. The map is derived from the Customers sheet
- * contract; `Line` is the irregular column that becomes `lineId` in the API. */
+/** `Line` maps to the API's `lineId` field. */
 export const customerFieldMap = {
   Timestamp: 'timestamp',
   CustomerID: 'customerId',
   CustomerIndex: 'customerIndex',
   CustomerName: 'customerName',
+  // Phone passes through as stored text; reads do not normalize it.
   Phone: 'phone',
   Address: 'address',
   Location: 'location',
@@ -55,11 +55,6 @@ type CustomerService = BaseCrudService<
   typeof customerFieldMap
 >
 
-// ── API behavior: BaseCrudService validates the request, builds the read query
-//    (ReadQueryDTO.fromQuery with searchFields), calls the sheet repository,
-//    maps its DB-shaped rows into the API shape, and projects each response by
-//    its schema shape. Phone remains the stored text value with no read-time
-//    normalization or other write-time business logic. ──
 export const customerService: CustomerService = new BaseCrudService({
   repository: getCustomersRepository,
   api: customerApiContract,

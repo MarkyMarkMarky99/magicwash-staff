@@ -31,7 +31,6 @@ export const customersRowSchema = z.object({
 
 export const customersDbContract = {
   row: customersRowSchema,
-  // API field: customerId; the current code field map resolves it to CustomerID.
   primaryKey: 'CustomerID',
   sheetName: 'Customers',
   spreadsheetId: 'CUSTOMERS_SPREADSHEET_ID',

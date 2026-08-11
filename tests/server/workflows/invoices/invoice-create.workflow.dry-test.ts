@@ -118,11 +118,9 @@ async function main(): Promise<void> {
     assert.equal(result.invoiceTotal, 214)
   }
 
-  // ── No automatic duplicate retry: a failed stage is called exactly once,
-  //    never retried by the service itself — and an un-typed thrown error
-  //    (not a SheetLibRejectedError) is classified `certainty: 'unknown'`,
-  //    never `'rejected'`, since this service never claims certainty it
-  //    doesn't actually have. ──
+  // An untyped injected error is classified with `certainty: 'unknown'`; a
+  // failed stage is called exactly once because no retry is safe without a
+  // definite rejection.
   const failingItemsRepo: InvoiceItemWriter = {
     async batchAppend() {
       itemBatchCallCount += 1

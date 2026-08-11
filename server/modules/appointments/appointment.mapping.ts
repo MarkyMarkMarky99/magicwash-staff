@@ -3,7 +3,6 @@ import { appointmentsRowSchema } from '../../sheets/Appointments/Appointments.db
 
 type AppointmentsDbRow = z.infer<typeof appointmentsRowSchema>
 
-/** DB column -> API/domain field for the Appointments module. */
 export const appointmentsFieldMap = {
   AppointmentID: 'appointmentId',
   CustomerID: 'customerId',

@@ -35,7 +35,6 @@ export const paymentsRowSchema = z
 
 export const paymentsDbContract = {
   row: paymentsRowSchema,
-  // API field: paymentId; the current code field map resolves it to payment_id.
   primaryKey: 'payment_id',
   sheetName: 'Payments',
   writes: { append: false, update: false, delete: false },
