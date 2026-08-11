@@ -6,7 +6,6 @@ import { buildSheetHeaderMap } from '../../../../../server/shared/repositories/s
 import { WriteRowIdentityMismatchError } from '../../../../../server/shared/repositories/sheet-row-identity.js'
 
 process.env.TEST_SPREADSHEET_ID = 'spreadsheet-id'
-process.env.TEST_SCRIPT_URL = 'https://script.example/exec'
 
 const appendRowSchema = z.object({
   AppendID: z.string(),
@@ -22,7 +21,6 @@ const sheetsApiContract = {
   primaryKey: 'AppendID',
   sheetName: 'SyntheticAppends',
   spreadsheetId: 'TEST_SPREADSHEET_ID',
-  writeTransport: 'sheets-api',
   valueInput: {
     AppendID: 'USER_ENTERED',
     BeforeNullable: 'USER_ENTERED',
@@ -35,15 +33,6 @@ const sheetsApiContract = {
 const conflictingValueInputContract = {
   ...sheetsApiContract,
   valueInput: { NullableMiddle: 'RAW' },
-} satisfies SheetContract
-
-const sheetLibContract = {
-  row: appendRowSchema,
-  primaryKey: 'AppendID',
-  sheetName: 'SyntheticSheetLibAppends',
-  spreadsheetId: 'TEST_SPREADSHEET_ID',
-  target: 'SyntheticAppend',
-  writes: { append: true, update: false, delete: false },
 } satisfies SheetContract
 
 const headerMap = buildSheetHeaderMap(
@@ -93,10 +82,6 @@ function appendResponse(values: unknown[][]): Response {
       updatedData: { values },
     },
   })
-}
-
-function requestBody(call: FetchCall): Record<string, unknown> {
-  return JSON.parse(String(call.init?.body)) as Record<string, unknown>
 }
 
 function sheetsApiRepository(
@@ -250,30 +235,25 @@ test('an append echo with a different primary key is rejected', async () => {
   )
 })
 
-test('a contract without writeTransport still appends through SheetLib', async () => {
-  const repository = new SheetRepository<AppendRow>({
-    contract: sheetLibContract,
-    scriptUrl: 'TEST_SCRIPT_URL',
-  })
-
+test('a contract without a transport declaration appends through the Sheets API', async () => {
   await withMockFetch(
-    async (_url, init) => {
-      assert.deepEqual(requestBody({ url: '', init }), {
-        resource: 'sheet',
-        action: 'APPEND',
-        target: 'SyntheticAppend',
-        data: { AppendID: 'append-7' },
+    async (url, init) => {
+      assert.match(url, /:append/)
+      assert.deepEqual(JSON.parse(String(init?.body)), {
+        majorDimension: 'ROWS',
+        values: [['append-7', '', '', '']],
       })
-      return jsonResponse({
-        status: 'ok',
-        target: 'SyntheticAppend',
-        data: { AppendID: 'append-7' },
-      })
+      return appendResponse([['append-7', '', '', '']])
     },
-    async () => {
+    async (calls) => {
+      const repository = sheetsApiRepository()
       assert.deepEqual(await repository.append({ AppendID: 'append-7' }), {
         AppendID: 'append-7',
+        BeforeNullable: '',
+        NullableMiddle: '',
+        AfterNullable: '',
       })
+      assert.equal(calls.length, 1)
     },
   )
 })

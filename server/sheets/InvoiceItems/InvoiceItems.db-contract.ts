@@ -28,8 +28,6 @@ export const invoiceItemsDbContract = {
   primaryKey: 'invoice_item_id',
   sheetName: 'InvoiceItems',
   spreadsheetId: 'INVOICES_SPREADSHEET_ID',
-  target: 'InvoiceItem',
-  writeTransport: 'sheets-api',
   // No column needs a USER_ENTERED override; all values are plain text/number/enum, not real Sheets date/number types.
   valueInput: {},
   writes: { append: true, update: false, delete: false },

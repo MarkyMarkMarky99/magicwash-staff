@@ -3,13 +3,8 @@ import { z } from 'zod'
 import type { SheetContract } from '../../../../../server/shared/contracts/sheet-contract.js'
 import { ReadQueryDTO } from '../../../../../server/shared/dtos/read-query.dto.js'
 import { SheetRepository } from '../../../../../server/shared/repositories/sheet.repository.js'
-import {
-  SheetLibRejectedError,
-  SheetLibTransportError,
-} from '../../../../../server/shared/repositories/sheetlib-errors.js'
 
 process.env.TEST_SPREADSHEET_ID = 'spreadsheet-id'
-process.env.TEST_SCRIPT_URL = 'https://script.example/exec'
 
 const widgetRowSchema = z.object({
   WidgetID: z.string(),
@@ -24,21 +19,12 @@ const widgetContract = {
   primaryKey: 'WidgetID',
   sheetName: 'Widgets',
   spreadsheetId: 'TEST_SPREADSHEET_ID',
-  target: 'Widget',
   writes: { append: true, update: true, delete: true },
 } satisfies SheetContract
 
 const readOnlyContract = {
   ...widgetContract,
   writes: { append: false, update: false, delete: false },
-} satisfies SheetContract
-
-const noTargetContract = {
-  row: widgetRowSchema,
-  primaryKey: 'WidgetID',
-  sheetName: 'NoTargetWidgets',
-  spreadsheetId: 'TEST_SPREADSHEET_ID',
-  writes: { append: true, update: true, delete: false },
 } satisfies SheetContract
 
 interface FetchCall {
@@ -91,14 +77,9 @@ function gvizResponse(
   )
 }
 
-function requestBody(call: FetchCall): Record<string, unknown> {
-  return JSON.parse(String(call.init?.body)) as Record<string, unknown>
-}
-
 function widgetRepository(): SheetRepository<WidgetRow> {
   return new SheetRepository<WidgetRow>({
     contract: widgetContract,
-    scriptUrl: 'TEST_SCRIPT_URL',
   })
 }
 
@@ -148,70 +129,6 @@ async function run(): Promise<void> {
     },
   )
 
-  await withMockFetch(
-    async (_url, init) => {
-      const body = JSON.parse(String(init?.body)) as Record<string, unknown>
-      if (body.action === 'APPEND') {
-        return jsonResponse({
-          status: 'ok',
-          target: 'Widget',
-          data: { WidgetID: 'W-3', NestedData: '{}', Label: 'New' },
-        })
-      }
-      return jsonResponse({
-        status: 'ok',
-        target: 'Widget',
-        data: { WidgetID: 'W-3', NestedData: '{}', Label: 'Updated' },
-      })
-    },
-    async (calls) => {
-      assert.deepEqual(
-        await repository.append({ NestedData: '{}', Label: 'New' }),
-        { WidgetID: 'W-3', NestedData: '{}', Label: 'New' },
-      )
-      assert.deepEqual(
-        await repository.update('W-3', { WidgetID: 'wrong', Label: 'Updated' }),
-        { WidgetID: 'W-3', NestedData: '{}', Label: 'Updated' },
-      )
-      assert.deepEqual(requestBody(calls[0]), {
-        resource: 'sheet',
-        action: 'APPEND',
-        target: 'Widget',
-        data: { NestedData: '{}', Label: 'New' },
-      })
-      assert.deepEqual(requestBody(calls[1]), {
-        resource: 'sheet',
-        action: 'UPDATE',
-        target: 'Widget',
-        key_value: 'W-3',
-        data: { Label: 'Updated' },
-      })
-    },
-  )
-
-  await withMockFetch(
-    async () =>
-      jsonResponse({
-        status: 'ok',
-        target: 'Widget',
-        data: { WidgetID: 'W-3', NestedData: '{}', Label: null },
-      }),
-    async (calls) => {
-      assert.deepEqual(await repository.delete('W-3', 'operator-1'), {
-        WidgetID: 'W-3',
-        NestedData: '{}',
-        Label: null,
-      })
-      assert.deepEqual(requestBody(calls[0]), {
-        resource: 'sheet',
-        action: 'DELETE',
-        target: 'Widget',
-        key_value: 'W-3',
-        deleted_by: 'operator-1',
-      })
-    },
-  )
-
   await assert.rejects(
     () => repository.update('', {}),
     { message: 'Repository update requires a non-empty id' },
@@ -220,10 +137,13 @@ async function run(): Promise<void> {
     () => repository.delete('   ', 'operator-1'),
     { message: 'Repository delete requires a non-empty id' },
   )
+  await assert.rejects(
+    () => repository.delete('W-3', 'operator-1'),
+    { message: 'delete is not supported yet' },
+  )
 
   const readOnlyRepository = new SheetRepository<WidgetRow>({
     contract: readOnlyContract,
-    scriptUrl: 'TEST_SCRIPT_URL',
   })
   await withMockFetch(
     async () => {
@@ -239,146 +159,20 @@ async function run(): Promise<void> {
         () => readOnlyRepository.update('W-1', { Label: 'blocked' }),
         /update is not supported by sheet 'Widgets'/,
       )
-      assert.equal(calls.length, 0)
-    },
-  )
-
-  const noTargetRepository = new SheetRepository<WidgetRow>({
-    contract: noTargetContract,
-    scriptUrl: 'TEST_SCRIPT_URL',
-  })
-  await withMockFetch(
-    async () => {
-      assert.fail('a missing target must fail before fetch')
-      return jsonResponse({})
-    },
-    async (calls) => {
       await assert.rejects(
-        () => noTargetRepository.append({ Label: 'blocked' }),
-        /writes require an explicit SheetLib target/,
+        () => readOnlyRepository.delete('W-1', 'operator-1'),
+        /delete is not supported by sheet 'Widgets'/,
       )
       assert.equal(calls.length, 0)
     },
   )
 
-  await withMockFetch(
-    async () => jsonResponse({ status: 'error', message: 'duplicate' }),
-    async () => {
-      await assert.rejects(
-        () => repository.append({ Label: 'duplicate' }),
-        (error: unknown) => {
-          assert.ok(error instanceof SheetLibRejectedError)
-          assert.ok(!(error instanceof SheetLibTransportError))
-          return true
-        },
-      )
-    },
-  )
-
-  const transportCases: Array<{
-    name: string
-    response: FetchHandler
-  }> = [
-    {
-      name: 'network failure',
-      response: async () => {
-        throw new Error('offline')
-      },
-    },
-    {
-      name: 'non-ok HTTP status',
-      response: async () => new Response('server failure', { status: 503 }),
-    },
-    {
-      name: 'read_back_failed',
-      response: async () =>
-        jsonResponse({
-          status: 'ok',
-          target: 'Widget',
-          data: null,
-          read_back_failed: true,
-          reason: 'quota',
-        }),
-    },
-    {
-      name: 'missing data',
-      response: async () => jsonResponse({ status: 'ok', target: 'Widget' }),
-    },
-    {
-      name: 'unusable data',
-      response: async () =>
-        jsonResponse({ status: 'ok', target: 'Widget', data: 'W-1' }),
-    },
-    {
-      name: 'invalid JSON',
-      response: async () => new Response('not json'),
-    },
-  ]
-
-  for (const transportCase of transportCases) {
-    await withMockFetch(transportCase.response, async () => {
-      await assert.rejects(
-        () => repository.append({ Label: transportCase.name }),
-        (error: unknown) => {
-          assert.ok(error instanceof SheetLibTransportError, transportCase.name)
-          assert.ok(!(error instanceof SheetLibRejectedError), transportCase.name)
-          return true
-        },
-      )
-    })
-  }
-
-  await withMockFetch(
-    async () =>
-      jsonResponse({
-        status: 'ok',
-        target: 'Widget',
-        data: { WidgetID: 'W-4' },
+  assert.throws(
+    () =>
+      new SheetRepository<WidgetRow>({
+        contract: { ...widgetContract, spreadsheetId: undefined },
       }),
-    async () => {
-      await assert.rejects(
-        () => repository.batchAppend([{ NestedData: '{}', Label: 'one' }]),
-        (error: unknown) => {
-          assert.ok(error instanceof SheetLibTransportError)
-          assert.ok(!(error instanceof SheetLibRejectedError))
-          assert.match(error instanceof Error ? error.message : '', /data.*not an array/)
-          return true
-        },
-      )
-    },
-  )
-
-  await withMockFetch(
-    async () =>
-      jsonResponse({
-        status: 'ok',
-        target: 'Widget',
-        data: [{ WidgetID: 'W-4' }],
-      }),
-    async () => {
-      await assert.rejects(
-        () =>
-          repository.batchAppend([
-            { NestedData: '{}', Label: 'one' },
-            { NestedData: '{}', Label: 'two' },
-          ]),
-        (error: unknown) => {
-          assert.ok(error instanceof SheetLibTransportError)
-          assert.ok(!(error instanceof SheetLibRejectedError))
-          assert.match(error instanceof Error ? error.message : '', /row count must match/)
-          return true
-        },
-      )
-    },
-  )
-
-  const noSpreadsheetRepository = new SheetRepository<WidgetRow>({
-    contract: { ...widgetContract, spreadsheetId: undefined },
-    scriptUrl: 'TEST_SCRIPT_URL',
-  })
-  await assert.rejects(
-    () => noSpreadsheetRepository.read(),
-    /SheetRepository reads require a spreadsheetId environment variable name/,
+    /SheetRepository Sheets API writes require a spreadsheetId environment variable name/,
   )
 
   console.log('sheet repository dry tests passed')

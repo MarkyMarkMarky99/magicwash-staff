@@ -10,8 +10,6 @@ import type { ZodSchema } from 'zod'
  */
 export type DbRowSchema = ZodSchema & { shape: Record<string, unknown> }
 
-export type SheetWriteTransport = 'sheetlib' | 'sheets-api'
-
 /**
  * Structural guard for a database contract owned by one physical sheet.
  * `row.shape` key order is load-bearing because GViz derives column letters
@@ -28,13 +26,6 @@ export type SheetContract = {
   sheetName: string
   /** Environment variable key containing the spreadsheet id, not the id value. */
   spreadsheetId?: string
-  /** SheetLib / Apps Script write target. The Sheets API path does not use it. */
-  target?: string
-  /**
-   * Selects the write transport for the sheet. Omitted means SheetLib so a
-   * sheet must opt in explicitly before any write path changes.
-   */
-  writeTransport?: SheetWriteTransport
   /**
    * Declares the intended Sheets API input handling for specific columns. This is
    * an intent declaration and a guard, NOT the value sent on the wire: the write

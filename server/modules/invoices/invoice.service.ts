@@ -21,7 +21,6 @@ import { getOrderFormRepository } from '../../sheets/OrderForm/OrderForm.reposit
 import { orderFormRowSchema } from '../../sheets/OrderForm/OrderForm.db-contract.js'
 import { syncInvoiceView as defaultSyncInvoiceView } from './invoice-view-sync-client.js'
 import type { InvoiceViewSyncResult } from './invoice-view-sync-client.js'
-import { SheetLibRejectedError, SheetLibTransportError } from '../../shared/repositories/sheetlib-errors.js'
 import {
   WriteCommittedUnreadableError,
   WriteRejectedError,
@@ -147,9 +146,9 @@ interface WriteFailure {
 /**
  * Maps a write failure to the public certainty value.
  *
- * rejected  — SheetLibRejectedError, WriteRejectedError, DuplicateRowKeyError:
+ * rejected  — WriteRejectedError, DuplicateRowKeyError:
  *             the write was refused before or by the sheet, nothing was stored.
- * unknown   — SheetLibTransportError, WriteTransportError:
+ * unknown   — WriteTransportError:
  *             the transport outcome does not prove whether the row was stored.
  * unknown   — WriteCommittedUnreadableError, WriteRowIdentityMismatchError:
  *             the write completed, but its persisted result could not be safely
@@ -161,15 +160,6 @@ interface WriteFailure {
  * default is deliberately the cautious one, not the correct one.
  */
 function classifyWriteFailure(error: unknown): WriteFailure {
-  if (error instanceof SheetLibRejectedError) {
-    return { certainty: 'rejected', message: error.message }
-  }
-  if (error instanceof SheetLibTransportError) {
-    return {
-      certainty: 'unknown',
-      message: `Write outcome unknown (transport failure, not a confirmed rejection): ${error.message}`,
-    }
-  }
   if (error instanceof WriteRejectedError || error instanceof DuplicateRowKeyError) {
     return { certainty: 'rejected', message: error.message }
   }
@@ -402,7 +392,7 @@ export class InvoiceService {
       unit_price: item.unitPrice,
       subtotal: lineCalculations[index].subtotal,
       // InvoiceItems.adjustments is a text cell; serialize it before the row
-      // reaches SheetRepository/SheetLib.
+      // reaches the sheet repository.
       adjustments: JSON.stringify(item.adjustments.map(toDbAdjustment)),
       net_total: lineCalculations[index].netTotal,
     }))
@@ -433,7 +423,7 @@ export class InvoiceService {
       // snapshot — must equal customer.customer_code exactly.
       customer_id: request.customer.customerCode,
       // Invoices.customer and Invoices.adjustments are text cells; serialize
-      // them before the row reaches SheetRepository/SheetLib.
+      // them before the row reaches the sheet repository.
       customer: JSON.stringify(customerSnapshot),
       adjustments: JSON.stringify(request.adjustments.map(toDbAdjustment)),
       created_by: this.createdBy,

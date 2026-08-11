@@ -9,9 +9,9 @@ import type {
 } from '../../../../../server/modules/invoices/invoice.service.js'
 import type { InvoiceViewSyncResult } from '../../../../../server/modules/invoices/invoice-view-sync-client.js'
 import {
-  SheetLibRejectedError,
-  SheetLibTransportError,
-} from '../../../../../server/shared/repositories/sheetlib-errors.js'
+  WriteRejectedError,
+  WriteTransportError,
+} from '../../../../../server/shared/repositories/sheets-api.client.js'
 import { formatBangkokTimestamp } from '../../../../../server/shared/utils/bangkok-timestamp.js'
 
 const { InvoiceService, invoicesFieldMap, invoiceItemsFieldMap } = await import(
@@ -200,14 +200,14 @@ test('create() rejects invalid input as validation_error and calls no repository
 
 test('create() reports items_write_failed and stops before Invoice.create on a definite rejection', async () => {
   const { service, calls } = createService({
-    itemsError: new SheetLibRejectedError('APPEND', 'bad batch'),
+    itemsError: new WriteRejectedError('APPEND', 'bad batch'),
   })
 
   const result = await service.create(baseRequest())
 
   assert.deepEqual(result, {
     kind: 'items_write_failed',
-    message: 'SheetLib APPEND failed: bad batch',
+    message: 'bad batch',
     certainty: 'rejected',
   })
   assert.deepEqual(calls, ['InvoiceItem.batchAppend'])
@@ -215,7 +215,7 @@ test('create() reports items_write_failed and stops before Invoice.create on a d
 
 test('create() still reports items_write_failed for an unknown transport outcome, but certainty is "unknown" and the message says so truthfully', async () => {
   const { service, calls } = createService({
-    itemsError: new SheetLibTransportError('APPEND', 'network hiccup'),
+    itemsError: new WriteTransportError('APPEND', 'network hiccup'),
   })
 
   const result = await service.create(baseRequest())
@@ -229,9 +229,24 @@ test('create() still reports items_write_failed for an unknown transport outcome
   assert.deepEqual(calls, ['InvoiceItem.batchAppend'])
 })
 
+test('create() classifies an unrecognized write error as unknown', async () => {
+  const { service, calls } = createService({
+    itemsError: new Error('unexpected write failure'),
+  })
+
+  const result = await service.create(baseRequest())
+
+  assert.deepEqual(result, {
+    kind: 'items_write_failed',
+    message: 'unexpected write failure',
+    certainty: 'unknown',
+  })
+  assert.deepEqual(calls, ['InvoiceItem.batchAppend'])
+})
+
 test('create() reports invoice_write_failed with certainty "rejected" after items already succeeded, and stops before OrderForm.update', async () => {
   const { service, calls } = createService({
-    invoiceError: new SheetLibRejectedError('APPEND', 'duplicate invoice_number'),
+    invoiceError: new WriteRejectedError('APPEND', 'duplicate invoice_number'),
   })
 
   const result = await service.create(baseRequest())
@@ -247,7 +262,7 @@ test('create() reports invoice_write_failed with certainty "rejected" after item
 
 test('create() reports invoice_write_failed with certainty "unknown" for an unconfirmed header write', async () => {
   const { service } = createService({
-    invoiceError: new SheetLibTransportError('APPEND', 'network hiccup'),
+    invoiceError: new WriteTransportError('APPEND', 'network hiccup'),
   })
 
   const result = await service.create(baseRequest())
@@ -262,7 +277,7 @@ test('create() reports invoice_write_failed with certainty "unknown" for an unco
 
 test('create() reports order_link_failed — never invoice_write_failed — after a successful invoice write, with correct certainty for both a definite rejection and an unknown transport outcome', async () => {
   const rejected = createService({
-    orderFormError: new SheetLibRejectedError('UPDATE', 'OrderForm row not found'),
+    orderFormError: new WriteRejectedError('UPDATE', 'OrderForm row not found'),
   })
   const rejectedResult = await rejected.service.create(baseRequest())
   assert.deepEqual(rejectedResult, {
@@ -274,7 +289,7 @@ test('create() reports order_link_failed — never invoice_write_failed — afte
   assert.deepEqual(rejected.calls, ['InvoiceItem.batchAppend', 'Invoice.create', 'OrderForm.update'])
 
   const unknown = createService({
-    orderFormError: new SheetLibTransportError('UPDATE', 'network hiccup'),
+    orderFormError: new WriteTransportError('UPDATE', 'network hiccup'),
   })
   const unknownResult = await unknown.service.create(baseRequest())
   assert.deepEqual(unknownResult, {

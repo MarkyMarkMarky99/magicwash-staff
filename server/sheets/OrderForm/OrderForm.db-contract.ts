@@ -33,10 +33,8 @@ export const orderFormDbContract = {
   sheetName: 'OrderForm',
   // This tab's registry workbook may differ from the ORDERS_SPREADSHEET_ID value.
   spreadsheetId: 'ORDERS_SPREADSHEET_ID',
-  target: 'OrderForm',
   // updated_at is intentionally a real Sheets datetime, not plain text.
   // This valueInput declaration records that intent and guards against a conflict.
   valueInput: { updated_at: 'USER_ENTERED' },
-  writeTransport: 'sheets-api',
   writes: { append: false, update: true, delete: false },
 } satisfies SheetContract

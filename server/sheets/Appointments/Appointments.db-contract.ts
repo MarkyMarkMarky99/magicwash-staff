@@ -41,8 +41,6 @@ export const appointmentsDbContract = {
   primaryKey: 'AppointmentID',
   sheetName: 'Appointments',
   spreadsheetId: 'APPOINTMENTS_SPREADSHEET_ID',
-  target: 'Appointment',
-  writeTransport: 'sheets-api',
   // Appointment.json documents AppointmentDate as a real Sheets date so GViz localization and date-range queries work.
   valueInput: { AppointmentDate: 'USER_ENTERED' },
   writes: { append: true, update: true, delete: false },

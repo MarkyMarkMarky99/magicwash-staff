@@ -3,9 +3,8 @@ import { requireEnv } from '../../shared/utils/env.js'
 const REQUEST_TIMEOUT_MS = 15_000
 
 /**
- * `certainty` mirrors the same vocabulary `SheetLibRejectedError`/
- * `SheetLibTransportError` use for the SheetLib write path
- * (`server/shared/repositories/sheetlib-errors.ts`):
+ * `certainty` uses the same rejected/unknown vocabulary as the sheet write
+ * services:
  *   - 'rejected' — the response is recognizably the endpoint's OWN failure
  *     shape: an explicit `ok: false`, or a known `error`/`message` reason
  *     string. A definite, understood rejection.

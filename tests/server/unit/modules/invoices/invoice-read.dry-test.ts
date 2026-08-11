@@ -94,7 +94,6 @@ function invoiceRow(overrides: {
 function createService(): InstanceType<typeof InvoiceService> {
   const invoiceViewRepository = new SheetRepository<z.infer<typeof invoicesViewRowSchema>>({
     contract: invoicesViewDbContract,
-    scriptUrl: 'TEST_SCRIPT_URL',
   })
 
   return new InvoiceService({

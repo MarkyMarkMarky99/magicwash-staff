@@ -7,7 +7,6 @@ import { WriteRowIdentityMismatchError } from '../../../../../server/shared/repo
 import { WriteCommittedUnreadableError } from '../../../../../server/shared/repositories/sheets-api.client.js'
 
 process.env.TEST_SPREADSHEET_ID = 'spreadsheet-id'
-process.env.TEST_SCRIPT_URL = 'https://script.example/exec'
 
 const batchAppendRowSchema = z.object({
   AppendID: z.string(),
@@ -23,7 +22,6 @@ const sheetsApiContract = {
   primaryKey: 'AppendID',
   sheetName: 'SyntheticBatchAppends',
   spreadsheetId: 'TEST_SPREADSHEET_ID',
-  writeTransport: 'sheets-api',
   valueInput: {
     AppendID: 'USER_ENTERED',
     BeforeNullable: 'USER_ENTERED',
@@ -36,15 +34,6 @@ const sheetsApiContract = {
 const conflictingValueInputContract = {
   ...sheetsApiContract,
   valueInput: { NullableMiddle: 'RAW' },
-} satisfies SheetContract
-
-const sheetLibContract = {
-  row: batchAppendRowSchema,
-  primaryKey: 'AppendID',
-  sheetName: 'SyntheticSheetLibBatchAppends',
-  spreadsheetId: 'TEST_SPREADSHEET_ID',
-  target: 'SyntheticBatchAppend',
-  writes: { append: true, update: false, delete: false },
 } satisfies SheetContract
 
 const headerMap = buildSheetHeaderMap(
@@ -121,10 +110,6 @@ function appendResponse(values: unknown[][]): Response {
       updatedData: { values },
     },
   })
-}
-
-function requestBody(call: FetchCall): Record<string, unknown> {
-  return JSON.parse(String(call.init?.body)) as Record<string, unknown>
 }
 
 function sheetsApiRepository(
@@ -312,34 +297,39 @@ test('a row-count mismatch is committed-but-unreadable, never a rejection', asyn
   )
 })
 
-test('a contract without writeTransport still batchAppends through SheetLib', async () => {
-  const repository = new SheetRepository<BatchAppendRow>({
-    contract: sheetLibContract,
-    scriptUrl: 'TEST_SCRIPT_URL',
-  })
-
-  const sheetLibRows = [
-    { AppendID: 'sheetlib-1' },
-    { AppendID: 'sheetlib-2' },
-    { AppendID: 'sheetlib-3' },
-  ]
-
+test('a contract without a transport declaration batchAppends through the Sheets API', async () => {
   await withMockFetch(
-    async (_url, init) => {
-      assert.deepEqual(requestBody({ url: '', init }), {
-        resource: 'sheet',
-        action: 'APPEND',
-        target: 'SyntheticBatchAppend',
-        data: sheetLibRows,
+    async (url, init) => {
+      assert.match(url, /:append/)
+      assert.deepEqual(JSON.parse(String(init?.body)), {
+        majorDimension: 'ROWS',
+        values: expectedSentValues,
       })
-      return jsonResponse({
-        status: 'ok',
-        target: 'SyntheticBatchAppend',
-        data: sheetLibRows,
-      })
+      return appendResponse(expectedSentValues)
     },
-    async () => {
-      assert.deepEqual(await repository.batchAppend(sheetLibRows), sheetLibRows)
+    async (calls) => {
+      const repository = sheetsApiRepository()
+      assert.deepEqual(await repository.batchAppend(threeBatchRows), [
+        {
+          AppendID: 'batch-1',
+          BeforeNullable: 'before-1',
+          NullableMiddle: '',
+          AfterNullable: 'after-1',
+        },
+        {
+          AppendID: 'batch-2',
+          BeforeNullable: '',
+          NullableMiddle: 'middle-2',
+          AfterNullable: 'after-2',
+        },
+        {
+          AppendID: 'batch-3',
+          BeforeNullable: 'before-3',
+          NullableMiddle: 'middle-3',
+          AfterNullable: '',
+        },
+      ])
+      assert.equal(calls.length, 1)
     },
   )
 })

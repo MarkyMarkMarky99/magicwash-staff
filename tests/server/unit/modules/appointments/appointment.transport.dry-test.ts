@@ -70,7 +70,6 @@ async function withMockFetch<T>(
 function createService(id: string, now: Date): AppointmentService {
   const repository = new SheetRepository<z.infer<typeof appointmentsRowSchema>>({
     contract: appointmentsDbContract,
-    scriptUrl: 'TEST_APPOINTMENTS_SCRIPT_URL',
     sheetsApiClientOptions: {
       accessTokenProvider: async () => 'test-access-token',
     },
