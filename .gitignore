@@ -35,6 +35,13 @@ dist-ssr
 # Local planning draft
 /docs/invoice-create-plan.md
 
+# Agent working notes — plans, handoffs, mocks
+.agent-docs/
+
 # Raw sheet data samples — contain real customer PII, never commit
 /invoice-view-raw-sample.json
 /invoice-view-parsed-sample.json
+
+
+# Grok sandbox worktrees live here; each is its own checkout, never content of this one
+.worktrees/

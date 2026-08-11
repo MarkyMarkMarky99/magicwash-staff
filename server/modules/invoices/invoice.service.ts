@@ -5,36 +5,114 @@ import {
   type CreateInvoiceResponse,
   type InvoiceAdjustmentInput,
 } from '../../../contracts/invoices/invoice-api.schema.js'
+import { invoiceViewApiContract } from '../../../contracts/invoices/invoice-view-api.schema.js'
 import {
   computeInvoiceLine,
   computeInvoiceTotal,
   roundMoney,
 } from '../../../contracts/invoices/invoice-calculator.js'
-import {
-  invoiceApiCreateSchema,
-  invoiceItemApiCreateSchema,
-  type InvoiceAdjustment,
-  type InvoiceApiCreateCommand,
-  type InvoiceItemApiCreateCommand,
-} from './invoice.contract.js'
-import { orderFormApiUpdateSchema, type OrderFormApiUpdateCommand } from '../orders/order.contract.js'
-import { getInvoiceRepository, getInvoiceItemRepository, getInvoiceViewRepository } from './invoice.repository.js'
-import { getOrderFormRepository } from '../orders/order.repository.js'
+import { getInvoicesRepository } from '../../sheets/Invoices/Invoices.repository.js'
+import { invoicesRowSchema } from '../../sheets/Invoices/Invoices.db-contract.js'
+import { getInvoiceItemsRepository } from '../../sheets/InvoiceItems/InvoiceItems.repository.js'
+import { invoiceItemsRowSchema } from '../../sheets/InvoiceItems/InvoiceItems.db-contract.js'
+import { getInvoicesViewRepository } from '../../sheets/InvoicesView/InvoicesView.repository.js'
+import { invoicesViewRowSchema } from '../../sheets/InvoicesView/InvoicesView.db-contract.js'
+import { getOrderFormRepository } from '../../sheets/OrderForm/OrderForm.repository.js'
+import { orderFormRowSchema } from '../../sheets/OrderForm/OrderForm.db-contract.js'
 import { syncInvoiceView as defaultSyncInvoiceView } from './invoice-view-sync-client.js'
 import type { InvoiceViewSyncResult } from './invoice-view-sync-client.js'
-import { SheetLibRejectedError, SheetLibTransportError } from '../../shared/repositories/sheetlib-errors.js'
-import { BaseCrudService, type ServiceListResult } from '../../shared/services/base-crud.service.js'
-import { invoiceViewContract } from './invoice.contract.js'
-import { ReadQueryDTO, type OmitReservedQueryFields } from '../../shared/dtos/read-query.dto.js'
+import {
+  WriteCommittedUnreadableError,
+  WriteRejectedError,
+  WriteTransportError,
+} from '../../shared/repositories/sheets-api.client.js'
+import { DuplicateRowKeyError } from '../../shared/repositories/sheet-row-lookup.js'
+import { WriteRowIdentityMismatchError } from '../../shared/repositories/sheet-row-identity.js'
+import {
+  BaseCrudService,
+  mapDbRowToApi,
+  type JsonColumnMap,
+  type ServiceListResult,
+} from '../../shared/services/base-crud.service.js'
+import { Mapper, type ApiRowFromFieldMap } from '../../shared/repositories/base.repository.js'
+import { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import type { ApiQueryParams } from '../../shared/http/api-handler.js'
-import type { GSheetRepository } from '../../shared/repositories/gsheet.repository.js'
+import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
+import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
 
 /**
- * `created_by` placeholder until this app has real staff identity — kept in
- * one named constant so switching to a real actor is a one-line change.
+ * Named constant for `created_by` when no real staff identity is available —
+ * one place to switch to a real actor.
  */
 export const INVOICE_CREATED_BY = 'staff'
+
+type InvoicesDbRow = z.infer<typeof invoicesRowSchema>
+type InvoiceItemsDbRow = z.infer<typeof invoiceItemsRowSchema>
+type OrderFormDbRow = z.infer<typeof orderFormRowSchema>
+
+/** DB column -> API/domain field, derived from the Invoices sheet contract. */
+export const invoicesFieldMap = {
+  invoice_number: 'invoiceNumber',
+  status: 'status',
+  billing_type: 'billingType',
+  billing_period_start: 'billingPeriodStart',
+  billing_period_end: 'billingPeriodEnd',
+  issued_date: 'issuedDate',
+  due_date: 'dueDate',
+  customer_id: 'customerId',
+  customer: 'customer',
+  adjustments: 'adjustments',
+  created_by: 'createdBy',
+  created_at: 'createdAt',
+  updated_at: 'updatedAt',
+  updated_by: 'updatedBy',
+  deleted_at: 'deletedAt',
+  deleted_by: 'deletedBy',
+} as const satisfies Record<keyof InvoicesDbRow & string, string>
+
+/** DB column -> API/domain field, derived from the InvoiceItems sheet contract. */
+export const invoiceItemsFieldMap = {
+  invoice_number: 'invoiceNumber',
+  invoice_item_id: 'invoiceItemId',
+  item_no: 'itemNo',
+  source_order_id: 'sourceOrderId',
+  source_item_id: 'sourceItemId',
+  sku: 'sku',
+  service_type: 'serviceType',
+  description: 'description',
+  quantity: 'quantity',
+  unit: 'unit',
+  unit_price: 'unitPrice',
+  subtotal: 'subtotal',
+  adjustments: 'adjustments',
+  net_total: 'netTotal',
+} as const satisfies Record<keyof InvoiceItemsDbRow & string, string>
+
+/** DB column -> API/domain field, derived from the OrderForm sheet contract. */
+export const orderFormFieldMap = {
+  id: 'id',
+  order_number: 'orderNumber',
+  customer_id: 'customerId',
+  received_date: 'receivedDate',
+  due_date: 'dueDate',
+  service_type: 'serviceType',
+  status: 'status',
+  quantity: 'quantity',
+  hangers: 'hangers',
+  bags: 'bags',
+  hangers_image: 'hangersImage',
+  bags_image: 'bagsImage',
+  form_image: 'formImage',
+  note: 'note',
+  timestamp: 'timestamp',
+  created_by: 'createdBy',
+  updated_at: 'updatedAt',
+  updated_by: 'updatedBy',
+  invoice_id: 'invoiceId',
+  order_name: 'orderName',
+  order_description: 'orderDescription',
+} as const satisfies Record<keyof OrderFormDbRow & string, string>
 
 /** The one id scheme used across this codebase: the first 8 hex characters
  *  of `crypto.randomUUID()` (its first hyphen-delimited group, no stripping
@@ -43,10 +121,14 @@ function defaultGenerateItemId(): string {
   return randomUUID().slice(0, 8)
 }
 
-/** camelCase adjustment input -> snake_case write-side adjustment. Drops a
- *  `refSource`/`refCode` pair only when BOTH are absent — the API schema
- *  already refines that they're never sent one without the other. */
-function toDbAdjustment(adjustment: InvoiceAdjustmentInput): InvoiceAdjustment {
+/** Safe to drop `refSource`/`refCode` only when BOTH are absent — the API
+ *  schema refines that one is never sent without the other. */
+type InvoiceDbAdjustment = Omit<InvoiceAdjustmentInput, 'refSource' | 'refCode'> & {
+  ref_source?: string
+  ref_code?: string
+}
+
+function toDbAdjustment(adjustment: InvoiceAdjustmentInput): InvoiceDbAdjustment {
   return {
     label: adjustment.label,
     calculation: adjustment.calculation,
@@ -56,76 +138,142 @@ function toDbAdjustment(adjustment: InvoiceAdjustmentInput): InvoiceAdjustment {
   }
 }
 
-/** The classified shape every write-stage failure branch below builds its
- *  outcome from. */
 interface WriteFailure {
   certainty: 'rejected' | 'unknown'
   message: string
 }
 
 /**
- * `classifyWriteFailure` — the truthful internal error typing this rollout
- * now ALSO surfaces on the public contract (see
- * `docs/invoice-module-refactor-plan.md`'s Failure and Retry Semantics
- * section, and `contracts/invoices/invoice-api.schema.ts`'s `certainty`
- * field, added in a later, approved pass on top of the original six-outcome
- * design). `SheetLibRejectedError`/`SheetLibTransportError`
- * (`server/shared/repositories/sheetlib-errors.ts`) let this service tell
- * "the gateway gave a definite answer" (`certainty: 'rejected'`) apart from
- * "no definite answer ever came back" (`certainty: 'unknown'`), which the
- * previous `Error`-only catch could not.
+ * Maps a write failure to the public certainty value.
  *
- * Any error that is neither typed class (a genuine programmer bug, or a
- * post-write validation failure inside `GSheetRepository` itself — see
- * `SheetLibTransportError`'s use in `gsheet.repository.ts` for the
- * batch-response-shape checks that fire AFTER the gateway already answered
- * ok) is classified `'unknown'`, never `'rejected'` — this service never
- * claims certainty it doesn't actually have.
+ * rejected  — WriteRejectedError, DuplicateRowKeyError:
+ *             the write was refused before or by the sheet, nothing was stored.
+ * unknown   — WriteTransportError:
+ *             the transport outcome does not prove whether the row was stored.
+ * unknown   — WriteCommittedUnreadableError, WriteRowIdentityMismatchError:
+ *             the write completed, but its persisted result could not be safely
+ *             read or identified. Neither group may be auto-retried.
+ *
+ * Any error that is not one of these typed classes is classified 'unknown',
+ * never 'rejected' — over-claiming 'rejected' would invite a retry that
+ * duplicates data. A new write error class must be added here explicitly; the
+ * default is deliberately the cautious one, not the correct one.
  */
 function classifyWriteFailure(error: unknown): WriteFailure {
-  if (error instanceof SheetLibRejectedError) {
+  if (error instanceof WriteRejectedError || error instanceof DuplicateRowKeyError) {
     return { certainty: 'rejected', message: error.message }
   }
-  if (error instanceof SheetLibTransportError) {
+  if (error instanceof WriteCommittedUnreadableError) {
     return {
       certainty: 'unknown',
-      message: `Write outcome unknown (transport failure, not a confirmed rejection): ${error.message}`,
+      message: `Write committed but the persisted row could not be read back; do not retry: ${error.message}`,
+    }
+  }
+  if (error instanceof WriteTransportError || error instanceof WriteRowIdentityMismatchError) {
+    return {
+      certainty: 'unknown',
+      message: `Write outcome unknown: ${error.message}`,
     }
   }
   return { certainty: 'unknown', message: error instanceof Error ? error.message : String(error) }
 }
 
-/** Minimal write-side ports `InvoiceService` depends on — real `GSheetRepository`
+/** Minimal write-side ports `InvoiceService` depends on — real `SheetRepository`
  *  instances satisfy these structurally; tests inject fakes that record calls
- *  without needing to extend `BaseRepository`/mock `fetch`. */
+ *  without needing to extend the repository or mock `fetch`. */
 export interface InvoiceHeaderWriter {
-  create(data: InvoiceApiCreateCommand): Promise<unknown>
+  append(data: Partial<InvoicesDbRow>): Promise<unknown>
 }
 export interface InvoiceItemWriter {
-  batchAppend(rows: InvoiceItemApiCreateCommand[]): Promise<unknown[]>
+  batchAppend(rows: Array<Partial<InvoiceItemsDbRow>>): Promise<unknown[]>
 }
 export interface OrderFormWriter {
-  update(id: string, data: OrderFormApiUpdateCommand): Promise<unknown>
+  update(id: string, data: Partial<OrderFormDbRow>): Promise<unknown>
 }
 export type ViewSyncFn = (invoiceNumber: string) => Promise<InvoiceViewSyncResult>
 
-type InvoiceViewListQuery = z.infer<typeof invoiceViewContract.api.query.list>
-type InvoiceViewReadWhere = OmitReservedQueryFields<InvoiceViewListQuery>
+type InvoicesViewDbRow = z.infer<typeof invoicesViewRowSchema>
+
+/** DB column -> API/domain field. JSON columns retain their storage names
+ * here; `invoicesViewJsonColumns` declares the decoded fields below. */
+export const invoicesViewFieldMap = {
+  invoiceNumber: 'invoiceNumber',
+  status: 'status',
+  billingType: 'billingType',
+  billingPeriodStart: 'billingPeriodStart',
+  billingPeriodEnd: 'billingPeriodEnd',
+  issuedDate: 'issuedDate',
+  dueDate: 'dueDate',
+  customerId: 'customerId',
+  customerJson: 'customerJson',
+  itemsJson: 'itemsJson',
+  adjustmentsJson: 'adjustmentsJson',
+  paymentsJson: 'paymentsJson',
+  subtotal: 'subtotal',
+  adjustmentTotal: 'adjustmentTotal',
+  grandTotal: 'grandTotal',
+  paidAmount: 'paidAmount',
+  balanceDue: 'balanceDue',
+} as const satisfies Record<keyof InvoicesViewDbRow & string, string>
+
+export const invoicesViewJsonColumns = {
+  customerJson: { field: 'customer', kind: 'object' },
+  itemsJson: { field: 'items', kind: 'array' },
+  adjustmentsJson: { field: 'adjustments', kind: 'array' },
+  paymentsJson: { field: 'payments', kind: 'array' },
+} as const satisfies JsonColumnMap
+
+const invoicesViewMapper = new Mapper(invoicesViewFieldMap)
+
+function mapInvoicesViewRowToApi(
+  row: Partial<Record<string, unknown>>,
+): Record<string, unknown> {
+  return mapDbRowToApi(row, invoicesViewMapper, invoicesViewJsonColumns)
+}
+
+type InvoiceViewApiRow = ApiRowFromFieldMap<InvoicesViewDbRow, typeof invoicesViewFieldMap>
+type InvoiceViewListQuery = z.infer<typeof invoiceViewApiContract.query.list>
+type InvoiceViewListResponse = z.infer<typeof invoiceViewApiContract.response.list>
+type InvoiceViewDetailResponse = z.infer<typeof invoiceViewApiContract.response.detail>
+
+/** Read-only injection seam. The production getter returns DB-shaped rows;
+ * adapters may inject a reader whose rows are already API-shaped. The shared
+ * mapper accepts either representation; the production path is DB-mapped. */
+export interface InvoiceViewReader {
+  read(query?: unknown): Promise<Array<Partial<Record<string, unknown>>>>
+}
+
+type InvoicesViewRepository = SheetRepositoryContract<InvoicesViewDbRow>
+
+function adaptInvoiceViewReader(reader: InvoiceViewReader): InvoicesViewRepository {
+  const unsupported = (): never => {
+    throw new Error('InvoicesView is read-only')
+  }
+
+  return {
+    read: async (query) =>
+      (await reader.read(query)) as Array<Partial<InvoicesViewDbRow>>,
+    append: async () => unsupported(),
+    batchAppend: async () => unsupported(),
+    update: async () => unsupported(),
+    delete: async () => unsupported(),
+  }
+}
 
 export interface InvoiceServiceOptions {
-  invoiceRepository?: InvoiceHeaderWriter
-  invoiceItemRepository?: InvoiceItemWriter
-  orderFormRepository?: OrderFormWriter
-  invoiceViewRepository?: GSheetRepository<typeof invoiceViewContract>
+  invoiceRepository?: () => InvoiceHeaderWriter
+  invoiceItemRepository?: () => InvoiceItemWriter
+  orderFormRepository?: () => OrderFormWriter
+  invoiceViewRepository?: InvoiceViewReader
   syncInvoiceView?: ViewSyncFn
   generateItemId?: () => string
   createdBy?: string
+  now?: () => Date
 }
 
 /**
  * Owns the whole multi-sheet Invoice create workflow plus Invoice list/detail
- * reads — the one dedicated service `invoice.module.ts` wires up, per
- * `docs/invoice-module-refactor-plan.md`. Validates the public request once
+ * reads. Validates the public request once
  * at the boundary, computes every line's `subtotal`/`net_total` server-side
  * (authoritative — the client's own live preview is never trusted), writes
  * the `InvoiceItem` batch FIRST (exactly ONE `batchAppend()`), then the
@@ -145,48 +293,64 @@ export class InvoiceService {
   private readonly invoiceRepository: () => InvoiceHeaderWriter
   private readonly invoiceItemRepository: () => InvoiceItemWriter
   private readonly orderFormRepository: () => OrderFormWriter
-  private readonly invoiceViewRepository: GSheetRepository<typeof invoiceViewContract>
+  private readonly invoiceViewRepository: () => InvoicesViewRepository
   private readonly syncInvoiceView: ViewSyncFn
   private readonly generateItemId: () => string
   private readonly createdBy: string
+  private readonly now: () => Date
   private readonly readService: BaseCrudService<
-    Record<string, unknown>,
+    InvoiceViewApiRow,
     InvoiceViewListQuery,
     never,
     never,
-    z.infer<typeof invoiceViewContract.api.response.list>,
-    z.infer<typeof invoiceViewContract.api.response.detail>
+    InvoiceViewListResponse,
+    InvoiceViewDetailResponse,
+    never,
+    never,
+    InvoicesViewDbRow,
+    typeof invoicesViewFieldMap
   >
 
   constructor(options: InvoiceServiceOptions = {}) {
-    let invoiceRepository = options.invoiceRepository
-    this.invoiceRepository = () => invoiceRepository ??= getInvoiceRepository()
+    this.invoiceRepository = options.invoiceRepository ?? getInvoicesRepository
 
-    let invoiceItemRepository = options.invoiceItemRepository
-    this.invoiceItemRepository = () => invoiceItemRepository ??= getInvoiceItemRepository()
+    this.invoiceItemRepository = options.invoiceItemRepository ?? getInvoiceItemsRepository
 
-    let orderFormRepository = options.orderFormRepository
-    this.orderFormRepository = () => orderFormRepository ??= getOrderFormRepository()
+    this.orderFormRepository = options.orderFormRepository ?? getOrderFormRepository
 
-    this.invoiceViewRepository = options.invoiceViewRepository ?? getInvoiceViewRepository()
+    let invoiceViewRepository = options.invoiceViewRepository
+    this.invoiceViewRepository = () =>
+      invoiceViewRepository === undefined
+        ? getInvoicesViewRepository()
+        : adaptInvoiceViewReader(invoiceViewRepository)
     this.syncInvoiceView = options.syncInvoiceView ?? defaultSyncInvoiceView
     this.generateItemId = options.generateItemId ?? defaultGenerateItemId
     this.createdBy = options.createdBy ?? INVOICE_CREATED_BY
+    this.now = options.now ?? (() => new Date())
 
-    this.readService = new BaseCrudService({
+    this.readService = new BaseCrudService<
+      InvoiceViewApiRow,
+      InvoiceViewListQuery,
+      never,
+      never,
+      InvoiceViewListResponse,
+      InvoiceViewDetailResponse,
+      never,
+      never,
+      InvoicesViewDbRow,
+      typeof invoicesViewFieldMap
+    >({
       // invoiceNumber/customerId are the only flat, searchable columns — the
       // rest of the row (customer, items, adjustments, payments) is
       // serialized JSON.
       repository: this.invoiceViewRepository,
-      api: invoiceViewContract.api,
+      api: invoiceViewApiContract,
       searchFields: ['invoiceNumber', 'customerId'],
+      fieldMap: invoicesViewFieldMap,
+      jsonColumns: invoicesViewJsonColumns,
     })
   }
 
-  /**
-   * Creates one invoice. See the class doc comment for the write sequence
-   * and outcome semantics.
-   */
   async create(payload: unknown): Promise<CreateInvoiceResponse> {
     const parsed = invoiceCreateSchema.safeParse(payload)
     if (!parsed.success) {
@@ -211,60 +375,63 @@ export class InvoiceService {
       }),
     )
 
-    const itemCommands: InvoiceItemApiCreateCommand[] = request.items.map((item, index) =>
-      invoiceItemApiCreateSchema.parse({
-        invoiceNumber: request.invoiceNumber,
-        invoiceItemId: this.generateItemId(),
-        itemNo: index + 1, // 1-based, derived from array position — never client-sent
-        // The invoice's single sourceOrderId, fanned out onto every row —
-        // there is no per-line sourceOrderId in this request anymore.
-        sourceOrderId: request.sourceOrderId,
-        // Always null in this first version — no per-item traceability, only
-        // per-order via sourceOrderId above.
-        sourceItemId: null,
-        serviceType: null,
-        description: item.description,
-        quantity: item.quantity,
-        unit: item.unit ?? null,
-        unitPrice: item.unitPrice,
-        subtotal: lineCalculations[index].subtotal,
-        adjustments: item.adjustments.map(toDbAdjustment),
-        netTotal: lineCalculations[index].netTotal,
-      }),
-    )
+    const itemCommands: Array<Partial<InvoiceItemsDbRow>> = request.items.map((item, index) => ({
+      invoice_number: request.invoiceNumber,
+      invoice_item_id: this.generateItemId(),
+      item_no: index + 1, // 1-based, derived from array position — never client-sent
+      // The invoice's single sourceOrderId, fanned out onto every row —
+      // there is no per-line sourceOrderId in this request.
+      source_order_id: request.sourceOrderId,
+      // Always null — no per-item traceability, only
+      // per-order via sourceOrderId above.
+      source_item_id: null,
+      service_type: null,
+      description: item.description,
+      quantity: item.quantity,
+      unit: item.unit ?? null,
+      unit_price: item.unitPrice,
+      subtotal: lineCalculations[index].subtotal,
+      // InvoiceItems.adjustments is a text cell; serialize it before the row
+      // reaches the sheet repository.
+      adjustments: JSON.stringify(item.adjustments.map(toDbAdjustment)),
+      net_total: lineCalculations[index].netTotal,
+    }))
 
-    // ── Items first, as ONE batch — never a loop. See invoice.contract.ts's
-    //    write-sequence comment for why this ordering is load-bearing. ──
+    // ── Items first, as ONE batch — never a loop. This ordering is
+    //    load-bearing because a later header failure leaves these rows behind. ──
     try {
       await this.invoiceItemRepository().batchAppend(itemCommands)
     } catch (error) {
       const failure = classifyWriteFailure(error)
+      console.error('items_write_failed', error instanceof Error ? error.stack ?? error.message : String(error))
       return { kind: 'items_write_failed', message: failure.message, certainty: failure.certainty }
     }
 
-    const invoiceCommand: InvoiceApiCreateCommand = invoiceApiCreateSchema.parse({
-      invoiceNumber: request.invoiceNumber,
+    const customerSnapshot = {
+      customer_code: request.customer.customerCode,
+      customer_name: request.customer.customerName,
+      ...(request.customer.phone !== undefined ? { phone: request.customer.phone } : {}),
+      ...(request.customer.address !== undefined ? { address: request.customer.address } : {}),
+    }
+    const invoiceCommand: Partial<InvoicesDbRow> = {
+      invoice_number: request.invoiceNumber,
       status: 'ISSUED',
-      // Only ORDER invoices exist for now — not a client choice.
-      billingType: 'ORDER',
-      issuedDate: request.issuedDate,
-      dueDate: request.dueDate,
+      billing_type: 'ORDER',
+      issued_date: request.issuedDate,
+      due_date: request.dueDate,
       // Denormalized so GViz can filter without reaching into the JSON
       // snapshot — must equal customer.customer_code exactly.
-      customerId: request.customer.customerCode,
-      customer: {
-        customer_code: request.customer.customerCode,
-        customer_name: request.customer.customerName,
-        ...(request.customer.phone !== undefined ? { phone: request.customer.phone } : {}),
-        ...(request.customer.address !== undefined ? { address: request.customer.address } : {}),
-      },
-      adjustments: request.adjustments.map(toDbAdjustment),
-      createdBy: this.createdBy,
-      // created_at: omitted — Apps Script auto-stamps it.
-    })
+      customer_id: request.customer.customerCode,
+      // Invoices.customer and Invoices.adjustments are text cells; serialize
+      // them before the row reaches the sheet repository.
+      customer: JSON.stringify(customerSnapshot),
+      adjustments: JSON.stringify(request.adjustments.map(toDbAdjustment)),
+      created_by: this.createdBy,
+      created_at: formatBangkokTimestamp(this.now()),
+    }
 
     try {
-      await this.invoiceRepository().create(invoiceCommand)
+      await this.invoiceRepository().append(invoiceCommand)
     } catch (error) {
       // ⚠ Worst-case outcome: the item batch above already succeeded, so
       // itemCommands.length rows now exist referencing an invoice_number
@@ -273,11 +440,13 @@ export class InvoiceService {
       // reconcile this by hand, and a plain retry would append a second set
       // of items, regardless of `certainty`. This outcome carries no
       // `message` field in the public contract — only `certainty`.
+      const failure = classifyWriteFailure(error)
+      console.error('invoice_write_failed', error instanceof Error ? error.stack ?? error.message : String(error))
       return {
         kind: 'invoice_write_failed',
         invoiceNumber: request.invoiceNumber,
         itemCount: itemCommands.length,
-        certainty: classifyWriteFailure(error).certainty,
+        certainty: failure.certainty,
       }
     }
 
@@ -289,19 +458,19 @@ export class InvoiceService {
     //    retry would create a SECOND invoice for money that's already
     //    correctly billed. ──
     try {
-      await this.orderFormRepository().update(
-        request.sourceOrderId,
-        orderFormApiUpdateSchema.parse({
-          invoiceId: request.invoiceNumber,
-          updatedBy: this.createdBy,
-        }),
-      )
+      await this.orderFormRepository().update(request.sourceOrderId, {
+        invoice_id: request.invoiceNumber,
+        updated_by: this.createdBy,
+        updated_at: formatBangkokTimestamp(this.now()),
+      })
     } catch (error) {
+      const failure = classifyWriteFailure(error)
+      console.error('order_link_failed', error instanceof Error ? error.stack ?? error.message : String(error))
       return {
         kind: 'order_link_failed',
         invoiceNumber: request.invoiceNumber,
         sourceOrderId: request.sourceOrderId,
-        certainty: classifyWriteFailure(error).certainty,
+        certainty: failure.certainty,
       }
     }
 
@@ -368,14 +537,14 @@ export class InvoiceService {
    * doc comment for why that one query shape bypasses the generic
    * `BaseCrudService.list()` path.
    */
-  async list(query: ApiQueryParams): Promise<ServiceListResult<z.infer<typeof invoiceViewContract.api.response.list>>> {
+  async list(query: ApiQueryParams): Promise<ServiceListResult<InvoiceViewListResponse>> {
     if (this.hasDateRangeFilter(query)) {
       return this.listWithDateRange(query)
     }
     return this.readService.list(query)
   }
 
-  async getById(id: string): Promise<z.infer<typeof invoiceViewContract.api.response.detail>> {
+  async getById(id: string): Promise<InvoiceViewDetailResponse> {
     return this.readService.getById(id)
   }
 
@@ -384,55 +553,47 @@ export class InvoiceService {
   }
 
   /**
-   * `BaseCrudService.list()` -> `ReadQueryDTO.fromQuery()` folds every
-   * non-reserved list-query field into a `where[field] = value` equality
-   * clause (api/CLAUDE.md's Key Engine Rules), and
-   * `GVizQueryBuilder.where()`/`resolveColumn()` has no concept of a range
-   * operator — it throws `No GViz column resolves for field 'dateFrom'`
-   * because `dateFrom` was never meant to resolve to a real column at all.
-   *
-   * No other module (appointments/orders/customers) has an existing
-   * date-range list filter to follow, so this is a smallest-possible,
-   * invoices-local fix: bypass `this.readService.list()` for this one query
-   * shape and hand-roll the read here. `dateFrom`/`dateTo` are stripped out
-   * of the where clause; every other filter (customerId, status, keyword,
-   * sort) still goes through the repository/GViz exactly as `ReadQueryDTO`
-   * would build it. The `pagination` field on `ReadQueryDTO` is
-   * intentionally left unset — `GVizQueryBuilder.pagination()` no-ops
-   * without it, so this fetches every row matching the OTHER filters (no
-   * sheet-side `limit`/`offset`). Date filtering then happens in JS
-   * (`issuedDate` is an ISO `YYYY-MM-DD` string; `<=`/`>=` compares
-   * correctly with no `Date` parsing, per this repo's own documented
-   * gotcha) against that FULL result set, and pagination is applied last,
-   * over the filtered set — never before it, or a later page could look
-   * emptier than it really is while matches sit on an earlier page's cut.
+   * `dateFrom`/`dateTo` are range filters, not equality columns, so they are
+   * stripped out of the where clause; every other filter (customerId, status,
+   * keyword, sort) still goes through the repository/GViz. The `pagination`
+   * field on `ReadQueryDTO` is intentionally left unset so this fetches every
+   * row matching the OTHER filters (no sheet-side `limit`/`offset`). Date
+   * filtering then happens in JS (`issuedDate` is an ISO `YYYY-MM-DD` string;
+   * `<=`/`>=` compares correctly with no `Date` parsing) against that FULL
+   * result set, and pagination is applied last, over the filtered set — never
+   * before it, or a later page could look emptier than it really is while
+   * matches sit on an earlier page's cut.
    */
   private async listWithDateRange(
     query: ApiQueryParams,
-  ): Promise<ServiceListResult<z.infer<typeof invoiceViewContract.api.response.list>>> {
-    const validQuery = parseOrThrow(invoiceViewContract.api.query.list, query)
+  ): Promise<ServiceListResult<InvoiceViewListResponse>> {
+    const validQuery = parseOrThrow(invoiceViewApiContract.query.list, query)
 
-    // dateFrom/dateTo are forced to null here (rather than omitted) so
-    // `where` still satisfies the repository's read-where type;
-    // GVizQueryBuilder.where() treats null as an "ignored value" and skips
-    // it, so no column ever needs to resolve for them — only
-    // customerId/status become real equality clauses, same as the generic
-    // path would build.
-    const where: InvoiceViewReadWhere = {
+    // dateFrom/dateTo are intentionally omitted from the DB query: they are
+    // range semantics applied below in JavaScript, not physical columns.
+    // Only customerId/status become real equality clauses, same as the
+    // generic path would build.
+    const where = invoicesViewMapper.toDb({
       customerId: validQuery.customerId,
       status: validQuery.status,
-      dateFrom: null,
-      dateTo: null,
-    }
+    }) as Partial<InvoicesViewDbRow>
 
-    const dto = new ReadQueryDTO<InvoiceViewReadWhere>({
+    const dto = new ReadQueryDTO<Partial<InvoicesViewDbRow>>({
       where,
-      search: { keyword: validQuery.keyword, fields: ['invoiceNumber', 'customerId'] },
-      sort: { field: validQuery.sortBy, order: validQuery.sortOrder },
+      search: {
+        keyword: validQuery.keyword,
+        fields: ['invoiceNumber', 'customerId'].map((field) =>
+          invoicesViewMapper.toDbField(field),
+        ),
+      },
+      sort: {
+        field: invoicesViewMapper.toDbField(validQuery.sortBy),
+        order: validQuery.sortOrder,
+      },
       // pagination intentionally omitted — see the doc comment above.
     })
 
-    const rows = await this.invoiceViewRepository.read(dto)
+    const rows = (await this.invoiceViewRepository().read(dto)).map(mapInvoicesViewRowToApi)
 
     const filtered = rows.filter((row) => {
       const issuedDate = (row as Record<string, unknown>).issuedDate
@@ -453,16 +614,16 @@ export class InvoiceService {
 
   /**
    * Mirrors `BaseCrudService`'s private `project()` — copies only the fields
-   * `invoiceViewContract.api.response.list` declares, so this hand-rolled
+   * `invoiceViewApiContract.response.list` declares, so this hand-rolled
    * path returns the exact same shape the generic path's projection would.
    */
   private projectListRow(
     row: Record<string, unknown>,
-  ): z.infer<typeof invoiceViewContract.api.response.list> {
+  ): InvoiceViewListResponse {
     const output: Record<string, unknown> = {}
-    for (const field of Object.keys(invoiceViewContract.api.response.list.shape)) {
+    for (const field of Object.keys(invoiceViewApiContract.response.list.shape)) {
       output[field] = row[field]
     }
-    return output as z.infer<typeof invoiceViewContract.api.response.list>
+    return output as InvoiceViewListResponse
   }
 }

@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { OrderListDto } from '../services/order.service'
+import { normalizeSheetDate } from '@/shared/utils/sheet-date'
 import { formatShortDate } from '../utils/format-date'
 
 const props = defineProps<{
@@ -113,14 +114,14 @@ function handleDragEnd(event: PointerEvent) {
           <div class="flex items-stretch gap-2">
             <div class="flex-1 rounded-xl bg-surface-container-low px-3 py-2.5">
               <p class="mb-1 font-label text-[9px] uppercase tracking-wide text-on-surface-variant">Received</p>
-              <p class="font-headline text-[13px] font-bold leading-tight text-on-surface">{{ formatShortDate(order.receivedDate) }}</p>
+              <p class="font-headline text-[13px] font-bold leading-tight text-on-surface">{{ formatShortDate(normalizeSheetDate(order.receivedDate)) }}</p>
             </div>
             <div class="flex items-center px-1">
               <span class="material-symbols-outlined text-[16px] leading-none text-outline" aria-hidden="true">arrow_forward</span>
             </div>
             <div class="flex-1 rounded-xl bg-surface-container-low px-3 py-2.5">
               <p class="mb-1 font-label text-[9px] uppercase tracking-wide text-on-surface-variant">Due</p>
-              <p class="font-headline text-[13px] font-bold leading-tight text-on-surface">{{ formatShortDate(order.dueDate) }}</p>
+              <p class="font-headline text-[13px] font-bold leading-tight text-on-surface">{{ formatShortDate(normalizeSheetDate(order.dueDate)) }}</p>
             </div>
           </div>
 

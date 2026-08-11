@@ -8,7 +8,7 @@ import {
   transformResponseRow,
 } from '../../../../../server/modules/appointments/appointment.transformer.js'
 import { Mapper } from '../../../../../server/shared/repositories/base.repository.js'
-import { appointmentFieldMap } from '../../../../../server/modules/appointments/appointment.contract.js'
+import { appointmentsFieldMap } from '../../../../../server/modules/appointments/appointment.mapping.js'
 
 const realAddressSnapshot =
   '{"CustomerName": "", "CustomerLabel": "WIX", "Phone": "", "Address": "123 ถ.สุขุมวิท ซ.15", "Location": "123 ถ.สุขุมวิท ซ.15", "Facebook": "", "Line": "", "Whatsapp": "", "Email": ""}'
@@ -150,7 +150,7 @@ test('transformAppointmentRequest does not mutate create request data', async ()
 })
 
 test('transformAppointmentRequest packs payload after real mapper.toDb conversion', async () => {
-  const mapper = new Mapper(appointmentFieldMap)
+  const mapper = new Mapper(appointmentsFieldMap)
   const transformed = await transformAppointmentRequest({
     operation: 'create',
     data: mapper.toDb(sampleApiCreatePayload),
@@ -350,7 +350,7 @@ test('transformAppointmentResponse leaves primitive and null responses unchanged
 })
 
 test('transformed response maps cleanly through repository mapper to API fields', () => {
-  const mapper = new Mapper(appointmentFieldMap)
+  const mapper = new Mapper(appointmentsFieldMap)
   const transformed = transformResponseRow(sampleDbRow)
 
   assert.deepEqual(mapper.toApi(transformed), {

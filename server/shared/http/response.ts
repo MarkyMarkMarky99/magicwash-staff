@@ -73,15 +73,6 @@ export const created = <TData>(data: TData): ApiResult<ApiSuccessResponse<TData>
   body: successBody(data),
 })
 
-/** 200 with a paginated list. */
-export const okPaginated = <TItem>(
-  items: TItem[],
-  pagination: ApiPaginationMeta,
-): ApiResult<ApiPaginatedResponse<TItem>> => ({
-  status: 200,
-  body: paginatedBody(items, pagination),
-})
-
 /** Minimal page meta type (no total). */
 type ApiPageMeta = z.infer<typeof apiPageMetaSchema>
 

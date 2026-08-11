@@ -11,8 +11,8 @@ import type { ZodSchema, ZodType, ZodTypeDef } from 'zod'
  *   - `ModuleApiContractOf<...>` — the type-parameterized view the BaseCrudService
  *     consumes, so each slot keeps its precise DTO type for inference/projection.
  *
- * Only API-facing (camelCase) schemas live here — never DB shape. The DB-side
- * contract lives in `server/shared/contracts/module-db-contract.ts`.
+ * Only API-facing (camelCase) schemas live here — never DB shape. Physical-sheet
+ * DB contracts live with their sheets under `server/sheets/<Sheet>/`.
  *
  * Write/detail slots are optional so list-only modules (e.g. orders) can satisfy
  * the same type as full-CRUD modules without dummy schemas.

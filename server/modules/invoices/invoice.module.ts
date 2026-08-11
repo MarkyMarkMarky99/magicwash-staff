@@ -5,10 +5,7 @@ import { ok, okPaged, type ApiResult } from '../../shared/http/response.js'
 import { InvoiceService } from './invoice.service.js'
 
 /**
- * Wiring + HTTP translation only — every business rule (validation,
- * calculation, write sequencing, list/detail/date-range querying) now lives
- * in `InvoiceService` (`invoice.service.ts`), per
- * `docs/invoice-module-refactor-plan.md`.
+ * HTTP translation only — business rules live in `InvoiceService`.
  *
  * Hand-rolled routes — not `createCrudRoutes()` — because POST writes
  * multiple sheets through a non-standard six-outcome union the generic

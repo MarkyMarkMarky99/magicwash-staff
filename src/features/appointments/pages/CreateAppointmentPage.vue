@@ -6,6 +6,7 @@ import FormLayout from '@/layouts/FormLayout.vue'
 import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.store'
 import { useDeliveryBookingIntentStore } from '@/shared/stores/delivery-booking-intent.store'
 import { useAppointmentStore } from '../stores/appointment.store'
+import { appointmentWriteErrorMessage } from '../services/appointment.service'
 import AppointmentForm from '../components/AppointmentForm.vue'
 
 const router = useRouter()
@@ -32,7 +33,7 @@ async function submit() {
     await appointmentStore.createNewAppointment(form.value.data)
     router.back()
   } catch (reason) {
-    error.value = reason instanceof Error ? reason.message : 'Failed to book. Please try again.'
+    error.value = appointmentWriteErrorMessage(reason, 'Failed to book. Please try again.')
   } finally {
     submitting.value = false
   }

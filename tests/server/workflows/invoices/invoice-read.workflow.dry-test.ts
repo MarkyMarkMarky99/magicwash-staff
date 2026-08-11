@@ -2,8 +2,7 @@ import assert from 'node:assert/strict'
 import type { ApiHandlerRequest } from '../../../../server/shared/http/api-handler.js'
 
 /**
- * Layer 4 — Read API workflow
- * (docs/invoice-module-refactor-plan.md's Workflow Test Plan).
+ * Read API workflow.
  *
  * Exercises `invoiceRoutes` (the actual routes `invoice.module.ts` builds)
  * for GET list/detail: response envelopes, keyword/customer/status/sort,
@@ -11,9 +10,8 @@ import type { ApiHandlerRequest } from '../../../../server/shared/http/api-handl
  * exact DTO consumed by the Invoice list/detail pages.
  */
 
-process.env.APPSCRIPT_URL = 'https://script.example/exec'
 process.env.INVOICES_SPREADSHEET_ID = 'invoices-spreadsheet-id'
-process.env.ORDERS_SPREADSHEET_ID = 'orders-spreadsheet-id'
+process.env.PORTAL_SPREADSHEET_ID = 'portal-spreadsheet-id'
 
 const { invoiceRoutes } = await import('../../../../server/modules/invoices/invoice.module.js')
 

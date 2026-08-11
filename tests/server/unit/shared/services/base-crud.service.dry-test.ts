@@ -106,7 +106,7 @@ function test(name: string, run: () => Promise<void> | void): void {
   tests.push({ name, run })
 }
 
-// The service now builds the read query via ReadQueryDTO.fromQuery: reserved
+// The service builds the read query via ReadQueryDTO.fromQuery: reserved
 // fields become search/sort/pagination, every other field (customerType) becomes
 // `where`, and null is preserved (the repository decides what to ignore).
 function expectedReadQuery(query: ListQuery): ReadQueryDTO<unknown> {
@@ -114,7 +114,6 @@ function expectedReadQuery(query: ListQuery): ReadQueryDTO<unknown> {
 }
 
 async function loadServiceCtor(): Promise<BaseCrudServiceCtor> {
-  // Keep this dry test type-checkable before BaseCrudService is implemented.
   const modulePath = '../../../../../server/shared/services/base-crud.service.js'
   const module = (await import(modulePath)) as { BaseCrudService: BaseCrudServiceCtor }
   return module.BaseCrudService
@@ -178,6 +177,35 @@ test('list applies query defaults and forwards read query DTO', async () => {
       sortOrder: 'asc',
     }),
   ])
+})
+
+test('repository factory stays lazy until a request method is called', async () => {
+  const BaseCrudService = await loadServiceCtor()
+  const repo = new FakeRepository()
+  let factoryCalls = 0
+  const service = new BaseCrudService({
+    repository: () => {
+      factoryCalls += 1
+      return repo
+    },
+    api: {
+      query: { list: listQuerySchema },
+      request: { create: createSchema, update: updateSchema },
+      response: {
+        list: listResponseSchema,
+        detail: detailResponseSchema,
+        create: createResponseSchema,
+        update: updateResponseSchema,
+      },
+    },
+    searchFields: ['customerName'],
+  })
+
+  assert.equal(factoryCalls, 0)
+
+  await service.list({})
+
+  assert.equal(factoryCalls, 1)
 })
 
 test('list coerces HTTP query strings before returning pagination', async () => {

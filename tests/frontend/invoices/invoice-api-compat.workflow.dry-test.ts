@@ -9,37 +9,31 @@ import {
 } from '../../../src/features/invoices/utils/invoice-outcome.utils'
 
 /**
- * Layer 5 — Frontend compatibility workflow
- * (docs/invoice-module-refactor-plan.md's Workflow Test Plan).
+ * Frontend compatibility workflow.
  *
- * This is the test whose acceptance criterion is "retry is offered only for
- * a definite rejection that proves nothing persisted" — the exact release
- * gate `InvoiceCreatePage.vue` previously failed (a lost response after
- * `InvoiceItem` rows were written rendered "Safe to try again — no invoice
- * or line items were written" underneath a Try again button). It imports and
- * exercises the REAL, production `canRetryInvoiceOutcome`/
- * `synthesizeNetworkFailureOutcome` functions `InvoiceCreatePage.vue` itself
- * calls (`src/features/invoices/utils/invoice-outcome.utils.ts`) — not a
+ * Asserts retry is offered only for a definite rejection that proves nothing
+ * persisted (a lost response after `InvoiceItem` rows were written must not
+ * render "Safe to try again" under a Try again button). Imports and exercises
+ * the REAL production `canRetryInvoiceOutcome` /
+ * `synthesizeNetworkFailureOutcome` functions
+ * (`src/features/invoices/utils/invoice-outcome.utils.ts`) — not a
  * re-implementation of the policy — against the real
  * `createInvoiceResponseSchema` union every one of the six outcome kinds
  * must satisfy.
  *
  * ⚠ SCOPE NOTE: this repo has no frontend tsconfig and no bundler-backed test
- * runner (`tests/web/`'s only existing dry-test avoids the same issue for
- * the same reason — see its header) — `@/*`/`@contracts/*` are Vite-only
- * aliases, and a plain `npx tsx` run cannot resolve a VALUE import through
- * them (only `import type` is safe, because it's erased at transpile time
- * and never needs runtime resolution). `invoice.service.ts` / `api-client.ts`
- * both have real (non-type-only) alias value imports
- * (`@contracts/...`, `@/shared/api/api-client`), so `getInvoices()` /
- * `createInvoice()` / `getInvoiceDetail()` cannot be imported directly by
- * this file the way `canRetryInvoiceOutcome` can (that function's only
- * cross-alias import is `import type`, which is erased). List-unwrapping and
- * detail-404 handling in those three functions are therefore validated by
- * `npm run build` (this repo's established frontend compile-time gate, run
- * and passing — see this fix round's report) plus direct code reading, NOT
- * by an executed assertion in this file. This is a real, disclosed gap, not
- * a claim that those paths were exercised here.
+ * runner — `@/*`/`@contracts/*` are Vite-only aliases, and a plain `npx tsx`
+ * run cannot resolve a VALUE import through them (only `import type` is safe,
+ * because it's erased at transpile time and never needs runtime resolution).
+ * `invoice.service.ts` / `api-client.ts` both have real (non-type-only) alias
+ * value imports (`@contracts/...`, `@/shared/api/api-client`), so
+ * `getInvoices()` / `createInvoice()` / `getInvoiceDetail()` cannot be imported
+ * directly by this file the way `canRetryInvoiceOutcome` can (that function's
+ * only cross-alias import is `import type`, which is erased). List-unwrapping
+ * and detail-404 handling in those three functions are therefore validated by
+ * `npm run build` plus direct code reading, NOT by an executed assertion in
+ * this file. This is a real, disclosed gap, not a claim that those paths were
+ * exercised here.
  */
 
 const tests: Array<{ name: string; run: () => void }> = []
@@ -114,16 +108,11 @@ test('items_write_failed is retryable ONLY when certainty is "rejected" — the 
 })
 
 test('the Try-again-button condition and the unconfirmed-panel condition partition items_write_failed exactly along canRetry — locking the fix that the template no longer re-types this rule inline', () => {
-  // `InvoiceCreatePage.vue`'s Try again section used
-  // `result.kind === 'items_write_failed' && result.certainty === 'rejected'`
-  // and its sibling used `... && result.certainty === 'unknown'` — two
-  // independently-typed conditions the footnote's `canRetry` never actually
-  // gated. Both now read `result.kind === 'items_write_failed' && canRetry`
-  // and `... && !canRetry`. This test proves those two conditions are
+  // Try-again and unconfirmed panels for items_write_failed must partition
+  // exactly along canRetryInvoiceOutcome: canRetry vs !canRetry are
   // exhaustive and mutually exclusive for every certainty
-  // items_write_failed can carry, using the real canRetryInvoiceOutcome —
-  // so a regression back to an inline re-typed condition would have to
-  // diverge from this assertion to reintroduce the bug.
+  // items_write_failed can carry. A regression to an inline re-typed
+  // certainty check would diverge from this assertion.
   for (const certainty of ['rejected', 'unknown'] as const) {
     const result = itemsWriteFailed(certainty)
     const showsTryAgainButton = result.kind === 'items_write_failed' && canRetryInvoiceOutcome(result)

@@ -1,8 +1,6 @@
 import type { z } from 'zod'
 import type { appointmentListResponseSchema } from '../../../../contracts/appointments/appointment-api.schema'
-import { normalizeAppointmentDate } from '../../../shared/utils/appointment-date'
-
-export { normalizeAppointmentDate } from '../../../shared/utils/appointment-date'
+import { normalizeSheetDate } from '@/shared/utils/sheet-date'
 
 export type WaitingPickupAppointment = z.infer<typeof appointmentListResponseSchema>
 
@@ -26,7 +24,7 @@ export function filterWaitingPickups(
 
   return appointments
     .filter((appointment) => {
-      const appointmentDate = normalizeAppointmentDate(appointment.appointmentDate)
+      const appointmentDate = normalizeSheetDate(appointment.appointmentDate)
       return (
         appointment.appointmentType === 'PICKUP' &&
         ACTIVE_PICKUP_STATUSES.has(appointment.status) &&
@@ -35,8 +33,8 @@ export function filterWaitingPickups(
       )
     })
     .sort((left, right) => {
-      const leftDate = normalizeAppointmentDate(left.appointmentDate) ?? ''
-      const rightDate = normalizeAppointmentDate(right.appointmentDate) ?? ''
+      const leftDate = normalizeSheetDate(left.appointmentDate) ?? ''
+      const rightDate = normalizeSheetDate(right.appointmentDate) ?? ''
       return leftDate.localeCompare(rightDate)
     })
 }

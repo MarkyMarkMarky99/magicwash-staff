@@ -5,7 +5,8 @@ import type { ModuleApiContract } from '../shared/module-api-contract.js'
 /**
  * The customers API ↔ frontend contract: request/query/response schemas and the
  * API-facing enums they share. The DB-side contract lives in
- * `server/modules/customers/customer.contract.ts` and never crosses this boundary.
+ * `server/sheets/Customers/Customers.db-contract.ts` and never crosses this
+ * boundary. The module declares DB-to-API mapping in its service wiring.
  */
 
 export const customerTypeSchema = z.enum(['Member', 'Regular', 'Corporate'])
@@ -62,14 +63,11 @@ export const customerSortFieldSchema = z.enum(['customerIndex', 'registeredDate'
 
 // The customer list is small and the UI filters/paginates in memory, so the
 // endpoint returns everything in one shot: the cap is generous and the default
-// page size equals it. Revisit with real server-side paging if the dataset ever
-// outgrows this.
+// page size equals it.
 export const MAX_CUSTOMERS_PER_PAGE = 2000
 
 export const customerListQuerySchema = z.object({
-  // Free-text search across customerIndex / customerName / address (the keyword
-  // search in customer.module.ts); address replaces the dropped dedicated
-  // location filter.
+  // Free-text search across customerIndex / customerName / address.
   keyword: z.string().default(''),
   customerType: customerTypeSchema.nullable().optional().default(null),
   page: z.coerce.number().int().positive().default(API_PAGINATION_DEFAULTS.page),
@@ -86,7 +84,7 @@ export const customerListQuerySchema = z.object({
 // Responses drive the projection (key order = DTO key order). list is the
 // lightweight subset; detail adds contact + registration fields. source,
 // scheduledDays, preferredContactMethod, lastVisitDate, and audit columns are
-// withheld until a UI flow needs them.
+// absent from these response schemas.
 export const customerListResponseSchema = z.object({
   customerId: z.string(),
   customerIndex: z.string(),

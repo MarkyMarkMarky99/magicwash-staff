@@ -6,7 +6,8 @@ import type { ModuleApiContract } from '../shared/module-api-contract.js'
  * The appointments API ↔ frontend contract: request/query schemas, response
  * schemas, and the API-facing enums they share. Everything the client sends
  * or receives is declared here — the DB-side contract lives in
- * `appointment.contract.ts` and never crosses the API boundary.
+ * `server/sheets/Appointments/Appointments.db-contract.ts` and never crosses
+ * the API boundary.
  */
 
 // ── Domain value sets — the single source for the API-facing enums; the db
@@ -28,6 +29,9 @@ export const appointmentStatusSchema = z.enum([
   'NO_SHOW',
 ])
 export const serviceTierSchema = z.enum(['PRIORITY', 'STANDARD', 'ECONOMY'])
+
+/** Outcome certainty returned on an appointment create/update write failure. */
+export const appointmentWriteFailureCertaintySchema = z.enum(['rejected', 'unknown'])
 
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a valid YYYY-MM-DD date')
 
@@ -129,7 +133,7 @@ export const appointmentDetailResponseSchema = appointmentListResponseSchema.ext
 export const appointmentCreateResponseSchema = appointmentDetailResponseSchema
 export const appointmentUpdateResponseSchema = appointmentDetailResponseSchema
 
-/** The nested API contract consumed by the new BaseCrudService flow. */
+/** Nested API contract for this module (query / request / response). */
 export const appointmentApiContract = {
   query: {
     list: appointmentListQuerySchema,

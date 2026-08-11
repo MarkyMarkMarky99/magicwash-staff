@@ -9,4 +9,8 @@ export const routeRegistry = {
     import('../modules/orders/order.module.js').then((module) => module.orderRoutes),
   invoices: (): ReturnType<RouteLoader> =>
     import('../modules/invoices/invoice.module.js').then((module) => module.invoiceRoutes),
+  'customer-packages': (): ReturnType<RouteLoader> =>
+    import('../modules/customer-packages/customer-package-view.module.js').then(
+      (module) => module.customerPackageRoutes,
+    ),
 } satisfies Record<string, RouteLoader>

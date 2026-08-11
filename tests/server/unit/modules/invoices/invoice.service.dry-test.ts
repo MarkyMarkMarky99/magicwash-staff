@@ -3,25 +3,20 @@ import type { CreateInvoiceRequest } from '../../../../../contracts/invoices/inv
 import type {
   InvoiceHeaderWriter,
   InvoiceItemWriter,
+  InvoiceViewReader,
   OrderFormWriter,
   ViewSyncFn,
 } from '../../../../../server/modules/invoices/invoice.service.js'
 import type { InvoiceViewSyncResult } from '../../../../../server/modules/invoices/invoice-view-sync-client.js'
 import {
-  SheetLibRejectedError,
-  SheetLibTransportError,
-} from '../../../../../server/shared/repositories/sheetlib-errors.js'
+  WriteRejectedError,
+  WriteTransportError,
+} from '../../../../../server/shared/repositories/sheets-api.client.js'
+import { formatBangkokTimestamp } from '../../../../../server/shared/utils/bangkok-timestamp.js'
 
-// Harmless — `InvoiceService` always constructs an InvoicesView repository
-// when one isn't injected; none of these tests ever call list()/getById(), so
-// no fetch ever fires against it, but `GSheetRepository`'s constructor still
-// resolves both env vars via `requireEnv`.
-process.env.TEST_SPREADSHEET_ID = 'spreadsheet-id'
-process.env.TEST_SCRIPT_URL = 'https://script.example/exec'
-
-const { InvoiceService } = await import('../../../../../server/modules/invoices/invoice.service.js')
-const { invoiceViewContract } = await import('../../../../../server/modules/invoices/invoice-view.contract.js')
-const { GSheetRepository } = await import('../../../../../server/shared/repositories/gsheet.repository.js')
+const { InvoiceService, invoicesFieldMap, invoiceItemsFieldMap } = await import(
+  '../../../../../server/modules/invoices/invoice.service.js'
+)
 
 const tests: Array<{ name: string; run: () => Promise<void> | void }> = []
 
@@ -32,6 +27,8 @@ function test(name: string, run: () => Promise<void> | void): void {
 interface Fakes {
   service: InstanceType<typeof InvoiceService>
   calls: string[]
+  invoiceAppendCalls: Record<string, unknown>[]
+  orderFormUpdateCalls: Array<{ id: string; data: Record<string, unknown> }>
 }
 
 interface FakeConfig {
@@ -42,8 +39,12 @@ interface FakeConfig {
   viewSyncError?: unknown
 }
 
+const fixedNow = new Date('2026-04-01T00:34:56.000Z')
+
 function createService(config: FakeConfig = {}): Fakes {
   const calls: string[] = []
+  const invoiceAppendCalls: Record<string, unknown>[] = []
+  const orderFormUpdateCalls: Array<{ id: string; data: Record<string, unknown> }> = []
 
   const invoiceItemRepository: InvoiceItemWriter = {
     async batchAppend(rows) {
@@ -54,8 +55,9 @@ function createService(config: FakeConfig = {}): Fakes {
   }
 
   const invoiceRepository: InvoiceHeaderWriter = {
-    async create(data) {
+    async append(data) {
       calls.push('Invoice.create')
+      invoiceAppendCalls.push(data as Record<string, unknown>)
       if (config.invoiceError) throw config.invoiceError
       return { ...data }
     },
@@ -64,6 +66,7 @@ function createService(config: FakeConfig = {}): Fakes {
   const orderFormRepository: OrderFormWriter = {
     async update(id, data) {
       calls.push('OrderForm.update')
+      orderFormUpdateCalls.push({ id, data: data as Record<string, unknown> })
       if (config.orderFormError) throw config.orderFormError
       return { id, ...data }
     },
@@ -75,27 +78,22 @@ function createService(config: FakeConfig = {}): Fakes {
     return config.viewSyncResult ?? { outcome: 'confirmed' }
   }
 
-  const invoiceViewRepository = new GSheetRepository({
-    contract: invoiceViewContract,
-    sheetName: 'InvoicesView',
-    spreadsheetId: 'TEST_SPREADSHEET_ID',
-    scriptUrl: 'TEST_SCRIPT_URL',
-    decodeJsonCells: true,
-  })
+  const invoiceViewRepository: InvoiceViewReader = { read: async () => [] }
 
   const service = new InvoiceService({
-    invoiceRepository,
-    invoiceItemRepository,
-    orderFormRepository,
+    invoiceRepository: () => invoiceRepository,
+    invoiceItemRepository: () => invoiceItemRepository,
+    orderFormRepository: () => orderFormRepository,
     invoiceViewRepository,
     syncInvoiceView,
     generateItemId: (() => {
       let n = 0
       return () => `item${String(n++).padStart(4, '0')}`
     })(),
+    now: () => fixedNow,
   })
 
-  return { service, calls }
+  return { service, calls, invoiceAppendCalls, orderFormUpdateCalls }
 }
 
 function baseRequest(): CreateInvoiceRequest {
@@ -120,13 +118,52 @@ function baseRequest(): CreateInvoiceRequest {
   }
 }
 
+test('Invoices and InvoiceItems field maps pin every DB-to-API value', () => {
+  assert.deepEqual(invoicesFieldMap, {
+    invoice_number: 'invoiceNumber',
+    status: 'status',
+    billing_type: 'billingType',
+    billing_period_start: 'billingPeriodStart',
+    billing_period_end: 'billingPeriodEnd',
+    issued_date: 'issuedDate',
+    due_date: 'dueDate',
+    customer_id: 'customerId',
+    customer: 'customer',
+    adjustments: 'adjustments',
+    created_by: 'createdBy',
+    created_at: 'createdAt',
+    updated_at: 'updatedAt',
+    updated_by: 'updatedBy',
+    deleted_at: 'deletedAt',
+    deleted_by: 'deletedBy',
+  })
+  assert.deepEqual(invoiceItemsFieldMap, {
+    invoice_number: 'invoiceNumber',
+    invoice_item_id: 'invoiceItemId',
+    item_no: 'itemNo',
+    source_order_id: 'sourceOrderId',
+    source_item_id: 'sourceItemId',
+    sku: 'sku',
+    service_type: 'serviceType',
+    description: 'description',
+    quantity: 'quantity',
+    unit: 'unit',
+    unit_price: 'unitPrice',
+    subtotal: 'subtotal',
+    adjustments: 'adjustments',
+    net_total: 'netTotal',
+  })
+})
+
 test('create() returns "created" and calls stages in the exact required order, once each', async () => {
-  const { service, calls } = createService()
+  const { service, calls, invoiceAppendCalls, orderFormUpdateCalls } = createService()
 
   const result = await service.create(baseRequest())
 
   assert.equal(result.kind, 'created')
   assert.deepEqual(calls, ['InvoiceItem.batchAppend', 'Invoice.create', 'OrderForm.update', 'ViewSync'])
+  assert.equal(invoiceAppendCalls[0]?.created_at, formatBangkokTimestamp(fixedNow))
+  assert.equal(orderFormUpdateCalls[0]?.data.updated_at, formatBangkokTimestamp(fixedNow))
   if (result.kind === 'created') {
     assert.equal(result.invoiceNumber, 'INV-0001')
     assert.equal(result.itemCount, 1)
@@ -163,14 +200,14 @@ test('create() rejects invalid input as validation_error and calls no repository
 
 test('create() reports items_write_failed and stops before Invoice.create on a definite rejection', async () => {
   const { service, calls } = createService({
-    itemsError: new SheetLibRejectedError('APPEND', 'bad batch'),
+    itemsError: new WriteRejectedError('APPEND', 'bad batch'),
   })
 
   const result = await service.create(baseRequest())
 
   assert.deepEqual(result, {
     kind: 'items_write_failed',
-    message: 'SheetLib APPEND failed: bad batch',
+    message: 'bad batch',
     certainty: 'rejected',
   })
   assert.deepEqual(calls, ['InvoiceItem.batchAppend'])
@@ -178,7 +215,7 @@ test('create() reports items_write_failed and stops before Invoice.create on a d
 
 test('create() still reports items_write_failed for an unknown transport outcome, but certainty is "unknown" and the message says so truthfully', async () => {
   const { service, calls } = createService({
-    itemsError: new SheetLibTransportError('APPEND', 'network hiccup'),
+    itemsError: new WriteTransportError('APPEND', 'network hiccup'),
   })
 
   const result = await service.create(baseRequest())
@@ -192,9 +229,24 @@ test('create() still reports items_write_failed for an unknown transport outcome
   assert.deepEqual(calls, ['InvoiceItem.batchAppend'])
 })
 
+test('create() classifies an unrecognized write error as unknown', async () => {
+  const { service, calls } = createService({
+    itemsError: new Error('unexpected write failure'),
+  })
+
+  const result = await service.create(baseRequest())
+
+  assert.deepEqual(result, {
+    kind: 'items_write_failed',
+    message: 'unexpected write failure',
+    certainty: 'unknown',
+  })
+  assert.deepEqual(calls, ['InvoiceItem.batchAppend'])
+})
+
 test('create() reports invoice_write_failed with certainty "rejected" after items already succeeded, and stops before OrderForm.update', async () => {
   const { service, calls } = createService({
-    invoiceError: new SheetLibRejectedError('APPEND', 'duplicate invoice_number'),
+    invoiceError: new WriteRejectedError('APPEND', 'duplicate invoice_number'),
   })
 
   const result = await service.create(baseRequest())
@@ -210,7 +262,7 @@ test('create() reports invoice_write_failed with certainty "rejected" after item
 
 test('create() reports invoice_write_failed with certainty "unknown" for an unconfirmed header write', async () => {
   const { service } = createService({
-    invoiceError: new SheetLibTransportError('APPEND', 'network hiccup'),
+    invoiceError: new WriteTransportError('APPEND', 'network hiccup'),
   })
 
   const result = await service.create(baseRequest())
@@ -225,7 +277,7 @@ test('create() reports invoice_write_failed with certainty "unknown" for an unco
 
 test('create() reports order_link_failed — never invoice_write_failed — after a successful invoice write, with correct certainty for both a definite rejection and an unknown transport outcome', async () => {
   const rejected = createService({
-    orderFormError: new SheetLibRejectedError('UPDATE', 'OrderForm row not found'),
+    orderFormError: new WriteRejectedError('UPDATE', 'OrderForm row not found'),
   })
   const rejectedResult = await rejected.service.create(baseRequest())
   assert.deepEqual(rejectedResult, {
@@ -237,7 +289,7 @@ test('create() reports order_link_failed — never invoice_write_failed — afte
   assert.deepEqual(rejected.calls, ['InvoiceItem.batchAppend', 'Invoice.create', 'OrderForm.update'])
 
   const unknown = createService({
-    orderFormError: new SheetLibTransportError('UPDATE', 'network hiccup'),
+    orderFormError: new WriteTransportError('UPDATE', 'network hiccup'),
   })
   const unknownResult = await unknown.service.create(baseRequest())
   assert.deepEqual(unknownResult, {

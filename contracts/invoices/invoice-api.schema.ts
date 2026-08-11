@@ -4,14 +4,14 @@ import { z } from 'zod'
  * Invoices API ↔ frontend contract — camelCase throughout, create only.
  *
  * ⚠ SCOPE: **create only.** There is no edit path — staff may not alter an
- * invoice once issued. A future privileged role may be allowed to change a
- * narrow set of fields (`status` above all) through its OWN endpoint and its
- * OWN contract, not a widened version of this one. Nothing here is named or
- * shaped as though it will grow into an update.
+ * invoice once issued. Do not widen this contract into an update; a privileged
+ * edit path requires its own endpoint and contract.
  *
- * The DB-shaped (snake_case) side this backend sends onward to Apps Script is
- * `server/modules/invoices/invoice.contract.ts`. The arithmetic both this
- * request and that write payload rely on lives once, in
+ * The DB-shaped (snake_case) rows this backend sends onward to Apps Script are
+ * declared in `server/sheets/Invoices/Invoices.db-contract.ts` and
+ * `server/sheets/InvoiceItems/InvoiceItems.db-contract.ts`; the module service
+ * owns their DB-to-API mapping. The arithmetic both this request and the write
+ * payload rely on lives once, in
  * `contracts/invoices/invoice-calculator.ts`, imported by both the server
  * (authoritative) and the client (live preview) — never duplicated.
  */
@@ -57,7 +57,7 @@ export const invoiceCustomerSnapshotInputSchema = z
     phone: z.string().trim().min(1).optional(),
     address: z.string().trim().min(1).optional(),
     // taxId / branchCode / contactName / email are not modeled here: no
-    // source exists yet and none of this is on the form.
+    // source exists and none of this is on the form.
   })
   .strict()
 
@@ -66,12 +66,12 @@ export type InvoiceCustomerSnapshotInput = z.infer<typeof invoiceCustomerSnapsho
 /** ISO 8601 calendar date (YYYY-MM-DD), no time component. */
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a YYYY-MM-DD date')
 
-// ── One line item — deliberately minimal in this first version ─────────────
+// ── One line item — deliberately minimal ───────────────────────────────────
 //
 // No sourceOrderId (it lives once at invoice level and the server fans it out
 // onto every row), no sourceItemId, no serviceType — the server writes null
 // for the latter two on every row. A line typed by hand and a line that
-// originated from an order are now identical in shape; that is intended.
+// originated from an order are identical in shape; that is intended.
 
 export const invoiceLineInputSchema = z
   .object({
@@ -93,10 +93,9 @@ export type InvoiceLineInput = z.infer<typeof invoiceLineInputSchema>
 
 // ── POST /api/invoices — request ────────────────────────────────────────────
 //
-// No billingType. Only ORDER invoices exist for now: the server writes
-// billing_type: 'ORDER' itself and omits both billing-period columns. CYCLE
-// billing is a later feature that will add a field back — no scaffolding for
-// it is kept here.
+// No billingType. Only ORDER invoices exist: the server writes
+// billing_type: 'ORDER' itself and omits both billing-period columns. No
+// CYCLE scaffolding is kept here.
 
 export const invoiceCreateSchema = z
   .object({
@@ -129,18 +128,18 @@ export type CreateInvoiceRequest = z.infer<typeof invoiceCreateSchema>
  *   subtotal, netTotal        the server computes them, authoritative
  *   invoiceItemId              the server mints it (8-char UUID segment)
  *   itemNo                     derived from items[] array position
- *   billingType                always ORDER for now; not a client's choice
- *   billingPeriodStart/End     only meaningful for CYCLE, which does not exist yet
+ *   billingType                always ORDER; not a client's choice
+ *   billingPeriodStart/End     only meaningful for CYCLE, which is not modeled
  *   status                     always ISSUED on create
  *   createdBy                  server constant (INVOICE_CREATED_BY)
  *   createdAt                  Apps Script stamps it
  *   customerId                 derived from customer.customerCode
  *   sku, taxId, branchCode,
- *   contactName, email         no source yet
+ *   contactName, email         no source on this form
  *   item.sourceOrderId         sent once at invoice level; the server copies
  *                              it onto every item row
  *   item.sourceItemId,
- *   item.serviceType           omitted in this first version; server writes null
+ *   item.serviceType           omitted; server writes null
  *   updatedAt/By, deletedAt/By a new invoice has never been edited/deleted
  */
 
@@ -169,8 +168,7 @@ export const createInvoiceValidationErrorSchema = z.object({
 })
 
 /**
- * Every write-stage failure outcome below carries `certainty`, added in a
- * later, approved pass on top of the original six-outcome design:
+ * Every write-stage failure outcome below carries `certainty`:
  *
  *   - 'rejected' — the gateway gave a definite answer that nothing (for that
  *     stage) was written (a well-formed `{ status: 'error' }`/`{ ok: false }`
@@ -185,11 +183,8 @@ export const createInvoiceValidationErrorSchema = z.object({
  *     `InvoiceItem` rows were actually written is exactly the case a plain
  *     "safe to try again" would double.
  *
- * This is the plan's named release gate (`docs/invoice-module-refactor-plan.md`,
- * "Failure and Retry Semantics"): `items_write_failed` used to be reported
- * as unconditionally retry-safe even when the true cause was a lost/unknown
- * response after the batch had already been written. The frontend now keys
- * retry eligibility off `certainty`, never off `kind` alone.
+ * Retry eligibility for `items_write_failed` keys off `certainty`, never off
+ * `kind` alone: only `'rejected'` is retry-safe.
  */
 export const invoiceWriteFailureCertaintySchema = z.enum(['rejected', 'unknown'])
 
@@ -266,13 +261,10 @@ export type CreateInvoiceResponse = z.infer<typeof createInvoiceResponseSchema>
 // `invoiceNumber` is the sheet's primary key, but the gateway enforces no
 // uniqueness — a typo silently appends a second row. The only guard available
 // is a read of InvoicesView (portal spreadsheet, publicly readable, unlike the
-// workbook this module writes to). Per the agreed spec this check is CLIENT-
-// SIDE, debounced while the invoice number is typed, run directly against
-// InvoicesView: advisory only, it warns and never blocks, and a failed lookup
-// must never prevent an invoice from being issued.
-//
-// The response shape is declared here for whenever that read path is built;
-// this pass does not implement the InvoicesView read module or its endpoint.
+// workbook this module writes to). This check is CLIENT-SIDE, debounced while
+// the invoice number is typed, run directly against InvoicesView: advisory only,
+// it warns and never blocks, and a failed lookup must never prevent an invoice
+// from being issued.
 
 export const invoiceNumberCheckResultSchema = z.object({
   invoiceNumber: z.string(),

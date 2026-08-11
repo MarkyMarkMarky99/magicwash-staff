@@ -3,9 +3,8 @@ import { requireEnv } from '../../shared/utils/env.js'
 const REQUEST_TIMEOUT_MS = 15_000
 
 /**
- * `certainty` mirrors the same vocabulary `SheetLibRejectedError`/
- * `SheetLibTransportError` use for the SheetLib write path
- * (`server/shared/repositories/sheetlib-errors.ts`):
+ * `certainty` uses the same rejected/unknown vocabulary as the sheet write
+ * services:
  *   - 'rejected' — the response is recognizably the endpoint's OWN failure
  *     shape: an explicit `ok: false`, or a known `error`/`message` reason
  *     string. A definite, understood rejection.
@@ -83,17 +82,9 @@ export async function syncInvoiceView(invoiceNumber: string): Promise<InvoiceVie
   )
 
   if (result.ok === false || reason !== undefined) {
-    // Recognizably the endpoint's own failure shape — either an explicit
-    // `ok: false`, or a known `error`/`message` reason string. This IS a
-    // well-formed, definite answer from the endpoint — 'rejected', not
-    // 'unknown'.
     return { outcome: 'failed', certainty: 'rejected', message: reason ?? 'Invoice view sync was rejected' }
   }
 
-  // `ok` is missing entirely (not `true`, not `false`) AND there is no
-  // recognizable error/message reason either — e.g. endpoint version skew,
-  // a shape this client has never seen. This is NOT a definite answer: do
-  // not guess that it means rejection.
   return {
     outcome: 'failed',
     certainty: 'unknown',

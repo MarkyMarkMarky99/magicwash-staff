@@ -92,12 +92,12 @@ test('computeInvoiceTotal with no adjustments returns the exact rounded sum', ()
 test('summing three already-rounded netTotals can drift in raw IEEE 754, roundMoney fixes it', () => {
   const netTotals = [316.8, 400, 150.15]
 
-  // The bare reduce invoice.service.ts used to return directly — demonstrates
-  // the bug: this does NOT equal the mathematically exact 866.95.
+  // Bare reduce without roundMoney demonstrates the bug: this does NOT equal
+  // the mathematically exact 866.95.
   const rawSum = netTotals.reduce((sum, netTotal) => sum + netTotal, 0)
   assert.notEqual(rawSum, 866.95)
 
-  // roundMoney(rawSum) is what invoice.service.ts's itemsTotal now computes.
+  // roundMoney(rawSum) is the correct summed itemsTotal.
   assert.equal(roundMoney(rawSum), 866.95)
 })
 

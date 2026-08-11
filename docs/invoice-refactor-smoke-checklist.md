@@ -1,5 +1,12 @@
 # Invoice Refactor — Dev/Preview Smoke Checklist
 
+> ⚠ **Still pending — no sign-off recorded.** Also note the SheetLib/Apps Script setup
+> steps below describe the *current* write path only. Once
+> `docs/database-layer-sheets-api-refactor-plan.md` Phase 2 lands, writes go through
+> the Google Sheets API and those specific steps stop applying — the failure-injection
+> procedures and the structure of this checklist stay valid and are explicitly reused
+> as the template for the new transport's smoke run.
+
 Status: **required before merge**. This is Layer 6 of
 `docs/invoice-module-refactor-plan.md`'s Workflow Test Plan — a manual
 checklist, not an automated test. Layers 1–5 (`tests/server/workflows/invoices/`,

@@ -8,7 +8,8 @@ import {
   type AppointmentListDto,
   type AppointmentUpdateDto,
 } from '../services/appointment.service'
-import { normalizeAppointmentDate, toAppointmentDate } from '../utils/appointment-date'
+import { normalizeSheetDate } from '@/shared/utils/sheet-date'
+import { toAppointmentDate } from '../utils/appointment-date'
 
 type AppointmentItem = AppointmentListDto | AppointmentCreateDto | AppointmentUpdateDto
 
@@ -167,7 +168,7 @@ async function listAppointmentsForDate(date: string): Promise<AppointmentListDto
 
     const reachedEnd = result.items.length < MAX_LIST_SIZE
     const passedDate = normalizedItems.some((item) => {
-      const itemDate = normalizeAppointmentDate(item.appointmentDate)
+      const itemDate = normalizeSheetDate(item.appointmentDate)
       return itemDate !== null && itemDate > date
     })
     if (reachedEnd || passedDate) return matches
@@ -181,7 +182,7 @@ function normalizeAppointmentItems(items: AppointmentListDto[]): AppointmentList
 }
 
 function normalizeAppointmentItem<T extends { appointmentDate: string }>(item: T): T {
-  const appointmentDate = normalizeAppointmentDate(item.appointmentDate)
+  const appointmentDate = normalizeSheetDate(item.appointmentDate)
   if (!appointmentDate || appointmentDate === item.appointmentDate) return item
 
   return { ...item, appointmentDate }
