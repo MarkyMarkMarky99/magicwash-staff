@@ -2,7 +2,11 @@
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import FormLayout from '@/layouts/FormLayout.vue'
-import { getAppointment, type AppointmentDetailDto } from '../services/appointment.service'
+import {
+  appointmentWriteErrorMessage,
+  getAppointment,
+  type AppointmentDetailDto,
+} from '../services/appointment.service'
 import { useAppointmentStore } from '../stores/appointment.store'
 import AppointmentForm from '../components/AppointmentForm.vue'
 
@@ -48,7 +52,10 @@ async function submit() {
     })
     router.back()
   } catch (reason) {
-    error.value = reason instanceof Error ? reason.message : 'Failed to reschedule. Please try again.'
+    error.value = appointmentWriteErrorMessage(
+      reason,
+      'Failed to reschedule. Please try again.',
+    )
   } finally {
     submitting.value = false
   }

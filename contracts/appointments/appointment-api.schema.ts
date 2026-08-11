@@ -30,6 +30,9 @@ export const appointmentStatusSchema = z.enum([
 ])
 export const serviceTierSchema = z.enum(['PRIORITY', 'STANDARD', 'ECONOMY'])
 
+/** Outcome certainty returned on an appointment create/update write failure. */
+export const appointmentWriteFailureCertaintySchema = z.enum(['rejected', 'unknown'])
+
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a valid YYYY-MM-DD date')
 
 // ── Create: client sends business fields only; createdBy comes from the frontend ──
