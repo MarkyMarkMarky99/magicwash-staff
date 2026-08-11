@@ -8,3 +8,15 @@ config_file = "agents/luna-implementer.toml"
 [agents."luna-test-guard"]
 description = "Create or update tests and perform mutation proof exactly as assigned in the brief."
 config_file = "agents/luna-test-guard.toml"
+
+[agents."coder"]
+description = "Implement a finished, already-decided brief without redesigning it or certifying the full verification suite."
+config_file = "agents/coder.toml"
+
+[agents."reviewer"]
+description = "Perform a read-only static review and report only confirmed or highly likely defects."
+config_file = "agents/reviewer.toml"
+
+[agents."tester"]
+description = "Run explicitly named verification gates and return command-backed pass, fail, or blocked evidence."
+config_file = "agents/tester.toml"
