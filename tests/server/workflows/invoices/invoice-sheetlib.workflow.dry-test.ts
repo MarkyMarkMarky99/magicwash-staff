@@ -1,18 +1,21 @@
 import assert from 'node:assert/strict'
 import { generateKeyPairSync } from 'node:crypto'
 import type { CreateInvoiceRequest } from '../../../../contracts/invoices/invoice-api.schema.js'
+import { invoiceItemsRowSchema } from '../../../../server/sheets/InvoiceItems/InvoiceItems.db-contract.js'
+import { invoicesRowSchema } from '../../../../server/sheets/Invoices/Invoices.db-contract.js'
 
 /**
  * Mixed transport workflow.
  *
  * Exercises the REAL `InvoiceService` against a mocked `fetch`, asserting the
- * exact wire-level requests: one `InvoiceItem` APPEND and one `Invoice` APPEND
- * through SheetLib, plus an OrderForm keyed PATCH through the Sheets API with
- * only the invoice link fields.
+ * exact wire-level requests: one InvoiceItems batch append and one Invoices
+ * append through the Sheets API, plus an OrderForm keyed PATCH through the
+ * Sheets API with only the invoice link fields.
  *
  * The repositories are the real, default-constructed ones — no fake repository
  * is injected, which is what makes the asserted request bodies meaningful. Only
- * the clock and the separate view-sync endpoint are stubbed (see the call site).
+ * the clock, item-id generator, and the separate view-sync endpoint are stubbed
+ * (see the call site).
  */
 
 process.env.APPSCRIPT_URL = 'https://script.example/exec'
@@ -28,12 +31,18 @@ const { InvoiceService } = await import('../../../../server/modules/invoices/inv
 
 const fixedNow = new Date('2026-04-01T00:34:56.000Z')
 
+const invoiceItemsHeaders = Object.keys(invoiceItemsRowSchema.shape)
+const invoicesHeaders = Object.keys(invoicesRowSchema.shape)
+
+assert.equal(invoiceItemsHeaders.length, 14, 'InvoiceItems physical width is fourteen columns')
+assert.equal(invoiceItemsHeaders[5], 'sku', 'sku is the sixth InvoiceItems column')
+assert.equal(invoicesHeaders.length, 16, 'Invoices physical width is sixteen columns')
+
 interface FetchCall {
   url: string
+  method?: string
   body?: Record<string, unknown>
 }
-
-type FetchHandler = (body: Record<string, unknown>) => Promise<Response>
 
 function response(input: { json?: unknown; ok?: boolean; statusText?: string }): Response {
   return {
@@ -51,8 +60,27 @@ const orderFormHeaders = [
   'updated_by', 'invoice_id', 'order_name', 'order_description',
 ]
 
+function appendResponse(spreadsheetId: string, values: unknown[][]): Response {
+  return response({
+    json: {
+      spreadsheetId,
+      updates: {
+        updatedRows: values.length,
+        updatedData: { values },
+      },
+    },
+  })
+}
+
+function sheetsPath(url: string): string {
+  return decodeURIComponent(new URL(url).pathname)
+}
+
+function isAppendPath(url: string, sheetName: string): boolean {
+  return sheetsPath(url).endsWith(`/values/${sheetName}:append`)
+}
+
 async function withRoutedFetch<T>(
-  handlers: Record<string, FetchHandler>,
   run: (calls: FetchCall[]) => Promise<T>,
 ): Promise<T> {
   const originalFetch = globalThis.fetch
@@ -63,22 +91,41 @@ async function withRoutedFetch<T>(
     if (stringUrl === 'https://oauth2.googleapis.com/token') {
       return response({ json: { access_token: 'test-access-token', expires_in: 3600 } })
     }
-    if (stringUrl === process.env.APPSCRIPT_URL) {
-      const body = JSON.parse(String(init?.body)) as Record<string, unknown>
-      calls.push({ url: stringUrl, body })
-      const target = body.target as string
-      const handler = handlers[target]
-      if (!handler) throw new Error(`No SheetLib handler configured for target ${target}`)
-      return handler(body)
-    }
 
     assert.equal(parsedUrl.origin, 'https://sheets.googleapis.com')
     const call: FetchCall = {
       url: stringUrl,
+      method: init?.method,
       body: init?.body === undefined ? undefined : JSON.parse(String(init.body)) as Record<string, unknown>,
     }
     calls.push(call)
-    const path = decodeURIComponent(parsedUrl.pathname)
+    const path = sheetsPath(stringUrl)
+
+    // ── InvoiceItems: header load + one batch append ──
+    if (init?.method === 'GET' && path.endsWith('/values/InvoiceItems!1:1')) {
+      return response({ json: { values: [invoiceItemsHeaders] } })
+    }
+    if (init?.method === 'POST' && path.endsWith('/values/InvoiceItems:append')) {
+      assert.equal(parsedUrl.searchParams.get('valueInputOption'), 'USER_ENTERED')
+      assert.equal(parsedUrl.searchParams.get('insertDataOption'), 'INSERT_ROWS')
+      assert.equal(parsedUrl.searchParams.get('includeValuesInResponse'), 'true')
+      const values = call.body?.values as unknown[][]
+      return appendResponse('invoices-spreadsheet-id', values)
+    }
+
+    // ── Invoices: header load + one append ──
+    if (init?.method === 'GET' && path.endsWith('/values/Invoices!1:1')) {
+      return response({ json: { values: [invoicesHeaders] } })
+    }
+    if (init?.method === 'POST' && path.endsWith('/values/Invoices:append')) {
+      assert.equal(parsedUrl.searchParams.get('valueInputOption'), 'USER_ENTERED')
+      assert.equal(parsedUrl.searchParams.get('insertDataOption'), 'INSERT_ROWS')
+      assert.equal(parsedUrl.searchParams.get('includeValuesInResponse'), 'true')
+      const values = call.body?.values as unknown[][]
+      return appendResponse('invoices-spreadsheet-id', values)
+    }
+
+    // ── OrderForm: lookup + PATCH + verify (unchanged Sheets API path) ──
     if (init?.method === 'GET' && path.endsWith('/values/OrderForm!1:1')) {
       return response({ json: { values: [orderFormHeaders] } })
     }
@@ -123,87 +170,154 @@ function baseRequest(): CreateInvoiceRequest {
 }
 
 async function main(): Promise<void> {
+  let itemIdIndex = 0
   const service = new InvoiceService({
     // The Apps Script view-sync integration is a separate URL/endpoint;
     // stub it so this test focuses on the three source-sheet writes.
     syncInvoiceView: async () => ({ outcome: 'confirmed' }),
     now: () => fixedNow,
+    generateItemId: () => {
+      itemIdIndex += 1
+      // 8-char primary keys matching invoice_item_id length.
+      return `itemid0${itemIdIndex}`
+    },
   })
 
-  await withRoutedFetch(
-    {
-      InvoiceItem: async (body) =>
-        response({
-          json: {
-            status: 'ok',
-            target: 'InvoiceItem',
-            data: (body.data as unknown[]).map((_row, index) => ({ invoice_item_id: `item${index}` })),
-          },
-        }),
-      Invoice: async () =>
-        response({ json: { status: 'ok', target: 'Invoice', data: { invoice_number: 'INV-0001' } } }),
-      OrderForm: async () =>
-        response({ json: { status: 'ok', target: 'OrderForm', data: { id: 'ORD-0001', invoice_id: 'INV-0001' } } }),
-    },
-    async (calls) => {
-      const result = await service.create(baseRequest())
-      assert.equal(result.kind, 'created')
+  await withRoutedFetch(async (calls) => {
+    const result = await service.create(baseRequest())
+    assert.equal(result.kind, 'created')
 
-      assert.equal(calls.length, 6, 'two SheetLib writes plus four Sheets API OrderForm calls')
-      assert.deepEqual(calls.slice(0, 2).map((call) => call.body?.target), ['InvoiceItem', 'Invoice'])
-      assert.deepEqual(calls.slice(2).map((call) => new URL(call.url).origin), [
-        'https://sheets.googleapis.com',
-        'https://sheets.googleapis.com',
-        'https://sheets.googleapis.com',
-        'https://sheets.googleapis.com',
-      ])
+    // Two invoice-sheet header loads + two appends + four OrderForm Sheets API
+    // calls. No SheetLib / Apps Script write for either invoice sheet.
+    assert.equal(calls.length, 8, 'header×2 + append×2 + OrderForm×4')
+    assert.deepEqual(
+      calls.map((call) => `${call.method ?? 'GET'} ${sheetsPath(call.url).replace(/^\/v4\/spreadsheets\/[^/]+/, '')}`),
+      [
+        'GET /values/InvoiceItems!1:1',
+        'POST /values/InvoiceItems:append',
+        'GET /values/Invoices!1:1',
+        'POST /values/Invoices:append',
+        'GET /values/OrderForm!1:1',
+        'GET /values/OrderForm!A:A',
+        'POST /values:batchUpdate',
+        'GET /values/OrderForm!A2:U2',
+      ],
+    )
 
-      // ── InvoiceItem: one APPEND, ordered data[] array, no loop ──
-      const itemsCall = calls[0]
-      const itemsBody = itemsCall.body!
-      assert.equal(itemsBody.resource, 'sheet')
-      assert.equal(itemsBody.action, 'APPEND')
-      assert.ok(Array.isArray(itemsBody.data))
-      const itemRows = itemsBody.data as Array<Record<string, unknown>>
-      assert.equal(itemRows.length, 2)
-      assert.deepEqual(itemRows.map((row) => row.item_no), [1, 2], 'array order must survive into the request')
-      assert.deepEqual(itemRows.map((row) => row.invoice_number), ['INV-0001', 'INV-0001'])
+    const itemAppendCalls = calls.filter((call) => isAppendPath(call.url, 'InvoiceItems'))
+    const invoiceAppendCalls = calls.filter((call) => isAppendPath(call.url, 'Invoices'))
+    assert.equal(itemAppendCalls.length, 1, 'InvoiceItems: exactly one batch append, never one-per-row')
+    assert.equal(invoiceAppendCalls.length, 1, 'Invoices: exactly one append')
+
+    // ── InvoiceItems: one batch append, full-width rows, sku blank ──
+    const itemsBody = itemAppendCalls[0]!.body!
+    assert.equal(itemsBody.majorDimension, 'ROWS')
+    const itemRows = itemsBody.values as unknown[][]
+    assert.equal(itemRows.length, 2, 'both line items travel in the same append body')
+
+    const expectedItemAdjustments0 = [{ label: 'Line discount', calculation: 'FIXED', value: -10 }]
+    const expectedItemRows = [
+      // sku is sixth of fourteen and never sent by the service → ''
       // net_total server-computed: FIXED -10 per unit × quantity 10 = 400, not 490.
-      assert.equal(itemRows[0].net_total, 400)
-      assert.equal(itemRows[1].net_total, 60)
-      assert.equal(
-        itemRows[0].adjustments,
-        JSON.stringify([{ label: 'Line discount', calculation: 'FIXED', value: -10 }]),
-        'InvoiceItems.adjustments must be serialized before SheetLib receives the DB row',
-      )
-      assert.equal(itemRows[1].adjustments, '[]')
+      [
+        'INV-0001',
+        'itemid01',
+        1,
+        'ORD-0001',
+        '',
+        '',
+        '',
+        'Wash and fold',
+        10,
+        '',
+        50,
+        500,
+        JSON.stringify(expectedItemAdjustments0),
+        400,
+      ],
+      [
+        'INV-0001',
+        'itemid02',
+        2,
+        'ORD-0001',
+        '',
+        '',
+        '',
+        'Iron',
+        3,
+        '',
+        20,
+        60,
+        '[]',
+        60,
+      ],
+    ]
+    assert.deepEqual(itemRows, expectedItemRows)
+    for (const row of itemRows) {
+      assert.equal(row.length, 14, 'every item row is full header width')
+      assert.equal(row[5], '', 'sku stays a blank middle cell so later columns do not shift left')
+    }
+    assert.deepEqual(
+      JSON.parse(String(itemRows[0]![12])),
+      expectedItemAdjustments0,
+      'InvoiceItems.adjustments must be single-encoded JSON whose parsed value is the adjustment object',
+    )
+    assert.deepEqual(
+      JSON.parse(String(itemRows[1]![12])),
+      [],
+      'empty InvoiceItems.adjustments must parse to an empty array, not a string',
+    )
 
-      // ── Invoice: one APPEND, alone ──
-      const invoiceCall = calls[1]
-      const invoiceBody = invoiceCall.body!
-      assert.equal(invoiceBody.action, 'APPEND')
-      const invoiceRow = invoiceBody.data as Record<string, unknown>
-      assert.equal(invoiceRow.invoice_number, 'INV-0001')
-      assert.equal(invoiceRow.status, 'ISSUED')
-      assert.equal(
-        invoiceRow.customer,
-        JSON.stringify({ customer_code: 'CUS-0001', customer_name: 'Somchai' }),
-        'Invoices.customer must be serialized before SheetLib receives the DB row',
-      )
-      assert.equal(invoiceRow.adjustments, '[]')
+    // ── Invoices: one append, full-width row ──
+    const invoiceBody = invoiceAppendCalls[0]!.body!
+    assert.equal(invoiceBody.majorDimension, 'ROWS')
+    const invoiceRows = invoiceBody.values as unknown[][]
+    assert.equal(invoiceRows.length, 1)
+    const invoiceRow = invoiceRows[0]!
+    assert.equal(invoiceRow.length, 16, 'invoice header row is full header width')
 
-      // ── OrderForm: one UPDATE, key_value = sourceOrderId, PATCH-only body ──
-      const orderFormCall = calls[4]
-      assert.equal(orderFormCall.body?.valueInputOption, 'USER_ENTERED')
-      assert.deepEqual(orderFormCall.body?.data, [
-        { range: 'OrderForm!S2:S2', values: [['INV-0001']] },
-        { range: 'OrderForm!R2:R2', values: [['staff']] },
-        { range: 'OrderForm!Q2:Q2', values: [['2026-04-01 07:34:56']] },
-      ])
-    },
-  )
+    const expectedCustomer = { customer_code: 'CUS-0001', customer_name: 'Somchai' }
+    const expectedInvoiceRow = [
+      'INV-0001',
+      'ISSUED',
+      'ORDER',
+      '',
+      '',
+      '2026-07-29',
+      '2026-08-12',
+      'CUS-0001',
+      JSON.stringify(expectedCustomer),
+      '[]',
+      'staff',
+      '2026-04-01 07:34:56',
+      '',
+      '',
+      '',
+      '',
+    ]
+    assert.deepEqual(invoiceRow, expectedInvoiceRow)
+    assert.deepEqual(
+      JSON.parse(String(invoiceRow[8])),
+      expectedCustomer,
+      'Invoices.customer must be single-encoded JSON whose parsed value is the customer object',
+    )
+    assert.deepEqual(
+      JSON.parse(String(invoiceRow[9])),
+      [],
+      'Invoices.adjustments must be single-encoded JSON whose parsed value is an array',
+    )
 
-  console.log('1 invoice SheetLib transport workflow test passed')
+    // ── OrderForm: one UPDATE, PATCH-only body (assertions also live in the mock) ──
+    const orderFormCall = calls[6]!
+    assert.equal(orderFormCall.body?.valueInputOption, 'USER_ENTERED')
+    assert.deepEqual(orderFormCall.body?.data, [
+      { range: 'OrderForm!S2:S2', values: [['INV-0001']] },
+      { range: 'OrderForm!R2:R2', values: [['staff']] },
+      { range: 'OrderForm!Q2:Q2', values: [['2026-04-01 07:34:56']] },
+    ])
+  })
+
+  console.log('1 invoice Sheets API transport workflow test passed')
 }
 
 main().catch((error) => {

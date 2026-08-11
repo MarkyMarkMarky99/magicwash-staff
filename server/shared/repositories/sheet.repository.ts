@@ -268,6 +268,9 @@ export class SheetRepository<TDbRow extends object>
 
   async batchAppend(rows: Array<Partial<TDbRow>>): Promise<TDbRow[]> {
     this.requireWriteCapability('append')
+    if (this.contract.writeTransport === 'sheets-api') {
+      return this.batchAppendThroughSheetsApi(rows)
+    }
 
     const stored = (await this.write('APPEND', rows, undefined, 'array')) as unknown[]
     // The gateway already confirmed the write, so a count mismatch is a
@@ -281,6 +284,108 @@ export class SheetRepository<TDbRow extends object>
     }
 
     return stored as TDbRow[]
+  }
+
+  private async batchAppendThroughSheetsApi(
+    rows: Array<Partial<TDbRow>>,
+  ): Promise<TDbRow[]> {
+    const client = this.sheetsApiClient
+    if (client === undefined) {
+      throw new WriteRejectedError('APPEND', 'Sheets API client is not configured')
+    }
+
+    try {
+      for (const column of Object.keys(this.contract.valueInput ?? {})) {
+        const declaredValueInput = Object.prototype.hasOwnProperty.call(
+          this.contract.valueInput ?? {},
+          column,
+        )
+        const valueInput = resolveValueInputOption(column, this.contract.valueInput)
+        if (declaredValueInput && valueInput !== 'USER_ENTERED') {
+          throw new WriteRejectedError(
+            'APPEND',
+            `Column '${column}' declares valueInput '${valueInput}', which conflicts with the USER_ENTERED request policy.`,
+          )
+        }
+      }
+    } catch (error) {
+      if (error instanceof WriteRejectedError) {
+        throw error
+      }
+      throw new WriteRejectedError(
+        'APPEND',
+        error instanceof Error ? error.message : String(error),
+      )
+    }
+
+    const loader = this.sheetHeaderMapLoader
+    if (loader === undefined) {
+      throw new WriteRejectedError('APPEND', 'Sheets API header map is not configured')
+    }
+
+    let headerMap
+    try {
+      headerMap = await loader.load()
+    } catch (error) {
+      if (error instanceof SheetHeaderMapError) {
+        throw new WriteRejectedError('APPEND', error.message)
+      }
+      throw error
+    }
+
+    let sentValuesList: SheetsApiValues
+    let sentRows: Array<Record<string, SheetsApiValue>>
+    try {
+      sentValuesList = rows.map((row) =>
+        buildRowValues(row as Record<string, unknown>, headerMap),
+      )
+      sentRows = sentValuesList.map((values) => parseRowValues(values, headerMap))
+    } catch (error) {
+      if (error instanceof WriteRejectedError) {
+        throw error
+      }
+      throw new WriteRejectedError(
+        'APPEND',
+        error instanceof Error ? error.message : String(error),
+      )
+    }
+
+    const response = await client.appendRows(
+      sentValuesList,
+      'USER_ENTERED',
+      headerMap.width,
+    )
+
+    let echoedRows: Array<Record<string, SheetsApiValue>>
+    try {
+      const returnedValues = response.updates.updatedData.values
+      // The API already confirmed the write, so a count mismatch is
+      // committed-but-unreadable rather than a rejection: treating it as
+      // "nothing happened" could cause a retry to append every row a second time.
+      if (returnedValues.length !== rows.length) {
+        throw new Error(
+          `APPEND committed, but the persisted row read-back returned ${returnedValues.length} rows instead of ${rows.length}.`,
+        )
+      }
+      echoedRows = returnedValues.map((values) => parseRowValues(values, headerMap))
+    } catch (error) {
+      throw new WriteCommittedUnreadableError(
+        'APPEND',
+        `APPEND committed, but the persisted rows could not be parsed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      )
+    }
+
+    for (let index = 0; index < sentRows.length; index += 1) {
+      const sentRow = sentRows[index]!
+      verifyRowIdentity(
+        echoedRows[index]!,
+        this.contract.primaryKey,
+        String(sentRow[this.contract.primaryKey] ?? ''),
+      )
+    }
+    return sentRows as TDbRow[]
   }
 
   async update(keyValue: string, patch: Partial<TDbRow>): Promise<TDbRow> {

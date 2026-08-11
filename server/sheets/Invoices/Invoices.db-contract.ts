@@ -35,6 +35,7 @@ export const invoicesDbContract = {
   sheetName: 'Invoices',
   spreadsheetId: 'INVOICES_SPREADSHEET_ID',
   target: 'Invoice',
+  writeTransport: 'sheets-api',
   // created_at/updated_at/deleted_at are intentionally real Sheets datetime cells, not
   // Plain Text — decision recorded 2026-08-09 after a smoke test showed Google Sheets
   // auto-converting the plain-text-formatted stamp into a datetime cell; the project owner
