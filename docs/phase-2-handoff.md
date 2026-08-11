@@ -4,9 +4,12 @@
 branch หลักของ refactor และ deploy preview สำเร็จเป็นครั้งแรก**
 (HEAD ของ `refactor/sheet-layer` = `d52fd99`)
 
-**✅ โค้ดของ §2.9 ครบทุก stage แล้ว และอยู่บน `refactor/sheet-layer` ทั้งหมด** (ไม่ต้องไปหาใน
-worktree อีก) · **✅ preview deploy ฝั่งอ่านผ่านแล้ว** ⇒ ไม่มีบั๊ก ESM `.js` extension
-· ⬜ **เหลือ 3C เป็นตัวบล็อกเดียวของ §2.9** — เจ้าของกดเอง
+**✅ §2.9 จบแล้วทั้งหมด** — โค้ดครบทุก stage อยู่บน `refactor/sheet-layer` (ไม่ต้องหาใน worktree
+อีก) และ **3C ผ่านครบ 12/12** ⇒ ทั้ง 4 ชีตที่เขียนได้ย้ายมา Sheets API เรียบร้อย พิสูจน์กับ
+Google จริงแล้วทุกชีต · **✅ preview deploy ฝั่งอ่านผ่าน** ⇒ ไม่มีบั๊ก ESM `.js` extension
+
+⬜ **เหลือก่อน merge เข้า main: กดสร้าง invoice อีก 1 ใบบน preview** (3C กดบน local dev
+เส้นทางเขียนจึงยังไม่เคยรันบน deploy จริง) · **§2.10 เดินหน้าได้เลย ไม่ติดอะไรแล้ว**
 
 **สถานะปัจจุบันและสิ่งที่เหลืออยู่หมวด 1c** — อ่านหมวดนั้นก่อนถ้าจะเริ่มทำงานต่อ
 
@@ -77,7 +80,7 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 | §2.9 stage 3B — Invoices + InvoiceItems opt-in | ✅ | `0927dd4` |
 | merge stage 3 กลับเข้า `refactor/sheet-layer` + ด่านครบ 4 ตัว | ✅ | `d52fd99` |
 | preview deploy ครั้งแรก — ฝั่งอ่าน 4 endpoint ได้ 200 | ✅ | `d52fd99` |
-| §2.9 stage 3C — smoke test จริง (สร้าง invoice) **บน preview** | ⬜ **เจ้าของกดเอง** | |
+| §2.9 stage 3C — smoke test จริง (สร้าง invoice) | ✅ **ผ่าน 12/12 (2026-08-11)** `INV260872306305` บน local dev | |
 | งานแยกหลัง §2.9 — จัดระเบียบ timestamp ทุกชีตเป็น datetime | ⬜ | |
 | งานแยกหลัง §2.9 — `certainty` ของ Appointments (แก้ API contract) | ⬜ | |
 | §2.10 | ⬜ | |
@@ -364,22 +367,48 @@ extension ที่หายใน ESM import จับได้เฉพาะ 
 
 ---
 
-## 1c. เหลืออีก 6 ข้อจบ Phase 2 (สถานะ 2026-08-11)
+## 1c. เหลืออีก 4 ข้อจบ Phase 2 (สถานะ 2026-08-11 หลัง 3C ผ่าน)
 
-**โค้ดของ §2.9 เสร็จครบทุก stage แล้ว** — ทั้ง 4 ชีตที่ระบบเขียนได้ (OrderForm, Appointments,
-Invoices, InvoiceItems) ย้ายมา Sheets API หมด ชีตที่เหลือเป็น read-only ทั้งสิ้น
-**ที่เหลือคือการพิสูจน์กับของจริง และงานเก็บกวาด**
+**§2.9 จบแล้ว** — ทั้ง 4 ชีตที่ระบบเขียนได้ (OrderForm, Appointments, Invoices, InvoiceItems)
+ย้ายมา Sheets API หมด **และพิสูจน์กับ Google จริงครบทุกชีตแล้ว** ชีตที่เหลือเป็น read-only ทั้งสิ้น
+**ที่เหลือคืองานเก็บกวาด กับด่าน preview ก่อน merge**
 
 | # | อะไร | ใคร | ติดอะไร |
 |---|---|---|---|
 | ~~1~~ | ~~3B~~ | | ✅ `0927dd4` |
-| 2 | **3C** — สร้าง invoice จริง 1 ใบด้วย order ที่ทิ้งได้ | **เจ้าของ** | เสี่ยงสูงสุดในแผน: เขียน 4 ชีต **ไม่ idempotent** พังกลางทางแล้วเหลือข้อมูลค้างครึ่งๆ ที่ต้อง reconcile ด้วยมือ · ตรวจตามแม่แบบ 5 ข้อของ 2C + `Invoices.customer`/`adjustments` และ `InvoiceItems.adjustments` ต้อง parse เป็นอ็อบเจ็กต์ + `sku` ว่างอยู่ตำแหน่งที่ 6 |
-| 3 | **§2.10** — ลบ SheetLib write path, alias ใน `write-errors.ts`, env `APPSCRIPT_URL`/`APPSCRIPT_GATEWAY_URL`/`APPSCRIPT_APPOINTMENT_URL` · **ห้ามลบ `APPSCRIPT_INVOICE_VIEW_SYNC_URL`** | pipeline | ทำได้ต่อเมื่อ 3B ผ่าน — ต้องย้ายครบทุกชีตที่เขียนได้ก่อน |
+| ~~2~~ | ~~**3C**~~ | | ✅ **ผ่านครบ 12/12 (2026-08-11)** `INV260872306305` — ดูหมวดล่าง |
+| 3 | **§2.10** — ลบ SheetLib write path, alias ใน `write-errors.ts`, env `APPSCRIPT_URL`/`APPSCRIPT_GATEWAY_URL`/`APPSCRIPT_APPOINTMENT_URL` · **ห้ามลบ `APPSCRIPT_INVOICE_VIEW_SYNC_URL`** | pipeline | 🟢 **ไม่ติดอะไรแล้ว** 3B/3C ผ่าน ทุกชีตที่เขียนได้ย้ายครบ |
 | 4 | timestamp ทุกชีตเป็น datetime จริง (คำตัดสิน 3.5) | pipeline + เจ้าของตรวจ | `Appointments.CreatedAt` ต้องเคลียร์ cell format ก่อน ซึ่งต้องใช้ `spreadsheets.batchUpdate` คนละ API — §2.9 ไม่ได้สร้างไว้ |
 | 5 | `certainty` ของ Appointments เข้า API contract | pipeline | กระทบ frontend |
-| 6 | **พิสูจน์บน preview deploy** | **เจ้าของ** | 🟡 **ครึ่งเดียว (2026-08-11)** — ฝั่งอ่านผ่านแล้ว ดูหมวดล่าง · ฝั่งเขียนยังไม่ผ่านจนกว่า 3C จะรันบน preview |
+| 6 | **พิสูจน์บน preview deploy** | **เจ้าของ** | 🟡 **ครึ่งเดียว (2026-08-11)** — ฝั่งอ่านผ่านบน preview แล้ว · **ฝั่งเขียนยังค้าง** เพราะ 3C กดบน local dev ⇒ ต้องกดสร้าง invoice อีกใบบน preview ก่อน merge เข้า main |
 
 ข้อ 4 กับ 5 เป็น "งานแยกหลัง §2.9" ตามที่เจ้าของกำหนดลำดับไว้ ไม่ใช่ตัวบล็อก §2.9
+
+### ✅ §2.9 stage 3C — ผ่านครบ 12/12 (2026-08-11, บน local dev)
+
+`INV260872306305` · order `2400fb5c` · 2 รายการ รวม 150 · **ตรวจด้วย GViz query ตรง ไม่ใช่เปิดชีตดู**
+
+| ตรวจ | ผล |
+|---|---|
+| `Invoices` 1 แถว · `customer` parse เป็นอ็อบเจ็กต์ · `adjustments` = `[]` | ✅ ไม่มี `[object Object]` ไม่มี string ซ้อน string |
+| `created_at` = **datetime** · `issued_date`/`due_date` = **date** · `updated_at` ว่าง | ✅ ตรงกับ `valueInput: USER_ENTERED` ที่ตั้งใจ |
+| `InvoiceItems` 2 แถว · `sku` ว่าง **อยู่ตำแหน่งที่ 6** · ไม่มีคอลัมน์เลื่อน | ✅ |
+| `quantity × unit_price` รวม = 150 ตรงกับ response | ✅ 14×5 + 8×10 |
+| `OrderForm.invoice_id` | ✅ |
+| GViz date-range filter (`issued_date` 10–12 ส.ค.) | ✅ เจอใบนี้ |
+
+**ยังไม่ได้ตรวจ:** ไม่มี snapshot ของแถว `OrderForm` **ก่อน**เขียน จึงยืนยันได้แค่ว่า `invoice_id`
+ถูกลิงก์ ไม่ได้พิสูจน์ว่าอีก 20 คอลัมน์ไม่ขยับ (stage 1 เคยพิสูจน์เส้นทางนี้ และ stage 3 ไม่ได้แตะ
+`updateThroughSheetsApi` แต่รอบนี้เองไม่ได้ตรวจ) ⇒ **รอบหน้าเก็บ snapshot ก่อนกดเสมอ**
+
+⚠️ **กดบน local dev ไม่ใช่ preview** ⇒ เส้นทาง**เขียน**ผ่าน Sheets API ยังไม่เคยรันบน deploy จริง
+สักครั้ง ดูข้อ 6 ในตาราง 1c
+
+**บทเรียนจากตัวสคริปต์ตรวจเอง:** รอบแรกยิง `where B` ผิดคอลัมน์ (ใน `InvoiceItems` คอลัมน์ B คือ
+`invoice_item_id` ไม่ใช่ `invoice_number` ซึ่งอยู่ที่ A · ใน `Invoices` คอลัมน์ B คือ `status`
+ไม่ใช่วันที่) ได้ 0 แถว **แต่เช็ค `sku` กับ `adjustments` กลับขึ้น PASS** เพราะ `every()` บน array
+ว่างคืน `true` ⇒ **ด่านที่วนบนคอลเลกชันต้องบังคับจำนวนแถวก่อนเสมอ** ไม่งั้นมันจะเขียวดังที่สุด
+พอดีตอนที่การเขียนล้มเหลว ซึ่งคือตอนที่เราต้องการมันที่สุด
 
 ### 🟢 preview deploy ครั้งแรกของ refactor นี้ — ฝั่งอ่านผ่านแล้ว (2026-08-11, `d52fd99`)
 
