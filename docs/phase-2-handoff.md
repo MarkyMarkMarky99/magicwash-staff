@@ -373,12 +373,36 @@ extension ที่หายใน ESM import จับได้เฉพาะ 
 InvoiceItems) ย้ายมา Sheets API หมด พิสูจน์กับ Google จริงครบทุกชีต **และ SheetLib write path
 ถูกลบทิ้งแล้ว เหลือทางเขียนทางเดียวทั้งระบบ** ชีตที่เหลือเป็น read-only ทั้งสิ้น
 
-**เหลือ 2 อย่างเท่านั้น:**
-1. ⬜ **เจ้าของกดทดสอบ preview รอบสุดท้าย** — §2.10 ลบไฟล์และรื้อ import เยอะที่สุดใน Phase 2
-   ⇒ เป็นจังหวะที่บั๊ก `.js` extension เกิดง่ายที่สุด · ยิง 4 endpoint ได้ 200 แล้ว (ฝั่งอ่าน)
-   เหลือกด **สร้าง invoice 1 ใบ + แตะ appointment 1 ครั้ง** (create หรือเลื่อนนัด — เพื่อยืนยันว่า
-   `certainty` ไม่ได้ทำ happy path พัง)
-2. ⬜ **merge เข้า main**
+### ✅ ด่านสุดท้ายหลัง §2.10 — ผ่านครบบน preview (2026-08-11)
+
+กดบน preview จริง (`kkxnc0kcr`) หลังลบ SheetLib write path ทิ้งทั้งเส้น:
+
+**invoice `INV260854062757` (order `6b7e06ff`) — 15/15**
+ครั้งแรกที่มี **snapshot ของแถว OrderForm ก่อนเขียน** จึง diff ได้จริงแทนการอนุมาน:
+
+```
+ok  updated_at   Date(2026,5,21,15,35,50)  ->  Date(2026,7,11,16,36,43)
+ok  updated_by   (ว่าง)                    ->  staff
+ok  invoice_id   (ว่าง)                    ->  INV260854062757
+18 จาก 21 คอลัมน์ ไม่ขยับเลย
+```
+
+⇒ **การเขียนแตะเฉพาะ 3 คอลัมน์ที่ contract ประกาศ** ปิดข้อค้างที่ 3C สองรอบแรกพิสูจน์ไม่ได้
+⇒ ขั้นตอนที่ควรทำทุกครั้งต่อจากนี้: **ขอ `sourceOrderId` ก่อนเจ้าของกด แล้วเก็บ snapshot**
+(`scratchpad/snapshot-order.mjs`) — pre-flight ยังกันการออกใบซ้ำได้ด้วย เพราะมันเตือนถ้า
+`invoice_id` ไม่ว่าง
+
+**appointment `APPT-1ae7e6ef` — 10/10**
+`CreatedAt` string `2026-08-11 16:37:35` (รูปแบบมาตรฐาน) · `UpdatedAt` datetime ·
+`AppointmentDate` date · `Address` parse เป็นอ็อบเจ็กต์ชั้นเดียว · nullable กลางแถวว่างตำแหน่งถูก
+· GViz date filter หาเจอ ⇒ **type ทั้งสามไม่เปลี่ยนจาก baseline และ success path ทำงานปกติ**
+ซึ่งเป็นเงื่อนไขที่ brief ของ `certainty` ล็อกไว้ว่าห้ามพัง
+
+⇒ **เส้นทางเขียนผ่าน Sheets API พิสูจน์บน deploy จริงครบทั้ง invoice และ appointment**
+ไม่มีบั๊ก ESM `.js` extension
+
+**เหลืออย่างเดียว:**
+1. ⬜ **merge เข้า main**
 
 ข้อ 4 (timestamp) เจ้าของสั่งพักไว้ ไม่ใช่ตัวบล็อก
 
