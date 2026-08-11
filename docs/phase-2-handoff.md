@@ -1,11 +1,14 @@
 # Handoff — เริ่ม Phase 2
 
-เขียนเมื่อ 2026-08-09 ตอนปิด Phase 1 · **อัปเดตล่าสุด 2026-08-11 ตอน §2.9 stage 2 ผ่าน smoke
-test จริง และ stage 3A ลงบน branch แยก** (HEAD ของ `refactor/sheet-layer` = `1f88fc8`)
+เขียนเมื่อ 2026-08-09 ตอนปิด Phase 1 · **อัปเดตล่าสุด 2026-08-11 ตอน merge stage 3 กลับเข้า
+branch หลักของ refactor และ deploy preview สำเร็จเป็นครั้งแรก**
+(HEAD ของ `refactor/sheet-layer` = `d52fd99`)
 
-**✅ §2.9 stage 1 (OrderForm) และ stage 2 (Appointments) ผ่าน smoke test จริงแล้วทั้งคู่**
-รายละเอียดอยู่หมวด 1b · **สถานะปัจจุบันและสิ่งที่เหลืออยู่หมวด 1c** — อ่านหมวดนั้นก่อน
-ถ้าจะเริ่มทำงานต่อ
+**✅ โค้ดของ §2.9 ครบทุก stage แล้ว และอยู่บน `refactor/sheet-layer` ทั้งหมด** (ไม่ต้องไปหาใน
+worktree อีก) · **✅ preview deploy ฝั่งอ่านผ่านแล้ว** ⇒ ไม่มีบั๊ก ESM `.js` extension
+· ⬜ **เหลือ 3C เป็นตัวบล็อกเดียวของ §2.9** — เจ้าของกดเอง
+
+**สถานะปัจจุบันและสิ่งที่เหลืออยู่หมวด 1c** — อ่านหมวดนั้นก่อนถ้าจะเริ่มทำงานต่อ
 
 **นี่คือครั้งแรกที่ `GOOGLE_SERVICE_ACCOUNT_KEY` ฝั่ง server ถูกใช้เขียนจริง** — เจอปัญหาจริง 1 ข้อ
 ระหว่างทาง (env var scope บน Vercel) แก้แล้ว รายละเอียดอยู่หมวด 2
@@ -70,9 +73,11 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 | §2.9 stage 2A — `appendThroughSheetsApi` (ไม่แตะ contract ใด) | ✅ | `ef521d8` |
 | §2.9 stage 2B — Appointments opt-in `writeTransport: 'sheets-api'` | ✅ **โค้ดเสร็จ ยังไม่ผ่าน smoke test** | `ddc1323` |
 | §2.9 stage 2C — smoke test จริง (เจ้าของกดผ่าน staff UI) | ✅ **ผ่านครบ 5 ข้อ (2026-08-11)** | |
-| §2.9 stage 3A — `batchAppendThroughSheetsApi` (ไม่แตะ contract ใด) | ✅ | `21a53ef` **อยู่บน branch แยก** |
-| §2.9 stage 3B — Invoices + InvoiceItems opt-in | ✅ | `0927dd4` **อยู่บน branch แยก** |
-| §2.9 stage 3C — smoke test จริง (สร้าง invoice) | ⬜ **เจ้าของกดเอง** | |
+| §2.9 stage 3A — `batchAppendThroughSheetsApi` (ไม่แตะ contract ใด) | ✅ | `21a53ef` |
+| §2.9 stage 3B — Invoices + InvoiceItems opt-in | ✅ | `0927dd4` |
+| merge stage 3 กลับเข้า `refactor/sheet-layer` + ด่านครบ 4 ตัว | ✅ | `d52fd99` |
+| preview deploy ครั้งแรก — ฝั่งอ่าน 4 endpoint ได้ 200 | ✅ | `d52fd99` |
+| §2.9 stage 3C — smoke test จริง (สร้าง invoice) **บน preview** | ⬜ **เจ้าของกดเอง** | |
 | งานแยกหลัง §2.9 — จัดระเบียบ timestamp ทุกชีตเป็น datetime | ⬜ | |
 | งานแยกหลัง §2.9 — `certainty` ของ Appointments (แก้ API contract) | ⬜ | |
 | §2.10 | ⬜ | |
@@ -292,18 +297,25 @@ response body (สูงสุด 500 ตัวอักษร) ของ Sheets
 business logic/response shape เลย (grok review ยืนยันแล้ว) เก็บไว้ถาวรเพราะแก้ observability gap
 จริงที่จะเกิดกับ write failure ในอนาคตด้วย ไม่ใช่แค่ครั้งนี้ครั้งเดียว
 
-### 🔴 อ่านก่อนหาโค้ด stage 3 — มันไม่ได้อยู่บน `refactor/sheet-layer`
+### stage 3 merge กลับเข้า `refactor/sheet-layer` แล้ว (2026-08-11, `d52fd99`)
 
 ```
 branch    refactor/sheet-layer-stage-3     แตกจาก refactor/sheet-layer
 worktree  .worktrees\refactor-sheet-layer-stage-3
 ```
 
-`git log` บน `refactor/sheet-layer` **จะไม่เห็นงาน stage 3 เลย** ต้อง merge กลับเองเมื่อพร้อม
-(`.worktrees/` ถูก gitignore ⇒ ไม่โผล่ใน `git status` ของ checkout หลัก)
-
-เหตุผลที่แยก: stage 3 รันด้วย **`grok-pipeline`** ซึ่งให้ Grok ทำงานใน Docker ที่ mount เห็นแค่
+เหตุผลที่เคยแยก: stage 3 รันด้วย **`grok-pipeline`** ซึ่งให้ Grok ทำงานใน Docker ที่ mount เห็นแค่
 worktree เท่านั้น ⇒ `.env.local` และ secret อื่นไปไม่ถึงมันโดยโครงสร้าง ไม่ใช่ด้วยการกรองชื่อไฟล์
+
+**การแยกแบบนั้นเองคือเหตุผลที่ต้อง merge กลับก่อนทำ 3C** — worktree ไม่มี `.env.local` และไม่มี
+`.vercel` โดยตั้งใจ ⇒ รัน `vercel dev` หรือ deploy จากที่นั่นไม่ได้เลย 3C ต้องใช้ของจริงทั้งคู่
+merge สะอาด ไม่มี conflict · โค้ด production ที่เข้ามาจริงมีแค่ 3 ไฟล์ (`sheet.repository.ts`
++ db-contract ของ Invoices/InvoiceItems) ที่เหลือเป็นเทสต์
+
+ผ่านด่านครบหลัง merge: `typecheck:api` เขียว · dry-test **37/37** · `npm run build` เขียว ·
+`sheet-column-parity` ผ่านทั้ง 8 ชีต
+
+⚠️ **branch กับ worktree ยังอยู่** ยังไม่ได้ลบ ⇒ อย่าเผลอไปแก้โค้ดในนั้นต่อ มันตามหลังแล้ว
 
 ### §2.9 stage 2C — ผลตรวจจริง (2026-08-11) ✅
 
@@ -365,9 +377,29 @@ Invoices, InvoiceItems) ย้ายมา Sheets API หมด ชีตที�
 | 3 | **§2.10** — ลบ SheetLib write path, alias ใน `write-errors.ts`, env `APPSCRIPT_URL`/`APPSCRIPT_GATEWAY_URL`/`APPSCRIPT_APPOINTMENT_URL` · **ห้ามลบ `APPSCRIPT_INVOICE_VIEW_SYNC_URL`** | pipeline | ทำได้ต่อเมื่อ 3B ผ่าน — ต้องย้ายครบทุกชีตที่เขียนได้ก่อน |
 | 4 | timestamp ทุกชีตเป็น datetime จริง (คำตัดสิน 3.5) | pipeline + เจ้าของตรวจ | `Appointments.CreatedAt` ต้องเคลียร์ cell format ก่อน ซึ่งต้องใช้ `spreadsheets.batchUpdate` คนละ API — §2.9 ไม่ได้สร้างไว้ |
 | 5 | `certainty` ของ Appointments เข้า API contract | pipeline | กระทบ frontend |
-| 6 | **พิสูจน์บน preview deploy** | **เจ้าของ** | ยังไม่เคยสักครั้งทั้ง stage 1/2/3 — บั๊ก `.js` extension ใน ESM จับได้เฉพาะ deploy จริง เคยทำ production ล่มทั้งระบบ ⇒ **ด่านบังคับก่อน merge เข้า main** |
+| 6 | **พิสูจน์บน preview deploy** | **เจ้าของ** | 🟡 **ครึ่งเดียว (2026-08-11)** — ฝั่งอ่านผ่านแล้ว ดูหมวดล่าง · ฝั่งเขียนยังไม่ผ่านจนกว่า 3C จะรันบน preview |
 
 ข้อ 4 กับ 5 เป็น "งานแยกหลัง §2.9" ตามที่เจ้าของกำหนดลำดับไว้ ไม่ใช่ตัวบล็อก §2.9
+
+### 🟢 preview deploy ครั้งแรกของ refactor นี้ — ฝั่งอ่านผ่านแล้ว (2026-08-11, `d52fd99`)
+
+deploy สำเร็จ build 15 วิ · ยิง 4 endpoint ตามหมวด 5 **ได้ 200 พร้อมข้อมูลจริงครบทั้ง 4**
+⇒ **บั๊กคลาส `.js` extension ที่หายใน ESM import ไม่มีในโค้ดชุดนี้** ซึ่งเป็นสิ่งเดียวที่
+`tsc`/dry-test/`vercel dev` พิสูจน์ไม่ได้เลย และเคยทำ production ล่มทั้งระบบมาแล้ว
+
+**นี่พิสูจน์แค่ฝั่งอ่าน** เพราะทั้ง 4 endpoint เป็น GET ล้วน ⇒ เส้นทางเขียนผ่าน Sheets API
+(ของจริงที่ §2.9 ทำมาทั้งหมด) **ยังไม่เคยรันบน deploy จริงสักครั้ง** จนกว่า 3C จะกดบน preview
+
+### เจอระหว่างทาง — GViz `Date(y,m,d)` ดิบหลุดออก API (ไม่ใช่ของใหม่)
+
+`/api/invoices` คืน `"issuedDate":"Date(2026,7,10)"` และ `/api/orders` คืน
+`"receivedDate":"Date(2026,2,22)"` — **เทียบกับ preview เก่าก่อน stage 3 แล้วเหมือนกันเป๊ะ
+⇒ มีมาก่อน ไม่ใช่ regression ของ stage 3** ต้นเหตุคือ `gviz-reader.ts` ดึงจาก `.v` อย่างเดียว
+และไม่มี parser สำหรับ `Date(y,m,d,...)` (เรื่องเดียวกับที่บันทึกไว้ตอน §2.7)
+
+อยู่ในกรอบนโยบาย "reads คืนค่าตามที่เก็บ ไม่ normalize" ที่เจ้าของตัดสินไว้ **แต่ค่านี้ไม่ใช่
+เรื่อง format — มันคือ artifact ของ GViz ที่ frontend ต้องแกะเอง** ⇒ ควรเป็นงานแยกต่างหาก
+ไม่ใช่ตัวบล็อก 3C
 
 ### ช่องว่างที่รู้ตัวแล้ว ไม่ใช่บั๊กที่เพิ่งทำพัง
 
@@ -578,6 +610,15 @@ command line ที่ตรงเป๊ะกับที่เราสั่�
 เพราะชีตที่ถูกเพิ่มเข้ามาในอนาคตคือชีตที่ยังไม่มีใครเคยตรวจ — ถ้าลิสต์ไว้ มันจะเงียบพอดีตอนมี
 ของใหม่เข้ามา mutation test ข้อ 2 ของงานนั้นพิสูจน์เรื่องนี้โดยเฉพาะ (แก้ชีตที่เดิม read-only
 ให้เขียนได้ แล้วด่านต้องแดงเอง)
+
+**commit ให้จบก่อนส่ง agent เสมอ — และห้ามแก้ไฟล์ในทรีขณะที่ agent กำลังทำงานอยู่**
+(2026-08-11) ระหว่างที่ luna-pipeline รันงานกวาดคอมเมนต์ Claude ไปเขียนหมวดใหม่ใน `AGENTS.md`
+พร้อมกัน · brief เขียนยกเว้นไว้แค่ `docs/*` ซึ่ง `AGENTS.md` อยู่ที่ราก จึงไม่เข้าข่าย ⇒ pipeline
+เห็นไฟล์นอกขอบเขตถูกแก้ **จึงสั่ง revert ทิ้งอย่างถูกต้องตามคำสั่งทุกประการ** แล้วสรุปผิดว่าเป็น
+scope creep ของ luna ทั้งที่เป็นงานของ Claude เอง
+⇒ ทรีที่สะอาดคือสิ่งเดียวที่ทำให้ "งานของใคร" ตอบได้ และทำให้ทิ้งงานที่ผิดด้วย `checkout` ได้
+⇒ **ขอบเขตใน brief ต้องระบุความเป็นเจ้าของเป็นราย path ให้ครบ ไม่ใช่ยกเว้นเป็น glob กว้างๆ**
+glob ที่ครอบไม่ถึงคือช่องที่ agent จะลบงานของคนอื่นโดยทำตามคำสั่งเป๊ะ
 
 **เมื่อแผนขัดกับความจริงของโค้ด ให้แก้แผนในคอมมิตเดียวกับที่ทำงาน**
 §2.8 สั่งให้แปะ comment บนสิ่งที่ยังไม่เกิด ทำตามตัวอักษรแล้วจะได้ comment โกหก ⇒ ขยายขอบเขต
