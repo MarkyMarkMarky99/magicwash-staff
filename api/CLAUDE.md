@@ -202,4 +202,4 @@ under `server/` (e.g. `server/modules/orders/orders.transformer.ts` →
 - Don't add repository/query methods speculatively — the existing read/query pipeline covers most ad-hoc reads.
 - Don't widen `perPage` past its `.max()` — over-limit is 422, not a clamp.
 - GViz date strings are returned raw; do not parse or format them in the backend. ISO `YYYY-MM-DD` strings compare correctly with `<=` when a service needs a date range.
-- Environment variables are read when each `get<Sheet>Repository()` first initializes its module-scoped cache. Use the shared Apps Script endpoint `APPSCRIPT_URL` plus module-specific sheet variables such as `CUSTOMERS_SPREADSHEET_ID`.
+- Environment variables are read when each `get<Sheet>Repository()` first initializes its module-scoped cache. A repository needs its workbook id (`CUSTOMERS_SPREADSHEET_ID`, `ORDERS_SPREADSHEET_ID`, …) and, for a sheet it writes, the service-account credentials in `GOOGLE_SERVICE_ACCOUNT_KEY`. There is no shared Apps Script endpoint any more: writes go through the Sheets API, and `APPSCRIPT_INVOICE_VIEW_SYNC_URL` is the only Apps Script URL left — it recomputes InvoicesView and is not a sheet-row write.

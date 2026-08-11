@@ -82,18 +82,18 @@ today, see Google Sheets Rules below for the current split.
   (`'sheetlib'` default, or `'sheets-api'` opt-in). It maps no API fields;
   `BaseCrudService` owns the module's DB-to-API mapping and declared JSON cell
   decoding.
-- SheetLib sheets: every write has an explicit SheetLib target; UPDATE is a PATCH.
-  Sheets-API sheets: UPDATE looks up the row by primary key, then patches only the
-  changed columns (see `sheet-row-lookup.ts` for the accepted lookup-to-write race).
-  As of 2026-08-10 only `OrderForm.update()` uses the Sheets API transport; every
-  other sheet still writes through SheetLib. OrderForm's own append/delete are
-  disabled (`writes: {append:false, delete:false}`), not routed to SheetLib —
-  its `scriptUrl` is unset.
+- Every write goes through the Sheets API. There is one write transport, not two:
+  UPDATE looks up the row by primary key and patches only the changed columns (see
+  `sheet-row-lookup.ts` for the accepted lookup-to-write race), APPEND and batch
+  APPEND write whole rows. A sheet declares what it may do in `writes`; a capability
+  left false is refused before any request is built.
 - Portal views are Apps Script-owned read models. Decode their JSON text columns only
   through the owning module's `jsonColumns`; fix wrong business data at its source.
 - The backend returns GViz's raw date form. Date formatting belongs in the frontend.
-- Do not turn dirty legacy cells into 500 responses. DELETE remains unsupported
-  until its SheetLib/App Script semantics are designed and verified.
+- Do not turn dirty legacy cells into 500 responses. DELETE is unsupported: the
+  repository throws rather than pretending to delete, because a delete that reports
+  success without deleting is data loss disguised as a pass. Design and verify its
+  semantics before implementing it.
 - Server environment variables never use the `VITE_*` prefix.
 
 ## Comments in Source Code
