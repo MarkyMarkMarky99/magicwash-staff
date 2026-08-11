@@ -401,8 +401,17 @@ ok  invoice_id   (ว่าง)                    ->  INV260854062757
 ⇒ **เส้นทางเขียนผ่าน Sheets API พิสูจน์บน deploy จริงครบทั้ง invoice และ appointment**
 ไม่มีบั๊ก ESM `.js` extension
 
-**เหลืออย่างเดียว:**
-1. ⬜ **merge เข้า main**
+### ✅ merge เข้า main และขึ้น production แล้ว (2026-08-11, `ee4ed38`)
+
+86 commits · merge สะอาดไม่มี conflict · รัน gate ครบบน main ก่อน push (typecheck · dry-test
+38/38 · build · parity 8 ชีต) · production ยิง 4 endpoint ได้ 200 และอ่านเห็นข้อมูลที่เพิ่งเขียน
+วันนี้จริง (`INV260854062757`, `APPT-1ae7e6ef`)
+
+**Phase 2 จบ** — ไม่มีตัวบล็อกเหลือ
+
+⚠️ `APPT-1ae7e6ef` ไม่โผล่ใน `/api/appointments?perPage=500` เพราะ `perPage` ถูก cap และแถว
+อยู่ท้ายชีต (~362) · กรองด้วย `customerId` แล้วเจอปกติ ⇒ **ไม่ใช่บั๊ก** แต่จำไว้เวลาตรวจ
+ครั้งหน้า อย่าสรุปว่า "เขียนไม่ติด" จากการที่มันไม่อยู่ในหน้าแรก
 
 ข้อ 4 (timestamp) เจ้าของสั่งพักไว้ ไม่ใช่ตัวบล็อก
 
