@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref } from 'vue'
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
+import { formatSheetDate } from '@/shared/utils/sheet-date'
 import type { AppointmentListDto } from '../services/appointment.service'
 
 type AppointmentStatus = AppointmentListDto['status']
@@ -47,9 +48,11 @@ const config = computed(() => statusConfig[props.appointment.status])
 const next = computed(() => nextStatus[props.appointment.status])
 const action = computed(() => next.value ? actionLabels[next.value] : null)
 const canReschedule = computed(() => !['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(props.appointment.status))
-const formattedDate = computed(() => new Date(`${props.appointment.appointmentDate}T00:00:00`).toLocaleDateString('en-GB', {
-  weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
-}))
+const formattedDate = computed(() => formatSheetDate(
+  props.appointment.appointmentDate,
+  '—',
+  { weekday: 'short' },
+))
 
 onUnmounted(() => clearTimeout(toastTimer))
 

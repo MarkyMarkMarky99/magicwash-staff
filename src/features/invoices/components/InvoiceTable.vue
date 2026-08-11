@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { InvoiceListItemDto, InvoiceStatusDto } from '../types/invoices.types'
+import { formatSheetDate } from '@/shared/utils/sheet-date'
 
 defineProps<{
   invoices: InvoiceListItemDto[]
@@ -17,7 +18,7 @@ function formatCurrency(value: number) {
 }
 
 function formatDate(value: string | null) {
-  return value || '-'
+  return formatSheetDate(value, '-')
 }
 
 function getBillingTypeLabel(billingType: InvoiceListItemDto['billingType']) {

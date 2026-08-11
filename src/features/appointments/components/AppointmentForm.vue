@@ -2,10 +2,15 @@
 import { computed, ref, watch } from 'vue'
 import FormOptionGrid from '@/components/forms/shared/FormOptionGrid.vue'
 import FormTextarea from '@/components/forms/shared/FormTextarea.vue'
+import {
+  addSheetDateDays,
+  getBangkokClock,
+  getSheetDateCalendar,
+  normalizeSheetDate,
+} from '@/shared/utils/sheet-date'
 import type { SelectedCustomer } from '@/shared/stores/selected-customer.store'
 import type { AppointmentDetailDto, AppointmentListDto } from '../services/appointment.service'
 import AppointmentDatePicker from './AppointmentDatePicker.vue'
-import { addAppointmentDays, toAppointmentDate } from '../utils/appointment-date'
 
 const props = withDefaults(defineProps<{
   mode: 'create' | 'reschedule'
@@ -31,7 +36,7 @@ const selectedDate = ref('')
 const selectedTime = ref<string | null>(null)
 const selectedType = ref<AppointmentListDto['appointmentType']>('PICKUP')
 const notes = ref('')
-const today = toAppointmentDate(new Date())
+const today = getBangkokClock().date
 
 const isCreate = computed(() => props.mode === 'create')
 const selectedTypeIndex = computed(() => appointmentTypes.findIndex((type) => type.value === selectedType.value))
@@ -91,7 +96,8 @@ const isValid = computed(() => isCreate.value
 
 function initialise() {
   if (!isCreate.value && props.appointment) {
-    selectedDate.value = props.appointment.appointmentDate
+    selectedDate.value = normalizeSheetDate(props.appointment.appointmentDate)
+      ?? props.appointment.appointmentDate
     selectedTime.value = props.appointment.timeSlot
     selectedType.value = props.appointment.appointmentType
     notes.value = props.appointment.notes ?? ''
@@ -105,20 +111,18 @@ function initialise() {
 }
 
 function smartDefaultDate() {
-  const now = new Date()
-  const nowMinutes = now.getHours() * 60 + now.getMinutes()
-  if (now.getDay() !== 2 && timeSlots.some((slot) => slotStartMinutes(slot) > nowMinutes)) return today
+  const now = getBangkokClock()
+  if (now.weekday !== 2 && timeSlots.some((slot) => slotStartMinutes(slot) > now.minutes)) return today
 
-  const next = addAppointmentDays(now, 1)
-  while (next.getDay() === 2) next.setDate(next.getDate() + 1)
-  return toAppointmentDate(next)
+  let next = addSheetDateDays(today, 1)
+  while (getSheetDateCalendar(next)?.weekday === 2) next = addSheetDateDays(next, 1)
+  return next
 }
 
 function firstAvailableSlot(date: string): string | null {
   if (date !== today) return null
-  const now = new Date()
-  const nowMinutes = now.getHours() * 60 + now.getMinutes()
-  return timeSlots.find((slot) => slotStartMinutes(slot) > nowMinutes) ?? null
+  const now = getBangkokClock()
+  return timeSlots.find((slot) => slotStartMinutes(slot) > now.minutes) ?? null
 }
 
 function slotStartMinutes(slot: string) {
@@ -128,8 +132,7 @@ function slotStartMinutes(slot: string) {
 
 function isSlotDisabled(slot: string) {
   if (selectedDate.value !== today) return false
-  const now = new Date()
-  return slotStartMinutes(slot) <= now.getHours() * 60 + now.getMinutes()
+  return slotStartMinutes(slot) <= getBangkokClock().minutes
 }
 
 function selectDate(date: string) {

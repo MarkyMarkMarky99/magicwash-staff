@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { toAppointmentDate } from '../utils/appointment-date'
+import { getSheetDateCalendar, todaySheetDate } from '@/shared/utils/sheet-date'
+import { addSheetDateDays } from '@/shared/utils/sheet-date'
 
 const props = defineProps<{
   year: number
@@ -15,7 +16,7 @@ const emit = defineEmits<{
 }>()
 
 const stripRef = ref<HTMLElement | null>(null)
-const today = toAppointmentDate(new Date())
+const today = todaySheetDate()
 const monthNames = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
@@ -23,13 +24,17 @@ const monthNames = [
 const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 const dates = computed(() => {
-  const count = new Date(props.year, props.month + 1, 0).getDate()
+  const monthStart = `${props.year}-${String(props.month + 1).padStart(2, '0')}-01`
+  const nextMonthStart = props.month === 11
+    ? `${props.year + 1}-01-01`
+    : `${props.year}-${String(props.month + 2).padStart(2, '0')}-01`
+  const count = getSheetDateCalendar(addSheetDateDays(nextMonthStart, -1))?.day ?? 0
   return Array.from({ length: count }, (_, index) => {
-    const date = new Date(props.year, props.month, index + 1)
-    const value = toAppointmentDate(date)
+    const value = addSheetDateDays(monthStart, index)
+    const calendar = getSheetDateCalendar(value)
     return {
       day: index + 1,
-      label: dayLabels[date.getDay()],
+      label: calendar ? dayLabels[calendar.weekday] : '',
       value,
       active: value === props.selectedDate,
       today: value === today,

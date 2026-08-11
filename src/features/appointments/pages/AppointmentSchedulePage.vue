@@ -39,7 +39,7 @@ function previousMonth() {
   } else {
     navMonth.value -= 1
   }
-  selectDate(toAppointmentDate(new Date(navYear.value, navMonth.value, 1)))
+  selectDate(`${navYear.value}-${String(navMonth.value + 1).padStart(2, '0')}-01`)
 }
 
 function nextMonth() {
@@ -49,7 +49,7 @@ function nextMonth() {
   } else {
     navMonth.value += 1
   }
-  selectDate(toAppointmentDate(new Date(navYear.value, navMonth.value, 1)))
+  selectDate(`${navYear.value}-${String(navMonth.value + 1).padStart(2, '0')}-01`)
 }
 
 function openReschedule(appointmentId: string) {

@@ -11,6 +11,7 @@ import {
 } from '@contracts/appointments/appointment-api.schema'
 import { apiErrorResponseSchema } from '@contracts/shared/api.schema'
 import { apiGet, apiGetList, ApiError, type ListResult } from '@/shared/api/api-client'
+import { normalizeSheetDate } from '@/shared/utils/sheet-date'
 
 const APPOINTMENTS_ENDPOINT = '/api/appointments'
 
@@ -63,7 +64,14 @@ export function listAppointments(query: AppointmentListQuery = {}): Promise<List
 export function getAppointment(appointmentId: string): Promise<AppointmentDetailDto> {
   return apiGet<AppointmentDetailDto>(
     `${APPOINTMENTS_ENDPOINT}/${encodeURIComponent(appointmentId)}`,
-  )
+  ).then(normalizeAppointmentDetail)
+}
+
+function normalizeAppointmentDetail(appointment: AppointmentDetailDto): AppointmentDetailDto {
+  const appointmentDate = normalizeSheetDate(appointment.appointmentDate)
+  return appointmentDate && appointmentDate !== appointment.appointmentDate
+    ? { ...appointment, appointmentDate }
+    : appointment
 }
 
 /** Create an appointment through the backend's contract-validated API. */

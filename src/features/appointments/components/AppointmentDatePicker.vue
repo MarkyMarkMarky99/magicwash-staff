@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { addAppointmentDays, toAppointmentDate } from '../utils/appointment-date'
+import {
+  addSheetDateDays,
+  getSheetDateCalendar,
+  todaySheetDate,
+} from '@/shared/utils/sheet-date'
 
 const props = withDefaults(defineProps<{
   selectedDate: string
@@ -13,17 +17,20 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{ select: [date: string] }>()
-const today = new Date()
+const today = todaySheetDate()
 
 const dates = computed(() => {
-  const start = props.includeToday ? today : addAppointmentDays(today, 1)
+  const start = props.includeToday ? today : addSheetDateDays(today, 1)
   return Array.from({ length: 14 }, (_, index) => {
-    const date = addAppointmentDays(start, index)
+    const value = addSheetDateDays(start, index)
+    const calendar = getSheetDateCalendar(value)
     return {
-      value: toAppointmentDate(date),
-      weekday: date.toLocaleDateString('en-US', { weekday: 'short' }),
-      day: date.getDate(),
-      disabled: props.disabledDaysOfWeek.includes(date.getDay()),
+      value,
+      weekday: calendar
+        ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][calendar.weekday]
+        : '',
+      day: calendar?.day ?? 0,
+      disabled: calendar ? props.disabledDaysOfWeek.includes(calendar.weekday) : true,
     }
   })
 })

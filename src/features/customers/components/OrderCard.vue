@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import type { OrderListDto } from '../services/order.service'
-import { normalizeSheetDate } from '@/shared/utils/sheet-date'
-import { formatShortDate } from '../utils/format-date'
+import { formatSheetDate } from '@/shared/utils/sheet-date'
 
 const props = defineProps<{
   order: OrderListDto
@@ -72,7 +71,7 @@ function selectOrder() {
       <div class="mb-0.5 flex items-center justify-between gap-2">
         <div class="flex min-w-0 items-center gap-1.5">
           <h3 class="truncate font-headline text-[14px] font-bold leading-tight text-primary">
-            {{ formatShortDate(normalizeSheetDate(order.receivedDate)) }}
+            {{ formatSheetDate(order.receivedDate, '—', { day: '2-digit' }) }}
           </h3>
           <span
             class="shrink-0 rounded-full px-1.5 py-px font-label text-[9px] font-bold uppercase tracking-wide"

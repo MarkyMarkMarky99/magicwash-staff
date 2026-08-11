@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'
+import { formatSheetDateTime } from '@/shared/utils/sheet-date'
 import type { InvoiceDetailDto } from '../services/invoice-detail.service'
 
 const props = defineProps<{
@@ -26,16 +27,7 @@ function formatMoney(value: number | null) {
 }
 
 function formatDateTime(value: string | null) {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return formatSheetDateTime(value, '—')
 }
 
 function safeHttpUrl(value: string | null) {

@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import type { AppointmentListDto } from '../services/waiting-pickup.service'
-import { normalizeSheetDate } from '@/shared/utils/sheet-date'
-import { formatShortDate } from '../utils/format-date'
+import { formatSheetDate } from '@/shared/utils/sheet-date'
 
 const props = defineProps<{
   appointment: AppointmentListDto
 }>()
 
 function formattedDate() {
-  return formatShortDate(normalizeSheetDate(props.appointment.appointmentDate))
+  return formatSheetDate(props.appointment.appointmentDate, '—', { day: '2-digit' })
 }
 </script>
 

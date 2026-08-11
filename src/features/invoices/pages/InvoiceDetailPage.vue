@@ -10,6 +10,7 @@ import {
   InvalidInvoiceNumberError,
 } from '../services/invoice-detail.service'
 import type { InvoiceDetailDto } from '../services/invoice-detail.service'
+import { formatSheetDate } from '@/shared/utils/sheet-date'
 
 const props = defineProps<{ invoiceNumber: string }>()
 
@@ -63,14 +64,7 @@ function formatMoney(value: number | null) {
 }
 
 function formatDate(value: string | null) {
-  if (!value) return '—'
-  const date = new Date(`${value}T00:00:00`)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
+  return formatSheetDate(value, '—')
 }
 
 function formatAdjustment(adjustment: { calculation: string; value: number }) {
@@ -158,6 +152,15 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
                   <p class="whitespace-nowrap font-label text-[9px] font-bold uppercase tracking-wide text-on-surface-variant">Due</p>
                   <span class="inline-flex items-center whitespace-nowrap rounded-full bg-primary/10 px-2.5 py-1 font-headline text-[11px] font-bold text-primary">
                     {{ formatDate(invoice.dueDate) }}
+                  </span>
+                </div>
+                <div
+                  v-if="invoice.billingPeriodStart || invoice.billingPeriodEnd"
+                  class="flex items-center gap-2"
+                >
+                  <p class="whitespace-nowrap font-label text-[9px] font-bold uppercase tracking-wide text-on-surface-variant">Billing</p>
+                  <span class="inline-flex items-center whitespace-nowrap rounded-full bg-primary/10 px-2.5 py-1 font-headline text-[11px] font-bold text-primary">
+                    {{ formatDate(invoice.billingPeriodStart) }} – {{ formatDate(invoice.billingPeriodEnd) }}
                   </span>
                 </div>
               </div>
