@@ -14,7 +14,6 @@ import { generateKeyPairSync } from 'node:crypto'
 //    a dynamic import inside each test rather than a static one at the top. ──
 process.env.PORTAL_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 process.env.APPOINTMENTS_SPREADSHEET_ID = 'characterization-spreadsheet-id'
-process.env.APPSCRIPT_URL = 'https://script.example/characterization'
 const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
 process.env.GOOGLE_SERVICE_ACCOUNT_KEY = Buffer.from(JSON.stringify({
   client_email: 'service-wiring@example.test',

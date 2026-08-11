@@ -18,7 +18,6 @@ import { invoicesRowSchema } from '../../../../server/sheets/Invoices/Invoices.d
  * (see the call site).
  */
 
-process.env.APPSCRIPT_URL = 'https://script.example/exec'
 process.env.INVOICES_SPREADSHEET_ID = 'invoices-spreadsheet-id'
 process.env.ORDERS_SPREADSHEET_ID = 'orders-spreadsheet-id'
 const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })

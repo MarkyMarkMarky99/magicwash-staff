@@ -14,7 +14,6 @@ import { invoicesRowSchema } from '../../../../server/sheets/Invoices/Invoices.d
  * client-supplied system fields cause no external write at all.
  */
 
-process.env.APPSCRIPT_URL = 'https://script.example/exec'
 process.env.INVOICES_SPREADSHEET_ID = 'invoices-spreadsheet-id'
 process.env.ORDERS_SPREADSHEET_ID = 'orders-spreadsheet-id'
 process.env.APPSCRIPT_INVOICE_VIEW_SYNC_URL = 'https://script.example/invoice-view-sync'

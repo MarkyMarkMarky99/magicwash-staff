@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict'
 
 const environmentKeys = [
-  'APPSCRIPT_URL',
   'ORDERS_SPREADSHEET_ID',
   'PORTAL_SPREADSHEET_ID',
   'APPOINTMENTS_SPREADSHEET_ID',
@@ -35,7 +34,6 @@ const [
   import('../../../../server/sheets/CustomerPackageView/CustomerPackageView.repository.js'),
 ])
 
-process.env.APPSCRIPT_URL = 'https://script.example/exec'
 process.env.ORDERS_SPREADSHEET_ID = 'orders-spreadsheet-id'
 process.env.PORTAL_SPREADSHEET_ID = 'portal-spreadsheet-id'
 process.env.APPOINTMENTS_SPREADSHEET_ID = 'appointments-spreadsheet-id'

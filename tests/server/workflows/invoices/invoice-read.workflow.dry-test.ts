@@ -10,7 +10,6 @@ import type { ApiHandlerRequest } from '../../../../server/shared/http/api-handl
  * exact DTO consumed by the Invoice list/detail pages.
  */
 
-process.env.APPSCRIPT_URL = 'https://script.example/exec'
 process.env.INVOICES_SPREADSHEET_ID = 'invoices-spreadsheet-id'
 process.env.PORTAL_SPREADSHEET_ID = 'portal-spreadsheet-id'
 

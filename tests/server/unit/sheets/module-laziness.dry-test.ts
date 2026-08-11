@@ -4,7 +4,6 @@ const relevantEnvironmentKeys = [
   'PORTAL_SPREADSHEET_ID',
   'CUSTOMERS_SPREADSHEET_ID',
   'APPOINTMENTS_SPREADSHEET_ID',
-  'APPSCRIPT_URL',
 ]
 
 const modulePaths = [

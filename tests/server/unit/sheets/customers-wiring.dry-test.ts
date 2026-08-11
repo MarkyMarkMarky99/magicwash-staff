@@ -74,7 +74,6 @@ async function productionCustomersRepository() {
 
 test('Customers service wiring maps rows, folds detail ids, and preserves write failure', async () => {
   process.env.CUSTOMERS_SPREADSHEET_ID = 'characterization-spreadsheet-id'
-  process.env.APPSCRIPT_URL = 'https://script.example/characterization'
 
   const body = gvizBody(
     ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'],
