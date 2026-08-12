@@ -144,6 +144,26 @@ change that leaves its old description standing has created the exact failure ab
   deploying a contract change; parity is checked against the live sheet, not the
   route registry.
 
+## Known Environment Issue: Windows Sandbox Process Spawn Flake
+
+Shell/exec commands in this environment intermittently fail with:
+
+```
+windows sandbox: runner failed during SpawnChild: CreateProcessAsUserW failed: 1312
+(A specified logon session does not exist. It may already have been terminated.)
+```
+
+This is a known intermittent crash in the Windows sandbox runner, unrelated to the command or
+code being run — it is not a signal that the command or the work under test is wrong. It has
+recurred across plain shell commands and across coder/tester/reviewer/backend-team sessions alike.
+
+When it appears:
+
+- Retry the exact same command once.
+- If the retry also fails the same way, report it as an infrastructure blocker, separate from any
+  finding about the work under test — do not reinterpret it as a code or test failure.
+- Do not change sandbox settings, escalate privileges, or fall back to a bypass to work around it.
+
 ## Reference
 
 Read `api/CLAUDE.md` for detailed module skeletons, contract shapes, and edge cases.

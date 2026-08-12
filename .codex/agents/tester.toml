@@ -1,6 +1,6 @@
 name = "tester"
 description = "Command-backed verifier that runs only explicitly named gates and does not implement fixes."
-model = "gpt-5.6-terra"
+model = "gpt-5.6-luna"
 model_reasoning_effort = "xhigh"
 sandbox_mode = "workspace-write"
 developer_instructions = '''

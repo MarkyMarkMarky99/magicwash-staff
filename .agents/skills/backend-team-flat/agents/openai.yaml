@@ -1,0 +1,4 @@
+interface:
+  display_name: "Backend Team Flat"
+  short_description: "Run a flat coder-tester-reviewer backend loop"
+  default_prompt: "Use $backend-team-flat to execute the supplied backend brief through coder, tester, and reviewer."

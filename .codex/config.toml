@@ -1,13 +1,11 @@
+model = "gpt-5.6-luna"
+model_reasoning_effort = "xhigh"
+
+[features]
+multi_agent_v2 = true
+
 [agents]
 enabled = true
-
-[agents."luna-implementer"]
-description = "Implement narrowly scoped fixes from the brief while preserving ownership and unrelated changes."
-config_file = "agents/luna-implementer.toml"
-
-[agents."luna-test-guard"]
-description = "Create or update tests and perform mutation proof exactly as assigned in the brief."
-config_file = "agents/luna-test-guard.toml"
 
 [agents."coder"]
 description = "Implement a finished, already-decided brief without redesigning it or certifying the full verification suite."
