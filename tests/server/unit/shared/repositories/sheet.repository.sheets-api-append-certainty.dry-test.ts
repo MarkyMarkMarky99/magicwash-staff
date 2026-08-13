@@ -101,7 +101,14 @@ function gvizResponse(
 function mockSheetsApiClient(
   appendRows: SheetsApiClient['appendRows'],
 ): SheetsApiClient {
-  return { appendRows } as unknown as SheetsApiClient
+  return {
+    appendRows,
+    // The pre-write duplicate-key guard reads the primary key column before
+    // every append. This suite is about GViz verification after the append
+    // itself, so the lookup always reports "no existing row" (header row
+    // only) and lets the guard fall through to appendRows unchanged.
+    readColumn: async () => [['AppendID']],
+  } as unknown as SheetsApiClient
 }
 
 function appendRepository(

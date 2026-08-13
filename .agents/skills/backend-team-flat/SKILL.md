@@ -1,6 +1,6 @@
 ---
 name: backend-team-flat
-description: Orchestrate this repository's already-decided backend brief through the configured coder, tester, and reviewer agents from a root-level Codex session, using one-level dispatch and up to three fix/review cycles with command-backed final reporting. Use when the brief has an explicit finite gate list and the work must follow the project's .codex/agents/coder.toml, tester.toml, and reviewer.toml roles without delegating to backend-team.toml.
+description: Orchestrate this repository's already-decided backend brief through the configured coder, tester, and reviewer agents from a root-level Codex session, using one-level dispatch and up to three fix/review cycles with command-backed final reporting. Use when the brief has an explicit finite gate list and the work must follow the project's .codex/agents/coder.toml, tester.toml, and reviewer.toml roles.
 ---
 
 # Backend Team Flat
@@ -33,8 +33,8 @@ expand, or reinterpret the brief.
 
 ## Dispatch one level at a time
 
-Use only the configured project roles. Never spawn `backend-team`; the root session is the
-coordinator. Every role spawn must explicitly use the call shape below, which was verified on
+Use only the configured project roles. The root session is the coordinator. Every role spawn
+must explicitly use the call shape below, which was verified on
 `codex-cli 0.147.0`:
 
 ```text
@@ -125,8 +125,7 @@ Count the initial coder -> tester -> reviewer pass as cycle 1. Allow at most thr
 - A coder's inability to satisfy the brief is a worker result and follows the same cycle limit; a
   dead session or failed orchestration call follows the one-retry infrastructure rule instead.
 
-Never make a coordinator-side edit or "small fix" between cycles. Never edit or commit
-`.codex/agents/backend-team.toml`; it is intentionally preserved but not a dispatch target.
+Never make a coordinator-side edit or "small fix" between cycles.
 
 ## Non-negotiable boundaries
 

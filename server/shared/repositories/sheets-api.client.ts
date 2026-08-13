@@ -79,6 +79,21 @@ export class WriteCommittedUnreadableError extends WriteFailure {
   }
 }
 
+/**
+ * Thrown when a pre-write lookup finds an existing row for the row's primary
+ * key before an APPEND is sent. Extends WriteRejectedError (not WriteFailure
+ * directly) so every existing `instanceof WriteRejectedError` write-failure
+ * classification keeps working with zero changes.
+ */
+export class DuplicatePrimaryKeyError extends WriteRejectedError {
+  constructor(operation: string, keyColumn: string, keyValue: string) {
+    super(
+      operation,
+      `${operation} rejected: a row with ${keyColumn} '${keyValue}' already exists.`,
+    )
+  }
+}
+
 type JsonRecord = Record<string, unknown>
 
 function isRecord(value: unknown): value is JsonRecord {
