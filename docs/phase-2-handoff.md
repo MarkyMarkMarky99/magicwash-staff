@@ -589,9 +589,9 @@ field map, และสถานะ transport ที่ซ้ำหรือเ�
 
 ### ช่องว่างที่รู้ตัวแล้ว ไม่ใช่บั๊กที่เพิ่งทำพัง
 
-- **`order_link_failed` มีเทสต์คลุมแค่ `rejected` ไม่มี `unknown`** — มีมาก่อน stage 3B และ
-  OrderForm ไม่ได้เปลี่ยน transport ในขั้นนั้น จึงอยู่นอกขอบเขต (coder เผลอไปเพิ่มให้แล้วถูกสั่ง
-  revert เพราะ brief ห้ามแตะ OrderForm)
+- ~~`order_link_failed` มีเทสต์คลุมแค่ `rejected` ไม่มี `unknown`~~ ✅ **ตกยุคแล้ว (ตรวจซ้ำ
+  2026-08-14)** — `tests/server/unit/modules/invoices/invoice.service.dry-test.ts:278-301` คลุม
+  ครบทั้ง `rejected` และ `unknown` แล้วจริง ไม่ใช่ช่องว่างอีกต่อไป
 - **ไม่มี idempotency key บน `invoice_number`** ⇒ retry หลัง `items_write_failed` ที่ certainty
   เป็น `unknown` จริงๆ ยังทำให้ line item ซ้ำได้ถ้ารอบแรกเขียนสำเร็จไปแล้ว
   🔴 **ตรวจซ้ำ 2026-08-14 (grok-explorer + spot-check เอง) — ข้อความนี้ตกยุคไปครึ่งนึง:**
