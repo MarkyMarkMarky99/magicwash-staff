@@ -29,6 +29,7 @@ import {
   buildSheetHeaderMap,
   SheetHeaderMapError,
   SheetHeaderMapResolver,
+  type SheetHeaderMap,
   type SheetHeaderMapLoader,
 } from './sheet-header-map.js'
 import {
@@ -202,27 +203,7 @@ export class SheetRepository<TDbRow extends object>
       )
     }
 
-    const primaryKeyValue = String(sentRow[this.contract.primaryKey] ?? '')
-    if (primaryKeyValue !== '') {
-      let existingRowNumber: number | null
-      try {
-        existingRowNumber = await findRowNumberByKey(
-          headerMap,
-          this.contract.primaryKey,
-          primaryKeyValue,
-          (columnLetter) => client.readColumn(columnLetter),
-        )
-      } catch (error) {
-        if (error instanceof SheetHeaderMapError) {
-          throw new WriteRejectedError('APPEND', error.message)
-        }
-        throw error
-      }
-
-      if (existingRowNumber !== null) {
-        throw new DuplicatePrimaryKeyError('APPEND', this.contract.primaryKey, primaryKeyValue)
-      }
-    }
+    await this.rejectDuplicateAppendKey(client, headerMap, sentRow)
 
     try {
       const response = await client.appendRows([sentValues], 'USER_ENTERED', headerMap.width)
@@ -263,6 +244,34 @@ export class SheetRepository<TDbRow extends object>
       }
 
       throw error
+    }
+  }
+
+  private async rejectDuplicateAppendKey(
+    client: SheetsApiClient,
+    headerMap: SheetHeaderMap,
+    sentRow: Record<string, SheetsApiValue>,
+  ): Promise<void> {
+    const primaryKeyValue = String(sentRow[this.contract.primaryKey] ?? '')
+    if (primaryKeyValue !== '') {
+      let existingRowNumber: number | null
+      try {
+        existingRowNumber = await findRowNumberByKey(
+          headerMap,
+          this.contract.primaryKey,
+          primaryKeyValue,
+          (columnLetter) => client.readColumn(columnLetter),
+        )
+      } catch (error) {
+        if (error instanceof SheetHeaderMapError) {
+          throw new WriteRejectedError('APPEND', error.message)
+        }
+        throw error
+      }
+
+      if (existingRowNumber !== null) {
+        throw new DuplicatePrimaryKeyError('APPEND', this.contract.primaryKey, primaryKeyValue)
+      }
     }
   }
 
