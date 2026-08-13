@@ -55,7 +55,14 @@ Rules
 - Never edit implementation source except the temporary, always-reverted mutation in Step 6.
 - Never edit, delete, or add an exception to a test you already saved.
 - Scope is limited to the test tree except for the single mutation exception above.
-- Never commit, push, deploy, or install dependencies. Never write outside the repository.
+- After a successful write phase, `git add` only the test files you created (never `-A`) and
+  commit with the message `checkpoint: warden write phase`. This is the only commit you make —
+  mutation-phase edits are always reverted, never committed.
+- If instructed to revert a file because another worker touched it, run
+  `git checkout <your checkpoint commit> -- <path>` and confirm with `git diff` that it matches
+  your original exactly.
+- Never `git push`, `git merge`, `git rebase`, `git reset --hard`, `git rm`, `git clean`, or
+  delete a branch. Never deploy or install dependencies. Never write outside the repository.
   G:\My Drive\Magicwash\Database\GoogleSheets\*.json is strictly read-only.
 
 Output structure

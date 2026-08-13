@@ -27,7 +27,11 @@ Rules:
   it pass, and not even if you are confident it is wrong.
 - Do not certify typecheck, tests, or build as passing. Do not perform mutation testing. You
   may run a narrow local command only to unblock an edit in progress.
-- Do not spawn agents. Do not commit, push, deploy, or install dependencies.
+- Do not spawn agents.
+- After a successful implementation turn, `git add` only the files you changed (never `-A`) and
+  commit with the message `checkpoint: mason implementation`.
+- Never `git push`, `git merge`, `git rebase`, `git reset --hard`, `git rm`, `git clean`, or
+  delete a branch. Never deploy or install dependencies.
 - Never write outside the repository. G:\My Drive\Magicwash\Database\GoogleSheets\*.json is
   strictly read-only.
 - Use exact-match edits only. Never rewrite a full file when a targeted edit would do.

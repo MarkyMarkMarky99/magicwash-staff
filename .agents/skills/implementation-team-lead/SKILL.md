@@ -68,28 +68,30 @@ If a spawn/followup fails, retry once. Second failure → infrastructure `BLOCKE
 
 ### Warden
 State the phase explicitly every time: **write phase** or **mutation phase**.  
-- Write phase: edit only under the test tree.  
-- Mutation phase: temporary always-reverted mutation of implementation source only.  
-Never commit, push, deploy, or install dependencies.  
+- Write phase: edit only under the test tree, then commit its own files as `checkpoint: warden write phase`. Report the commit hash.  
+- Mutation phase: temporary always-reverted mutation of implementation source only — never committed.  
+Never push, merge, rebase, `reset --hard`, `rm`, `clean`, delete a branch, deploy, or install dependencies.  
 If write-phase finds criteria untestable → `BLOCKED`, do not dispatch mason.  
-If mutation-phase finds a guard that stays green when broken → see "Hollow guard".
+If mutation-phase finds a guard that stays green when broken → see "Hollow guard".  
+If instructed to revert a tampered file, see "Tampering" below.
 
 ### Mason
 Implement the brief exactly. May edit only inside the repository; never touch any file under the test tree (even with brief authorization — every test comes from warden).  
 Every backend relative import touched must end in `.js`.  
+Commit its own changed files as `checkpoint: mason implementation` after a successful turn. Report the commit hash.  
 Return factual summary of changed paths and any blocker.  
-If mason claims a test file is wrong → treat according to "Frozen test in dispute" / Exception B below.  
-Never commit, push, deploy, install dependencies, or alter skill/agent configuration.
+If mason claims a test file is wrong (without having touched it) → treat according to "Frozen test in dispute" / Exception B below.  
+Never push, merge, rebase, `reset --hard`, `rm`, `clean`, delete a branch, deploy, install dependencies, or alter skill/agent configuration.
 
 ### Clerk
-After mason implements, read the diff and write unit/integration tests against the actual functions and modules mason created (proving the pieces work and connect). These are clerk's own files and may be revised across later cycles.  
-Never touch a file warden wrote — report any problem with it as a finding.  
+After mason implements, read the diff and write unit/integration tests against the actual functions and modules mason created (proving the pieces work and connect). These are clerk's own files and may be revised across later cycles. Commit them as `checkpoint: clerk tests` before running any gate.  
+Diff every file warden wrote against the warden checkpoint hash given in the prompt. Never touch a file warden wrote — a difference from that hash is tampering, report it as a finding, see "Tampering" below.
 
 Must also:
 - Capture `git status --short` + readable `git diff`
 - Run every gate: the named finite list + warden's tests + its own tests — record real command + stdout/stderr + exit code for each
 
-Verdict: required check red → `FAIL`. Anything else (unreadable, skipped gate, unauthorized change to a warden file) → `BLOCKED`.
+Verdict: required check red → `FAIL`. Anything else (unreadable, skipped gate, a file differing from its owner's checkpoint) → `BLOCKED`.
 
 ### Sentinel
 Read-only inspection only. Report only `Confirmed` or `Highly Likely` findings with path/line + concrete reasoning (traced concrete failure or direct violation of a rule already stated in the repo).  
@@ -105,8 +107,9 @@ Empty/ambiguous/unreadable scope → `BLOCKED`.
 Flow:
 1. warden (write) → mason → clerk
 2. Clerk `FAIL`/`BLOCKED` or mason blocker → `followup_task` same mason (keep original brief), then same clerk. Repeat until clerk `PASS`.  
-   - Exception A: mason names a **warden** test file as the problem → "Frozen test in dispute" → stop with `BLOCKED`.  
-   - Exception B: mason names one of **clerk's own** test files as the problem → forward the claim to clerk via `followup_task`; clerk may revise its own test if it agrees, then the loop continues.
+   - Exception A: mason names a **warden** test file as the problem, without having touched it → "Frozen test in dispute" → stop with `BLOCKED`.  
+   - Exception B: mason names one of **clerk's own** test files as the problem, without having touched it → forward the claim to clerk via `followup_task`; clerk may revise its own test if it agrees, then the loop continues.  
+   - Exception C: clerk's `BLOCKED` is a tampering finding (a file differs from its owner's checkpoint hash) → see "Tampering" below instead of the normal retry.
 3. After clerk `PASS` → spawn/followup sentinel.
 4. Sentinel clean → go to step 6.
 5. Sentinel finding or `BLOCKED` → `followup_task` mason, then back to clerk (not warden). Do not return to sentinel until clerk `PASS` again.  
@@ -119,12 +122,17 @@ Flow:
 ### Frozen test in dispute
 Applies only to a **warden**-authored test. Mason reports it as the root cause → stop with `BLOCKED`. Report mason's finding + which test + which clerk result. No role may edit a warden test.
 
+### Tampering
+Clerk finds a file differs from its owner's last checkpoint commit — someone other than the file's owner touched it. `followup_task` the file's owner (warden for a warden file, clerk for one of its own) to revert it (`git checkout <owner's checkpoint hash> -- <path>`) and confirm `git diff` is clean. Then `followup_task` mason to redo the work, noting which file was restored and why. This may happen **at most once per file**. A second tampering finding on the same file → stop with `BLOCKED`; report the file and both occurrences, do not attempt a third revert.  
+Distinct from mason merely reporting a belief a test is wrong without having touched it — that stays "Frozen test in dispute" / Exception B.
+
 ### Hollow guard
 Warden mutation finds a guard that stays green when the rule is broken → stop with `FAIL`. Report the exact rule, file, and result. Do not send back to mason.
 
 ## Non-negotiable boundaries
 
 - Root never edits, commits, pushes, deploys, or installs.
+- Warden, mason, and clerk may commit only their own checkpoint (as specified in their role contracts). No worker may `git push`, `merge`, `rebase`, `reset --hard`, `rm`, `clean`, or delete a branch — commits are for checkpointing and revert only.
 - Never write outside the repository. Treat `G:\My Drive\Magicwash\Database\GoogleSheets\*.json` as read-only.
 - No role may touch `.claude/`, paths excluded by the brief, or unrelated work.
 - Warden must never see scope, authorized-files list, gate list, or any other worker output.
@@ -134,12 +142,13 @@ Warden mutation finds a guard that stays green when the rule is broken → stop 
 End with exactly one status: `PASS`, `FAIL`, or `BLOCKED`. Include:
 
 1. Exact delegated scope + Acceptance Criteria (copied from brief)
-2. Warden write-phase result (tests written, gaps, exact criteria received)
-3. Mason result for every cycle (changed paths + blockers)
-4. Clerk result for every cycle (internal tests written/revised + why, git evidence, every gate command + outcome)
+2. Warden write-phase result (tests written, gaps, exact criteria received, checkpoint hash)
+3. Mason result for every cycle (changed paths + blockers, checkpoint hash)
+4. Clerk result for every cycle (internal tests written/revised + why, checkpoint hash, git evidence, every gate command + outcome)
 5. Sentinel result for every cycle (Confirmed/Highly Likely findings quoted + disposition, plus anything reported as unconfirmed)
 6. Warden mutation-phase result (one line per guard: rule, file, red/not, source restored)
 7. Number of sentinel rounds used + any infrastructure retries
-8. Final status and exact remaining blocker (including Frozen test or Hollow guard if applicable)
+8. Any tampering incident (file, owner, both checkpoint hashes, whether it was the 1st revert or the 2nd/stopping occurrence)
+9. Final status and exact remaining blocker (including Frozen test, Tampering, or Hollow guard if applicable)
 
 Keep all worker findings verbatim.
