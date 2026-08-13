@@ -152,7 +152,7 @@ windows sandbox: runner failed during SpawnChild: CreateProcessAsUserW failed: 1
 
 This is a known intermittent crash in the Windows sandbox runner, unrelated to the command or
 code being run — it is not a signal that the command or the work under test is wrong. It has
-recurred across plain shell commands and across coder/tester/reviewer/backend-team sessions alike.
+recurred across plain shell commands and across coder/tester/reviewer sessions alike.
 
 When it appears:
 
