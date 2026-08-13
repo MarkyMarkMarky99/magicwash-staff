@@ -17,6 +17,7 @@ import {
   SheetsApiClient,
   WriteCommittedUnreadableError,
   WriteRejectedError,
+  WriteTransportError,
   type SheetsApiValue,
   type SheetsApiValueRange,
   type SheetsApiValues,
@@ -54,6 +55,16 @@ interface GvizReadQuery {
   search?: ReadQuerySearch
   sort?: ReadQuerySort
   pagination?: ReadQueryPagination
+}
+
+const APPEND_GVIZ_VERIFY_DELAYS_MS = [0, 1_000, 2_000] as const
+
+function waitForAppendGvizVerify(delayMs: number): Promise<void> {
+  if (delayMs === 0) {
+    return Promise.resolve()
+  }
+
+  return new Promise((resolve) => setTimeout(resolve, delayMs))
 }
 
 /** Google Sheets implementation of the storage-agnostic sheet repository. */
@@ -190,32 +201,96 @@ export class SheetRepository<TDbRow extends object>
       )
     }
 
-    const response = await client.appendRows([sentValues], 'USER_ENTERED', headerMap.width)
-
-    let echoedRow: Record<string, SheetsApiValue>
     try {
-      const returnedValues = response.updates.updatedData.values
-      if (returnedValues.length !== 1) {
-        throw new Error(
-          `APPEND committed, but the persisted row read-back returned ${returnedValues.length} rows instead of one.`,
+      const response = await client.appendRows([sentValues], 'USER_ENTERED', headerMap.width)
+
+      let echoedRow: Record<string, SheetsApiValue>
+      try {
+        const returnedValues = response.updates.updatedData.values
+        if (returnedValues.length !== 1) {
+          throw new Error(
+            `APPEND committed, but the persisted row read-back returned ${returnedValues.length} rows instead of one.`,
+          )
+        }
+        echoedRow = parseRowValues(returnedValues[0]!, headerMap)
+      } catch (error) {
+        throw new WriteCommittedUnreadableError(
+          'APPEND',
+          `APPEND committed, but the persisted row could not be parsed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
         )
       }
-      echoedRow = parseRowValues(returnedValues[0]!, headerMap)
-    } catch (error) {
-      throw new WriteCommittedUnreadableError(
-        'APPEND',
-        `APPEND committed, but the persisted row could not be parsed: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+
+      verifyRowIdentity(
+        echoedRow,
+        this.contract.primaryKey,
+        String(sentRow[this.contract.primaryKey] ?? ''),
       )
+      return sentRow as TDbRow
+    } catch (error) {
+      if (
+        (error instanceof WriteTransportError ||
+          error instanceof WriteCommittedUnreadableError) &&
+        (await this.verifyAppendedRow(
+          String(sentRow[this.contract.primaryKey] ?? ''),
+        ))
+      ) {
+        return sentRow as TDbRow
+      }
+
+      throw error
+    }
+  }
+
+  /**
+   * An APPEND has a new primary key, so a GViz row lookup can resolve an
+   * otherwise unknown Sheets API result without changing UPDATE semantics.
+   */
+  private async verifyAppendedRow(primaryKeyValue: string): Promise<boolean> {
+    if (primaryKeyValue === '') {
+      return false
     }
 
-    verifyRowIdentity(
-      echoedRow,
-      this.contract.primaryKey,
-      String(sentRow[this.contract.primaryKey] ?? ''),
-    )
-    return sentRow as TDbRow
+    try {
+      const query = GVizQueryBuilder.fromColumns(this.columns)
+        .where({ [this.contract.primaryKey]: primaryKeyValue })
+        .build()
+      if (typeof this.contract.spreadsheetId !== 'string') {
+        return false
+      }
+      const spreadsheetId = requireEnv(this.contract.spreadsheetId)
+
+      for (const delayMs of APPEND_GVIZ_VERIFY_DELAYS_MS) {
+        await waitForAppendGvizVerify(delayMs)
+
+        try {
+          const rows = await fetchGVizRows<Record<string, unknown>>({
+            spreadsheetId,
+            sheetName: this.contract.sheetName,
+            query,
+            columns: this.columns,
+            decodeJsonCells: false,
+          })
+
+          if (
+            rows.some(
+              (candidate) =>
+                candidate[this.contract.primaryKey] === primaryKeyValue,
+            )
+          ) {
+            return true
+          }
+        } catch {
+          // A failed or unreadable verification is inconclusive; continue the
+          // bounded read-back attempts and preserve the original write error.
+        }
+      }
+    } catch {
+      // Verification must never replace the original unknown-certainty error.
+    }
+
+    return false
   }
 
   async batchAppend(rows: Array<Partial<TDbRow>>): Promise<TDbRow[]> {
