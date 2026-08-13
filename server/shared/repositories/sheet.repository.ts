@@ -14,6 +14,7 @@ import { fetchGVizRows } from './utils/gviz-reader.js'
 import { requireEnv } from '../utils/env.js'
 import type { SheetRepositoryContract } from './sheet-repository.contract.js'
 import {
+  DuplicatePrimaryKeyError,
   SheetsApiClient,
   WriteCommittedUnreadableError,
   WriteRejectedError,
@@ -199,6 +200,28 @@ export class SheetRepository<TDbRow extends object>
         'APPEND',
         error instanceof Error ? error.message : String(error),
       )
+    }
+
+    const primaryKeyValue = String(sentRow[this.contract.primaryKey] ?? '')
+    if (primaryKeyValue !== '') {
+      let existingRowNumber: number | null
+      try {
+        existingRowNumber = await findRowNumberByKey(
+          headerMap,
+          this.contract.primaryKey,
+          primaryKeyValue,
+          (columnLetter) => client.readColumn(columnLetter),
+        )
+      } catch (error) {
+        if (error instanceof SheetHeaderMapError) {
+          throw new WriteRejectedError('APPEND', error.message)
+        }
+        throw error
+      }
+
+      if (existingRowNumber !== null) {
+        throw new DuplicatePrimaryKeyError('APPEND', this.contract.primaryKey, primaryKeyValue)
+      }
     }
 
     try {
