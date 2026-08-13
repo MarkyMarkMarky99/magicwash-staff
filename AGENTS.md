@@ -3,23 +3,26 @@
 ## Overview
 
 TypeScript Vercel serverless API for the Vue portal. Google Sheets is the data
-store: GViz reads data, and writes go through the authenticated Google Sheets
-API — one write transport, not two. The Apps Script/SheetLib `doPost` write
-path was removed from every sheet; see Google Sheets Rules below.
+store: GViz reads data, and server-side sheet row writes go through the
+authenticated Google Sheets API — one write transport, not two. The Apps
+Script/SheetLib `doPost` write path was removed from every sheet; see Google
+Sheets Rules below.
 
 ## Tech Stack
 
 - TypeScript (strict) + Vercel serverless functions
 - Zod v3 for shared API contracts and request validation
-- Google Sheets: GViz reads; writes via the Google Sheets API (one transport,
-  no SheetLib path remains)
+- Google Sheets: GViz reads; server-side sheet row writes via the Google Sheets
+  API (one write transport, no SheetLib row-write path remains)
 - Native `fetch`; plain TypeScript dry tests with `node:assert/strict`
 
 ## Project Structure
 
 - `api/[...path].ts` - Single Vercel entry point.
 - `server/api/` - Lazy module route registry.
-- `server/modules/<module>/` - Feature API contracts, services, queries, mapping, and route wiring.
+- `server/modules/<module>/` - Feature service wiring, DB-to-API mapping, and route wiring.
+  (API contracts live in `contracts/<feature>/`; GViz query building lives in
+  `server/shared/repositories/utils/gviz-query.builder.ts`.)
 - `server/sheets/<Sheet>/` - One DB contract and one repository per physical sheet. The
   repository is constructed only by its lazy memoized getter.
 - `server/shared/http/` - Gateway, handlers, validation, response helpers, and generic CRUD routes.
@@ -39,14 +42,15 @@ path was removed from every sheet; see Google Sheets Rules below.
 
 ## Architecture Rules
 
-- Use `routes -> service -> repository -> queries`. Routes translate HTTP;
-  services own business decisions; repositories own storage and transport.
+- Use `routes -> service -> repository`. Routes translate HTTP; services own
+  business decisions; repositories own storage, transport, and querying.
 - Use `SheetContract` + `SheetRepository` + `BaseCrudService` +
   `createCrudRoutes` for normal single-sheet CRUD. Do not hand-write CRUD handlers.
 - Use a dedicated service and explicit route only for genuinely complex flows
   (multi-sheet writes, joins, or nonstandard result states); document why.
-- Every module owns a named service. Do not use `BaseCrudService` as a module's
-  service when its workflow spans multiple sheets; for example, invoices uses
+- A single-sheet module may use a `BaseCrudService` instance directly as its
+  service, with no named class required. Give a module a named service class
+  only when its workflow spans multiple sheets; for example, invoices uses
   an `InvoiceService` that orchestrates its sheet repositories.
 - Construct each repository only in `server/sheets/<Sheet>/<Sheet>.repository.ts`,
   behind a lazy memoized getter. One physical sheet has one `SheetContract` and one
@@ -84,6 +88,12 @@ path was removed from every sheet; see Google Sheets Rules below.
   `sheet-row-lookup.ts` for the accepted lookup-to-write race), APPEND and batch
   APPEND write whole rows. A sheet declares what it may do in `writes`; a capability
   left false is refused before any request is built.
+- "One write transport, not two" above covers server-side sheet *row* writes only
+  (append/update through the Sheets API). It does not cover two other Apps Script
+  call sites that still exist: `invoice-view-sync-client.ts` POSTs to Apps Script to
+  recompute `InvoicesView` after an invoice write, and the browser frontend's photo
+  upload (`src/api/photos.js`) POSTs directly to Apps Script, bypassing the API.
+  Neither writes sheet rows through SheetLib, but neither is "one transport" either.
 - Portal views are Apps Script-owned read models. Decode their JSON text columns only
   through the owning module's `jsonColumns`; fix wrong business data at its source.
 - The backend returns GViz's raw date form. Date formatting belongs in the frontend.
