@@ -1,6 +1,6 @@
 ---
 name: backend-team-flat
-description: Orchestrate this repository's already-decided backend brief through the configured coder, tester, and reviewer agents from a root-level Codex session, using one-level dispatch and up to three fix/review cycles with command-backed final reporting. Use when the brief has an explicit finite gate list and the work must follow the project's .codex/agents/coder.toml, tester.toml, and reviewer.toml roles.
+description: Orchestrate this repository's already-decided backend brief through the configured coder, tester, and reviewer agents from a root-level Codex session, using one-level dispatch, one spawn per role, follow-up to those same three sessions for later cycles, and command-backed final reporting. Use when the brief has an explicit finite gate list and the work must follow the project's .codex/agents/coder.toml, tester.toml, and reviewer.toml roles.
 ---
 
 # Backend Team Flat
@@ -46,30 +46,33 @@ spawn_agent({
 })
 ```
 
-Do not omit `fork_turns` when `agent_type` is supplied. Do not let a worker spawn children. Dispatch
-strictly in this order and wait for a role result before starting the next role:
+Do not omit `fork_turns` when `agent_type` is supplied. Do not let a worker spawn children.
+
+The root plus these three workers are the entire thread budget. Spawn each role once, keep all
+three returned agent ids, and never spawn a second coder, tester, or reviewer in the same root
+session. Dispatch strictly in this order and wait for a role result before starting the next role:
 
 1. `coder` (`.codex/agents/coder.toml`) implements only the brief.
 2. `tester` (`.codex/agents/tester.toml`) checks the resulting work.
 3. `reviewer` (`.codex/agents/reviewer.toml`) performs the read-only review.
 
-Keep the coder's returned agent id. A later fix is a `followup_task` to that same id, never a new
-coder spawn. Start a fresh tester and reviewer spawn for each subsequent cycle, still one level
-below the root.
+Every later cycle is a `followup_task` to those same ids, still one level below the root, in the
+same order. Do not open a replacement session when a worker is idle or has finished a turn.
 
-Use this shape for each fix relay, preserving the worker output verbatim inside the message:
+Use this shape for each later-cycle relay, preserving the worker output verbatim inside the
+message:
 
 ```text
 followup_task({
-  target: "<coder agent id>",
-  message: "<original brief plus the verbatim tester/reviewer result>"
+  target: "<coder|tester|reviewer agent id>",
+  message: "<original brief plus the verbatim prior-role result>"
 })
 ```
 
 If a spawn or follow-up call fails, or a worker session ends without a role result, retry that same
 call once. If the retry also fails, classify it as an infrastructure `BLOCKED` result, separate
-from worker findings, and stop. A worker's own `FAIL` or `BLOCKED` report is not an infrastructure
-failure; process it through the cycle rules below.
+from worker findings, and stop. Do not spawn a substitute worker. A worker's own `FAIL` or
+`BLOCKED` report is not an infrastructure failure; process it through the cycle rules below.
 
 ## Role contracts
 
@@ -116,8 +119,8 @@ Count the initial coder -> tester -> reviewer pass as cycle 1. Allow at most thr
 - If the coder reports a blocker, the tester fails or is blocked, the reviewer is blocked, or the
   reviewer reports qualifying findings, forward that worker output verbatim to the same coder
   session using `followup_task`. Include the original brief unchanged and tell the coder to
-  address only the reported evidence. Then run a new tester and reviewer in order for the next
-  cycle.
+  address only the reported evidence. Then `followup_task` the same tester and the same reviewer
+  in that order for the next cycle.
 - Do not start cycle 4. If cycle 3 still has a coder blocker, tester failure or blocker, reviewer
   blocker, or qualifying reviewer findings, stop with `FAIL` for unresolved worker findings (or
   `BLOCKED` if the evidence is an external/infrastructure blocker). Preserve the final output
