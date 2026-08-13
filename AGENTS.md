@@ -3,17 +3,16 @@
 ## Overview
 
 TypeScript Vercel serverless API for the Vue portal. Google Sheets is the data
-store: GViz reads data. Writes are migrating sheet-by-sheet from Apps
-Script/SheetLib to the Google Sheets API (opt-in per sheet via
-`SheetContract.writeTransport`); most sheets still write through SheetLib
-today, see Google Sheets Rules below for the current split.
+store: GViz reads data, and writes go through the authenticated Google Sheets
+API — one write transport, not two. The Apps Script/SheetLib `doPost` write
+path was removed from every sheet; see Google Sheets Rules below.
 
 ## Tech Stack
 
 - TypeScript (strict) + Vercel serverless functions
 - Zod v3 for shared API contracts and request validation
-- Google Sheets: GViz reads; writes via Apps Script/SheetLib or, per sheet
-  opt-in, the Google Sheets API (`SheetContract.writeTransport`)
+- Google Sheets: GViz reads; writes via the Google Sheets API (one transport,
+  no SheetLib path remains)
 - Native `fetch`; plain TypeScript dry tests with `node:assert/strict`
 
 ## Project Structure
@@ -77,11 +76,9 @@ today, see Google Sheets Rules below for the current split.
 
 ## Google Sheets Rules
 
-- `SheetRepository` owns GViz reads and writes via either SheetLib/App Script or
-  the Google Sheets API, chosen per sheet by `SheetContract.writeTransport`
-  (`'sheetlib'` default, or `'sheets-api'` opt-in). It maps no API fields;
-  `BaseCrudService` owns the module's DB-to-API mapping and declared JSON cell
-  decoding.
+- `SheetRepository` owns GViz reads and Google Sheets API writes. It maps no
+  API fields; `BaseCrudService` owns the module's DB-to-API mapping and
+  declared JSON cell decoding.
 - Every write goes through the Sheets API. There is one write transport, not two:
   UPDATE looks up the row by primary key and patches only the changed columns (see
   `sheet-row-lookup.ts` for the accepted lookup-to-write race), APPEND and batch
