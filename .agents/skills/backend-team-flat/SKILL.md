@@ -1,6 +1,6 @@
 ---
 name: backend-team-flat
-description: Orchestrate this repository's already-decided backend brief through the configured coder, tester, and reviewer agents from a root-level Codex session, using one-level dispatch, one spawn per role, follow-up to those same three sessions for later cycles, and command-backed final reporting. Use when the brief has an explicit finite gate list and the work must follow the project's .codex/agents/coder.toml, tester.toml, and reviewer.toml roles.
+description: Orchestrate this repository's already-decided backend brief through the configured coder, tester, and reviewer agents from a root-level Codex session, using one-level dispatch, one spawn per role, follow-up to those same sessions, tester-gated review, a three-round reviewer cap, and command-backed final reporting. Use when the brief has an explicit finite gate list and the work must follow the project's .codex/agents/coder.toml, tester.toml, and reviewer.toml roles.
 ---
 
 # Backend Team Flat
@@ -48,16 +48,20 @@ spawn_agent({
 
 Do not omit `fork_turns` when `agent_type` is supplied. Do not let a worker spawn children.
 
-The root plus these three workers are the entire thread budget. Spawn each role once, keep all
-three returned agent ids, and never spawn a second coder, tester, or reviewer in the same root
-session. Dispatch strictly in this order and wait for a role result before starting the next role:
+The root plus these three workers are the entire thread budget. Spawn each role at most once,
+keep every returned agent id, and never spawn a second coder, tester, or reviewer in the same
+root session. Dispatch strictly in this order and wait for a role result before starting the
+next role:
 
 1. `coder` (`.codex/agents/coder.toml`) implements only the brief.
 2. `tester` (`.codex/agents/tester.toml`) checks the resulting work.
-3. `reviewer` (`.codex/agents/reviewer.toml`) performs the read-only review.
+3. `reviewer` (`.codex/agents/reviewer.toml`) — only after the tester of that attempt reports
+   `PASS`.
 
-Every later cycle is a `followup_task` to those same ids, still one level below the root, in the
-same order. Do not open a replacement session when a worker is idle or has finished a turn.
+Do not spawn or `followup_task` the reviewer while the current tester result is `FAIL` or
+`BLOCKED`. Spawn the reviewer on the first tester `PASS`; every later reviewer contact is a
+`followup_task` to that same id. Every later coder or tester contact is a `followup_task` to
+those same ids. Do not open a replacement session when a worker is idle or has finished a turn.
 
 Use this shape for each later-cycle relay, preserving the worker output verbatim inside the
 message:
@@ -112,23 +116,35 @@ concerns into a fix cycle.
 
 ## Fix/review loop
 
-Count the initial coder -> tester -> reviewer pass as cycle 1. Allow at most three total cycles.
+Coder and tester have no round cap. The only cap is the reviewer: at most three reviewer
+rounds in the whole root session. A reviewer round is one spawn or `followup_task` that
+receives a reviewer result. Do not start a fourth reviewer round.
 
-- Stop with `PASS` only when the coder reports no blocker, the tester passes, and the reviewer
-  explicitly reports a clean review rather than `BLOCKED` or qualifying findings.
-- If the coder reports a blocker, the tester fails or is blocked, the reviewer is blocked, or the
-  reviewer reports qualifying findings, forward that worker output verbatim to the same coder
-  session using `followup_task`. Include the original brief unchanged and tell the coder to
-  address only the reported evidence. Then `followup_task` the same tester and the same reviewer
-  in that order for the next cycle.
-- Do not start cycle 4. If cycle 3 still has a coder blocker, tester failure or blocker, reviewer
-  blocker, or qualifying reviewer findings, stop with `FAIL` for unresolved worker findings (or
-  `BLOCKED` if the evidence is an external/infrastructure blocker). Preserve the final output
-  verbatim.
-- A coder's inability to satisfy the brief is a worker result and follows the same cycle limit; a
-  dead session or failed orchestration call follows the one-retry infrastructure rule instead.
+Flow:
 
-Never make a coordinator-side edit or "small fix" between cycles.
+1. `coder`, then `tester`.
+2. If the tester reports `FAIL` or `BLOCKED`, or the coder reports a blocker, do not contact
+   the reviewer. Forward that output verbatim to the same coder with `followup_task`, keep the
+   original brief unchanged, and tell the coder to address only the reported evidence. Then
+   `followup_task` the same tester. Repeat until the tester reports `PASS`.
+3. After a tester `PASS`, dispatch the reviewer: spawn it if this is the first tester `PASS`,
+   otherwise `followup_task` the same reviewer. Include the original brief and the tester
+   result.
+4. If the reviewer reports a clean review, stop with `PASS`.
+5. If the reviewer is `BLOCKED` or reports a Confirmed or Highly Likely finding, forward that
+   output verbatim to the same coder with `followup_task`. Include the original brief unchanged
+   and tell the coder to address only the reported evidence. Then return to step 1 with the
+   same tester. Do not return to the reviewer until that tester reports `PASS` again.
+6. If the third reviewer round is still `BLOCKED` or still has a qualifying finding, stop with
+   `FAIL`. Do not send the work back to the coder after that third reviewer result. Preserve
+   the reviewer output verbatim.
+
+Stop with `PASS` only when the coder reports no blocker, the latest tester result is `PASS`,
+and the reviewer explicitly reports a clean review. A dead session or failed orchestration
+call follows the one-retry infrastructure rule and is `BLOCKED`; that is not a reviewer
+round.
+
+Never make a coordinator-side edit or "small fix" between steps.
 
 ## Non-negotiable boundaries
 
@@ -149,7 +165,7 @@ generic "all green" summary:
    authorization check, and every named gate's actual command plus readable outcome.
 4. Reviewer result for every cycle, with each `Confirmed`/`Highly Likely` finding quoted verbatim
    and its disposition.
-5. The number of completed review cycles and any one-retry infrastructure events.
+5. The number of completed reviewer rounds (at most three) and any one-retry infrastructure events.
 6. The final status and, when unresolved, the exact remaining worker or infrastructure blocker.
 
 Keep worker findings verbatim in the report; coordinator commentary may label or organize them but
