@@ -449,12 +449,21 @@ ok  invoice_id   (ว่าง)                    ->  INV260854062757
 "ประวัติศาสตร์" ถูกกว่าและไม่ทำข้อมูลหาย · ถ้าจะทำต่อ ให้แปะหมายเหตุที่ **หัวไฟล์นั้นๆ** เอง
 เพราะคนที่เปิดไฟล์ตรงไม่ได้ผ่านตารางนี้
 
-### ยังไม่แตะโดยตั้งใจ: SheetLib ฝั่ง browser
+### SheetLib ฝั่ง browser — ตรวจซ้ำ 2026-08-14 (grok-explorer + spot-check เอง), พบ 2 เส้นทาง คนละสถานะ
 
-`src/utils/gateway.js` + `src/pages/FormOverlayPage.vue` ยิง Apps Script ตรง **ข้าม API ไปเลย**
-§2.10 ลบเฉพาะ write path ฝั่ง server ⇒ อันนี้ยังอยู่และยังทำงาน เป็นงานแยกต่างหาก
+เดิมบันทึกไว้ว่า `src/utils/gateway.js` + `src/pages/FormOverlayPage.vue` ยิง Apps Script ตรง
+**ข้าม API ไปเลย** และเป็นงานแยกที่ยังไม่แตะ — ของนี้ยังจริง แต่ตอนนี้ตรวจแล้วพบว่า:
 
-⚠️ **อย่าอ่าน "SheetLib หมดแล้ว" แล้วเผลอลบตัวนี้** — form overlay จะพัง
+1. **`gateway.js` + `FormOverlayPage.vue` (route `/forms`, `/forms/:formName`) — โค้ดตายแล้ว**
+   route ยัง mount ได้ แต่ **ไม่มีเมนู/ลิงก์ไหนในแอปพาไปเลย** (`NavSidebar.vue` ไม่มี, ไม่มี
+   `router.push`/`RouterLink` จาก feature ไหนชี้มา) เข้าถึงได้แค่พิมพ์ URL ตรง ⇒ **ลบทิ้งได้**
+   (`src/utils/gateway.js`, `src/pages/FormOverlayPage.vue`, route `/forms` และ `/forms/:formName`
+   ใน `src/router/index.js`, `src/components/forms/CreateOrderForm.vue` ถ้าไม่มีใครใช้ที่อื่น)
+2. **`src/api/photos.js` (`savePhoto`) — ยังใช้งานจริง ไม่ใช่ของที่เคยบันทึกไว้ในหมวดนี้มาก่อน**
+   เส้นทางจริง: การ์ด/รายละเอียด order → `/gallery/:key` → `OrderGalleryPage` →
+   `usePhotoUpload` → `savePhoto` → Apps Script (hardcode URL เดียวกับ `gateway.js`)
+   อัปโหลดรูป Before/After ของ order ยังพึ่ง Apps Script ตรงอยู่ ⇒ **เป็นงานย้ายมาผ่าน API
+   แยกต่างหาก ไม่เกี่ยวกับ `/forms`**
 
 ### 🔴 `vercel dev` ที่เปิดค้างไว้จะเสิร์ฟโค้ดเก่า
 
@@ -545,6 +554,11 @@ deploy สำเร็จ build 15 วิ · ยิง 4 endpoint ตามห�
 เรื่อง format — มันคือ artifact ของ GViz ที่ frontend ต้องแกะเอง** ⇒ ควรเป็นงานแยกต่างหาก
 ไม่ใช่ตัวบล็อก 3C
 
+✅ **ปิดแล้ว (ตรวจซ้ำ 2026-08-14) — ไม่ใช่งานค้าง** `src/shared/utils/sheet-date.ts`
+(`parseSheetDate`) มี regex จับ `Date(y,m,d[,h,mi,s])` โดยตรงอยู่แล้ว (บรรทัด 179) แปลงเป็น
+civil date / Bangkok instant ให้ใช้งานได้ปกติ ถูกเรียกใช้ทั่วทั้ง invoices/appointments/customers
+⇒ frontend แกะ artifact นี้เองอยู่แล้วตามนโยบาย ไม่ต้องแก้ `gviz-reader.ts`
+
 ### ✅ ปิดงานคอมเมนต์ "กอง B" แล้ว (อัปเดต 2026-08-12)
 
 (บันทึกย้อนหลัง 2026-08-11 · งานเกิด 2026-08-11 รอบกวาดคอมเมนต์ทั้ง repo)
@@ -580,6 +594,16 @@ field map, และสถานะ transport ที่ซ้ำหรือเ�
   revert เพราะ brief ห้ามแตะ OrderForm)
 - **ไม่มี idempotency key บน `invoice_number`** ⇒ retry หลัง `items_write_failed` ที่ certainty
   เป็น `unknown` จริงๆ ยังทำให้ line item ซ้ำได้ถ้ารอบแรกเขียนสำเร็จไปแล้ว
+  🔴 **ตรวจซ้ำ 2026-08-14 (grok-explorer + spot-check เอง) — ข้อความนี้ตกยุคไปครึ่งนึง:**
+  certainty gate **มีแล้วจริง** — `classifyWriteFailure` (`invoice.service.ts:156`) แยก
+  `rejected`/`unknown`, ทุก outcome ที่เขียนพลาดพก `certainty` ติดไปด้วย, และ frontend
+  `canRetry` (`src/features/invoices/utils/invoice-outcome.utils.ts:8-12`) บล็อก retry เมื่อ
+  `unknown` อยู่แล้ว (allow เฉพาะ `items_write_failed` + `rejected`) ช่องว่างที่ยังจริงมีแค่:
+  (1) ไม่มี pre-flight เช็คว่า `sourceOrderId` มี `invoice_id` อยู่แล้วก่อนสร้างใหม่
+  (`invoice.service.ts:348-526` ไม่มีขั้น read-check ก่อน `batchAppend`) และ
+  (2) `InvoiceItems.batchAppend` ไม่มี dup pre-check (`sheet.repository.ts:328-432`) ต่างจาก
+  single `append` ที่มี `rejectDuplicateAppendKey` แล้ว (`sheet.repository.ts:207-275`) — item id
+  สุ่มใหม่ทุกครั้ง (`invoice.service.ts:374`) เลยไม่มีอะไรชนกันเวลา retry
 - **คอมเมนต์ในเส้นทาง serialize ยังเขียนว่า SheetLib** ทั้งที่สองชีตนี้ย้ายแล้ว — **§2.10 จะลบ
   เส้นทางนั้นทิ้งอยู่แล้ว จึงต้องเขียนคอมเมนต์ใหม่ตอนนั้น** แก้ตอนนี้จะเสียเปล่า
 
