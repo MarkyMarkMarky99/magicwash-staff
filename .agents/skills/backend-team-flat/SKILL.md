@@ -9,6 +9,9 @@ Run the project backend workflow directly from the root session. This skill is a
 it does not choose scope, design, gates, acceptance criteria, or fixes. Treat the user's brief as
 the sole decision record and relay it verbatim to every worker.
 
+The caller supplies only that finalized brief. This skill owns the coordinator behavior,
+worker dispatch order, retry policy, review-cycle limit, and final reporting requirements.
+
 ## Gate the brief
 
 Before dispatching a worker, require all of the following in the supplied brief:
@@ -100,22 +103,25 @@ needed for the final report.
 Tell the reviewer to inspect the current diff and relevant surrounding code without editing files,
 running tests, changing configuration, or performing any write. It must report only findings that
 are `Confirmed` or `Highly Likely`, with path/line and concrete reasoning. It must say explicitly
-when no such finding exists. Do not promote speculative or low-confidence concerns into a fix
-cycle.
+when no such finding exists. If the review scope is empty, ambiguous, or unreadable, it must
+report `BLOCKED`; that is not a clean review. Do not promote speculative or low-confidence
+concerns into a fix cycle.
 
 ## Fix/review loop
 
 Count the initial coder -> tester -> reviewer pass as cycle 1. Allow at most three total cycles.
 
-- If the tester passes and the reviewer reports no `Confirmed` or `Highly Likely` finding, stop
-  with `PASS`.
-- If the tester fails or is blocked, or the reviewer reports qualifying findings, forward that
-  worker output verbatim to the same coder session using `followup_task`. Include the original
-  brief unchanged and tell the coder to address only the reported evidence. Then run a new tester
-  and reviewer in order for the next cycle.
-- Do not start cycle 4. If cycle 3 still has a tester failure, a tester blocker, or qualifying
-  reviewer findings, stop with `FAIL` for unresolved worker findings (or `BLOCKED` if the evidence
-  is an external/infrastructure blocker). Preserve the final output verbatim.
+- Stop with `PASS` only when the coder reports no blocker, the tester passes, and the reviewer
+  explicitly reports a clean review rather than `BLOCKED` or qualifying findings.
+- If the coder reports a blocker, the tester fails or is blocked, the reviewer is blocked, or the
+  reviewer reports qualifying findings, forward that worker output verbatim to the same coder
+  session using `followup_task`. Include the original brief unchanged and tell the coder to
+  address only the reported evidence. Then run a new tester and reviewer in order for the next
+  cycle.
+- Do not start cycle 4. If cycle 3 still has a coder blocker, tester failure or blocker, reviewer
+  blocker, or qualifying reviewer findings, stop with `FAIL` for unresolved worker findings (or
+  `BLOCKED` if the evidence is an external/infrastructure blocker). Preserve the final output
+  verbatim.
 - A coder's inability to satisfy the brief is a worker result and follows the same cycle limit; a
   dead session or failed orchestration call follows the one-retry infrastructure rule instead.
 
