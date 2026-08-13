@@ -4,14 +4,18 @@ model_reasoning_effort = "xhigh"
 [agents]
 enabled = true
 
-[agents."coder"]
-description = "Implement a finished, already-decided brief without redesigning it or certifying the full verification suite."
-config_file = "agents/coder.toml"
+[agents."clerk"]
+description = "Writes unit/integration tests against Mason's actual implementation, then runs every gate — named, warden's, and its own — and reports command-backed results."
+config_file = "agents/clerk.toml"
 
-[agents."reviewer"]
-description = "Perform a read-only static review and report only confirmed or highly likely defects."
-config_file = "agents/reviewer.toml"
+[agents."mason"]
+description = "Implementation-focused agent for a finished, already-decided brief, working against tests it may never edit."
+config_file = "agents/mason.toml"
 
-[agents."tester"]
-description = "Run explicitly named verification gates and return command-backed pass, fail, or blocked evidence."
-config_file = "agents/tester.toml"
+[agents."sentinel"]
+description = "Read-only static reviewer for correctness, safety, data-integrity, and explicit rule violations."
+config_file = "agents/sentinel.toml"
+
+[agents."warden"]
+description = "Test-first specification agent that writes tests from acceptance criteria before implementation exists, then mutation-proves every guard against the finished code."
+config_file = "agents/warden.toml"
