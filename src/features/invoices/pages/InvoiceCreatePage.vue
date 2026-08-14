@@ -25,7 +25,6 @@ import { canRetryInvoiceOutcome, synthesizeNetworkFailureOutcome } from '../util
 import InvoiceLineItemsEditor from '../components/InvoiceLineItemsEditor.vue'
 import InvoiceAdjustmentsEditor from '../components/InvoiceAdjustmentsEditor.vue'
 import InvoiceTotalsPreview from '../components/InvoiceTotalsPreview.vue'
-import InvoiceDevJsonPanel from '../components/InvoiceDevJsonPanel.vue'
 import { loadInvoiceCreateContext } from '../services/invoice-create-context.service'
 import { addSheetDateDays, sheetDateDaysBetween, todaySheetDate } from '@/shared/utils/sheet-date'
 
@@ -155,7 +154,7 @@ const isValid = computed(() => {
   )
 })
 
-// ── Build the exact request the dev panel shows AND the service sends ──────
+// ── Build the exact request the service sends ─────────────────────────────
 const requestPayload = computed<CreateInvoiceRequest | null>(() => {
   if (!order.value || !customer.value) return null
 
@@ -551,7 +550,6 @@ async function copyLiffUrl(invoiceNumber: string) {
         (retry re-shows the form with everything you typed still in place)
       </p>
 
-      <InvoiceDevJsonPanel :payload="requestPayload" :response="result" />
     </div>
 
     <!-- The form itself. -->
@@ -588,8 +586,6 @@ async function copyLiffUrl(invoiceNumber: string) {
         :items-total="itemsTotal"
         :invoice-total="invoiceTotal"
       />
-
-      <InvoiceDevJsonPanel :payload="requestPayload" :response="null" />
 
       <button
         type="submit"

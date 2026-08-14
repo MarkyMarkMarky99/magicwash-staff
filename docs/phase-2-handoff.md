@@ -1,7 +1,8 @@
 # Handoff — Phase 2 (จบแล้ว)
 
-เขียนเมื่อ 2026-08-09 ตอนปิด Phase 1 · **อัปเดตล่าสุด 2026-08-11 ตอน merge เข้า main
-และขึ้น production** (`main` = `9c96c01`, merge commit `ee4ed38`)
+เขียนเมื่อ 2026-08-09 ตอนปิด Phase 1 · merge เข้า main และขึ้น production 2026-08-11
+(`main` = `9c96c01`, merge commit `ee4ed38`) · **อัปเดตล่าสุด 2026-08-14 — ตรวจสถานะเทียบ
+โค้ดจริงทั้งฉบับ แก้ตารางที่ตกยุค และลบของค้าง (ดูหมวด "cleanup 2026-08-14")**
 
 # ✅ Phase 2 จบครบแล้ว ทั้งโค้ดและการพิสูจน์
 
@@ -10,7 +11,15 @@
 (`154445b`) เหลือทางเขียนทางเดียวทั้งระบบ · `certainty` ของ appointments (`78efaad`) ·
 ผ่าน preview ทั้งอ่านและเขียนก่อน merge · **branch ทั้งหมดลบแล้ว เหลือ `main` อย่างเดียว**
 
-**ไม่มีตัวบล็อกเหลืออยู่** — งานที่ค้างเป็นงานเลือกทำ อยู่ที่หมวด 1c
+**ไม่มีตัวบล็อกของ Phase 2 เหลืออยู่** — งานที่ค้างเป็นงานเลือกทำ อยู่ที่หมวด 1c
+
+> 🔴 **แต่มีตัวบล็อกก่อนเปิดใช้กับผู้ใช้จริง ซึ่งไม่ใช่ของ Phase 2** (ยืนยันกับโค้ด 2026-08-14):
+> 1. **API ไม่มี authentication เลย** — `api-gateway.ts:25-51` dispatch ต่อโดยไม่ตรวจ token
+>    ⇒ ทุก write route เปิดสาธารณะ · รายละเอียดหมวดท้ายไฟล์
+> 2. **invoice create ไม่ idempotent** — `invoice.service.ts:396` เริ่ม `batchAppend()` โดยไม่มี
+>    pre-flight ตรวจ `invoiceNumber`/`OrderForm.invoice_id` และ `batchAppend()` ไม่มี
+>    duplicate-key guard (ต่างจาก `append()` เดี่ยว) ⇒ retry แล้วได้ line item ซ้ำ
+> 3. **อัปโหลดรูปยัง bypass backend** — `src/api/photos.js:3` ยิง Apps Script ตรงจาก browser
 
 > ⚠️ **เอกสารฉบับนี้คือสถานะจริง** เอกสารอื่นใน `docs/` เป็นบันทึกประวัติศาสตร์ ดูรายชื่อ
 > ท้ายหมวด 1c ก่อนเชื่ออะไรในนั้น
@@ -22,7 +31,10 @@
 
 ## 1. อยู่ตรงไหนแล้ว
 
-`refactor/sheet-layer` — 24 commits, push แล้ว, **ยังไม่ merge เข้า main**
+`refactor/sheet-layer` — **merge เข้า `main` และขึ้น production แล้ว (2026-08-11, `ee4ed38`)
+branch ถูกลบแล้ว** · รายละเอียดการ merge อยู่หมวด "merge เข้า main และขึ้น production แล้ว"
+
+> ย่อหน้าถัดไปเป็นบันทึกตอน Phase 1 จบ เก็บไว้เพราะสรุปสถาปัตยกรรมที่ได้มา
 
 Phase 1 จบครบ 8 ขั้น ได้สถาปัตยกรรม: 1 repository ต่อ 1 physical sheet ใต้ `server/sheets/`,
 repository ไม่รู้จัก API contract, DB↔API mapping อยู่ที่ module, `primaryKey` เป็นชื่อคอลัมน์ DB จริง,
@@ -75,17 +87,20 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 | merge stage 3 กลับเข้า `refactor/sheet-layer` + ด่านครบ 4 ตัว | ✅ | `d52fd99` |
 | preview deploy ครั้งแรก — ฝั่งอ่าน 4 endpoint ได้ 200 | ✅ | `d52fd99` |
 | §2.9 stage 3C — smoke test จริง (สร้าง invoice) | ✅ **ผ่าน 12/12 (2026-08-11)** `INV260872306305` บน local dev | |
-| งานแยกหลัง §2.9 — จัดระเบียบ timestamp ทุกชีตเป็น datetime | ⬜ | |
-| งานแยกหลัง §2.9 — `certainty` ของ Appointments (แก้ API contract) | ⬜ | |
-| §2.10 | ⬜ | |
+| งานแยกหลัง §2.9 — จัดระเบียบ timestamp ทุกชีตเป็น datetime | ⏸️ **พักไว้ ทำได้บางส่วน** — Invoices/OrderForm ประกาศ `USER_ENTERED` แล้ว, `Appointments` ยังตั้งเฉพาะ `AppointmentDate` ⇒ ดูข้อ 4 ในตารางล่าง | `9f53013` |
+| งานแยกหลัง §2.9 — `certainty` ของ Appointments (แก้ API contract) | ✅ | `78efaad` |
+| §2.10 ลบ SheetLib write path | ✅ | `154445b` |
 
-**§2.2/§2.3 ต่อเข้า `SheetRepository` แล้วตั้งแต่ §2.9 stage 1 (`e7f75df`)** — ctor สร้าง
-`SheetsApiClient` + `SheetHeaderMapResolver` เมื่อ contract ประกาศ `writeTransport: 'sheets-api'`
-(`sheet.repository.ts:114-141`) และ `update()` แยกไปที่ `updateThroughSheetsApi` (`:196-197`)
+**§2.2/§2.3 ต่อเข้า `SheetRepository` แล้วตั้งแต่ §2.9 stage 1 (`e7f75df`)** และหลัง §2.10
+(`154445b`) **ไม่มี dual path เหลือแล้ว** — `writeTransport` / `scriptUrl` หายไปจากทั้ง repo
+(grep ยืนยัน 2026-08-14 ว่าเหลือศูนย์ที่ใน `server/`) `SheetContract` ไม่มีฟิลด์นี้อีกต่อไป
+(`sheet-contract.ts:21-42`) และ append / batchAppend / update วิ่งเข้า Sheets API ทั้งหมด
+(`sheet.repository.ts:141` `:328` `:435`)
 
-**วันนี้มี OrderForm ชีตเดียวที่ opt-in** ชีตที่เหลือไม่ประกาศ `writeTransport` จึงยังวิ่ง SheetLib
-ตาม default ⇒ อย่าอ่านว่า "ทั้งระบบยังเป็น Apps Script" และอย่าอ่านว่า "ทั้งระบบย้ายแล้ว" —
-มันเป็น dual path ต่อชีต
+⇒ **ทั้ง 4 ชีตที่เขียนได้ใช้ทางเดียวกันหมดแล้ว** ย่อหน้าเก่าที่เคยเขียนว่า "วันนี้มี OrderForm
+ชีตเดียวที่ opt-in ... เป็น dual path ต่อชีต" **ตกยุคแล้ว ลบทิ้ง** · Apps Script ที่ยังเหลือใน
+ระบบมีอย่างเดียวคือ sync `InvoicesView` (`invoice-view-sync-client.ts:31-40`) ซึ่ง
+**ไม่ใช่การเขียนแถวลงชีต**
 
 ### ของที่ §2.2 จงใจเลื่อนไป — มี comment กำกับในโค้ดแล้ว
 
@@ -424,10 +439,14 @@ ok  invoice_id   (ว่าง)                    ->  INV260854062757
 | ตัวแปร | หมายเหตุ |
 |---|---|
 | `APPSCRIPT_CUSTOMER_URL` | ไม่มีโค้ดใน webapp-vue อ้างถึง · **ระวังสับสน** โปรเจกต์ Python ที่ repo root ใช้ชื่อเดียวกันจริง แต่อ่านจาก `C:\MagicwashGemini\.env` คนละไฟล์ ⇒ ลบจาก Vercel ไม่กระทบ Python |
-| `VITE_APPOINTMENTS_SCRIPT_URL` | ไม่มีโค้ดอ้างถึง · `src/utils/gateway.js` hardcode URL ไว้ในโค้ด ไม่ได้อ่านจาก env ⇒ ลบตัวแปรได้ แต่ **ตัว gateway ยังทำงานอยู่** |
-| `CUSTOMERS_SHEET_NAME` | ไม่มีโค้ดอ้างถึง (มีแค่ Development) |
+| `VITE_APPOINTMENTS_SCRIPT_URL` | ไม่มีโค้ดอ้างถึง · **ลบออกจาก `.env.local` แล้ว (2026-08-14)** — `src/utils/gateway.js` ที่เคย hardcode URL ไว้ ตอนนี้ถูกลบไปทั้งไฟล์แล้วด้วย ⇒ **ยังค้างอยู่บน Vercel เจ้าของต้องไปลบเองใน dashboard** |
+| `CUSTOMERS_SHEET_NAME` | ไม่มีโค้ดอ้างถึง (ตรวจซ้ำ 2026-08-14 ยังไม่มี) · ยังอยู่ใน `.env.local` และจงใจไม่ใส่ใน `.env.example` |
 
 ⚠️ ทั้งสามข้อยืนยันได้แค่ว่า **ไม่มีอะไรใน webapp-vue อ้างถึง** นอกโปรเจกต์นี้ตรวจไม่ได้
+
+✅ **`.env.example` เพิ่ม `APPSCRIPT_INVOICE_VIEW_SYNC_URL` แล้ว (2026-08-14)** — เดิมขาดไป
+ทั้งที่ `invoice-view-sync-client.ts:34` อ่านผ่าน `requireEnv()` ⇒ deploy ที่ไม่ตั้งค่านี้จะพัง
+ตอน sync view
 
 **ต้องเก็บไว้แน่นอน:** `VITE_APPOINTMENTS_SPREADSHEET_ID` / `VITE_CUSTOMERS_SPREADSHEET_ID`
 (`src/utils/constants.js:2-3`)
@@ -440,7 +459,7 @@ ok  invoice_id   (ว่าง)                    ->  INV260854062757
 | ไฟล์ | ตกยุคตรงไหน |
 |---|---|
 | `session-2026-08-10-overnight.md` | log ตามวัน · หมวด 3 (ตารางคำตัดสิน) ยังมีค่า ที่เหลือคือสถานะของคืนนั้น |
-| `phase-2-9-test-charter.md` | ยังเขียนว่า stage 2/3 "ยังไม่เริ่ม" |
+| `phase-2-9-test-charter.md` | คอลัมน์สถานะทุกตารางเป็นบันทึก Phase A (แปะ banner บอกไว้ที่หัวไฟล์แล้ว 2026-08-14) · *เหตุผล* ของแต่ละข้อยังใช้ได้ |
 | `database-layer-sheets-api-refactor-plan.md` | ยังบรรยาย dual-path SheetLib ซึ่ง §2.10 ลบทิ้งแล้ว · แผน §2.0–§2.10 ยังใช้อ้างอิงได้ |
 | `appointment-gsheet-repository-refactor-plan.md` | แผนยุค SheetLib · checklist ติ๊กครบแล้ว |
 | `invoice-module-refactor-plan.md` · `invoice-refactor-smoke-checklist.md` | รอบ refactor ก่อนหน้า ทับกับแผน sheets-API |
@@ -454,16 +473,31 @@ ok  invoice_id   (ว่าง)                    ->  INV260854062757
 เดิมบันทึกไว้ว่า `src/utils/gateway.js` + `src/pages/FormOverlayPage.vue` ยิง Apps Script ตรง
 **ข้าม API ไปเลย** และเป็นงานแยกที่ยังไม่แตะ — ของนี้ยังจริง แต่ตอนนี้ตรวจแล้วพบว่า:
 
-1. **`gateway.js` + `FormOverlayPage.vue` (route `/forms`, `/forms/:formName`) — โค้ดตายแล้ว**
-   route ยัง mount ได้ แต่ **ไม่มีเมนู/ลิงก์ไหนในแอปพาไปเลย** (`NavSidebar.vue` ไม่มี, ไม่มี
-   `router.push`/`RouterLink` จาก feature ไหนชี้มา) เข้าถึงได้แค่พิมพ์ URL ตรง ⇒ **ลบทิ้งได้**
-   (`src/utils/gateway.js`, `src/pages/FormOverlayPage.vue`, route `/forms` และ `/forms/:formName`
-   ใน `src/router/index.js`, `src/components/forms/CreateOrderForm.vue` ถ้าไม่มีใครใช้ที่อื่น)
+1. **`gateway.js` + `FormOverlayPage.vue` (route `/forms`, `/forms/:formName`) — ✅ ลบครบแล้ว**
+   ตรวจ 2026-08-14: `src/utils/gateway.js`, `src/pages/FormOverlayPage.vue`,
+   `src/components/forms/CreateOrderForm.vue` **ไม่มีอยู่ในดิสก์แล้ว** และ route `/forms` หายไปจาก
+   `src/router/index.js` แล้ว · ตัวสุดท้ายที่ค้างคือ `src/layouts/FormOverlayLayout.vue`
+   (ไม่มีใคร import) **ลบแล้ว 2026-08-14** ⇒ เส้นทางนี้ปิดสมบูรณ์
+   **`src/layouts/FormLayout.vue` เป็นคนละไฟล์ ยังใช้อยู่ อย่าลบตาม**
 2. **`src/api/photos.js` (`savePhoto`) — ยังใช้งานจริง ไม่ใช่ของที่เคยบันทึกไว้ในหมวดนี้มาก่อน**
    เส้นทางจริง: การ์ด/รายละเอียด order → `/gallery/:key` → `OrderGalleryPage` →
-   `usePhotoUpload` → `savePhoto` → Apps Script (hardcode URL เดียวกับ `gateway.js`)
+   `usePhotoUpload` → `savePhoto` → Apps Script (hardcode URL ไว้เองที่ `src/api/photos.js:3`
+   — เดิมเขียนว่า "URL เดียวกับ `gateway.js`" ซึ่งตอนนี้ `gateway.js` ถูกลบไปแล้ว)
    อัปโหลดรูป Before/After ของ order ยังพึ่ง Apps Script ตรงอยู่ ⇒ **เป็นงานย้ายมาผ่าน API
-   แยกต่างหาก ไม่เกี่ยวกับ `/forms`**
+   แยกต่างหาก ไม่เกี่ยวกับ `/forms`** · `server/api/route-registry.ts` ยังไม่มี photo route
+
+### ✅ cleanup 2026-08-14 — ลบของค้างที่ไม่มีใครใช้
+
+| ลบอะไร | ทำไม |
+|---|---|
+| `src/features/invoices/components/InvoiceDevJsonPanel.vue` + การเรียกใช้ 2 จุดใน `InvoiceCreatePage.vue` | dev inspector ที่ป้ายตัวเองเขียนว่า "temporary, remove before shipping" แต่ถูก render อยู่ในหน้าสร้าง invoice ที่พนักงานใช้จริง |
+| `src/layouts/FormOverlayLayout.vue` | residue ของ route `/forms` ที่ลบไปแล้ว ไม่มีใคร import |
+| `VITE_APPOINTMENTS_SCRIPT_URL` ใน `.env.local` | orphan ตามตาราง env ด้านบน |
+
+⚠️ **`requestPayload` กับ `result` ใน `InvoiceCreatePage.vue` ห้ามลบตามไปด้วย** — หน้าตาเหมือน
+มีไว้ป้อน dev panel อย่างเดียว แต่จริงๆ `requestPayload` คือ request body ที่ส่งเข้า API จริง
+(`:277` `:281`) และ `result` คือผลลัพธ์ที่ขับ UI สำเร็จ/ผิดพลาดของหน้านี้ · ยืนยันหลังลบแล้วว่า
+ทั้งคู่ยังอยู่ครบและ `npm run build` ผ่าน
 
 ### 🔴 `vercel dev` ที่เปิดค้างไว้จะเสิร์ฟโค้ดเก่า
 
