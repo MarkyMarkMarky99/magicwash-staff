@@ -39,7 +39,6 @@ import { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import type { ApiQueryParams } from '../../shared/http/api-handler.js'
 import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
-import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
 
 /** Fallback actor recorded in `created_by` when no staff identity is supplied. */
 export const INVOICE_CREATED_BY = 'staff'
@@ -291,7 +290,6 @@ export class InvoiceService {
   private readonly syncInvoiceView: ViewSyncFn
   private readonly generateItemId: () => string
   private readonly createdBy: string
-  private readonly now: () => Date
   private readonly readService: BaseCrudService<
     InvoiceViewApiRow,
     InvoiceViewListQuery,
@@ -320,7 +318,6 @@ export class InvoiceService {
     this.syncInvoiceView = options.syncInvoiceView ?? defaultSyncInvoiceView
     this.generateItemId = options.generateItemId ?? defaultGenerateItemId
     this.createdBy = options.createdBy ?? INVOICE_CREATED_BY
-    this.now = options.now ?? (() => new Date())
 
     this.readService = new BaseCrudService<
       InvoiceViewApiRow,
@@ -421,7 +418,6 @@ export class InvoiceService {
       customer: JSON.stringify(customerSnapshot),
       adjustments: JSON.stringify(request.adjustments.map(toDbAdjustment)),
       created_by: this.createdBy,
-      created_at: formatBangkokTimestamp(this.now()),
     }
 
     try {
@@ -455,7 +451,6 @@ export class InvoiceService {
       await this.orderFormRepository().update(request.sourceOrderId, {
         invoice_id: request.invoiceNumber,
         updated_by: this.createdBy,
-        updated_at: formatBangkokTimestamp(this.now()),
       })
     } catch (error) {
       const failure = classifyWriteFailure(error)

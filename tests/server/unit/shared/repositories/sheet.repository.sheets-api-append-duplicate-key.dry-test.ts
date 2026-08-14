@@ -13,19 +13,9 @@ import {
   type SheetsApiValues,
 } from '../../../../../server/shared/repositories/sheets-api.client.js'
 
-// This file pins the behavior of a pre-write duplicate primary key guard
-// inside appendThroughSheetsApi that does not exist yet: before every
-// single-row append, look up the row's primary key via the same
-// findRowNumberByKey mechanism updateThroughSheetsApi already uses, and
-// refuse the write (throw DuplicatePrimaryKeyError, a WriteRejectedError
-// subclass) if a row with that key already exists. Every test below is
-// expected to fail today -- DuplicatePrimaryKeyError does not exist yet,
-// and appendThroughSheetsApi does not perform the lookup. That failure is
-// the point: these tests specify the guard before it is implemented.
-//
-// batchAppend/batchAppendThroughSheetsApi is explicitly out of scope (see
-// the last test): it does not call appendThroughSheetsApi and must not
-// gain this guard here.
+// This file pins the pre-write duplicate primary key guard for both append
+// paths. The batch path must validate all prepared rows before its one write,
+// including duplicate keys that are not in the sheet yet.
 
 process.env.TEST_SPREADSHEET_ID = 'spreadsheet-id'
 
@@ -251,23 +241,73 @@ test('a duplicated existing key in corrupt sheet data propagates unchanged, mirr
   assert.equal(calls[0]?.method, 'readColumn')
 })
 
-test('batchAppend is unaffected by the duplicate-key guard', async () => {
+test('an existing primary key rejects batchAppend before any write happens', async () => {
   const calls: MockCall[] = []
   const client = mockClient({
     calls,
-    readColumn: async () => {
-      assert.fail('batchAppend must never call readColumn: the guard is single-row-append only')
-      return [['AppendID']]
+    readColumn: async () => [['AppendID'], ['append-5']],
+    appendRows: async () => {
+      assert.fail('appendRows must not run once a batch key is found')
+      return appendResponse([])
     },
-    appendRows: async () => appendResponse([['append-5', 'sent']]),
   })
   const repository = appendRepository(client)
 
-  const returned = await repository.batchAppend([{ AppendID: 'append-5', Label: 'sent' }])
+  await assert.rejects(
+    () => repository.batchAppend([{ AppendID: 'append-5', Label: 'sent' }]),
+    (error: unknown) => {
+      assert.ok(error instanceof DuplicatePrimaryKeyError)
+      assert.ok(error instanceof WriteRejectedError)
+      assert.equal(error.certainty, 'rejected')
+      return true
+    },
+  )
 
-  assert.deepEqual(returned, [{ AppendID: 'append-5', Label: 'sent' }])
-  assert.equal(calls.length, 1)
-  assert.equal(calls[0]?.method, 'appendRows')
+  assert.deepEqual(calls, [{ method: 'readColumn', args: ['A'] }])
+})
+
+test('two matching primary keys in one batch reject before any write happens', async () => {
+  const calls: MockCall[] = []
+  const client = mockClient({
+    calls,
+    readColumn: async () => [['AppendID']],
+    appendRows: async () => {
+      assert.fail('appendRows must not run once an intra-batch duplicate is found')
+      return appendResponse([])
+    },
+  })
+  const repository = appendRepository(client)
+
+  await assert.rejects(
+    () => repository.batchAppend([
+      { AppendID: 'append-6', Label: 'first' },
+      { AppendID: 'append-6', Label: 'second' },
+    ]),
+    (error: unknown) => {
+      assert.ok(error instanceof DuplicatePrimaryKeyError)
+      assert.ok(error instanceof WriteRejectedError)
+      assert.equal(error.certainty, 'rejected')
+      return true
+    },
+  )
+
+  assert.deepEqual(calls, [{ method: 'readColumn', args: ['A'] }])
+})
+
+test('an empty primary key value is written by batchAppend', async () => {
+  const calls: MockCall[] = []
+  const client = mockClient({
+    calls,
+    readColumn: async () => [['AppendID']],
+    appendRows: async () => appendResponse([['', 'sent']]),
+  })
+  const repository = appendRepository(client)
+
+  const returned = await repository.batchAppend([{ AppendID: '', Label: 'sent' }])
+
+  assert.deepEqual(returned, [{ AppendID: '', Label: 'sent' }])
+  assert.equal(returned[0]?.AppendID, '')
+  assert.equal(calls.filter((call) => call.method === 'appendRows').length, 1)
 })
 
 let failures = 0

@@ -104,6 +104,9 @@ async function withRoutedFetch<T>(
     if (init?.method === 'GET' && path.endsWith('/values/InvoiceItems!1:1')) {
       return response({ json: { values: [invoiceItemsHeaders] } })
     }
+    if (init?.method === 'GET' && path.endsWith('/values/InvoiceItems!B:B')) {
+      return response({ json: { values: [['invoice_item_id']] } })
+    }
     if (init?.method === 'POST' && path.endsWith('/values/InvoiceItems:append')) {
       assert.equal(parsedUrl.searchParams.get('valueInputOption'), 'USER_ENTERED')
       assert.equal(parsedUrl.searchParams.get('insertDataOption'), 'INSERT_ROWS')
@@ -115,6 +118,9 @@ async function withRoutedFetch<T>(
     // ── Invoices: header load + one append ──
     if (init?.method === 'GET' && path.endsWith('/values/Invoices!1:1')) {
       return response({ json: { values: [invoicesHeaders] } })
+    }
+    if (init?.method === 'GET' && path.endsWith('/values/Invoices!A:A')) {
+      return response({ json: { values: [['invoice_number']] } })
     }
     if (init?.method === 'POST' && path.endsWith('/values/Invoices:append')) {
       assert.equal(parsedUrl.searchParams.get('valueInputOption'), 'USER_ENTERED')
@@ -188,13 +194,15 @@ async function main(): Promise<void> {
 
     // Source-sheet writes use the Sheets API; view synchronization is a
     // separate endpoint.
-    assert.equal(calls.length, 8, 'header×2 + append×2 + OrderForm×4')
+    assert.equal(calls.length, 10, 'header×3 + primary-key reads×2 + append×2 + update×3')
     assert.deepEqual(
       calls.map((call) => `${call.method ?? 'GET'} ${sheetsPath(call.url).replace(/^\/v4\/spreadsheets\/[^/]+/, '')}`),
       [
         'GET /values/InvoiceItems!1:1',
+        'GET /values/InvoiceItems!B:B',
         'POST /values/InvoiceItems:append',
         'GET /values/Invoices!1:1',
+        'GET /values/Invoices!A:A',
         'POST /values/Invoices:append',
         'GET /values/OrderForm!1:1',
         'GET /values/OrderForm!A:A',

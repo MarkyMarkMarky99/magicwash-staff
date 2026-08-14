@@ -40,6 +40,15 @@ import {
 } from './sheet-value-serializer.js'
 import { findRowNumberByKey } from './sheet-row-lookup.js'
 import { verifyRowIdentity } from './sheet-row-identity.js'
+import { formatBangkokTimestamp } from '../utils/bangkok-timestamp.js'
+
+type WriteOperation = 'append' | 'update'
+type PreparedRow = {
+  row: Record<string, SheetsApiValue>
+  values: SheetsApiValue[]
+}
+
+const BANGKOK_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?![\s\S])/
 
 export interface SheetRepositoryOptions {
   contract: SheetContract
@@ -49,6 +58,8 @@ export interface SheetRepositoryOptions {
   sheetsApiClientOptions?: Omit<SheetsApiClientOptions, 'spreadsheetId' | 'sheetName'>
   /** Test seam for the live-header loader. */
   sheetHeaderMapLoader?: SheetHeaderMapLoader
+  /** Test seam for audit timestamp generation. */
+  now?: () => Date
 }
 
 interface GvizReadQuery {
@@ -77,10 +88,12 @@ export class SheetRepository<TDbRow extends object>
   private readonly columns: GSheetColumnMap
   private readonly sheetsApiClient: SheetsApiClient | undefined
   private readonly sheetHeaderMapLoader: SheetHeaderMapLoader | undefined
+  private readonly now: () => Date
 
   constructor(input: SheetRepositoryOptions) {
     this.contract = input.contract
     this.columns = deriveGVizColumns(this.contract.row)
+    this.now = input.now ?? (() => new Date())
 
     if (!this.contract.writes.append && !this.contract.writes.update) {
       this.sheetsApiClient = undefined
@@ -144,25 +157,18 @@ export class SheetRepository<TDbRow extends object>
   }
 
   private async appendThroughSheetsApi(row: Partial<TDbRow>): Promise<TDbRow> {
-    const client = this.sheetsApiClient
-    if (client === undefined) {
-      throw new WriteRejectedError('APPEND', 'Sheets API client is not configured')
-    }
+    const client = this.requireSheetsApiClient('APPEND')
+    this.validateValueInputPolicy('append')
+    const headerMap = await this.loadSheetsApiHeaderMap('append')
 
+    let prepared: PreparedRow
     try {
-      for (const column of Object.keys(this.contract.valueInput ?? {})) {
-        const declaredValueInput = Object.prototype.hasOwnProperty.call(
-          this.contract.valueInput ?? {},
-          column,
-        )
-        const valueInput = resolveValueInputOption(column, this.contract.valueInput)
-        if (declaredValueInput && valueInput !== 'USER_ENTERED') {
-          throw new WriteRejectedError(
-            'APPEND',
-            `Column '${column}' declares valueInput '${valueInput}', which conflicts with the USER_ENTERED request policy.`,
-          )
-        }
-      }
+      prepared = this.prepareRow(
+        row,
+        headerMap,
+        'append',
+        formatBangkokTimestamp(this.now()),
+      )
     } catch (error) {
       if (error instanceof WriteRejectedError) {
         throw error
@@ -173,40 +179,10 @@ export class SheetRepository<TDbRow extends object>
       )
     }
 
-    const loader = this.sheetHeaderMapLoader
-    if (loader === undefined) {
-      throw new WriteRejectedError('APPEND', 'Sheets API header map is not configured')
-    }
-
-    let headerMap
-    try {
-      headerMap = await loader.load()
-    } catch (error) {
-      if (error instanceof SheetHeaderMapError) {
-        throw new WriteRejectedError('APPEND', error.message)
-      }
-      throw error
-    }
-
-    let sentValues: SheetsApiValue[]
-    let sentRow: Record<string, SheetsApiValue>
-    try {
-      sentValues = buildRowValues(row as Record<string, unknown>, headerMap)
-      sentRow = parseRowValues(sentValues, headerMap)
-    } catch (error) {
-      if (error instanceof WriteRejectedError) {
-        throw error
-      }
-      throw new WriteRejectedError(
-        'APPEND',
-        error instanceof Error ? error.message : String(error),
-      )
-    }
-
-    await this.rejectDuplicateAppendKey(client, headerMap, sentRow)
+    await this.validateKeys(client, headerMap, [prepared.row])
 
     try {
-      const response = await client.appendRows([sentValues], 'USER_ENTERED', headerMap.width)
+      const response = await client.appendRows([prepared.values], 'USER_ENTERED', headerMap.width)
 
       let echoedRow: Record<string, SheetsApiValue>
       try {
@@ -229,48 +205,157 @@ export class SheetRepository<TDbRow extends object>
       verifyRowIdentity(
         echoedRow,
         this.contract.primaryKey,
-        String(sentRow[this.contract.primaryKey] ?? ''),
+        String(prepared.row[this.contract.primaryKey] ?? ''),
       )
-      return sentRow as TDbRow
+      return prepared.row as TDbRow
     } catch (error) {
       if (
         (error instanceof WriteTransportError ||
           error instanceof WriteCommittedUnreadableError) &&
         (await this.verifyAppendedRow(
-          String(sentRow[this.contract.primaryKey] ?? ''),
+          String(prepared.row[this.contract.primaryKey] ?? ''),
         ))
       ) {
-        return sentRow as TDbRow
+        return prepared.row as TDbRow
       }
 
       throw error
     }
   }
 
-  private async rejectDuplicateAppendKey(
-    client: SheetsApiClient,
-    headerMap: SheetHeaderMap,
-    sentRow: Record<string, SheetsApiValue>,
-  ): Promise<void> {
-    const primaryKeyValue = String(sentRow[this.contract.primaryKey] ?? '')
-    if (primaryKeyValue !== '') {
-      let existingRowNumber: number | null
-      try {
-        existingRowNumber = await findRowNumberByKey(
-          headerMap,
-          this.contract.primaryKey,
-          primaryKeyValue,
-          (columnLetter) => client.readColumn(columnLetter),
+  private validateValueInputPolicy(operation: WriteOperation): void {
+    const operationName = operation.toUpperCase()
+
+    try {
+      for (const column of Object.keys(this.contract.valueInput ?? {})) {
+        const declaredValueInput = Object.prototype.hasOwnProperty.call(
+          this.contract.valueInput ?? {},
+          column,
         )
-      } catch (error) {
-        if (error instanceof SheetHeaderMapError) {
-          throw new WriteRejectedError('APPEND', error.message)
+        const valueInput = resolveValueInputOption(column, this.contract.valueInput)
+        if (declaredValueInput && valueInput !== 'USER_ENTERED') {
+          throw new WriteRejectedError(
+            operationName,
+            `Column '${column}' declares valueInput '${valueInput}', which conflicts with the USER_ENTERED request policy.`,
+          )
         }
+      }
+    } catch (error) {
+      if (error instanceof WriteRejectedError) {
         throw error
       }
+      throw new WriteRejectedError(
+        operationName,
+        error instanceof Error ? error.message : String(error),
+      )
+    }
+  }
 
+  private async loadSheetsApiHeaderMap(operation: WriteOperation): Promise<SheetHeaderMap> {
+    const loader = this.sheetHeaderMapLoader
+    const operationName = operation.toUpperCase()
+    if (loader === undefined) {
+      throw new WriteRejectedError(`${operationName}`, 'Sheets API header map is not configured')
+    }
+
+    try {
+      return await loader.load()
+    } catch (error) {
+      if (error instanceof SheetHeaderMapError) {
+        throw new WriteRejectedError(operationName, error.message)
+      }
+      throw error
+    }
+  }
+
+  private prepareRow(
+    row: Partial<TDbRow>,
+    headerMap: SheetHeaderMap,
+    operation: WriteOperation,
+    timestamp: string,
+  ): PreparedRow {
+    const preparedRow = this.prepareAuditRow(row, headerMap, operation, timestamp)
+    const values = buildRowValues(preparedRow, headerMap)
+    return {
+      row: parseRowValues(values, headerMap),
+      values,
+    }
+  }
+
+  private prepareAuditRow(
+    row: Partial<TDbRow>,
+    headerMap: SheetHeaderMap,
+    operation: WriteOperation,
+    timestamp: string,
+  ): Record<string, unknown> {
+    const preparedRow = { ...(row as Record<string, unknown>) }
+    const auditColumns = operation === 'append'
+      ? this.contract.audit?.onAppend ?? []
+      : this.contract.audit?.onUpdate ?? []
+
+    for (const column of auditColumns) {
+      if (!Object.prototype.hasOwnProperty.call(headerMap.letterByName, column)) {
+        throw new WriteRejectedError(
+          operation.toUpperCase(),
+          `Audit column '${column}' is not present in the sheet header map`,
+        )
+      }
+
+      const value = preparedRow[column]
+      if (value !== undefined) {
+        if (typeof value !== 'string' || !BANGKOK_TIMESTAMP_PATTERN.test(value)) {
+          throw new WriteRejectedError(
+            operation.toUpperCase(),
+            `Audit column '${column}' must use timestamp format yyyy-MM-dd HH:mm:ss`,
+          )
+        }
+        continue
+      }
+
+      preparedRow[column] = timestamp
+    }
+
+    return preparedRow
+  }
+
+  private async validateKeys(
+    client: SheetsApiClient,
+    headerMap: SheetHeaderMap,
+    preparedRows: Array<Record<string, SheetsApiValue>>,
+  ): Promise<void> {
+    const keyValues = preparedRows
+      .map((row) => String(row[this.contract.primaryKey] ?? '').trim())
+      .filter((value) => value !== '')
+    if (keyValues.length === 0) {
+      return
+    }
+
+    const keyColumnLetter = headerMap.letterByName[this.contract.primaryKey]
+    if (keyColumnLetter === undefined) {
+      throw new WriteRejectedError(
+        'APPEND',
+        `Key column '${this.contract.primaryKey}' is not present in the sheet header map`,
+      )
+    }
+
+    const existingKeyValues = await client.readColumn(keyColumnLetter)
+    const uniqueKeyValues = new Set<string>()
+    for (const keyValue of keyValues) {
+      if (uniqueKeyValues.has(keyValue)) {
+        throw new DuplicatePrimaryKeyError('APPEND', this.contract.primaryKey, keyValue)
+      }
+      uniqueKeyValues.add(keyValue)
+    }
+
+    for (const keyValue of uniqueKeyValues) {
+      const existingRowNumber = await findRowNumberByKey(
+        headerMap,
+        this.contract.primaryKey,
+        keyValue,
+        async () => existingKeyValues,
+      )
       if (existingRowNumber !== null) {
-        throw new DuplicatePrimaryKeyError('APPEND', this.contract.primaryKey, primaryKeyValue)
+        throw new DuplicatePrimaryKeyError('APPEND', this.contract.primaryKey, keyValue)
       }
     }
   }
@@ -333,57 +418,19 @@ export class SheetRepository<TDbRow extends object>
   private async batchAppendThroughSheetsApi(
     rows: Array<Partial<TDbRow>>,
   ): Promise<TDbRow[]> {
-    const client = this.sheetsApiClient
-    if (client === undefined) {
-      throw new WriteRejectedError('APPEND', 'Sheets API client is not configured')
-    }
-
-    try {
-      for (const column of Object.keys(this.contract.valueInput ?? {})) {
-        const declaredValueInput = Object.prototype.hasOwnProperty.call(
-          this.contract.valueInput ?? {},
-          column,
-        )
-        const valueInput = resolveValueInputOption(column, this.contract.valueInput)
-        if (declaredValueInput && valueInput !== 'USER_ENTERED') {
-          throw new WriteRejectedError(
-            'APPEND',
-            `Column '${column}' declares valueInput '${valueInput}', which conflicts with the USER_ENTERED request policy.`,
-          )
-        }
-      }
-    } catch (error) {
-      if (error instanceof WriteRejectedError) {
-        throw error
-      }
-      throw new WriteRejectedError(
-        'APPEND',
-        error instanceof Error ? error.message : String(error),
-      )
-    }
-
-    const loader = this.sheetHeaderMapLoader
-    if (loader === undefined) {
-      throw new WriteRejectedError('APPEND', 'Sheets API header map is not configured')
-    }
-
-    let headerMap
-    try {
-      headerMap = await loader.load()
-    } catch (error) {
-      if (error instanceof SheetHeaderMapError) {
-        throw new WriteRejectedError('APPEND', error.message)
-      }
-      throw error
-    }
+    const client = this.requireSheetsApiClient('APPEND')
+    this.validateValueInputPolicy('append')
+    const headerMap = await this.loadSheetsApiHeaderMap('append')
 
     let sentValuesList: SheetsApiValues
     let sentRows: Array<Record<string, SheetsApiValue>>
     try {
-      sentValuesList = rows.map((row) =>
-        buildRowValues(row as Record<string, unknown>, headerMap),
+      const timestamp = formatBangkokTimestamp(this.now())
+      const preparedRows = rows.map((row) =>
+        this.prepareRow(row, headerMap, 'append', timestamp),
       )
-      sentRows = sentValuesList.map((values) => parseRowValues(values, headerMap))
+      sentValuesList = preparedRows.map((prepared) => prepared.values)
+      sentRows = preparedRows.map((prepared) => prepared.row)
     } catch (error) {
       if (error instanceof WriteRejectedError) {
         throw error
@@ -393,6 +440,8 @@ export class SheetRepository<TDbRow extends object>
         error instanceof Error ? error.message : String(error),
       )
     }
+
+    await this.validateKeys(client, headerMap, sentRows)
 
     const response = await client.appendRows(
       sentValuesList,
@@ -444,9 +493,28 @@ export class SheetRepository<TDbRow extends object>
     keyValue: string,
     patch: Partial<TDbRow>,
   ): Promise<TDbRow> {
-    const client = this.requireSheetsApiClient()
-    const headerMap = await this.loadSheetsApiHeaderMap()
+    const client = this.requireSheetsApiClient('UPDATE')
+    this.validateValueInputPolicy('update')
+    const headerMap = await this.loadSheetsApiHeaderMap('update')
     const expectedKey = keyValue
+
+    let preparedPatch: Record<string, unknown>
+    try {
+      preparedPatch = this.prepareAuditRow(
+        patch,
+        headerMap,
+        'update',
+        formatBangkokTimestamp(this.now()),
+      )
+    } catch (error) {
+      if (error instanceof WriteRejectedError) {
+        throw error
+      }
+      throw new WriteRejectedError(
+        'UPDATE',
+        error instanceof Error ? error.message : String(error),
+      )
+    }
 
     let rowNumber: number | null
     try {
@@ -470,10 +538,7 @@ export class SheetRepository<TDbRow extends object>
       )
     }
 
-    const { [this.contract.primaryKey]: _primaryKey, ...dbPatch } = patch as Record<
-      string,
-      unknown
-    >
+    const { [this.contract.primaryKey]: _primaryKey, ...dbPatch } = preparedPatch
     const ranges: SheetsApiValueRange[] = []
 
     try {
@@ -481,18 +546,6 @@ export class SheetRepository<TDbRow extends object>
         const columnLetter = headerMap.letterByName[column]
         if (columnLetter === undefined) {
           throw new Error(`Column '${column}' is not present in the sheet header map`)
-        }
-
-        const declaredValueInput = Object.prototype.hasOwnProperty.call(
-          this.contract.valueInput ?? {},
-          column,
-        )
-        const valueInput = resolveValueInputOption(column, this.contract.valueInput)
-        if (declaredValueInput && valueInput !== 'USER_ENTERED') {
-          throw new WriteRejectedError(
-            'UPDATE',
-            `Column '${column}' declares valueInput '${valueInput}', which conflicts with the USER_ENTERED request policy.`,
-          )
         }
 
         ranges.push({
@@ -547,25 +600,9 @@ export class SheetRepository<TDbRow extends object>
     return storedRow as TDbRow
   }
 
-  private async loadSheetsApiHeaderMap() {
-    const loader = this.sheetHeaderMapLoader
-    if (loader === undefined) {
-      throw new WriteRejectedError('UPDATE', 'Sheets API header map is not configured')
-    }
-
-    try {
-      return await loader.load()
-    } catch (error) {
-      if (error instanceof SheetHeaderMapError) {
-        throw new WriteRejectedError('UPDATE', error.message)
-      }
-      throw error
-    }
-  }
-
-  private requireSheetsApiClient(): SheetsApiClient {
+  private requireSheetsApiClient(operation: 'APPEND' | 'UPDATE'): SheetsApiClient {
     if (this.sheetsApiClient === undefined) {
-      throw new WriteRejectedError('UPDATE', 'Sheets API client is not configured')
+      throw new WriteRejectedError(operation, 'Sheets API client is not configured')
     }
     return this.sheetsApiClient
   }
