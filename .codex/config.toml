@@ -17,5 +17,5 @@ description = "Read-only static reviewer for correctness, safety, data-integrity
 config_file = "agents/sentinel.toml"
 
 [agents."warden"]
-description = "Test-first specification agent that writes tests from acceptance criteria before implementation exists, then mutation-proves every guard against the finished code."
+description = "Test-first specification agent that writes tests from the Public Contract and Acceptance Criteria before implementation exists, then mutation-proves every guard against the finished code."
 config_file = "agents/warden.toml"
