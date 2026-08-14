@@ -172,13 +172,14 @@ test('resolves one value input option for every live header', async () => {
   )
 })
 
-test('uses the Appointments contract date policy and keeps audit timestamps RAW', async () => {
+test('uses the Appointments contract date policy for audit timestamps', async () => {
   assert.equal(
     resolveValueInputOption('AppointmentDate', appointmentsDbContract.valueInput),
     'USER_ENTERED',
   )
-  assert.equal(resolveValueInputOption('CreatedAt', appointmentsDbContract.valueInput), 'RAW')
-  assert.equal(resolveValueInputOption('UpdatedAt', appointmentsDbContract.valueInput), 'RAW')
+  assert.equal(resolveValueInputOption('CreatedAt', appointmentsDbContract.valueInput), 'USER_ENTERED')
+  assert.equal(resolveValueInputOption('UpdatedAt', appointmentsDbContract.valueInput), 'USER_ENTERED')
+  assert.equal(resolveValueInputOption('DeletedAt', appointmentsDbContract.valueInput), 'USER_ENTERED')
 })
 
 const orderedTests = process.env.REVERSE_TESTS === '1' ? [...tests].reverse() : tests
