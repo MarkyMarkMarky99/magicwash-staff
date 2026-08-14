@@ -1,4 +1,0 @@
-interface:
-  display_name: "Implementation Team Lead"
-  short_description: "Run the test-first warden-mason-clerk-sentinel implementation loop"
-  default_prompt: "Use $implementation-team-lead to execute the supplied brief through warden, mason, clerk, and sentinel."
