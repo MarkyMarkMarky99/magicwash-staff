@@ -510,12 +510,13 @@ ok  invoice_id   (ว่าง)                    ->  INV260854062757
 `invoice-view-sync-client.ts:34` เพื่อ recompute InvoicesView **ไม่ใช่การเขียนแถวในชีต**
 จึงไม่ถูกลบไปกับ §2.10
 
-**orphan ที่เหลืออยู่บน Vercel — ไม่เกี่ยวกับ §2.10 เป็นของเก่ากว่านั้น:**
+**✅ orphan ทั้งหมดถูกลบบน Vercel แล้ว (เจ้าของทำเอง 2026-08-15)** ตารางนี้เก็บไว้เป็นบันทึกว่า
+เคยมีอะไรและทำไมถึงลบได้:
 
 | ตัวแปร | หมายเหตุ |
 |---|---|
-| `APPSCRIPT_CUSTOMER_URL` | ไม่มีโค้ดใน webapp-vue อ้างถึง · **ระวังสับสน** โปรเจกต์ Python ที่ repo root ใช้ชื่อเดียวกันจริง แต่อ่านจาก `C:\MagicwashGemini\.env` คนละไฟล์ ⇒ ลบจาก Vercel ไม่กระทบ Python |
-| `VITE_APPOINTMENTS_SCRIPT_URL` | ไม่มีโค้ดอ้างถึง · **ลบออกจาก `.env.local` แล้ว (2026-08-14)** — `src/utils/gateway.js` ที่เคย hardcode URL ไว้ ตอนนี้ถูกลบไปทั้งไฟล์แล้วด้วย ⇒ **ยังค้างอยู่บน Vercel เจ้าของต้องไปลบเองใน dashboard** |
+| `APPSCRIPT_CUSTOMER_URL` | ไม่มีโค้ดใน webapp-vue อ้างถึง · **ระวังสับสน** โปรเจกต์ Python ที่ repo root ใช้ชื่อเดียวกันจริง แต่อ่านจาก `C:\MagicwashGemini\.env` คนละไฟล์ ⇒ ลบจาก Vercel ไม่กระทบ Python · **ลบแล้ว (2026-08-15)** |
+| `VITE_APPOINTMENTS_SCRIPT_URL` | ไม่มีโค้ดอ้างถึง · **ลบออกจาก `.env.local` แล้ว (2026-08-14)** — `src/utils/gateway.js` ที่เคย hardcode URL ไว้ ตอนนี้ถูกลบไปทั้งไฟล์แล้วด้วย ⇒ **ลบบน Vercel แล้ว (2026-08-15)** |
 | `CUSTOMERS_SHEET_NAME` | ไม่มีโค้ดอ้างถึง (ตรวจซ้ำ 2026-08-14 ยังไม่มี) · ยังอยู่ใน `.env.local` และจงใจไม่ใส่ใน `.env.example` |
 
 ⚠️ ทั้งสามข้อยืนยันได้แค่ว่า **ไม่มีอะไรใน webapp-vue อ้างถึง** นอกโปรเจกต์นี้ตรวจไม่ได้
