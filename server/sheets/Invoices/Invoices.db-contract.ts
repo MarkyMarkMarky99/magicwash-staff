@@ -36,5 +36,9 @@ export const invoicesDbContract = {
   // Audit timestamps must remain real Sheets datetime cells for spreadsheet sorting and filtering.
   // USER_ENTERED preserves that cell type for Sheets API writes.
   valueInput: { created_at: 'USER_ENTERED', updated_at: 'USER_ENTERED', deleted_at: 'USER_ENTERED' },
+  audit: {
+    onAppend: ['created_at'],
+    onUpdate: [],
+  },
   writes: { append: true, update: false, delete: false },
 } satisfies SheetContract

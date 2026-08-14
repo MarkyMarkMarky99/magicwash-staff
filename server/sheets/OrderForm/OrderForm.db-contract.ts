@@ -35,5 +35,9 @@ export const orderFormDbContract = {
   // updated_at is intentionally a real Sheets datetime, not plain text.
   // This valueInput declaration records that intent and guards against a conflict.
   valueInput: { updated_at: 'USER_ENTERED' },
+  audit: {
+    onAppend: [],
+    onUpdate: ['updated_at'],
+  },
   writes: { append: false, update: true, delete: false },
 } satisfies SheetContract

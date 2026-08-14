@@ -12,7 +12,6 @@ import {
   WriteRejectedError,
   WriteTransportError,
 } from '../../../../../server/shared/repositories/sheets-api.client.js'
-import { formatBangkokTimestamp } from '../../../../../server/shared/utils/bangkok-timestamp.js'
 
 const { InvoiceService, invoicesFieldMap, invoiceItemsFieldMap } = await import(
   '../../../../../server/modules/invoices/invoice.service.js'
@@ -162,8 +161,8 @@ test('create() returns "created" and calls stages in the exact required order, o
 
   assert.equal(result.kind, 'created')
   assert.deepEqual(calls, ['InvoiceItem.batchAppend', 'Invoice.create', 'OrderForm.update', 'ViewSync'])
-  assert.equal(invoiceAppendCalls[0]?.created_at, formatBangkokTimestamp(fixedNow))
-  assert.equal(orderFormUpdateCalls[0]?.data.updated_at, formatBangkokTimestamp(fixedNow))
+  assert.equal('created_at' in invoiceAppendCalls[0]!, false)
+  assert.equal('updated_at' in orderFormUpdateCalls[0]!.data, false)
   if (result.kind === 'created') {
     assert.equal(result.invoiceNumber, 'INV-0001')
     assert.equal(result.itemCount, 1)

@@ -47,5 +47,9 @@ export const appointmentsDbContract = {
     UpdatedAt: 'USER_ENTERED',
     DeletedAt: 'USER_ENTERED',
   },
+  audit: {
+    onAppend: ['CreatedAt', 'UpdatedAt'],
+    onUpdate: ['UpdatedAt'],
+  },
   writes: { append: true, update: true, delete: false },
 } satisfies SheetContract

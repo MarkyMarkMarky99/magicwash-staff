@@ -35,6 +35,12 @@ export type SheetContract = {
    * Do not build per-column request splitting from this field.
    */
   valueInput?: Partial<Record<string, 'RAW' | 'USER_ENTERED'>>
+  audit?: {
+    /** Physical DB column names stamped with the current timestamp on append. */
+    onAppend?: readonly string[]
+    /** Physical DB column names stamped with the current timestamp on update. */
+    onUpdate?: readonly string[]
+  }
   writes: {
     append: boolean
     update: boolean
