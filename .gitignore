@@ -26,8 +26,11 @@ dist-ssr
 .vercel
 .env*.local
 
-# Local agent configuration
-.claude/
+# Local agent configuration. Skills travel with the repo; everything else here is
+# machine-local. The directory is excluded as `.claude/*`, not `.claude/`, because git
+# does not descend into an excluded directory — a negation inside one never matches.
+.claude/*
+!.claude/skills/
 
 # Nested git worktrees (e.g. for sandboxed agent runs)
 .worktrees/
