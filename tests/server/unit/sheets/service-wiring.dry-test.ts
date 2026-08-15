@@ -150,6 +150,7 @@ test('OrdersView service wiring maps DB columns and decodes the declared JSON ce
       ])
       assert.notEqual(row.items, itemsJson)
       assert.notEqual(row.items, undefined)
+      assert.equal(row.invoiceNumber, null)
       // The backend does not normalize GViz dates; the frontend owns display
       // formatting.
       assert.equal(row.receivedDate, 'Date(2026,6,21)')
