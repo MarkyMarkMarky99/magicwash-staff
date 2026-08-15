@@ -54,7 +54,7 @@ export const fooRowSchema = z.object({
   FooID: z.string(),
   Name: z.string(),
   Notes: z.string().nullable(),
-}) // key order = physical column order; never reorder
+}) // key order = physical column order; never reorder: deriveGVizColumns maps by index
 
 export const fooDbContract = {
   row: fooRowSchema,
@@ -113,19 +113,24 @@ owns the cross-sheet workflow; there is no central repository registry.
 - **Module route wiring is generic, not hand-written** — `createCrudRoutes(service, api)` (`server/shared/http/crud-routes.ts`) builds every module's collection/item `ApiHandler`s from the API contract capability slots; a module never writes its own `ApiHandler`/`ok`/`created`/`okPaged` wiring. Business logic beyond CRUD+filter belongs in the service.
 - **Dependency direction:** `routes → service → sheet repository → queries`.
 - **Sheet ownership is physical:** `server/sheets/<Sheet>/<Sheet>.repository.ts` is the only file that constructs that sheet's `SheetRepository`, behind a lazy memoized `get<Sheet>Repository()` getter. A physical sheet has one row schema, one `SheetContract`, one primary key, and one write-capability declaration.
-- **SheetRepository is DB-only:** it owns GViz queries, column-letter derivation, and Google Sheets API write transport using DB column names. It does not import or understand an API contract.
+- **No sheet barrel:** `server/sheets/` has no `index.ts`, registry object, or re-export hub. Every consumer deep-imports the single repository getter it needs, so a cold start never constructs an unrelated sheet's repository or demands its environment variables.
+- **SheetRepository is DB-only:** it owns GViz queries, column-letter derivation, and Google Sheets API write transport using DB column names. The entire `server/sheets/` tree imports neither `contracts/` nor `server/modules/`; repositories do not import or understand an API contract.
 - **Module mapping is load-bearing:** each DB-shaped service declares `fieldMap` (DB column → API field) and, when needed, `jsonColumns` on `BaseCrudService`. Mapping applies to queries, payloads, and response rows; JSON decoding applies only to the listed text columns.
 - **Primary keys are physical:** `SheetContract.primaryKey` is the real DB column name. The service maps the API id to that column before the repository reads, updates, or deletes.
-- **Type import direction:** feature API schemas in `contracts/` do not import from `server/`; sheet DB contracts may reuse API enums, but API contracts never depend on DB shapes. `ModuleApiContract` is the shared API-side structural type.
+- **Type import direction:** feature API schemas in `contracts/` do not import from `server/`, and API contracts never depend on DB shapes. `ModuleApiContract` is the shared API-side structural type.
 - **What may live in `contracts/`:** per-feature camelCase request/response schemas and enums, the generic request/response envelope (`contracts/shared/api.schema.ts`), and the API contract-shape types (`contracts/shared/module-api-contract.ts`). Never put DB row schemas, repository types, sheet contracts, services, or handler runtime objects there.
 
 ### Key Engine Rules
 
 - **Repository contract:** `BaseCrudService` can consume a DB-shaped `SheetRepositoryContract`; `SheetRepository` implements it with GViz reads and Google Sheets API writes. Storage and transport details stay in the repository; API mapping stays in the module service.
 - **Read pipeline:** `BaseCrudService` validates `api.query.list`, builds `ReadQueryDTO.fromQuery(query, searchFields)` (keyword→search; page/perPage/sort reserved; every other field→`where`), maps API fields to DB fields, and calls the sheet repository. `getById` and `update` address the service id through the physical `primaryKey`.
+- **Row schema key order is load-bearing for reads:** `deriveGVizColumns` (`server/shared/utils/gviz-query.builder.ts`) maps a schema key to its GViz column by index, so swapping two keys makes every read silently pull the wrong column. Reordering is never cosmetic.
 - **Contracts are machine-checked:** API bundles use `satisfies ModuleApiContract`, sheet bundles use `satisfies SheetContract`, and field maps use `satisfies Record<keyof row & string, string>`. Runtime tests must pin field-map values because `satisfies` checks keys and types, not semantic string values.
 - **Cell values are not runtime-validated on reads:** legacy dirty rows must flow through reads and write responses without 500. Response schemas drive projection through their `.shape` key set. A GViz column that resolves to no DB field throws because that is contract drift, not dirty data.
-- **Sheets API contract:** UPDATE looks up the row's line number by primary key (`findRowNumberByKey`, an accepted lookup-to-write race — see that file's doc comment), patches only the changed columns via `values:batchUpdate` under `USER_ENTERED`, then reads the row back and verifies its primary key still matches before returning it. `WriteRejectedError`/`WriteTransportError`/`WriteCommittedUnreadableError`/`DuplicateRowKeyError`/`WriteRowIdentityMismatchError` classify every write outcome into a `rejected`/`unknown` certainty taxonomy. A confirmed write with an unusable response shape (`WriteCommittedUnreadableError`) is a transport-unknown outcome and must not be classified as a rejection, because retrying could duplicate persisted rows.
+- **Never send `null` for a column you are not writing — send `''`:** the Values API skips `null`, which shifts every later column one cell to the left. Append always builds an array the full width of the header map, padding unsent fields with `''`.
+- **`SheetContract.valueInput` is a guard, not the wire value:** the write path always sends `USER_ENTERED` for the whole request; `resolveValueInputOption` exists only to reject a column that declares anything else, so a value can never silently fall back to `RAW`. A column that declares no `valueInput` still goes out as `USER_ENTERED`. Adding a column to `valueInput` therefore fixes no wire-level bug — this has already produced one wrong diagnosis.
+- **`USER_ENTERED` cuts both ways:** `Appointments.AppointmentDate` is deliberately stored as a real Sheets date so GViz date functions can filter it — `RAW` would make it text and break the filter instantly. The opposite risk is equally real: a phone number starting `0` loses its zero, and a value starting `=`/`+`/`-` becomes a formula. That is what per-column `valueInput` declarations exist to flag.
+- **Sheets API contract:** UPDATE looks up the row's line number by primary key (`findRowNumberByKey`, an accepted lookup-to-write race — see that file's doc comment), patches only the changed columns via `values:batchUpdate` under `USER_ENTERED`, then reads the row back and verifies its primary key still matches before returning it. `WriteRejectedError`/`WriteTransportError`/`WriteCommittedUnreadableError`/`DuplicateRowKeyError`/`WriteRowIdentityMismatchError` classify every write outcome into a `rejected`/`unknown` certainty taxonomy. A confirmed write with an unusable response shape (`WriteCommittedUnreadableError`) is a transport-unknown outcome and must not be classified as a rejection, because retrying could duplicate persisted rows. Never auto-retry a write that was already sent: 429/401 are observable only after the request goes out, so a retry risks duplicate rows; retry is allowed for token acquisition only.
 - **Which write path a sheet uses:** every sheet uses the Google Sheets API — `SheetContract` has no `writeTransport`/`scriptUrl` field. Any operation a sheet's `writes` flags leave enabled must have a Sheets API implementation; there is no SheetLib fallback to catch it.
 - **Date values:** the backend returns GViz's raw date form (`Date(Y,M,D)` or the raw text returned by GViz). Date formatting belongs to the frontend.
 - **Audit columns** (`updated_at`/`updated_by`/`deleted_at`/…) normally appear in no response schema. The actor is client input only where the feature contract explicitly permits it.
@@ -191,12 +196,21 @@ under `server/` (e.g. `server/modules/orders/orders.transformer.ts` →
   these stay covered by `typecheck:api`. Frontend tests (`tests/web/`) are deliberately NOT in
   this include — don't widen it to `../tests/**/*.ts`, that would pull frontend code into a
   command named `typecheck:api`.
-- Run `tests/server/integration/sheet-column-parity.ts` against the live sheets before deploying
-  a contract change. It verifies contracts against live sheet headers, not the route registry.
+- **A green typecheck plus dry-tests does not prove behaviour.** Swapped schema key order stays
+  type-correct; a transformer tested as a standalone function is not tested as wired into its
+  service. Worse, fixtures have been edited to match the code instead of the sheet — a
+  characterization test that pins a bug as correct is worse than no test. Run
+  `tests/server/integration/sheet-column-parity.ts` against the live sheets before deploying a
+  contract change; it verifies contracts against live sheet headers, not the route registry, and
+  is the only check that catches this class.
 
 ## Gotchas
 
 - Don't add repository/query methods speculatively — the existing read/query pipeline covers most ad-hoc reads.
 - Don't widen `perPage` past its `.max()` — over-limit is 422, not a clamp.
 - GViz date strings are returned raw; do not parse or format them in the backend. ISO `YYYY-MM-DD` strings compare correctly with `<=` when a service needs a date range.
+- **The Appointments workbook locale is `en_US`.** A timestamp not written as `yyyy-MM-dd HH:mm:ss` either stays text or parses with day and month transposed; 373 cells had to be repaired because of this. `SheetRepository` rejects a caller-supplied audit timestamp that does not match that format — keep it that way.
+- **Only three workbooks have service-account Editor access:** `1tfgJvj` (OrderForm), `1CvVl6a` (Appointments), `1zfhguJ` (Invoices/InvoiceItems). The portal workbook `1ucqeUq` is GViz-read + Apps-Script-written only and must never be granted write access or bound to a writable contract — `tests/server/unit/sheets/writing-workbook-binding.dry-test.ts` enforces this by walking every contract rather than listing sheet names.
+- **The Python project at the repo root has its own `ORDERS_SPREADSHEET_ID` pointing at a different workbook.** Don't touch it, and don't assume a same-named variable means the same spreadsheet.
+- **`G:\My Drive\Magicwash\Database\GoogleSheets\*.json` is read-only.** It is the schema registry shared with that Python project. When registry and code disagree, change the code or report it — never edit the registry to match, because "make them match" always has two solutions and the wrong one rewrites the business's source of truth. The registry can also be stale: the sheet is the truth (`Appointment.json` once declared 15 columns against a live sheet of 17, and believing it took production down).
 - Environment variables are read when each `get<Sheet>Repository()` first initializes its module-scoped cache. A repository needs its workbook id (`CUSTOMERS_SPREADSHEET_ID`, `ORDERS_SPREADSHEET_ID`, …) and, for a sheet it writes, the service-account credentials in `GOOGLE_SERVICE_ACCOUNT_KEY`. There is no shared Apps Script endpoint any more: writes go through the Sheets API, and `APPSCRIPT_INVOICE_VIEW_SYNC_URL` is the only Apps Script URL left — it recomputes InvoicesView and is not a sheet-row write.
