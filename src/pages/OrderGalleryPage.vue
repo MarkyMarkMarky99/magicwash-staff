@@ -23,7 +23,10 @@ const orderitemId = computed(() => galleryKey.value.orderitemId)
 const createdBy = computed(() => (
   typeof route.query.by === 'string' ? route.query.by : ''
 ))
-const title = computed(() => type.value === 'BEF' ? 'รูปก่อนซัก' : 'รูปหลังซัก')
+const photoTabs = [
+  { key: 'BEF', label: 'รูปก่อนซัก' },
+  { key: 'AFT', label: 'รูปหลังซัก' },
+]
 
 const { images, addFiles, remove, clearAll } = usePhotoUpload(type, orderId, orderitemId, createdBy)
 
@@ -132,16 +135,26 @@ function handleCameraCapture(file, options) {
   addFiles([file], options)
 }
 
-function galleryLocation() {
-  const query = { ...route.query }
-  delete query.camera
-  return { path: `/gallery/${route.params.key}`, query }
+function galleryLocation(key, openCamera = route.meta.openCamera === true) {
+  return {
+    path: `/gallery/${key}${openCamera ? '/camera' : ''}`,
+    query: { ...route.query },
+  }
+}
+
+function switchType(nextType) {
+  if (nextType === type.value || !orderId.value) return
+
+  const nextKey = [nextType, orderId.value, orderitemId.value].filter(Boolean).join('-')
+  void router.replace(galleryLocation(nextKey))
 }
 
 function handleCameraClose() {
   showCamera.value = false
   if (route.meta.openCamera === true) {
-    router.replace(galleryLocation())
+    const query = { ...route.query }
+    delete query.camera
+    router.replace({ path: `/gallery/${routeKey.value}`, query })
   }
 }
 </script>
@@ -149,8 +162,25 @@ function handleCameraClose() {
 <template>
   <AppLayout>
     <div class="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div class="flex-none border-b border-outline-variant/20 bg-surface-container-low px-4 py-2">
-        <h1 class="font-headline text-[13px] font-bold tracking-tight text-primary">{{ title }}</h1>
+      <div class="flex-none border-b border-outline-variant/20 bg-primary">
+        <div
+          class="flex items-center gap-1 overflow-x-auto px-4 pt-2"
+          role="tablist"
+          aria-label="เลือกประเภทภาพ"
+        >
+          <button
+            v-for="tab in photoTabs"
+            :key="tab.key"
+            type="button"
+            role="tab"
+            :aria-selected="tab.key === type"
+            class="flex-none border-b-2 px-3 pb-1.5 pt-1 font-label text-[11px] font-semibold tracking-wider transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
+            :class="tab.key === type ? 'border-white text-on-primary' : 'border-transparent text-on-primary/70'"
+            @click="switchType(tab.key)"
+          >
+            {{ tab.label }}
+          </button>
+        </div>
       </div>
 
       <!-- Body -->
