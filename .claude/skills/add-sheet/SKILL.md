@@ -1,9 +1,20 @@
 ---
 name: add-sheet
-description: Wire a new Google Sheet into the backend API end to end — db-contract, repository, API contract, module, route registration, env var, and the six tests that do not auto-discover a new sheet. Use when adding any new physical sheet (photos, or any future tab) or a new module over an existing sheet.
+description: Register an existing Google Sheet with the backend API end to end — db-contract, repository, API contract, module, route registration, env var, and the six tests that do not auto-discover a new sheet. Use when adding any new physical sheet (photos, or any future tab) or a new module over an existing sheet.
 ---
 
-# Adding a sheet to the backend
+# Registering a sheet with the backend
+
+**This never creates or alters a Google Sheet.** The sheet, its tabs, and its columns already
+exist and belong to the business. Registering one means reading what is there and declaring a
+contract that describes it. Adding a column, renaming one, or reordering them is out of bounds —
+for you and for any agent you delegate to. If a contract seems to need a column the sheet does
+not have, that is a decision for the project owner, not a fix to apply.
+
+Physical column names do not affect behaviour. Everything downstream reads the contract, so a
+sheet whose column is called `Timestamp` works exactly as well as one calling it `created_at`.
+Naming consistency belongs in `fieldMap`, where the API field names are chosen — not in the
+sheet.
 
 Seven files, in this order. Skipping the order costs rework: the row schema's key order is
 derived from the live sheet, and everything downstream is derived from the row schema.
@@ -82,7 +93,8 @@ when the caller leaves it `undefined`. If the caller supplies one, it must alrea
 `yyyy-MM-dd HH:mm:ss` (Asia/Bangkok) or the write is rejected — the Appointments workbook locale
 is `en_US`, and any other format either stays text or parses with day and month transposed. 373
 cells once had to be repaired because of this. A listed column missing from the live header row
-is also a rejection.
+is also a rejection. See the **Metadata columns — declare roles, never names** section below for
+the complete role rules.
 
 **`.strict()`** is used on the newer sheets (InvoiceItems, Invoices, Payments) and not on the
 older ones. Use it.
@@ -91,6 +103,52 @@ Column names mirror the physical headers as-is — snake_case, PascalCase, or ca
 the sheet actually uses. Do not normalize them.
 
 A JSON-in-cell column is `z.string()` at this layer. Parsing happens in the module.
+
+## Metadata columns — declare roles, never names
+
+Audit metadata is a set of **roles**. A contract declares which of the sheet's existing columns
+fill them. Physical names differ across sheets and that is fine: `Invoices` declares `created_at`
+for the created-timestamp role, while `OrderForm` has `timestamp` and `Customers` has `Timestamp`
+as corresponding physical columns that are not currently auto-stamped on append. The contract
+determines which role behavior is wired; matching names alone do not make those declarations
+equivalent.
+
+| Role | What it holds |
+|---|---|
+| created-timestamp | when the row was appended |
+| created-actor | who appended it |
+| updated-timestamp | when the row was last patched |
+| updated-actor | who patched it |
+| deleted-timestamp | when the row was soft-deleted |
+| deleted-actor | who soft-deleted it |
+
+A sheet may fill none, some, or all six. **An unfilled role stays unfilled** — never add a column
+to complete the set.
+
+Declaration rules, the same for every sheet:
+
+1. `audit.onAppend` lists the created-timestamp column and nothing else.
+2. `audit.onUpdate` lists the updated-timestamp column and nothing else.
+3. **Actor columns never appear in `audit`.** The repository cannot know who is calling until API
+   authentication exists, so actors arrive in the row payload.
+4. **Declare `audit` and `valueInput` only for a write the contract actually allows.** An
+   `onUpdate` entry on a sheet with `writes.update: false` is a claim the code never honours.
+5. `valueInput: 'USER_ENTERED'` goes on a timestamp column **measured** to hold a real Sheets
+   datetime. A column measured as plain text is left undeclared, with a comment recording what
+   was measured and when — switching it is a data migration, not a contract change.
+6. **Never stamp the updated-timestamp on append.** A row nobody has edited must show an empty
+   updated-timestamp, because that emptiness is the only thing answering "has anyone touched this
+   row?". Filling it on append destroys that answer for every row, permanently.
+7. deleted-timestamp and deleted-actor are never stamped automatically. `delete` is closed; when
+   it opens it is an explicit soft delete.
+
+Naming lands in `fieldMap`, which is free to be consistent because it never touches the sheet:
+map whatever the physical column is called to `createdAt` / `createdBy` / `updatedAt` /
+`updatedBy` / `deletedAt` / `deletedBy` on the API side.
+
+Two sheets predate these rules. **Do not copy them:**
+- `Appointments` lists `UpdatedAt` in `onAppend`, against rule 6.
+- `Customers` declares `audit.onUpdate` while every `writes` flag is `false`, against rule 4.
 
 ## 3. `server/sheets/<Sheet>/<Sheet>.repository.ts`
 
@@ -293,6 +351,8 @@ throwaway spreadsheet first.
 
 ## Rules that outrank convenience
 
+- The sheet's structure is not yours to change. No added column, no rename, no reorder — the row
+  schema describes what already exists.
 - `G:\My Drive\Magicwash\Database\GoogleSheets\*.json` is **read-only**. It is shared with the
   Python project at the repo root. When registry and code disagree, change the code or report it
    — never edit the registry to match. "Make them match" always has two solutions and the wrong
