@@ -344,12 +344,10 @@ export class InvoiceService {
 
   private async invoiceNumberAlreadyUsed(invoiceNumber: string): Promise<boolean> {
     try {
-      const rows = await this.invoiceRepository().read(
-        new ReadQueryDTO<Partial<InvoicesDbRow>>({
-          where: { invoice_number: invoiceNumber },
-        }),
-      )
-      return rows.length > 0
+      // Compare exact keys here rather than using a GViz equality filter;
+      // that builder strips apostrophes from filter values.
+      const rows = await this.invoiceRepository().read()
+      return rows.some((row) => row.invoice_number === invoiceNumber)
     } catch {
       // The preflight is advisory; header append retains duplicate validation
       // so a failed read must never block invoice creation.
