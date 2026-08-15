@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import type { CreateInvoiceRequest } from '../../../../contracts/invoices/invoice-api.schema.js'
 import type {
-  InvoiceHeaderWriter,
+  InvoiceHeaderPort,
   InvoiceItemWriter,
   InvoiceViewReader,
   OrderFormWriter,
@@ -50,7 +50,10 @@ async function main(): Promise<void> {
       return rows.map((row, index) => ({ ...row, invoiceItemId: `stored${index}` }))
     },
   }
-  const invoiceRepository: InvoiceHeaderWriter = {
+  const invoiceRepository: InvoiceHeaderPort = {
+    async read() {
+      return []
+    },
     async append(data) {
       headerCreateCallCount += 1
       calls.push('Invoice.create')
