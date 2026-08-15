@@ -8,11 +8,12 @@ import { customersDbContract } from '../../../../server/sheets/Customers/Custome
 import { invoiceItemsDbContract } from '../../../../server/sheets/InvoiceItems/InvoiceItems.db-contract.js'
 import { invoicesDbContract } from '../../../../server/sheets/Invoices/Invoices.db-contract.js'
 import { invoicesViewDbContract } from '../../../../server/sheets/InvoicesView/InvoicesView.db-contract.js'
+import { laundryPhotosDbContract } from '../../../../server/sheets/LaundryPhotos/LaundryPhotos.db-contract.js'
 import { orderFormDbContract } from '../../../../server/sheets/OrderForm/OrderForm.db-contract.js'
 import { ordersViewDbContract } from '../../../../server/sheets/OrdersView/OrdersView.db-contract.js'
 import { paymentsDbContract } from '../../../../server/sheets/Payments/Payments.db-contract.js'
 
-const expectedSheetCount = 9
+const expectedSheetCount = 10
 const expectedSheetDirectories = [
   'Appointments',
   'CustomerPackageView',
@@ -20,6 +21,7 @@ const expectedSheetDirectories = [
   'InvoiceItems',
   'Invoices',
   'InvoicesView',
+  'LaundryPhotos',
   'OrderForm',
   'OrdersView',
   'Payments',
@@ -61,6 +63,12 @@ const bindings = [
     contract: invoicesViewDbContract,
     expectedSpreadsheetId: 'PORTAL_SPREADSHEET_ID',
     expectedSheetName: 'InvoicesView',
+  },
+  {
+    name: 'LaundryPhotos',
+    contract: laundryPhotosDbContract,
+    expectedSpreadsheetId: 'ORDERS_SPREADSHEET_ID',
+    expectedSheetName: 'LaundryPhotos',
   },
   {
     name: 'OrderForm',

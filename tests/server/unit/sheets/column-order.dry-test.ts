@@ -5,6 +5,7 @@ import { customerPackageViewDbContract } from '../../../../server/sheets/Custome
 import { invoicesDbContract } from '../../../../server/sheets/Invoices/Invoices.db-contract.js'
 import { invoiceItemsDbContract } from '../../../../server/sheets/InvoiceItems/InvoiceItems.db-contract.js'
 import { invoicesViewDbContract } from '../../../../server/sheets/InvoicesView/InvoicesView.db-contract.js'
+import { laundryPhotosDbContract } from '../../../../server/sheets/LaundryPhotos/LaundryPhotos.db-contract.js'
 import { orderFormDbContract } from '../../../../server/sheets/OrderForm/OrderForm.db-contract.js'
 import { ordersViewDbContract } from '../../../../server/sheets/OrdersView/OrdersView.db-contract.js'
 import { paymentsDbContract } from '../../../../server/sheets/Payments/Payments.db-contract.js'
@@ -145,6 +146,29 @@ const tests: ColumnOrderTest[] = [
       net_total: 'N',
     },
     primaryKeyColumn: 'B',
+  },
+  {
+    name: 'LaundryPhotos',
+    contract: laundryPhotosDbContract,
+    expected: {
+      id: 'A',
+      order_id: 'B',
+      orderitem_id: 'C',
+      item_id: 'D',
+      image_path: 'E',
+      image_url: 'F',
+      notes: 'G',
+      timestamp: 'H',
+      created_by: 'I',
+      updated_by: 'J',
+      updated_at: 'K',
+      checked: 'L',
+      is_active: 'M',
+      file_id: 'N',
+      deleted_at: 'O',
+      deleted_by: 'P',
+    },
+    primaryKeyColumn: 'A',
   },
   {
     name: 'Payments',
