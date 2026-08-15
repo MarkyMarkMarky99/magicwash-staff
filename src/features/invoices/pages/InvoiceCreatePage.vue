@@ -27,6 +27,7 @@ import InvoiceAdjustmentsEditor from '../components/InvoiceAdjustmentsEditor.vue
 import InvoiceTotalsPreview from '../components/InvoiceTotalsPreview.vue'
 import { loadInvoiceCreateContext } from '../services/invoice-create-context.service'
 import { addSheetDateDays, sheetDateDaysBetween, todaySheetDate } from '@/shared/utils/sheet-date'
+import { useDuplicateInvoiceWarning } from '@/shared/composables/use-duplicate-invoice-warning'
 
 const router = useRouter()
 const route = useRoute()
@@ -39,6 +40,7 @@ const { customer } = storeToRefs(selectedCustomerStore)
 const contextLoading = ref(false)
 const contextError = ref<string | null>(null)
 let contextRequestId = 0
+const { warningInvoiceNumber } = useDuplicateInvoiceWarning(order)
 
 function todayIso(): string {
   return todaySheetDate()
@@ -323,6 +325,14 @@ async function copyLiffUrl(invoiceNumber: string) {
 <template>
   <AppLayout>
   <main class="flex-1 overflow-y-auto bg-surface pb-24">
+    <div v-if="warningInvoiceNumber" class="mx-4 mt-4 flex items-start gap-2 rounded-xl border border-tertiary/30 bg-tertiary-container/20 px-3 py-2.5 text-on-surface">
+      <span class="material-symbols-outlined mt-0.5 shrink-0 text-[18px] leading-none text-tertiary" aria-hidden="true">warning</span>
+      <p class="font-body text-sm leading-relaxed">
+        This order already has invoice <span class="font-semibold">{{ warningInvoiceNumber }}</span>.
+        You can still create another invoice.
+      </p>
+    </div>
+
     <div v-if="contextLoading" class="flex flex-col items-center gap-3 px-6 py-16 text-center">
       <span class="material-symbols-outlined animate-spin text-[40px] text-primary" aria-hidden="true">progress_activity</span>
       <h1 class="font-headline text-base font-bold text-on-surface">Loading order</h1>
