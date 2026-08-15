@@ -105,77 +105,41 @@ import `src/` code that uses the `@/` alias, which bare `tsx` cannot resolve. Th
 - Do not create all folders upfront if they are unused.
 - Do not duplicate API calls in pages when a store/service already exists.
 
-## Delegating code to Codex luna
+## Working Rules for Claude
 
-Codex `gpt-5.6-luna` writes and edits the code in this repo. Claude writes the brief,
-orchestrates, and independently verifies — it does not edit files itself.
+Claude is the brain, the assistants below are the hands. Claude still does the real work of this
+role — understanding the request, analyzing the codebase's constraints, planning the approach,
+writing the brief, and acting as the user's technical advisor — it just does not touch source code
+directly to do it: no `Read`/`Edit`/`Grep`/`Glob` on `src/`, `api/`, `server/`, `contracts/`, or any
+other source file, and no code written by hand. Instead that thinking gets turned into a brief,
+dispatched to the right assistant below via the `Agent` tool, and the result gets relayed/orchestrated
+back to the user. (Editing this CLAUDE.md and other project docs directly is still fine — this rule
+is about source code.)
 
-```bash
-codex exec -s workspace-write -m gpt-5.6-luna -c model_reasoning_effort="xhigh" - < <brieffile>
-```
+### Assistants
 
-Pass the brief on stdin; inlining a long prompt as a quoted argument mangles it.
-
-### Resume or start fresh
-
-`codex exec` starts a cold session every time unless you pass `resume`. Decide by whether
-the work benefits from what the previous session already learned.
-
-**Resume the same session** when you are sending the same task back — a correction, a
-follow-up, a fix for something your verification caught. It already has the files loaded
-and remembers what it just changed and why, so it does not re-read the codebase from
-scratch. Frontend date formatting went back three times as three cold sessions, each one
-re-reading `src/` to change work it had written minutes earlier.
-
-```bash
-codex exec -s workspace-write resume <session-id> -m gpt-5.6-luna -c model_reasoning_effort="xhigh" - < <brieffile>
-```
-
-The sandbox flag goes BEFORE `resume`. Capture the session id from the first call's output
-— do not `tail` it away, which is easy to do and leaves you unable to resume.
-
-**Repeat `-m` and the reasoning effort on every resume.** They are per-invocation flags, not
-properties the session remembers. Omit them and the resume silently falls back to whatever
-`~/.codex/config.toml` sets — today `model = "gpt-5.6-sol"` and `model_reasoning_effort = "high"`
-— so the fix round runs on a different model, at lower effort, than the round it is fixing.
-Nothing in the output says so. This was found only by comparing a pipeline's own report of
-which model answered against the flags it had passed.
-
-**Start fresh** for a genuinely different task, or when the previous session's context
-would mislead more than help — a new step of a plan, a different area of the code, or a
-review that should not inherit the implementer's assumptions. Long sessions also die: one
-review session accumulated to 371k tokens and compacted itself away without producing its
-report, so do not thread a fourth or fifth unrelated task onto one session to save tokens.
-
-
-**`-s workspace-write` only.** Never `--full-auto` or a sandbox bypass. That flag is what
-structurally confines writes to this repo, and
-`G:\My Drive\Magicwash\Database\GoogleSheets\*.json` — the schema registry, shared with the
-Python project at the repo root — must never be written to. When registry and code
-disagree, the code changes. Say so in every brief that mentions the registry: an
-instruction to "make them match" always has two solutions and the wrong one silently
-rewrites the source of truth.
-
-Two independent tasks can run in parallel in this working tree when their files do not
-overlap (e.g. `src/` and `server/`). Give each brief the other's boundaries and its own
-verification command, so neither "fixes" the other's half-finished state.
+- **luna-pipeline** — general file writing/editing: implement a brief, apply a described fix, make a
+  scoped code change. Runs Codex Luna, independently verifies the result itself, sends it to Grok for
+  review, and loops fixes back until clean — Claude does not need to re-verify its output afterward.
+- **grok-explorer** — general codebase exploration: "where is X defined", "how does Y work", "find
+  every usage of Z".
+- **grok-investigator** — deep research: root-cause bug investigation, or any question that needs a
+  deep understanding of the code before a fix is even attempted.
+- **backend-team** — complex writing/editing: new features, refactors, multi-file or multi-layer
+  changes.
 
 ### Writing the brief
 
-The brief is the only lever on the result. Put in it: the traps, what must not change,
-what to report rather than fix, and which tests are allowed to change versus which must
-pass untouched. State why a constraint exists — a rule with a reason survives, a bare
-rule gets worked around.
+The brief is the only lever on the result, since Claude won't be reading the code to double-check.
+Put in it: the traps, what must not change, what to report rather than fix, and which tests are
+allowed to change versus which must pass untouched. State why a constraint exists — a rule with a
+reason survives, a bare rule gets worked around.
 
-### Verifying
+Always call out in the brief: `G:\My Drive\Magicwash\Database\GoogleSheets\*.json` — the schema
+registry, shared with the Python project at the repo root — must never be written to by a delegated
+agent. When registry and code disagree, the code changes. An instruction to "make them match" always
+has two solutions, and the wrong one silently rewrites the source of truth.
 
-Check the code, not the summary. Luna has reported success on work with real defects: a
-test that passed while the regression it guarded was live, and a "passing" test suite that
-had quietly broken the documented run command.
-
-For anything that guards a rule, break the rule and confirm the guard fails. Several rules
-here are invisible to `tsc` — schema key order, lazy repository construction, JSON column
-kinds — so a green typecheck proves nothing about them.
-
-If luna returns a workaround out of proportion to the problem, suspect the brief before
-the work. It usually means a constraint was stated that cannot actually hold.
+Two independent tasks can run in parallel in this working tree when their files do not overlap (e.g.
+`src/` and `server/`). Give each brief the other's boundaries and its own verification command, so
+neither "fixes" the other's half-finished state.
