@@ -129,8 +129,7 @@ caller** เพราะเป็นของฝั่ง append ซึ่ง `a
 
 §2.5 (`bedc81e`) พบว่า **ทำไปแล้วจริงตั้งแต่ §2.2** — `sheets-api.client.ts` classify ครบทุก
 phase ตามตาราง §2.5 อยู่แล้ว เหลือแค่เทสต์ 2 เคสที่ implement ไว้แต่ไม่มี dry-test คลุม (ปิด
-ไปแล้ว ไม่มีโค้ด production เปลี่ยน) รายละเอียดอยู่ที่ implementation note ใต้ §2.4/§2.5 ใน
-`docs/database-layer-sheets-api-refactor-plan.md`
+ไปแล้ว ไม่มีโค้ด production เปลี่ยน) รายละเอียดอยู่ที่หมวด 3b ของไฟล์นี้
 
 §2.6 (`0e0ca23`) มีโค้ด production จริง 4 ชิ้น: `appendRows` รับ `knownWidth?` (Part A),
 `buildRowRange` / `parseRowValues` / `readRange` / `sheet-row-identity.ts`'s
@@ -198,7 +197,7 @@ Plain Text) เพราะมีประโยชน์กับคนที�
   ตัวเลข 20/15 ในตารางก็ผิด เพราะสคริปต์ตรวจใช้ `limit 20` จำนวนจริงคือ 364 แถว
   ⇒ **ตรวจซ้ำได้ด้วย `tests/server/integration/raw-column-type-check.ts`** (ระวัง `limit 20`)
   ⇒ คำตัดสิน 3.5 (2026-08-10) กำหนดปลายทางเป็น datetime จริงทุกชีต แต่ **ทำหลัง §2.9**
-  รายละเอียดอยู่หมวด 3 ของ [`session-2026-08-10-overnight.md`](./session-2026-08-10-overnight.md)
+  รายละเอียดอยู่หมวด 3b ของไฟล์นี้
 
 ### ✅ รากของปัญหา timestamp — locale ไม่ใช่ cell format (2026-08-15)
 
@@ -528,22 +527,27 @@ ok  invoice_id   (ว่าง)                    ->  INV260854062757
 **ต้องเก็บไว้แน่นอน:** `VITE_APPOINTMENTS_SPREADSHEET_ID` / `VITE_CUSTOMERS_SPREADSHEET_ID`
 (`src/utils/constants.js:2-3`)
 
-### 📚 เอกสารอื่นใน `docs/` เป็นบันทึกประวัติศาสตร์แล้ว — ไฟล์นี้คือสถานะจริง
+### 📚 เอกสารเก่าใน `docs/` ถูกลบแล้ว — ไฟล์นี้คือเอกสารเดียวที่เหลือ
 
-ไฟล์ข้างล่างถูกเขียนระหว่างทางและ **ไม่ได้อัปเดตตามตอนปิด Phase 2** ยังอ่านได้เพื่อดู *เหตุผล*
-ว่าทำไมถึงตัดสินใจแบบนั้น แต่ **อย่าเชื่อประโยคที่บอกสถานะ**
+งานที่จบแล้วไม่เก็บเป็นเอกสาร เก็บไว้ใน git แทน · หกไฟล์ข้างล่างถูกลบ 2026-08-15
+ทั้งหมดยังอ่านได้เต็มๆ ด้วยคำสั่งนี้ (คอมมิตสุดท้ายที่ยังมีไฟล์ครบ):
 
-| ไฟล์ | ตกยุคตรงไหน |
+```bash
+git show d069622:docs/<ชื่อไฟล์>
+```
+
+| ไฟล์ที่ลบ | มันบันทึกอะไรไว้ |
 |---|---|
-| `session-2026-08-10-overnight.md` | log ตามวัน · หมวด 3 (ตารางคำตัดสิน) ยังมีค่า ที่เหลือคือสถานะของคืนนั้น |
-| `phase-2-9-test-charter.md` | คอลัมน์สถานะทุกตารางเป็นบันทึก Phase A (แปะ banner บอกไว้ที่หัวไฟล์แล้ว 2026-08-14) · *เหตุผล* ของแต่ละข้อยังใช้ได้ |
-| `database-layer-sheets-api-refactor-plan.md` | ยังบรรยาย dual-path SheetLib ซึ่ง §2.10 ลบทิ้งแล้ว · แผน §2.0–§2.10 ยังใช้อ้างอิงได้ |
-| `appointment-gsheet-repository-refactor-plan.md` | แผนยุค SheetLib · checklist ติ๊กครบแล้ว |
-| `invoice-module-refactor-plan.md` · `invoice-refactor-smoke-checklist.md` | รอบ refactor ก่อนหน้า ทับกับแผน sheets-API |
+| `database-layer-sheets-api-refactor-plan.md` | แผนหลัก Phase 1–2 ทั้งหมด (§1.1–§2.10) · เหตุผลรายขั้น + landmine M1–M3 |
+| `phase-2-9-test-charter.md` | charter ของ §2.9 — อะไรพิสูจน์ได้/ไม่ได้ในแต่ละ stage + ลำดับ deploy gate |
+| `session-2026-08-10-overnight.md` | log คืน 2026-08-10 · คำตัดสิน 3.1–3.6 + ตารางวัด column type ดิบ |
+| `appointment-gsheet-repository-refactor-plan.md` | แผน refactor appointments ยุค SheetLib (ติ๊กครบแล้ว) |
+| `invoice-module-refactor-plan.md` | แผน refactor invoice module รอบก่อนหน้า |
+| `invoice-refactor-smoke-checklist.md` | smoke checklist ของ refactor รอบนั้น |
 
-**จงใจไม่ลบและไม่ยุบรวม** — มันเก็บ *เหตุผล* ที่สร้างใหม่ไม่ได้ถ้าลบไป การแปะป้ายว่า
-"ประวัติศาสตร์" ถูกกว่าและไม่ทำข้อมูลหาย · ถ้าจะทำต่อ ให้แปะหมายเหตุที่ **หัวไฟล์นั้นๆ** เอง
-เพราะคนที่เปิดไฟล์ตรงไม่ได้ผ่านตารางนี้
+**ก่อนลบได้กู้ข้อบังคับที่ยังมีผลออกมาหมดแล้ว** — กฎถาวรของสถาปัตยกรรมไปอยู่ `api/CLAUDE.md`
+ส่วนคำตัดสินที่ผูกกับงานที่ยังไม่ได้ทำอยู่ในหมวด 3b ของไฟล์นี้
+⇒ ขุด git เพื่อดู **ประวัติ** เท่านั้น ไม่ต้องขุดเพื่อหากฎ
 
 ### SheetLib ฝั่ง browser — ตรวจซ้ำ 2026-08-14 (grok-explorer + spot-check เอง), พบ 2 เส้นทาง คนละสถานะ
 
@@ -749,14 +753,12 @@ key แยกสำหรับ Development แล้ว ตอนนี้พ�
 map error class ใหม่ให้ครบ · `delete` โยน "ยังไม่รองรับ" · **metadata timestamp ทุกชีตต้องเป็น
 `2026-08-09 23:15:21` และเป็น datetime จริง** · Appointments ต้องมี `certainty`
 
-**ตารางคำตัดสินเต็ม + ที่มา + ข้อจำกัดที่ต้องรู้** อยู่ที่หมวด 3 ของ
-[`session-2026-08-10-overnight.md`](./session-2026-08-10-overnight.md)
+**ตารางคำตัดสินเต็ม + ที่มา + ข้อจำกัดที่ต้องรู้** อยู่ที่หมวด 3b ของไฟล์นี้
 
 **ลำดับที่เจ้าของกำหนด:** §2.9 ให้จบก่อน แล้วใช้การแก้ timestamp เป็น **smoke test ของ
 transport ใหม่** (เขียน 1 แถว → ตรวจ → ยิงที่เหลือ)
 
-รายละเอียดครบพร้อมทางเลือกอยู่ในหมวด 3 ของ **[`session-2026-08-10-overnight.md`](./session-2026-08-10-overnight.md)**
-— รายงานงานที่ทำระหว่างเจ้าของโปรเจกต์นอน อ่านไฟล์นั้นก่อนเริ่ม §2.9
+รายละเอียดครบพร้อมทางเลือกอยู่ในหมวด 3b ของไฟล์นี้ — อ่านก่อนเริ่ม §2.9
 
 รายละเอียดอยู่ใน §2.0–§2.10 ของแผน
 
@@ -856,6 +858,74 @@ luna เลยยัด loader hack เข้าไปในไฟล์เท�
 - ถ้ามี process ค้างเยอะ background task จะถูก kill โดยไม่มีสาเหตุชัดเจน — เคยค้าง 49 ตัว
   เก็บได้ 17 ตัว/416MB ตรวจด้วย `Get-CimInstance Win32_Process` แล้วฆ่าเฉพาะที่เริ่มก่อนวันนี้
   (ไล่ parent chain ของตัวเองออกมาก่อน อย่าฆ่า session ตัวเอง)
+
+---
+
+## 3b. ข้อบังคับที่ยังมีผลกับงานที่เหลือ — ตัดสินไปแล้ว ห้ามรื้อ
+
+กู้ออกมาจากเอกสารที่ลบไป 2026-08-15 เพราะยังบังคับงานที่ **ยังไม่ได้ทำ** ไม่ใช่บันทึกของงานที่จบแล้ว
+แต่ละข้อคือคำตัดสินที่ปิดแล้ว — agent ตัวถัดไปห้ามหยิบมา "แก้" เพราะนึกว่าเป็นบั๊ก
+
+**TOCTOU ของ keyed update — ยอมรับแล้ว ห้ามเสนอ lock/CAS/retry**
+`update()` = อ่าน key column → หา row index → เขียน · SheetLib เดิมทำใต้ `LockService` จึงทนแถวขยับ
+นี่คือจุดเดียวที่ถอยหลังจริงจากการย้าย transport และเจ้าของโปรเจกต์เลือกยอมรับ
+(ไม่ทำ verification read เพิ่ม ไม่ทำ CAS ไม่ตั้ง protected range) มี doc comment กำกับที่
+`findRowNumberByKey` แล้ว · การตรวจ PK หลัง write จับได้เฉพาะกรณีแถวขยับ *ระหว่าง* write กับ
+read-back **ไม่ได้แก้ race ช่วง lookup→write** และไม่ได้ตั้งใจจะแก้
+
+**`delete` ปิดตาย (คำตัดสิน 3.4)**
+`writes.delete: false` ทุกชีต โยน "ยังไม่รองรับ" · การเปิดเองโดยไม่มีใครอนุมัติคือการเปลี่ยน
+business behavior ที่ไม่มีใครขอ · ถ้าเปิดในอนาคต DELETE ต้องเป็น **soft delete**
+(เซ็ต `deleted_at`/`deleted_by` ไม่ลบแถวจริง) ตามที่ SheetLib เดิมทำ
+
+**invoice create ไม่ idempotent และจะไม่มี multi-sheet transaction**
+เขียน 4 ชีตติดกันโดยไม่มี atomicity — **ตั้งใจ** · `values:batchUpdate` ไม่ใช่ทางออก
+เพราะต้องระบุ range ล่วงหน้าและไม่มี `INSERT_ROWS`
+`invoice.service.ts` มี outcome 3 แบบรับมือ partial failure อยู่แล้ว: `items_write_failed`
+(ยังไม่ได้เขียน items เลย) · `invoice_write_failed` (items เขียนแล้ว header ไม่สำเร็จ — ต้อง
+reconcile ด้วยมือ) · `order_link_failed` (invoice ครบ แค่ OrderForm ไม่ถูก mark)
+⇒ งานที่ยังเหลือคือ **pre-flight cross-sheet check ก่อน write ตัวแรก** (`OrderForm.invoice_id` /
+`Invoices.invoice_number`) ไม่ใช่การทำ transaction และไม่ใช่การเพิ่ม retry
+
+**ห้าม auto-retry write ที่ยิงออกไปแล้ว**
+429/401 สังเกตได้หลังยิงเท่านั้น ⇒ retry = เสี่ยงเขียนซ้ำ (`InvoiceItems` ซ้ำทั้งชุด, header ซ้ำ)
+retry ได้เฉพาะ **token acquisition** · `WriteCommittedUnreadableError` แปลว่า
+**เขียนสำเร็จแน่นอนแล้ว** แค่อ่านผลกลับไม่ได้ — ข้อความต้องบอกชัดว่าห้าม retry
+
+**`InvoicesView` sync ต้องอยู่กับ Apps Script**
+`APPSCRIPT_INVOICE_VIEW_SYNC_URL` คือ trigger คำนวณ materialized view **ห้ามลบ ห้ามสลับไป
+Sheets API** · แบ่งหน้าที่ถาวร: Apps Script = คำนวณ/trigger · Sheets API = CRUD writes · GViz = reads
+
+**Customers write = เขียน business flow ใหม่ ไม่ใช่ migration**
+`appscript/customer-sheet/API.js` เป็น Apps Script คนละโปรเจกต์ มี `LockService` ของตัวเอง
+ตอน CREATE จอง `CustomerIndex` จากชีต `CustomerIDMapping` เช็คเบอร์ซ้ำ และยิง LINE notification
+⇒ `Customers.db-contract.ts` ตั้ง `writes: false` **แต่แปลว่า "ยังไม่เปิด" ไม่ใช่ "ห้ามเปิด"**
+route POST/PATCH ต้องคง fail แบบเดิมไว้ **ห้ามถอดออก** (จะกลายเป็น behavior change)
+
+**เพิ่ม `certainty` เข้า `appointment-api.schema.ts` — ตัดสินแล้วว่าต้องทำ แต่เป็นงานแยก**
+วันนี้ error ทุกคลาสตกเป็น `500 INTERNAL_ERROR` ข้อความจริงถูก `console.error` ไว้แต่ไม่ถึง client
+(`api-handler.ts:58-71`) · ตัดสิน 2026-08-10 ว่าต้องเพิ่ม mapping ไม่ปล่อยเป็น 500 เสมอ
+แต่มันแตะ API contract ⇒ กระทบ frontend ⇒ ห้ามทำปนกับงานอื่น
+· `certainty` เป็น public contract แล้ว (`contracts/invoices/invoice-api.schema.ts`)
+**ห้ามยุบ error taxonomy**
+
+**ปลายทางของคอลัมน์ timestamp คือ datetime จริงทุกชีต (คำตัดสิน 3.5)**
+รูปแบบ `YYYY-MM-DD HH:MM:SS` zero-padded เรียง lexicographic ตรงกับเวลาจริงอยู่แล้ว ⇒ ย้ายไป
+Supabase ได้โดยไม่ต้องแปลงข้อมูล · **ทุก design ต่อจากนี้ควรออกแบบให้สลับไป Supabase ได้ง่าย
+แม้จะยังไม่ทำตอนนี้**
+
+**งานที่เหลือต้องพิสูจน์ด้วยของจริง mock ไม่พอ**
+`USER_ENTERED` vs date/phone — ต้องยิงกับ spreadsheet ทิ้งได้จริงแล้วอ่านกลับผ่าน **GViz**
+เพื่อยืนยันว่า `AppointmentDate` ยัง filter ด้วยฟังก์ชันวันที่ได้
+· branch deploy ได้ **preview URL ไม่ใช่ production alias** ⇒ curl ที่ preview URL ก่อน
+แล้วค่อย promote แล้ว curl ซ้ำที่ prod alias
+· ก่อนแตะชีต production ให้ทดสอบ append/update/serialization/error path กับ spreadsheet ทิ้งได้ก่อน
+
+**ของที่ต้องให้เจ้าของโปรเจกต์กดเอง — agent ห้ามทำแทนหรือหาทางอ้อม**
+เลือก order/ข้อมูลจริงที่ "ทิ้งได้" สำหรับ smoke test (เป็นข้อมูลธุรกิจจริง) · กด deploy
+· กดผ่าน staff UI จริง · `GOOGLE_SERVICE_ACCOUNT_KEY` บน Vercel เป็น Sensitive อ่านย้อนกลับ
+ไม่ได้ พิสูจน์ได้ทางเดียวคือยิงผ่าน deploy จริง
+· **เปิด Vercel Authentication กลับก่อนระบบมีผู้ใช้จริง** — ตอนนี้ปิดชั่วคราว ไม่ใช่ของถาวร (ดูหมวด 5)
 
 ---
 
@@ -1025,7 +1095,6 @@ Vercel Authentication อีก — ตอนนี้ความปลอด�
 
 | ไฟล์ | คืออะไร |
 |---|---|
-| `docs/database-layer-sheets-api-refactor-plan.md` | แผนเต็ม + สถานะปิด Phase 1 |
 | `CLAUDE.md` | กฎ frontend + **วิธี delegate ให้ luna** |
 | `AGENTS.md` / `api/CLAUDE.md` | กฎ backend — เขียนใหม่แล้วให้ตรงสถาปัตยกรรมปัจจุบัน |
 | `server/shared/repositories/sheet.repository.ts` | หัวใจของ write transport — แต่ **ไม่ใช่ไฟล์เดียวที่ต้องแก้** stage 1 แตะ 8 ไฟล์ (repo + `sheet-contract.ts` + db-contract ของชีตนั้น + service ที่ map error + เทสต์ 4 ไฟล์) |
