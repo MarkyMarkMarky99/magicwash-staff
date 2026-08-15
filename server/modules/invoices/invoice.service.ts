@@ -261,7 +261,6 @@ export interface InvoiceServiceOptions {
   syncInvoiceView?: ViewSyncFn
   generateItemId?: () => string
   createdBy?: string
-  now?: () => Date
 }
 
 /**

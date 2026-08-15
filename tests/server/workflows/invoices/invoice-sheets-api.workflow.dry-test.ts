@@ -193,7 +193,6 @@ async function main(): Promise<void> {
     // The Apps Script view-sync integration is a separate URL/endpoint;
     // stub it so this test focuses on the three source-sheet writes.
     syncInvoiceView: async () => ({ outcome: 'confirmed' }),
-    now: () => fixedNow,
     generateItemId: () => {
       itemIdIndex += 1
       // 8-char primary keys matching invoice_item_id length.

@@ -55,7 +55,6 @@ export interface AppointmentServiceOptions {
   /** Optional transformer for Address snapshot pack/unpack. */
   transformer?: RepositoryTransformer
   generateAppointmentId?: () => string
-  now?: () => Date
 }
 
 /**
