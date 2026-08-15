@@ -81,7 +81,6 @@ function createService(id: string, now: Date): AppointmentService {
     fieldMap: appointmentsFieldMap,
     transformer: createAppointmentTransformer(),
     generateAppointmentId: () => id,
-    now: () => now,
   })
 }
 

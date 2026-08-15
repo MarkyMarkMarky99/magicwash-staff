@@ -82,7 +82,6 @@ function createService(repository = new RecordingRepository()): {
       fieldMap: appointmentsFieldMap,
       transformer: createAppointmentTransformer(),
       generateAppointmentId: () => 'APPT-generated',
-      now: () => fixedNow,
     }),
     repository,
   }

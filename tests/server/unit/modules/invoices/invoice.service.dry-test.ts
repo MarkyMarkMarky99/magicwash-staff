@@ -38,8 +38,6 @@ interface FakeConfig {
   viewSyncError?: unknown
 }
 
-const fixedNow = new Date('2026-04-01T00:34:56.000Z')
-
 function createService(config: FakeConfig = {}): Fakes {
   const calls: string[] = []
   const invoiceAppendCalls: Record<string, unknown>[] = []
@@ -89,7 +87,6 @@ function createService(config: FakeConfig = {}): Fakes {
       let n = 0
       return () => `item${String(n++).padStart(4, '0')}`
     })(),
-    now: () => fixedNow,
   })
 
   return { service, calls, invoiceAppendCalls, orderFormUpdateCalls }
