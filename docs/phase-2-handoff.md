@@ -22,12 +22,22 @@
 >    duplicate-key guard (ต่างจาก `append()` เดี่ยว) ⇒ retry แล้วได้ line item ซ้ำ
 > 3. **อัปโหลดรูปยัง bypass backend** — `src/api/photos.js:3` ยิง Apps Script ตรงจาก browser
 
-> 🔴 **dry-test suite แดงอยู่บน `main` — 4 ไฟล์** (ตรวจ 2026-08-15 โดย checkout `main` สะอาด
-> แล้วรันเอง จึงไม่ใช่ผลจาก branch งานใหม่) ⇒ ประโยค "dry-test 38/38 ✅" ตอน merge **ตกยุคแล้ว**
-> `appointment.transport` · `service-wiring` · `invoice-api.workflow` · `invoice-sheetlib.workflow`
-> ทั้งสี่พังเหมือนกันหมดที่ `WriteTransportError: readColumn did not receive a response` —
-> `rejectDuplicateAppendKey` เรียก `findRowNumberByKey` → `readColumn` เพิ่มมาทีหลัง แต่ mock
-> `fetch` ในเทสต์ไม่ได้ stub GET ตัวนั้น · **ยังไม่มีใครแก้ ไม่ได้อยู่ใน scope งานไหน**
+> ✅ **dry-test suite แดง 5 ไฟล์ — ซ่อมครบแล้ว 2026-08-15** (เดิมบันทึกไว้ว่า 4 ไฟล์ · ตัวที่ 5
+> `order-form.sheets-api` เจอตอนที่ pipeline ปฏิเสธไม่รับงานเพราะ suite ไม่เขียว)
+> **ไม่ใช่ regression ของโค้ด — mock ตกยุคตามหลัง repository** สองแบบ:
+> · สี่ตัวแรกพังที่ `WriteTransportError: readColumn did not receive a response` เพราะ append
+> เรียก `validateKeys` → `readColumn` ตรวจ duplicate key ก่อนเขียน แต่ mock ไม่ได้ stub GET ตัวนั้น
+> · `order-form.sheets-api` (ผ่านบน `main` แดงบน branch) พังเพราะ `audit.onUpdate: ['updated_at']`
+> ทำให้ repository ฉีดคอลัมน์เพิ่ม ⇒ `batchUpdate` ส่ง 2 range แต่ mock คืน `responses` ตัวเดียว
+> ⇒ client โยน `WriteCommittedUnreadableError` ก่อนถึง identity check
+> ทั้งหมดแก้ที่ **ไฟล์เทสต์เท่านั้น** production ไม่ถูกแตะแม้แต่ไบต์เดียว · mutation ทั้ง 5 ข้อรันจริง
+> เห็นแดงจริง แล้ว revert · suite เต็ม 43 ไฟล์ผ่านหมด
+>
+> ⚠️ **ต้นเหตุที่แท้จริงยังอยู่:** `InvoiceServiceOptions.now` (`invoice.service.ts:264`) และ
+> `AppointmentServiceOptions.now` (`appointment.service.ts:58`) ประกาศไว้แต่**ไม่มีที่ไหนอ่านเลย**
+> คนเขียนเทสต์ส่ง `now: () => fixedNow` เข้าไปโดยเชื่อว่าคุมนาฬิกาได้ แล้วมันตกพื้นเงียบๆ
+> จึงไป assert เวลาที่ไม่มีใครควบคุม · ยังไม่ลบ เพราะงานซ่อมต้องมี blast radius เป็นศูนย์ —
+> **เป็นงานแยกที่ยังไม่มีใครทำ**
 
 > ⚠️ **เอกสารฉบับนี้คือสถานะจริง** เอกสารอื่นใน `docs/` เป็นบันทึกประวัติศาสตร์ ดูรายชื่อ
 > ท้ายหมวด 1c ก่อนเชื่ออะไรในนั้น
@@ -151,7 +161,8 @@ output จริงและไม่มี grok verdict ให้ resume สั
 **§2.7 คือครั้งแรกที่ตัวแผนเองเปลี่ยนพฤติกรรมบน live path** ต่างจาก §2.2–2.6 ที่เป็น building
 block เฉยๆ ทั้งหมด แจ้ง `luna-pipeline` ชัดเจนในตัว brief ว่างานนี้ต่างออกไป (ระวังเป็นพิเศษ)
 ผลคือมันจับบั๊กตัวเองได้ก่อนส่ง grok (`fixedNow` ไม่ได้ประกาศ) และตอน grok รีวิวก็เจอ regression
-จริงในไฟล์เทสต์ที่ brief ไม่ได้เอ่ยถึงเลย (`invoice-sheetlib.workflow.dry-test.ts` มี strict
+จริงในไฟล์เทสต์ที่ brief ไม่ได้เอ่ยถึงเลย (`invoice-sheets-api.workflow.dry-test.ts` — ตอนนั้นยัง
+ชื่อ `invoice-sheetlib.workflow.dry-test.ts` — มี strict
 `deepEqual` ที่ไม่รู้จัก field ใหม่) ⇒ **ยืนยันอีกครั้งว่าทำไมต้องให้ grok ตรวจ diff กว้างกว่าที่
 brief เอ่ยชื่อไฟล์ไว้** — brief เขียนได้ดีแค่ไหนก็ยังไล่ผลกระทบข้ามไฟล์ไม่ครบ
 
