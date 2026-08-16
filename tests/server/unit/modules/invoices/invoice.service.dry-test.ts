@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import type { CreateInvoiceRequest } from '../../../../../contracts/invoices/invoice-api.schema.js'
 import type {
-  InvoiceHeaderWriter,
+  InvoiceHeaderPort,
   InvoiceItemWriter,
   InvoiceViewReader,
   OrderFormWriter,
@@ -12,6 +12,8 @@ import {
   WriteRejectedError,
   WriteTransportError,
 } from '../../../../../server/shared/repositories/sheets-api.client.js'
+
+type InvoiceReadRows = Awaited<ReturnType<InvoiceHeaderPort['read']>>
 
 const { InvoiceService, invoicesFieldMap, invoiceItemsFieldMap } = await import(
   '../../../../../server/modules/invoices/invoice.service.js'
@@ -26,11 +28,14 @@ function test(name: string, run: () => Promise<void> | void): void {
 interface Fakes {
   service: InstanceType<typeof InvoiceService>
   calls: string[]
+  invoiceReadCalls: unknown[]
   invoiceAppendCalls: Record<string, unknown>[]
   orderFormUpdateCalls: Array<{ id: string; data: Record<string, unknown> }>
 }
 
 interface FakeConfig {
+  invoiceReadRows?: InvoiceReadRows
+  invoiceReadError?: unknown
   itemsError?: unknown
   invoiceError?: unknown
   orderFormError?: unknown
@@ -40,6 +45,7 @@ interface FakeConfig {
 
 function createService(config: FakeConfig = {}): Fakes {
   const calls: string[] = []
+  const invoiceReadCalls: unknown[] = []
   const invoiceAppendCalls: Record<string, unknown>[] = []
   const orderFormUpdateCalls: Array<{ id: string; data: Record<string, unknown> }> = []
 
@@ -51,7 +57,12 @@ function createService(config: FakeConfig = {}): Fakes {
     },
   }
 
-  const invoiceRepository: InvoiceHeaderWriter = {
+  const invoiceRepository: InvoiceHeaderPort = {
+    async read(query) {
+      invoiceReadCalls.push(query)
+      if (config.invoiceReadError) throw config.invoiceReadError
+      return config.invoiceReadRows ?? []
+    },
     async append(data) {
       calls.push('Invoice.create')
       invoiceAppendCalls.push(data as Record<string, unknown>)
@@ -89,7 +100,7 @@ function createService(config: FakeConfig = {}): Fakes {
     })(),
   })
 
-  return { service, calls, invoiceAppendCalls, orderFormUpdateCalls }
+  return { service, calls, invoiceReadCalls, invoiceAppendCalls, orderFormUpdateCalls }
 }
 
 function baseRequest(): CreateInvoiceRequest {
@@ -192,6 +203,60 @@ test('create() rejects invalid input as validation_error and calls no repository
 
   assert.equal(result.kind, 'validation_error')
   assert.deepEqual(calls, [])
+})
+
+test('create() rejects a requested invoice number returned by the preflight read before any write', async () => {
+  const { service, calls, invoiceReadCalls, invoiceAppendCalls, orderFormUpdateCalls } = createService({
+    invoiceReadRows: [{ invoice_number: 'INV-0001' }],
+  })
+
+  const result = await service.create(baseRequest())
+
+  assert.equal(result.kind, 'validation_error')
+  if (result.kind === 'validation_error') {
+    assert.equal(result.issues.length, 1)
+    assert.equal(result.issues[0]?.path, 'invoiceNumber')
+    assert.match(result.issues[0]?.message ?? '', /invoice number/i)
+    assert.match(result.issues[0]?.message ?? '', /already in use/i)
+  }
+  assert.equal(invoiceReadCalls.length, 1)
+  assert.deepEqual(calls, [])
+  assert.deepEqual(invoiceAppendCalls, [])
+  assert.deepEqual(orderFormUpdateCalls, [])
+})
+
+test('create() treats an empty invoice-number preflight read as unused and preserves the created outcome', async () => {
+  const { service, calls, invoiceReadCalls } = createService({ invoiceReadRows: [] })
+
+  const result = await service.create(baseRequest())
+
+  assert.deepEqual(result, {
+    kind: 'created',
+    invoiceNumber: 'INV-0001',
+    itemCount: 1,
+    itemsTotal: 200,
+    invoiceTotal: 200,
+  })
+  assert.equal(invoiceReadCalls.length, 1)
+  assert.deepEqual(calls, ['InvoiceItem.batchAppend', 'Invoice.create', 'OrderForm.update', 'ViewSync'])
+})
+
+test('create() proceeds normally when the invoice-number preflight read throws', async () => {
+  const { service, calls, invoiceReadCalls } = createService({
+    invoiceReadError: new Error('invoice read unavailable'),
+  })
+
+  const result = await service.create(baseRequest())
+
+  assert.deepEqual(result, {
+    kind: 'created',
+    invoiceNumber: 'INV-0001',
+    itemCount: 1,
+    itemsTotal: 200,
+    invoiceTotal: 200,
+  })
+  assert.equal(invoiceReadCalls.length, 1)
+  assert.deepEqual(calls, ['InvoiceItem.batchAppend', 'Invoice.create', 'OrderForm.update', 'ViewSync'])
 })
 
 test('create() reports items_write_failed and stops before Invoice.create on a definite rejection', async () => {

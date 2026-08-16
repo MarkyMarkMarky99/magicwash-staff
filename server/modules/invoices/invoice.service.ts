@@ -171,10 +171,11 @@ function classifyWriteFailure(error: unknown): WriteFailure {
   return { certainty: 'unknown', message: error instanceof Error ? error.message : String(error) }
 }
 
-/** Minimal write-side ports `InvoiceService` depends on — real `SheetRepository`
- *  instances satisfy these structurally; tests inject fakes that record calls
- *  without needing to extend the repository or mock `fetch`. */
-export interface InvoiceHeaderWriter {
+/** Minimal ports `InvoiceService` depends on — real `SheetRepository` instances
+ * satisfy these structurally; tests inject fakes that record calls without
+ * needing to extend the repository or mock `fetch`. */
+export interface InvoiceHeaderPort {
+  read(query?: ReadQueryDTO<Partial<InvoicesDbRow>>): Promise<Array<Partial<InvoicesDbRow>>>
   append(data: Partial<InvoicesDbRow>): Promise<unknown>
 }
 export interface InvoiceItemWriter {
@@ -254,7 +255,7 @@ function adaptInvoiceViewReader(reader: InvoiceViewReader): InvoicesViewReposito
 }
 
 export interface InvoiceServiceOptions {
-  invoiceRepository?: () => InvoiceHeaderWriter
+  invoiceRepository?: () => InvoiceHeaderPort
   invoiceItemRepository?: () => InvoiceItemWriter
   orderFormRepository?: () => OrderFormWriter
   invoiceViewRepository?: InvoiceViewReader
@@ -282,7 +283,7 @@ export class InvoiceService {
   // materialized InvoicesView repository; constructing these here would make
   // a read request depend on INVOICES_SPREADSHEET_ID and the write gateway
   // configuration even though it never writes to those sheets.
-  private readonly invoiceRepository: () => InvoiceHeaderWriter
+  private readonly invoiceRepository: () => InvoiceHeaderPort
   private readonly invoiceItemRepository: () => InvoiceItemWriter
   private readonly orderFormRepository: () => OrderFormWriter
   private readonly invoiceViewRepository: () => InvoicesViewRepository
@@ -341,6 +342,19 @@ export class InvoiceService {
     })
   }
 
+  private async invoiceNumberAlreadyUsed(invoiceNumber: string): Promise<boolean> {
+    try {
+      // Compare exact keys here rather than using a GViz equality filter;
+      // that builder strips apostrophes from filter values.
+      const rows = await this.invoiceRepository().read()
+      return rows.some((row) => row.invoice_number === invoiceNumber)
+    } catch {
+      // The preflight is advisory; header append retains duplicate validation
+      // so a failed read must never block invoice creation.
+      return false
+    }
+  }
+
   async create(payload: unknown): Promise<CreateInvoiceResponse> {
     const parsed = invoiceCreateSchema.safeParse(payload)
     if (!parsed.success) {
@@ -354,6 +368,13 @@ export class InvoiceService {
     }
 
     const request = parsed.data
+
+    if (await this.invoiceNumberAlreadyUsed(request.invoiceNumber)) {
+      return {
+        kind: 'validation_error',
+        issues: [{ path: 'invoiceNumber', message: 'invoice number is already in use' }],
+      }
+    }
 
     // ── Compute every line server-side; nothing the browser sent for
     //    subtotal/netTotal is read anywhere in this function. ──
@@ -387,8 +408,11 @@ export class InvoiceService {
       net_total: lineCalculations[index].netTotal,
     }))
 
-    // ── Items first, as ONE batch — never a loop. This ordering is
-    //    load-bearing because a later header failure leaves these rows behind. ──
+    // ── Items first, as ONE batch — never a loop. This ordering decides what
+    //    a failure leaves behind: orphan item rows nothing references, never
+    //    an issued invoice with no lines. Because the header is always status
+    //    ISSUED, header-first failure would leave a staff-visible billable
+    //    invoice with no lines. ──
     try {
       await this.invoiceItemRepository().batchAppend(itemCommands)
     } catch (error) {
@@ -480,7 +504,7 @@ export class InvoiceService {
     // `this.syncInvoiceView` is injectable (`InvoiceServiceOptions`), and the
     // real `syncInvoiceView` (invoice-view-sync-client.ts) is written to
     // never throw — but this is the one stage whose implementation this
-    // service does not fully control, unlike the three write-side ports
+    // service does not fully control, unlike the repository operations
     // above. Left unwrapped, a thrown error here would propagate past this
     // method entirely: `invoice.module.ts`'s route returns
     // `CreateInvoiceResponse` directly (not the generic `{success,data,meta}`
