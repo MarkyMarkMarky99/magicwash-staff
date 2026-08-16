@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useCustomerOrderHistoryStore } from '../stores/customer-order-history.store'
 import type { OrderListDto } from '../services/order.service'
+import { getInvoiceTarget, isInvoiceActionAvailable } from '../utils/order-invoice-target'
 import OrderCard from './OrderCard.vue'
 import WaitingPickupCard from './WaitingPickupCard.vue'
 
@@ -11,6 +13,7 @@ const emit = defineEmits<{
 }>()
 
 const store = useCustomerOrderHistoryStore()
+const router = useRouter()
 const {
   orders,
   waitingPickups,
@@ -23,6 +26,16 @@ const collapsed = ref(false)
 
 function refresh() {
   store.refresh()
+}
+
+function viewPhotos(orderId: string) {
+  router.push(`/gallery/AFT-${orderId}`)
+}
+
+function viewInvoice(invoiceNumber: string) {
+  if (!isInvoiceActionAvailable({ invoiceNumber })) return
+  const target = getInvoiceTarget(invoiceNumber)
+  if (target) router.push(target)
 }
 </script>
 
@@ -88,6 +101,8 @@ function refresh() {
           :key="order.orderId"
           :order="order"
           @select="emit('selectOrder', $event)"
+          @view-photos="viewPhotos"
+          @view-invoice="viewInvoice"
         />
       </div>
     </div>
