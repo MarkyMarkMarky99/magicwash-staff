@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import type { CreateInvoiceRequest } from '../../../../contracts/invoices/invoice-api.schema.js'
 import {
   InvoiceService,
-  type InvoiceHeaderWriter,
+  type InvoiceHeaderPort,
   type InvoiceItemWriter,
   type InvoiceViewReader,
   type OrderFormWriter,
@@ -31,7 +31,10 @@ function serviceWithOrderLinkError(error: unknown): InvoiceService {
       return rows
     },
   }
-  const invoiceRepository: InvoiceHeaderWriter = {
+  const invoiceRepository: InvoiceHeaderPort = {
+    async read() {
+      return []
+    },
     async append(data) {
       return data
     },

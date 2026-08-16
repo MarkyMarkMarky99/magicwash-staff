@@ -85,7 +85,6 @@ function makeRoutes(failures: Failures = {}) {
     fieldMap: appointmentsFieldMap,
     transformer: createAppointmentTransformer(),
     generateAppointmentId: () => persistedRow.AppointmentID,
-    now: () => new Date('2026-08-11T03:00:00.000Z'),
   })
 
   return createCrudRoutes(service, appointmentApiContract)

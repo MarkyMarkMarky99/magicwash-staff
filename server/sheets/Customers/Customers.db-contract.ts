@@ -34,6 +34,10 @@ export const customersDbContract = {
   primaryKey: 'CustomerID',
   sheetName: 'Customers',
   spreadsheetId: 'CUSTOMERS_SPREADSHEET_ID',
+  audit: {
+    onAppend: [],
+    onUpdate: ['UpdatedAt'],
+  },
   // Writes are disabled. Enable only when CustomerIndex allocation,
   // duplicate-phone checks, locking, and LINE notifications are implemented here.
   writes: { append: false, update: false, delete: false },

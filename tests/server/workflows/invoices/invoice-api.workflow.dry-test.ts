@@ -139,6 +139,12 @@ async function withMockFetch<T>(
     if (init?.method === 'GET' && path.endsWith('/values/Invoices!1:1')) {
       return response({ json: { values: [invoicesHeaders] } })
     }
+    if (init?.method === 'GET' && path.endsWith('/values/InvoiceItems!B:B')) {
+      return response({ json: { values: [['invoice_item_id']] } })
+    }
+    if (init?.method === 'GET' && path.endsWith('/values/Invoices!A:A')) {
+      return response({ json: { values: [['invoice_number']] } })
+    }
 
     if (init?.method === 'POST' && path.endsWith('/values/InvoiceItems:append')) {
       const values = body.values as unknown[][]

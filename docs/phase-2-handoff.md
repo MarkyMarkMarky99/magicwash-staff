@@ -1,7 +1,9 @@
 # Handoff — Phase 2 (จบแล้ว)
 
-เขียนเมื่อ 2026-08-09 ตอนปิด Phase 1 · **อัปเดตล่าสุด 2026-08-11 ตอน merge เข้า main
-และขึ้น production** (`main` = `9c96c01`, merge commit `ee4ed38`)
+เขียนเมื่อ 2026-08-09 ตอนปิด Phase 1 · merge เข้า main และขึ้น production 2026-08-11
+(`main` = `9c96c01`, merge commit `ee4ed38`) · อัปเดต 2026-08-14 — ตรวจสถานะเทียบโค้ดจริง
+ทั้งฉบับ แก้ตารางที่ตกยุค และลบของค้าง (ดูหมวด "cleanup 2026-08-14") · **อัปเดตล่าสุด
+2026-08-15 — ปิดงาน timestamp ของ Appointments พร้อมแก้ข้อมูลจริง 373 เซลล์**
 
 # ✅ Phase 2 จบครบแล้ว ทั้งโค้ดและการพิสูจน์
 
@@ -10,7 +12,32 @@
 (`154445b`) เหลือทางเขียนทางเดียวทั้งระบบ · `certainty` ของ appointments (`78efaad`) ·
 ผ่าน preview ทั้งอ่านและเขียนก่อน merge · **branch ทั้งหมดลบแล้ว เหลือ `main` อย่างเดียว**
 
-**ไม่มีตัวบล็อกเหลืออยู่** — งานที่ค้างเป็นงานเลือกทำ อยู่ที่หมวด 1c
+**ไม่มีตัวบล็อกของ Phase 2 เหลืออยู่** — งานที่ค้างเป็นงานเลือกทำ อยู่ที่หมวด 1c
+
+> 🔴 **แต่มีตัวบล็อกก่อนเปิดใช้กับผู้ใช้จริง ซึ่งไม่ใช่ของ Phase 2** (ยืนยันกับโค้ด 2026-08-14):
+> 1. **API ไม่มี authentication เลย** — `api-gateway.ts:25-51` dispatch ต่อโดยไม่ตรวจ token
+>    ⇒ ทุก write route เปิดสาธารณะ · รายละเอียดหมวดท้ายไฟล์
+> 2. **invoice create ไม่ idempotent** — `invoice.service.ts:396` เริ่ม `batchAppend()` โดยไม่มี
+>    pre-flight ตรวจ `invoiceNumber`/`OrderForm.invoice_id` และ `batchAppend()` ไม่มี
+>    duplicate-key guard (ต่างจาก `append()` เดี่ยว) ⇒ retry แล้วได้ line item ซ้ำ
+> 3. **อัปโหลดรูปยัง bypass backend** — `src/api/photos.js:3` ยิง Apps Script ตรงจาก browser
+
+> ✅ **dry-test suite แดง 5 ไฟล์ — ซ่อมครบแล้ว 2026-08-15** (เดิมบันทึกไว้ว่า 4 ไฟล์ · ตัวที่ 5
+> `order-form.sheets-api` เจอตอนที่ pipeline ปฏิเสธไม่รับงานเพราะ suite ไม่เขียว)
+> **ไม่ใช่ regression ของโค้ด — mock ตกยุคตามหลัง repository** สองแบบ:
+> · สี่ตัวแรกพังที่ `WriteTransportError: readColumn did not receive a response` เพราะ append
+> เรียก `validateKeys` → `readColumn` ตรวจ duplicate key ก่อนเขียน แต่ mock ไม่ได้ stub GET ตัวนั้น
+> · `order-form.sheets-api` (ผ่านบน `main` แดงบน branch) พังเพราะ `audit.onUpdate: ['updated_at']`
+> ทำให้ repository ฉีดคอลัมน์เพิ่ม ⇒ `batchUpdate` ส่ง 2 range แต่ mock คืน `responses` ตัวเดียว
+> ⇒ client โยน `WriteCommittedUnreadableError` ก่อนถึง identity check
+> ทั้งหมดแก้ที่ **ไฟล์เทสต์เท่านั้น** production ไม่ถูกแตะแม้แต่ไบต์เดียว · mutation ทั้ง 5 ข้อรันจริง
+> เห็นแดงจริง แล้ว revert · suite เต็ม 43 ไฟล์ผ่านหมด
+>
+> ⚠️ **ต้นเหตุที่แท้จริงยังอยู่:** `InvoiceServiceOptions.now` (`invoice.service.ts:264`) และ
+> `AppointmentServiceOptions.now` (`appointment.service.ts:58`) ประกาศไว้แต่**ไม่มีที่ไหนอ่านเลย**
+> คนเขียนเทสต์ส่ง `now: () => fixedNow` เข้าไปโดยเชื่อว่าคุมนาฬิกาได้ แล้วมันตกพื้นเงียบๆ
+> จึงไป assert เวลาที่ไม่มีใครควบคุม · ยังไม่ลบ เพราะงานซ่อมต้องมี blast radius เป็นศูนย์ —
+> **เป็นงานแยกที่ยังไม่มีใครทำ**
 
 > ⚠️ **เอกสารฉบับนี้คือสถานะจริง** เอกสารอื่นใน `docs/` เป็นบันทึกประวัติศาสตร์ ดูรายชื่อ
 > ท้ายหมวด 1c ก่อนเชื่ออะไรในนั้น
@@ -22,7 +49,10 @@
 
 ## 1. อยู่ตรงไหนแล้ว
 
-`refactor/sheet-layer` — 24 commits, push แล้ว, **ยังไม่ merge เข้า main**
+`refactor/sheet-layer` — **merge เข้า `main` และขึ้น production แล้ว (2026-08-11, `ee4ed38`)
+branch ถูกลบแล้ว** · รายละเอียดการ merge อยู่หมวด "merge เข้า main และขึ้น production แล้ว"
+
+> ย่อหน้าถัดไปเป็นบันทึกตอน Phase 1 จบ เก็บไว้เพราะสรุปสถาปัตยกรรมที่ได้มา
 
 Phase 1 จบครบ 8 ขั้น ได้สถาปัตยกรรม: 1 repository ต่อ 1 physical sheet ใต้ `server/sheets/`,
 repository ไม่รู้จัก API contract, DB↔API mapping อยู่ที่ module, `primaryKey` เป็นชื่อคอลัมน์ DB จริง,
@@ -75,17 +105,20 @@ module→module edge เป็นศูนย์ และ stack เก่าถ
 | merge stage 3 กลับเข้า `refactor/sheet-layer` + ด่านครบ 4 ตัว | ✅ | `d52fd99` |
 | preview deploy ครั้งแรก — ฝั่งอ่าน 4 endpoint ได้ 200 | ✅ | `d52fd99` |
 | §2.9 stage 3C — smoke test จริง (สร้าง invoice) | ✅ **ผ่าน 12/12 (2026-08-11)** `INV260872306305` บน local dev | |
-| งานแยกหลัง §2.9 — จัดระเบียบ timestamp ทุกชีตเป็น datetime | ⬜ | |
-| งานแยกหลัง §2.9 — `certainty` ของ Appointments (แก้ API contract) | ⬜ | |
-| §2.10 | ⬜ | |
+| งานแยกหลัง §2.9 — จัดระเบียบ timestamp ทุกชีตเป็น datetime | ✅ **Appointments ปิดแล้ว (2026-08-15)** แก้ข้อมูลจริง 373 เซลล์ · `Invoices`/`OrderForm` ยังไม่ได้ตรวจอาการเดียวกัน (เจ้าของสั่งไม่ต้องทำ) | `9f53013` + ดูหมวดล่าง |
+| งานแยกหลัง §2.9 — `certainty` ของ Appointments (แก้ API contract) | ✅ | `78efaad` |
+| §2.10 ลบ SheetLib write path | ✅ | `154445b` |
 
-**§2.2/§2.3 ต่อเข้า `SheetRepository` แล้วตั้งแต่ §2.9 stage 1 (`e7f75df`)** — ctor สร้าง
-`SheetsApiClient` + `SheetHeaderMapResolver` เมื่อ contract ประกาศ `writeTransport: 'sheets-api'`
-(`sheet.repository.ts:114-141`) และ `update()` แยกไปที่ `updateThroughSheetsApi` (`:196-197`)
+**§2.2/§2.3 ต่อเข้า `SheetRepository` แล้วตั้งแต่ §2.9 stage 1 (`e7f75df`)** และหลัง §2.10
+(`154445b`) **ไม่มี dual path เหลือแล้ว** — `writeTransport` / `scriptUrl` หายไปจากทั้ง repo
+(grep ยืนยัน 2026-08-14 ว่าเหลือศูนย์ที่ใน `server/`) `SheetContract` ไม่มีฟิลด์นี้อีกต่อไป
+(`sheet-contract.ts:21-42`) และ append / batchAppend / update วิ่งเข้า Sheets API ทั้งหมด
+(`sheet.repository.ts:141` `:328` `:435`)
 
-**วันนี้มี OrderForm ชีตเดียวที่ opt-in** ชีตที่เหลือไม่ประกาศ `writeTransport` จึงยังวิ่ง SheetLib
-ตาม default ⇒ อย่าอ่านว่า "ทั้งระบบยังเป็น Apps Script" และอย่าอ่านว่า "ทั้งระบบย้ายแล้ว" —
-มันเป็น dual path ต่อชีต
+⇒ **ทั้ง 4 ชีตที่เขียนได้ใช้ทางเดียวกันหมดแล้ว** ย่อหน้าเก่าที่เคยเขียนว่า "วันนี้มี OrderForm
+ชีตเดียวที่ opt-in ... เป็น dual path ต่อชีต" **ตกยุคแล้ว ลบทิ้ง** · Apps Script ที่ยังเหลือใน
+ระบบมีอย่างเดียวคือ sync `InvoicesView` (`invoice-view-sync-client.ts:31-40`) ซึ่ง
+**ไม่ใช่การเขียนแถวลงชีต**
 
 ### ของที่ §2.2 จงใจเลื่อนไป — มี comment กำกับในโค้ดแล้ว
 
@@ -106,8 +139,7 @@ caller** เพราะเป็นของฝั่ง append ซึ่ง `a
 
 §2.5 (`bedc81e`) พบว่า **ทำไปแล้วจริงตั้งแต่ §2.2** — `sheets-api.client.ts` classify ครบทุก
 phase ตามตาราง §2.5 อยู่แล้ว เหลือแค่เทสต์ 2 เคสที่ implement ไว้แต่ไม่มี dry-test คลุม (ปิด
-ไปแล้ว ไม่มีโค้ด production เปลี่ยน) รายละเอียดอยู่ที่ implementation note ใต้ §2.4/§2.5 ใน
-`docs/database-layer-sheets-api-refactor-plan.md`
+ไปแล้ว ไม่มีโค้ด production เปลี่ยน) รายละเอียดอยู่ที่หมวด 3b ของไฟล์นี้
 
 §2.6 (`0e0ca23`) มีโค้ด production จริง 4 ชิ้น: `appendRows` รับ `knownWidth?` (Part A),
 `buildRowRange` / `parseRowValues` / `readRange` / `sheet-row-identity.ts`'s
@@ -129,7 +161,8 @@ output จริงและไม่มี grok verdict ให้ resume สั
 **§2.7 คือครั้งแรกที่ตัวแผนเองเปลี่ยนพฤติกรรมบน live path** ต่างจาก §2.2–2.6 ที่เป็น building
 block เฉยๆ ทั้งหมด แจ้ง `luna-pipeline` ชัดเจนในตัว brief ว่างานนี้ต่างออกไป (ระวังเป็นพิเศษ)
 ผลคือมันจับบั๊กตัวเองได้ก่อนส่ง grok (`fixedNow` ไม่ได้ประกาศ) และตอน grok รีวิวก็เจอ regression
-จริงในไฟล์เทสต์ที่ brief ไม่ได้เอ่ยถึงเลย (`invoice-sheetlib.workflow.dry-test.ts` มี strict
+จริงในไฟล์เทสต์ที่ brief ไม่ได้เอ่ยถึงเลย (`invoice-sheets-api.workflow.dry-test.ts` — ตอนนั้นยัง
+ชื่อ `invoice-sheetlib.workflow.dry-test.ts` — มี strict
 `deepEqual` ที่ไม่รู้จัก field ใหม่) ⇒ **ยืนยันอีกครั้งว่าทำไมต้องให้ grok ตรวจ diff กว้างกว่าที่
 brief เอ่ยชื่อไฟล์ไว้** — brief เขียนได้ดีแค่ไหนก็ยังไล่ผลกระทบข้ามไฟล์ไม่ครบ
 
@@ -170,12 +203,80 @@ Plain Text) เพราะมีประโยชน์กับคนที�
   | `UpdatedAt` | **datetime** | 15 |
   | `DeletedAt` | ตัดสินไม่ได้ (ว่างหมด) | 0 |
 
-  ⇒ พฤติกรรมถูกกำหนดโดย **cell format ของแต่ละคอลัมน์** ซึ่งไม่สม่ำเสมอกันเองภายในชีตเดียวกัน
-  **ไม่ใช่โดย option ตอนเขียน** — พิสูจน์ได้จากการที่ทั้งสองคอลัมน์ถูกเขียนด้วย
-  `formatBangkokTimestamp` ตัวเดียวกัน ในคำสั่งเดียวกัน ด้วยรูปแบบเดียวกัน แต่ผลต่างกัน
-  ⇒ **ตรวจซ้ำได้ด้วย `tests/server/integration/raw-column-type-check.ts`**
+  ⇒ ข้อสรุปตอนนั้นคือ *"พฤติกรรมถูกกำหนดโดย **cell format ของแต่ละคอลัมน์** ไม่ใช่โดย option
+  ตอนเขียน"* — 🔴 **ข้อสรุปนี้ผิด แก้แล้ว 2026-08-15 ดูหมวด "รากของปัญหา timestamp" ด้านล่าง**
+  ตัวเลข 20/15 ในตารางก็ผิด เพราะสคริปต์ตรวจใช้ `limit 20` จำนวนจริงคือ 364 แถว
+  ⇒ **ตรวจซ้ำได้ด้วย `tests/server/integration/raw-column-type-check.ts`** (ระวัง `limit 20`)
   ⇒ คำตัดสิน 3.5 (2026-08-10) กำหนดปลายทางเป็น datetime จริงทุกชีต แต่ **ทำหลัง §2.9**
-  รายละเอียดอยู่หมวด 3 ของ [`session-2026-08-10-overnight.md`](./session-2026-08-10-overnight.md)
+  รายละเอียดอยู่หมวด 3b ของไฟล์นี้
+
+### ✅ รากของปัญหา timestamp — locale ไม่ใช่ cell format (2026-08-15)
+
+**สาเหตุจริง:** ไฟล์ MagicwashAppointment ตั้ง locale เป็น **`en_US`** แต่ pipeline เก่าเขียน
+timestamp เป็น `dd/MM/yyyy HH:mm:ss` ⇒ Google อ่านช่องแรกเป็น *เดือน* ผลคือแตกเป็นสองกรณี:
+
+| วันที่ในค่าเดิม | Google ทำอะไร | ผลที่เห็น |
+|---|---|---|
+| > 12 (เช่น `27/03/2026`) | เดือน 27 ไม่มีจริง parse ไม่ผ่าน | ค้างเป็น **text** — มองเห็นได้ |
+| ≤ 12 (เช่น `03/08/2026`) | parse ผ่าน แต่**สลับวันกับเดือน** | เป็น datetime จริงที่ **วันที่ผิด** — มองไม่เห็น |
+
+🔴 **กรณีที่สองอันตรายกว่ามาก** — ค่าดูปกติทุกอย่าง ไม่มีอะไรฟ้อง จับได้เพราะชีตเป็น append-only
+ทำให้ `CreatedAt` ต้องไล่ขึ้นตามเลขแถว แล้วพบค่าที่ตกลำดับซึ่งพอสลับวัน/เดือนแล้วเข้าที่พอดี
+**รวมทั้งเวลาในวันด้วย** (เช่นแถว 342 `2026-03-08 07:34:07` → `2026-08-03 07:34:07` ซึ่ง 07:34
+มาก่อน 09:47 ของแถวถัดไป) — ความบังเอิญระดับวินาทีแบบนี้เป็นไปไม่ได้
+
+**cell format ไม่เคยเป็นปัญหา** — คอลัมน์ K ตั้ง `DATE_TIME` (`yyyy-mm-dd hh:mm:ss`) ไว้อยู่แล้ว
+format ไม่มีผลกับค่าที่เป็น text จึงไม่ต้องแก้อะไรในชีต
+
+**บทเรียน:** GViz คืน type ระดับ **คอลัมน์** ไม่ใช่ระดับเซลล์ ⇒ คอลัมน์ที่ปนกันจะรายงานเป็น
+`string` ทั้งคอลัมน์ นี่คือเหตุผลที่ smoke test §2.9 stage 2C บันทึกว่า `APPT-1ae7e6ef` มี
+`CreatedAt` เป็น "string" ทั้งที่เซลล์นั้นเป็น datetime จริง — **อ่าน `userEnteredValue` ผ่าน
+`spreadsheets.get?includeGridData=true` เท่านั้นถึงจะรู้ว่าเซลล์เก็บอะไรจริง** (`stringValue`
+vs `numberValue`)
+
+### ✅ migration ที่ลงจริงกับชีตลูกค้า (2026-08-15)
+
+สแกนทั้ง 364 แถว (ไม่ใช่ 20 แถวแรก) แล้วแก้ **373 เซลล์** ผ่าน `values:batchUpdate` 4 batch
+ด้วย `USER_ENTERED` ทีละเซลล์ (`Appointments!K42` ไม่ใช่ range คร่อม):
+
+| | `CreatedAt` (K) | `UpdatedAt` (L) |
+|---|---|---|
+| text ยังไม่ถูก parse → แปลงเป็น `yyyy-MM-dd` | 165 | 13 |
+| **datetime ที่วันเดือนสลับ → สลับกลับ** | **152** | 43 |
+| ถูกต้องอยู่แล้ว ไม่แตะ | 47 | 26 |
+| ว่างจริง ไม่แตะ | 0 | 282 |
+
+ผลหลังแก้: GViz รายงานทั้งสองคอลัมน์เป็น `datetime` · เหลือ text 0 เซลล์ · 282 เซลล์ว่างยังว่างจริง
+(ไม่ได้กลายเป็น empty string ซึ่งเป็นบั๊กชนิดเดียวกับที่กำลังแก้)
+
+**วิธีตัดสินว่าเซลล์ไหนสลับ** ไม่ได้ใช้ลำดับแถวอย่างเดียว:
+- `CreatedAt` — ใช้กฎ "สร้างเรคคอร์ดหลังวันนัดไปแล้วไม่ได้" (≤ สิ้นวัน `AppointmentDate`)
+  ตัดได้ 0 เคสกำกวม · `AppointmentDate` เชื่อได้เพราะมีค่าอย่าง `2026-03-29` เก็บเป็น date จริง
+  ถ้าคอลัมน์นั้นเคยถูกเขียนแบบ `dd/MM` วันที่ 29 ต้องค้างเป็น text เหมือนกัน แต่ไม่มีสักตัว
+- `UpdatedAt` — **ใช้ลำดับแถวไม่ได้** เพราะแถวเก่าถูกแก้ทีหลังได้ ใช้กฎ "แก้ก่อนสร้างไม่ได้"
+  (≥ `CreatedAt` ของแถวเดียวกัน) เหลือกำกวม 26 เคส ปิดด้วยกฎ **"ถ้า `CreatedAt` แถวนั้นสลับ
+  `UpdatedAt` ก็สลับ"** — เขียนโดย pipeline เดียวกัน ฟอร์แมตเดียวกัน ในการเขียนครั้งเดียวกัน
+
+**ตัวกันที่ทำให้กล้ารันกับข้อมูลจริง** — สคริปต์อ่านค่าปัจจุบันมาเทียบกับคอลัมน์ `current` ในไฟล์
+input ให้ครบทุกเซลล์ก่อน **ถ้าไม่ตรงแม้เซลล์เดียวจะยกเลิกทั้งรอบ ไม่ใช่ข้ามเซลล์นั้น** เพราะถ้ามี
+คนแทรกแถวหลังดัมพ์ข้อมูล เลขแถวที่เหลือจะเลื่อนทั้งหมด การเขียนต่อจะกระจาย timestamp ผิดลง
+ข้อมูลลูกค้าโดยแยกไม่ออกว่าอันไหนผิด · หลังเขียนมี read-back verification บังคับว่าทุกเซลล์ต้องเป็น
+`numberValue` ที่ render ตรงค่าเป้าหมาย ไม่ใช่แค่ได้ HTTP 200
+
+สคริปต์: `tests/server/integration/appointments-timestamp-backfill.ts` — dry-run เป็นค่าเริ่มต้น
+ต้องใส่ `--apply` ถึงจะเขียน และต้องระบุ `--input <path>` เสมอ (ไม่มี default เพื่อไม่ให้เผลอรัน
+กับไฟล์เก่า) · ไฟล์ input ที่ใช้จริงเก็บไว้นอก repo ไม่ได้ commit
+
+### 🔴 `valueInput` ใน `SheetContract` ไม่ใช่ค่าที่ส่งบน wire
+
+จุดนี้ทำให้เข้าใจผิดได้ง่ายและเคยทำให้วินิจฉัยพลาดมาแล้วรอบหนึ่ง: `sheet-contract.ts:29-36`
+ระบุว่ามันเป็น **intent declaration + guard เท่านั้น** — write path ส่ง `valueInputOption`
+เดียวทั้ง request เป็น `'USER_ENTERED'` เสมอ (`sheet.repository.ts:209` append,
+`:513` update) และใช้ map นี้แค่ **ปฏิเสธ** คอลัมน์ที่ประกาศเป็นอย่างอื่น
+
+⇒ **คอลัมน์ที่ไม่ได้ประกาศ ไม่ได้ถูกส่งเป็น `RAW`** ⇒ การเพิ่ม `CreatedAt`/`UpdatedAt`/`DeletedAt`
+เข้า `valueInput` ของ Appointments **ไม่ได้แก้บั๊กอะไร** เป็นการทำให้เจตนาที่ประกาศตรงกับสิ่งที่
+เกิดขึ้นจริงบน wire และกันไม่ให้ใครมาเปลี่ยนทีหลังเงียบๆ เท่านั้น
 
 ⇒ **บทเรียน:** สโมคเทสต์ที่ดีไม่ใช่แค่ "กดผ่าน UI แล้วดูว่าไม่ error" — ต้องยิง query ตรงเข้าไป
 เช็ค raw data type ด้วย (ไม่ใช่แค่ดูค่าที่ format ให้สวยแล้ว) ถึงจะเจอเรื่องแบบนี้ ซึ่ง UI/สายตา
@@ -408,7 +509,7 @@ ok  invoice_id   (ว่าง)                    ->  INV260854062757
 อยู่ท้ายชีต (~362) · กรองด้วย `customerId` แล้วเจอปกติ ⇒ **ไม่ใช่บั๊ก** แต่จำไว้เวลาตรวจ
 ครั้งหน้า อย่าสรุปว่า "เขียนไม่ติด" จากการที่มันไม่อยู่ในหน้าแรก
 
-ข้อ 4 (timestamp) เจ้าของสั่งพักไว้ ไม่ใช่ตัวบล็อก
+ข้อ 4 (timestamp) เคยถูกพักไว้ **ปิดแล้ว 2026-08-15** ดูหมวด "รากของปัญหา timestamp"
 
 ### env — ✅ ลบครบแล้ว เหลือ orphan เก่าอีก 3 ตัว
 
@@ -419,51 +520,76 @@ ok  invoice_id   (ว่าง)                    ->  INV260854062757
 `invoice-view-sync-client.ts:34` เพื่อ recompute InvoicesView **ไม่ใช่การเขียนแถวในชีต**
 จึงไม่ถูกลบไปกับ §2.10
 
-**orphan ที่เหลืออยู่บน Vercel — ไม่เกี่ยวกับ §2.10 เป็นของเก่ากว่านั้น:**
+**✅ orphan ทั้งหมดถูกลบบน Vercel แล้ว (เจ้าของทำเอง 2026-08-15)** ตารางนี้เก็บไว้เป็นบันทึกว่า
+เคยมีอะไรและทำไมถึงลบได้:
 
 | ตัวแปร | หมายเหตุ |
 |---|---|
-| `APPSCRIPT_CUSTOMER_URL` | ไม่มีโค้ดใน webapp-vue อ้างถึง · **ระวังสับสน** โปรเจกต์ Python ที่ repo root ใช้ชื่อเดียวกันจริง แต่อ่านจาก `C:\MagicwashGemini\.env` คนละไฟล์ ⇒ ลบจาก Vercel ไม่กระทบ Python |
-| `VITE_APPOINTMENTS_SCRIPT_URL` | ไม่มีโค้ดอ้างถึง · `src/utils/gateway.js` hardcode URL ไว้ในโค้ด ไม่ได้อ่านจาก env ⇒ ลบตัวแปรได้ แต่ **ตัว gateway ยังทำงานอยู่** |
-| `CUSTOMERS_SHEET_NAME` | ไม่มีโค้ดอ้างถึง (มีแค่ Development) |
+| `APPSCRIPT_CUSTOMER_URL` | ไม่มีโค้ดใน webapp-vue อ้างถึง · **ระวังสับสน** โปรเจกต์ Python ที่ repo root ใช้ชื่อเดียวกันจริง แต่อ่านจาก `C:\MagicwashGemini\.env` คนละไฟล์ ⇒ ลบจาก Vercel ไม่กระทบ Python · **ลบแล้ว (2026-08-15)** |
+| `VITE_APPOINTMENTS_SCRIPT_URL` | ไม่มีโค้ดอ้างถึง · **ลบออกจาก `.env.local` แล้ว (2026-08-14)** — `src/utils/gateway.js` ที่เคย hardcode URL ไว้ ตอนนี้ถูกลบไปทั้งไฟล์แล้วด้วย ⇒ **ลบบน Vercel แล้ว (2026-08-15)** |
+| `CUSTOMERS_SHEET_NAME` | ไม่มีโค้ดอ้างถึง (ตรวจซ้ำ 2026-08-14 ยังไม่มี) · ยังอยู่ใน `.env.local` และจงใจไม่ใส่ใน `.env.example` |
 
 ⚠️ ทั้งสามข้อยืนยันได้แค่ว่า **ไม่มีอะไรใน webapp-vue อ้างถึง** นอกโปรเจกต์นี้ตรวจไม่ได้
+
+✅ **`.env.example` เพิ่ม `APPSCRIPT_INVOICE_VIEW_SYNC_URL` แล้ว (2026-08-14)** — เดิมขาดไป
+ทั้งที่ `invoice-view-sync-client.ts:34` อ่านผ่าน `requireEnv()` ⇒ deploy ที่ไม่ตั้งค่านี้จะพัง
+ตอน sync view
 
 **ต้องเก็บไว้แน่นอน:** `VITE_APPOINTMENTS_SPREADSHEET_ID` / `VITE_CUSTOMERS_SPREADSHEET_ID`
 (`src/utils/constants.js:2-3`)
 
-### 📚 เอกสารอื่นใน `docs/` เป็นบันทึกประวัติศาสตร์แล้ว — ไฟล์นี้คือสถานะจริง
+### 📚 เอกสารเก่าใน `docs/` ถูกลบแล้ว — ไฟล์นี้คือเอกสารเดียวที่เหลือ
 
-ไฟล์ข้างล่างถูกเขียนระหว่างทางและ **ไม่ได้อัปเดตตามตอนปิด Phase 2** ยังอ่านได้เพื่อดู *เหตุผล*
-ว่าทำไมถึงตัดสินใจแบบนั้น แต่ **อย่าเชื่อประโยคที่บอกสถานะ**
+งานที่จบแล้วไม่เก็บเป็นเอกสาร เก็บไว้ใน git แทน · หกไฟล์ข้างล่างถูกลบ 2026-08-15
+ทั้งหมดยังอ่านได้เต็มๆ ด้วยคำสั่งนี้ (คอมมิตสุดท้ายที่ยังมีไฟล์ครบ):
 
-| ไฟล์ | ตกยุคตรงไหน |
+```bash
+git show d069622:docs/<ชื่อไฟล์>
+```
+
+| ไฟล์ที่ลบ | มันบันทึกอะไรไว้ |
 |---|---|
-| `session-2026-08-10-overnight.md` | log ตามวัน · หมวด 3 (ตารางคำตัดสิน) ยังมีค่า ที่เหลือคือสถานะของคืนนั้น |
-| `phase-2-9-test-charter.md` | ยังเขียนว่า stage 2/3 "ยังไม่เริ่ม" |
-| `database-layer-sheets-api-refactor-plan.md` | ยังบรรยาย dual-path SheetLib ซึ่ง §2.10 ลบทิ้งแล้ว · แผน §2.0–§2.10 ยังใช้อ้างอิงได้ |
-| `appointment-gsheet-repository-refactor-plan.md` | แผนยุค SheetLib · checklist ติ๊กครบแล้ว |
-| `invoice-module-refactor-plan.md` · `invoice-refactor-smoke-checklist.md` | รอบ refactor ก่อนหน้า ทับกับแผน sheets-API |
+| `database-layer-sheets-api-refactor-plan.md` | แผนหลัก Phase 1–2 ทั้งหมด (§1.1–§2.10) · เหตุผลรายขั้น + landmine M1–M3 |
+| `phase-2-9-test-charter.md` | charter ของ §2.9 — อะไรพิสูจน์ได้/ไม่ได้ในแต่ละ stage + ลำดับ deploy gate |
+| `session-2026-08-10-overnight.md` | log คืน 2026-08-10 · คำตัดสิน 3.1–3.6 + ตารางวัด column type ดิบ |
+| `appointment-gsheet-repository-refactor-plan.md` | แผน refactor appointments ยุค SheetLib (ติ๊กครบแล้ว) |
+| `invoice-module-refactor-plan.md` | แผน refactor invoice module รอบก่อนหน้า |
+| `invoice-refactor-smoke-checklist.md` | smoke checklist ของ refactor รอบนั้น |
 
-**จงใจไม่ลบและไม่ยุบรวม** — มันเก็บ *เหตุผล* ที่สร้างใหม่ไม่ได้ถ้าลบไป การแปะป้ายว่า
-"ประวัติศาสตร์" ถูกกว่าและไม่ทำข้อมูลหาย · ถ้าจะทำต่อ ให้แปะหมายเหตุที่ **หัวไฟล์นั้นๆ** เอง
-เพราะคนที่เปิดไฟล์ตรงไม่ได้ผ่านตารางนี้
+**ก่อนลบได้กู้ข้อบังคับที่ยังมีผลออกมาหมดแล้ว** — กฎถาวรของสถาปัตยกรรมไปอยู่ `api/CLAUDE.md`
+ส่วนคำตัดสินที่ผูกกับงานที่ยังไม่ได้ทำอยู่ในหมวด 3b ของไฟล์นี้
+⇒ ขุด git เพื่อดู **ประวัติ** เท่านั้น ไม่ต้องขุดเพื่อหากฎ
 
 ### SheetLib ฝั่ง browser — ตรวจซ้ำ 2026-08-14 (grok-explorer + spot-check เอง), พบ 2 เส้นทาง คนละสถานะ
 
 เดิมบันทึกไว้ว่า `src/utils/gateway.js` + `src/pages/FormOverlayPage.vue` ยิง Apps Script ตรง
 **ข้าม API ไปเลย** และเป็นงานแยกที่ยังไม่แตะ — ของนี้ยังจริง แต่ตอนนี้ตรวจแล้วพบว่า:
 
-1. **`gateway.js` + `FormOverlayPage.vue` (route `/forms`, `/forms/:formName`) — โค้ดตายแล้ว**
-   route ยัง mount ได้ แต่ **ไม่มีเมนู/ลิงก์ไหนในแอปพาไปเลย** (`NavSidebar.vue` ไม่มี, ไม่มี
-   `router.push`/`RouterLink` จาก feature ไหนชี้มา) เข้าถึงได้แค่พิมพ์ URL ตรง ⇒ **ลบทิ้งได้**
-   (`src/utils/gateway.js`, `src/pages/FormOverlayPage.vue`, route `/forms` และ `/forms/:formName`
-   ใน `src/router/index.js`, `src/components/forms/CreateOrderForm.vue` ถ้าไม่มีใครใช้ที่อื่น)
+1. **`gateway.js` + `FormOverlayPage.vue` (route `/forms`, `/forms/:formName`) — ✅ ลบครบแล้ว**
+   ตรวจ 2026-08-14: `src/utils/gateway.js`, `src/pages/FormOverlayPage.vue`,
+   `src/components/forms/CreateOrderForm.vue` **ไม่มีอยู่ในดิสก์แล้ว** และ route `/forms` หายไปจาก
+   `src/router/index.js` แล้ว · ตัวสุดท้ายที่ค้างคือ `src/layouts/FormOverlayLayout.vue`
+   (ไม่มีใคร import) **ลบแล้ว 2026-08-14** ⇒ เส้นทางนี้ปิดสมบูรณ์
+   **`src/layouts/FormLayout.vue` เป็นคนละไฟล์ ยังใช้อยู่ อย่าลบตาม**
 2. **`src/api/photos.js` (`savePhoto`) — ยังใช้งานจริง ไม่ใช่ของที่เคยบันทึกไว้ในหมวดนี้มาก่อน**
    เส้นทางจริง: การ์ด/รายละเอียด order → `/gallery/:key` → `OrderGalleryPage` →
-   `usePhotoUpload` → `savePhoto` → Apps Script (hardcode URL เดียวกับ `gateway.js`)
+   `usePhotoUpload` → `savePhoto` → Apps Script (hardcode URL ไว้เองที่ `src/api/photos.js:3`
+   — เดิมเขียนว่า "URL เดียวกับ `gateway.js`" ซึ่งตอนนี้ `gateway.js` ถูกลบไปแล้ว)
    อัปโหลดรูป Before/After ของ order ยังพึ่ง Apps Script ตรงอยู่ ⇒ **เป็นงานย้ายมาผ่าน API
-   แยกต่างหาก ไม่เกี่ยวกับ `/forms`**
+   แยกต่างหาก ไม่เกี่ยวกับ `/forms`** · `server/api/route-registry.ts` ยังไม่มี photo route
+
+### ✅ cleanup 2026-08-14 — ลบของค้างที่ไม่มีใครใช้
+
+| ลบอะไร | ทำไม |
+|---|---|
+| `src/features/invoices/components/InvoiceDevJsonPanel.vue` + การเรียกใช้ 2 จุดใน `InvoiceCreatePage.vue` | dev inspector ที่ป้ายตัวเองเขียนว่า "temporary, remove before shipping" แต่ถูก render อยู่ในหน้าสร้าง invoice ที่พนักงานใช้จริง |
+| `src/layouts/FormOverlayLayout.vue` | residue ของ route `/forms` ที่ลบไปแล้ว ไม่มีใคร import |
+| `VITE_APPOINTMENTS_SCRIPT_URL` ใน `.env.local` | orphan ตามตาราง env ด้านบน |
+
+⚠️ **`requestPayload` กับ `result` ใน `InvoiceCreatePage.vue` ห้ามลบตามไปด้วย** — หน้าตาเหมือน
+มีไว้ป้อน dev panel อย่างเดียว แต่จริงๆ `requestPayload` คือ request body ที่ส่งเข้า API จริง
+(`:277` `:281`) และ `result` คือผลลัพธ์ที่ขับ UI สำเร็จ/ผิดพลาดของหน้านี้ · ยืนยันหลังลบแล้วว่า
+ทั้งคู่ยังอยู่ครบและ `npm run build` ผ่าน
 
 ### 🔴 `vercel dev` ที่เปิดค้างไว้จะเสิร์ฟโค้ดเก่า
 
@@ -482,7 +608,7 @@ ok  invoice_id   (ว่าง)                    ->  INV260854062757
 | ~~1~~ | ~~3B~~ | | ✅ `0927dd4` |
 | ~~2~~ | ~~**3C**~~ | | ✅ **ผ่านครบ 12/12 (2026-08-11)** `INV260872306305` — ดูหมวดล่าง |
 | ~~3~~ | ~~**§2.10** ลบ SheetLib write path~~ | | ✅ **`154445b`** — `sheetlib-errors.ts` ถูกลบ, `writeTransport`/`target`/`scriptUrl` หายทั้งระบบ, `delete()` โยน not-supported · **env ที่เหลือเป็นของเจ้าของ** ดูล่าง |
-| 4 | timestamp ทุกชีตเป็น datetime จริง (คำตัดสิน 3.5) | pipeline + เจ้าของตรวจ | ⏸️ **เจ้าของสั่งพักไว้ก่อน (2026-08-11)** · `Appointments.CreatedAt` ต้องเคลียร์ cell format ซึ่งเป็นการเขียนลงชีตลูกค้าจริง ⇒ เจ้าของทำเอง จะทำใน Google Sheets UI ตรงๆ ก็ได้ ไม่จำเป็นต้องสร้าง `spreadsheets.batchUpdate` |
+| ~~4~~ | ~~timestamp ทุกชีตเป็น datetime จริง (คำตัดสิน 3.5)~~ | | ✅ **Appointments ปิดแล้ว 2026-08-15** — สาเหตุไม่ใช่ cell format อย่างที่เขียนไว้เดิม แต่เป็น locale `en_US` + ค่า `dd/MM/yyyy` · แก้ข้อมูลจริง 373 เซลล์ผ่าน `spreadsheets.values:batchUpdate` · **ไม่ต้องแตะ cell format เลย** ดูหมวดล่าง |
 | ~~5~~ | ~~`certainty` ของ Appointments~~ | | ✅ **`78efaad`** — วางบน **error envelope** ไม่ใช่ discriminated union บน success ⇒ success shape เดิมเป๊ะ frontend list/get ไม่ต้องแก้ · ไม่มี retry logic โดยตั้งใจ |
 | ~~6~~ | ~~**พิสูจน์บน preview deploy**~~ | | ✅ **ปิดครบแล้ว (2026-08-11)** อ่าน 4 endpoint + เขียน invoice จริง `INV260832407923` บน preview ⇒ ดูหมวดล่าง |
 
@@ -638,14 +764,12 @@ key แยกสำหรับ Development แล้ว ตอนนี้พ�
 map error class ใหม่ให้ครบ · `delete` โยน "ยังไม่รองรับ" · **metadata timestamp ทุกชีตต้องเป็น
 `2026-08-09 23:15:21` และเป็น datetime จริง** · Appointments ต้องมี `certainty`
 
-**ตารางคำตัดสินเต็ม + ที่มา + ข้อจำกัดที่ต้องรู้** อยู่ที่หมวด 3 ของ
-[`session-2026-08-10-overnight.md`](./session-2026-08-10-overnight.md)
+**ตารางคำตัดสินเต็ม + ที่มา + ข้อจำกัดที่ต้องรู้** อยู่ที่หมวด 3b ของไฟล์นี้
 
 **ลำดับที่เจ้าของกำหนด:** §2.9 ให้จบก่อน แล้วใช้การแก้ timestamp เป็น **smoke test ของ
 transport ใหม่** (เขียน 1 แถว → ตรวจ → ยิงที่เหลือ)
 
-รายละเอียดครบพร้อมทางเลือกอยู่ในหมวด 3 ของ **[`session-2026-08-10-overnight.md`](./session-2026-08-10-overnight.md)**
-— รายงานงานที่ทำระหว่างเจ้าของโปรเจกต์นอน อ่านไฟล์นั้นก่อนเริ่ม §2.9
+รายละเอียดครบพร้อมทางเลือกอยู่ในหมวด 3b ของไฟล์นี้ — อ่านก่อนเริ่ม §2.9
 
 รายละเอียดอยู่ใน §2.0–§2.10 ของแผน
 
@@ -745,6 +869,74 @@ luna เลยยัด loader hack เข้าไปในไฟล์เท�
 - ถ้ามี process ค้างเยอะ background task จะถูก kill โดยไม่มีสาเหตุชัดเจน — เคยค้าง 49 ตัว
   เก็บได้ 17 ตัว/416MB ตรวจด้วย `Get-CimInstance Win32_Process` แล้วฆ่าเฉพาะที่เริ่มก่อนวันนี้
   (ไล่ parent chain ของตัวเองออกมาก่อน อย่าฆ่า session ตัวเอง)
+
+---
+
+## 3b. ข้อบังคับที่ยังมีผลกับงานที่เหลือ — ตัดสินไปแล้ว ห้ามรื้อ
+
+กู้ออกมาจากเอกสารที่ลบไป 2026-08-15 เพราะยังบังคับงานที่ **ยังไม่ได้ทำ** ไม่ใช่บันทึกของงานที่จบแล้ว
+แต่ละข้อคือคำตัดสินที่ปิดแล้ว — agent ตัวถัดไปห้ามหยิบมา "แก้" เพราะนึกว่าเป็นบั๊ก
+
+**TOCTOU ของ keyed update — ยอมรับแล้ว ห้ามเสนอ lock/CAS/retry**
+`update()` = อ่าน key column → หา row index → เขียน · SheetLib เดิมทำใต้ `LockService` จึงทนแถวขยับ
+นี่คือจุดเดียวที่ถอยหลังจริงจากการย้าย transport และเจ้าของโปรเจกต์เลือกยอมรับ
+(ไม่ทำ verification read เพิ่ม ไม่ทำ CAS ไม่ตั้ง protected range) มี doc comment กำกับที่
+`findRowNumberByKey` แล้ว · การตรวจ PK หลัง write จับได้เฉพาะกรณีแถวขยับ *ระหว่าง* write กับ
+read-back **ไม่ได้แก้ race ช่วง lookup→write** และไม่ได้ตั้งใจจะแก้
+
+**`delete` ปิดตาย (คำตัดสิน 3.4)**
+`writes.delete: false` ทุกชีต โยน "ยังไม่รองรับ" · การเปิดเองโดยไม่มีใครอนุมัติคือการเปลี่ยน
+business behavior ที่ไม่มีใครขอ · ถ้าเปิดในอนาคต DELETE ต้องเป็น **soft delete**
+(เซ็ต `deleted_at`/`deleted_by` ไม่ลบแถวจริง) ตามที่ SheetLib เดิมทำ
+
+**invoice create ไม่ idempotent และจะไม่มี multi-sheet transaction**
+เขียน 4 ชีตติดกันโดยไม่มี atomicity — **ตั้งใจ** · `values:batchUpdate` ไม่ใช่ทางออก
+เพราะต้องระบุ range ล่วงหน้าและไม่มี `INSERT_ROWS`
+`invoice.service.ts` มี outcome 3 แบบรับมือ partial failure อยู่แล้ว: `items_write_failed`
+(ยังไม่ได้เขียน items เลย) · `invoice_write_failed` (items เขียนแล้ว header ไม่สำเร็จ — ต้อง
+reconcile ด้วยมือ) · `order_link_failed` (invoice ครบ แค่ OrderForm ไม่ถูก mark)
+⇒ งานที่ยังเหลือคือ **pre-flight cross-sheet check ก่อน write ตัวแรก** (`OrderForm.invoice_id` /
+`Invoices.invoice_number`) ไม่ใช่การทำ transaction และไม่ใช่การเพิ่ม retry
+
+**ห้าม auto-retry write ที่ยิงออกไปแล้ว**
+429/401 สังเกตได้หลังยิงเท่านั้น ⇒ retry = เสี่ยงเขียนซ้ำ (`InvoiceItems` ซ้ำทั้งชุด, header ซ้ำ)
+retry ได้เฉพาะ **token acquisition** · `WriteCommittedUnreadableError` แปลว่า
+**เขียนสำเร็จแน่นอนแล้ว** แค่อ่านผลกลับไม่ได้ — ข้อความต้องบอกชัดว่าห้าม retry
+
+**`InvoicesView` sync ต้องอยู่กับ Apps Script**
+`APPSCRIPT_INVOICE_VIEW_SYNC_URL` คือ trigger คำนวณ materialized view **ห้ามลบ ห้ามสลับไป
+Sheets API** · แบ่งหน้าที่ถาวร: Apps Script = คำนวณ/trigger · Sheets API = CRUD writes · GViz = reads
+
+**Customers write = เขียน business flow ใหม่ ไม่ใช่ migration**
+`appscript/customer-sheet/API.js` เป็น Apps Script คนละโปรเจกต์ มี `LockService` ของตัวเอง
+ตอน CREATE จอง `CustomerIndex` จากชีต `CustomerIDMapping` เช็คเบอร์ซ้ำ และยิง LINE notification
+⇒ `Customers.db-contract.ts` ตั้ง `writes: false` **แต่แปลว่า "ยังไม่เปิด" ไม่ใช่ "ห้ามเปิด"**
+route POST/PATCH ต้องคง fail แบบเดิมไว้ **ห้ามถอดออก** (จะกลายเป็น behavior change)
+
+**เพิ่ม `certainty` เข้า `appointment-api.schema.ts` — ตัดสินแล้วว่าต้องทำ แต่เป็นงานแยก**
+วันนี้ error ทุกคลาสตกเป็น `500 INTERNAL_ERROR` ข้อความจริงถูก `console.error` ไว้แต่ไม่ถึง client
+(`api-handler.ts:58-71`) · ตัดสิน 2026-08-10 ว่าต้องเพิ่ม mapping ไม่ปล่อยเป็น 500 เสมอ
+แต่มันแตะ API contract ⇒ กระทบ frontend ⇒ ห้ามทำปนกับงานอื่น
+· `certainty` เป็น public contract แล้ว (`contracts/invoices/invoice-api.schema.ts`)
+**ห้ามยุบ error taxonomy**
+
+**ปลายทางของคอลัมน์ timestamp คือ datetime จริงทุกชีต (คำตัดสิน 3.5)**
+รูปแบบ `YYYY-MM-DD HH:MM:SS` zero-padded เรียง lexicographic ตรงกับเวลาจริงอยู่แล้ว ⇒ ย้ายไป
+Supabase ได้โดยไม่ต้องแปลงข้อมูล · **ทุก design ต่อจากนี้ควรออกแบบให้สลับไป Supabase ได้ง่าย
+แม้จะยังไม่ทำตอนนี้**
+
+**งานที่เหลือต้องพิสูจน์ด้วยของจริง mock ไม่พอ**
+`USER_ENTERED` vs date/phone — ต้องยิงกับ spreadsheet ทิ้งได้จริงแล้วอ่านกลับผ่าน **GViz**
+เพื่อยืนยันว่า `AppointmentDate` ยัง filter ด้วยฟังก์ชันวันที่ได้
+· branch deploy ได้ **preview URL ไม่ใช่ production alias** ⇒ curl ที่ preview URL ก่อน
+แล้วค่อย promote แล้ว curl ซ้ำที่ prod alias
+· ก่อนแตะชีต production ให้ทดสอบ append/update/serialization/error path กับ spreadsheet ทิ้งได้ก่อน
+
+**ของที่ต้องให้เจ้าของโปรเจกต์กดเอง — agent ห้ามทำแทนหรือหาทางอ้อม**
+เลือก order/ข้อมูลจริงที่ "ทิ้งได้" สำหรับ smoke test (เป็นข้อมูลธุรกิจจริง) · กด deploy
+· กดผ่าน staff UI จริง · `GOOGLE_SERVICE_ACCOUNT_KEY` บน Vercel เป็น Sensitive อ่านย้อนกลับ
+ไม่ได้ พิสูจน์ได้ทางเดียวคือยิงผ่าน deploy จริง
+· **เปิด Vercel Authentication กลับก่อนระบบมีผู้ใช้จริง** — ตอนนี้ปิดชั่วคราว ไม่ใช่ของถาวร (ดูหมวด 5)
 
 ---
 
@@ -914,7 +1106,6 @@ Vercel Authentication อีก — ตอนนี้ความปลอด�
 
 | ไฟล์ | คืออะไร |
 |---|---|
-| `docs/database-layer-sheets-api-refactor-plan.md` | แผนเต็ม + สถานะปิด Phase 1 |
 | `CLAUDE.md` | กฎ frontend + **วิธี delegate ให้ luna** |
 | `AGENTS.md` / `api/CLAUDE.md` | กฎ backend — เขียนใหม่แล้วให้ตรงสถาปัตยกรรมปัจจุบัน |
 | `server/shared/repositories/sheet.repository.ts` | หัวใจของ write transport — แต่ **ไม่ใช่ไฟล์เดียวที่ต้องแก้** stage 1 แตะ 8 ไฟล์ (repo + `sheet-contract.ts` + db-contract ของชีตนั้น + service ที่ map error + เทสต์ 4 ไฟล์) |

@@ -82,7 +82,6 @@ function createService(repository = new RecordingRepository()): {
       fieldMap: appointmentsFieldMap,
       transformer: createAppointmentTransformer(),
       generateAppointmentId: () => 'APPT-generated',
-      now: () => fixedNow,
     }),
     repository,
   }
@@ -110,7 +109,7 @@ test('formats a Date in the SheetLib Bangkok timestamp format', () => {
   assert.equal(formatBangkokTimestamp(fixedNow), '2026-04-01 07:34:56')
 })
 
-test('create validates once, enriches the command, maps it to DB fields, and packs Address', async () => {
+test('create validates once, enriches the command, maps it to DB fields, and leaves audit fields for the repository', async () => {
   const { service, repository } = createService()
 
   await service.create({ ...createPayload, appointmentId: 'client-controlled' })
@@ -132,10 +131,10 @@ test('create validates once, enriches the command, maps it to DB fields, and pac
       }),
       CreatedBy: 'admin',
       ServiceTier: 'STANDARD',
-      CreatedAt: '2026-04-01 07:34:56',
-      UpdatedAt: '2026-04-01 07:34:56',
     },
   ])
+  assert.equal('CreatedAt' in repository.appendCalls[0], false)
+  assert.equal('UpdatedAt' in repository.appendCalls[0], false)
 })
 
 test('create ignores a client-supplied service tier because the backend owns it', async () => {
@@ -148,7 +147,7 @@ test('create ignores a client-supplied service tier because the backend owns it'
   assert.equal(repository.appendCalls[0].Status, 'CONFIRMED')
 })
 
-test('update checks that the row exists, maps the patch, and adds only UpdatedAt', async () => {
+test('update checks that the row exists, maps the patch, and leaves UpdatedAt for the repository', async () => {
   const { service, repository } = createService()
 
   await service.update('  APPT-existing  ', { notes: 'โทรก่อน', updatedBy: 'admin' })
@@ -160,10 +159,10 @@ test('update checks that the row exists, maps the patch, and adds only UpdatedAt
       data: {
         Notes: 'โทรก่อน',
         UpdatedBy: 'admin',
-        UpdatedAt: '2026-04-01 07:34:56',
       },
     },
   ])
+  assert.equal('UpdatedAt' in repository.updateCalls[0]!.data, false)
 })
 
 test('invalid public payload does not reach the repository', async () => {

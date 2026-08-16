@@ -1,8 +1,16 @@
 import assert from 'node:assert/strict'
 import { generateKeyPairSync } from 'node:crypto'
 import type { CreateInvoiceRequest } from '../../../../contracts/invoices/invoice-api.schema.js'
-import { invoiceItemsRowSchema } from '../../../../server/sheets/InvoiceItems/InvoiceItems.db-contract.js'
-import { invoicesRowSchema } from '../../../../server/sheets/Invoices/Invoices.db-contract.js'
+import {
+  invoiceItemsDbContract,
+  invoiceItemsRowSchema,
+} from '../../../../server/sheets/InvoiceItems/InvoiceItems.db-contract.js'
+import {
+  invoicesDbContract,
+  invoicesRowSchema,
+} from '../../../../server/sheets/Invoices/Invoices.db-contract.js'
+import { orderFormDbContract } from '../../../../server/sheets/OrderForm/OrderForm.db-contract.js'
+import { SheetRepository } from '../../../../server/shared/repositories/sheet.repository.js'
 
 /**
  * Sheets API workflow.
@@ -12,10 +20,9 @@ import { invoicesRowSchema } from '../../../../server/sheets/Invoices/Invoices.d
  * append through the Sheets API, plus an OrderForm keyed PATCH through the
  * Sheets API with only the invoice link fields.
  *
- * The repositories are the real, default-constructed ones — no fake repository
- * is injected, which is what makes the asserted request bodies meaningful. Only
- * the clock, item-id generator, and the separate view-sync endpoint are stubbed
- * (see the call site).
+ * The repositories are real SheetRepository instances with only their clock,
+ * item-id generator, and the separate view-sync endpoint stubbed (see the call
+ * site), which keeps the asserted request bodies meaningful.
  */
 
 process.env.INVOICES_SPREADSHEET_ID = 'invoices-spreadsheet-id'
@@ -104,6 +111,9 @@ async function withRoutedFetch<T>(
     if (init?.method === 'GET' && path.endsWith('/values/InvoiceItems!1:1')) {
       return response({ json: { values: [invoiceItemsHeaders] } })
     }
+    if (init?.method === 'GET' && path.endsWith('/values/InvoiceItems!B:B')) {
+      return response({ json: { values: [['invoice_item_id']] } })
+    }
     if (init?.method === 'POST' && path.endsWith('/values/InvoiceItems:append')) {
       assert.equal(parsedUrl.searchParams.get('valueInputOption'), 'USER_ENTERED')
       assert.equal(parsedUrl.searchParams.get('insertDataOption'), 'INSERT_ROWS')
@@ -115,6 +125,9 @@ async function withRoutedFetch<T>(
     // ── Invoices: header load + one append ──
     if (init?.method === 'GET' && path.endsWith('/values/Invoices!1:1')) {
       return response({ json: { values: [invoicesHeaders] } })
+    }
+    if (init?.method === 'GET' && path.endsWith('/values/Invoices!A:A')) {
+      return response({ json: { values: [['invoice_number']] } })
     }
     if (init?.method === 'POST' && path.endsWith('/values/Invoices:append')) {
       assert.equal(parsedUrl.searchParams.get('valueInputOption'), 'USER_ENTERED')
@@ -171,10 +184,15 @@ function baseRequest(): CreateInvoiceRequest {
 async function main(): Promise<void> {
   let itemIdIndex = 0
   const service = new InvoiceService({
+    invoiceRepository: () =>
+      new SheetRepository({ contract: invoicesDbContract, now: () => fixedNow }),
+    invoiceItemRepository: () =>
+      new SheetRepository({ contract: invoiceItemsDbContract, now: () => fixedNow }),
+    orderFormRepository: () =>
+      new SheetRepository({ contract: orderFormDbContract, now: () => fixedNow }),
     // The Apps Script view-sync integration is a separate URL/endpoint;
     // stub it so this test focuses on the three source-sheet writes.
     syncInvoiceView: async () => ({ outcome: 'confirmed' }),
-    now: () => fixedNow,
     generateItemId: () => {
       itemIdIndex += 1
       // 8-char primary keys matching invoice_item_id length.
@@ -188,13 +206,15 @@ async function main(): Promise<void> {
 
     // Source-sheet writes use the Sheets API; view synchronization is a
     // separate endpoint.
-    assert.equal(calls.length, 8, 'header×2 + append×2 + OrderForm×4')
+    assert.equal(calls.length, 10, 'header×3 + primary-key reads×2 + append×2 + update×3')
     assert.deepEqual(
       calls.map((call) => `${call.method ?? 'GET'} ${sheetsPath(call.url).replace(/^\/v4\/spreadsheets\/[^/]+/, '')}`),
       [
         'GET /values/InvoiceItems!1:1',
+        'GET /values/InvoiceItems!B:B',
         'POST /values/InvoiceItems:append',
         'GET /values/Invoices!1:1',
+        'GET /values/Invoices!A:A',
         'POST /values/Invoices:append',
         'GET /values/OrderForm!1:1',
         'GET /values/OrderForm!A:A',
@@ -307,7 +327,7 @@ async function main(): Promise<void> {
     )
 
     // ── OrderForm: one UPDATE, PATCH-only body (assertions also live in the mock) ──
-    const orderFormCall = calls[6]!
+    const orderFormCall = calls[8]!
     assert.equal(orderFormCall.body?.valueInputOption, 'USER_ENTERED')
     assert.deepEqual(orderFormCall.body?.data, [
       { range: 'OrderForm!S2:S2', values: [['INV-0001']] },

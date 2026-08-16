@@ -73,6 +73,7 @@ function createService(id: string, now: Date): AppointmentService {
     sheetsApiClientOptions: {
       accessTokenProvider: async () => 'test-access-token',
     },
+    now: () => now,
   })
 
   return new AppointmentService({
@@ -80,7 +81,6 @@ function createService(id: string, now: Date): AppointmentService {
     fieldMap: appointmentsFieldMap,
     transformer: createAppointmentTransformer(),
     generateAppointmentId: () => id,
-    now: () => now,
   })
 }
 
@@ -132,6 +132,9 @@ async function assertCreateTransport(
       if (init?.method === 'GET' && path.endsWith('/values/Appointments!1:1')) {
         return response({ json: { values: [appointmentHeaders] } })
       }
+      if (init?.method === 'GET' && path.endsWith('/values/Appointments!A:A')) {
+        return response({ json: { values: [['AppointmentID']] } })
+      }
       if (init?.method === 'POST' && path.endsWith('/values/Appointments:append')) {
         return response({ json: fixture.sheetsApiResponse })
       }
@@ -141,9 +144,10 @@ async function assertCreateTransport(
       const service = createService(id, now)
       await service.create(fixture.frontendRequest)
 
-      assert.equal(calls.length, 2)
+      assert.equal(calls.length, 3)
       assert.equal(apiPath(calls[0]), '/v4/spreadsheets/appointment-spreadsheet-id/values/Appointments!1:1')
-      assertAppendRequest(calls[1], fixture)
+      assert.equal(apiPath(calls[1]), '/v4/spreadsheets/appointment-spreadsheet-id/values/Appointments!A:A')
+      assertAppendRequest(calls[2], fixture)
     },
   )
 }

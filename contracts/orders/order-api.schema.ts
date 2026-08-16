@@ -31,6 +31,7 @@ export const orderListResponseSchema = z.object({
   orderId: z.string(),
   customerId: z.string(),
   orderNumber: z.string().nullable(),
+  invoiceNumber: z.string().nullable(),
   receivedDate: z.string().nullable(),
   dueDate: z.string().nullable(),
   serviceType: z.string().nullable(),

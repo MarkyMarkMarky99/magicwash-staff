@@ -150,6 +150,7 @@ test('OrdersView service wiring maps DB columns and decodes the declared JSON ce
       ])
       assert.notEqual(row.items, itemsJson)
       assert.notEqual(row.items, undefined)
+      assert.equal(row.invoiceNumber, null)
       // The backend does not normalize GViz dates; the frontend owns display
       // formatting.
       assert.equal(row.receivedDate, 'Date(2026,6,21)')
@@ -227,6 +228,9 @@ test('Appointments create wiring packs Address and uses the DB primary-key colum
       if (init?.method === 'GET' && path.endsWith('/values/Appointments!1:1')) {
         return response('', { values: [appointmentHeaders] })
       }
+      if (init?.method === 'GET' && path.endsWith('/values/Appointments!A:A')) {
+        return response('', { values: [['AppointmentID']] })
+      }
       if (init?.method === 'POST' && path.endsWith('/values/Appointments:append')) {
         const request = JSON.parse(String(init.body)) as {
           majorDimension: string
@@ -257,22 +261,27 @@ test('Appointments create wiring packs Address and uses the DB primary-key colum
         createdBy: 'test-user',
       })
 
-      assert.equal(calls.length, 3)
+      assert.equal(calls.length, 4)
       assert.equal(calls[0].url, 'https://oauth2.googleapis.com/token')
       assert.equal(calls[1].init?.method, 'GET')
       assert.equal(
         decodeURIComponent(new URL(calls[1].url).pathname).endsWith('/values/Appointments!1:1'),
         true,
       )
-      assert.equal(calls[2].init?.method, 'POST')
+      assert.equal(calls[2].init?.method, 'GET')
+      assert.equal(
+        decodeURIComponent(new URL(calls[2].url).pathname).endsWith('/values/Appointments!A:A'),
+        true,
+      )
+      assert.equal(calls[3].init?.method, 'POST')
 
-      const appendUrl = new URL(calls[2].url)
+      const appendUrl = new URL(calls[3].url)
       assert.equal(appendUrl.searchParams.get('valueInputOption'), 'USER_ENTERED')
       assert.equal(appendUrl.searchParams.get('insertDataOption'), 'INSERT_ROWS')
       assert.equal(appendUrl.searchParams.get('includeValuesInResponse'), 'true')
       assert.equal(appendUrl.searchParams.get('responseValueRenderOption'), 'UNFORMATTED_VALUE')
 
-      const request = JSON.parse(calls[2].init?.body as string) as {
+      const request = JSON.parse(calls[3].init?.body as string) as {
         majorDimension: string
         values: unknown[][]
       }

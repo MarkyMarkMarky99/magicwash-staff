@@ -160,7 +160,7 @@ async function main(): Promise<void> {
       return jsonResponse({ values: [['id'], ['ORD-1']] })
     }
     if (path.endsWith('/values:batchUpdate')) {
-      return jsonResponse({ spreadsheetId: 'orders-spreadsheet-id', responses: [{}] })
+      return jsonResponse({ spreadsheetId: 'orders-spreadsheet-id', responses: [{}, {}] })
     }
     if (path.endsWith('/values/OrderForm!A2:U2')) {
       return jsonResponse({ values: [['ORD-MOVED', ...fullRowValues.slice(1)]] })

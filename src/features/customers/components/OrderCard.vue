@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-import type { OrderListDto } from '../services/order.service'
+import type { z } from 'zod'
+import type { orderListResponseSchema } from '@contracts/orders/order-api.schema'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
+import { isInvoiceActionAvailable } from '../utils/order-invoice-target'
+
+type OrderListDto = z.infer<typeof orderListResponseSchema>
 
 const props = defineProps<{
   order: OrderListDto
@@ -9,9 +12,9 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   select: [order: OrderListDto]
+  viewPhotos: [orderId: string]
+  viewInvoice: [invoiceNumber: string]
 }>()
-
-const router = useRouter()
 
 interface StatusPresentation {
   icon: string
@@ -43,7 +46,13 @@ function presentationFor(status: string | null): StatusPresentation {
 }
 
 function viewPhotos() {
-  router.push(`/gallery/AFT-${props.order.orderId}`)
+  emit('viewPhotos', props.order.orderId)
+}
+
+function viewInvoice() {
+  const invoiceNumber = props.order.invoiceNumber
+  if (!isInvoiceActionAvailable(props.order) || !invoiceNumber) return
+  emit('viewInvoice', invoiceNumber)
 }
 
 function selectOrder() {
@@ -89,14 +98,25 @@ function selectOrder() {
         <p class="truncate font-body text-xs text-on-surface-variant">
           {{ order.note || order.serviceType || '—' }}
         </p>
-        <button
-          type="button"
-          class="shrink-0 p-1 text-primary transition hover:opacity-70 active:scale-95"
-          aria-label="View photos"
-          @click.stop="viewPhotos"
-        >
-          <span class="material-symbols-outlined text-[16px]" aria-hidden="true">photo_library</span>
-        </button>
+        <div class="flex shrink-0 items-center gap-2">
+          <button
+            v-if="isInvoiceActionAvailable(order)"
+            type="button"
+            class="shrink-0 p-1 text-primary transition hover:opacity-70 active:scale-95"
+            aria-label="View invoice"
+            @click.stop="viewInvoice"
+          >
+            <span class="material-symbols-outlined text-[16px]" aria-hidden="true">receipt_long</span>
+          </button>
+          <button
+            type="button"
+            class="shrink-0 p-1 text-primary transition hover:opacity-70 active:scale-95"
+            aria-label="View photos"
+            @click.stop="viewPhotos"
+          >
+            <span class="material-symbols-outlined text-[16px]" aria-hidden="true">photo_library</span>
+          </button>
+        </div>
       </div>
     </div>
   </article>

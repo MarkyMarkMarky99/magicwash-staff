@@ -22,6 +22,7 @@ const [
   paymentsModule,
   invoicesViewModule,
   customerPackageViewModule,
+  laundryPhotosModule,
 ] = await Promise.all([
   import('../../../../server/sheets/OrderForm/OrderForm.repository.js'),
   import('../../../../server/sheets/OrdersView/OrdersView.repository.js'),
@@ -32,6 +33,7 @@ const [
   import('../../../../server/sheets/Payments/Payments.repository.js'),
   import('../../../../server/sheets/InvoicesView/InvoicesView.repository.js'),
   import('../../../../server/sheets/CustomerPackageView/CustomerPackageView.repository.js'),
+  import('../../../../server/sheets/LaundryPhotos/LaundryPhotos.repository.js'),
 ])
 
 process.env.ORDERS_SPREADSHEET_ID = 'orders-spreadsheet-id'
@@ -50,6 +52,7 @@ const getters = [
   ['Payments', paymentsModule.getPaymentsRepository],
   ['InvoicesView', invoicesViewModule.getInvoicesViewRepository],
   ['CustomerPackageView', customerPackageViewModule.getCustomerPackageViewRepository],
+  ['LaundryPhotos', laundryPhotosModule.getLaundryPhotosRepository],
 ] as const
 
 for (const [sheet, getRepository] of getters) {

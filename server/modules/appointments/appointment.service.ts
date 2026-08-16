@@ -3,7 +3,6 @@ import type { z } from 'zod'
 import type { RepositoryTransformer } from '../../shared/repositories/base.repository.js'
 import { BaseCrudService } from '../../shared/services/base-crud.service.js'
 import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
-import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
 import {
   appointmentApiContract,
   appointmentWriteFailureCertaintySchema,
@@ -43,13 +42,9 @@ export type AppointmentCreateCommand = AppointmentCreateInput & {
   appointmentId: string
   status: 'CONFIRMED'
   serviceTier: 'STANDARD'
-  createdAt: string
-  updatedAt: string
 }
 
-export type AppointmentUpdateCommand = AppointmentUpdateInput & {
-  updatedAt: string
-}
+export type AppointmentUpdateCommand = AppointmentUpdateInput
 
 export type AppointmentSheetRepository = SheetRepositoryContract<AppointmentSheetDbRow>
 
@@ -60,7 +55,6 @@ export interface AppointmentServiceOptions {
   /** Optional transformer for Address snapshot pack/unpack. */
   transformer?: RepositoryTransformer
   generateAppointmentId?: () => string
-  now?: () => Date
 }
 
 /**
@@ -81,7 +75,6 @@ export class AppointmentService extends BaseCrudService<
   AppointmentSheetFieldMap
 > {
   private readonly generateAppointmentId: () => string
-  private readonly now: () => Date
 
   constructor(input: AppointmentServiceOptions) {
     super({
@@ -92,19 +85,14 @@ export class AppointmentService extends BaseCrudService<
       transformer: input.transformer,
     })
     this.generateAppointmentId = input.generateAppointmentId ?? defaultAppointmentId
-    this.now = input.now ?? (() => new Date())
   }
 
   protected override prepareCreate(data: AppointmentCreateInput): AppointmentCreateCommand {
-    const timestamp = formatBangkokTimestamp(this.now())
-
     return {
       ...data,
       appointmentId: this.generateAppointmentId(),
       status: 'CONFIRMED',
       serviceTier: 'STANDARD',
-      createdAt: timestamp,
-      updatedAt: timestamp,
     }
   }
 
@@ -112,10 +100,7 @@ export class AppointmentService extends BaseCrudService<
     _id: string,
     data: AppointmentUpdateInput,
   ): AppointmentUpdateCommand {
-    return {
-      ...data,
-      updatedAt: formatBangkokTimestamp(this.now()),
-    }
+    return { ...data }
   }
 }
 
