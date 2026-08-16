@@ -116,7 +116,7 @@ test('batch key validation consumes the returned key collection linearly overall
   const existingCount = 64
   const incomingCount = 32
   let rowReads = 0
-  const existingRows: unknown[][] = [
+  const existingRows: SheetsApiValues = [
     ['AppendID'],
     ...Array.from({ length: existingCount }, (_, index) => [`existing-${index}`]),
   ]
