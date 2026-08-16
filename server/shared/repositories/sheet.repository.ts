@@ -38,7 +38,7 @@ import {
   resolveValueInputOption,
   serializeCellValue,
 } from './sheet-value-serializer.js'
-import { findRowNumberByKey } from './sheet-row-lookup.js'
+import { DuplicateRowKeyError, findRowNumberByKey } from './sheet-row-lookup.js'
 import { verifyRowIdentity } from './sheet-row-identity.js'
 import { formatBangkokTimestamp } from '../utils/bangkok-timestamp.js'
 
@@ -347,14 +347,39 @@ export class SheetRepository<TDbRow extends object>
       uniqueKeyValues.add(keyValue)
     }
 
+    const existingRowsByKey = new Map<string, number[]>()
+    for (let index = 1; index < existingKeyValues.length; index += 1) {
+      const cellValue = existingKeyValues[index]?.[0]
+      if (cellValue === undefined) {
+        continue
+      }
+
+      const normalizedCellValue = String(cellValue ?? '').trim()
+      if (normalizedCellValue === '') {
+        continue
+      }
+
+      const matchingRows = existingRowsByKey.get(normalizedCellValue)
+      if (matchingRows === undefined) {
+        existingRowsByKey.set(normalizedCellValue, [index + 1])
+      } else {
+        matchingRows.push(index + 1)
+      }
+    }
+
     for (const keyValue of uniqueKeyValues) {
-      const existingRowNumber = await findRowNumberByKey(
-        headerMap,
-        this.contract.primaryKey,
-        keyValue,
-        async () => existingKeyValues,
-      )
-      if (existingRowNumber !== null) {
+      const matchingRows = existingRowsByKey.get(keyValue)
+      if (matchingRows === undefined) {
+        continue
+      }
+      if (matchingRows.length > 1) {
+        throw new DuplicateRowKeyError(
+          this.contract.primaryKey,
+          keyValue,
+          matchingRows,
+        )
+      }
+      if (matchingRows.length === 1) {
         throw new DuplicatePrimaryKeyError('APPEND', this.contract.primaryKey, keyValue)
       }
     }
