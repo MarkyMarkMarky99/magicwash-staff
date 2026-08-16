@@ -347,6 +347,48 @@ export class SheetRepository<TDbRow extends object>
       uniqueKeyValues.add(keyValue)
     }
 
+    for (const keyValue of uniqueKeyValues) {
+      const existingRowNumber = await findRowNumberByKey(
+        headerMap,
+        this.contract.primaryKey,
+        keyValue,
+        async () => existingKeyValues,
+      )
+      if (existingRowNumber !== null) {
+        throw new DuplicatePrimaryKeyError('APPEND', this.contract.primaryKey, keyValue)
+      }
+    }
+  }
+
+  private async validateBatchKeys(
+    client: SheetsApiClient,
+    headerMap: SheetHeaderMap,
+    preparedRows: Array<Record<string, SheetsApiValue>>,
+  ): Promise<void> {
+    const keyValues = preparedRows
+      .map((row) => String(row[this.contract.primaryKey] ?? '').trim())
+      .filter((value) => value !== '')
+    if (keyValues.length === 0) {
+      return
+    }
+
+    const keyColumnLetter = headerMap.letterByName[this.contract.primaryKey]
+    if (keyColumnLetter === undefined) {
+      throw new WriteRejectedError(
+        'APPEND',
+        `Key column '${this.contract.primaryKey}' is not present in the sheet header map`,
+      )
+    }
+
+    const existingKeyValues = await client.readColumn(keyColumnLetter)
+    const uniqueKeyValues = new Set<string>()
+    for (const keyValue of keyValues) {
+      if (uniqueKeyValues.has(keyValue)) {
+        throw new DuplicatePrimaryKeyError('APPEND', this.contract.primaryKey, keyValue)
+      }
+      uniqueKeyValues.add(keyValue)
+    }
+
     const existingRowsByKey = new Map<string, number[]>()
     for (let index = 1; index < existingKeyValues.length; index += 1) {
       const cellValue = existingKeyValues[index]?.[0]
@@ -466,7 +508,7 @@ export class SheetRepository<TDbRow extends object>
       )
     }
 
-    await this.validateKeys(client, headerMap, sentRows)
+    await this.validateBatchKeys(client, headerMap, sentRows)
 
     const response = await client.appendRows(
       sentValuesList,
