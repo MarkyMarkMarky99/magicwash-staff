@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, toRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { OrderListDto } from '../services/order.service'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
+import { useDuplicateInvoiceWarning } from '@/shared/composables/use-duplicate-invoice-warning'
 
 const props = defineProps<{
   open: boolean
@@ -21,6 +22,14 @@ const dragOffset = ref(0)
 const dragging = ref(false)
 const CLOSE_THRESHOLD = 80
 let dragStartY = 0
+const {
+  warningInvoiceNumber,
+  awaitingConfirmation,
+  requestCreate,
+  confirmCreate,
+  cancelCreate,
+  reset,
+} = useDuplicateInvoiceWarning(toRef(props, 'order'))
 
 watch(
   () => props.order,
@@ -29,9 +38,29 @@ watch(
   },
 )
 
+watch(
+  () => props.open,
+  (open) => {
+    if (!open) reset()
+  },
+)
+
+function handleClose() {
+  reset()
+  emit('close')
+}
+
+function handleCreateInvoice() {
+  if (requestCreate()) emit('createInvoice')
+}
+
+function confirmInvoiceCreation() {
+  if (confirmCreate()) emit('createInvoice')
+}
+
 function viewPhotos() {
   if (!props.order) return
-  emit('close')
+  handleClose()
   router.push(`/gallery/AFT-${props.order.orderId}`)
 }
 
@@ -55,7 +84,7 @@ function handleDragEnd(event: PointerEvent) {
   }
   dragging.value = false
   if (dragOffset.value >= CLOSE_THRESHOLD) {
-    emit('close')
+    handleClose()
   }
   dragOffset.value = 0
 }
@@ -68,7 +97,7 @@ function handleDragEnd(event: PointerEvent) {
         type="button"
         class="absolute inset-0 bg-black/40"
         aria-label="Close order details"
-        @click="emit('close')"
+        @click="handleClose"
       />
 
       <section
@@ -101,7 +130,7 @@ function handleDragEnd(event: PointerEvent) {
             type="button"
             class="flex h-8 w-8 items-center justify-center rounded-full text-primary hover:bg-surface-container"
             aria-label="Close"
-            @click="emit('close')"
+            @click="handleClose"
           >
             <span class="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
           </button>
@@ -142,14 +171,45 @@ function handleDragEnd(event: PointerEvent) {
             Book Delivery
           </button>
 
+          <div v-if="warningInvoiceNumber" class="flex items-start gap-2 rounded-xl border border-tertiary/30 bg-tertiary-container/20 px-3 py-2.5 text-on-surface">
+            <span class="material-symbols-outlined mt-0.5 shrink-0 text-[18px] leading-none text-tertiary" aria-hidden="true">warning</span>
+            <p class="font-body text-xs leading-relaxed">
+              This order already has invoice <span class="font-semibold">{{ warningInvoiceNumber }}</span>.
+              You can still create another invoice.
+            </p>
+          </div>
+
           <button
+            v-if="!awaitingConfirmation"
             type="button"
             class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 font-label text-[12px] font-semibold text-on-primary transition-all hover:bg-primary/90 active:scale-[0.98]"
-            @click="emit('createInvoice')"
+            @click="handleCreateInvoice"
           >
             <span class="material-symbols-outlined text-[16px] leading-none" aria-hidden="true">receipt_long</span>
             Create Invoice
           </button>
+
+          <div v-else class="space-y-2 rounded-xl border border-tertiary/30 bg-tertiary-container/20 p-3">
+            <p class="font-body text-xs leading-relaxed text-on-surface">
+              Create another invoice for this order anyway?
+            </p>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                class="flex-1 rounded-xl bg-primary py-2.5 font-label text-[12px] font-semibold text-on-primary transition-all hover:bg-primary/90 active:scale-[0.98]"
+                @click="confirmInvoiceCreation"
+              >
+                Go ahead
+              </button>
+              <button
+                type="button"
+                class="flex-1 rounded-xl bg-surface-container py-2.5 font-label text-[12px] font-semibold text-primary transition-all hover:bg-surface-container-high active:scale-[0.98]"
+                @click="cancelCreate"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="flex-1 overflow-y-auto px-4 py-4">

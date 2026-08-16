@@ -24,7 +24,11 @@ function goBack() {
   }
 
   if (route.name === 'invoice-detail') {
-    router.push({ name: 'invoice-list' })
+    if (history.state?.back) {
+      router.back()
+    } else {
+      router.push({ name: 'invoice-list' })
+    }
     return
   }
 
