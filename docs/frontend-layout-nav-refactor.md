@@ -64,7 +64,7 @@ drill-down page. Its temporary hardcoded branch in `AppHeader` is expected to be
 - [x] Temporary back-compat shim: `src/components/layout/NavSidebar.vue` → `src/shared/components/NavSidebar.vue`
 - [x] Temporary back-compat shim: `src/pages/OrderGalleryPage.vue` → `src/features/gallery/pages/OrderGalleryPage.vue`
 - [x] Temporary back-compat shim: `src/pages/CameraOverlayPage.vue` → `src/features/gallery/components/CameraOverlayPage.vue`
-- [ ] Delete the temporary back-compat shims at the old paths once the in-flight branches have been merged
+- [ ] Delete the temporary back-compat shims at the old paths when the owner decides to do so (see Debts deliberately left open)
 
 The current tree is an unfinished migration, not a convention -- cross-feature code belongs in `src/shared/`, feature code in `src/features/<feature>/`. Doing this before Stage 2 means `useGoBack()` is born in the right place instead of being moved later.
 
