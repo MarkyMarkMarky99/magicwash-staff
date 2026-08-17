@@ -1,7 +1,7 @@
 # Frontend layout & navigation refactor
 
 Branch: `frontend-layout-nav-taxonomy` (cut from `main`)
-Status: Stage 1 and Stage 1.5 done and committed; Stage 2 blocked on owner decision
+Status: Stages 1 and 1.5 complete (5 commits). Stage 2 blocked on owner decision; Stage 3 blocked on owner decision.
 Owner decision log lives in this file — update the checkboxes as work lands.
 
 ## Why
@@ -39,8 +39,8 @@ Current assignment:
 Smallest change, immediate visible effect, blocked on nothing.
 
 - Pending badge is now limited to `appointment-schedule` (`/`); `customer-list` and `invoice-list` deliberately show no right-side button beyond search.
-- [x] `customer-list` (`/customers`): remove the `close` button, show the pending badge like the
-      other root pages
+- [x] `customer-list` (`/customers`): remove the `close` button; show no right-side button beyond
+      search
 - [x] appointment-pending: remove close, show NO right-side button (the pending badge links to the pending page, so it is meaningless on that page itself)
 - [x] Confirm `appointment-schedule` and `invoice-list` already behave this way (expected: yes)
 - [x] Once both are done, the `close` branch in `AppHeader.goBack` has no remaining caller — delete
@@ -57,7 +57,7 @@ drill-down page. Its temporary hardcoded branch in `AppHeader` is expected to be
 - [x] `src/components/layout/NavSidebar.vue` → `src/shared/components/NavSidebar.vue`
 - [x] `src/pages/OrderGalleryPage.vue` → `src/features/gallery/pages/OrderGalleryPage.vue`
 - [x] `src/pages/CameraOverlayPage.vue` → `src/features/gallery/components/CameraOverlayPage.vue`
-- [x] Verified `src/pages/CustomersPage.vue` has references in `FRONTEND_REFACTOR_PLAN.md`; kept it in place.
+- [x] Deleted dead code `src/pages/CustomersPage.vue` (no importer, no route); a prose mention in a document is not a code reference.
 - [x] Temporary back-compat shim: `src/layouts/AppLayout.vue` → `src/shared/layouts/AppLayout.vue`
 - [x] Temporary back-compat shim: `src/layouts/FormLayout.vue` → `src/shared/layouts/FormLayout.vue`
 - [x] Temporary back-compat shim: `src/components/layout/AppHeader.vue` → `src/shared/components/AppHeader.vue`
@@ -93,19 +93,43 @@ existence has not been verified).
 
 The expensive stage. Nothing of this type exists in the app yet.
 
+### Shell design -- already decided, do not redesign
+
+One generic overlay shell component, in `src/shared/` (it is cross-feature). It renders the overlay
+and the close button and nothing else; callers supply all content through slots.
+
+The shell owns -- and callers must not reimplement -- Teleport, z-index, the backdrop, scroll lock
+on the page behind, focus trap, Escape-to-close, the close button's position and size, and the
+enter/leave transition. Nothing in the app does scroll lock or focus trap today, and the existing close
+buttons come in four different sizes and positions; that inconsistency is exactly what a shared shell
+exists to end.
+
+The shell must not own the title, footer buttons, form logic, data fetching, or the route. It
+takes an `open` prop and emits `close`. Whether `open` is driven by a route (as `CameraOverlayPage`
+does) or by local component state (as the bottom sheets do) is the caller's business -- a shell that
+managed URLs could not serve the sheets, which would force a second shell and defeat the purpose.
+
+One component, two variants, not two components: `variant: 'full' | 'sheet'`. Type 3 (full-cover
+form overlay) and type 4 (partial slide-up sheet) differ only in geometry; backdrop, Teleport, scroll
+lock, Escape and focus trap are identical, so splitting them would duplicate the large majority of the
+code.
+
+`FormLayout` goes inside the shell, not beside it: the shell provides the overlay and close
+affordance, `FormLayout` provides the form's header, body and footer.
+
+Precedent to read first: `CameraOverlayPage`. It is the only thing in the app that is both a real
+overlay (its host page stays mounted) and route-addressable -- `/gallery/:key/camera` via
+`meta.openCamera`, dismissed with `router.replace` so it adds no history entry. Read it before
+designing anything new.
+
 - [ ] Decide: does the overlay own a URL, or is it local state only?
 - [ ] Decide: on refresh mid-overlay, does the page underneath get rendered too, or does the overlay
       render standalone?
 - [ ] Decide: browser back while the overlay is open should close the overlay, not leave the page.
       No existing sheet in the app does this today.
-- [ ] Build the overlay shell in `src/shared/layouts/` (full-screen, page underneath stays mounted, `close` button)
+- [ ] Build the overlay shell in `src/shared/layouts/` (one component with `variant: 'full' | 'sheet'`; page underneath stays mounted, `close` button)
 - [ ] Set `FormLayout`'s existing `closeMode` prop — it is already implemented and currently unused
       by every page
-
-**Closest existing precedent:** `CameraOverlayPage`. It is the only thing in the app that is both a
-real overlay (host page stays mounted) and route-addressable (`/gallery/:key/camera` via
-`meta.openCamera`, dismissed with `router.replace` so it adds no history entry). Read it before
-designing anything new.
 
 ## Stage 4 — Move the three forms onto the overlay
 
@@ -121,8 +145,8 @@ shared navigation helper would change post-save behaviour for no reason.
 ## Later, not now
 
 - No shared base overlay component exists; the bottom sheets each reimplement the same shell
-  (`Teleport` + `bg-black/40` backdrop + `rounded-t-2xl` panel + identical close X). Worth extracting
-  once a third real caller appears.
+  (`Teleport` + `bg-black/40` backdrop + `rounded-t-2xl` panel + identical close X). Extract it as
+  part of the Stage 3 shell, using its `sheet` variant.
 - No scroll lock, no focus trap anywhere. Only `InvoiceProofLightbox` manages focus and Escape.
 - `PaymentHistorySheet.vue` has no caller — it is orphaned. Do not count it as a live sheet when
   surveying.
@@ -153,3 +177,62 @@ mid-page refresh, because the refresh case is the entire reason the history-awar
 - [ ] Parent route for `customer-packages-preview` when there is no history
 - [ ] Is `invoice-create` type 3 (form overlay on top of `invoice-list`)?
 - [ ] Type-3 URL strategy — the three decisions listed under Stage 3
+
+## Next session starts here
+
+### Done and committed on this branch
+
+a977ad3 -- Stage 1 + 1.5: root page nav cleanup and file reorganisation
+b34c9c2 -- Delete orphan src/pages/CustomersPage.vue
+10bcd83 -- Nav menu: rename Home to Appointments, drop Pending, give Pending a back button
+acbe84b -- Delete stale FRONTEND_REFACTOR_PLAN.md
+8125a62 -- Show the pending badge only on the appointments page
+
+Net effect: root pages carry no back and no close; the pending badge appears only on the appointments
+page; `appointment-pending` left the sidebar, became a drill-down, and gained a back button;
+cross-feature code now lives in `src/shared/` and gallery in `src/features/gallery/`; two dead files
+are gone.
+
+### Four decisions the owner owes, in the order they unblock work
+
+1. Parent route for `customer-order-history` -- where its back button goes when there is no history
+   to return to (refresh, deep link, opened from LINE). Best guess is that customer's own detail page,
+   but nobody has confirmed such a page exists. Blocks Stage 2.
+2. Parent route for `customer-packages-preview` -- same question. Blocks Stage 2.
+3. Is `invoice-create` a type-3 form overlay? It behaves like a task flow but currently uses
+   `AppLayout` with a back button. Blocks Stage 4.
+4. The three Stage 3 URL questions -- does the overlay own a URL; what renders on a mid-overlay
+   refresh; does browser-back close the overlay rather than leaving the page. Blocks Stage 3. Note that
+   no sheet in the app closes on browser-back today.
+
+### First concrete action next session
+
+1. `git merge origin/main` into this branch and confirm the build still passes.
+2. Answer decisions 1 and 2 (the two parent routes).
+3. Then Stage 2 as already described: add `meta.parent` to the type-2 routes, write `useGoBack()` in
+   `src/shared/`, and replace the if-chain in `AppHeader.goBack` with a call to it.
+
+It is the last cheap stage; Stage 3 is the expensive one.
+
+### Debts deliberately left open
+
+- Six re-export shims exist at the old paths (`src/layouts/`, `src/components/layout/`,
+  `src/pages/`), and each carries a temporary-marker comment. Whether to remove them is now an open
+  decision; see the shim-justification bullet below.
+- **This branch is 7 commits behind `origin/main`.** It was cut from a stale local `main`.
+  `origin/main` has since taken PR #13 and others. Merge `origin/main` in before doing further work,
+  and certainly before opening a PR — the incoming commits are backend (`server/`, tests), so a clean
+  merge is likely, but it has not been attempted.
+- **The six re-export shims have lost their justification.** They were created on the belief that
+  unmerged branches still imported the old paths. That was wrong: `optimize-invoice-create-reads` is
+  already in `origin/main` (PR #13), and `git branch -a --no-merged origin/main` lists only this branch.
+  Nothing anywhere imports the old paths. The shims can be deleted — deciding to do so is the owner's
+  call, not a cleanup to perform unasked, since they were added deliberately. Deleting them removes
+  `src/layouts/`, `src/components/layout/` and `src/pages/` entirely.
+- The search button renders on every page but only functions on `/customers` and `/invoices`.
+  Known, deliberately out of scope so far.
+- The `/gallery/*` back button is matched by URL path prefix, not by route name like every other
+  page, so changing the path makes the button vanish silently.
+- No shared base component for the bottom sheets yet -- three of them reimplement the same shell.
+  Worth extracting when the Stage 3 shell lands, since it is the same shell with a different variant.
+- `PaymentHistorySheet.vue` has no caller. Do not count it as a live sheet when surveying.
