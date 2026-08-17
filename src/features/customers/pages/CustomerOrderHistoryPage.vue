@@ -2,7 +2,7 @@
 import { onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import AppLayout from '@/layouts/AppLayout.vue'
+import AppLayout from '@/shared/layouts/AppLayout.vue'
 import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.store'
 import { useDeliveryBookingIntentStore } from '@/shared/stores/delivery-booking-intent.store'
 import { useInvoiceCreateIntentStore } from '@/shared/stores/invoice-create-intent.store'

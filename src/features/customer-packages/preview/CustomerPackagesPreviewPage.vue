@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import AppLayout from '@/layouts/AppLayout.vue'
+import AppLayout from '@/shared/layouts/AppLayout.vue'
 import CustomerPackagesVariantC from './variant-c/VariantC.vue'
 </script>
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import AppLayout from '@/layouts/AppLayout.vue'
+import AppLayout from '@/shared/layouts/AppLayout.vue'
 import InvoiceCustomerCard from '../components/InvoiceCustomerCard.vue'
 import InvoicePaymentsMenu from '../components/InvoicePaymentsMenu.vue'
 import InvoiceProofLightbox from '../components/InvoiceProofLightbox.vue'

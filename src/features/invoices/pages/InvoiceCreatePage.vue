@@ -12,7 +12,7 @@ import type { CreateInvoiceRequest, CreateInvoiceResponse } from '@contracts/inv
 import { computeInvoiceLine, computeInvoiceTotal, roundMoney } from '@contracts/invoices/invoice-calculator'
 import { useInvoiceCreateIntentStore, type InvoiceCreateIntentOrder } from '@/shared/stores/invoice-create-intent.store'
 import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.store'
-import AppLayout from '@/layouts/AppLayout.vue'
+import AppLayout from '@/shared/layouts/AppLayout.vue'
 import FormInput from '@/shared/components/FormInput.vue'
 import {
   createEmptyAdjustmentRow,

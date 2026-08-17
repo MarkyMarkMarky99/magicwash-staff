@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import FormLayout from '@/layouts/FormLayout.vue'
+import FormLayout from '@/shared/layouts/FormLayout.vue'
 import {
   appointmentWriteErrorMessage,
   getAppointment,

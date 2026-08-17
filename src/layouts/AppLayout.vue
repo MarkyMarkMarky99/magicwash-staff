@@ -1,10 +1,7 @@
-<script setup>
-import AppHeader from '../components/layout/AppHeader.vue'
+<script>
+// This temporary backward-compatibility shim is not real component code.
+// The real component now lives at '@/shared/layouts/AppLayout.vue'.
+// New code must import the new path directly, never this one.
+// Delete this shim once in-flight branches importing the old path have been merged and updated.
+export { default } from '@/shared/layouts/AppLayout.vue'
 </script>
-
-<template>
-  <div class="h-full flex flex-col relative overflow-hidden font-body text-on-surface w-full">
-    <AppHeader />
-    <slot />
-  </div>
-</template>

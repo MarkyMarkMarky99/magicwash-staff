@@ -2,7 +2,7 @@
 import { computed, ref, watch, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
 import { customerTypeSchema } from '@contracts/customers/customer-api.schema'
-import AppLayout from '@/layouts/AppLayout.vue'
+import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import { useHeaderSearch } from '@/shared/composables/useHeaderSearch'
 import CustomerTypeTabs from '../components/CustomerTypeTabs.vue'

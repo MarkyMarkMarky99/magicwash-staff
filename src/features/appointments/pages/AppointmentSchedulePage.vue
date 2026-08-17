@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import AppLayout from '@/layouts/AppLayout.vue'
+import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ListContainer from '@/components/shared/ListContainer.vue'
 import { useAppointmentStore } from '../stores/appointment.store'
 import { appointmentDateFromString, toAppointmentDate } from '../utils/appointment-date'

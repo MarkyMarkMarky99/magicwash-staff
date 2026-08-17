@@ -2,7 +2,7 @@
 import { computed, onActivated, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import FormLayout from '@/layouts/FormLayout.vue'
+import FormLayout from '@/shared/layouts/FormLayout.vue'
 import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.store'
 import { useDeliveryBookingIntentStore } from '@/shared/stores/delivery-booking-intent.store'
 import { useAppointmentStore } from '../stores/appointment.store'

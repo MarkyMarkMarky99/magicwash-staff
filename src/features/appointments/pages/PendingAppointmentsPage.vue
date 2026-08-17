@@ -2,7 +2,7 @@
 import { onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import AppLayout from '@/layouts/AppLayout.vue'
+import AppLayout from '@/shared/layouts/AppLayout.vue'
 import { useAppointmentStore } from '../stores/appointment.store'
 import AppointmentCard from '../components/AppointmentCard.vue'
 
