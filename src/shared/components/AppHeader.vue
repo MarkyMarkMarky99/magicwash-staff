@@ -32,6 +32,15 @@ function goBack() {
     return
   }
 
+  if (route.name === 'appointment-pending') {
+    if (history.state?.back) {
+      router.back()
+    } else {
+      router.push({ name: 'appointment-schedule' })
+    }
+    return
+  }
+
   if (isGallery.value || route.name === 'invoice-create') {
     router.back()
     return
@@ -62,7 +71,7 @@ function goBack() {
 
       <!-- Back button — shown on detail pages -->
       <button
-        v-if="route.name === 'customer-packages-preview' || route.name === 'customer-order-history' || route.name === 'invoice-create' || route.name === 'invoice-detail' || isGallery"
+        v-if="route.name === 'customer-packages-preview' || route.name === 'customer-order-history' || route.name === 'invoice-create' || route.name === 'invoice-detail' || route.name === 'appointment-pending' || isGallery"
         class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
         aria-label="Go back"
         @click="goBack"

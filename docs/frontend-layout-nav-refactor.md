@@ -1,7 +1,7 @@
 # Frontend layout & navigation refactor
 
 Branch: `frontend-layout-nav-taxonomy` (cut from `main`)
-Status: planning done, no code written yet
+Status: Stage 1 and Stage 1.5 done and committed; Stage 2 blocked on owner decision
 Owner decision log lives in this file — update the checkboxes as work lands.
 
 ## Why
@@ -27,8 +27,8 @@ from.
 
 Current assignment:
 
-- Type 1: `appointment-schedule` (`/`), `customer-list`, `invoice-list`, `appointment-pending`
-- Type 2: `customer-order-history`, `invoice-detail`, `customer-packages-preview`, gallery
+- Type 1: `appointment-schedule` (`/`), `customer-list`, `invoice-list`
+- Type 2: `customer-order-history`, `invoice-detail`, `customer-packages-preview`, `appointment-pending`, gallery
 - Type 3: `appointment-create`, `appointment-reschedule`, `invoice-create` *(invoice-create pending
   owner confirmation)*
 - Type 4: `OrderDetailSheet`, gallery source picker
@@ -44,6 +44,9 @@ Smallest change, immediate visible effect, blocked on nothing.
 - [x] Confirm `appointment-schedule` and `invoice-list` already behave this way (expected: yes)
 - [x] Once both are done, the `close` branch in `AppHeader.goBack` has no remaining caller — delete
       the whole branch. `close` becomes a type-3 concern, not a header concern.
+
+Note: `appointment-pending` gained a back button when it was removed from the sidebar and became a
+drill-down page. Its temporary hardcoded branch in `AppHeader` is expected to be absorbed by Stage 2.
 
 ## Stage 1.5 -- Put files where CLAUDE.md says they go
 

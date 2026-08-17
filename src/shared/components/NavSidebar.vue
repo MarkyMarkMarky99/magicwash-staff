@@ -50,7 +50,7 @@ function navigate(path) {
             @click="navigate('/')"
           >
             <span class="material-symbols-outlined">home</span>
-            <span>Home</span>
+            <span>Appointments</span>
           </button>
         </li>
         <li>
@@ -71,16 +71,6 @@ function navigate(path) {
           >
             <span class="material-symbols-outlined">receipt_long</span>
             <span>Invoices</span>
-          </button>
-        </li>
-        <li>
-          <button
-            class="w-full flex items-center gap-4 px-5 py-3 text-left hover:bg-black/5 transition-colors"
-            :class="route.path === '/pending' ? 'text-primary font-semibold' : ''"
-            @click="navigate('/pending')"
-          >
-            <span class="material-symbols-outlined">pending_actions</span>
-            <span>Pending</span>
           </button>
         </li>
       </ul>
