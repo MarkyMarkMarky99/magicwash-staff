@@ -38,6 +38,7 @@ Current assignment:
 
 Smallest change, immediate visible effect, blocked on nothing.
 
+- Pending badge is now limited to `appointment-schedule` (`/`); `customer-list` and `invoice-list` deliberately show no right-side button beyond search.
 - [x] `customer-list` (`/customers`): remove the `close` button, show the pending badge like the
       other root pages
 - [x] appointment-pending: remove close, show NO right-side button (the pending badge links to the pending page, so it is meaningless on that page itself)

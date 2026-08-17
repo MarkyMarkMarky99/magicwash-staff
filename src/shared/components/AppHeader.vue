@@ -78,7 +78,7 @@ function goBack() {
       >arrow_back</button>
 
       <!-- Action buttons — shown on main pages -->
-      <template v-else-if="route.name !== 'appointment-pending'">
+      <template v-else-if="route.name === 'appointment-schedule'">
         <button
           class="relative hover:bg-white/10 rounded-full transition-colors p-1 flex items-center justify-center"
           aria-label="Pending requests"
