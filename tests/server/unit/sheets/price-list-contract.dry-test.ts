@@ -55,13 +55,25 @@ assert.deepEqual(
     effective_to: null,
   },
 )
+assert.deepEqual(
+  priceListRowSchema.parse({
+    ...validPriceListRow,
+    effective_to: 'Date(2026,11,31)',
+  }),
+  {
+    ...validPriceListRow,
+    effective_to: 'Date(2026,11,31)',
+  },
+)
 
 function assertInvalidRow(label: string, changes: Record<string, unknown>): void {
   assert.throws(() => priceListRowSchema.parse({ ...validPriceListRow, ...changes }), label)
 }
 
 assertInvalidRow('id must use the lowercase eight-character pattern', { id: 'ABC12345' })
+assertInvalidRow('id must contain exactly eight lowercase letters or digits', { id: 'a1b2c3d' })
 assertInvalidRow('item_code must use the ITM- digit pattern', { item_code: 'ITEM-0001' })
+assertInvalidRow('item_code must contain at least four digits', { item_code: 'ITM-123' })
 
 for (const field of ['category', 'subcategory', 'itemtype', 'display_name_th']) {
   assertInvalidRow(`${field} must be non-empty`, { [field]: '' })
