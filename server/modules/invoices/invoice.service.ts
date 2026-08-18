@@ -346,7 +346,7 @@ export class InvoiceService {
     try {
       // Compare exact keys here rather than using a GViz equality filter;
       // that builder strips apostrophes from filter values.
-      const rows = await this.invoiceRepository().read()
+      const rows = await this.invoiceRepository().read({ select: ['invoice_number'] })
       return rows.some((row) => row.invoice_number === invoiceNumber)
     } catch {
       // The preflight is advisory; header append retains duplicate validation
