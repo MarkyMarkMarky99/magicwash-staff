@@ -1,7 +1,8 @@
 # Frontend layout & navigation refactor
 
 Branch: `frontend-layout-nav-taxonomy` (cut from `main`)
-Status: Stages 1 and 1.5 complete (5 commits). Stage 2 blocked on owner decision; Stage 3 blocked on owner decision.
+Status: Stages 1, 1.5 and 2 complete. Stage 2.5 is next and unblocked.
+Stage 3 shell design is decided; its URL questions are answered per-form (see the new Stage 3 note).
 Owner decision log lives in this file — update the checkboxes as work lands.
 
 ## Why
@@ -64,7 +65,8 @@ drill-down page. Its temporary hardcoded branch in `AppHeader` is expected to be
 - [x] Temporary back-compat shim: `src/components/layout/NavSidebar.vue` → `src/shared/components/NavSidebar.vue`
 - [x] Temporary back-compat shim: `src/pages/OrderGalleryPage.vue` → `src/features/gallery/pages/OrderGalleryPage.vue`
 - [x] Temporary back-compat shim: `src/pages/CameraOverlayPage.vue` → `src/features/gallery/components/CameraOverlayPage.vue`
-- [ ] Delete the temporary back-compat shims at the old paths when the owner decides to do so (see Debts deliberately left open)
+- [ ] Delete the temporary back-compat shims at the old paths as part of Stage 2.5; no separate owner
+      decision is needed (see Stage 2.5)
 
 The current tree is an unfinished migration, not a convention -- cross-feature code belongs in `src/shared/`, feature code in `src/features/<feature>/`. Doing this before Stage 2 means `useGoBack()` is born in the right place instead of being moved later.
 
@@ -73,11 +75,11 @@ The current tree is an unfinished migration, not a convention -- cross-feature c
 Generalises the pattern `invoice-detail` already uses correctly: try history first, fall back to a
 parent the route declares itself.
 
-- [ ] Add `meta.parent` to every type-2 route, in that feature's `routes.ts`
-- [ ] Write one composable `useGoBack()`: if `history.state.back` exists → `router.back()`, else
+- [x] Add `meta.parent` to every type-2 route, in that feature's `routes.ts`
+- [x] Write one composable `useGoBack()`: if `history.state.back` exists → `router.back()`, else
       → `router.push(route.meta.parent)`
-- [ ] Replace the whole if-chain in `AppHeader.goBack` with a call to it
-- [ ] Keep a last-resort fallback for a route with no `meta.parent`, but treat hitting it as a bug,
+- [x] Replace the whole if-chain in `AppHeader.goBack` with a call to it
+- [x] Keep a last-resort fallback for a route with no `meta.parent`, but treat hitting it as a bug,
       not as normal operation — the point of `meta.parent` is that a forgotten declaration is visible
       at review time instead of surfacing as a user complaint
 
@@ -85,9 +87,109 @@ parent the route declares itself.
 from the route definitions, so new pages get forgotten and fall through to `customer-list` with no
 error. Putting the fallback on the route puts it in front of whoever adds the page.
 
-**Blocked on:** owner must name the parent for `customer-order-history` and
-`customer-packages-preview` (likely the customer's own detail page, unconfirmed — that page's
-existence has not been verified).
+**Landed:**
+
+- `src/shared/composables/use-go-back.ts` - exports a pure `resolveBackTarget(hasHistoryBack, parent)`
+  plus `useGoBack()`; the pure function exists so the decision is unit-testable without a Vue
+  component context.
+- `meta.parent` set on: `customer-order-history` -> `customer-list`,
+  `customer-packages-preview` -> `customer-list`, `invoice-detail` -> `invoice-list`,
+  `invoice-create` -> `invoice-list`, `appointment-pending` -> `appointment-schedule`, and both
+  `/gallery/:key` and `/gallery/:key/camera` -> `customer-list`.
+- The whole if-chain in `AppHeader.goBack` is gone; `isGallery` remains, used only by the back-button
+  `v-if`.
+- Test: `tests/web/unit/shared/composables/use-go-back.dry-test.ts`.
+- Gallery's parent is `customer-list`, not `customer-order-history`, because gallery's path is
+  `/gallery/AFT-<orderId>` and carries no `customerId`, so it cannot construct
+  `/customers/:customerId/orders`. `customer-list` is the nearest reachable ancestor. Without this
+  note someone will "fix" it later and hit the same wall.
+- `invoice-create` -> `invoice-list` is an interim value: it becomes a form overlay with a close
+  button in Stage 4.
+
+## Stage 2.5 - Collapse the legacy `src/components/` tree
+
+`src/components/` is the OLD architecture. The project has moved to `src/features/<feature>/` +
+`src/shared/`. This stage deletes the old tree entirely. Confirmed by the owner 2026-08-18.
+
+**Why this is urgent, not cosmetic:** the app currently ships TWO copies of the same shared library,
+and different pages import different copies. They have already drifted - the
+`src/components/forms/shared/FormInput.vue` copy is missing `min`/`max`. This produces the worst
+class of bug in a codebase with no frontend type-check: you fix a component, the build passes, and the
+screen does not change, because the page imports the other copy.
+
+**Correction to the "Debts deliberately left open" note below.** A bullet there claimed nothing
+imports the old paths and that deleting the six re-export shims would remove `src/components/`
+entirely. That was wrong, and acting on it would have broken the app. The six shims are re-exports and
+are indeed unimported - but they sit in the same tree as REAL duplicate implementations that live
+feature code still imports. Verify importers before deleting anything under `src/components/`.
+
+Inventory (surveyed 2026-08-18):
+
+| Component | Canonical | Legacy duplicate | Live importer of the duplicate |
+|---|---|---|---|
+| `FormInput` | `src/shared/components/` | `src/components/forms/shared/` | None - orphaned legacy copy; `AppointmentForm.vue` does not import it |
+| `FormOptionGrid` | `src/shared/components/` (0 consumers) | `src/components/forms/shared/` | `AppointmentForm.vue` |
+| `FormTextarea` | `src/shared/components/` (0 consumers) | `src/components/forms/shared/` | `AppointmentForm.vue` |
+| `GlassNoteBox` | None - no canonical copy | `src/components/forms/shared/` | None - orphaned legacy copy |
+| `ListContainer` | `src/shared/components/` (4 consumers) | `src/components/shared/` | `AppointmentSchedulePage.vue` |
+| `BaseSwipeCard` | `src/shared/components/` (2 consumers) | `src/components/shared/` | None - orphaned legacy customer component; live pages use the feature copy |
+| `GenericTabs` | `src/shared/components/` (2 consumers) | `src/components/shared/` | None - orphaned legacy customer component; live pages use the feature copy |
+
+Plus six re-export shims (`src/layouts/`, `src/components/layout/`, `src/pages/`) with no importers.
+
+Order of operations:
+
+- [ ] Diff each duplicate pair BEFORE repointing anything. Where they differ, the canonical
+  `src/shared/` version wins - but confirm the legacy importer does not depend on the difference.
+  `FormInput` and `GlassNoteBox` are orphaned legacy copies; `AppointmentForm` does not import
+  `FormInput`, so its missing `min`/`max` cannot affect appointment behaviour.
+- [ ] Repoint every importer to `@/shared/components/...` or the feature path
+- [ ] Confirm the legacy customer components have no importer, then delete them; live pages already
+  use the feature copies
+- [ ] Delete the duplicates, including orphaned `FormInput` and `GlassNoteBox`, then the six shims,
+  then the now-empty `src/components/`, `src/layouts/`, `src/pages/` directories
+- [ ] Grep the whole of `src/` for any surviving `@/components/`, `@/layouts/`, `@/pages/` import -
+  expect zero
+- [ ] Check the components now in `src/shared/components/` against the shared-component rules below,
+  and record any violations rather than silently rewriting them
+
+Do not:
+
+- Do not "merge" the two copies by editing the canonical one to match the legacy one. The canonical
+  version is the target; the legacy one is being deleted.
+- Do not delete any file under `src/components/` without first proving it has no importer. There is
+  no frontend type-check - a wrong deletion still builds green and fails at runtime.
+
+Verification: `npm run build`, then click through by hand: appointment schedule, create appointment,
+and reschedule appointment. Those are the screens that currently import the legacy copies: the
+schedule page imports legacy `ListContainer`, while create and reschedule use `AppointmentForm.vue`,
+which imports legacy `FormOptionGrid` and `FormTextarea`.
+
+This stage also closes the open shim decision - the shims go as part of it, no separate owner call
+needed.
+
+## Rules for anything placed in `src/shared/components/`
+
+Presentational only. A shared component renders what it is given and reports what the user did. It
+must not know the domain exists.
+
+- **Generic prop names.** `title`, `subtitle`, `leading`, `trailing`, `variant`, `items` - never
+  `orderName`, `customerAddress`, `appointmentNote`. A domain-named prop is a component that was
+  written for one caller and will be forked by the second.
+- **No business logic.** No status derivation, no totals, no formatting that encodes a business rule.
+  Compute it in the feature and pass the result in.
+- **No stores, no services, no API.** A file in `src/shared/components/` must not import anything
+  matching `@/features/`, `*.store`, `*.service`, or the api client. This is grep-checkable at review
+  time - use it.
+- **No feature-conditional behaviour.** No `if (props.type === 'invoice')`. Expose a `variant` prop
+  and let the caller choose.
+
+Domain vocabulary is not banned from the app - it is banned from `src/shared/`. A component that
+legitimately speaks about orders belongs in `src/features/orders/components/` and may name its props
+after orders. Both layers stay presentational; only the location differs.
+
+**Test:** to reuse this component in a feature that does not exist yet, would any prop need renaming?
+If yes, it is not shared - put it in the feature.
 
 ## Stage 3 — Build the real type-3 form overlay
 
@@ -122,12 +224,27 @@ overlay (its host page stays mounted) and route-addressable -- `/gallery/:key/ca
 `meta.openCamera`, dismissed with `router.replace` so it adds no history entry. Read it before
 designing anything new.
 
-- [ ] Decide: does the overlay own a URL, or is it local state only?
-- [ ] Decide: on refresh mid-overlay, does the page underneath get rendered too, or does the overlay
-      render standalone?
-- [ ] Decide: browser back while the overlay is open should close the overlay, not leave the page.
-      No existing sheet in the app does this today.
+- [x] The shell does not own a URL. It takes an `open` prop and emits `close`; whether that is driven
+      by a route or by local state is the caller's business. This was already the shell's stated
+      design; the owner confirmed it on 2026-08-18.
+- [x] URL ownership is per form, not once for the shell. A form that is a destination in its own
+      right - reachable cold and worth linking to, e.g. `create-customer` or `create-appointment` -
+      owns a URL. A form that is a continuation of what is already on screen and needs the parent
+      page's context to mean anything, e.g. `edit-order` opened from order history, is local state
+      with no URL.
+- [x] The deciding test: opened cold with no app state, does this form still make sense? Yes -> URL.
+      No -> local state.
+- [ ] Still open, and only for the URL-owning subset: on a mid-overlay refresh, does the page
+      underneath render too? Deferred to Stage 4, decided per form.
+- [x] A local-state overlay does not intercept the browser/Android back button, so back leaves the
+      page. Accepted - those forms are always opened from within a page and always show a close X.
 - [ ] Build the overlay shell in `src/shared/layouts/` (one component with `variant: 'full' | 'sheet'`; page underneath stays mounted, `close` button)
+- [ ] After building the shell, migrate the existing overlays onto it as the proof its API is right -
+      three bottom sheets (`PaymentHistorySheet`, `OrderDetailSheet`, the `OrderGalleryPage` source
+      picker) and two lightboxes (`InvoiceProofLightbox`, the `OrderGalleryPage` image viewer). If the
+      shell cannot absorb them, the shell's API is wrong - better to learn that before three forms
+      depend on it. None of those five implements scroll-lock or focus-trap, and the app contains nine
+      visually different close-X controls.
 - [ ] Set `FormLayout`'s existing `closeMode` prop — it is already implemented and currently unused
       by every page
 
@@ -173,10 +290,15 @@ mid-page refresh, because the refresh case is the entire reason the history-awar
 
 ## Open questions for the owner
 
-- [ ] Parent route for `customer-order-history` when there is no history
-- [ ] Parent route for `customer-packages-preview` when there is no history
+- [x] Parent route for `customer-order-history` when there is no history: `customer-list`. Owner
+      confirmed on 2026-08-18 that no customer-detail page has ever existed and
+      `customer-order-history` is itself the customer-information screen, so `customer-list` is the
+      correct parent, not a placeholder.
+- [x] Parent route for `customer-packages-preview` when there is no history: `customer-list` (same
+      owner confirmation).
 - [ ] Is `invoice-create` type 3 (form overlay on top of `invoice-list`)?
-- [ ] Type-3 URL strategy — the three decisions listed under Stage 3
+- [ ] Per-form mid-overlay refresh for URL-owning forms — does the page underneath render too? Deferred
+      to Stage 4; shell URL ownership and local-state browser-back behaviour are decided under Stage 3.
 
 ## Next session starts here
 
@@ -187,6 +309,8 @@ b34c9c2 -- Delete orphan src/pages/CustomersPage.vue
 10bcd83 -- Nav menu: rename Home to Appointments, drop Pending, give Pending a back button
 acbe84b -- Delete stale FRONTEND_REFACTOR_PLAN.md
 8125a62 -- Show the pending badge only on the appointments page
+2213a33, 244f5a8, 659b6d1, 38f226d, 01fefb0 -- Stage 2: history-aware drill-down back navigation
+Pipeline commits for Stage 2 carry generic `checkpoint: <role>` messages rather than descriptive ones.
 
 Net effect: root pages carry no back and no close; the pending badge appears only on the appointments
 page; `appointment-pending` left the sidebar, became a drill-down, and gained a back button;
@@ -195,40 +319,33 @@ are gone.
 
 ### Four decisions the owner owes, in the order they unblock work
 
-1. Parent route for `customer-order-history` -- where its back button goes when there is no history
-   to return to (refresh, deep link, opened from LINE). Best guess is that customer's own detail page,
-   but nobody has confirmed such a page exists. Blocks Stage 2.
-2. Parent route for `customer-packages-preview` -- same question. Blocks Stage 2.
+1. ~~Parent route for `customer-order-history` -- where its back button goes when there is no history
+   to return to (refresh, deep link, opened from LINE).~~ Answered: `customer-list`; no customer-detail
+   page has ever existed, and `customer-order-history` is itself the customer-information screen.
+2. ~~Parent route for `customer-packages-preview` -- same question.~~ Answered: `customer-list` (see
+   the same owner confirmation under Open questions).
 3. Is `invoice-create` a type-3 form overlay? It behaves like a task flow but currently uses
    `AppLayout` with a back button. Blocks Stage 4.
-4. The three Stage 3 URL questions -- does the overlay own a URL; what renders on a mid-overlay
-   refresh; does browser-back close the overlay rather than leaving the page. Blocks Stage 3. Note that
-   no sheet in the app closes on browser-back today.
+4. ~~The three Stage 3 URL questions.~~ Shell URL ownership and local-state browser-back behaviour
+   are answered under Stage 3. The per-form mid-overlay-refresh question remains open and is deferred
+   to Stage 4.
 
 ### First concrete action next session
 
-1. `git merge origin/main` into this branch and confirm the build still passes.
-2. Answer decisions 1 and 2 (the two parent routes).
-3. Then Stage 2 as already described: add `meta.parent` to the type-2 routes, write `useGoBack()` in
-   `src/shared/`, and replace the if-chain in `AppHeader.goBack` with a call to it.
+1. Start Stage 2.5: diff the duplicate pairs before repointing importers, then follow its order of
+   operations through the build and three-screen verification.
 
-It is the last cheap stage; Stage 3 is the expensive one.
+Stage 2.5 is next; Stage 3 is the expensive one.
 
 ### Debts deliberately left open
 
-- Six re-export shims exist at the old paths (`src/layouts/`, `src/components/layout/`,
-  `src/pages/`), and each carries a temporary-marker comment. Whether to remove them is now an open
-  decision; see the shim-justification bullet below.
-- **This branch is 7 commits behind `origin/main`.** It was cut from a stale local `main`.
-  `origin/main` has since taken PR #13 and others. Merge `origin/main` in before doing further work,
-  and certainly before opening a PR — the incoming commits are backend (`server/`, tests), so a clean
-  merge is likely, but it has not been attempted.
-- **The six re-export shims have lost their justification.** They were created on the belief that
-  unmerged branches still imported the old paths. That was wrong: `optimize-invoice-create-reads` is
-  already in `origin/main` (PR #13), and `git branch -a --no-merged origin/main` lists only this branch.
-  Nothing anywhere imports the old paths. The shims can be deleted — deciding to do so is the owner's
-  call, not a cleanup to perform unasked, since they were added deliberately. Deleting them removes
-  `src/layouts/`, `src/components/layout/` and `src/pages/` entirely.
+- Six re-export shims remain at the old paths (`src/layouts/`, `src/components/layout/`,
+  `src/pages/`) until Stage 2.5, which deletes them as part of the legacy-tree cleanup; no separate
+  owner decision is needed.
+- **`origin/main` was merged into this branch on 2026-08-18.** The build passed.
+- **The six re-export shims have no importers, but `src/components/` also contains live duplicate
+  implementations that are imported.** Deleting the tree is Stage 2.5 work, not a quick cleanup; see
+  Stage 2.5. Verify importers before deleting anything under `src/components/`.
 - The search button renders on every page but only functions on `/customers` and `/invoices`.
   Known, deliberately out of scope so far.
 - The `/gallery/*` back button is matched by URL path prefix, not by route name like every other
