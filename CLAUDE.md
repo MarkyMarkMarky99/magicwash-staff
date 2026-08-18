@@ -158,6 +158,18 @@ If nothing there fits: build it locally inside your own feature folder and repor
 
 Components in `src/shared/` are presentational and must not know the domain exists — generic prop names (`title`, `subtitle`, `leading`, `trailing`, `variant`), no business logic, no store/service/API imports, no feature-conditional branches. A component that legitimately speaks about orders belongs in `src/features/orders/components/` and may name its props after orders. The test: to reuse it in a feature that does not exist yet, would any prop need renaming? If yes, it is not shared.
 
+### Overlays must never own browser history
+
+An overlay component — including the shared shell in `src/shared/layouts/` — must never call `history.pushState`, `history.back()`, `history.forward()`, or listen for `popstate`. If you find yourself adding any of those to make a Back button dismiss an overlay, stop.
+
+An entry created with raw `pushState` is invisible to vue-router. It copies vue-router's `position` field, so popping it makes the router compute `delta = state.position - fromState.position === 0`, treat the pop as a duplicated navigation, and run its recovery path `go(-1)` — an extra Back rather than an undo. The user gets thrown off the page or skips one. Hiding the pop from the router with capture-phase `stopImmediatePropagation`, and repairing surplus traversals with `history.forward()`, were both built and rejected: they turn the shell into a second history controller, and every overlay later migrated onto that shell inherits it.
+
+**An overlay that must be dismissible with the browser or Android Back button is represented as a route.** This project's convention is a **query parameter** — see `useOrderSheetRoute.ts`, `useCustomerFilterRoute.ts`, `useInvoiceFilterRoute.ts`. Derive the open state from the route with `computed`; never mirror it into a local `ref`, because on a `KeepAlive`-cached page a stale mirror makes reopening the same item a silent permanent no-op. Close with `router.back()` only when this page pushed the entry; on a deep link or a refresh there is no parent entry and `router.back()` would leave the app, so strip the query with `router.replace` instead. An action that navigates away from an open overlay uses `router.replace`, not close-then-`push`, so the overlay's entry is consumed rather than left behind for Back to resurrect.
+
+There are **no nested/`children` routes anywhere in this project.** Do not introduce them for this.
+
+An overlay that does not need Back-to-close stays plain local state, and Back simply leaves the page. That is fine and is the default.
+
 ### Form pages are never cached
 
 `src/App.vue` wraps the router view in `<KeepAlive>` with an `exclude` list. Form pages are on that list and must stay there. Their fields are component-local refs; if the page is cached, what a user typed for one customer survives into the next one and can be submitted against the wrong record.

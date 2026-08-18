@@ -1,8 +1,8 @@
 # Frontend layout & navigation refactor
 
 Branch: `frontend-layout-nav-taxonomy` (cut from `main`)
-Status: Stages 1, 1.5, 2 and 2.5 complete. Stage 3 is next; its shell design is decided and its URL question is answered per-form.
-Stage 3's per-form mid-overlay refresh question remains deferred to Stage 4 (see the Stage 3 note).
+Status: Stages 1, 1.5, 2, 2.5 and 2.6 complete. Stage 3 is built; `OrderDetailSheet` is migrated onto `BaseOverlay`.
+Stage 3's mid-overlay refresh question is answered for the order sheet (it restores on refresh); it remains deferred to Stage 4 for forms that have not been migrated.
 Owner decision log lives in this file — update the checkboxes as work lands.
 
 ## Why
@@ -192,25 +192,28 @@ needed.
 architecture remain. `src/app/` — which this project's CLAUDE.md names as the home for the root
 router, global layouts and app-level stores — does not exist at all.
 
-Remaining, with file counts as of 2026-08-18:
+Stage 2.6 deleted the two confirmed orphaned files: `src/composables/useCustomerStore.js` and
+`src/utils/constants.js`.
+
+Remaining after Stage 2.6:
 
 | Directory | Files | Notes |
 |---|---:|---|
 | `src/api/` | 2 | Includes `photos.js`, which posts to a hardcoded Apps Script URL; blocked on the photo-upload API work, so moving it now means moving it twice. |
-| `src/composables/` | 2 | `useCustomerStore.js` is confirmed orphaned — zero importers since Stage 2.5. |
-| `src/utils/` | 3 | `constants.js` is confirmed orphaned — zero importers; `gviz.js` is still imported by `src/api/photos.js`, so it stays until `src/api/` moves. |
+| `src/composables/` | 1 | `usePhotoUpload.js` remains. |
+| `src/utils/` | 2 | `gviz.js` is still imported by `src/api/photos.js`, so it stays until `src/api/` moves; `imageCompression.js` remains. |
 | `src/router/` | 1 | `index.js`; per CLAUDE.md this belongs in `src/app/`. |
 
-This stage is deliberately **not urgent**. Unlike Stage 2.5, there is no second copy of anything
+This stage was deliberately **not urgent**. Unlike Stage 2.5, there is no second copy of anything
 here, so nothing can be edited in the wrong place. These are files sitting in the wrong directory,
 not a correctness trap.
 
-- [ ] Re-verify orphan status immediately before deleting, then delete `src/composables/useCustomerStore.js` and `src/utils/constants.js`.
+- [x] Re-verify orphan status immediately before deleting, then delete `src/composables/useCustomerStore.js` and `src/utils/constants.js`.
 - [ ] Decide whether to create `src/app/` and move the router into it.
 - [ ] Defer `src/api/` and `src/utils/gviz.js` until the photo-upload API lands.
 
-The orphan survey was accurate on 2026-08-18, but any new page could pick either file up. Do not
-trust this table without re-verifying immediately before deletion.
+The two orphaned files were re-verified before deletion in Stage 2.6. Do not trust this table without
+re-verifying immediately before any future deletion.
 
 ## Also landed on this branch — appointment form fixes
 
@@ -311,14 +314,14 @@ The expensive stage. Nothing of this type exists in the app yet.
 
 ### Shell design -- already decided, do not redesign
 
-One generic overlay shell component, in `src/shared/` (it is cross-feature). It renders the overlay
-and the close button and nothing else; callers supply all content through slots.
+One generic overlay shell component, `src/shared/layouts/BaseOverlay.vue` (it is cross-feature), built
+on the native `<dialog>` element and opened with `showModal()`. It renders the overlay and the close
+button and nothing else; callers supply all content through slots.
 
 The shell owns -- and callers must not reimplement -- Teleport, z-index, the backdrop, scroll lock
-on the page behind, focus trap, Escape-to-close, the close button's position and size, and the
-enter/leave transition. Nothing in the app does scroll lock or focus trap today, and the existing close
-buttons come in four different sizes and positions; that inconsistency is exactly what a shared shell
-exists to end.
+on the page behind, focus management, Escape-to-close, the close button's position and size, the
+enter/leave transition, and drag-to-close for the sheet variant. The existing close buttons come in
+four different sizes and positions; that inconsistency is exactly what a shared shell exists to end.
 
 The shell must not own the title, footer buttons, form logic, data fetching, or the route. It
 takes an `open` prop and emits `close`. Whether `open` is driven by a route (as `CameraOverlayPage`
@@ -327,7 +330,7 @@ managed URLs could not serve the sheets, which would force a second shell and de
 
 One component, two variants, not two components: `variant: 'full' | 'sheet'`. Type 3 (full-cover
 form overlay) and type 4 (partial slide-up sheet) differ only in geometry; backdrop, Teleport, scroll
-lock, Escape and focus trap are identical, so splitting them would duplicate the large majority of the
+lock, Escape and focus handling are identical, so splitting them would duplicate the large majority of the
 code.
 
 `FormLayout` goes inside the shell, not beside it: the shell provides the overlay and close
@@ -338,27 +341,37 @@ overlay (its host page stays mounted) and route-addressable -- `/gallery/:key/ca
 `meta.openCamera`, dismissed with `router.replace` so it adds no history entry. Read it before
 designing anything new.
 
-- [x] The shell does not own a URL. It takes an `open` prop and emits `close`; whether that is driven
+- [x] The shell does not own a URL or browser history. It takes an `open` prop and emits `close`; whether that is driven
       by a route or by local state is the caller's business. This was already the shell's stated
       design; the owner confirmed it on 2026-08-18.
-- [x] URL ownership is per form, not once for the shell. A form that is a destination in its own
-      right - reachable cold and worth linking to, e.g. `create-customer` or `create-appointment` -
-      owns a URL. A form that is a continuation of what is already on screen and needs the parent
-      page's context to mean anything, e.g. `edit-order` opened from order history, is local state
-      with no URL.
-- [x] The deciding test: opened cold with no app state, does this form still make sense? Yes -> URL.
-      No -> local state.
-- [ ] Still open, and only for the URL-owning subset: on a mid-overlay refresh, does the page
-      underneath render too? Deferred to Stage 4, decided per form.
-- [x] A local-state overlay does not intercept the browser/Android back button, so back leaves the
-      page. Accepted - those forms are always opened from within a page and always show a close X.
-- [ ] Build the overlay shell in `src/shared/layouts/` (one component with `variant: 'full' | 'sheet'`; page underneath stays mounted, `close` button)
-- [ ] After building the shell, migrate the existing overlays onto it as the proof its API is right -
-      three bottom sheets (`PaymentHistorySheet`, `OrderDetailSheet`, the `OrderGalleryPage` source
-      picker) and two lightboxes (`InvoiceProofLightbox`, the `OrderGalleryPage` image viewer). If the
-      shell cannot absorb them, the shell's API is wrong - better to learn that before three forms
-      depend on it. None of those five implements scroll-lock or focus-trap, and the app contains nine
-      visually different close-X controls.
+- [x] URL ownership is per overlay, not once for the shell. An overlay that must be dismissed with
+      the browser/Android back button owns a route; this project's convention is a query parameter.
+      An overlay that does not need Back-to-close stays local state.
+- [x] The deciding test: must this overlay be dismissed with the browser/Android back button? Yes ->
+      route query parameter. No -> local state.
+- [ ] Still open for the URL-owning forms that have not been migrated: on a mid-overlay refresh, does
+      the page underneath render too? Deferred to Stage 4, decided per form. The order sheet is
+      route-owned via `?order=<orderId>` and restores on refresh.
+- [x] Local-state overlays do not intercept the browser/Android back button; overlays that must be
+      dismissed by Back are route-owned via a query parameter. The order sheet is the first migrated
+      example.
+
+### Route-driven overlays -- history belongs to the route
+
+A shared overlay component must never own browser history. `BaseOverlay` contains no `pushState`,
+`history.back`, `history.forward`, or `popstate` code and must not gain any. An entry created with raw
+`history.pushState` is invisible to vue-router; because it copies vue-router's `position`, popping it
+makes vue-router compute `delta = state.position - fromState.position === 0`, treat it as a duplicated
+navigation, and recover with `go(-1)` -- an extra Back. Therefore overlays that must close with
+browser/Android Back are route-owned via query parameters, matching `useCustomerFilterRoute.ts` and
+`useInvoiceFilterRoute.ts`; overlays that do not need Back-to-close remain local state.
+
+- [x] Build the overlay shell in `src/shared/layouts/BaseOverlay.vue` on native `<dialog>` (one component with `variant: 'full' | 'sheet'`; page underneath stays mounted, `close` button)
+- [x] Migrate `OrderDetailSheet.vue` onto the shell; it no longer contains overlay chrome of its own.
+- [ ] Migrate the remaining existing overlays onto it as the proof its API is right - the
+      `OrderGalleryPage` source picker and two lightboxes (`InvoiceProofLightbox`, the
+      `OrderGalleryPage` image viewer). If the shell cannot absorb them, the shell's API is wrong -
+      better to learn that before three forms depend on it.
 - [ ] Set `FormLayout`'s existing `closeMode` prop — it is already implemented and currently unused
       by every page
 
@@ -375,12 +388,12 @@ shared navigation helper would change post-save behaviour for no reason.
 
 ## Later, not now
 
-- No shared base overlay component exists; the bottom sheets each reimplement the same shell
-  (`Teleport` + `bg-black/40` backdrop + `rounded-t-2xl` panel + identical close X). Extract it as
-  part of the Stage 3 shell, using its `sheet` variant.
-- No scroll lock, no focus trap anywhere. Only `InvoiceProofLightbox` manages focus and Escape.
-- `PaymentHistorySheet.vue` has no caller — it is orphaned. Do not count it as a live sheet when
-  surveying.
+- `BaseOverlay.vue` is the shared base overlay and `OrderDetailSheet.vue` is its only importer. The
+  remaining overlays still need migration onto it.
+- `BaseOverlay.vue` owns scroll lock, focus management, Escape-to-close, the shared close X, and
+  sheet drag-to-close; the remaining overlays have not migrated onto it yet.
+- `PaymentHistorySheet.vue` was deleted after confirming it had no caller. Do not count it as a live
+  sheet when surveying.
 - The `/gallery/*` back button is matched by URL path prefix, not by route name like every other page.
   Change the path and the button vanishes silently.
 
@@ -411,8 +424,9 @@ mid-page refresh, because the refresh case is the entire reason the history-awar
 - [x] Parent route for `customer-packages-preview` when there is no history: `customer-list` (same
       owner confirmation).
 - [ ] Is `invoice-create` type 3 (form overlay on top of `invoice-list`)?
-- [ ] Per-form mid-overlay refresh for URL-owning forms — does the page underneath render too? Deferred
-      to Stage 4; shell URL ownership and local-state browser-back behaviour are decided under Stage 3.
+- [ ] Per-form mid-overlay refresh for URL-owning forms that have not been migrated — does the page
+      underneath render too? Deferred to Stage 4; the order sheet is route-owned and restores on
+      refresh.
 
 ## Next session starts here
 
@@ -430,6 +444,8 @@ a6280be -- Fix cached appointment form state
 96b06c1 -- Reject PICKUP_DELIVERY on appointment writes, keep reading it
 753f6b9 -- Retire pickup-delivery appointment option
 24ce471 -- Remove orphaned pre-features frontend files
+abd6bb2 -- Stage 3: add the native dialog overlay shell and delete orphaned PaymentHistorySheet.vue
+bc156f7 -- Stage 3: migrate OrderDetailSheet onto the overlay shell
 Pipeline commits for Stage 2 carry generic `checkpoint: <role>` messages rather than descriptive ones.
 
 Net effect: root pages carry no back and no close; the pending badge appears only on the appointments
@@ -442,13 +458,13 @@ directories.
 
 1. Is `invoice-create` a type-3 form overlay? It behaves like a task flow but currently uses
    `AppLayout` with a back button. Blocks Stage 4.
-2. Per-form mid-overlay refresh for URL-owning forms — does the page underneath render too? Deferred
-   to Stage 4; shell URL ownership and local-state browser-back behaviour are already answered under
-   Stage 3.
+2. Per-form mid-overlay refresh for URL-owning forms that have not been migrated — does the page
+   underneath render too? Deferred to Stage 4; the order sheet is route-owned and restores on refresh.
 
 ### First concrete action next session
 
-Stage 2.5 and its verification are complete; the next action is Stage 3, the overlay shell.
+Stage 3's shell is built and `OrderDetailSheet.vue` is migrated; the next action is the remaining
+overlay migrations.
 
 ### Debts deliberately left open
 
@@ -458,6 +474,7 @@ Stage 2.5 and its verification are complete; the next action is Stage 3, the ove
   Known, deliberately out of scope so far.
 - The `/gallery/*` back button is matched by URL path prefix, not by route name like every other
   page, so changing the path makes the button vanish silently.
-- No shared base component for the bottom sheets yet -- three of them reimplement the same shell.
-  Worth extracting when the Stage 3 shell lands, since it is the same shell with a different variant.
-- `PaymentHistorySheet.vue` has no caller. Do not count it as a live sheet when surveying.
+- `OrderDetailSheet.vue` is migrated onto `BaseOverlay.vue`; the remaining overlay migrations are
+  still open.
+- `PaymentHistorySheet.vue` was deleted after confirming it had no caller. Do not count it as a live
+  sheet when surveying.
