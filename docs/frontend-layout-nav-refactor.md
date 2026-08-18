@@ -167,8 +167,8 @@ Order of operations:
   code path, so a mistake would fail the build loudly. Batch 2 was the only batch that edited a file
   used by a live screen, and was kept separate so its blast radius stayed visible. Reuse this pattern
   for the next deletion stage.
-- [ ] Manual browser verification of the appointment schedule, create appointment and reschedule
-  appointment screens is still outstanding; the owner is doing that pass.
+- [x] Owner completed the appointment schedule, create appointment and reschedule appointment
+  screen pass on 2026-08-18; everything passed.
 - Gotcha: a raw diff of the legacy and canonical copies reported a total mismatch that was entirely
   CRLF-vs-LF line-ending noise. `diff --strip-trailing-cr` showed the files were identical. Use that
   flag when diffing files in this repo or identical files will appear different.
@@ -180,8 +180,8 @@ Do not:
 - Do not delete any file under `src/components/` without first proving it has no importer. There is
   no frontend type-check - a wrong deletion still builds green and fails at runtime.
 
-Verification: `npm run build` passed. The manual browser pass remains open in the Landed checklist
-above.
+Verification: `npm run build` passed. The owner completed the manual browser pass in the Landed
+checklist above on 2026-08-18; everything passed.
 
 This stage also closes the open shim decision - the shims go as part of it, no separate owner call
 needed.
@@ -211,6 +211,76 @@ not a correctness trap.
 
 The orphan survey was accurate on 2026-08-18, but any new page could pick either file up. Do not
 trust this table without re-verifying immediately before deletion.
+
+## Also landed on this branch — appointment form fixes
+
+This work is not part of the layout/navigation refactor. It landed on the same branch because it was
+found while hand-verifying Stage 2.5, and a reviewer opening the branch would otherwise wonder why
+these commits are here.
+
+### Cached form state leaked across customers — `a6280be`
+
+Symptom: open a customer, press Schedule Pickup, type notes, close without submitting, open Schedule
+Pickup for another customer; the notes remained and the form submitted customer B's id with customer
+A's notes.
+
+Cause: `src/App.vue` wrapped the router view in bare `KeepAlive` with no filters, keeping every route
+component mounted; component-local refs survived; `router.back()` reset nothing; the reset watcher
+did not watch customer. This was pre-existing since `ec46d07` (2026-08-02), not caused by recent
+commits.
+
+Fix: `CreateAppointmentPage`, `RescheduleAppointmentPage`, and `InvoiceCreatePage` were added to the
+`KeepAlive` exclude list.
+
+**Form pages are never cached.** Once a form page unmounts on navigation, the owner's whole policy
+holds by itself — closing and successful submit both navigate away so the fields die with the
+component, reopening for another subject is a fresh mount, and a failed submit does not navigate at
+all so what the user typed survives. The rejected alternative was watchers and per-field reset calls,
+which become a rule that whoever adds the next field has to remember.
+
+Traps:
+
+- The exclude matches component name, not file path. Renaming any of those three files silently drops
+  it from the list and reintroduces the bug with no error.
+- `CreateAppointmentPage`'s `onActivated` had to become `onMounted` in the same commit. `onActivated`
+  never fires for an uncached component, and it consumes delivery booking intent; leaving it would
+  make delivery bookings open a form that did not know it was a `DELIVERY` job and had no order id.
+  `OrderGalleryPage` still uses `onActivated`/`onDeactivated` and is deliberately still cached.
+
+Accepted costs: `RescheduleAppointmentPage` refetches on every open and briefly shows loading;
+`InvoiceCreatePage` re-runs its mount watcher. Both costs are deliberately accepted; fresh data is
+worth it.
+
+### PICKUP_DELIVERY appointment type retired — `96b06c1` (backend), `753f6b9` (frontend)
+
+“Round” is no longer selectable. Existing rows keep the value and no data migration is performed;
+only new writes are blocked.
+
+State read/write deliberately disagree and must not be tidied:
+
+- `appointmentTypeSchema` keeps all three values and backs the response schema.
+- `appointmentWritableTypeSchema` has two values and backs the create/update request schemas.
+- `server/sheets/Appointments/Appointments.db-contract.ts` keeps three because the sheet genuinely
+  still holds them.
+- The G Drive registry keeps three for the same reason and was not modified.
+
+Narrowing the response schema or DB contract to two would break existing appointments using the
+retired type; making them consistent will cause that break.
+
+Supporting facts:
+
+- Responses are never Zod-parsed in this codebase, so an existing row with the retired value is
+  returned unchanged rather than dropped. Narrowing the enum changes inferred types and request
+  validation, not what reads return.
+- `src/features/customers/utils/waiting-pickup.filter.ts` is an allowlist keeping only `PICKUP`, so
+  retired-type appointments were already excluded from the waiting-pickup list. Its dry test uses
+  the retired value as an exclusion fixture and must be kept; it is the only automated guard proving
+  old rows are handled.
+
+- [ ] Follow-up: the booking form option list is an independently hardcoded copy of the enum, so a
+  future contract type will not appear and nothing reports it. Deriving options from
+  `appointmentWritableTypeSchema` was deliberately deferred to avoid entangling with the `KeepAlive`
+  fix in the same file on the same day.
 
 ## Rules for anything placed in `src/shared/components/`
 
@@ -356,6 +426,10 @@ acbe84b -- Delete stale FRONTEND_REFACTOR_PLAN.md
 2213a33, 244f5a8, 659b6d1, 38f226d, 01fefb0 -- Stage 2: history-aware drill-down back navigation
 972d07e -- Stage 2.5: remove dead files from pre-features UI tree
 7efcba9 -- Stage 2.5: collapse remaining legacy component imports
+a6280be -- Fix cached appointment form state
+96b06c1 -- Reject PICKUP_DELIVERY on appointment writes, keep reading it
+753f6b9 -- Retire pickup-delivery appointment option
+24ce471 -- Remove orphaned pre-features frontend files
 Pipeline commits for Stage 2 carry generic `checkpoint: <role>` messages rather than descriptive ones.
 
 Net effect: root pages carry no back and no close; the pending badge appears only on the appointments
@@ -374,11 +448,7 @@ directories.
 
 ### First concrete action next session
 
-The merge, Stage 2 and Stage 2.5 are complete. Before Stage 3, finish the owner's manual browser pass
-over the three appointment screens and the back-button matrix. After that, start Stage 3 with the
-overlay shell.
-
-Stage 3 starts after that owner pass.
+Stage 2.5 and its verification are complete; the next action is Stage 3, the overlay shell.
 
 ### Debts deliberately left open
 
