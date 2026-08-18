@@ -5,6 +5,7 @@ import { useRouter, useRoute } from 'vue-router'
 import logoUrl from '../../assets/logo.png'
 import { useAppointmentStore } from '@/features/appointments/stores/appointment.store'
 import { useHeaderSearch } from '@/shared/composables/useHeaderSearch'
+import { useGoBack } from '@/shared/composables/use-go-back'
 import NavSidebar from './NavSidebar.vue'
 
 const router = useRouter()
@@ -12,42 +13,12 @@ const route  = useRoute()
 const sidebarOpen = ref(false)
 const { searchOpen, toggleSearch } = useHeaderSearch()
 const { pendingCount } = storeToRefs(useAppointmentStore())
+const { goBack } = useGoBack()
 
 const SEARCHABLE_ROUTES = ['/customers', '/invoices']
 const canSearch = computed(() => SEARCHABLE_ROUTES.includes(route.path))
 const isGallery = computed(() => route.path.startsWith('/gallery/'))
 
-function goBack() {
-  if (route.name === 'customer-packages-preview') {
-    router.push({ name: 'customer-list' })
-    return
-  }
-
-  if (route.name === 'invoice-detail') {
-    if (history.state?.back) {
-      router.back()
-    } else {
-      router.push({ name: 'invoice-list' })
-    }
-    return
-  }
-
-  if (route.name === 'appointment-pending') {
-    if (history.state?.back) {
-      router.back()
-    } else {
-      router.push({ name: 'appointment-schedule' })
-    }
-    return
-  }
-
-  if (isGallery.value || route.name === 'invoice-create') {
-    router.back()
-    return
-  }
-
-  router.push({ name: 'customer-list' })
-}
 </script>
 
 <template>

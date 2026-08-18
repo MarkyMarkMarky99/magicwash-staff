@@ -10,6 +10,7 @@ export const appointmentRoutes: RouteRecordRaw[] = [
     path: '/pending',
     name: 'appointment-pending',
     component: () => import('./pages/PendingAppointmentsPage.vue'),
+    meta: { parent: 'appointment-schedule' },
   },
   {
     path: '/new-booking',

@@ -10,11 +10,13 @@ export const invoiceRoutes: RouteRecordRaw[] = [
     path: '/invoices/create',
     name: 'invoice-create',
     component: () => import('./pages/InvoiceCreatePage.vue'),
+    meta: { parent: 'invoice-list' },
   },
   {
     path: '/invoices/:invoiceNumber',
     name: 'invoice-detail',
     component: () => import('./pages/InvoiceDetailPage.vue'),
+    meta: { parent: 'invoice-list' },
     props: true,
   },
   {
