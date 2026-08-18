@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import FormOptionGrid from '@/components/forms/shared/FormOptionGrid.vue'
-import FormTextarea from '@/components/forms/shared/FormTextarea.vue'
+import FormOptionGrid from '@/shared/components/FormOptionGrid.vue'
+import FormTextarea from '@/shared/components/FormTextarea.vue'
 import {
   addSheetDateDays,
   getBangkokClock,
