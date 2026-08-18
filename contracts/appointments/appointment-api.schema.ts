@@ -10,10 +10,12 @@ import type { ModuleApiContract } from '../shared/module-api-contract.js'
  * the API boundary.
  */
 
-// ── Domain value sets — the single source for the API-facing enums; the db
-//    contract and the filter derive theirs from here. No z.infer type exports
-//    in this file: types are inferred at the point of use instead. ──
+// ── Domain value sets — readable data keeps the stored values, while writes
+//    accept only the active subset. The DB contract declares its own stored
+//    value set. No z.infer type exports in this file: types are inferred at
+//    the point of use instead. ──
 export const appointmentTypeSchema = z.enum(['PICKUP', 'DELIVERY', 'PICKUP_DELIVERY'])
+export const appointmentWritableTypeSchema = z.enum(['PICKUP', 'DELIVERY'])
 export const appointmentTimeSlotSchema = z.enum([
   '10:00-12:00',
   '13:00-15:00',
@@ -36,14 +38,14 @@ export const appointmentWriteFailureCertaintySchema = z.enum(['rejected', 'unkno
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a valid YYYY-MM-DD date')
 
 // ── Create: client sends business fields only; createdBy comes from the frontend ──
-export const appointmentCreateSchema = z.object({
+export const createAppointmentRequestSchema = z.object({
   customerId: z.string().min(1),
   customerName: z.string().trim().min(1),
   customerCode: z.string().trim().min(1),
   phone: z.string().trim().min(1),
   address: z.string().trim().min(1),
   location: z.string().trim().min(1),
-  appointmentType: appointmentTypeSchema,
+  appointmentType: appointmentWritableTypeSchema,
   appointmentDate: isoDateSchema,
   timeSlot: appointmentTimeSlotSchema,
   pickupOrderId: z.string().nullish(),
@@ -51,14 +53,15 @@ export const appointmentCreateSchema = z.object({
   notes: z.string().nullish(),
   createdBy: z.string().min(1),
 })
+export const appointmentCreateSchema = createAppointmentRequestSchema
 
 // ── Update: every mutable field optional, updatedBy required, at least one change.
 //    "At least one change" is derived from the data itself — any defined field other
 //    than the updatedBy actor counts — so a new mutable field is covered automatically,
 //    with no parallel list to keep in sync with the schema shape. ──
-export const appointmentUpdateSchema = z
+export const updateAppointmentRequestSchema = z
   .object({
-    appointmentType: appointmentTypeSchema.optional(),
+    appointmentType: appointmentWritableTypeSchema.optional(),
     appointmentDate: isoDateSchema.optional(),
     timeSlot: appointmentTimeSlotSchema.optional(),
     status: appointmentStatusSchema.optional(),
@@ -71,6 +74,7 @@ export const appointmentUpdateSchema = z
     (data) => Object.entries(data).some(([key, value]) => key !== 'updatedBy' && value !== undefined),
     { message: 'At least one updatable field is required' },
   )
+export const appointmentUpdateSchema = updateAppointmentRequestSchema
 
 // ── List query: validates/coerces/defaults the raw URL params in one pass.
 //    Its inferred output — the AppointmentFilter the repository consumes — is
@@ -139,8 +143,8 @@ export const appointmentApiContract = {
     list: appointmentListQuerySchema,
   },
   request: {
-    create: appointmentCreateSchema,
-    update: appointmentUpdateSchema,
+    create: createAppointmentRequestSchema,
+    update: updateAppointmentRequestSchema,
   },
   response: {
     list: appointmentListResponseSchema,
