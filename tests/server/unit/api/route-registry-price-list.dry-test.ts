@@ -14,7 +14,7 @@ assert.match(
 )
 assert.doesNotMatch(
   routeRegistrySource,
-  /(?:^|\n)\s*import\s+[^;\n]+from\s+['"][^'"]*price-list\/price-list\.module\.[jt]s['"]/
+  /(?:^|\n)\s*import\s+[^;\n]+from\s+['"][^'"]*price-list\/price-list\.module\.[jt]s['"]/,
   'Price List must not be eagerly imported by the route registry',
 )
 
