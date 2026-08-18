@@ -28,7 +28,7 @@ function releasePageScrollLock() {
 </script>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onDeactivated, onMounted, ref, watch } from 'vue'
 
 type OverlayVariant = 'full' | 'sheet'
 
@@ -75,6 +75,7 @@ let suppressBackdropClick = false
 let dragCaptureElement: HTMLElement | null = null
 let ownsPageScrollLock = false
 let previousActiveElement: HTMLElement | null = null
+let closeHandled = true
 
 function lockPageScroll() {
   if (ownsPageScrollLock) return
@@ -119,6 +120,7 @@ function showDialog() {
     const activeElement = document.activeElement
     previousActiveElement = activeElement instanceof HTMLElement ? activeElement : null
     dialog.showModal()
+    closeHandled = false
     lockPageScroll()
   }
 
@@ -162,12 +164,20 @@ function synchronizeDialog(isOpen: boolean) {
 }
 
 function handleNativeClose() {
+  if (closeHandled) return
+
+  closeHandled = true
   panelVisible.value = false
   pendingClose.value = false
   resetDragState()
   restorePageScroll()
   resetFocus()
   emit('close')
+}
+
+function handleDialogCancel(event: Event) {
+  event.preventDefault()
+  requestClose()
 }
 
 function handleDialogPointerDown(event: PointerEvent) {
@@ -245,11 +255,8 @@ function handlePointerCancel(event: PointerEvent) {
 }
 
 function handleUnmount() {
-  resetDragState()
   if (dialogRef.value?.open) dialogRef.value.close()
-
-  restorePageScroll()
-  resetFocus()
+  handleNativeClose()
 }
 
 watch(() => props.open, synchronizeDialog)
@@ -259,6 +266,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(handleUnmount)
+onDeactivated(handleUnmount)
 </script>
 
 <template>
@@ -272,6 +280,7 @@ onBeforeUnmount(handleUnmount)
       @pointerup="handleDialogPointerEnd"
       @pointercancel="handleDialogPointerEnd"
       @click="handleDialogClick"
+      @cancel="handleDialogCancel"
       @close="handleNativeClose"
     >
       <Transition :name="transitionName" appear @after-leave="finishCloseTransition">
@@ -317,6 +326,10 @@ onBeforeUnmount(handleUnmount)
 </template>
 
 <style scoped>
+dialog:not([open]) {
+  display: none;
+}
+
 .base-overlay-panel {
   will-change: transform, opacity;
 }
