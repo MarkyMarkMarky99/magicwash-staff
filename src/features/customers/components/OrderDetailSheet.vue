@@ -57,8 +57,7 @@ function confirmInvoiceCreation() {
 
 function viewPhotos() {
   if (!props.order) return
-  handleClose()
-  router.push(`/gallery/AFT-${props.order.orderId}`)
+  router.replace(`/gallery/AFT-${props.order.orderId}`)
 }
 </script>
 

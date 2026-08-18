@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
@@ -7,6 +7,7 @@ import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.stor
 import { useDeliveryBookingIntentStore } from '@/shared/stores/delivery-booking-intent.store'
 import { useInvoiceCreateIntentStore } from '@/shared/stores/invoice-create-intent.store'
 import { useCustomerOrderHistoryStore } from '../stores/customer-order-history.store'
+import { useOrderSheetRoute } from '@/features/customers/composables/useOrderSheetRoute'
 import type { OrderListDto } from '../services/order.service'
 import OrderDetailSheet from '../components/OrderDetailSheet.vue'
 import OrderHistoryCustomerCard from '../components/OrderHistoryCustomerCard.vue'
@@ -18,22 +19,20 @@ const props = defineProps<{
 
 const router = useRouter()
 const store = useCustomerOrderHistoryStore()
-const { customer, customerLoading, customerError } = storeToRefs(store)
-const selectedOrder = ref<OrderListDto | null>(null)
-const sheetOpen = ref(false)
+const { customer, orders, customerLoading, customerError } = storeToRefs(store)
+const { openOrderId, open: openSheet, close: closeSheet } = useOrderSheetRoute()
+
+const selectedOrder = computed(
+  () => orders.value.find((order) => order.orderId?.trim() === openOrderId.value) ?? null,
+)
+const sheetOpen = computed(() => selectedOrder.value !== null)
 
 function loadCustomer() {
   store.load(props.customerId)
 }
 
 function openOrder(order: OrderListDto) {
-  selectedOrder.value = order
-  sheetOpen.value = true
-}
-
-function closeSheet() {
-  sheetOpen.value = false
-  selectedOrder.value = null
+  openSheet(order.orderId)
 }
 
 function bookDelivery() {
@@ -43,8 +42,7 @@ function bookDelivery() {
   if (!orderId || order.customerId !== customer.value.customerId) return
   useSelectedCustomerStore().select(customer.value)
   useDeliveryBookingIntentStore().set(orderId)
-  closeSheet()
-  router.push('/new-booking')
+  router.replace('/new-booking')
 }
 
 function createInvoice() {
@@ -55,8 +53,7 @@ function createInvoice() {
   if (!orderId || !customerId || order.customerId.trim() !== customerId) return
   useSelectedCustomerStore().select(customer.value)
   useInvoiceCreateIntentStore().set(order)
-  closeSheet()
-  router.push({
+  router.replace({
     name: 'invoice-create',
     query: { customerId, orderId },
   })
