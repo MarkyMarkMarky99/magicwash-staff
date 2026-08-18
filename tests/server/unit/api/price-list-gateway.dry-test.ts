@@ -110,16 +110,30 @@ globalThis.fetch = (async () => {
 try {
   const listResponse = await invoke('GET', '/api/price-list')
   assert.equal(listResponse.statusCode, 200)
-  assert.deepEqual(listResponse.body, {
+  const listBody = listResponse.body as {
+    success: boolean
+    data: unknown[]
+    meta: {
+      timestamp?: unknown
+      pagination: Record<string, unknown>
+    }
+  }
+  const timestamp = listBody.meta.timestamp
+  assert.equal(typeof timestamp, 'string')
+  assert.match(timestamp, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
+  assert.deepEqual(listBody, {
     success: true,
     data: [],
     meta: {
+      timestamp,
       pagination: {
         page: 1,
         perPage: 20,
       },
     },
   })
+  assert.equal('total' in listBody.meta.pagination, false)
+  assert.equal('totalPages' in listBody.meta.pagination, false)
 
   const callsBeforeUnsupportedMethods = fetchCalls
   const postResponse = await invoke('POST', '/api/price-list')
