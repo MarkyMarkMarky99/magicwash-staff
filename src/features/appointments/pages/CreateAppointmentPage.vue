@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onActivated, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import FormLayout from '@/shared/layouts/FormLayout.vue'
@@ -18,7 +18,8 @@ const submitting = ref(false)
 const error = ref<string | null>(null)
 const canConfirm = computed(() => Boolean(form.value?.isValid && !submitting.value))
 
-onActivated(() => {
+// This page is deliberately excluded from KeepAlive in App.vue; keep this as onMounted because it would run only once if the page were cached again.
+onMounted(() => {
   deliveryOrderId.value = useDeliveryBookingIntentStore().consume()
   submitting.value = false
   error.value = null

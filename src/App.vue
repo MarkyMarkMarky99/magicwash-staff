@@ -13,7 +13,10 @@ onMounted(() => void appointmentStore.loadInitial())
     class="relative mx-auto flex h-full w-full flex-col overflow-y-auto bg-surface sm:max-w-[390px] sm:border-x sm:border-outline-variant/30 sm:shadow-2xl"
   >
     <RouterView v-slot="{ Component }">
-      <KeepAlive>
+      <!-- Form pages must not be cached: their component-local refs would otherwise survive across subjects. `exclude` matches component names, so renaming one of these files silently removes it from this list. -->
+      <KeepAlive
+        :exclude="['CreateAppointmentPage', 'RescheduleAppointmentPage', 'InvoiceCreatePage']"
+      >
         <component :is="Component" />
       </KeepAlive>
     </RouterView>
