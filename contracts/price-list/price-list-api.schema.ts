@@ -2,6 +2,8 @@ import { z } from 'zod'
 import { API_PAGINATION_DEFAULTS } from '../shared/api.schema.js'
 import type { ModuleApiContract } from '../shared/module-api-contract.js'
 
+const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a YYYY-MM-DD date')
+
 export const priceListSortFieldSchema = z.enum([
   'itemCode',
   'category',
@@ -35,12 +37,42 @@ export const priceListListResponseSchema = z.object({
   ironOnlyPrice: z.number().nullable(),
   dryCleanPrice: z.number().nullable(),
   creditEligible: z.boolean(),
-  effectiveFrom: z.string(),
-  effectiveTo: z.string().nullable(),
+  effectiveFrom: isoDateSchema,
+  effectiveTo: isoDateSchema.nullable(),
   active: z.boolean(),
 })
 
+const priceListBusinessFields = {
+  category: z.string().min(1),
+  subcategory: z.string().min(1),
+  itemType: z.string().min(1),
+  variant: z.string().min(1).nullable().optional(),
+  displayNameTh: z.string().min(1),
+  washDryIronPrice: z.number().nullable().optional(),
+  ironOnlyPrice: z.number().nullable().optional(),
+  dryCleanPrice: z.number().nullable().optional(),
+  creditEligible: z.boolean(),
+  effectiveFrom: isoDateSchema,
+  effectiveTo: isoDateSchema.nullable().optional(),
+  active: z.boolean(),
+}
+
+export const priceListCreateSchema = z.object(priceListBusinessFields).strict()
+
+export const priceListUpdateSchema = z.object(priceListBusinessFields).partial().strict()
+
+export const priceListCreateResponseSchema = priceListListResponseSchema
+export const priceListUpdateResponseSchema = priceListListResponseSchema
+
 export const priceListApiContract = {
   query: { list: priceListListQuerySchema },
-  response: { list: priceListListResponseSchema },
+  request: {
+    create: priceListCreateSchema,
+    update: priceListUpdateSchema,
+  },
+  response: {
+    list: priceListListResponseSchema,
+    create: priceListCreateResponseSchema,
+    update: priceListUpdateResponseSchema,
+  },
 } satisfies ModuleApiContract

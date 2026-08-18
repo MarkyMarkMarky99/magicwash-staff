@@ -24,5 +24,9 @@ export const priceListDbContract = {
   primaryKey: 'id',
   sheetName: 'PriceList',
   spreadsheetId: 'PRICE_LIST_SPREADSHEET_ID',
-  writes: { append: false, update: false, delete: false },
+  valueInput: {
+    effective_from: 'USER_ENTERED',
+    effective_to: 'USER_ENTERED',
+  },
+  writes: { append: true, update: true, delete: false },
 } satisfies SheetContract
