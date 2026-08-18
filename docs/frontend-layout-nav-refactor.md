@@ -1,8 +1,8 @@
 # Frontend layout & navigation refactor
 
 Branch: `frontend-layout-nav-taxonomy` (cut from `main`)
-Status: Stages 1, 1.5 and 2 complete. Stage 2.5 is next and unblocked.
-Stage 3 shell design is decided; its URL questions are answered per-form (see the new Stage 3 note).
+Status: Stages 1, 1.5, 2 and 2.5 complete. Stage 3 is next; its shell design is decided and its URL question is answered per-form.
+Stage 3's per-form mid-overlay refresh question remains deferred to Stage 4 (see the Stage 3 note).
 Owner decision log lives in this file — update the checkboxes as work lands.
 
 ## Why
@@ -65,8 +65,8 @@ drill-down page. Its temporary hardcoded branch in `AppHeader` is expected to be
 - [x] Temporary back-compat shim: `src/components/layout/NavSidebar.vue` → `src/shared/components/NavSidebar.vue`
 - [x] Temporary back-compat shim: `src/pages/OrderGalleryPage.vue` → `src/features/gallery/pages/OrderGalleryPage.vue`
 - [x] Temporary back-compat shim: `src/pages/CameraOverlayPage.vue` → `src/features/gallery/components/CameraOverlayPage.vue`
-- [ ] Delete the temporary back-compat shims at the old paths as part of Stage 2.5; no separate owner
-      decision is needed (see Stage 2.5)
+- [x] Delete the temporary back-compat shims at the old paths as part of Stage 2.5; the shims went
+      with that stage, so no separate owner decision was needed
 
 The current tree is an unfinished migration, not a convention -- cross-feature code belongs in `src/shared/`, feature code in `src/features/<feature>/`. Doing this before Stage 2 means `useGoBack()` is born in the right place instead of being moved later.
 
@@ -111,11 +111,12 @@ error. Putting the fallback on the route puts it in front of whoever adds the pa
 `src/components/` is the OLD architecture. The project has moved to `src/features/<feature>/` +
 `src/shared/`. This stage deletes the old tree entirely. Confirmed by the owner 2026-08-18.
 
-**Why this is urgent, not cosmetic:** the app currently ships TWO copies of the same shared library,
-and different pages import different copies. They have already drifted - the
-`src/components/forms/shared/FormInput.vue` copy is missing `min`/`max`. This produces the worst
-class of bug in a codebase with no frontend type-check: you fix a component, the build passes, and the
-screen does not change, because the page imports the other copy.
+**Why this was urgent, not cosmetic:** the app carried TWO copies of the same shared library, and the
+copies had begun to drift. No live screen was importing a drifted copy: the
+`src/components/forms/shared/FormInput.vue` copy was orphaned, while the three legacy components that
+still had importers were byte-identical to their canonical twins. This was a trap nobody had stepped
+in yet, not an active bug. It was still dangerous in a codebase with no frontend type-check: a fix
+applied to the wrong copy builds green and changes nothing on screen.
 
 **Correction to the "Debts deliberately left open" note below.** A bullet there claimed nothing
 imports the old paths and that deleting the six re-export shims would remove `src/components/`
@@ -139,19 +140,38 @@ Plus six re-export shims (`src/layouts/`, `src/components/layout/`, `src/pages/`
 
 Order of operations:
 
-- [ ] Diff each duplicate pair BEFORE repointing anything. Where they differ, the canonical
+- [x] Diff each duplicate pair BEFORE repointing anything. Where they differ, the canonical
   `src/shared/` version wins - but confirm the legacy importer does not depend on the difference.
   `FormInput` and `GlassNoteBox` are orphaned legacy copies; `AppointmentForm` does not import
   `FormInput`, so its missing `min`/`max` cannot affect appointment behaviour.
-- [ ] Repoint every importer to `@/shared/components/...` or the feature path
-- [ ] Confirm the legacy customer components have no importer, then delete them; live pages already
+- [x] Repoint every importer to `@/shared/components/...` or the feature path
+- [x] Confirm the legacy customer components have no importer, then delete them; live pages already
   use the feature copies
-- [ ] Delete the duplicates, including orphaned `FormInput` and `GlassNoteBox`, then the six shims,
+- [x] Delete the duplicates, including orphaned `FormInput` and `GlassNoteBox`, then the six shims,
   then the now-empty `src/components/`, `src/layouts/`, `src/pages/` directories
-- [ ] Grep the whole of `src/` for any surviving `@/components/`, `@/layouts/`, `@/pages/` import -
+- [x] Grep the whole of `src/` for any surviving `@/components/`, `@/layouts/`, `@/pages/` import -
   expect zero
-- [ ] Check the components now in `src/shared/components/` against the shared-component rules below,
-  and record any violations rather than silently rewriting them
+- [x] Check the components now in `src/shared/components/` against the shared-component rules below,
+      and record any violations rather than silently rewriting them
+
+**Landed:**
+
+- `972d07e` — Remove dead files from pre-features UI tree: deletion-only cleanup of 12 dead files.
+- `7efcba9` — Collapse remaining legacy component imports: repointed the three remaining live
+  imports and deleted the last three legacy files.
+- Net result: 15 files deleted and 2 files modified. The only modifications were three import paths:
+  two in `AppointmentForm.vue` and one in `AppointmentSchedulePage.vue`.
+- `src/components/`, `src/layouts/` and `src/pages/` are gone. A repo-wide grep for
+  `@/components/`, `@/layouts/` and `@/pages/` returns zero hits.
+- The work was split deliberately into two batches. Batch 1 was deletion-only and touched no live
+  code path, so a mistake would fail the build loudly. Batch 2 was the only batch that edited a file
+  used by a live screen, and was kept separate so its blast radius stayed visible. Reuse this pattern
+  for the next deletion stage.
+- [ ] Manual browser verification of the appointment schedule, create appointment and reschedule
+  appointment screens is still outstanding; the owner is doing that pass.
+- Gotcha: a raw diff of the legacy and canonical copies reported a total mismatch that was entirely
+  CRLF-vs-LF line-ending noise. `diff --strip-trailing-cr` showed the files were identical. Use that
+  flag when diffing files in this repo or identical files will appear different.
 
 Do not:
 
@@ -160,13 +180,37 @@ Do not:
 - Do not delete any file under `src/components/` without first proving it has no importer. There is
   no frontend type-check - a wrong deletion still builds green and fails at runtime.
 
-Verification: `npm run build`, then click through by hand: appointment schedule, create appointment,
-and reschedule appointment. Those are the screens that currently import the legacy copies: the
-schedule page imports legacy `ListContainer`, while create and reschedule use `AppointmentForm.vue`,
-which imports legacy `FormOptionGrid` and `FormTextarea`.
+Verification: `npm run build` passed. The manual browser pass remains open in the Landed checklist
+above.
 
 This stage also closes the open shim decision - the shims go as part of it, no separate owner call
 needed.
+
+## Stage 2.6 - the rest of the pre-features tree
+
+`src/components/`, `src/layouts/` and `src/pages/` are gone, but four directories from the old
+architecture remain. `src/app/` — which this project's CLAUDE.md names as the home for the root
+router, global layouts and app-level stores — does not exist at all.
+
+Remaining, with file counts as of 2026-08-18:
+
+| Directory | Files | Notes |
+|---|---:|---|
+| `src/api/` | 2 | Includes `photos.js`, which posts to a hardcoded Apps Script URL; blocked on the photo-upload API work, so moving it now means moving it twice. |
+| `src/composables/` | 2 | `useCustomerStore.js` is confirmed orphaned — zero importers since Stage 2.5. |
+| `src/utils/` | 3 | `constants.js` is confirmed orphaned — zero importers; `gviz.js` is still imported by `src/api/photos.js`, so it stays until `src/api/` moves. |
+| `src/router/` | 1 | `index.js`; per CLAUDE.md this belongs in `src/app/`. |
+
+This stage is deliberately **not urgent**. Unlike Stage 2.5, there is no second copy of anything
+here, so nothing can be edited in the wrong place. These are files sitting in the wrong directory,
+not a correctness trap.
+
+- [ ] Re-verify orphan status immediately before deleting, then delete `src/composables/useCustomerStore.js` and `src/utils/constants.js`.
+- [ ] Decide whether to create `src/app/` and move the router into it.
+- [ ] Defer `src/api/` and `src/utils/gviz.js` until the photo-upload API lands.
+
+The orphan survey was accurate on 2026-08-18, but any new page could pick either file up. Do not
+trust this table without re-verifying immediately before deletion.
 
 ## Rules for anything placed in `src/shared/components/`
 
@@ -310,42 +354,36 @@ b34c9c2 -- Delete orphan src/pages/CustomersPage.vue
 acbe84b -- Delete stale FRONTEND_REFACTOR_PLAN.md
 8125a62 -- Show the pending badge only on the appointments page
 2213a33, 244f5a8, 659b6d1, 38f226d, 01fefb0 -- Stage 2: history-aware drill-down back navigation
+972d07e -- Stage 2.5: remove dead files from pre-features UI tree
+7efcba9 -- Stage 2.5: collapse remaining legacy component imports
 Pipeline commits for Stage 2 carry generic `checkpoint: <role>` messages rather than descriptive ones.
 
 Net effect: root pages carry no back and no close; the pending badge appears only on the appointments
 page; `appointment-pending` left the sidebar, became a drill-down, and gained a back button;
-cross-feature code now lives in `src/shared/` and gallery in `src/features/gallery/`; two dead files
-are gone.
+cross-feature code now lives in `src/shared/` and gallery in `src/features/gallery/`; Stage 2.5
+deleted 15 files, modified only three import paths across 2 files, and removed the three legacy
+directories.
 
-### Four decisions the owner owes, in the order they unblock work
+### Two remaining owner decisions
 
-1. ~~Parent route for `customer-order-history` -- where its back button goes when there is no history
-   to return to (refresh, deep link, opened from LINE).~~ Answered: `customer-list`; no customer-detail
-   page has ever existed, and `customer-order-history` is itself the customer-information screen.
-2. ~~Parent route for `customer-packages-preview` -- same question.~~ Answered: `customer-list` (see
-   the same owner confirmation under Open questions).
-3. Is `invoice-create` a type-3 form overlay? It behaves like a task flow but currently uses
+1. Is `invoice-create` a type-3 form overlay? It behaves like a task flow but currently uses
    `AppLayout` with a back button. Blocks Stage 4.
-4. ~~The three Stage 3 URL questions.~~ Shell URL ownership and local-state browser-back behaviour
-   are answered under Stage 3. The per-form mid-overlay-refresh question remains open and is deferred
-   to Stage 4.
+2. Per-form mid-overlay refresh for URL-owning forms — does the page underneath render too? Deferred
+   to Stage 4; shell URL ownership and local-state browser-back behaviour are already answered under
+   Stage 3.
 
 ### First concrete action next session
 
-1. Start Stage 2.5: diff the duplicate pairs before repointing importers, then follow its order of
-   operations through the build and three-screen verification.
+The merge, Stage 2 and Stage 2.5 are complete. Before Stage 3, finish the owner's manual browser pass
+over the three appointment screens and the back-button matrix. After that, start Stage 3 with the
+overlay shell.
 
-Stage 2.5 is next; Stage 3 is the expensive one.
+Stage 3 starts after that owner pass.
 
 ### Debts deliberately left open
 
-- Six re-export shims remain at the old paths (`src/layouts/`, `src/components/layout/`,
-  `src/pages/`) until Stage 2.5, which deletes them as part of the legacy-tree cleanup; no separate
-  owner decision is needed.
+- The six re-export shims were deleted as part of Stage 2.5.
 - **`origin/main` was merged into this branch on 2026-08-18.** The build passed.
-- **The six re-export shims have no importers, but `src/components/` also contains live duplicate
-  implementations that are imported.** Deleting the tree is Stage 2.5 work, not a quick cleanup; see
-  Stage 2.5. Verify importers before deleting anything under `src/components/`.
 - The search button renders on every page but only functions on `/customers` and `/invoices`.
   Known, deliberately out of scope so far.
 - The `/gallery/*` back button is matched by URL path prefix, not by route name like every other
