@@ -119,7 +119,9 @@ try {
     }
   }
   const timestamp = listBody.meta.timestamp
-  assert.equal(typeof timestamp, 'string')
+  if (typeof timestamp !== 'string') {
+    throw new TypeError('meta.timestamp must be a string')
+  }
   assert.match(timestamp, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
   assert.deepEqual(listBody, {
     success: true,
