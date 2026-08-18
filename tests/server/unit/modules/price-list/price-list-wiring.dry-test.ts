@@ -82,20 +82,20 @@ test('importing the Price List module does not require its spreadsheet environme
   }
 })
 
-test('production wiring uses BaseCrudService and exposes a collection-only route', async () => {
+test('production wiring uses BaseCrudService and exposes collection plus update routes', async () => {
   const priceListModule = await productionPriceListModule()
 
   assert.ok(priceListModule.priceListService instanceof BaseCrudService)
   assert.equal(priceListModule.priceListService.constructor.name, 'BaseCrudService')
   assert.ok(priceListModule.priceListRoutes.collection)
-  assert.equal(priceListModule.priceListRoutes.item, undefined)
+  assert.ok(priceListModule.priceListRoutes.item)
   assert.equal(
     Object.keys(priceListModule).some((name) => /transform|jsonColumns/i.test(name)),
     false,
   )
 })
 
-test('list maps the physical itemtype column to itemType and preserves null, false, zero, and raw dates', async () => {
+test('list maps the physical itemtype column to itemType and preserves null, false, zero, and API dates', async () => {
   const { priceListService } = await productionPriceListModule()
   const values = [
     'price-001',
@@ -132,7 +132,7 @@ test('list maps the physical itemtype column to itemType and preserves null, fal
           ironOnlyPrice: null,
           dryCleanPrice: 120,
           creditEligible: false,
-          effectiveFrom: 'Date(2026,0,1)',
+          effectiveFrom: '2026-01-01',
           effectiveTo: null,
           active: false,
         },
@@ -157,6 +157,30 @@ test('list maps the physical itemtype column to itemType and preserves null, fal
       assert.equal(calls.length, 1)
     },
   )
+})
+
+test('production wiring exposes no delete route', async () => {
+  const { priceListRoutes } = await productionPriceListModule()
+  const collectionDelete = await priceListRoutes.collection.handleRequest({
+    method: 'DELETE',
+    query: {},
+    body: undefined,
+    headers: {},
+    params: {},
+  })
+  assert.equal(collectionDelete.status, 405)
+  assert.equal(collectionDelete.headers?.Allow, 'GET, POST')
+
+  const itemDelete = await priceListRoutes.item?.handleRequest({
+    method: 'DELETE',
+    query: {},
+    body: undefined,
+    headers: {},
+    params: { id: 'a1b2c3d4' },
+  })
+  assert.ok(itemDelete)
+  assert.equal(itemDelete.status, 405)
+  assert.equal(itemDelete.headers?.Allow, 'PATCH')
 })
 
 test('dirty legacy string cells remain readable without changing the declared response values', async () => {

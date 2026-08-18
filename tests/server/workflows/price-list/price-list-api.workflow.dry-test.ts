@@ -152,7 +152,7 @@ const expectedItem = {
   ironOnlyPrice: null,
   dryCleanPrice: 120,
   creditEligible: false,
-  effectiveFrom: 'Date(2026,0,1)',
+  effectiveFrom: '2026-01-01',
   effectiveTo: null,
   active: false,
 }
@@ -199,6 +199,7 @@ try {
 
       assert.equal(body.success, true)
       assert.deepEqual(body.data, [expectedItem])
+      assert.equal(JSON.stringify(body).includes('Date('), false)
       assert.deepEqual(Object.keys(body), ['success', 'data', 'meta'])
       assert.deepEqual(Object.keys(body.meta).sort(), ['pagination', 'timestamp'])
       assert.deepEqual(body.meta.pagination, { page: 1, perPage: 20 })
@@ -270,7 +271,7 @@ try {
             0,
             'false',
             'Date(2025,11,31)',
-            'legacy-date',
+            'Date(2026,11,31)',
             false,
           ],
         ]),
@@ -279,6 +280,7 @@ try {
       const response = await invoke({ query: { perPage: '1' } })
       assert.equal(response.statusCode, 200)
       assert.equal((response.body as { success: boolean }).success, true)
+      assert.equal(JSON.stringify(response.body).includes('Date('), false)
       assert.deepEqual((response.body as { data: unknown[] }).data, [
         {
           id: 'legacy-row',
@@ -292,8 +294,8 @@ try {
           ironOnlyPrice: 'legacy-price',
           dryCleanPrice: 0,
           creditEligible: 'false',
-          effectiveFrom: 'Date(2025,11,31)',
-          effectiveTo: 'legacy-date',
+          effectiveFrom: '2025-12-31',
+          effectiveTo: '2026-12-31',
           active: false,
         },
       ])
@@ -319,12 +321,16 @@ try {
     },
   )
 
-  const postResponse = await invoke({ method: 'POST' })
-  assert.equal(postResponse.statusCode, 405)
-  assert.equal(postResponse.headers.Allow, 'GET')
+  const collectionDeleteResponse = await invoke({ method: 'DELETE' })
+  assert.equal(collectionDeleteResponse.statusCode, 405)
+  assert.equal(collectionDeleteResponse.headers.Allow, 'GET, POST')
 
-  const itemResponse = await invoke({ path: '/api/price-list/ab12cd34' })
-  assert.equal(itemResponse.statusCode, 404)
+  const itemDeleteResponse = await invoke({
+    method: 'DELETE',
+    path: '/api/price-list/ab12cd34',
+  })
+  assert.equal(itemDeleteResponse.statusCode, 405)
+  assert.equal(itemDeleteResponse.headers.Allow, 'PATCH')
 } finally {
   if (previousSpreadsheetId === undefined) {
     delete process.env.PRICE_LIST_SPREADSHEET_ID

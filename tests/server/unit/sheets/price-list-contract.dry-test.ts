@@ -9,8 +9,8 @@ assert.equal(priceListDbContract.primaryKey, 'id')
 assert.equal(priceListDbContract.sheetName, 'PriceList')
 assert.equal(priceListDbContract.spreadsheetId, 'PRICE_LIST_SPREADSHEET_ID')
 assert.deepEqual(priceListDbContract.writes, {
-  append: false,
-  update: false,
+  append: true,
+  update: true,
   delete: false,
 })
 
