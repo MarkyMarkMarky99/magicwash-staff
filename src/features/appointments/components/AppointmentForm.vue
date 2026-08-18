@@ -28,7 +28,6 @@ const props = withDefaults(defineProps<{
 const appointmentTypes = [
   { value: 'PICKUP', label: 'Pickup', icon: 'local_laundry_service' },
   { value: 'DELIVERY', label: 'Delivery', icon: 'local_shipping' },
-  { value: 'PICKUP_DELIVERY', label: 'Round', icon: 'sync_alt' },
 ] as const
 const timeSlots = ['10:00-12:00', '13:00-15:00', '15:00-17:00', '18:00-20:00'] as const
 
