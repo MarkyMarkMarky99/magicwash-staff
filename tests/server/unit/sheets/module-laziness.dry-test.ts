@@ -4,6 +4,7 @@ const relevantEnvironmentKeys = [
   'PORTAL_SPREADSHEET_ID',
   'CUSTOMERS_SPREADSHEET_ID',
   'APPOINTMENTS_SPREADSHEET_ID',
+  'PRICE_LIST_SPREADSHEET_ID',
 ]
 
 const modulePaths = [
@@ -12,6 +13,7 @@ const modulePaths = [
   '../../../../server/modules/appointments/appointment.module.js',
   '../../../../server/modules/invoices/invoice.module.js',
   '../../../../server/modules/customer-packages/customer-package-view.module.js',
+  '../../../../server/modules/price-list/price-list.module.js',
 ]
 
 async function main(): Promise<void> {
@@ -38,7 +40,7 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log('5 module laziness checks passed')
+  console.log('6 module laziness checks passed')
 }
 
 main().catch((error) => {

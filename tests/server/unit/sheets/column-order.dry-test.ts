@@ -9,6 +9,7 @@ import { laundryPhotosDbContract } from '../../../../server/sheets/LaundryPhotos
 import { orderFormDbContract } from '../../../../server/sheets/OrderForm/OrderForm.db-contract.js'
 import { ordersViewDbContract } from '../../../../server/sheets/OrdersView/OrdersView.db-contract.js'
 import { paymentsDbContract } from '../../../../server/sheets/Payments/Payments.db-contract.js'
+import { priceListDbContract } from '../../../../server/sheets/PriceList/PriceList.db-contract.js'
 import { deriveGVizColumns } from '../../../../server/shared/repositories/utils/gviz-query.builder.js'
 
 interface SheetContractLike {
@@ -260,6 +261,27 @@ const tests: ColumnOrderTest[] = [
       usedCredit: 'Q',
       totalCredit: 'R',
       transactionsJson: 'S',
+    },
+    primaryKeyColumn: 'A',
+  },
+  {
+    name: 'PriceList',
+    contract: priceListDbContract,
+    expected: {
+      id: 'A',
+      item_code: 'B',
+      category: 'C',
+      subcategory: 'D',
+      itemtype: 'E',
+      variant: 'F',
+      display_name_th: 'G',
+      wash_dry_iron_price: 'H',
+      iron_only_price: 'I',
+      dry_clean_price: 'J',
+      credit_eligible: 'K',
+      effective_from: 'L',
+      effective_to: 'M',
+      active: 'N',
     },
     primaryKeyColumn: 'A',
   },

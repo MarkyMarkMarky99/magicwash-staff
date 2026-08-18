@@ -16,6 +16,7 @@ import { invoicesViewDbContract } from '../../../server/sheets/InvoicesView/Invo
 import { customerPackageViewDbContract } from '../../../server/sheets/CustomerPackageView/CustomerPackageView.db-contract.js'
 import { laundryPhotosDbContract } from '../../../server/sheets/LaundryPhotos/LaundryPhotos.db-contract.js'
 import { orderFormDbContract } from '../../../server/sheets/OrderForm/OrderForm.db-contract.js'
+import { priceListDbContract } from '../../../server/sheets/PriceList/PriceList.db-contract.js'
 
 const GVIZ_BASE_URL = 'https://docs.google.com/spreadsheets/d'
 
@@ -98,6 +99,12 @@ const readableSheets: readonly ReadableSheet[] = [
     sheetName: laundryPhotosDbContract.sheetName,
     spreadsheetIdEnv: laundryPhotosDbContract.spreadsheetId!,
     rowSchema: laundryPhotosDbContract.row,
+  },
+  {
+    name: 'PriceList',
+    sheetName: priceListDbContract.sheetName,
+    spreadsheetIdEnv: priceListDbContract.spreadsheetId!,
+    rowSchema: priceListDbContract.row,
   },
 ]
 

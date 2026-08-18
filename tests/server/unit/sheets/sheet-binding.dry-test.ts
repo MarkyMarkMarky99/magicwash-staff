@@ -12,8 +12,9 @@ import { laundryPhotosDbContract } from '../../../../server/sheets/LaundryPhotos
 import { orderFormDbContract } from '../../../../server/sheets/OrderForm/OrderForm.db-contract.js'
 import { ordersViewDbContract } from '../../../../server/sheets/OrdersView/OrdersView.db-contract.js'
 import { paymentsDbContract } from '../../../../server/sheets/Payments/Payments.db-contract.js'
+import { priceListDbContract } from '../../../../server/sheets/PriceList/PriceList.db-contract.js'
 
-const expectedSheetCount = 10
+const expectedSheetCount = 11
 const expectedSheetDirectories = [
   'Appointments',
   'CustomerPackageView',
@@ -25,6 +26,7 @@ const expectedSheetDirectories = [
   'OrderForm',
   'OrdersView',
   'Payments',
+  'PriceList',
 ] as const
 
 const bindings = [
@@ -87,6 +89,12 @@ const bindings = [
     contract: paymentsDbContract,
     expectedSpreadsheetId: undefined,
     expectedSheetName: 'Payments',
+  },
+  {
+    name: 'PriceList',
+    contract: priceListDbContract,
+    expectedSpreadsheetId: 'PRICE_LIST_SPREADSHEET_ID',
+    expectedSheetName: 'PriceList',
   },
 ] as const
 
