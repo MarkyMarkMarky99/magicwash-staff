@@ -143,3 +143,25 @@ has two solutions, and the wrong one silently rewrites the source of truth.
 Two independent tasks can run in parallel in this working tree when their files do not overlap (e.g.
 `src/` and `server/`). Give each brief the other's boundaries and its own verification command, so
 neither "fixes" the other's half-finished state.
+
+## Frontend Layout and Navigation Rules
+
+See `docs/frontend-layout-nav-refactor.md` for the full rationale.
+
+### Shared components: import only
+
+Import from `src/shared/components/`. Do not create a new shared component and do not modify an existing one — not even to add a prop. A change that makes a shared component fit your page can break every other page using it, and this project has **no frontend type-check** (`npm run build` is esbuild only), so a broken prop contract ships green.
+
+If nothing there fits: build it locally inside your own feature folder and report it under "SHARED GAPS" in your final report, naming what you needed and why the existing component did not fit. A missing shared component is not permission to add one — shared components are created and changed only in a dedicated refactor pass, where every existing call site is checked at once.
+
+**List the directory before you build anything.** Do not rely on a list written in a document; read `src/shared/components/` directly, because any list here would go stale.
+
+Components in `src/shared/` are presentational and must not know the domain exists — generic prop names (`title`, `subtitle`, `leading`, `trailing`, `variant`), no business logic, no store/service/API imports, no feature-conditional branches. A component that legitimately speaks about orders belongs in `src/features/orders/components/` and may name its props after orders. The test: to reuse it in a feature that does not exist yet, would any prop need renaming? If yes, it is not shared.
+
+### Form pages are never cached
+
+`src/App.vue` wraps the router view in `<KeepAlive>` with an `exclude` list. Form pages are on that list and must stay there. Their fields are component-local refs; if the page is cached, what a user typed for one customer survives into the next one and can be submitted against the wrong record.
+
+`exclude` matches the **component name**, not the file path — renaming one of those files silently removes it from the list and reintroduces the bug with no error anywhere. If you add a new form page, add it to the list.
+
+A page on that list must not use `onActivated`/`onDeactivated`; those hooks never fire for an uncached component. Use `onMounted`.

@@ -119,11 +119,18 @@ owns the cross-sheet workflow; there is no central repository registry.
 - **Primary keys are physical:** `SheetContract.primaryKey` is the real DB column name. The service maps the API id to that column before the repository reads, updates, or deletes.
 - **Type import direction:** feature API schemas in `contracts/` do not import from `server/`, and API contracts never depend on DB shapes. `ModuleApiContract` is the shared API-side structural type.
 - **What may live in `contracts/`:** per-feature camelCase request/response schemas and enums, the generic request/response envelope (`contracts/shared/api.schema.ts`), and the API contract-shape types (`contracts/shared/module-api-contract.ts`). Never put DB row schemas, repository types, sheet contracts, services, or handler runtime objects there.
+- Use a dedicated service and explicit route only for genuinely complex flows
+  (multi-sheet writes, joins, or nonstandard result states); document why.
+- A single-sheet module may use a `BaseCrudService` instance directly as its
+  service, with no named class required. Give a module a named service class
+  only when its workflow spans multiple sheets; for example, invoices uses
+  an `InvoiceService` that orchestrates its sheet repositories.
 
 ### Key Engine Rules
 
 - **Repository contract:** `BaseCrudService` can consume a DB-shaped `SheetRepositoryContract`; `SheetRepository` implements it with GViz reads and Google Sheets API writes. Storage and transport details stay in the repository; API mapping stays in the module service.
 - **Read pipeline:** `BaseCrudService` validates `api.query.list`, builds `ReadQueryDTO.fromQuery(query, searchFields)` (keyword→search; page/perPage/sort reserved; every other field→`where`), maps API fields to DB fields, and calls the sheet repository. `getById` and `update` address the service id through the physical `primaryKey`.
+- Add a custom query path only for different semantics, with tests.
 - **Row schema key order is load-bearing for reads:** `deriveGVizColumns` (`server/shared/utils/gviz-query.builder.ts`) maps a schema key to its GViz column by index, so swapping two keys makes every read silently pull the wrong column. Reordering is never cosmetic.
 - **Contracts are machine-checked:** API bundles use `satisfies ModuleApiContract`, sheet bundles use `satisfies SheetContract`, and field maps use `satisfies Record<keyof row & string, string>`. Runtime tests must pin field-map values because `satisfies` checks keys and types, not semantic string values.
 - **Cell values are not runtime-validated on reads:** legacy dirty rows must flow through reads and write responses without 500. Response schemas drive projection through their `.shape` key set. A GViz column that resolves to no DB field throws because that is contract drift, not dirty data.
@@ -131,6 +138,8 @@ owns the cross-sheet workflow; there is no central repository registry.
 - **`SheetContract.valueInput` is a guard, not the wire value:** the write path always sends `USER_ENTERED` for the whole request; `resolveValueInputOption` exists only to reject a column that declares anything else, so a value can never silently fall back to `RAW`. A column that declares no `valueInput` still goes out as `USER_ENTERED`. Adding a column to `valueInput` therefore fixes no wire-level bug — this has already produced one wrong diagnosis.
 - **`USER_ENTERED` cuts both ways:** `Appointments.AppointmentDate` is deliberately stored as a real Sheets date so GViz date functions can filter it — `RAW` would make it text and break the filter instantly. The opposite risk is equally real: a phone number starting `0` loses its zero, and a value starting `=`/`+`/`-` becomes a formula. That is what per-column `valueInput` declarations exist to flag.
 - **Sheets API contract:** UPDATE looks up the row's line number by primary key (`findRowNumberByKey`, an accepted lookup-to-write race — see that file's doc comment), patches only the changed columns via `values:batchUpdate` under `USER_ENTERED`, then reads the row back and verifies its primary key still matches before returning it. `WriteRejectedError`/`WriteTransportError`/`WriteCommittedUnreadableError`/`DuplicateRowKeyError`/`WriteRowIdentityMismatchError` classify every write outcome into a `rejected`/`unknown` certainty taxonomy. A confirmed write with an unusable response shape (`WriteCommittedUnreadableError`) is a transport-unknown outcome and must not be classified as a rejection, because retrying could duplicate persisted rows. Never auto-retry a write that was already sent: 429/401 are observable only after the request goes out, so a retry risks duplicate rows; retry is allowed for token acquisition only.
+- APPEND and batch APPEND write whole rows.
+- A sheet declares what it may do in `writes`; a capability left false is refused before any request is built.
 - **Which write path a sheet uses:** every sheet uses the Google Sheets API — `SheetContract` has no `writeTransport`/`scriptUrl` field. Any operation a sheet's `writes` flags leave enabled must have a Sheets API implementation; there is no SheetLib fallback to catch it.
 - **Date values:** the backend returns GViz's raw date form (`Date(Y,M,D)` or the raw text returned by GViz). Date formatting belongs to the frontend.
 - **Audit columns** (`updated_at`/`updated_by`/`deleted_at`/…) normally appear in no response schema. The actor is client input only where the feature contract explicitly permits it.
@@ -166,13 +175,57 @@ another sheet's environment variables.
 
 ## Validation
 
+- Define public Zod contracts first in `contracts/`: camelCase request,
+  response, enum, and query shapes shared with the frontend.
 - Service entry points call `parseOrThrow(schema, raw)` → 422 with flattened issues. Never cast with `as` in module code.
+- Do not replace validation with `as` casts or duplicate it privately.
 - List queries validated by Zod (`z.coerce` for numbers, `.default()` for optionals, `.refine` for cross-field) → bad input 422.
 - Define `z.enum` exclusively in the feature schema file. Derive input types with `z.input<typeof schema>`; never hand-write mirroring interfaces.
 
 ## Response Contract
 
 Success: `{ data, meta }`; paginated: `meta.pagination = { total, page, perPage, totalPages }`; error: `{ error: { code, message, details? } }`. Built only via `ok`/`created`/`okPaged`/`ApiError` from `server/shared/http/`. The envelope shape is the shared Zod contract `contracts/shared/api.schema.ts` (single source for FE + BE); the `server/shared/http/` builders infer their types from it directly (no parallel type declarations).
+
+- Multi-step writes must distinguish safe retries from partial persistence.
+
+## Comments in Source Code
+
+A comment sits closer to the code than any document, so when the two disagree the comment wins —
+including for the next agent reading it. A stale comment is therefore not clutter, it is a false
+instruction. This has already caused a reviewer to certify a real bug as safe, on the strength of a
+comment describing a runtime check that did not exist.
+
+The fix is not "write fewer comments", it is "never write a comment that expires".
+
+**Never put project status in source code.** These all have an expiry date and nothing enforces it:
+
+- Phase or plan numbers — `§2.9`, "belongs to Phase 2", "the §2.6 flow". Plan numbering moves on;
+  the code does not follow it. Describe the behaviour, not the ticket that introduced it.
+- Wiring status — "not wired in yet", "no caller yet", "still a building block".
+- Tense that points at a plan — "will introduce", "must be handled in the next phase",
+  "today this still goes through X".
+
+Status belongs in `docs/phase-*.md`, which is maintained as a whole. In source, it rots in place.
+
+**Do write the comment that stops the next change from being wrong.** These do not expire, because
+they describe intent rather than state:
+
+- A decision plus its prohibition — "this lookup-then-write race is accepted; do not add a lock,
+  CAS, or retry", "a duplicate key must never be retried".
+- A non-obvious invariant a reader would otherwise break — "this field declares intent and acts as
+  a guard; it is not the value sent on the wire".
+- Why something is deliberately absent, where its absence looks like an oversight.
+
+**Do not restate what other files do.** A comment describing another module's behaviour goes stale
+the moment that module changes, and nothing links the two. Point at the file and let it speak.
+
+**Prefer a guard over a comment for anything that matters.** A comment cannot fail; a dry test can.
+`tests/server/unit/sheets/writing-workbook-binding.dry-test.ts` is the model — it enforces a rule by
+discovering every contract itself, so a sheet added later is covered without anyone remembering.
+If a rule is important enough to comment, ask whether it is important enough to assert.
+
+**When you change behaviour, hunt the comments that describe it in the same commit.** A behaviour
+change that leaves its old description standing has created the exact failure above.
 
 ## Testing
 
@@ -196,6 +249,11 @@ under `server/` (e.g. `server/modules/orders/orders.transformer.ts` →
   these stay covered by `typecheck:api`. Frontend tests (`tests/web/`) are deliberately NOT in
   this include — don't widen it to `../tests/**/*.ts`, that would pull frontend code into a
   command named `typecheck:api`.
+- Run the relevant dry tests and `npm run typecheck:api` for every backend change.
+- Run `npm run build` when a frontend-facing contract changes, then `git diff --check`.
+- Contract parity check before deploying a contract change:
+  `node --env-file=.env.local --import=tsx/esm tests/server/integration/sheet-column-parity.ts`
+- Final diff check: `git diff --check`
 - **A green typecheck plus dry-tests does not prove behaviour.** Swapped schema key order stays
   type-correct; a transformer tested as a standalone function is not tested as wired into its
   service. Worse, fixtures have been edited to match the code instead of the sheet — a
@@ -209,8 +267,31 @@ under `server/` (e.g. `server/modules/orders/orders.transformer.ts` →
 - Don't add repository/query methods speculatively — the existing read/query pipeline covers most ad-hoc reads.
 - Don't widen `perPage` past its `.max()` — over-limit is 422, not a clamp.
 - GViz date strings are returned raw; do not parse or format them in the backend. ISO `YYYY-MM-DD` strings compare correctly with `<=` when a service needs a date range.
+- "One write transport, not two" above covers server-side sheet *row* writes only (append/update through the Sheets API). It does not cover two other Apps Script call sites that still exist: `invoice-view-sync-client.ts` POSTs to Apps Script to recompute `InvoicesView` after an invoice write, and the browser frontend's photo upload (`src/api/photos.js`) POSTs directly to Apps Script, bypassing the API. Neither writes sheet rows through SheetLib, but neither is "one transport" either.
+- Do not turn dirty legacy cells into 500 responses. DELETE is unsupported: the repository throws rather than pretending to delete, because a delete that reports success without deleting is data loss disguised as a pass. Design and verify its semantics before implementing it.
+- Server environment variables never use the `VITE_*` prefix.
 - **The Appointments workbook locale is `en_US`.** A timestamp not written as `yyyy-MM-dd HH:mm:ss` either stays text or parses with day and month transposed; 373 cells had to be repaired because of this. `SheetRepository` rejects a caller-supplied audit timestamp that does not match that format — keep it that way.
 - **Only three workbooks have service-account Editor access:** `1tfgJvj` (OrderForm), `1CvVl6a` (Appointments), `1zfhguJ` (Invoices/InvoiceItems). The portal workbook `1ucqeUq` is GViz-read + Apps-Script-written only and must never be granted write access or bound to a writable contract — `tests/server/unit/sheets/writing-workbook-binding.dry-test.ts` enforces this by walking every contract rather than listing sheet names.
 - **The Python project at the repo root has its own `ORDERS_SPREADSHEET_ID` pointing at a different workbook.** Don't touch it, and don't assume a same-named variable means the same spreadsheet.
 - **`G:\My Drive\Magicwash\Database\GoogleSheets\*.json` is read-only.** It is the schema registry shared with that Python project. When registry and code disagree, change the code or report it — never edit the registry to match, because "make them match" always has two solutions and the wrong one rewrites the business's source of truth. The registry can also be stale: the sheet is the truth (`Appointment.json` once declared 15 columns against a live sheet of 17, and believing it took production down).
 - Environment variables are read when each `get<Sheet>Repository()` first initializes its module-scoped cache. A repository needs its workbook id (`CUSTOMERS_SPREADSHEET_ID`, `ORDERS_SPREADSHEET_ID`, …) and, for a sheet it writes, the service-account credentials in `GOOGLE_SERVICE_ACCOUNT_KEY`. There is no shared Apps Script endpoint any more: writes go through the Sheets API, and `APPSCRIPT_INVOICE_VIEW_SYNC_URL` is the only Apps Script URL left — it recomputes InvoicesView and is not a sheet-row write.
+
+## Known Environment Issue: Windows Sandbox Process Spawn Flake
+
+Shell/exec commands in this environment intermittently fail with:
+
+```
+windows sandbox: runner failed during SpawnChild: CreateProcessAsUserW failed: 1312
+(A specified logon session does not exist. It may already have been terminated.)
+```
+
+This is a known intermittent crash in the Windows sandbox runner, unrelated to the command or
+code being run — it is not a signal that the command or code being run is wrong. It has
+recurred across plain shell commands and across coder/tester/reviewer sessions alike.
+
+When it appears:
+
+- Retry the exact same command once.
+- If the retry also fails the same way, report it as an infrastructure blocker, separate from any
+  finding about the work under test — do not reinterpret it as a code or test failure.
+- Do not change sandbox settings, escalate privileges, or fall back to a bypass to work around it.
