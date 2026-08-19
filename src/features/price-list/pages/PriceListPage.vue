@@ -2,14 +2,25 @@
 import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
+import AppLayout from '@/shared/layouts/AppLayout.vue'
+import ListContainer from '@/shared/components/ListContainer.vue'
 import { usePriceListStore } from '../stores/price-list.store'
+import PriceListStatusTabs from '../components/PriceListStatusTabs.vue'
 import PriceListCard from '../components/PriceListCard.vue'
 
 defineOptions({ name: 'PriceListPage' })
 
+const props = defineProps<{
+  embedded?: boolean
+}>()
+
 const router = useRouter()
 const priceListStore = usePriceListStore()
-const { items, loading, error } = storeToRefs(priceListStore)
+const { items, loading, error, loaded } = storeToRefs(priceListStore)
+
+const layoutComponent = computed(() => (props.embedded ? 'div' : AppLayout))
+const listLoading = computed(() => loading.value && !loaded.value)
+const listError = computed(() => (loaded.value ? null : error.value))
 
 const search = ref('')
 const status = ref<'all' | 'active' | 'inactive'>('all')
@@ -47,7 +58,9 @@ const groupedItems = computed(() => {
   return Array.from(groups, ([category, groupItems]) => ({ category, items: groupItems }))
 })
 
-const activeCount = computed(() => items.value.filter((item) => item.active).length)
+function selectStatus(key: string) {
+  if (key === 'all' || key === 'active' || key === 'inactive') status.value = key
+}
 
 function openCreate() {
   void router.push({ name: 'price-list-create' })
@@ -63,28 +76,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="price-list-page">
-    <header class="topbar">
-      <div class="brand-lockup">
-        <h1>รายการราคา</h1>
-      </div>
-      <button class="primary-button" type="button" @click="openCreate">
-        <span class="material-symbols-outlined text-[20px]" aria-hidden="true">add</span>
-        <span>เพิ่มรายการ</span>
-      </button>
-    </header>
+  <component :is="layoutComponent" class="h-full flex flex-col relative overflow-hidden font-body text-on-surface w-full">
+    <PriceListStatusTabs :active-status="status" @select="selectStatus" />
 
     <main class="content">
-      <div class="intro-row">
-        <div>
-          <h2>ราคาแบบกลุ่ม</h2>
-          <p>การ์ดรายการแยกตามหมวดหมู่ แตะรายการเพื่อแก้ไข</p>
-        </div>
-        <div class="summary-line">
-          <span><strong>{{ filteredItems.length }}</strong> รายการที่แสดง · {{ activeCount }} รายการเปิดใช้งาน</span>
-        </div>
-      </div>
-
       <section class="tool-surface" aria-label="เครื่องมือค้นหา">
         <label class="search-field">
           <span class="material-symbols-outlined text-[20px]" aria-hidden="true">search</span>
@@ -95,29 +90,26 @@ onMounted(() => {
             autocomplete="off"
           >
         </label>
-        <div class="status-pills" aria-label="สถานะรายการ">
-          <button
-            type="button"
-            :aria-pressed="status === 'all'"
-            @click="status = 'all'"
-          >ทั้งหมด</button>
-          <button
-            type="button"
-            :aria-pressed="status === 'active'"
-            @click="status = 'active'"
-          >เปิดใช้งาน</button>
-          <button
-            type="button"
-            :aria-pressed="status === 'inactive'"
-            @click="status = 'inactive'"
-          >ปิดใช้งาน</button>
-        </div>
       </section>
 
-      <div v-if="loading && !items.length" class="empty-state">กำลังโหลดรายการราคา</div>
-      <div v-else-if="error && !items.length" class="empty-state">{{ error }}</div>
-      <div v-else-if="!filteredItems.length" class="empty-state">ไม่พบรายการที่ตรงกับการค้นหา</div>
-      <div v-else>
+      <ListContainer
+        title="รายการราคา"
+        icon="sell"
+        :count="filteredItems.length"
+        count-label="รายการ"
+        :loading="listLoading"
+        :skeleton-rows="4"
+        :error="listError"
+        :empty="filteredItems.length === 0"
+        empty-text="ไม่พบรายการที่ตรงกับการค้นหา"
+      >
+        <template #actions>
+          <button class="primary-button" type="button" @click="openCreate">
+            <span class="material-symbols-outlined text-[20px]" aria-hidden="true">add</span>
+            <span>เพิ่มรายการ</span>
+          </button>
+        </template>
+
         <section v-for="group in groupedItems" :key="group.category" class="category-section">
           <div class="category-heading">
             <h3>{{ group.category }}</h3>
@@ -132,86 +124,18 @@ onMounted(() => {
             />
           </div>
         </section>
-      </div>
+      </ListContainer>
     </main>
-  </div>
+  </component>
 </template>
 
 <style scoped>
-.price-list-page {
-  display: flex;
-  height: 100%;
-  min-width: 0;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--color-background);
-  color: var(--color-on-background);
-}
-
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  min-height: 76px;
-  padding: 14px max(20px, calc((100vw - 1180px) / 2));
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-}
-
-.brand-lockup {
-  display: grid;
-  min-width: 0;
-  gap: 2px;
-}
-
-.eyebrow {
-  color: var(--color-on-primary-container);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.brand-lockup h1 {
-  margin: 0;
-  font-family: var(--font-headline);
-  font-size: clamp(20px, 4vw, 28px);
-  line-height: 1.1;
-}
-
 .content {
   width: min(calc(100% - 32px), 1180px);
   margin: 0 auto;
   flex: 1;
   overflow-y: auto;
   padding: 26px 0 56px;
-}
-
-.intro-row {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 18px;
-}
-
-.intro-row h2 {
-  margin: 0;
-  font-family: var(--font-headline);
-  font-size: 26px;
-  letter-spacing: -0.02em;
-}
-
-.intro-row p {
-  margin: 4px 0 0;
-  color: var(--color-on-surface-variant);
-  font-size: 14px;
-  line-height: 1.45;
 }
 
 .primary-button,
@@ -269,43 +193,6 @@ onMounted(() => {
   color: var(--color-on-surface-variant);
 }
 
-.status-pills {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 1px;
-}
-
-.status-pills button {
-  flex: 0 0 auto;
-  min-height: 40px;
-  padding: 0 13px;
-  border: 1px solid var(--color-outline-variant);
-  border-radius: var(--radius);
-  background: var(--color-surface-container-lowest);
-  color: var(--color-on-surface-variant);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.status-pills button[aria-pressed='true'] {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-}
-
-.summary-line {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--color-on-surface-variant);
-  font-size: 13px;
-}
-
-.summary-line strong {
-  color: var(--color-on-surface);
-}
-
 .category-section {
   margin-top: 22px;
 }
@@ -342,36 +229,10 @@ onMounted(() => {
   gap: 10px;
 }
 
-.empty-state {
-  padding: 28px 16px;
-  border: 1px dashed var(--color-outline);
-  color: var(--color-on-surface-variant);
-  text-align: center;
-}
-
 @media (max-width: 680px) {
-  .topbar {
-    min-height: 68px;
-    padding: 12px 16px;
-  }
-
   .content {
     width: min(calc(100% - 24px), 1180px);
     padding-top: 20px;
-  }
-
-  .intro-row {
-    align-items: start;
-    flex-direction: column;
-    gap: 13px;
-  }
-
-  .intro-row h2 {
-    font-size: 22px;
-  }
-
-  .intro-row .primary-button {
-    width: 100%;
   }
 
   .category-heading {
@@ -380,23 +241,6 @@ onMounted(() => {
 }
 
 @media (max-width: 420px) {
-  .topbar {
-    gap: 8px;
-  }
-
-  .eyebrow {
-    font-size: 9px;
-  }
-
-  .brand-lockup h1 {
-    font-size: 19px;
-  }
-
-  .topbar .primary-button {
-    padding: 0 11px;
-    font-size: 12px;
-  }
-
   .content {
     width: min(calc(100% - 20px), 1180px);
   }

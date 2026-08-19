@@ -136,7 +136,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <PriceListPage />
+  <PriceListPage embedded />
 
   <div class="form-layer is-open" aria-hidden="false">
     <div class="form-scrim" @click="closeForm" />
