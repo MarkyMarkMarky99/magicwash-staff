@@ -177,3 +177,37 @@ An overlay that does not need Back-to-close stays plain local state, and Back si
 `exclude` matches the **component name**, not the file path — renaming one of those files silently removes it from the list and reintroduces the bug with no error anywhere. If you add a new form page, add it to the list.
 
 A page on that list must not use `onActivated`/`onDeactivated`; those hooks never fire for an uncached component. Use `onMounted`.
+
+## Session continuity — beat the context bill
+
+Long sessions get expensive and `/compact` costs more than it saves. The fix is to make a clean
+`/clear` lose nothing.
+
+- **`NEXT-SESSION.md` at the repo root is the handoff doc.** It stays untracked. Update it **at
+  every commit** and whenever a significant decision is made or reversed — not only at the end,
+  because a session can be cut short.
+- Record the **decision and its reason**, not a diary. Anything recoverable from `git log`, a diff,
+  `docs/`, or this file does not belong there — reference it instead.
+- **When a commit closes a unit of work, say so and offer to stop.** Update the handoff first; the
+  user clears and reopens with "read `NEXT-SESSION.md`".
+
+## MEMORY.md
+
+`.user/memory/MEMORY.md` is the shared session-state file. Read it first each session; keep it
+under 150 lines.
+
+- **Where we are:** branch, current work, user dependencies, next actions, and resume files.
+- **Project rules:** one-line links to authoritative rule files only; do not duplicate their content.
+- Update it when state or a material decision changes. Record only facts that are expensive to
+  rediscover or that the user has had to repeat; delete disproven or stale entries.
+- Put any worker-specific context in that worker's brief.
+
+## Context economy
+
+The main context is the scarce resource; workers are cheap.
+
+- Do not read source files into the main context. Send an explorer and take the summary.
+- Ask workers for terse, on-point reports.
+- Read logs with `tail -c` or `grep -n`, never whole files.
+- Check diffs with `--stat` and targeted greps rather than printing them.
+- Write briefs to a file and pipe the file in; do not paste long briefs into the conversation.
