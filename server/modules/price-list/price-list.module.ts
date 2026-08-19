@@ -68,7 +68,7 @@ const priceListRepository: SheetRepositoryContract<PriceListDbRow> = {
     const itemCode = nextPriceListItemCode(existingRows)
 
     return getPriceListRepository().append({
-      ...row,
+      ...withPriceListNullableDefaults(row),
       id,
       item_code: itemCode,
     })
@@ -120,6 +120,18 @@ function createPriceListTransformer(): RepositoryTransformer {
       return row
     },
   }
+}
+
+function withPriceListNullableDefaults(
+  row: Partial<PriceListDbRow>,
+): Partial<PriceListDbRow> {
+  const normalized = { ...row }
+  for (const column of PRICE_LIST_NULLABLE_COLUMNS) {
+    if (normalized[column] === undefined) {
+      normalized[column] = null
+    }
+  }
+  return normalized
 }
 
 function nextPriceListId(rows: Array<Partial<PriceListDbRow>>): string {

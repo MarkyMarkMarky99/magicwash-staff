@@ -1,5 +1,6 @@
 import type { ModuleApiContract } from '../../../contracts/shared/module-api-contract.js'
 import type { BaseCrudService } from '../services/base-crud.service.js'
+import { ApiError } from './api-error.js'
 import { ApiHandler } from './api-handler.js'
 import type { GatewayModuleRoutes } from './gateway.types.js'
 import { created, ok, okPaged } from './response.js'
@@ -29,12 +30,21 @@ export function createCrudRoutes(service: AnyCrudService, api: ModuleApiContract
   const item =
     canGetById || canUpdate
       ? new ApiHandler({
-          ...(canGetById ? { GET: async (req) => ok(await service.getById(req.params.id)) } : {}),
+          ...(canGetById
+            ? { GET: async (req) => ok(await service.getById(requireRouteId(req.params))) }
+            : {}),
           ...(canUpdate
-            ? { PATCH: async (req) => ok(await service.update(req.params.id, req.body)) }
+            ? { PATCH: async (req) => ok(await service.update(requireRouteId(req.params), req.body)) }
             : {}),
         })
       : undefined
 
   return { collection, item }
+}
+
+function requireRouteId(params: Record<string, string>): string {
+  if (!Object.prototype.hasOwnProperty.call(params, 'id')) {
+    throw ApiError.notFound('Resource id is required')
+  }
+  return params.id
 }

@@ -7,5 +7,8 @@ type PriceListRow = z.infer<typeof priceListRowSchema>
 let repository: SheetRepository<PriceListRow> | undefined
 
 export function getPriceListRepository(): SheetRepository<PriceListRow> {
-  return repository ??= new SheetRepository({ contract: priceListDbContract })
+  return repository ??= new SheetRepository({
+    contract: priceListDbContract,
+    preserveNullValues: true,
+  })
 }

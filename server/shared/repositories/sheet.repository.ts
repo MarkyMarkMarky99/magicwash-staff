@@ -52,6 +52,8 @@ const BANGKOK_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?![\s\S]
 
 export interface SheetRepositoryOptions {
   contract: SheetContract
+  /** Keep explicit null values as JSON null for this sheet's write requests. */
+  preserveNullValues?: boolean
   /** Test seam for the authenticated Sheets API client. */
   sheetsApiClient?: SheetsApiClient
   /** Test seam for the Sheets API HTTP client and token provider. */
@@ -89,11 +91,13 @@ export class SheetRepository<TDbRow extends object>
   private readonly sheetsApiClient: SheetsApiClient | undefined
   private readonly sheetHeaderMapLoader: SheetHeaderMapLoader | undefined
   private readonly now: () => Date
+  private readonly preserveNullValues: boolean
 
   constructor(input: SheetRepositoryOptions) {
     this.contract = input.contract
     this.columns = deriveGVizColumns(this.contract.row)
     this.now = input.now ?? (() => new Date())
+    this.preserveNullValues = input.preserveNullValues ?? false
 
     if (!this.contract.writes.append && !this.contract.writes.update) {
       this.sheetsApiClient = undefined
@@ -275,7 +279,7 @@ export class SheetRepository<TDbRow extends object>
     timestamp: string,
   ): PreparedRow {
     const preparedRow = this.prepareAuditRow(row, headerMap, operation, timestamp)
-    const values = buildRowValues(preparedRow, headerMap)
+    const values = buildRowValues(preparedRow, headerMap, this.preserveNullValues)
     return {
       row: parseRowValues(values, headerMap),
       values,
@@ -617,7 +621,7 @@ export class SheetRepository<TDbRow extends object>
 
         ranges.push({
           range: `${this.contract.sheetName}!${columnLetter}${rowNumber}:${columnLetter}${rowNumber}`,
-          values: [[serializeCellValue(value)]],
+          values: [[serializeCellValue(value, this.preserveNullValues)]],
         })
       }
     } catch (error) {

@@ -74,7 +74,7 @@ assert.ok(updateRequestSchema)
 
 const shapeOf = (schema: unknown): Record<string, unknown> => {
   assert.equal(typeof schema, 'object')
-  assert.ok(schema !== null && 'shape' in schema)
+  assert.ok(typeof schema === 'object' && schema !== null && 'shape' in schema)
   return (schema as { shape: Record<string, unknown> }).shape
 }
 
