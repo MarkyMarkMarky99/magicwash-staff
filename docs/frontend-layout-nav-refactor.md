@@ -1,6 +1,6 @@
 # Frontend layout & navigation refactor
 
-Branch: `frontend-layout-nav-taxonomy` (cut from `main`)
+Branch: `overlay-shell` (continues from `frontend-layout-nav-taxonomy`, now merged into `main`)
 Status: Stages 1, 1.5, 2, 2.5 and 2.6 complete. Stage 3 is built; `OrderDetailSheet` is migrated onto `BaseOverlay`.
 Stage 3's mid-overlay refresh question is answered for the order sheet (it restores on refresh); it remains deferred to Stage 4 for forms that have not been migrated.
 Owner decision log lives in this file — update the checkboxes as work lands.
@@ -363,8 +363,12 @@ A shared overlay component must never own browser history. `BaseOverlay` contain
 `history.pushState` is invisible to vue-router; because it copies vue-router's `position`, popping it
 makes vue-router compute `delta = state.position - fromState.position === 0`, treat it as a duplicated
 navigation, and recover with `go(-1)` -- an extra Back. Therefore overlays that must close with
-browser/Android Back are route-owned via query parameters, matching `useCustomerFilterRoute.ts` and
-`useInvoiceFilterRoute.ts`; overlays that do not need Back-to-close remain local state.
+browser/Android Back are route-owned via query parameters, following the `useOrderSheetRoute.ts`
+template: derive open state with `computed`, and close with `router.back()` when this page pushed the
+entry or `router.replace` on a deep link/refresh where there is no parent entry to pop.
+`useCustomerFilterRoute.ts` and `useInvoiceFilterRoute.ts` are a separate, replace-only convention for
+filter state -- they always use `router.replace`, never `push`/`back`, and are not overlay-dismiss
+templates. Overlays that do not need Back-to-close remain local state.
 
 - [x] Build the overlay shell in `src/shared/layouts/BaseOverlay.vue` on native `<dialog>` (one component with `variant: 'full' | 'sheet'`; page underneath stays mounted, `close` button)
 - [x] Migrate `OrderDetailSheet.vue` onto the shell; it no longer contains overlay chrome of its own.
