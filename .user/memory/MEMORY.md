@@ -1,71 +1,45 @@
-# User Memory
+# Project memory
 
-## Future API Engine Work
+## Where we are — 2026-08-19
 
-- DB request/response schemas in `ModuleDbContract` should eventually be enforced at runtime.
-- Current repository flow uses `db.row`, `db.fieldMap`, and `db.primaryKey` at runtime, but does not parse/validate:
-  - `db.request.create`
-  - `db.request.update`
-  - `db.response.read`
-  - `db.response.create`
-  - `db.response.update`
-- Intended future behavior: after `mapper.toDb()` and `transformer.request`, validate the final DB/AppScript request body against the matching `db.request.*` schema before `execute/write`.
-- Intended future behavior: after storage returns data and `transformer.response` runs, validate DB response shape against the matching `db.response.*` schema before `mapper.toApi()`.
-- This is intentionally out of scope for the current appointment migration.
+- **Branch:** `overlay-shell` — pushed, not merged into `main`; production is unchanged.
+- **Current workstream:** frontend layout/navigation refactor (`docs/frontend-layout-nav-refactor.md`).
+- **Just finished:** Stage 3. The order detail sheet is route-driven with `?order=<id>`.
+- **Preview:** `https://magicwash-staff-b75ldpkzm-magicwashth-8243s-projects.vercel.app`
 
-## Appointment Migration Handoff - 2026-06-27
+## Price list (worktree `webapp-vue-pricelist`, branch `codex/pricelist-contracts`)
 
-- Current branch: `feature/appointments-module-migration`.
-- Last pushed commit: `d655ca4 Prepare appointment transformer`.
-- Git status was clean after push.
+- Built overnight 2026-08-19. Page live at `#/price-list`, nav entry `รายการราคา`, 76 real rows.
+- Create and edit forms built; backend create/update enabled; **no delete, by instruction**.
+- **Blocked:** share the PriceList sheet with `magicwash-staff-writer@magicwashlaundry-a50ca.iam.gserviceaccount.com` as Editor. Writes return 500 wrapping a Google 403 until then. No code change needed after.
+- Also pending: add `PRICE_LIST_SPREADSHEET_ID` to Vercel env; remove the stray empty Vercel project `webapp-vue-pricelist`.
+- Full detail, decisions and traps: `webapp-vue-pricelist/NEXT-SESSION.md`.
 
-### Completed
+## Waiting on the user
 
-- Appointment transformer implemented:
-  - File: `server/modules/appointments/appointment.transformer.ts`
-- Transformer request flow:
-  - API create now sends required flat snapshot fields:
-    `customerName`, `customerCode`, `phone`, `address`, `location`.
-  - Request transformer packs those fields into DB `Address` JSON snapshot.
-  - It removes helper fields before forwarding payload to Apps Script.
-  - Non-create requests are returned unchanged.
-- Transformer response flow:
-  - Parses DB `Address` JSON snapshot.
-  - Flattens to `customerName`, `customerCode`, `phone`, `address`, `location`.
-  - Supports read arrays and create/update/detail objects.
-  - Does not mutate input rows.
-  - Missing/empty snapshot fields become `null`.
-  - Legacy plain string/invalid/non-object `Address` falls back to address text.
-- API create contract updated in `contracts/appointments/appointment-api.schema.ts`:
-  - Required `.trim().min(1)` fields: `customerName`, `customerCode`, `phone`, `address`, `location`.
-  - `address` removed from API update contract earlier.
-- `server/modules/appointments/appointment.contract.ts` DB create schema remains DB/AppScript payload contract:
-  - It keeps `Address` as required JSON string.
-  - It does not include flat helper fields.
+- [ ] Test the preview on a real phone: drag-to-close, scrolling inside the sheet, Android Back, and iOS edge-swipe.
+- [ ] Decide whether to merge `overlay-shell` or continue iterating on it.
 
-### Verified
+## Next
 
-- Passed:
-  - Result: `26 appointment transformer dry tests passed`
-- Known failing check:
-  - `npm run typecheck:api` still fails because `server/modules/appointments/appointment.module.ts`
-    remains on legacy `sheet-crud` and still references old filters/contracts.
-  - This is expected until the appointment module is migrated.
+- [ ] Add API authentication before launch.
+- [ ] Pass actor identity into repository writes for an audit trail.
+- [ ] Implement API-mediated photo upload and customer writes.
+- [ ] Stage 4: migrate remaining overlays and forms; use `useOrderSheetRoute.ts` as the pattern.
 
-### Next Steps
+## Follow-ups
 
-1. Return to `.agent-docs/appointment-module-new-flow-refactor/`.
-2. Phase 2 plan has been migrated to the new workflow folder, updated with Claude review feedback, and approved by the human on 2026-06-28.
-3. Commit and push the Phase 2 docs before starting Phase 3 implementation.
-4. Migrate `server/modules/appointments/appointment.module.ts`:
-   - Replace legacy `sheet-crud` wiring with `GSheetRepository + BaseCrudService`.
-   - Use `appointmentContract`.
-   - Pass `transformer: createAppointmentTransformer()` to `GSheetRepository`.
-   - Use shared `APPSCRIPT_URL`.
-   - Set `searchFields` for keyword intentionally.
-5. Update route `api/appointments/index.ts`:
-   - Replace `okPaginated` with `okPaged`.
-6. After module wiring:
-   - Run `npm run typecheck:api`.
-   - Run transformer dry test again.
-   - Then decide when to remove legacy `server/shared/sheet-crud`, `server/shared/google-sheets`, and `server/shared/repositories/base-sheet.repository.ts`.
+- [ ] Confirm `CUSTOMERS_SPREADSHEET_ID` is set in every Vercel environment.
+- [ ] Confirm the two `VITE_*` spreadsheet IDs are unused, then remove them.
+- [ ] Review the pre-existing nested `<button>` in `OrderGalleryPage.vue` (~line 255).
+
+## Resume reading
+
+1. `NEXT-SESSION.md`
+2. `docs/frontend-layout-nav-refactor.md`
+3. `CLAUDE.md` — especially “Overlays must never own browser history”
+
+## Project rules
+
+- `CLAUDE.md` is authoritative for frontend architecture, navigation, testing, and working rules.
+- `api/CLAUDE.md` is authoritative for backend work under `api/` and `server/`.

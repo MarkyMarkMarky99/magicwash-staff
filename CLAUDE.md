@@ -158,6 +158,18 @@ If nothing there fits: build it locally inside your own feature folder and repor
 
 Components in `src/shared/` are presentational and must not know the domain exists — generic prop names (`title`, `subtitle`, `leading`, `trailing`, `variant`), no business logic, no store/service/API imports, no feature-conditional branches. A component that legitimately speaks about orders belongs in `src/features/orders/components/` and may name its props after orders. The test: to reuse it in a feature that does not exist yet, would any prop need renaming? If yes, it is not shared.
 
+### Overlays must never own browser history
+
+An overlay component — including the shared shell in `src/shared/layouts/` — must never call `history.pushState`, `history.back()`, `history.forward()`, or listen for `popstate`. If you find yourself adding any of those to make a Back button dismiss an overlay, stop.
+
+An entry created with raw `pushState` is invisible to vue-router. It copies vue-router's `position` field, so popping it makes the router compute `delta = state.position - fromState.position === 0`, treat the pop as a duplicated navigation, and run its recovery path `go(-1)` — an extra Back rather than an undo. The user gets thrown off the page or skips one. Hiding the pop from the router with capture-phase `stopImmediatePropagation`, and repairing surplus traversals with `history.forward()`, were both built and rejected: they turn the shell into a second history controller, and every overlay later migrated onto that shell inherits it.
+
+**An overlay that must be dismissible with the browser or Android Back button is represented as a route.** This project's convention is a **query parameter** — see `useOrderSheetRoute.ts` for the template: it derives open state from the route with `computed` (never mirrored into a local `ref`, because on a `KeepAlive`-cached page a stale mirror makes reopening the same item a silent permanent no-op) and closes with `router.back()` only when this page pushed the entry; on a deep link or a refresh there is no parent entry and `router.back()` would leave the app, so it strips the query with `router.replace` instead. An action that navigates away from an open overlay uses `router.replace`, not close-then-`push`, so the overlay's entry is consumed rather than left behind for Back to resurrect. `useCustomerFilterRoute.ts` and `useInvoiceFilterRoute.ts` follow a related but distinct, replace-only convention for filter state — they always use `router.replace`, never `push`/`back()`, because filter state has no dismiss/undo semantics. Do not treat them as overlay-dismiss templates.
+
+There are **no nested/`children` routes anywhere in this project.** Do not introduce them for this.
+
+An overlay that does not need Back-to-close stays plain local state, and Back simply leaves the page. That is fine and is the default.
+
 ### Form pages are never cached
 
 `src/App.vue` wraps the router view in `<KeepAlive>` with an `exclude` list. Form pages are on that list and must stay there. Their fields are component-local refs; if the page is cached, what a user typed for one customer survives into the next one and can be submitted against the wrong record.
@@ -165,3 +177,37 @@ Components in `src/shared/` are presentational and must not know the domain exis
 `exclude` matches the **component name**, not the file path — renaming one of those files silently removes it from the list and reintroduces the bug with no error anywhere. If you add a new form page, add it to the list.
 
 A page on that list must not use `onActivated`/`onDeactivated`; those hooks never fire for an uncached component. Use `onMounted`.
+
+## Session continuity — beat the context bill
+
+Long sessions get expensive and `/compact` costs more than it saves. The fix is to make a clean
+`/clear` lose nothing.
+
+- **`NEXT-SESSION.md` at the repo root is the handoff doc.** It stays untracked. Update it **at
+  every commit** and whenever a significant decision is made or reversed — not only at the end,
+  because a session can be cut short.
+- Record the **decision and its reason**, not a diary. Anything recoverable from `git log`, a diff,
+  `docs/`, or this file does not belong there — reference it instead.
+- **When a commit closes a unit of work, say so and offer to stop.** Update the handoff first; the
+  user clears and reopens with "read `NEXT-SESSION.md`".
+
+## MEMORY.md
+
+`.user/memory/MEMORY.md` is the shared session-state file. Read it first each session; keep it
+under 150 lines.
+
+- **Where we are:** branch, current work, user dependencies, next actions, and resume files.
+- **Project rules:** one-line links to authoritative rule files only; do not duplicate their content.
+- Update it when state or a material decision changes. Record only facts that are expensive to
+  rediscover or that the user has had to repeat; delete disproven or stale entries.
+- Put any worker-specific context in that worker's brief.
+
+## Context economy
+
+The main context is the scarce resource; workers are cheap.
+
+- Do not read source files into the main context. Send an explorer and take the summary.
+- Ask workers for terse, on-point reports.
+- Read logs with `tail -c` or `grep -n`, never whole files.
+- Check diffs with `--stat` and targeted greps rather than printing them.
+- Write briefs to a file and pipe the file in; do not paste long briefs into the conversation.

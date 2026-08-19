@@ -535,8 +535,8 @@ ok  invoice_id   (ว่าง)                    ->  INV260854062757
 ทั้งที่ `invoice-view-sync-client.ts:34` อ่านผ่าน `requireEnv()` ⇒ deploy ที่ไม่ตั้งค่านี้จะพัง
 ตอน sync view
 
-**ต้องเก็บไว้แน่นอน:** `VITE_APPOINTMENTS_SPREADSHEET_ID` / `VITE_CUSTOMERS_SPREADSHEET_ID`
-(`src/utils/constants.js:2-3`)
+**ไม่ต้องเก็บตามโค้ดปัจจุบัน:** `VITE_APPOINTMENTS_SPREADSHEET_ID` / `VITE_CUSTOMERS_SPREADSHEET_ID`
+(`src/utils/constants.js` เป็น orphan และถูกลบใน Stage 2.6 แล้ว; ไม่พบโค้ดปัจจุบันอ้างถึงตัวแปรทั้งสอง)
 
 ### 📚 เอกสารเก่าใน `docs/` ถูกลบแล้ว — ไฟล์นี้คือเอกสารเดียวที่เหลือ
 
