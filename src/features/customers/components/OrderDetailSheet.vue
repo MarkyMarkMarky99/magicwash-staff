@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import type { OrderListDto } from '../services/order.service'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
 import { useDuplicateInvoiceWarning } from '@/shared/composables/use-duplicate-invoice-warning'
+import BaseOverlay from '@/shared/layouts/BaseOverlay.vue'
 
 const props = defineProps<{
   open: boolean
@@ -18,10 +19,6 @@ const emit = defineEmits<{
 
 const router = useRouter()
 const itemsOpen = ref(true)
-const dragOffset = ref(0)
-const dragging = ref(false)
-const CLOSE_THRESHOLD = 80
-let dragStartY = 0
 const {
   warningInvoiceNumber,
   awaitingConfirmation,
@@ -60,85 +57,25 @@ function confirmInvoiceCreation() {
 
 function viewPhotos() {
   if (!props.order) return
-  handleClose()
-  router.push(`/gallery/AFT-${props.order.orderId}`)
-}
-
-function handleDragStart(event: PointerEvent) {
-  if (!props.open) return
-  dragStartY = event.clientY
-  dragging.value = true
-  ;(event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId)
-}
-
-function handleDragMove(event: PointerEvent) {
-  if (!dragging.value) return
-  dragOffset.value = Math.max(0, event.clientY - dragStartY)
-}
-
-function handleDragEnd(event: PointerEvent) {
-  if (!dragging.value) return
-  const target = event.currentTarget as HTMLElement
-  if (target.hasPointerCapture?.(event.pointerId)) {
-    target.releasePointerCapture(event.pointerId)
-  }
-  dragging.value = false
-  if (dragOffset.value >= CLOSE_THRESHOLD) {
-    handleClose()
-  }
-  dragOffset.value = 0
+  router.replace(`/gallery/AFT-${props.order.orderId}`)
 }
 </script>
 
 <template>
-  <Teleport to="body">
-    <div v-if="open" class="fixed inset-0 z-[100] flex items-end">
-      <button
-        type="button"
-        class="absolute inset-0 bg-black/40"
-        aria-label="Close order details"
-        @click="handleClose"
-      />
-
-      <section
-        class="relative flex max-h-[84vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl"
-        :class="dragging ? '' : 'transition-transform duration-200 ease-out'"
-        :style="{ transform: `translateY(${dragOffset}px)` }"
+  <BaseOverlay :open="open" variant="sheet" aria-label="Order details" @close="handleClose">
+    <div class="flex min-h-full flex-col">
+      <div
+        class="flex flex-none items-center justify-between gap-3 border-b border-outline-variant/20 px-4 pb-2 pr-14 pt-0.5"
       >
-        <div
-          class="flex flex-none touch-none cursor-grab justify-center pb-0.5 pt-2 active:cursor-grabbing"
-          @pointerdown="handleDragStart"
-          @pointermove="handleDragMove"
-          @pointerup="handleDragEnd"
-          @pointercancel="handleDragEnd"
-        >
-          <div class="h-1 w-9 rounded-full bg-outline-variant" />
+        <div class="min-w-0 flex-1">
+          <p class="mb-0.5 font-label text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">Order</p>
+          <h2 class="truncate font-headline text-base font-bold text-primary">{{ order?.orderId || '-' }}</h2>
         </div>
+      </div>
 
-        <div
-          class="flex flex-none touch-none cursor-grab items-center justify-between gap-3 border-b border-outline-variant/20 px-4 pb-2 pt-0.5 active:cursor-grabbing"
-          @pointerdown="handleDragStart"
-          @pointermove="handleDragMove"
-          @pointerup="handleDragEnd"
-          @pointercancel="handleDragEnd"
-        >
-          <div class="min-w-0 flex-1">
-            <p class="mb-0.5 font-label text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">Order</p>
-            <h2 class="truncate font-headline text-base font-bold text-primary">{{ order?.orderId || '-' }}</h2>
-          </div>
-          <button
-            type="button"
-            class="flex h-8 w-8 items-center justify-center rounded-full text-primary hover:bg-surface-container"
-            aria-label="Close"
-            @click="handleClose"
-          >
-            <span class="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
-          </button>
-        </div>
-
-        <!-- Dates + primary action: pinned below the header, above the scroll area,
-             so "view photos" never requires scrolling to reach. -->
-        <div v-if="order" class="flex-none space-y-3 px-4 pb-2 pt-3">
+      <!-- Dates + primary action: pinned below the header, above the scroll area,
+           so "view photos" never requires scrolling to reach. -->
+      <div v-if="order" class="flex-none space-y-3 px-4 pb-2 pt-3">
           <div class="flex items-stretch gap-2">
             <div class="flex-1 rounded-xl bg-surface-container-low px-3 py-2.5">
               <p class="mb-1 font-label text-[9px] uppercase tracking-wide text-on-surface-variant">Received</p>
@@ -210,9 +147,9 @@ function handleDragEnd(event: PointerEvent) {
               </button>
             </div>
           </div>
-        </div>
+      </div>
 
-        <div class="flex-1 overflow-y-auto px-4 py-4">
+      <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
           <div v-if="order" class="space-y-4">
             <section v-if="order.items.length > 0" class="w-full overflow-hidden rounded-2xl">
               <div
@@ -260,8 +197,7 @@ function handleDragEnd(event: PointerEvent) {
               <p class="font-body text-sm leading-relaxed text-on-surface-variant">{{ order.note }}</p>
             </div>
           </div>
-        </div>
-      </section>
+      </div>
     </div>
-  </Teleport>
+  </BaseOverlay>
 </template>
