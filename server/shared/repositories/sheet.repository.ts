@@ -638,7 +638,10 @@ export class SheetRepository<TDbRow extends object>
 
     let returnedValues: SheetsApiValues
     try {
-      returnedValues = await client.readRange(buildRowRange(headerMap, rowNumber))
+      returnedValues = await client.readRange(buildRowRange(headerMap, rowNumber), {
+        valueRenderOption: 'UNFORMATTED_VALUE',
+        dateTimeRenderOption: 'FORMATTED_STRING',
+      })
     } catch (error) {
       throw new WriteCommittedUnreadableError(
         'UPDATE',

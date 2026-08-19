@@ -96,6 +96,11 @@ export class DuplicatePrimaryKeyError extends WriteRejectedError {
 
 type JsonRecord = Record<string, unknown>
 
+type SheetsApiReadOptions = {
+  readonly valueRenderOption?: 'FORMATTED_VALUE' | 'UNFORMATTED_VALUE' | 'FORMULA'
+  readonly dateTimeRenderOption?: 'SERIAL_NUMBER' | 'FORMATTED_STRING'
+}
+
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -212,13 +217,20 @@ export class SheetsApiClient {
     return values
   }
 
-  async readRange(range: string): Promise<SheetsApiValues> {
+  async readRange(range: string, options?: SheetsApiReadOptions): Promise<SheetsApiValues> {
     requireNonEmpty(range, 'range')
+
+    const query = options === undefined
+      ? undefined
+      : {
+          ...(options.valueRenderOption === undefined ? {} : { valueRenderOption: options.valueRenderOption }),
+          ...(options.dateTimeRenderOption === undefined ? {} : { dateTimeRenderOption: options.dateTimeRenderOption }),
+        }
 
     const body = await this.requestJson(
       'readRange',
       'GET',
-      buildUrl(this.spreadsheetId, encodeRange(this.sheetName, range)),
+      buildUrl(this.spreadsheetId, encodeRange(this.sheetName, range), query),
       undefined,
       false,
     )
