@@ -10,9 +10,16 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return prototype === Object.prototype || prototype === null
 }
 
-export function serializeCellValue(value: unknown): SheetsApiValue {
-  if (value === undefined || value === null) {
+export function serializeCellValue(
+  value: unknown,
+  preserveNull = false,
+): SheetsApiValue {
+  if (value === undefined) {
     return ''
+  }
+
+  if (value === null) {
+    return preserveNull ? null : ''
   }
 
   if (typeof value === 'string' || typeof value === 'boolean') {
@@ -40,9 +47,12 @@ export function serializeCellValue(value: unknown): SheetsApiValue {
 export function buildRowValues(
   row: Record<string, unknown>,
   headerMap: SheetHeaderMap,
+  preserveNull = false,
 ): SheetsApiValue[] {
   return headerMap.orderedHeaders.map((header) =>
-    Object.prototype.hasOwnProperty.call(row, header) ? serializeCellValue(row[header]) : '',
+    Object.prototype.hasOwnProperty.call(row, header)
+      ? serializeCellValue(row[header], preserveNull)
+      : '',
   )
 }
 

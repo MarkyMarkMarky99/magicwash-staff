@@ -16,6 +16,10 @@ test('accepts a row whose primary key matches the expected key', async () => {
   verifyRowIdentity({ OrderID: 'order-1', Status: 'Ready' }, 'OrderID', 'order-1')
 })
 
+test('accepts a numeric primary key returned by an unformatted read-back', async () => {
+  verifyRowIdentity({ OrderID: 12345678, Status: 'Ready' }, 'OrderID', '12345678')
+})
+
 test('rejects a row whose primary key changed between lookup and write', async () => {
   assert.throws(
     () => verifyRowIdentity({ OrderID: 'order-2' }, 'OrderID', 'order-1'),

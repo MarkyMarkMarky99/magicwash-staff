@@ -135,6 +135,26 @@ test('readRange sends the values:get request for an arbitrary range', async () =
   assert.equal(calls.length, 1)
 })
 
+test('readRange sends the requested render options', async () => {
+  const { client, calls } = await makeClient('read-range-options', async (call) => {
+    const url = assertAuthorizedRequest(call, 'GET', '/values/Orders!B5:F5')
+    assert.deepEqual([...url.searchParams.entries()], [
+      ['valueRenderOption', 'UNFORMATTED_VALUE'],
+      ['dateTimeRenderOption', 'FORMATTED_STRING'],
+    ])
+    return jsonResponse(200, { values: [['order-1', 42, true, '2026-08-19', null]] })
+  })
+
+  assert.deepEqual(
+    await client.readRange('B5:F5', {
+      valueRenderOption: 'UNFORMATTED_VALUE',
+      dateTimeRenderOption: 'FORMATTED_STRING',
+    }),
+    [['order-1', 42, true, '2026-08-19', null]],
+  )
+  assert.equal(calls.length, 1)
+})
+
 test('readRange rejects an unreadable response', async () => {
   const { client, calls, module } = await makeClient('read-range-unreadable', async (call) => {
     assertAuthorizedRequest(call, 'GET', '/values/Orders!B5:F5')

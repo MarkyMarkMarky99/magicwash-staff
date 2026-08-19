@@ -206,6 +206,13 @@ test('update stamps only onUpdate and leaves the stored CreatedAt column untouch
   )
   assert.equal(ranges.some((range) => String(range.range).includes('B2')), false)
   assert.equal(ranges.some((range) => String(range.range).includes('C2')), true)
+
+  const readRangeCall = config.calls.find((call) => call.kind === 'readRange')
+  assert.ok(readRangeCall)
+  assert.deepEqual(readRangeCall.args[1], {
+    valueRenderOption: 'UNFORMATTED_VALUE',
+    dateTimeRenderOption: 'FORMATTED_STRING',
+  })
 })
 
 test('an explicit conforming audit value wins over the repository timestamp', async () => {

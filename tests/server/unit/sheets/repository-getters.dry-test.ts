@@ -6,6 +6,7 @@ const environmentKeys = [
   'APPOINTMENTS_SPREADSHEET_ID',
   'CUSTOMERS_SPREADSHEET_ID',
   'INVOICES_SPREADSHEET_ID',
+  'PRICE_LIST_SPREADSHEET_ID',
 ] as const
 
 for (const key of environmentKeys) {
@@ -23,6 +24,7 @@ const [
   invoicesViewModule,
   customerPackageViewModule,
   laundryPhotosModule,
+  priceListModule,
 ] = await Promise.all([
   import('../../../../server/sheets/OrderForm/OrderForm.repository.js'),
   import('../../../../server/sheets/OrdersView/OrdersView.repository.js'),
@@ -34,6 +36,7 @@ const [
   import('../../../../server/sheets/InvoicesView/InvoicesView.repository.js'),
   import('../../../../server/sheets/CustomerPackageView/CustomerPackageView.repository.js'),
   import('../../../../server/sheets/LaundryPhotos/LaundryPhotos.repository.js'),
+  import('../../../../server/sheets/PriceList/PriceList.repository.js'),
 ])
 
 process.env.ORDERS_SPREADSHEET_ID = 'orders-spreadsheet-id'
@@ -41,6 +44,7 @@ process.env.PORTAL_SPREADSHEET_ID = 'portal-spreadsheet-id'
 process.env.APPOINTMENTS_SPREADSHEET_ID = 'appointments-spreadsheet-id'
 process.env.CUSTOMERS_SPREADSHEET_ID = 'customers-spreadsheet-id'
 process.env.INVOICES_SPREADSHEET_ID = 'invoices-spreadsheet-id'
+process.env.PRICE_LIST_SPREADSHEET_ID = 'price-list-spreadsheet-id'
 
 const getters = [
   ['OrderForm', orderFormModule.getOrderFormRepository],
@@ -53,6 +57,7 @@ const getters = [
   ['InvoicesView', invoicesViewModule.getInvoicesViewRepository],
   ['CustomerPackageView', customerPackageViewModule.getCustomerPackageViewRepository],
   ['LaundryPhotos', laundryPhotosModule.getLaundryPhotosRepository],
+  ['PriceList', priceListModule.getPriceListRepository],
 ] as const
 
 for (const [sheet, getRepository] of getters) {
