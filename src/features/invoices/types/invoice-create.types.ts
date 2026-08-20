@@ -38,6 +38,13 @@ export interface LineItemFormRow {
   quantity: string
   unitPrice: string
   adjustments: AdjustmentFormRow[]
+  /**
+   * Form-local only — never submitted. Set only on the blank row seeded when
+   * the source order had zero items, so a picker tap can replace it without
+   * confusing it for an order-seeded line that happens to look blank
+   * (`description`/`quantity` are nullable on the order contract).
+   */
+  syntheticPlaceholder?: true
 }
 
 export function createEmptyAdjustmentRow(): AdjustmentFormRow {
@@ -60,5 +67,13 @@ export function createEmptyLineItemRow(): LineItemFormRow {
     quantity: '1',
     unitPrice: '',
     adjustments: [],
+  }
+}
+
+/** Blank row used only when the source order has zero items. */
+export function createSyntheticPlaceholderLine(): LineItemFormRow {
+  return {
+    ...createEmptyLineItemRow(),
+    syntheticPlaceholder: true,
   }
 }

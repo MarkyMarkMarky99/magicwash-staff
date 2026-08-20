@@ -17,6 +17,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:modelValue': [rows: LineItemFormRow[]]
   addLine: []
+  pickFromPriceList: []
 }>()
 
 const expandedAdjustments = ref<Set<string>>(new Set())
@@ -63,14 +64,24 @@ function removeLine(index: number) {
     empty-text="No lines yet. Add at least one to create this invoice."
   >
     <template #actions>
-      <button
-        type="button"
-        class="flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 font-label text-[11px] font-bold text-on-primary transition-colors hover:bg-primary/90"
-        @click.stop="emit('addLine')"
-      >
-        <span class="material-symbols-outlined text-[14px]" aria-hidden="true">add</span>
-        Add line
-      </button>
+      <div class="flex flex-wrap items-center justify-end gap-1.5">
+        <button
+          type="button"
+          class="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 font-label text-[11px] font-bold text-primary transition-colors hover:bg-primary/15"
+          @click.stop="emit('pickFromPriceList')"
+        >
+          <span class="material-symbols-outlined text-[14px]" aria-hidden="true">sell</span>
+          เลือกจากรายการราคา
+        </button>
+        <button
+          type="button"
+          class="flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 font-label text-[11px] font-bold text-on-primary transition-colors hover:bg-primary/90"
+          @click.stop="emit('addLine')"
+        >
+          <span class="material-symbols-outlined text-[14px]" aria-hidden="true">add</span>
+          Add line
+        </button>
+      </div>
     </template>
 
     <template #empty>

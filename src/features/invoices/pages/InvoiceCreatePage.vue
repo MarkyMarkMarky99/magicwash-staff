@@ -17,6 +17,7 @@ import FormInput from '@/shared/components/FormInput.vue'
 import {
   createEmptyAdjustmentRow,
   createEmptyLineItemRow,
+  createSyntheticPlaceholderLine,
   type AdjustmentFormRow,
   type LineItemFormRow,
 } from '../types/invoice-create.types'
@@ -25,9 +26,18 @@ import { canRetryInvoiceOutcome, synthesizeNetworkFailureOutcome } from '../util
 import InvoiceLineItemsEditor from '../components/InvoiceLineItemsEditor.vue'
 import InvoiceAdjustmentsEditor from '../components/InvoiceAdjustmentsEditor.vue'
 import InvoiceTotalsPreview from '../components/InvoiceTotalsPreview.vue'
+import InvoicePriceListPicker from '../components/InvoicePriceListPicker.vue'
 import { loadInvoiceCreateContext } from '../services/invoice-create-context.service'
 import { addSheetDateDays, sheetDateDaysBetween, todaySheetDate } from '@/shared/utils/sheet-date'
 import { useDuplicateInvoiceWarning } from '@/shared/composables/use-duplicate-invoice-warning'
+import { useInvoiceItemPickerRoute } from '../composables/useInvoiceItemPickerRoute'
+import { useInvoicePriceListStore } from '../stores/invoice-price-list.store'
+import type { InvoicePriceListItemDto } from '../services/invoice-price-list.service'
+import {
+  appendPickedLine,
+  toLineItemFormRow,
+  type PriceListServiceKey,
+} from '../utils/invoice-price-list.utils'
 
 const router = useRouter()
 const route = useRoute()
@@ -93,6 +103,37 @@ watch(issuedDate, (newIssuedDate, oldIssuedDate) => {
 
 function addLine() {
   items.value = [...items.value, createEmptyLineItemRow()]
+}
+
+const {
+  isOpen: priceListPickerOpen,
+  open: openPriceListPicker,
+  close: closePriceListPicker,
+} = useInvoiceItemPickerRoute()
+const invoicePriceListStore = useInvoicePriceListStore()
+const {
+  items: priceListItems,
+  loading: priceListLoading,
+  error: priceListError,
+  truncated: priceListTruncated,
+} = storeToRefs(invoicePriceListStore)
+
+watch(
+  priceListPickerOpen,
+  (open) => {
+    if (open) void invoicePriceListStore.reload()
+  },
+  { immediate: true },
+)
+
+function handlePriceListSelect(payload: {
+  item: InvoicePriceListItemDto
+  serviceKey: PriceListServiceKey
+}) {
+  const line = toLineItemFormRow(payload.item, payload.serviceKey)
+  if (!line) return
+  items.value = appendPickedLine(items.value, line)
+  closePriceListPicker()
 }
 
 function addInvoiceAdjustment() {
@@ -205,7 +246,7 @@ function initializeForm(currentOrder: InvoiceCreateIntentOrder) {
       unitPrice: '',
       adjustments: [],
     }))
-    : [createEmptyLineItemRow()]
+    : [createSyntheticPlaceholderLine()]
 }
 
 function readRouteId(value: unknown): string | null {
@@ -583,7 +624,11 @@ async function copyLiffUrl(invoiceNumber: string) {
         <FormInput id="invoice-due-date" v-model="dueDate" type="date" label="Due date" icon="event_available" :min="minDueDate" />
       </section>
 
-      <InvoiceLineItemsEditor v-model="items" @add-line="addLine" />
+      <InvoiceLineItemsEditor
+        v-model="items"
+        @add-line="addLine"
+        @pick-from-price-list="openPriceListPicker"
+      />
 
       <InvoiceAdjustmentsEditor
         v-model="invoiceAdjustments"
@@ -607,5 +652,18 @@ async function copyLiffUrl(invoiceNumber: string) {
       </button>
     </form>
   </main>
+
+  <InvoicePriceListPicker
+    :open="priceListPickerOpen"
+    :invoice-number="invoiceNumber"
+    :line-item-count="items.length"
+    :items="priceListItems"
+    :loading="priceListLoading"
+    :error="priceListError"
+    :truncated="priceListTruncated"
+    @close="closePriceListPicker"
+    @retry="invoicePriceListStore.reload()"
+    @select="handlePriceListSelect"
+  />
   </AppLayout>
 </template>
