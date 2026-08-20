@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full bg-[#f8fafa]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Magicwash Laundry - เลือกจากรายการราคา</title>
+    
+    <!-- Google Fonts: Manrope & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Google Material Symbols Outlined -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            dark: '#004f45',     // Main Brand Primary Teal
+                            DEFAULT: '#00695c',  // Secondary Teal
+                            light: '#006b5f',
+                            tint: '#e0f2f1',     // Soft primary background tint
+                            surface: '#f8fafa',
+                            text: '#191c1d',
+                            tertiary: '#703321', // Brown tone
+                            error: '#ba1a1a'
+                        }
+                    },
+                    fontFamily: {
+                        heading: ['Manrope', 'sans-serif'],
+                        body: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom scrollbar & font smoothing */
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #191c1d;
+            -webkit-tap-highlight-color: transparent;
+        }
+        h1, h2, h3, h4, .font-heading {
+            font-family: 'Manrope', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* Sticky category header blur fallback */
+        .sticky-category {
+            position: sticky;
+            top: 108px;
+            z-index: 10;
+            backdrop-filter: blur(8px);
+        }
+        @keyframes pulse-fast {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .animate-skeleton {
+            animation: pulse-fast 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="h-full bg-brand-surface flex justify-center antialiased">
+
+    <!-- Main Shell: Max-width phone container preview on larger displays -->
+    <div class="w-full max-w-md bg-white min-h-screen flex flex-col shadow-2xl relative border-x border-slate-200/80 pb-20">
+
+        <!-- TOP APP BAR & HEADER (Integrated Overlay Header) -->
+        <header class="bg-brand-dark text-white sticky top-0 z-20 shadow-md transition-all">
+            <!-- App Bar Top Level -->
+            <div class="px-4 pt-3 pb-2 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                    <button onclick="closeOverlay()" class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 active:scale-95 transition text-white/90">
+                        <span class="material-symbols-outlined text-[24px]">close</span>
+                    </button>
+                    <div>
+                        <h1 class="text-base font-bold font-heading leading-tight truncate">เลือกจากรายการราคา</h1>
+                        <p class="text-[11px] text-teal-200/90 font-medium">เพิ่มสินค้าลงใบแจ้งหนี้ #INV-2026-089</p>
+                    </div>
+                </div>
+                <!-- Invoice Items Badge Counter -->
+                <div class="flex items-center gap-1.5 bg-white/15 px-2.5 py-1 rounded-full border border-white/10 text-xs font-semibold">
+                    <span class="material-symbols-outlined text-[16px] text-teal-200">receipt_long</span>
+                    <span id="selected-count-badge">0 รายการ</span>
+                </div>
+            </div>
+
+            <!-- Search Field -->
+            <div class="px-4 pb-2.5 pt-1">
+                <div class="relative flex items-center">
+                    <span class="material-symbols-outlined absolute left-3 text-slate-400 text-[20px] pointer-events-none">search</span>
+                    <input 
+                        type="text" 
+                        id="search-input"
+                        placeholder="ค้นหารหัส ชื่อ หรือหมวดหมู่..."
+                        oninput="handleSearch(this.value)"
+                        class="w-full pl-9 pr-9 py-2 bg-white text-brand-text text-sm rounded-xl border-0 shadow-inner focus:ring-2 focus:ring-teal-300 outline-none placeholder:text-slate-400 font-medium"
+                    />
+                    <button id="clear-search-btn" onclick="clearSearch()" class="hidden absolute right-2.5 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-600">
+                        <span class="material-symbols-outlined text-[18px]">cancel</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Category Pills Bar (Horizontal Scroll Filter) -->
+            <div id="category-pills-container" class="px-3 pb-2.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs font-medium border-t border-white/10 pt-2">
+                <!-- Dynamic Category Filters injected here -->
+            </div>
+        </header>
+
+        <!-- OVERFLOW DATA LIMIT BANNER (State #5 Component) -->
+        <div id="data-limit-banner" class="hidden bg-amber-50 border-b border-amber-200 px-4 py-2 text-amber-800 text-xs flex items-center gap-2">
+            <span class="material-symbols-outlined text-amber-600 text-[18px] shrink-0">info</span>
+            <span class="leading-tight">แสดงเฉพาะ 2,000 รายการแรก หากไม่พบกรุณาพิมพ์ค้นหาเพิ่มเติม</span>
+        </div>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 relative">
+
+            <!-- STATE 1: Normal Populated List -->
+            <div id="state-normal" class="divide-y divide-slate-100">
+                <!-- Grouped Categories & Items will be dynamically rendered here -->
+            </div>
+
+            <!-- STATE 2: Loading Skeleton -->
+            <div id="state-loading" class="hidden p-4 space-y-4">
+                <div class="h-5 w-32 bg-slate-200 rounded animate-skeleton mb-3"></div>
+                <!-- Skeleton Rows -->
+                <script>
+                    for(let i=0; i<6; i++){
+                        document.write(`
+                            <div class="py-3 flex gap-3 border-b border-slate-100 items-start">
+                                <div class="w-11 h-11 rounded-full bg-slate-200 animate-skeleton shrink-0"></div>
+                                <div class="flex-1 space-y-2">
+                                    <div class="h-4 bg-slate-200 rounded w-3/4 animate-skeleton"></div>
+                                    <div class="h-3 bg-slate-200 rounded w-1/2 animate-skeleton"></div>
+                                    <div class="flex gap-2 pt-1">
+                                        <div class="h-8 bg-slate-200 rounded-lg w-24 animate-skeleton"></div>
+                                        <div class="h-8 bg-slate-200 rounded-lg w-20 animate-skeleton"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        `);
+                    }
+                </script>
+            </div>
+
+            <!-- STATE 3: Error State -->
+            <div id="state-error" class="hidden py-16 px-6 text-center space-y-3">
+                <div class="w-14 h-14 bg-red-50 text-brand-error rounded-full flex items-center justify-center mx-auto">
+                    <span class="material-symbols-outlined text-[32px]">warning</span>
+                </div>
+                <h3 class="font-bold text-slate-800 font-heading">เกิดข้อผิดพลาดในการโหลดข้อมูล</h3>
+                <p class="text-xs text-slate-500 max-w-xs mx-auto">ไม่สามารถดึงรายการราคาจากเซิร์ฟเวอร์ได้ในขณะนี้ กรุณาตรวจสอบการเชื่อมต่อเน็ตของคุณ</p>
+                <button onclick="retryLoad()" class="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-brand-dark text-white rounded-xl text-xs font-semibold shadow hover:bg-brand active:scale-95 transition">
+                    <span class="material-symbols-outlined text-[16px]">refresh</span>
+                    ลองใหม่อีกครั้ง
+                </button>
+            </div>
+
+            <!-- STATE 4: Search Not Found / Empty -->
+            <div id="state-empty" class="hidden py-16 px-6 text-center space-y-2">
+                <div class="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto">
+                    <span class="material-symbols-outlined text-[28px]">search_off</span>
+                </div>
+                <p class="text-sm italic text-slate-500 font-medium">ไม่พบรายการที่ตรงกับการค้นหา</p>
+                <p class="text-xs text-slate-400">ลองค้นหาด้วยคำอื่น เช่น รหัสสินค้า หรือชื่อไทย</p>
+            </div>
+
+        </main>
+
+        <!-- SELECTION FEEDBACK TOAST NOTIFICATION -->
+        <div id="selection-toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 w-11/12 max-w-sm bg-slate-900/95 text-white p-3 rounded-2xl shadow-xl border border-white/10 flex items-center justify-between opacity-0 pointer-events-none transition-all duration-300 z-30 transform translate-y-4">
+            <div class="flex items-center gap-2.5 min-w-0 pr-2">
+                <div class="w-8 h-8 rounded-full bg-teal-500 text-white flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[20px]">check</span>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs font-bold text-teal-300 truncate font-heading" id="toast-title">เพิ่มลงใบแจ้งหนี้แล้ว</p>
+                    <p class="text-[11px] text-slate-300 truncate" id="toast-desc">ซัก อบ รีด - ฿200</p>
+                </div>
+            </div>
+            <button onclick="hideToast()" class="text-slate-400 hover:text-white px-2 text-xs font-semibold shrink-0">
+                ตกลง
+            </button>
+        </div>
+
+        <!-- DEV STATE CONTROL PANEL (Developer-Only Quick Switcher) -->
+        <div class="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/90 text-white px-3 py-1.5 rounded-full shadow-2xl backdrop-blur border border-slate-700 flex items-center gap-1.5 text-[10px]">
+            <span class="font-bold text-teal-400 uppercase tracking-wider px-1">Dev State:</span>
+            <button onclick="setDevState('normal')" class="dev-btn active bg-teal-700 px-2 py-0.5 rounded-md hover:bg-teal-600 transition">ปกติ</button>
+            <button onclick="setDevState('loading')" class="dev-btn bg-slate-800 px-2 py-0.5 rounded-md hover:bg-slate-700 transition">Loading</button>
+            <button onclick="setDevState('error')" class="dev-btn bg-slate-800 px-2 py-0.5 rounded-md hover:bg-slate-700 transition">Error</button>
+            <button onclick="setDevState('empty')" class="dev-btn bg-slate-800 px-2 py-0.5 rounded-md hover:bg-slate-700 transition">Empty</button>
+            <button onclick="toggleLimitBanner()" class="dev-btn bg-slate-800 px-2 py-0.5 rounded-md hover:bg-slate-700 transition" title="Toggle 2000 limit warning">Limit 2K</button>
+        </div>
+
+    </div>
+
+    <script>
+        // MOCK DATASET (20+ Items across diverse laundry categories)
+        const mockData = [
+            // BEDDING
+            { itemCode: 'ITM-0001', category: 'Bedding', subcategory: 'Pillows', itemType: 'Pillow', variant: 'Synthetic Fiber', displayNameTh: 'หมอนหนุนใยสังเคราะห์', washDryIronPrice: 200, ironOnlyPrice: null, dryCleanPrice: null, creditEligible: true, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+            { itemCode: 'ITM-0002', category: 'Bedding', subcategory: 'Pillows', itemType: 'Pillow', variant: 'Duck Down', displayNameTh: 'หมอนหนุนขนเป็ด', washDryIronPrice: null, ironOnlyPrice: null, dryCleanPrice: 300, creditEligible: true, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+            { itemCode: 'ITM-0003', category: 'Bedding', subcategory: 'Bolster Pillow', itemType: 'Bolster Pillow', variant: 'Synthetic Fiber', displayNameTh: 'หมอนข้างใยสังเคราะห์', washDryIronPrice: 250, ironOnlyPrice: null, dryCleanPrice: null, creditEligible: false, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+            { itemCode: 'ITM-0004', category: 'Bedding', subcategory: 'Bolster Pillow', itemType: 'Bolster Pillow', variant: 'Duck Down', displayNameTh: 'หมอนข้างขนเป็ด', washDryIronPrice: null, ironOnlyPrice: null, dryCleanPrice: 350, creditEligible: false, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+            { itemCode: 'ITM-0005', category: 'Bedding', subcategory: 'Bed Sheets', itemType: 'Sheet', variant: 'King Size (6ft)', displayNameTh: 'ผ้าปูที่นอน 6 ฟุต (Cotton)', washDryIronPrice: 180, ironOnlyPrice: 100, dryCleanPrice: null, creditEligible: true, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+            { itemCode: 'ITM-0006', category: 'Bedding', subcategory: 'Duvet / Blanket', itemType: 'Comforter', variant: 'Heavy Down 6ft', displayNameTh: 'ผ้านวมหนา 6 ฟุต', washDryIronPrice: 450, ironOnlyPrice: null, dryCleanPrice: 550, creditEligible: true, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+            { itemCode: 'ITM-0007', category: 'Bedding', subcategory: 'Pillow Case', itemType: 'Case', variant: 'Standard', displayNameTh: 'ปลอกหมอนหนุน', washDryIronPrice: 50, ironOnlyPrice: 30, dryCleanPrice: null, creditEligible: false, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+
+            // APPAREL & EVERYDAY WEAR
+            { itemCode: 'ITM-0010', category: 'Apparel', subcategory: 'Shirts', itemType: 'Long Sleeve Shirt', variant: 'Cotton / Linen', displayNameTh: 'เสื้อเชิ้ตแขนยาว', washDryIronPrice: 80, ironOnlyPrice: 50, dryCleanPrice: 120, creditEligible: true, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+            { itemCode: 'ITM-0011', category: 'Apparel', subcategory: 'Shirts', itemType: 'Polo', variant: 'Standard', displayNameTh: 'เสื้อเชิ้ตโปโล', washDryIronPrice: 60, ironOnlyPrice: 40, dryCleanPrice: null, creditEligible: false, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+            { itemCode: 'ITM-0012', category: 'Apparel', subcategory: 'Pants', itemType: 'Trousers', variant: 'Wool Blend', displayNameTh: 'กางเกงสแล็คทำงาน', washDryIronPrice: 90, ironOnlyPrice: 60, dryCleanPrice: 150, creditEligible: true, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+            { itemCode: 'ITM-0013', category: 'Apparel', subcategory: 'Skirts', itemType: 'Pleated Skirt', variant: 'Long', displayNameTh: 'กระโปรงยาว / พลีท', washDryIronPrice: 120, ironOnlyPrice: 90, dryCleanPrice: 180, creditEligible: false, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+            { itemCode: 'ITM-0014', category: 'Apparel', subcategory: 'Dresses', itemType: 'Casual Dress', variant: 'Silk Blend', displayNameTh: 'ชุดเดรสยาวลำลอง', washDryIronPrice: 200, ironOnlyPrice: 140, dryCleanPrice: 280, creditEligible: true, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+
+            // SUITS & FORMAL WEAR
+            { itemCode: 'ITM-0020', category: 'Suits & Formal', subcategory: 'Jackets', itemType: 'Suit Jacket', variant: 'Wool 100%', displayNameTh: 'เสื้อสูทสากลชาย/หญิง', washDryIronPrice: null, ironOnlyPrice: 120, dryCleanPrice: 250, creditEligible: true, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+            { itemCode: 'ITM-0021', category: 'Suits & Formal', subcategory: 'Trousers', itemType: 'Suit Pants', variant: 'Matching Suit', displayNameTh: 'กางเกงสูทเข้าชุด', washDryIronPrice: null, ironOnlyPrice: 80, dryCleanPrice: 160, creditEligible: true, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+            { itemCode: 'ITM-0022', category: 'Suits & Formal', subcategory: 'Gowns', itemType: 'Evening Dress', variant: 'Beaded / Silk', displayNameTh: 'ชุดราตรียาว (ปักมุก/ลูกไม้)', washDryIronPrice: null, ironOnlyPrice: null, dryCleanPrice: 650, creditEligible: true, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+            { itemCode: 'ITM-0023', category: 'Suits & Formal', subcategory: 'Traditional', itemType: 'Thai Costume', variant: 'Thai Silk', displayNameTh: 'เสื้อพระราชทาน / ผ้าไหมไทย', washDryIronPrice: null, ironOnlyPrice: 150, dryCleanPrice: 280, creditEligible: false, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+
+            // CURTAINS & HOUSEHOLD
+            { itemCode: 'ITM-0030', category: 'Curtains & Household', subcategory: 'Curtains', itemType: 'Blackout', variant: 'Per Sq.m.', displayNameTh: 'ผ้าม่านทึบแสง (คิดตาม ตร.ม.)', washDryIronPrice: 150, ironOnlyPrice: null, dryCleanPrice: 220, creditEligible: true, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+            { itemCode: 'ITM-0031', category: 'Curtains & Household', subcategory: 'Curtains', itemType: 'Sheer', variant: 'Per Sq.m.', displayNameTh: 'ผ้าม่านโปร่ง (คิดตาม ตร.ม.)', washDryIronPrice: 100, ironOnlyPrice: null, dryCleanPrice: 160, creditEligible: true, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+            { itemCode: 'ITM-0032', category: 'Curtains & Household', subcategory: 'Rugs', itemType: 'Carpet', variant: 'Medium (2x3m)', displayNameTh: 'พรมปูพื้นขนาดกลาง', washDryIronPrice: null, ironOnlyPrice: null, dryCleanPrice: 800, creditEligible: true, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+            { itemCode: 'ITM-0033', category: 'Curtains & Household', subcategory: 'Toys', itemType: 'Plush', variant: 'Giant (>80cm)', displayNameTh: 'ตุ๊กตาขนาดใหญ่พิเศษ', washDryIronPrice: 350, ironOnlyPrice: null, dryCleanPrice: 450, creditEligible: false, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+
+            // LEATHER & BAGS
+            { itemCode: 'ITM-0040', category: 'Bags & Leather', subcategory: 'Luggage', itemType: 'Travel Bag', variant: 'Fabric Small', displayNameTh: 'กระเป๋าเดินทางผ้าขนาดเล็ก', washDryIronPrice: 400, ironOnlyPrice: null, dryCleanPrice: null, creditEligible: false, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' },
+            { itemCode: 'ITM-0041', category: 'Bags & Leather', subcategory: 'Handbags', itemType: 'Designer Bag', variant: 'Genuine Leather', displayNameTh: 'กระเป๋าถือแบรนด์เนมหนังแท้', washDryIronPrice: null, ironOnlyPrice: null, dryCleanPrice: 1200, creditEligible: true, effectiveFrom: '2026-01-01', effectiveTo: '2026-12-31' }
+        ];
+
+        // CATEGORY ICONS MAPPING (Material Symbols)
+        const categoryIcons = {
+            'Bedding': 'bed',
+            'Apparel': 'checkroom',
+            'Suits & Formal': 'dry_cleaning',
+            'Curtains & Household': 'curtains',
+            'Bags & Leather': 'work'
+        };
+
+        let selectedCategoryFilter = 'ALL';
+        let currentSearchQuery = '';
+        let addedCount = 0;
+
+        // Initialize Page
+        window.addEventListener('DOMContentLoaded', () => {
+            renderCategoryPills();
+            renderList();
+        });
+
+        // Render Header Category Filter Pills
+        function renderCategoryPills() {
+            const container = document.getElementById('category-pills-container');
+            const categories = ['ALL', ...new Set(mockData.map(item => item.category))];
+            
+            container.innerHTML = categories.map(cat => {
+                const isActive = cat === selectedCategoryFilter;
+                const label = cat === 'ALL' ? 'ทั้งหมด' : cat;
+                return `
+                    <button 
+                        onclick="filterByCategory('${cat}')"
+                        class="px-3 py-1 rounded-full whitespace-nowrap transition-all flex items-center gap-1 ${
+                            isActive 
+                            ? 'bg-white text-brand-dark font-bold shadow-sm' 
+                            : 'bg-white/10 text-white/90 hover:bg-white/20'
+                        }">
+                        ${cat !== 'ALL' && categoryIcons[cat] ? `<span class="material-symbols-outlined text-[14px]">${categoryIcons[cat]}</span>` : ''}
+                        <span>${label}</span>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function filterByCategory(cat) {
+            selectedCategoryFilter = cat;
+            renderCategoryPills();
+            renderList();
+        }
+
+        // Search Functionality
+        function handleSearch(val) {
+            currentSearchQuery = val.trim().toLowerCase();
+            const clearBtn = document.getElementById('clear-search-btn');
+            if (currentSearchQuery.length > 0) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+            renderList();
+        }
+
+        function clearSearch() {
+            const input = document.getElementById('search-input');
+            input.value = '';
+            handleSearch('');
+            input.focus();
+        }
+
+        // Main List Renderer
+        function renderList() {
+            const container = document.getElementById('state-normal');
+            const emptyState = document.getElementById('state-empty');
+
+            // Filter items based on Category & Search Query
+            const filtered = mockData.filter(item => {
+                const matchesCategory = (selectedCategoryFilter === 'ALL' || item.category === selectedCategoryFilter);
+                const q = currentSearchQuery;
+                const matchesSearch = !q || 
+                    item.itemCode.toLowerCase().includes(q) ||
+                    item.displayNameTh.toLowerCase().includes(q) ||
+                    item.category.toLowerCase().includes(q) ||
+                    item.subcategory.toLowerCase().includes(q) ||
+                    item.itemType.toLowerCase().includes(q);
+
+                return matchesCategory && matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            // Group filtered items by category
+            const grouped = {};
+            filtered.forEach(item => {
+                if (!grouped[item.category]) grouped[item.category] = [];
+                grouped[item.category].push(item);
+            });
+
+            // Build HTML
+            let html = '';
+            for (const [category, items] of Object.entries(grouped)) {
+                const catIcon = categoryIcons[category] || 'category';
+                
+                // Section Header (Sticky)
+                html += `
+                    <div class="sticky-category bg-slate-100/90 border-y border-slate-200/80 px-4 py-2 flex items-center justify-between shadow-sm">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-brand-dark text-[20px]">${catIcon}</span>
+                            <span class="font-bold text-xs font-heading uppercase tracking-wider text-slate-700">${category}</span>
+                        </div>
+                        <span class="text-[11px] font-semibold bg-slate-200/80 text-slate-600 px-2 py-0.5 rounded-full">
+                            ${items.length} รายการ
+                        </span>
+                    </div>
+                `;
+
+                // Item Rows
+                items.forEach(item => {
+                    html += renderItemRow(item);
+                });
+            }
+
+            container.innerHTML = html;
+        }
+
+        // Render Individual Flat List Row
+        function renderItemRow(item) {
+            const iconName = categoryIcons[item.category] || 'local_laundry_service';
+            
+            // Format dates
+            const formatDate = (dateStr) => {
+                if(!dateStr) return '';
+                const parts = dateStr.split('-');
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            };
+            const dateRange = `มีผล: ${formatDate(item.effectiveFrom)} - ${formatDate(item.effectiveTo)}`;
+
+            return `
+                <div class="px-4 py-3 border-b border-slate-100 hover:bg-slate-50/80 transition flex flex-col gap-2 relative">
+                    <!-- Top Part: Circle Leading Icon + Text Info -->
+                    <div class="flex items-start gap-3">
+                        <!-- 44x44 Circle Leading Icon (Primary Tint) -->
+                        <div class="w-11 h-11 rounded-full bg-brand-tint text-brand-dark flex items-center justify-center shrink-0 mt-0.5 shadow-sm border border-teal-100">
+                            <span class="material-symbols-outlined text-[22px]">${iconName}</span>
+                        </div>
+
+                        <!-- Item Main Info -->
+                        <div class="flex-1 min-w-0 space-y-1">
+                            <div class="flex items-center justify-between gap-2">
+                                <h3 class="font-bold text-[15px] text-brand-text leading-snug truncate font-heading">
+                                    ${item.displayNameTh}
+                                </h3>
+                            </div>
+
+                            <!-- Sub-line Meta info -->
+                            <div class="flex items-center gap-1.5 flex-wrap text-xs text-slate-500 font-medium">
+                                <span class="bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-mono text-[11px] font-semibold border border-slate-200">
+                                    ${item.itemCode}
+                                </span>
+                                <span>•</span>
+                                <span>${item.subcategory}</span>
+                                ${item.variant ? `<span class="text-slate-400">(${item.variant})</span>` : ''}
+                                ${item.creditEligible ? `
+                                    <span class="inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200/60 ml-0.5">
+                                        💳 เครดิตได้
+                                    </span>
+                                ` : ''}
+                            </div>
+
+                            <!-- Business Requirement: Effective Date Range -->
+                            <div class="flex items-center gap-1 text-[11px] text-slate-400 font-normal">
+                                <span class="material-symbols-outlined text-[13px] text-slate-400">calendar_today</span>
+                                <span>${dateRange}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Part: Interactive Service Price Chips -->
+                    <div class="flex items-center gap-2 pt-1 overflow-x-auto no-scrollbar pl-[56px]">
+                        ${item.washDryIronPrice ? renderPriceChip(item, 'ซัก อบ รีด', item.washDryIronPrice, 'local_laundry_service', 'teal') : ''}
+                        ${item.ironOnlyPrice ? renderPriceChip(item, 'รีดอย่างเดียว', item.ironOnlyPrice, 'iron', 'amber') : ''}
+                        ${item.dryCleanPrice ? renderPriceChip(item, 'ดรายคลีน', item.dryCleanPrice, 'dry_cleaning', 'indigo') : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render Individual Price Service Chip
+        function renderPriceChip(item, serviceName, price, icon, colorTheme) {
+            let colorClasses = '';
+            if (colorTheme === 'teal') {
+                colorClasses = 'bg-teal-50/80 text-brand-dark border-teal-200 hover:bg-brand-dark hover:text-white';
+            } else if (colorTheme === 'amber') {
+                colorClasses = 'bg-amber-50/80 text-amber-900 border-amber-200 hover:bg-amber-700 hover:text-white';
+            } else {
+                colorClasses = 'bg-indigo-50/80 text-indigo-900 border-indigo-200 hover:bg-indigo-700 hover:text-white';
+            }
+
+            return `
+                <button 
+                    onclick="selectServicePrice(event, '${item.itemCode}', '${escapeJsQuotes(item.displayNameTh)}', '${serviceName}', ${price})"
+                    class="px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 shrink-0 shadow-sm ${colorClasses}">
+                    <span class="material-symbols-outlined text-[16px]">${icon}</span>
+                    <span>${serviceName}</span>
+                    <span class="font-bold text-[13px] ml-0.5">฿${price}</span>
+                </button>
+            `;
+        }
+
+        function escapeJsQuotes(str) {
+            return str.replace(/'/g, "\\'");
+        }
+
+        // Tap Action Handler: Selects price instantly and provides micro-interaction
+        function selectServicePrice(evt, itemCode, itemName, serviceName, price) {
+            const btn = evt.currentTarget;
+            
+            // Visual Touch Animation feedback
+            btn.classList.add('scale-105', 'ring-2', 'ring-teal-500');
+            const originalHTML = btn.innerHTML;
+            
+            btn.innerHTML = `
+                <span class="material-symbols-outlined text-[16px] animate-bounce">check_circle</span>
+                <span>เพิ่มแล้ว</span>
+                <span class="font-bold text-[13px]">฿${price}</span>
+            `;
+
+            // Increment Invoice Items Counter
+            addedCount++;
+            document.getElementById('selected-count-badge').innerText = `${addedCount} รายการ`;
+
+            // Trigger Bottom Toast Notification
+            showToast(itemName, `${serviceName} • ฿${price}`);
+
+            // Reset button appearance after 1.2 seconds
+            setTimeout(() => {
+                btn.classList.remove('scale-105', 'ring-2', 'ring-teal-500');
+                btn.innerHTML = originalHTML;
+            }, 1200);
+        }
+
+        function showToast(title, desc) {
+            const toast = document.getElementById('selection-toast');
+            document.getElementById('toast-title').innerText = `เพิ่ม "${title}" แล้ว`;
+            document.getElementById('toast-desc').innerText = desc;
+
+            toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(hideToast, 2500);
+        }
+
+        function hideToast() {
+            const toast = document.getElementById('selection-toast');
+            toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
+            toast.classList.remove('opacity-100', 'translate-y-0');
+        }
+
+        function closeOverlay() {
+            alert('จำลองการปิดหน้าต่าง Overlay เลือกราคา กลับไปหน้าสร้างใบแจ้งหนี้ (Invoice)');
+        }
+
+        // Dev State Toggle Logic for Previewing Requirements
+        function setDevState(state) {
+            const normal = document.getElementById('state-normal');
+            const loading = document.getElementById('state-loading');
+            const error = document.getElementById('state-error');
+            const empty = document.getElementById('state-empty');
+
+            normal.classList.add('hidden');
+            loading.classList.add('hidden');
+            error.classList.add('hidden');
+            empty.classList.add('hidden');
+
+            if (state === 'normal') {
+                normal.classList.remove('hidden');
+                renderList();
+            } else if (state === 'loading') {
+                loading.classList.remove('hidden');
+            } else if (state === 'error') {
+                error.classList.remove('hidden');
+            } else if (state === 'empty') {
+                empty.classList.remove('hidden');
+            }
+
+            // Update dev button UI
+            document.querySelectorAll('.dev-btn').forEach(btn => {
+                if(btn.innerText.toLowerCase().includes(state)) {
+                    btn.classList.add('bg-teal-700');
+                    btn.classList.remove('bg-slate-800');
+                } else if(!btn.title) {
+                    btn.classList.remove('bg-teal-700');
+                    btn.classList.add('bg-slate-800');
+                }
+            });
+        }
+
+        function retryLoad() {
+            setDevState('loading');
+            setTimeout(() => {
+                setDevState('normal');
+            }, 800);
+        }
+
+        function toggleLimitBanner() {
+            const banner = document.getElementById('data-limit-banner');
+            banner.classList.toggle('hidden');
+        }
+    </script>
+</body>
+</html>

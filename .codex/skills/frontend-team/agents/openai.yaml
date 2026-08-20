@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend Team"
+  short_description: "Coordinate frontend feature delivery"
+  default_prompt: "Use $frontend-team to build a frontend feature from requirement through review."
