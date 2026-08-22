@@ -1,6 +1,6 @@
 ---
 name: frontend-team
-description: Orchestrate a multi-agent frontend feature workflow using specialized subagents (Explorer, Designer, Frontend Architect, UI Builder, Frontend Integrator, Frontend Reviewer). Use this whenever the user asks to build, add, or meaningfully change a frontend feature that would benefit from investigation, design, placement planning, implementation, integration, and review. Do not use for trivial one-line UI tweaks. Trigger on requests such as "build a [feature] page", "add [feature] to the frontend", "implement this design", or when the user explicitly references Explorer, Designer, Architect, UI Builder, Integrator, or Reviewer.
+description: Orchestrate a multi-agent frontend feature workflow using Explorer, Frontend Architect, Frontend Designer, Frontend Integrator, and Frontend Reviewer. The Frontend Designer owns visual direction and UI implementation. Use for substantial frontend features; do not use for trivial one-line UI tweaks.
 ---
 
 # Frontend Feature Workflow
@@ -14,15 +14,14 @@ You do not write or fix frontend implementation code yourself. Your responsibili
 ## Available roles
 
 - `explorer` — investigates the existing codebase and returns verified context
-- `frontend-designer` — defines visual direction, UX, interaction, and design specification
+- `frontend-designer` — owns visual direction, UX, interaction, and the resulting UI implementation
 - `frontend-architect` — decides where and how frontend work fits into the existing project structure
-- `ui-builder` — implements pages, components, layouts, styling, and UI-local interactions
 - `frontend-integrator` — connects completed UI to APIs, services, state, auth, routing, and real application infrastructure
 - `frontend-reviewer` — independently verifies completed work against requirements, design, architecture, project conventions, and actual behavior
 
 ## Default pipeline
 
-Explorer → Designer → Frontend Architect → UI Builder → Frontend Integrator → Frontend Reviewer
+Explorer → Frontend Architect → Frontend Designer → Frontend Integrator → Frontend Reviewer
 
 This is a default workflow, not a mandatory pipeline.
 
@@ -52,17 +51,9 @@ Use `explorer` when:
 - existing patterns or reusable infrastructure need to be discovered
 - the task is substantial enough that downstream agents need shared repository context
 
-Use `frontend-designer` when:
+Use `frontend-designer` whenever frontend presentation code must be created or modified. The Designer develops and implements the visual direction in the same workspace.
 
-- a new visual direction is needed
-- UX or interaction decisions are required
-- an existing screen needs meaningful visual reshaping
-
-Skip Designer when:
-
-- the user already supplied a sufficiently complete design
-- the change should reproduce an existing project pattern exactly
-- the work is purely structural or integration-related
+Skip Designer only when the work is purely structural or integration-related and does not modify presentation code.
 
 Use `frontend-architect` when:
 
@@ -75,8 +66,6 @@ Skip Architect when:
 
 - the change is clearly confined to known existing files
 - no placement or architectural decision is needed
-
-Use `ui-builder` whenever frontend presentation code must be created or modified.
 
 Use `frontend-integrator` only when the UI must connect to:
 
@@ -133,38 +122,7 @@ If a critical fact required for the next decision cannot be verified:
 
 Never guess repository facts on Explorer's behalf.
 
-## Step 3: Design
-
-Invoke `frontend-designer` when the selected workflow requires design work.
-
-Provide:
-
-- the original user requirement
-- relevant Explorer findings
-- screenshots, references, or design constraints when available
-- relevant existing product context
-
-Expected result:
-
-- design concept or visual thesis
-- layout and information hierarchy
-- typography and color direction
-- component appearance
-- responsive behavior
-- important interaction and UI states
-- interface copy when relevant
-- signature design element
-- important constraints or unresolved design questions
-
-Designer owns design intent.
-
-Designer does not decide codebase placement or implementation architecture.
-
-If the Designer identifies missing repository information, use Explorer for that specific question rather than asking Designer to broadly inspect the codebase.
-
-If the design contains a critical unresolved decision that prevents implementation, resolve it before continuing.
-
-## Step 4: Frontend placement
+## Step 3: Frontend placement
 
 Invoke `frontend-architect` when structural placement decisions are required.
 
@@ -172,7 +130,7 @@ Provide:
 
 - the original requirement
 - relevant Explorer report
-- Designer specification when available
+- design constraints that affect structure when available
 
 Expected result:
 
@@ -201,46 +159,31 @@ If Architect cannot make a confident placement decision because critical reposit
 
 Do not allow Architect to invent paths or conventions.
 
-## Step 5: UI implementation
+## Step 4: Design and UI implementation
 
-Invoke `ui-builder` when UI code must be created or modified.
+Invoke `frontend-designer` whenever frontend presentation code must be created or modified.
 
-Provide only the context relevant to implementation, normally:
+Provide only the context relevant to implementation:
 
 - original requirement
-- Designer specification when available
+- screenshots, references, or design constraints when available
 - Architect placement plan when available
 - relevant Explorer findings
 
-Do not dump unrelated artifacts into the prompt.
+Designer owns the visual direction and the working UI implementation:
 
-UI Builder owns:
+- visual direction, information hierarchy, interface copy, and UI-local interactions
+- pages, components, layouts, styling, responsive behavior, and accessibility states
+- inspecting relevant existing frontend files and reusing project patterns where appropriate
+- rendering or otherwise inspecting the completed UI when tooling is available, then revising it against the intended hierarchy, rhythm, responsiveness, and states
 
-- pages
-- components
-- layouts
-- styling
-- responsive behavior
-- UI-local interactions
+The working code is the primary deliverable. Do not hand a conceptual design to another agent for translation; the Designer implements its own design in the same workspace.
 
-UI Builder does not own:
+Designer follows the Architect plan when one is provided. Designer does not own backend logic, APIs or service implementation, application-level authentication, real data integration, or unrelated architectural changes. If integration is missing, leave an appropriate UI boundary and report it for Integrator.
 
-- backend logic
-- APIs or service implementation
-- application-level auth integration
-- real data integration
-- unrelated architectural changes
+If a structural decision or repository fact is missing, route it to Architect or Explorer rather than guessing.
 
-UI Builder's working code is the primary deliverable.
-
-Its final report is useful context, but it is not proof that the implementation is correct.
-
-If UI Builder reports missing integration, preserve that information for Integrator.
-
-If UI Builder cannot proceed because a structural or design decision is missing:
-→ route that issue to Architect or Designer rather than having UI Builder invent the answer.
-
-## Step 6: Integration
+## Step 5: Integration
 
 Invoke `frontend-integrator` only when real application integration is required.
 
@@ -249,8 +192,8 @@ Provide:
 - original requirement
 - relevant Explorer findings
 - Architect plan when relevant
-- completed UI implementation context
-- only the portions of the Designer specification relevant to behavior when needed
+- completed Designer UI implementation context
+- only the portions of the design intent relevant to behavior when needed
 
 Do not send visual design detail that has no bearing on integration.
 
@@ -307,14 +250,14 @@ unless the user explicitly requested them.
 
 Resolve the blocker through the appropriate role or surface it to the user.
 
-## Step 7: Review
+## Step 6: Review
 
 Invoke `frontend-reviewer` after implementation is complete enough to evaluate.
 
 Provide:
 
 - original requirement
-- Designer specification when applicable
+- completed Designer UI implementation when applicable
 - Architect placement plan when applicable
 - known unresolved gaps from previous stages
 
@@ -345,17 +288,14 @@ Read each finding and route it to the responsible specialist.
 
 Typical ownership:
 
-Visual appearance, layout, styling, responsive behavior, UI-local interaction
-→ `ui-builder`
+Visual appearance, layout, styling, responsive behavior, UI-local interaction, design intent, UX decision, interaction specification, visual specification
+→ `frontend-designer`
 
 API, services, state, auth, routing, validation, data flow
 → `frontend-integrator`
 
 File placement, module ownership, frontend structural architecture
 → `frontend-architect`
-
-Design intent, UX decision, interaction specification, visual specification
-→ `frontend-designer`
 
 Missing or uncertain repository facts
 → `explorer`
@@ -368,7 +308,7 @@ Do not treat this as APPROVED.
 
 Report the verification limitation or resolve it if possible.
 
-## Step 8: Correction loop
+## Step 7: Correction loop
 
 A correction round begins when Reviewer returns `CHANGES_REQUIRED`.
 
@@ -377,7 +317,7 @@ Group all current findings by responsible role.
 Example:
 
 Reviewer findings:
-- 2 UI Builder issues
+- 2 Frontend Designer issues
 - 1 Integrator issue
 
 This is one correction round.
@@ -429,17 +369,12 @@ Examples:
 Designer usually needs:
 - requirement
 - relevant Explorer context
+- placement plan
+- screenshots, references, or design constraints when available
 
 Architect usually needs:
 - requirement
 - Explorer context
-- Designer spec if design affects structure
-
-UI Builder usually needs:
-- requirement
-- design spec
-- placement plan
-- relevant Explorer findings
 
 Integrator usually needs:
 - requirement
@@ -449,7 +384,7 @@ Integrator usually needs:
 
 Reviewer usually needs:
 - requirement
-- relevant design and architecture specifications
+- relevant design intent and architecture plan
 - known unresolved gaps
 - access to the actual codebase
 
@@ -469,8 +404,6 @@ Examples:
 Designer should not override Architect on module placement.
 
 Architect should not override Designer on visual direction.
-
-UI Builder should not redefine requirements.
 
 Integrator should not redesign UI to make integration easier.
 
@@ -516,7 +449,7 @@ A frontend implementation task is complete only when:
 - relevant checks were performed
 - Frontend Reviewer returns `APPROVED`
 
-Never report successful completion solely because UI Builder or Frontend Integrator says the work is done.
+Never report successful completion solely because Frontend Designer or Frontend Integrator says the work is done.
 
 If something remains unverified, blocked, partial, or outside scope, state that clearly.
 
