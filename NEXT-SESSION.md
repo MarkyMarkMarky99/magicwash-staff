@@ -2,14 +2,14 @@
 
 > อ่านไฟล์นี้ไฟล์เดียวแล้วทำงานต่อได้เลย ไม่ต้อง resume session เก่า
 
-## งานล่าสุด — รวม Price List parity และ agent artifacts เข้า main (2026-08-23)
+## งานล่าสุด — ListContainer optional count cleanup (2026-08-23)
 
-- Branch ปัจจุบัน: `main`; merge รวมประวัติ `feature/invoice-create-form-redesign` และ `refactor/shared-list-page-shell` แล้ว
+- Branch ปัจจุบัน: `refactor/shared-list-page-shell` ตัดจาก `main` ที่ commit `c8f88b2`
 - Price List ถูกปรับให้ใช้หน้าตา list/container และพฤติกรรม header search เหมือน Customer List แล้ว
 - ปุ่ม `เพิ่มรายการ` อยู่ใน `ListContainer` header ฝั่งขวาและใช้สี primary ของโปรเจกต์
-- ไฟล์งานที่ต้อง commit: `PriceListCard.vue`, `PriceListPage.vue`, `AppHeader.vue`
-- งาน shared list-page refactor ยังไม่ได้เริ่ม และต้องสร้าง branch ใหม่จาก `main` เมื่อจะลงมือ
-- แนวทางที่ตกลง: สร้าง generic presentation shell เท่านั้น ให้แต่ละ feature เป็นเจ้าของ filters/search/data flow และส่ง card/table ผ่าน slots; ยังไม่มีการแก้ refactor
+- ทดลองสร้าง `ListPageShell.vue` แล้วตัดสินใจยกเลิก เพราะเป็น pass-through abstraction ที่เพิ่มโค้ดสุทธิและไม่ได้ครอบ filter tabs จริง
+- ผลลัพธ์สุดท้ายเก็บเฉพาะ `ListContainer.count` แบบ optional และให้ Price List ไม่ส่ง count/ไม่ใช้ deep CSS; Customer และ Invoice ใช้ `ListContainer` โดยตรงเหมือนเดิม
+- `frontend-reviewer` อนุมัติ selective revert; `git diff --check` และ `npm run build` ผ่าน
 - ก่อนเริ่ม refactor ผู้ใช้สั่งให้จัด repository ให้สะอาด: ย้าย root prototype HTML ทั้งหมดเข้า `.agent-docs/` และ commit `.codex/agents/ui-builder.toml` รวมถึง `.claude/skills/fast-design/scripts/__pycache__/` ตามคำสั่งโดยตรง
 - ตาม `CLAUDE.md` การเพิ่ม shared component ต้องเป็น dedicated pass และตรวจทุก call site; ห้ามเขียน `G:\My Drive\Magicwash\Database\GoogleSheets\*.json`
 

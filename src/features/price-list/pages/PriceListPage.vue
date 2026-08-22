@@ -134,10 +134,8 @@ onUnmounted(() => closeSearch())
 
     <main class="flex-1 overflow-y-auto no-scrollbar pb-20 w-full bg-surface min-w-0">
       <ListContainer
-        class="price-list-container"
         title="รายการราคา"
         icon="sell"
-        :count="filteredItems.length"
         count-label="รายการ"
         :loading="listLoading"
         :skeleton-rows="4"
@@ -166,9 +164,3 @@ onUnmounted(() => closeSearch())
     </main>
   </component>
 </template>
-
-<style scoped>
-.price-list-container :deep(> div:first-child > div:last-child > div:first-child) {
-  display: none;
-}
-</style>

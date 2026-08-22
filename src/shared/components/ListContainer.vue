@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 const props = defineProps({
   title: { type: String, required: true },
   icon: { type: String, required: true },
-  count: { type: Number, default: 0 },
+  count: { type: Number, required: false },
   countLabel: { type: String, required: true },
   topDivider: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
@@ -46,7 +46,7 @@ function toggleCollapsed() {
       </div>
 
       <div class="flex items-center gap-2">
-        <div class="flex items-center gap-1.5 bg-surface-container rounded-full px-2.5 py-1">
+        <div v-if="count !== undefined" class="flex items-center gap-1.5 bg-surface-container rounded-full px-2.5 py-1">
           <span class="font-label text-[9px] text-on-surface-variant font-bold uppercase tracking-wider">
             {{ count }} {{ countLabel }}
           </span>
