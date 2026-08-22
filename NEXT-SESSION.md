@@ -2,6 +2,17 @@
 
 > อ่านไฟล์นี้ไฟล์เดียวแล้วทำงานต่อได้เลย ไม่ต้อง resume session เก่า
 
+## งานล่าสุด — Price List parity และแผน shared list shell (2026-08-23)
+
+- Branch ก่อนแยก refactor: `feature/invoice-create-form-redesign`
+- Price List ถูกปรับให้ใช้หน้าตา list/container และพฤติกรรม header search เหมือน Customer List แล้ว
+- ปุ่ม `เพิ่มรายการ` อยู่ใน `ListContainer` header ฝั่งขวาและใช้สี primary ของโปรเจกต์
+- ไฟล์งานที่ต้อง commit: `PriceListCard.vue`, `PriceListPage.vue`, `AppHeader.vue`
+- ผู้ใช้ขอ commit + push งานนี้ก่อน แล้วสร้าง branch แยกสำหรับ dedicated shared refactor
+- Branch refactor ที่ตั้งใจสร้าง: `refactor/shared-list-page-shell`
+- แนวทางที่ตกลง: สร้าง generic presentation shell เท่านั้น ให้แต่ละ feature เป็นเจ้าของ filters/search/data flow และส่ง card/table ผ่าน slots; ยังไม่มีการแก้ refactor
+- ตาม `CLAUDE.md` การเพิ่ม shared component ต้องเป็น dedicated pass และตรวจทุก call site; ห้ามเขียน `G:\My Drive\Magicwash\Database\GoogleSheets\*.json`
+
 ---
 
 # งานล่าสุด: ปุ่มเลือกรายการจากรายการราคา ในหน้า Create Invoice

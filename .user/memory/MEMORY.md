@@ -1,6 +1,10 @@
 # Project memory
 
-## Where we are — 2026-08-20
+## Where we are — 2026-08-23
+
+- **Current branch:** `feature/invoice-create-form-redesign`; Price List visual/search parity changes are ready to commit and push.
+- **Next branch:** create `refactor/shared-list-page-shell` after the current commit is pushed; no refactor implementation has started.
+- **Shared-list decision:** extract only a generic presentation shell with filter/search/actions/content slots; Customer, Invoice, and Price List keep feature-owned filtering, data flow, and card/table rendering.
 
 - **Branch:** `main` — `overlay-shell` fully merged (`de85ec9`), including the PriceList feature (merged the day before via `codex/pricelist-contracts`). Single worktree at `webapp-vue`; the other worktrees (`webapp-vue-pricelist`, `webapp-vue-orders-refactor`, `.worktrees/*`) were stale/empty and have been deleted.
 - **Current workstream:** frontend layout/navigation refactor (`docs/frontend-layout-nav-refactor.md`) — Stage 3 done and merged: the order detail sheet is route-driven with `?order=<id>` via `useOrderSheetRoute.ts`, rendered through the new shared `BaseOverlay.vue`.
