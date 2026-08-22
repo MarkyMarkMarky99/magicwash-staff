@@ -11,6 +11,7 @@
 - ผู้ใช้ขอ commit + push งานนี้ก่อน แล้วสร้าง branch แยกสำหรับ dedicated shared refactor
 - Branch refactor ที่ตั้งใจสร้าง: `refactor/shared-list-page-shell`
 - แนวทางที่ตกลง: สร้าง generic presentation shell เท่านั้น ให้แต่ละ feature เป็นเจ้าของ filters/search/data flow และส่ง card/table ผ่าน slots; ยังไม่มีการแก้ refactor
+- ก่อนเริ่ม refactor ผู้ใช้สั่งให้จัด repository ให้สะอาด: ย้าย root prototype HTML ทั้งหมดเข้า `.agent-docs/` และ commit `.codex/agents/ui-builder.toml` รวมถึง `.claude/skills/fast-design/scripts/__pycache__/` ตามคำสั่งโดยตรง
 - ตาม `CLAUDE.md` การเพิ่ม shared component ต้องเป็น dedicated pass และตรวจทุก call site; ห้ามเขียน `G:\My Drive\Magicwash\Database\GoogleSheets\*.json`
 
 ---

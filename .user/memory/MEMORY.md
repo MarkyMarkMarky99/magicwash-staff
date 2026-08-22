@@ -4,6 +4,7 @@
 
 - **Current branch:** `feature/invoice-create-form-redesign`; Price List visual/search parity changes are ready to commit and push.
 - **Next branch:** create `refactor/shared-list-page-shell` after the current commit is pushed; no refactor implementation has started.
+- **Cleanup before refactor:** on `refactor/shared-list-page-shell`, move root prototype HTML files into `.agent-docs/` and commit the untracked `.codex` agent config plus `.claude` Python cache as explicitly requested; the ignored `.worktrees/` prototype is outside this repo cleanup.
 - **Shared-list decision:** extract only a generic presentation shell with filter/search/actions/content slots; Customer, Invoice, and Price List keep feature-owned filtering, data flow, and card/table rendering.
 
 - **Branch:** `main` — `overlay-shell` fully merged (`de85ec9`), including the PriceList feature (merged the day before via `codex/pricelist-contracts`). Single worktree at `webapp-vue`; the other worktrees (`webapp-vue-pricelist`, `webapp-vue-orders-refactor`, `.worktrees/*`) were stale/empty and have been deleted.
