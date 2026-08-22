@@ -4,31 +4,23 @@
 Wraps exactly two things: the system instruction (the frontend-designer
 persona, embedded below — no external file, no dependency on this or any
 other repo's layout) and the mechanics of an isolated `codex exec` call
-(gpt-5.6-terra by default). Everything else — the design brief, and any
-app context like header markup, container classes, or compiled CSS — is
-the CALLER's job to gather and hand in via --prompt-file. This script
-does not read this project's UI source files and never will; that
-judgment (which file has the header today, which variant applies, what's
-still fresh) belongs to whoever is calling it, not to a fixed script.
-This file is self-contained — copy it into any project's skills folder,
-no sibling files required.
+(model/effort/viewport/screenshot size are fixed constants below, not CLI
+flags). Everything else — the design brief, and any app context like
+header markup, container classes, or compiled CSS — is the CALLER's job
+to gather and hand in via --prompt-file. This script does not read this
+project's UI source files and never will; that judgment (which file has
+the header today, which variant applies, what's still fresh) belongs to
+whoever is calling it, not to a fixed script. This file is self-contained
+— copy it into any project's skills folder, no sibling files required.
 
 Prints a small JSON summary on success, including a `screenshot` path: a
 single headless-Chrome capture of output.html (top of page only, no
-scrolling). Two widths matter and are independent: --viewport-width is a
-content constraint told to the model — the exact width the design must
-fit, whatever the caller's brief calls for (default 390, a common mobile
-width; pass whatever width matches the brief instead, e.g. 1440 for a
-desktop screen); --screenshot-width is just the Chrome window used to take
-the picture (default 1440) so the capture shows the page the way it's
-actually opened — surrounding browser chrome/background included, not a
-crop to the design's own width. That capture is a quick look, not full
-verification — judging the screenshot, and checking below-the-fold
-content when it matters, is still a human/agent call (see SKILL.md Step 4).
+scrolling). That capture is a quick look, not full verification — judging
+the screenshot, and checking below-the-fold content when it matters, is
+still a human/agent call (see SKILL.md).
 
 Usage:
-    python run.py --prompt-file BRIEF.md [--model gpt-5.6-terra] [--effort high]
-                   [--viewport-width 390] [--screenshot-width 1440]
+    python run.py --prompt-file BRIEF.md [--ref-file logo.png --ref-file screenshot.png]
 """
 
 import argparse
@@ -39,6 +31,12 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+
+MODEL = "gpt-5.6-terra"
+EFFORT = "high"
+VIEWPORT_WIDTH = 390
+SCREENSHOT_WIDTH = 1440
+SCREENSHOT_HEIGHT = 900
 
 
 FRONTEND_DESIGNER_PERSONA = """\
@@ -167,6 +165,23 @@ parent directories. Your only job is to write ONE output file, described at \
 the end of this prompt.\
 """
 
+
+def build_ref_files_section(ref_filenames: list[str]) -> str | None:
+    if not ref_filenames:
+        return None
+    lines = "\n".join(f"- `{name}`" for name in ref_filenames)
+    return f"""\
+# Reference files
+
+The following reference file(s) have been copied into your current working \
+directory — open and look at each one before designing. They are real \
+visual reference material (e.g. a screenshot of the real app, a logo, a \
+brand asset), not decoration:
+
+{lines}\
+"""
+
+
 def build_output_contract(viewport_width: int) -> str:
     return f"""\
 # Output
@@ -194,13 +209,14 @@ confirm the file was written.\
 """.replace("{viewport_width}", str(viewport_width))
 
 
-def build_prompt(persona: str, brief: str, viewport_width: int) -> str:
-    parts = [
-        ISOLATION_PREAMBLE,
-        "# Your role (act as this persona exactly)\n\n" + persona,
-        "---\n\n# The design brief\n\n" + brief.strip(),
-        build_output_contract(viewport_width),
-    ]
+def build_prompt(persona: str, brief: str, viewport_width: int, ref_filenames: list[str] | None = None) -> str:
+    parts = [ISOLATION_PREAMBLE]
+    ref_section = build_ref_files_section(ref_filenames or [])
+    if ref_section:
+        parts.append(ref_section)
+    parts.append("# Your role (act as this persona exactly)\n\n" + persona)
+    parts.append("---\n\n# The design brief\n\n" + brief.strip())
+    parts.append(build_output_contract(viewport_width))
     return "\n\n".join(parts)
 
 
@@ -213,28 +229,44 @@ def main() -> None:
         "context (header markup, container classes, CSS, etc.) the caller "
         "wants reused. This script does not fetch any of that itself.",
     )
-    ap.add_argument("--model", default="gpt-5.6-terra")
-    ap.add_argument("--effort", default="high")
-    ap.add_argument("--viewport-width", type=int, default=390, help="width (px) the DESIGN itself must fit — a content constraint given to the model. Default is a common mobile width; pass whatever width the brief actually calls for, e.g. 1440 for a desktop screen")
-    ap.add_argument("--screenshot-width", type=int, default=1440, help="Chrome window width (px) used only for the verification screenshot — independent of --viewport-width. Default is a standard desktop width so the screenshot shows the page the way it's actually opened (browser chrome/background included), not a crop to the design's own width")
-    ap.add_argument("--screenshot-height", type=int, default=900, help="Chrome window height (px) for the verification screenshot")
+    ap.add_argument(
+        "--ref-file",
+        action="append",
+        default=[],
+        dest="ref_files",
+        help="path to a reference file (e.g. a screenshot or logo image) to "
+        "copy into the isolated scratch dir so the model can open it "
+        "directly. Repeatable.",
+    )
     args = ap.parse_args()
 
     brief = Path(args.prompt_file).read_text(encoding="utf-8")
-
-    prompt = build_prompt(FRONTEND_DESIGNER_PERSONA, brief, args.viewport_width)
 
     codex_bin = shutil.which("codex")
     if not codex_bin:
         raise SystemExit("codex not found on PATH")
 
     scratch_dir = Path(tempfile.mkdtemp(prefix="fast-design-"))
+
+    ref_filenames: list[str] = []
+    for ref_file_str in args.ref_files:
+        ref_path = Path(ref_file_str)
+        if not ref_path.is_file():
+            raise SystemExit(f"--ref-file not found: {ref_path}")
+        dest = scratch_dir / ref_path.name
+        if dest.exists():
+            dest = scratch_dir / f"{dest.stem}_{len(ref_filenames)}{dest.suffix}"
+        shutil.copy2(ref_path, dest)
+        ref_filenames.append(dest.name)
+
+    prompt = build_prompt(FRONTEND_DESIGNER_PERSONA, brief, VIEWPORT_WIDTH, ref_filenames)
+
     prompt_path = scratch_dir / "prompt.md"
     prompt_path.write_text(prompt, encoding="utf-8")
     log_path = scratch_dir / "codex.log"
 
     print(f"scratch_dir: {scratch_dir}", file=sys.stderr)
-    print(f"dispatching codex ({args.model}, effort={args.effort})...", file=sys.stderr)
+    print(f"dispatching codex ({MODEL}, effort={EFFORT})...", file=sys.stderr)
 
     started = time.time()
     with open(prompt_path, "rb") as stdin_f, open(log_path, "wb") as log_f:
@@ -244,8 +276,8 @@ def main() -> None:
                 "-C", str(scratch_dir),
                 "--skip-git-repo-check",
                 "-s", "danger-full-access",
-                "-m", args.model,
-                "-c", f'model_reasoning_effort="{args.effort}"',
+                "-m", MODEL,
+                "-c", f'model_reasoning_effort="{EFFORT}"',
                 "-",
             ],
             stdin=stdin_f,
@@ -273,7 +305,7 @@ def main() -> None:
                     "--hide-scrollbars",
                     "--force-device-scale-factor=1",
                     f"--screenshot={candidate}",
-                    f"--window-size={args.screenshot_width},{args.screenshot_height}",
+                    f"--window-size={SCREENSHOT_WIDTH},{SCREENSHOT_HEIGHT}",
                     "--virtual-time-budget=4000",
                     output_html.resolve().as_uri(),
                 ],
@@ -293,8 +325,8 @@ def main() -> None:
         "log_path": str(log_path),
         "elapsed_seconds": round(elapsed, 1),
         "tokens_used": tokens_m[-1] if tokens_m else None,
-        "model": args.model,
-        "effort": args.effort,
+        "model": MODEL,
+        "effort": EFFORT,
     }
     print(json.dumps(result, indent=2))
 
