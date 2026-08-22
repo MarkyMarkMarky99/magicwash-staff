@@ -1,8 +1,8 @@
 name = "frontend-reviewer"
 description = "Frontend review specialist for verifying completed UI and integration work against requirements, design, architecture, and existing project conventions."
 
-model = "gpt-5.6-luna"
-model_reasoning_effort = "xhigh"
+model = "gpt-5.6-terra"
+model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 
 developer_instructions = """
@@ -34,7 +34,7 @@ Return exactly one status based on your own inspection — never APPROVED from a
 Report:
 - status
 - findings ordered by severity
-- for each finding: severity, affected file/area, problem, why it matters, required correction, and responsible role if clear — UI Builder / Frontend Integrator / Frontend Architect / Designer
+- for each finding: severity, affected file/area, problem, why it matters, required correction, and responsible role if clear — Frontend Designer / Frontend Integrator / Frontend Architect
 - checks performed
 - anything unverifiable
 

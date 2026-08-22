@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
+import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
 import type { PriceListDto } from '../services/price-list.service'
-import ServicePriceTriad from './ServicePriceTriad.vue'
 
 const props = defineProps<{
   item: PriceListDto
@@ -9,92 +10,57 @@ const props = defineProps<{
 const emit = defineEmits<{
   edit: [id: string]
 }>()
+
+function formatPrice(value: number): string {
+  return new Intl.NumberFormat('th-TH').format(value)
+}
+
+function openEdit() {
+  emit('edit', props.item.id)
+}
+
+function handleKeydown(event: KeyboardEvent) {
+  if (event.key !== 'Enter' && event.key !== ' ') return
+  event.preventDefault()
+  openEdit()
+}
 </script>
 
 <template>
-  <button class="item-card" type="button" @click="emit('edit', props.item.id)">
-    <div class="item-card-head">
-      <div class="item-identity">
-        <div class="item-code">{{ props.item.itemCode }}</div>
-        <div class="item-name">{{ props.item.displayNameTh }}</div>
-        <div class="item-meta">
-          {{ props.item.subcategory }} · {{ props.item.itemType }}<template v-if="props.item.variant"> · {{ props.item.variant }}</template>
+  <BaseSwipeCard
+    role="button"
+    tabindex="0"
+    :aria-label="`แก้ไขรายการราคา ${props.item.displayNameTh}`"
+    @tap="openEdit"
+    @keydown="handleKeydown"
+  >
+    <div class="px-4 py-3 flex gap-3">
+      <CardLeadingIcon icon="local_laundry_service" label="Price list item" />
+
+      <div class="flex-grow min-w-0 flex flex-col justify-center">
+        <div class="flex items-center gap-1.5 mb-0.5 min-w-0">
+          <h3 class="font-headline font-bold text-primary text-[14px] leading-tight truncate">
+            {{ props.item.displayNameTh }}
+          </h3>
+          <span
+            v-if="props.item.creditEligible"
+            class="font-label text-[9px] font-bold text-primary shrink-0"
+            aria-label="ใช้เครดิตได้"
+          >เครดิตได้</span>
         </div>
+
+        <p class="font-body text-xs text-on-surface-variant truncate">
+          {{ props.item.itemCode }} · {{ props.item.category }} · {{ props.item.subcategory }}
+          <template v-if="props.item.variant"> · {{ props.item.variant }}</template>
+        </p>
+
+        <p class="font-body text-xs text-on-surface-variant truncate" aria-label="ราคาตามบริการ">
+          <span v-if="props.item.washDryIronPrice !== null">ซักอบรีด ฿{{ formatPrice(props.item.washDryIronPrice) }}</span>
+          <span v-if="props.item.ironOnlyPrice !== null"> · รีด ฿{{ formatPrice(props.item.ironOnlyPrice) }}</span>
+          <span v-if="props.item.dryCleanPrice !== null"> · ดรายคลีน ฿{{ formatPrice(props.item.dryCleanPrice) }}</span>
+          <span v-if="props.item.washDryIronPrice === null && props.item.ironOnlyPrice === null && props.item.dryCleanPrice === null">ยังไม่กำหนดราคา</span>
+        </p>
       </div>
-      <span class="state-badge" :class="props.item.active ? 'is-active' : 'is-inactive'">
-        {{ props.item.active ? 'เปิดใช้งาน' : 'ปิดใช้งาน' }}
-      </span>
     </div>
-    <ServicePriceTriad :item="props.item" />
-  </button>
+  </BaseSwipeCard>
 </template>
-
-<style scoped>
-.item-card {
-  width: 100%;
-  padding: 14px;
-  border: 1px solid var(--color-outline-variant);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-container-lowest);
-  color: var(--color-on-surface);
-  text-align: left;
-}
-
-.item-card:hover {
-  border-color: var(--color-primary);
-}
-
-.item-card-head {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.item-identity {
-  min-width: 0;
-}
-
-.item-code {
-  color: var(--color-on-surface-variant);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-}
-
-.item-name {
-  margin-top: 3px;
-  font-family: var(--font-headline);
-  font-size: 17px;
-  font-weight: 700;
-  line-height: 1.25;
-}
-
-.item-meta {
-  margin-top: 5px;
-  color: var(--color-on-surface-variant);
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-.state-badge {
-  display: inline-flex;
-  align-items: center;
-  min-height: 28px;
-  padding: 0 9px;
-  border-radius: var(--radius-full);
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.state-badge.is-active {
-  background: var(--color-secondary-container);
-  color: var(--color-primary);
-}
-
-.state-badge.is-inactive {
-  background: var(--color-surface-container);
-  color: var(--color-on-surface-variant);
-}
-</style>

@@ -1,8 +1,8 @@
 name = "ui-builder"
 description = "Frontend UI implementation specialist for pages, components, layouts, styling, and UI-local interactions."
 
-model = "gpt-5.6-luna"
-model_reasoning_effort = "xhigh"
+model = "gpt-5.6-terra"
+model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 
 developer_instructions = """

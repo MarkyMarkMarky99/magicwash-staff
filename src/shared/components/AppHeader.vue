@@ -15,7 +15,7 @@ const { searchOpen, toggleSearch } = useHeaderSearch()
 const { pendingCount } = storeToRefs(useAppointmentStore())
 const { goBack } = useGoBack()
 
-const SEARCHABLE_ROUTES = ['/customers', '/invoices']
+const SEARCHABLE_ROUTES = ['/customers', '/invoices', '/price-list']
 const canSearch = computed(() => SEARCHABLE_ROUTES.includes(route.path))
 const isGallery = computed(() => route.path.startsWith('/gallery/'))
 

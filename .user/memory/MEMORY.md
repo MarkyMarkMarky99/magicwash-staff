@@ -1,6 +1,11 @@
 # Project memory
 
-## Where we are — 2026-08-20
+## Where we are — 2026-08-23
+
+- **Current branch:** `main`; Price List parity, invoice redesign history, agent configuration, and prototype cleanup have been merged locally and are ready to push.
+- **Next work:** shared list-page refactor has not started; create a fresh feature branch from updated `main` before implementation.
+- **Cleanup before refactor:** on `refactor/shared-list-page-shell`, move root prototype HTML files into `.agent-docs/` and commit the untracked `.codex` agent config plus `.claude` Python cache as explicitly requested; the ignored `.worktrees/` prototype is outside this repo cleanup.
+- **Shared-list decision:** extract only a generic presentation shell with filter/search/actions/content slots; Customer, Invoice, and Price List keep feature-owned filtering, data flow, and card/table rendering.
 
 - **Branch:** `main` — `overlay-shell` fully merged (`de85ec9`), including the PriceList feature (merged the day before via `codex/pricelist-contracts`). Single worktree at `webapp-vue`; the other worktrees (`webapp-vue-pricelist`, `webapp-vue-orders-refactor`, `.worktrees/*`) were stale/empty and have been deleted.
 - **Current workstream:** frontend layout/navigation refactor (`docs/frontend-layout-nav-refactor.md`) — Stage 3 done and merged: the order detail sheet is route-driven with `?order=<id>` via `useOrderSheetRoute.ts`, rendered through the new shared `BaseOverlay.vue`.
