@@ -3,7 +3,7 @@
 ## Where we are — 2026-08-23
 
 - **Current branch:** `feature/price-list-form-layout`, created from `main`.
-- **Current work:** ready to commit visual parity refinements for `FormOverlay` against the Price List form, including an opt-in BaseFullOverlay shell/close hook and dev preview header metadata. Existing `BaseOverlay` is unchanged; build and diff checks pass.
+- **Current work:** Price List form now uses `FormOverlay` with its standard header and one `บันทึกราคา` footer action. The page only supplies its body slot; the legacy system-assigned item-code note and related state are removed. Existing `BaseOverlay` is unchanged; the FormInput migration and Thai typography fixes remain intact. Ready to commit; `npm run build` and `git diff --check` pass.
 - **Cleanup before refactor:** on `refactor/shared-list-page-shell`, move root prototype HTML files into `.agent-docs/` and commit the untracked `.codex` agent config plus `.claude` Python cache as explicitly requested; the ignored `.worktrees/` prototype is outside this repo cleanup.
 - **Shared-list decision:** do not add a page shell yet; existing `ListContainer` is the useful shared boundary. Reconsider only when repeated page behavior can actually move into a shared owner.
 

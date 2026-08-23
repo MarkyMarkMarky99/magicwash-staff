@@ -2,16 +2,12 @@
 
 > อ่านไฟล์นี้ไฟล์เดียวแล้วทำงานต่อได้เลย ไม่ต้อง resume session เก่า
 
-## งานล่าสุด — ListContainer optional count cleanup (2026-08-23)
+## งานล่าสุด — Price List form ใช้ FormOverlay (2026-08-23)
 
-- Branch ปัจจุบัน: `refactor/shared-list-page-shell` ตัดจาก `main` ที่ commit `c8f88b2`
-- Price List ถูกปรับให้ใช้หน้าตา list/container และพฤติกรรม header search เหมือน Customer List แล้ว
-- ปุ่ม `เพิ่มรายการ` อยู่ใน `ListContainer` header ฝั่งขวาและใช้สี primary ของโปรเจกต์
-- ทดลองสร้าง `ListPageShell.vue` แล้วตัดสินใจยกเลิก เพราะเป็น pass-through abstraction ที่เพิ่มโค้ดสุทธิและไม่ได้ครอบ filter tabs จริง
-- ผลลัพธ์สุดท้ายเก็บเฉพาะ `ListContainer.count` แบบ optional และให้ Price List ไม่ส่ง count/ไม่ใช้ deep CSS; Customer และ Invoice ใช้ `ListContainer` โดยตรงเหมือนเดิม
-- `frontend-reviewer` อนุมัติ selective revert; `git diff --check` และ `npm run build` ผ่าน
-- ก่อนเริ่ม refactor ผู้ใช้สั่งให้จัด repository ให้สะอาด: ย้าย root prototype HTML ทั้งหมดเข้า `.agent-docs/` และ commit `.codex/agents/ui-builder.toml` รวมถึง `.claude/skills/fast-design/scripts/__pycache__/` ตามคำสั่งโดยตรง
-- ตาม `CLAUDE.md` การเพิ่ม shared component ต้องเป็น dedicated pass และตรวจทุก call site; ห้ามเขียน `G:\My Drive\Magicwash\Database\GoogleSheets\*.json`
+- Branch ปัจจุบัน: `feature/price-list-form-layout`.
+- `PriceListFormPage.vue` เปลี่ยนจาก page shell/header/footer ของตัวเองมาใช้ `FormOverlay` แล้ว จึงใช้ header ดีไซน์มาตรฐานเดียวกันและมี footer ปุ่ม `บันทึกราคา` ปุ่มเดียวตามคำสั่ง (ไม่มีปุ่มยกเลิก). Page เหลือเฉพาะ body slot; legacy header ไม่มีแล้ว.
+- คง create/update, store/API flow, validation, route loading/error, FormInput, native select, ช่องราคา, switches และ Thai typography ไว้ทั้งหมด; `closeOnBackdrop` ปิด และปุ่มปิด header กลับไป Price List. ลบส่วนแสดงรหัสรายการที่ระบบกำหนด พร้อม state/CSS ที่เกี่ยวข้อง.
+- งานยังไม่ commit; ตรวจ `git diff --check` และ `npm run build` ผ่าน. ห้ามเขียน `G:\My Drive\Magicwash\Database\GoogleSheets\*.json`.
 
 ---
 
