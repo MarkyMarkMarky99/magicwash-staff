@@ -2,8 +2,8 @@
 
 ## Where we are — 2026-08-23
 
-- **Current branch:** `refactor/shared-list-page-shell`, based on merged `main` commit `c8f88b2`.
-- **Current work:** rejected and removed `ListPageShell` because it added pass-through code without consolidating filters. Keep only optional `ListContainer.count` plus Price removal of the deep count-hiding CSS; reviewer approved and build/diff checks pass.
+- **Current branch:** `feature/price-list-form-layout`, created from `main`.
+- **Current work:** ready to commit new reusable `BaseFullOverlay`, `BaseSlideOverlay`, and `FormOverlay`, plus dev-only `/dev/form-overlay` preview. Existing `BaseOverlay` is unchanged; build and diff checks pass.
 - **Cleanup before refactor:** on `refactor/shared-list-page-shell`, move root prototype HTML files into `.agent-docs/` and commit the untracked `.codex` agent config plus `.claude` Python cache as explicitly requested; the ignored `.worktrees/` prototype is outside this repo cleanup.
 - **Shared-list decision:** do not add a page shell yet; existing `ListContainer` is the useful shared boundary. Reconsider only when repeated page behavior can actually move into a shared owner.
 
