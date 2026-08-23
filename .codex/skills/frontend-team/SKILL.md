@@ -25,10 +25,10 @@ work is done.
 | Agent | Owns |
 |---|---|
 | `explorer` | investigating the existing codebase and returning verified context; never plans or writes code. Send it when the relevant area is unfamiliar or reusable patterns must be found before anyone decides anything |
-| `frontend-architect` | where new frontend code belongs — files, module boundaries, routing, state ownership. Send it when new files or modules are likely, or placement needs deciding |
+| `frontend-architect` | deciding where new frontend code belongs — files, module boundaries, which route a page gets, which layer owns a piece of state. Decides only; writes nothing. Send it when new files or modules are likely, or placement needs deciding |
 | `frontend-designer` | visual direction, UX, interface copy, and the UI implementation of its own design. Send it when a new page, a redesign, or any UI needing a real design decision is on the table |
 | `ui-builder` | general frontend code that carries no design decision. Send it for migrations, refactors, renames, deletions, wiring up existing components, and small corrections to existing UI |
-| `frontend-integrator` | connecting finished UI to APIs, services, state, auth, routing, and real data flows. Send it only when the UI must talk to real application infrastructure |
+| `frontend-integrator` | building those connections — API calls, services, store access, auth, route guards, real data flows. Send it only when the UI must talk to real application infrastructure |
 | `frontend-reviewer` | independently verifying the result against requirement, design, conventions, and real behavior. Send it after **any** workflow that modified frontend code |
 
 ## Example workflows
@@ -138,9 +138,12 @@ Judge from `git status` and `git diff`, never the agent's summary. All must hold
 - the stage's own goal is actually met
 
 - **All pass** → commit; the next stage starts from a clean tree.
-- **Any fail** → `git checkout -- <path>` the offending files, send it back to the same agent
-  session naming the failed line, and keep the in-scope work when the two separate.
-- **Caught later by `frontend-reviewer`** → same handling; revert first, never patch on top.
+- **Any fail** → `git checkout -- <path>` the offending files while they are still uncommitted,
+  then send the stage back to the same agent session naming the failed line. Keep the in-scope work
+  when the two separate. **Maximum 2 send-backs** — after that, stop and take it to the user.
+- **`BLOCKED` returned** → the agent could not proceed. Read the reason: if the task was outside
+  its role, the stage was mis-routed, so dispatch it to the right role rather than pushing back on
+  the same one.
 
 ## Correction loop
 
@@ -155,15 +158,23 @@ role and route them:
 | visual, layout, styling, responsive, UI-local interaction, design/UX intent | `frontend-designer` |
 | incorrect refactor, missed call site, wrong deletion, mechanical error in existing UI | `ui-builder` |
 | API, services, state, auth, routing, validation, data flow | `frontend-integrator` |
-| file placement, module ownership, frontend structure | `frontend-architect` |
 | missing or uncertain repository fact | `explorer` |
 
 Route each finding to the role that would have made that decision, not to whichever agent last
 touched the file. A styling defect in code `ui-builder` wrote is still a Designer finding.
 
+`frontend-architect` and `explorer` do not write files. A placement or structure finding goes to
+`frontend-architect` for a corrected plan, then to whichever writing agent owns that code.
+
 Give each fixing agent only its assigned findings plus the minimum context to act. Do not restart
 the pipeline for localized defects, and do not ask a fixing agent to reconsider unrelated parts of
 the feature. Independent fixes may run in parallel when they cannot conflict.
+
+A violation the Reviewer catches lives in a commit, so `git checkout -- <path>` will not undo it.
+Restore those paths from the commit before the stage that introduced them and commit that
+restoration — `git restore --source=<sha>^ -- <path>` — then dispatch the fix. Per-stage commits
+exist for exactly this: the offending stage is one `git log` away, and reverting it leaves the
+other stages intact. Never patch on top of an edit that should not exist.
 
 Re-invoke the Reviewer once all fixes in the round are in. **Maximum 2 correction rounds** — after
 that, stop looping and report the unresolved findings to the user.
@@ -181,6 +192,10 @@ When two agents' outputs disagree, resolve in this order:
 4. Domain authority — `frontend-architect` wins on placement and structure, `frontend-designer` on
    visual direction and interface copy, `frontend-integrator` on data flow and integration
    patterns, `ui-builder` on nothing (it makes no decisions to defend)
+
+Routing and state appear in two of those. *Which* route a page gets and *which* layer owns a piece
+of state are placement — `frontend-architect`. *How* the guard, the store access, or the fetch is
+written is integration — `frontend-integrator`.
 
 When a stage cannot continue, route the blocker to the role that can resolve it:
 
