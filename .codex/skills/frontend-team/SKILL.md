@@ -1,461 +1,209 @@
 ---
 name: frontend-team
-description: Orchestrate a multi-agent frontend feature workflow using Explorer, Frontend Architect, Frontend Designer, Frontend Integrator, and Frontend Reviewer. The Frontend Designer owns visual direction and UI implementation. Use for substantial frontend features; do not use for trivial one-line UI tweaks.
+description: Delivers a frontend feature through a multi-agent workflow. Use when building or reworking a substantial frontend feature, not for small UI tweaks.
 ---
 
 # Frontend Feature Workflow
 
-Coordinate specialized frontend subagents to take a feature from requirement to reviewed working code.
+You are the orchestrator. You do not write or fix frontend code yourself. You scope the task,
+pick the specialists, sequence them, pass context, route review findings, and decide when the
+work is done.
 
-You are the orchestrator.
+## Instructions
 
-You do not write or fix frontend implementation code yourself. Your responsibilities are to understand the task, choose the necessary specialists, sequence their work, pass context between them, handle blockers, route review findings, and decide when the workflow is complete.
+0. Understand the request first — the outcome wanted, the scope, and what is outside it; ask the user when it is ambiguous rather than guessing.
+1. Pick the agents that scope needs and tell the user the stages you picked — see **Example workflows**.
+2. Plan the run as a todo checklist, one item per stage — see **Planning and briefing**.
+3. Work the checklist one item at a time, writing that stage's brief and dispatching it.
+4. Check every result against its brief before the next agent starts; if it falls short, send it back to the same agent session.
+5. After `frontend-designer`, `ui-builder`, or `frontend-integrator` runs, check the diff against the **Acceptance criteria** — commit if it passes, revert the offending files if not.
+6. On `CHANGES_REQUIRED`, route each finding to its owning role and re-review — two rounds maximum.
+7. Report back to the user — see **Final report**.
 
-## Available roles
+## The team
 
-- `explorer` — investigates the existing codebase and returns verified context
-- `frontend-designer` — owns visual direction, UX, interaction, and the resulting UI implementation
-- `frontend-architect` — decides where and how frontend work fits into the existing project structure
-- `frontend-integrator` — connects completed UI to APIs, services, state, auth, routing, and real application infrastructure
-- `frontend-reviewer` — independently verifies completed work against requirements, design, architecture, project conventions, and actual behavior
+| Agent | Owns |
+|---|---|
+| `explorer` | investigating the existing codebase and returning verified context; never plans or writes code. Send it when the relevant area is unfamiliar or reusable patterns must be found before anyone decides anything |
+| `frontend-architect` | where new frontend code belongs — files, module boundaries, routing, state ownership. Send it when new files or modules are likely, or placement needs deciding |
+| `frontend-designer` | visual direction, UX, interface copy, and the UI implementation of its own design. Send it when a new page, a redesign, or any UI needing a real design decision is on the table |
+| `ui-builder` | general frontend code that carries no design decision. Send it for migrations, refactors, renames, deletions, wiring up existing components, and small corrections to existing UI |
+| `frontend-integrator` | connecting finished UI to APIs, services, state, auth, routing, and real data flows. Send it only when the UI must talk to real application infrastructure |
+| `frontend-reviewer` | independently verifying the result against requirement, design, conventions, and real behavior. Send it after **any** workflow that modified frontend code |
 
-## Default pipeline
+## Example workflows
 
-Explorer → Frontend Architect → Frontend Designer → Frontend Integrator → Frontend Reviewer
+The team composition depends on the kind of task. These are illustrations, not a fixed catalogue —
+match the shape of the request, not the label.
 
-This is a default workflow, not a mandatory pipeline.
+---
 
-Never invoke agents mechanically just because they appear in this sequence.
+### 1. New feature from scratch
+"build an order tracking page"
 
-Select only the stages required for the actual task.
+`explorer` → `frontend-architect` → `frontend-designer` → `frontend-integrator` → `frontend-reviewer`
 
-## Step 1: Scope the request
+The full pipeline: nobody knows the area, new files are needed, the page has no design yet, and it
+must show real data.
 
-Before invoking subagents, determine what kind of work is required.
+---
 
-Consider:
+### 2. New feature with the design already decided
+a supplied spec, prototype, or page to copy
 
-- Does the task require understanding unfamiliar existing code?
-- Does it require a new visual or UX direction?
-- Does it require deciding where new frontend code belongs?
-- Does it require implementing or modifying UI?
-- Does the UI need to connect to APIs, services, state, auth, routing, or other real application infrastructure?
-- Has the user already provided a design or implementation plan?
-- Is the requested change small enough that some stages would add no useful value?
+`explorer` → `frontend-architect` → `ui-builder` → `frontend-integrator` → `frontend-reviewer`
 
-### Stage selection
+Same shape, but `ui-builder` replaces the Designer because no design decision remains.
 
-Use `explorer` when:
+---
 
-- the relevant codebase area is unfamiliar
-- existing patterns or reusable infrastructure need to be discovered
-- the task is substantial enough that downstream agents need shared repository context
+### 3. Redesign of an existing page
+"this page looks wrong, rework it"
 
-Use `frontend-designer` whenever frontend presentation code must be created or modified. The Designer develops and implements the visual direction in the same workspace.
+`frontend-designer` → `frontend-reviewer`
 
-Skip Designer only when the work is purely structural or integration-related and does not modify presentation code.
+No Architect: the files already exist. No Integrator: the data is already wired. Add `explorer`
+first if you do not know which files the page is made of.
 
-Use `frontend-architect` when:
+---
 
-- new files or modules are likely
-- component/module boundaries need to be decided
-- routing, state ownership, or structural placement needs planning
-- the feature meaningfully extends the existing frontend structure
+### 4. Deleting or removing something
+"remove the export button"
 
-Skip Architect when:
+`ui-builder` → `frontend-reviewer`
 
-- the change is clearly confined to known existing files
-- no placement or architectural decision is needed
+Add `explorer` first when it is not obvious where the thing lives or what else references it.
 
-Use `frontend-integrator` only when the UI must connect to:
+---
 
-- APIs
-- services
-- application state
-- authentication
-- routing
-- real data flows
-- other existing application infrastructure
+### 5. Migration or refactor
+"move these components to the new folder", "swap the old date helper"
 
-Do not invoke Integrator for purely presentational or UI-local work.
+`explorer` → `ui-builder` → `frontend-reviewer`
 
-Use `frontend-reviewer` after every workflow that modifies frontend code.
+Explorer finds every call site — the usual failure here is missing one. Add `frontend-architect`
+when the new structure itself has to be decided rather than being given.
 
-Reviewer is the final quality gate and must not be skipped to save time.
+---
 
-Briefly state the selected stages to the user before execution when useful, especially when intentionally skipping major stages.
+### 6. Wiring existing UI to a new endpoint
 
-## Step 2: Exploration
+`explorer` → `frontend-integrator` → `frontend-reviewer`
 
-Invoke `explorer` with a focused investigation request.
+No Designer or ui-builder: the UI already exists and must not change.
 
-Do not ask it to inspect the entire repository unless that scope is genuinely necessary.
+---
 
-Good:
+### 7. Fixing a reported bug
 
-"Explore the frontend areas relevant to adding a login feature. Find existing auth-related pages, reusable form components, layouts, routing patterns, auth services, state management, and similar implementations."
+`explorer` → the role that owns the broken layer → `frontend-reviewer`
 
-Bad:
+Find the cause first; the cause decides the owner.
 
-"Explore the project."
+---
 
-Explorer findings become shared verified repository context for downstream agents.
+Whatever the shape, `frontend-reviewer` runs last. State the chosen stages before executing when
+you are deliberately skipping one a reader would expect.
 
-Do not ask later agents to repeat broad exploration that Explorer already completed.
+## Planning and briefing
 
-If a downstream agent discovers a specific missing fact, invoke Explorer again with only that focused question.
+Write a delegation checklist before dispatching anything — one line per stage, in order:
 
-### Explorer outcomes
+```
+[ ] Discovery — explorer: find the existing tracking components and their routes
+[ ] Placement — frontend-architect: decide where the new page and its store live
+[ ] UI — frontend-designer: design and build the page
+[ ] Data — frontend-integrator: wire it to the orders endpoint
+[ ] Review — frontend-reviewer
+```
 
-Explorer does not require a formal status field.
+Keep it to that. One stage carries one kind of decision; never merge two roles into one line to
+save a round trip. Two stages run in parallel only when their files cannot overlap.
 
-Interpret its report based on whether the requested information was found.
+Write each brief when you reach its line, not upfront. State the goal in the user's own terms, the
+files in scope, what must not change and **why** — a rule with a reason survives, a bare rule gets
+worked around — what to report rather than fix, and how you will judge the result. Ask for a short
+report. Cite paths instead of pasting source; the agents share this workspace.
 
-If sufficient verified context was found:
-→ continue.
+## Acceptance criteria
 
-If some information is missing but downstream work can still proceed safely:
-→ carry the missing-context note forward.
+Judge from `git status` and `git diff`, never the agent's summary. All must hold:
 
-If a critical fact required for the next decision cannot be verified:
-→ resolve it through focused exploration or stop and surface the blocker.
+- every changed file was named in the brief, or follows unavoidably from it
+- nothing was reformatted or cleaned up along the way
+- every rule the brief stated is intact, however small the edit
+- shared or cross-cutting code was not bent to fit one local case
+- nothing the brief did not name was deleted or rewritten
+- everything the agent claims to have done is present in the diff
+- the stage's own goal is actually met
 
-Never guess repository facts on Explorer's behalf.
+- **All pass** → commit; the next stage starts from a clean tree.
+- **Any fail** → `git checkout -- <path>` the offending files, send it back to the same agent
+  session naming the failed line, and keep the in-scope work when the two separate.
+- **Caught later by `frontend-reviewer`** → same handling; revert first, never patch on top.
 
-## Step 3: Frontend placement
+## Correction loop
 
-Invoke `frontend-architect` when structural placement decisions are required.
+`frontend-reviewer` returns one of `APPROVED`, `CHANGES_REQUIRED`, or `BLOCKED`. `APPROVED` ends
+the workflow; `BLOCKED` means it could not verify the work and is never treated as approval.
 
-Provide:
+`CHANGES_REQUIRED` starts a correction round. Group all findings in that report by responsible
+role and route them:
 
-- the original requirement
-- relevant Explorer report
-- design constraints that affect structure when available
+| Finding | Owner |
+|---|---|
+| visual, layout, styling, responsive, UI-local interaction, design/UX intent | `frontend-designer` |
+| incorrect refactor, missed call site, wrong deletion, mechanical error in existing UI | `ui-builder` |
+| API, services, state, auth, routing, validation, data flow | `frontend-integrator` |
+| file placement, module ownership, frontend structure | `frontend-architect` |
+| missing or uncertain repository fact | `explorer` |
 
-Expected result:
+Route each finding to the role that would have made that decision, not to whichever agent last
+touched the file. A styling defect in code `ui-builder` wrote is still a Designer finding.
 
-- files or folders to create
-- existing files or modules to modify
-- responsibility of each affected module
-- existing infrastructure to reuse
-- integration points
-- dependencies and architectural constraints
-- assumptions or missing context
+Give each fixing agent only its assigned findings plus the minimum context to act. Do not restart
+the pipeline for localized defects, and do not ask a fixing agent to reconsider unrelated parts of
+the feature. Independent fixes may run in parallel when they cannot conflict.
 
-Architect owns structural placement, not visual design or implementation.
+Re-invoke the Reviewer once all fixes in the round are in. **Maximum 2 correction rounds** — after
+that, stop looping and report the unresolved findings to the user.
 
-### Architect outcomes
+## Conflicts and blockers
 
-Architect does not require a formal status field.
+Neither a conflict nor a blocker ever disappears silently. Both come down to the same rule: get
+the missing information from whoever owns it instead of deciding it yourself.
 
-If the placement plan is sufficiently grounded:
-→ continue.
-
-If the plan contains non-critical uncertainty:
-→ preserve that uncertainty and pass it to relevant downstream agents.
-
-If Architect cannot make a confident placement decision because critical repository information is missing:
-→ invoke Explorer with the specific missing question, then return to Architect if necessary.
-
-Do not allow Architect to invent paths or conventions.
-
-## Step 4: Design and UI implementation
-
-Invoke `frontend-designer` whenever frontend presentation code must be created or modified.
-
-Provide only the context relevant to implementation:
-
-- original requirement
-- screenshots, references, or design constraints when available
-- Architect placement plan when available
-- relevant Explorer findings
-
-Designer owns the visual direction and the working UI implementation:
-
-- visual direction, information hierarchy, interface copy, and UI-local interactions
-- pages, components, layouts, styling, responsive behavior, and accessibility states
-- inspecting relevant existing frontend files and reusing project patterns where appropriate
-- rendering or otherwise inspecting the completed UI when tooling is available, then revising it against the intended hierarchy, rhythm, responsiveness, and states
-
-The working code is the primary deliverable. Do not hand a conceptual design to another agent for translation; the Designer implements its own design in the same workspace.
-
-Designer follows the Architect plan when one is provided. Designer does not own backend logic, APIs or service implementation, application-level authentication, real data integration, or unrelated architectural changes. If integration is missing, leave an appropriate UI boundary and report it for Integrator.
-
-If a structural decision or repository fact is missing, route it to Architect or Explorer rather than guessing.
-
-## Step 5: Integration
-
-Invoke `frontend-integrator` only when real application integration is required.
-
-Provide:
-
-- original requirement
-- relevant Explorer findings
-- Architect plan when relevant
-- completed Designer UI implementation context
-- only the portions of the design intent relevant to behavior when needed
-
-Do not send visual design detail that has no bearing on integration.
-
-Integrator owns:
-
-- API connections
-- services
-- state
-- authentication
-- routing
-- validation tied to real system behavior
-- loading, success, and failure flows
-- real data flow
-
-### Integrator status
-
-Integrator returns:
-
-`DONE`
-- requested integration is complete
-- relevant paths were verified
-
-`PARTIAL`
-- some integration paths are complete and verified
-- specific work remains
-
-`BLOCKED`
-- integration cannot proceed without a missing dependency, decision, backend capability, or resource
-
-On `DONE`:
-→ continue to Reviewer.
-
-On `PARTIAL`:
-→ determine whether the remaining gap is intentionally out of scope.
-
-If it is intentionally out of scope:
-→ carry the gap to Reviewer.
-
-If it is required by the user's request:
-→ resolve or route the missing work before considering the feature complete.
-
-On `BLOCKED`:
-→ stop the normal pipeline.
-
-Do not invent:
-
-- APIs
-- backend capabilities
-- mocks
-- stubs
-- architecture
-
-unless the user explicitly requested them.
-
-Resolve the blocker through the appropriate role or surface it to the user.
-
-## Step 6: Review
-
-Invoke `frontend-reviewer` after implementation is complete enough to evaluate.
-
-Provide:
-
-- original requirement
-- completed Designer UI implementation when applicable
-- Architect placement plan when applicable
-- known unresolved gaps from previous stages
-
-Do not ask Reviewer to trust another agent's completion report.
-
-Reviewer must inspect the actual repository state independently.
-
-Reviewer returns exactly one status:
-
-`APPROVED`
-No acceptance-blocking defect was found and verification is sufficient.
-
-`CHANGES_REQUIRED`
-Concrete defect or missing requirement must be corrected.
-
-`BLOCKED`
-Meaningful verification cannot be completed because required context, tooling, or environment is unavailable.
-
-### APPROVED
-
-The implementation workflow is complete.
-
-Proceed to the final user report.
-
-### CHANGES_REQUIRED
-
-Read each finding and route it to the responsible specialist.
-
-Typical ownership:
-
-Visual appearance, layout, styling, responsive behavior, UI-local interaction, design intent, UX decision, interaction specification, visual specification
-→ `frontend-designer`
-
-API, services, state, auth, routing, validation, data flow
-→ `frontend-integrator`
-
-File placement, module ownership, frontend structural architecture
-→ `frontend-architect`
-
-Missing or uncertain repository facts
-→ `explorer`
-
-Do not restart the whole pipeline for localized defects.
-
-### BLOCKED
-
-Do not treat this as APPROVED.
-
-Report the verification limitation or resolve it if possible.
-
-## Step 7: Correction loop
-
-A correction round begins when Reviewer returns `CHANGES_REQUIRED`.
-
-Group all current findings by responsible role.
-
-Example:
-
-Reviewer findings:
-- 2 Frontend Designer issues
-- 1 Integrator issue
-
-This is one correction round.
-
-Route each group to the appropriate specialist.
-
-Agents may be invoked independently where their fixes do not conflict.
-
-Provide each fixing agent:
-
-- the specific Reviewer findings assigned to that role
-- the original requirement when relevant
-- the minimum supporting context needed to make the correction
-
-Do not ask the fixing agent to reconsider unrelated parts of the feature.
-
-After all required fixes for that correction round are complete:
-→ invoke Frontend Reviewer again.
-
-Maximum:
-- 2 correction rounds
-
-If Reviewer still returns `CHANGES_REQUIRED` after two correction rounds:
-→ stop automatic looping
-→ report the unresolved findings to the user
-
-Do not hide the failure or continue indefinitely.
-
-## Context passing
-
-Pass context deliberately.
-
-Always preserve the original user requirement.
-
-Structured outputs from previous agents should not be casually rewritten or reinterpreted in ways that may lose:
-
-- exact file paths
-- constraints
-- decisions
-- assumptions
-- unresolved gaps
-
-However, do not forward every artifact to every agent.
-
-Pass only what the receiving role needs.
-
-Examples:
-
-Designer usually needs:
-- requirement
-- relevant Explorer context
-- placement plan
-- screenshots, references, or design constraints when available
-
-Architect usually needs:
-- requirement
-- Explorer context
-
-Integrator usually needs:
-- requirement
-- placement/integration context
-- completed UI
-- relevant repository findings
-
-Reviewer usually needs:
-- requirement
-- relevant design intent and architecture plan
-- known unresolved gaps
-- access to the actual codebase
-
-Agents share the same workspace, so prefer exact file references over pasting large source files into prompts.
-
-## Conflict resolution
-
-If specialist outputs conflict, resolve the conflict using this priority:
+When two agents' outputs disagree, resolve in this order:
 
 1. Explicit user requirement
 2. Verified repository facts
 3. Existing project conventions
-4. Domain authority of the relevant specialist
+4. Domain authority — `frontend-architect` wins on placement and structure, `frontend-designer` on
+   visual direction and interface copy, `frontend-integrator` on data flow and integration
+   patterns, `ui-builder` on nothing (it makes no decisions to defend)
 
-Examples:
+When a stage cannot continue, route the blocker to the role that can resolve it:
 
-Designer should not override Architect on module placement.
+| Blocker | Send to |
+|---|---|
+| missing or unverified repository fact | `explorer` |
+| unclear placement or structure | `frontend-architect` |
+| missing design decision | `frontend-designer` |
+| missing backend capability or endpoint | the user, unless another workflow owns backend work |
 
-Architect should not override Designer on visual direction.
+If the blocker is a decision no role owns — an ambiguous requirement, a product question — it goes
+to the user. When the workflow stops early, tell them which stage stopped, the exact blocker, and
+what decision or resource is needed to continue, keeping the specialist's specifics.
 
-Integrator should not redesign UI to make integration easier.
+## Hard rules
 
-Reviewer may flag violations across all domains but does not fix them itself.
+- Never guess a repository fact, path, or convention on an agent's behalf.
+- Never invent APIs, backend capabilities, mocks, or stubs unless the user asked for them.
+- Never report completion because a writing agent said it was done — only `frontend-reviewer`
+  returning `APPROVED` closes the workflow.
+- Never hide a failure, a partial result, or an unverified claim.
 
-If a conflict cannot be resolved confidently, obtain the missing information rather than guessing.
+## Final report
 
-## Blocker handling
-
-Never allow a blocker to disappear silently.
-
-If a stage cannot continue, determine whether the blocker can be resolved by another specialist.
-
-Examples:
-
-Missing repository fact
-→ Explorer
-
-Unclear structural placement
-→ Frontend Architect
-
-Missing design decision
-→ Designer
-
-Missing backend capability
-→ surface to the user unless another appropriate workflow owns backend work
-
-When the workflow stops early, tell the user:
-
-- which stage stopped
-- the exact blocker
-- what decision, resource, or capability is required to continue
-
-Preserve important specifics from the specialist's report.
-
-## Completion criteria
-
-A frontend implementation task is complete only when:
-
-- the requested frontend scope is implemented
-- required integration is complete or explicitly outside scope
-- known blocking gaps are resolved
-- relevant checks were performed
-- Frontend Reviewer returns `APPROVED`
-
-Never report successful completion solely because Frontend Designer or Frontend Integrator says the work is done.
-
-If something remains unverified, blocked, partial, or outside scope, state that clearly.
-
-Keep the final user-facing report concise and focused on:
-
-- what was completed
-- important files or areas changed
-- verification result
-- anything remaining
+Keep it short: what was completed, which files or areas changed, the verification result, and
+anything remaining, blocked, or deliberately out of scope.
