@@ -8,6 +8,7 @@ import ListContainer from '@/shared/components/ListContainer.vue'
 import { useHeaderSearch } from '@/shared/composables/useHeaderSearch'
 import { usePriceListStore } from '../stores/price-list.store'
 import PriceListCard from '../components/PriceListCard.vue'
+import { usePriceListFilterRoute } from '../composables/usePriceListFilterRoute'
 
 defineOptions({ name: 'PriceListPage' })
 
@@ -26,7 +27,7 @@ const listError = computed(() => (loaded.value ? null : error.value))
 
 const search = ref('')
 const keywordInput = ref(search.value)
-const selectedCategory = ref('all')
+const { filter, updateFilter } = usePriceListFilterRoute()
 
 const categoryTabs = computed(() => {
   const counts = new Map<string, number>()
@@ -44,7 +45,7 @@ const filteredItems = computed(() => {
   const query = search.value.trim().toLocaleLowerCase('th-TH')
 
   return items.value.filter((item) => {
-    if (selectedCategory.value !== 'all' && item.category !== selectedCategory.value) return false
+    if ((filter.value.category ?? 'all') !== 'all' && item.category !== filter.value.category) return false
     if (!query) return true
 
     return [
@@ -62,7 +63,9 @@ const filteredItems = computed(() => {
 })
 
 function selectCategory(key: string) {
-  if (categoryTabs.value.some((tab) => tab.key === key)) selectedCategory.value = key
+  if (categoryTabs.value.some((tab) => tab.key === key)) {
+    updateFilter({ category: key === 'all' ? null : key })
+  }
 }
 
 const SEARCH_DEBOUNCE_MS = 250
@@ -86,7 +89,10 @@ function clearSearch() {
 }
 
 function openCreate() {
-  void router.push({ name: 'price-list-create' })
+  void router.push({
+    name: 'price-list-create',
+    query: filter.value.category ? { category: filter.value.category } : {},
+  })
 }
 
 function openEdit(id: string) {
@@ -105,7 +111,7 @@ onUnmounted(() => closeSearch())
 <template>
   <component :is="layoutComponent" class="h-full flex flex-col relative overflow-hidden font-body text-on-surface w-full">
     <div class="flex-none bg-primary text-on-primary w-full min-w-0">
-      <GenericTabs :tabs="categoryTabs" :active-key="selectedCategory" @select="selectCategory" />
+      <GenericTabs :tabs="categoryTabs" :active-key="filter.category ?? 'all'" @select="selectCategory" />
     </div>
 
     <div
