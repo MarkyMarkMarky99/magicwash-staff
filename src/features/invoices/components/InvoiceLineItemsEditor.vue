@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FormLabel from '@/shared/components/FormLabel.vue'
 /** Presentation only — props in, events out. */
 import { ref } from 'vue'
 import {
@@ -98,11 +99,13 @@ function removeLine(index: number) {
 
         <div class="min-w-0 flex-1 space-y-3">
           <div class="flex items-start gap-2">
+            <label :for="`invoice-line-${line.key}-description`" class="sr-only">Description</label>
             <input
+              :id="`invoice-line-${line.key}-description`"
               :value="line.description"
               type="text"
               placeholder="Description"
-              class="h-10 flex-1 min-w-0 rounded-lg bg-surface-container px-3 font-body text-sm font-medium text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-primary"
+              class="invoice-line-control flex-1"
               @input="updateLine(index, { description: ($event.target as HTMLInputElement).value })"
             >
 
@@ -117,11 +120,12 @@ function removeLine(index: number) {
           </div>
 
           <div class="grid grid-cols-3 gap-2">
-            <label class="space-y-1">
-              <span class="font-label text-[10px] uppercase tracking-wide text-on-surface-variant">Unit</span>
+            <div>
+              <FormLabel :input-id="`invoice-line-${line.key}-unit`">Unit</FormLabel>
               <select
+                :id="`invoice-line-${line.key}-unit`"
                 :value="line.unitOption"
-                class="h-9 w-full rounded-lg bg-surface-container px-2.5 font-body text-sm text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+                class="invoice-line-control invoice-line-select"
                 @change="updateUnit(index, ($event.target as HTMLSelectElement).value as InvoiceUnitOption)"
               >
                 <option v-for="option in invoiceUnitOptions" :key="option" :value="option">
@@ -130,38 +134,41 @@ function removeLine(index: number) {
               </select>
               <input
                 v-if="line.unitOption === 'custom'"
+                :id="`invoice-line-${line.key}-custom-unit`"
                 :value="line.unit"
                 type="text"
                 placeholder="Enter custom unit"
                 aria-label="Custom unit"
-                class="mt-1 h-9 w-full rounded-lg bg-surface-container px-2.5 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-primary"
+                class="invoice-line-control mt-1"
                 @input="updateCustomUnit(index, ($event.target as HTMLInputElement).value)"
               >
-            </label>
+            </div>
 
-            <label class="space-y-1">
-              <span class="font-label text-[10px] uppercase tracking-wide text-on-surface-variant">Qty</span>
+            <div>
+              <FormLabel :input-id="`invoice-line-${line.key}-quantity`">Qty</FormLabel>
               <input
+                :id="`invoice-line-${line.key}-quantity`"
                 :value="line.quantity"
                 type="number"
                 step="any"
                 min="0"
-                class="h-9 w-full rounded-lg bg-surface-container px-2.5 font-body text-sm text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+                class="invoice-line-control"
                 @input="updateLine(index, { quantity: ($event.target as HTMLInputElement).value })"
               >
-            </label>
+            </div>
 
-            <label class="space-y-1">
-              <span class="font-label text-[10px] uppercase tracking-wide text-on-surface-variant">Unit price</span>
+            <div>
+              <FormLabel :input-id="`invoice-line-${line.key}-unit-price`">Unit price</FormLabel>
               <input
+                :id="`invoice-line-${line.key}-unit-price`"
                 :value="line.unitPrice"
                 type="number"
                 step="any"
                 placeholder="0.00"
-                class="h-9 w-full rounded-lg bg-surface-container px-2.5 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-primary"
+                class="invoice-line-control"
                 @input="updateLine(index, { unitPrice: ($event.target as HTMLInputElement).value })"
               >
-            </label>
+            </div>
           </div>
 
           <div>
@@ -189,3 +196,47 @@ function removeLine(index: number) {
     </article>
   </ListContainer>
 </template>
+
+<style scoped>
+.invoice-line-control {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 47px;
+  padding: 0 12px;
+  color: #073f38;
+  border: 1px solid #a9c9c3;
+  border-radius: 10px;
+  outline: 0;
+  background: #fff;
+  box-shadow: 0 1px 0 rgba(0, 79, 69, 0.02);
+  font-family: 'Noto Sans Thai', system-ui, sans-serif;
+  font-size: 14px;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+
+.invoice-line-control::placeholder {
+  color: #5f7772;
+}
+
+.invoice-line-control:focus {
+  border-color: #007a69;
+  box-shadow: 0 0 0 3px rgba(0, 122, 105, 0.14);
+}
+
+.invoice-line-select {
+  padding-right: 27px;
+  appearance: none;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%2300564b' stroke-width='1.7' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 11px center;
+}
+
+input.invoice-line-control[type='number'] {
+  appearance: textfield;
+}
+
+input.invoice-line-control[type='number']::-webkit-inner-spin-button,
+input.invoice-line-control[type='number']::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+}
+</style>
