@@ -1,4 +1,6 @@
 <script setup>
+import FormLabel from './FormLabel.vue'
+
 defineProps({
   id:           { type: String, required: true },
   label:        { type: String, required: true },
@@ -15,10 +17,10 @@ defineEmits(['update:modelValue'])
 </script>
 
 <template>
-  <section class="space-y-2">
-    <label :for="id" class="font-headline font-bold text-base text-primary block">
+  <section>
+    <FormLabel :input-id="id">
       {{ label }}
-    </label>
+    </FormLabel>
 
     <div class="relative">
       <input
@@ -29,7 +31,8 @@ defineEmits(['update:modelValue'])
         :autocomplete="autocomplete"
         :min="min"
         :max="max"
-        class="w-full h-12 rounded-xl bg-surface-container border border-outline-variant/30 px-4 pr-11 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-1 focus:ring-primary focus:bg-surface-container-lowest transition-colors"
+        class="form-input"
+        :class="{ 'form-input--with-icon': icon }"
         @input="$emit('update:modelValue', $event.target.value)"
       >
 
@@ -41,3 +44,35 @@ defineEmits(['update:modelValue'])
     </div>
   </section>
 </template>
+
+<style scoped>
+.form-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 47px;
+  padding: 0 12px;
+  color: #073f38;
+  border: 1px solid #a9c9c3;
+  border-radius: 10px;
+  outline: 0;
+  background: #fff;
+  box-shadow: 0 1px 0 rgba(0, 79, 69, 0.02);
+  font-family: 'Noto Sans Thai', system-ui, sans-serif;
+  font-size: 14px;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+
+.form-input--with-icon {
+  padding-right: 44px;
+}
+
+.form-input::placeholder {
+  color: #5f7772;
+}
+
+.form-input:focus {
+  border-color: #007a69;
+  box-shadow: 0 0 0 3px rgba(0, 122, 105, 0.14);
+}
+</style>
