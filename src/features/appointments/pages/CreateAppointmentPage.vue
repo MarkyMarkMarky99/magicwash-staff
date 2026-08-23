@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import FormLayout from '@/shared/layouts/FormLayout.vue'
+import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.store'
 import { useDeliveryBookingIntentStore } from '@/shared/stores/delivery-booking-intent.store'
 import { useAppointmentStore } from '../stores/appointment.store'
@@ -17,6 +17,8 @@ const deliveryOrderId = ref<string | null>(null)
 const submitting = ref(false)
 const error = ref<string | null>(null)
 const canConfirm = computed(() => Boolean(form.value?.isValid && !submitting.value))
+const customerName = computed(() => customer.value?.customerName?.trim() || 'No customer selected')
+const customerAddress = computed(() => customer.value?.address?.trim() || undefined)
 
 // This page is deliberately excluded from KeepAlive in App.vue; keep this as onMounted because it would run only once if the page were cached again.
 onMounted(() => {
@@ -42,16 +44,21 @@ async function submit() {
 </script>
 
 <template>
-  <FormLayout title="New Booking" @back="router.back()">
-    <AppointmentForm ref="form" mode="create" :customer="customer" :fixed-appointment-type="deliveryOrderId ? 'DELIVERY' : null" :delivery-order-id="deliveryOrderId" />
-    <div v-if="error" class="mx-6 mb-6 flex items-center gap-2 px-4 py-3 rounded-xl bg-error-container text-on-error-container text-sm font-body">
+  <FormOverlay
+    :open="true"
+    :eyebrow="deliveryOrderId ? 'SCHEDULE A DELIVERY' : 'SCHEDULE A PICKUP'"
+    :title="customerName"
+    :helper-text="customerAddress"
+    submit-label="Confirm Booking"
+    :is-submitting="submitting"
+    :is-submit-disabled="!canConfirm"
+    :close-on-backdrop="false"
+    @close="router.back()"
+    @submit="submit"
+  >
+    <AppointmentForm ref="form" mode="create" :customer="customer" :delivery-order-id="deliveryOrderId" />
+    <div v-if="error" class="mb-6 flex items-center gap-2 px-4 py-3 rounded-xl bg-error-container text-on-error-container text-sm font-body">
       <span class="material-symbols-outlined text-[18px] shrink-0">error</span>{{ error }}
     </div>
-    <template #footer>
-      <button :disabled="!canConfirm" class="w-full font-headline font-bold text-[15px] py-4 rounded-xl flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface transition-all" :class="canConfirm ? 'bg-primary hover:brightness-110 text-on-primary shadow-[0_4px_12px_rgba(0,79,69,0.2)] active:scale-[0.98]' : 'bg-surface-container-high text-on-surface-variant cursor-not-allowed'" @click="submit">
-        <template v-if="submitting"><span class="material-symbols-outlined text-[20px] animate-spin">sync</span>Booking…</template>
-        <template v-else><span class="material-symbols-outlined text-[20px]">add_circle</span>Confirm Booking</template>
-      </button>
-    </template>
-  </FormLayout>
+  </FormOverlay>
 </template>

@@ -37,9 +37,9 @@ const dates = computed(() => {
 </script>
 
 <template>
-  <section>
+  <section class="appointment-date-picker">
     <div class="flex items-center justify-between mb-2">
-      <h2 class="font-headline font-bold text-sm text-primary">{{ title }}</h2>
+      <h2 class="font-headline font-bold text-xs text-primary">{{ title }}</h2>
       <span class="text-xs text-on-surface-variant">Next 14 days</span>
     </div>
     <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -63,3 +63,10 @@ const dates = computed(() => {
     </div>
   </section>
 </template>
+
+<style scoped>
+.appointment-date-picker,
+.appointment-date-picker * {
+  font-family: "Noto Sans Thai", system-ui, sans-serif;
+}
+</style>
