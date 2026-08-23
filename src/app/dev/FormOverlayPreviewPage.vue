@@ -47,6 +47,8 @@ async function submitPreview() {
     <FormOverlay
       :open="isOpen"
       title="เพิ่มข้อมูลตัวอย่าง"
+      eyebrow="Development preview"
+      helper-text="ตัวอย่างโครงสร้าง header สำหรับการพัฒนา"
       aria-label="ตัวอย่างแบบฟอร์ม"
       submit-label="บันทึกตัวอย่าง"
       :is-submitting="isSubmitting"

@@ -7,6 +7,9 @@ const props = withDefaults(
     open: boolean
     closeOnBackdrop?: boolean
     ariaLabel?: string
+    dialogClass?: string
+    panelClass?: string
+    closeButtonClass?: string
   }>(),
   {
     closeOnBackdrop: true,
@@ -135,7 +138,7 @@ onDeactivated(handleUnmount)
   <Teleport to="body">
     <dialog
       ref="dialogRef"
-      class="fixed inset-0 m-0 flex h-full max-h-none w-full max-w-none items-end justify-center border-0 bg-transparent p-0 text-on-surface backdrop:bg-black/40"
+      :class="['fixed inset-0 m-0 flex h-full max-h-none w-full max-w-none items-end justify-center border-0 bg-transparent p-0 text-on-surface backdrop:bg-black/40', dialogClass]"
       :aria-label="ariaLabel ?? 'Dialog'"
       @click="handleDialogClick"
       @cancel="handleDialogCancel"
@@ -144,17 +147,19 @@ onDeactivated(handleUnmount)
       <Transition name="base-full-overlay" appear @after-leave="finishCloseTransition">
         <div
           v-if="panelVisible"
-          class="base-full-overlay-panel relative z-10 flex h-full w-full flex-col overflow-hidden bg-surface"
+          :class="['base-full-overlay-panel relative z-10 flex h-full w-full flex-col overflow-hidden bg-surface', panelClass]"
           @click.stop
         >
           <button
             ref="closeButtonRef"
             type="button"
-            class="absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full text-on-surface transition-colors hover:bg-surface-container focus:outline-none focus:ring-2 focus:ring-primary/40"
+            :class="['absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full text-on-surface transition-colors hover:bg-surface-container focus:outline-none focus:ring-2 focus:ring-primary/40', closeButtonClass]"
             aria-label="Close"
             @click="requestClose"
           >
-            <span class="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
+            <slot name="close-button">
+              <span class="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
+            </slot>
           </button>
 
           <div class="min-h-0 flex-1 overflow-y-auto">
