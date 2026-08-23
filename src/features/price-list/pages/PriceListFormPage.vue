@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import FormInput from '@/shared/components/FormInput.vue'
+import FormSwitch from '@/shared/components/FormSwitch.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import { usePriceListStore } from '../stores/price-list.store'
 
@@ -153,6 +154,13 @@ onMounted(async () => {
         <div class="form-intro"><p>รายละเอียดรายการสำหรับหน้าเคาน์เตอร์</p><span class="stamp">พร้อมบันทึก</span></div>
         <div>
         <fieldset class="fieldset">
+          <div class="section-label">ช่วงเวลาราคา</div>
+          <div class="grid-2 date-row">
+            <FormInput id="start" v-model="item.start" class="field" label="เริ่มใช้ราคา *" type="date" />
+            <FormInput id="end" v-model="item.end" class="field" label="สิ้นสุดราคา (ถ้ามี)" type="date" placeholder="เลือกวันที่" />
+          </div>
+        </fieldset>
+        <fieldset class="fieldset">
           <div class="section-label">รายการ</div>
           <div class="grid-2">
             <div class="field"><label for="category">หมวดหมู่ <span class="required">*</span></label><select id="category" v-model="item.category" class="control"><option value="" disabled>เลือกหมวดหมู่</option><option v-for="category in categories" :key="category" :value="category">{{ category }}</option></select></div>
@@ -172,22 +180,17 @@ onMounted(async () => {
             <div class="price-field"><label for="dry">ดรายคลีน</label><div class="money"><input id="dry" v-model="item.dry" inputmode="decimal"><span>บาท</span></div></div>
           </div>
         </section>
-        <fieldset class="fieldset">
-          <div class="section-label">ช่วงเวลาราคา</div>
-          <div class="grid-2 date-row">
-            <FormInput id="start" v-model="item.start" class="field" label="เริ่มใช้ราคา *" type="date" />
-            <FormInput id="end" v-model="item.end" class="field" label="สิ้นสุดราคา (ถ้ามี)" type="date" placeholder="เลือกวันที่" />
-          </div>
-        </fieldset>
         <section class="switches" aria-label="การตั้งค่า">
-          <div class="switch-row">
-            <div class="switch-text"><strong>เปิดใช้งานรายการนี้</strong><span>ปิดสวิตช์เมื่อเลิกรับรายการนี้ — ไม่มีการลบข้อมูล</span></div>
-            <button class="switch" :class="{ on: isActive }" type="button" role="switch" :aria-checked="isActive" aria-label="เปิดใช้งานรายการนี้" @click="isActive = !isActive"></button>
-          </div>
-          <div class="switch-row">
-            <div class="switch-text"><strong>อนุญาตเครดิต</strong><span>กำหนดว่ารายการนี้ใช้กับลูกค้าเครดิตได้หรือไม่</span></div>
-            <button class="switch" :class="{ on: allowsCredit }" type="button" role="switch" :aria-checked="allowsCredit" aria-label="อนุญาตเครดิต" @click="allowsCredit = !allowsCredit"></button>
-          </div>
+          <FormSwitch
+            v-model="isActive"
+            label="เปิดใช้งานรายการนี้"
+            description="ปิดสวิตช์เมื่อเลิกรับรายการนี้ — ไม่มีการลบข้อมูล"
+          />
+          <FormSwitch
+            v-model="allowsCredit"
+            label="อนุญาตเครดิต"
+            description="กำหนดว่ารายการนี้ใช้กับลูกค้าเครดิตได้หรือไม่"
+          />
         </section>
         <p v-if="formError" class="form-error">{{ formError }}</p>
         </div>
@@ -197,8 +200,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap');
-
 .price-list-form { --ink:#073f38; --teal:#00564b; --teal-2:#007a69; --mint:#9df5df; --lime:#b2df26; --line:#cae0dc; --quiet:#5f7772; --red:#c94e3d; color:var(--ink); font-family:"Noto Sans Thai",system-ui,sans-serif; }
 .price-list-form * { box-sizing:border-box; }
 .price-list-form button,.price-list-form input,.price-list-form select { font:inherit; }
@@ -215,9 +216,8 @@ label { display:block; margin-bottom:6px; font-size:12px; font-weight:700; color
 .control { display:block; width:100%; min-width:0; height:47px; padding:0 12px; color:var(--ink); border:1px solid #a9c9c3; border-radius:10px; outline:0; background:#fff; font-size:14px; box-shadow:0 1px 0 rgba(0,79,69,.02); }
 .control:focus { border-color:var(--teal-2); box-shadow:0 0 0 3px rgba(0,122,105,.14); }
 select.control { padding-right:27px; background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%2300564b' stroke-width='1.7' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 11px center; appearance:none; }
-input::placeholder { color:#9aacaa; opacity:1; }
 .item-name { margin-bottom:23px; }
-.price-panel { position:relative; margin:2px -20px 25px; padding:21px 20px 20px; background:var(--ink); color:white; overflow:hidden; }
+.price-panel { position:relative; margin:2px -20px 0; padding:21px 20px 20px; background:var(--ink); color:white; overflow:hidden; }
 .price-panel::before { content:""; position:absolute; left:-41px; top:31px; width:104px; height:104px; border:1px solid rgba(157,245,223,.25); border-radius:50%; }
 .price-panel::after { content:""; position:absolute; right:-32px; bottom:-47px; width:146px; height:146px; border:22px solid rgba(178,223,38,.22); border-radius:50%; }
 .price-title { position:relative; z-index:1; display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:15px; }
@@ -230,18 +230,9 @@ input::placeholder { color:#9aacaa; opacity:1; }
 .money input { width:100%; height:49px; min-width:0; padding:0 28px 0 10px; color:#fff; border:1px solid rgba(157,245,223,.55); border-radius:8px; outline:0; background:rgba(255,255,255,.08); font:700 16px "Noto Sans Thai",Manrope,sans-serif; }
 .money input:focus { border-color:var(--mint); box-shadow:0 0 0 3px rgba(157,245,223,.16); }
 .money span { position:absolute; right:9px; top:15px; color:var(--mint); font-size:10px; }
-.date-row { margin-bottom:25px; }
+.date-row { margin-bottom:10px; }
 .switches { margin:0 -20px 10px; padding:21px 20px 0; border-top:1px solid var(--line); background:#edf7f5; }
-.switch-row { display:flex; align-items:center; gap:13px; padding:0 0 19px; margin-bottom:18px; border-bottom:1px solid #cfe2de; }
-.switch-text { flex:1; min-width:0; }
-.switch-text strong { display:block; font-size:14px; }
-.switch-text span { display:block; margin-top:2px; color:var(--quiet); font-size:11px; line-height:1.42; }
-.switch { position:relative; flex:0 0 auto; width:47px; height:28px; border:0; border-radius:20px; background:#b7cac6; box-shadow:inset 0 0 0 1px rgba(0,79,69,.08); }
-.switch::after { content:""; position:absolute; width:22px; height:22px; top:3px; left:3px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:.18s ease; }
-.switch.on { background:var(--teal-2); }
-.switch.on::after { transform:translateX(19px); }
 .form-error { margin:12px 0 0; padding:10px 12px; border-radius:8px; background:color-mix(in srgb, var(--red) 12%, white); color:var(--red); font-size:12px; line-height:1.4; }
-.switch:focus-visible { outline:3px solid #eab308; outline-offset:2px; }
 @media (max-width:350px) { .price-panel,.switches { margin-left:-16px; margin-right:-16px; padding-left:16px; padding-right:16px; } .grid-2 { gap:10px; } .control { padding-left:9px; padding-right:9px; } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; } }
 </style>

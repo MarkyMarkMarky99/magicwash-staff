@@ -7,7 +7,7 @@
 - Branch ปัจจุบัน: `feature/price-list-form-layout`.
 - `PriceListFormPage.vue` เปลี่ยนจาก page shell/header/footer ของตัวเองมาใช้ `FormOverlay` แล้ว จึงใช้ header ดีไซน์มาตรฐานเดียวกันและมี footer ปุ่ม `บันทึกราคา` ปุ่มเดียวตามคำสั่ง (ไม่มีปุ่มยกเลิก). Page เหลือเฉพาะ body slot; legacy header ไม่มีแล้ว.
 - คง create/update, store/API flow, validation, route loading/error, FormInput, native select, ช่องราคา, switches และ Thai typography ไว้ทั้งหมด; `closeOnBackdrop` ปิด และปุ่มปิด header กลับไป Price List. ลบส่วนแสดงรหัสรายการที่ระบบกำหนด พร้อม state/CSS ที่เกี่ยวข้อง.
-- งานยังไม่ commit; ตรวจ `git diff --check` และ `npm run build` ผ่าน. ห้ามเขียน `G:\My Drive\Magicwash\Database\GoogleSheets\*.json`.
+- หลัง commit `858adca` มีงาน uncommitted เพิ่ม: ลบ font import/CSS placeholder ที่เกิน, เพิ่ม shared `FormSwitch` แบบ generic และย้าย switch เปิดใช้งาน/เครดิตมาใช้, ย้าย “ช่วงเวลาราคา” ขึ้นก่อน “รายการ”, ทำ gap ระหว่าง sections ให้เท่ากัน และลบ gap ก่อน switch. ตรวจ `git diff --check` และ `npm run build` ผ่าน. ห้ามเขียน `G:\My Drive\Magicwash\Database\GoogleSheets\*.json`.
 
 ---
 
