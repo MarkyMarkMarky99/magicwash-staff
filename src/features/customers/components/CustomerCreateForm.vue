@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import FormInput from '@/shared/components/FormInput.vue'
-import FormOptionGrid from '@/shared/components/FormOptionGrid.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 
 export type CustomerCreateFormData = {
@@ -13,8 +12,6 @@ export type CustomerCreateFormData = {
   lineId: string
   whatsapp: string
   email: string
-  customerType: string
-  source: string
 }
 
 const props = defineProps<{
@@ -23,19 +20,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: CustomerCreateFormData]
-  cancel: []
 }>()
-
-const customerTypeOptions = [
-  { value: 'Member', label: 'Member', icon: 'verified' },
-  { value: 'Regular', label: 'Regular', icon: 'person' },
-  { value: 'Corporate', label: 'Corporate', icon: 'business' },
-]
-
-const sourceOptions = [
-  { value: 'Facebook Ads', label: 'Facebook Ads', icon: 'campaign' },
-  { value: 'Google Ads', label: 'Google Ads', icon: 'ads_click' },
-]
 
 function updateField(field: keyof CustomerCreateFormData, value: string) {
   emit('update:modelValue', { ...props.modelValue, [field]: value })
@@ -102,25 +87,6 @@ function updateField(field: keyof CustomerCreateFormData, value: string) {
       <FormInput id="email" :model-value="modelValue.email" label="อีเมล" type="email" placeholder="name@example.com" autocomplete="email" @update:model-value="updateField('email', $event)" />
     </fieldset>
 
-    <fieldset class="form-section preference-section">
-      <legend>ประเภทและที่มา</legend>
-      <FormOptionGrid
-        label="ประเภทลูกค้า"
-        :model-value="modelValue.customerType"
-        :options="customerTypeOptions"
-        variant="compact"
-        @update:model-value="updateField('customerType', $event)"
-      />
-      <FormOptionGrid
-        label="ลูกค้ารู้จักเราจาก"
-        :model-value="modelValue.source"
-        :options="sourceOptions"
-        variant="compact"
-        @update:model-value="updateField('source', $event)"
-      />
-    </fieldset>
-
-    <button type="button" class="cancel-button" @click="emit('cancel')">ยกเลิก</button>
   </div>
 </template>
 
@@ -135,9 +101,5 @@ function updateField(field: keyof CustomerCreateFormData, value: string) {
 .form-section legend::after { height:1px; flex:1; margin-left:10px; background:#cae0dc; content:''; }
 .form-section :deep(section) { margin-bottom:15px; }
 .contact-section :deep(section) { margin-bottom:13px; }
-.preference-section { display:grid; gap:17px; }
-.cancel-button { display:block; width:100%; min-height:44px; color:#315952; border:1px solid #a9c9c3; border-radius:10px; background:transparent; font:700 13px 'Noto Sans Thai',system-ui,sans-serif; cursor:pointer; }
-.cancel-button:hover { color:#073f38; border-color:#007a69; background:#edf7f5; }
-.cancel-button:focus-visible { outline:3px solid rgba(0,122,105,.28); outline-offset:2px; }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; } }
 </style>

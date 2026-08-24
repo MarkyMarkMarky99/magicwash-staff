@@ -19,8 +19,6 @@ const customer = reactive<CustomerCreateFormData>({
   lineId: '',
   whatsapp: '',
   email: '',
-  customerType: '',
-  source: '',
 })
 
 function returnToCustomerList() {
@@ -43,6 +41,6 @@ function updateCustomer(value: CustomerCreateFormData) {
     :close-on-backdrop="false"
     @close="returnToCustomerList"
   >
-    <CustomerCreateForm :model-value="customer" @update:model-value="updateCustomer" @cancel="returnToCustomerList" />
+    <CustomerCreateForm :model-value="customer" @update:model-value="updateCustomer" />
   </FormOverlay>
 </template>
