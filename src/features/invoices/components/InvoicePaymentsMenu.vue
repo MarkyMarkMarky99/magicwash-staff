@@ -26,10 +26,6 @@ function formatMoney(value: number | null) {
   return `${value < 0 ? '-' : ''}฿${amount}`
 }
 
-function formatDateTime(value: string | null) {
-  return formatSheetDateTime(value, '—')
-}
-
 function safeHttpUrl(value: string | null) {
   if (!value?.trim()) return null
   try {
@@ -164,7 +160,7 @@ onBeforeUnmount(() => {
           <span class="flex items-center justify-between gap-2">
             <span class="flex min-w-0 items-center gap-1.5">
               <span class="material-symbols-outlined shrink-0 text-[16px] leading-none text-primary" aria-hidden="true">{{ methodIcon(payment.method) }}</span>
-              <span class="truncate font-body text-[11px] text-on-surface-variant">{{ formatDateTime(payment.paidAt) }}</span>
+              <span class="truncate font-body text-[11px] text-on-surface-variant">{{ formatSheetDateTime(payment.paidAt) }}</span>
               <span class="inline-flex shrink-0 items-center rounded-full px-2 py-px font-label text-[9px] font-bold" :class="statusClass(payment.status)">
                 {{ statusLabel(payment.status) }}
               </span>
@@ -177,7 +173,7 @@ onBeforeUnmount(() => {
           <span class="flex items-center justify-between gap-2">
             <span class="flex min-w-0 items-center gap-1.5">
               <span class="material-symbols-outlined shrink-0 text-[16px] leading-none text-primary" aria-hidden="true">{{ methodIcon(payment.method) }}</span>
-              <span class="truncate font-body text-[11px] text-on-surface-variant">{{ formatDateTime(payment.paidAt) }}</span>
+              <span class="truncate font-body text-[11px] text-on-surface-variant">{{ formatSheetDateTime(payment.paidAt) }}</span>
               <span class="inline-flex shrink-0 items-center rounded-full px-2 py-px font-label text-[9px] font-bold" :class="statusClass(payment.status)">
                 {{ statusLabel(payment.status) }}
               </span>

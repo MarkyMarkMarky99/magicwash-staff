@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
+import { formatSheetDate, formatSheetDateTime } from '@/shared/utils/sheet-date'
 import { CUSTOMER_PACKAGES } from '../customer-packages.fixture'
 
 type PackageStatus = 'Active' | 'Expiring soon' | 'Paused'
@@ -51,10 +52,6 @@ const showAllTransactions = ref(false)
 const remaining = computed(() => customerPackage.total - customerPackage.used)
 const visibleTransactions = computed(() => showAllTransactions.value ? customerPackage.transactions : customerPackage.transactions.slice(0, 2))
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value))
-}
-
 function formatCreditChange(value: number) {
   return `${value > 0 ? '+' : ''}${value} credit${Math.abs(value) === 1 ? '' : 's'}`
 }
@@ -88,12 +85,12 @@ function formatCreditChange(value: number) {
         <p class="mt-1 min-w-0 truncate font-body text-xs capitalize leading-tight text-on-primary/75">{{ sourcePackage.package_code }} · {{ customerPackage.service }}</p>
         <p class="mt-1 shrink-0 text-right font-body text-xs leading-tight text-on-primary/75">of {{ customerPackage.total }} included</p>
       </div>
-      <div class="mt-5 grid grid-cols-2 gap-3 border-t border-on-primary/20 pt-3"><div><p class="font-label text-[9px] uppercase tracking-wide text-on-primary/65">Valid until</p><p class="mt-0.5 font-headline text-[12px] font-bold">{{ formatDate(customerPackage.expires) }}</p></div><div><p class="font-label text-[9px] uppercase tracking-wide text-on-primary/65">Pickup window</p><p class="mt-0.5 truncate font-headline text-[12px] font-bold">{{ sourcePackage.service_day || 'Flexible' }} · {{ sourcePackage.time_slot || 'By appointment' }}</p></div></div>
+      <div class="mt-5 grid grid-cols-2 gap-3 border-t border-on-primary/20 pt-3"><div><p class="font-label text-[9px] uppercase tracking-wide text-on-primary/65">Valid until</p><p class="mt-0.5 font-headline text-[12px] font-bold">{{ formatSheetDate(customerPackage.expires) }}</p></div><div><p class="font-label text-[9px] uppercase tracking-wide text-on-primary/65">Pickup window</p><p class="mt-0.5 truncate font-headline text-[12px] font-bold">{{ sourcePackage.service_day || 'Flexible' }} · {{ sourcePackage.time_slot || 'By appointment' }}</p></div></div>
     </section>
 
     <ListContainer class="mt-3" title="Recent activity" icon="history" :count="customerPackage.transactions.length" count-label="events" top-divider>
       <template #actions><button class="text-button" type="button" @click="showAllTransactions = !showAllTransactions">{{ showAllTransactions ? 'Show less' : 'View all' }}</button></template>
-        <ol class="timeline px-4"><li v-for="transaction in visibleTransactions" :key="`${transaction.date}-${transaction.label}`"><span class="timeline-dot" :class="{ credit: transaction.amount > 0 }" /><div class="transaction-copy"><strong>{{ transaction.label }}</strong><small>{{ transaction.detail }}</small></div><div class="text-right"><time class="block">{{ formatDate(transaction.date) }}</time><small v-if="transaction.amount !== 0" class="mt-1 block text-[10px] font-semibold" :class="transaction.amount > 0 ? 'text-secondary' : 'text-tertiary'">{{ formatCreditChange(transaction.amount) }}</small></div></li></ol>
+        <ol class="timeline px-4"><li v-for="transaction in visibleTransactions" :key="`${transaction.date}-${transaction.label}`"><span class="timeline-dot" :class="{ credit: transaction.amount > 0 }" /><div class="transaction-copy"><strong>{{ transaction.label }}</strong><small>{{ transaction.detail }}</small></div><div class="text-right"><time class="block">{{ formatSheetDateTime(transaction.date) }}</time><small v-if="transaction.amount !== 0" class="mt-1 block text-[10px] font-semibold" :class="transaction.amount > 0 ? 'text-secondary' : 'text-tertiary'">{{ formatCreditChange(transaction.amount) }}</small></div></li></ol>
     </ListContainer>
 
   </main>

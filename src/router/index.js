@@ -15,6 +15,14 @@ const routes = [
   ...priceListRoutes,
 ]
 
+if (import.meta.env.DEV) {
+  routes.push({
+    path: '/dev/form-overlay',
+    name: 'form-overlay-preview',
+    component: () => import('@/app/dev/FormOverlayPreviewPage.vue'),
+  })
+}
+
 export default createRouter({
   history: createWebHashHistory(),
   routes,

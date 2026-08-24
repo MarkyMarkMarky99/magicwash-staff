@@ -1,4 +1,6 @@
 <script setup>
+import FormLabel from './FormLabel.vue'
+
 defineProps({
   id:          { type: String, required: true },
   label:       { type: String, required: true },
@@ -11,10 +13,10 @@ defineEmits(['update:modelValue'])
 </script>
 
 <template>
-  <section class="space-y-3 pb-4">
-    <label :for="id" class="font-headline font-bold text-base text-primary block">
+  <section class="pb-4">
+    <FormLabel :input-id="id">
       {{ label }}
-    </label>
+    </FormLabel>
 
     <div class="relative group">
       <textarea

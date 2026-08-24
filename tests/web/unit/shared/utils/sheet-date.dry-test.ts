@@ -27,9 +27,11 @@ test('normalizes GViz and sheet datetimes using Bangkok date semantics', () => {
 })
 
 test('formats invoice/order dates and payment instants through the shared utility', () => {
-  assert.equal(formatSheetDate('2025-10-27'), '27 Oct 2025')
-  assert.equal(formatSheetDateTime('2025-10-27 13:45:00'), '27 Oct 2025, 13:45')
-  assert.equal(formatSheetDateTime('2025-10-27T18:00:00Z'), '28 Oct 2025, 01:00')
+  assert.equal(formatSheetDate('2025-01-01'), '01 Jan 2025')
+  assert.equal(formatSheetDateTime('2025-10-27 13:45:00'), '27 Oct 2025 13:45:00')
+  assert.equal(formatSheetDateTime('2025-10-27T18:00:00Z'), '28 Oct 2025 01:00:00')
+  assert.equal(formatSheetDate(null), '—')
+  assert.equal(formatSheetDateTime('not-a-date'), '—')
 })
 
 test('rejects malformed and impossible values', () => {

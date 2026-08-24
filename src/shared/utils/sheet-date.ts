@@ -68,44 +68,40 @@ export function normalizeSheetDate(value: unknown): string | null {
   return partsInBangkok(parsed.value).date
 }
 
-/** Format a sheet date for the portal's short date displays. */
-export function formatSheetDate(
-  value: unknown,
-  fallback = '—',
-  options: { weekday?: 'short' | 'long'; day?: 'numeric' | '2-digit' } = {},
-): string {
+const DATE_DISPLAY_FALLBACK = '—'
+
+/** Format a sheet date for user-visible date displays in Bangkok. */
+export function formatSheetDate(value: unknown): string {
   const normalized = normalizeSheetDate(value)
-  if (!normalized) return fallback
+  if (!normalized) return DATE_DISPLAY_FALLBACK
 
   const parsed = parseIsoDate(normalized)
-  if (!parsed) return fallback
+  if (!parsed) return DATE_DISPLAY_FALLBACK
 
-  return new Intl.DateTimeFormat('en-GB', {
-    timeZone: BANGKOK_TIME_ZONE,
-    ...(options.weekday ? { weekday: options.weekday } : {}),
-    day: options.day ?? 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(civilDateAsBangkokInstant(parsed))
+  return formatBangkokDateParts(civilDateAsBangkokInstant(parsed))
 }
 
-/** Format a timestamp in Bangkok; date-only values are shown at Bangkok midnight. */
-export function formatSheetDateTime(value: unknown, fallback = '—'): string {
+/** Format a timestamp for user-visible date-time displays in Bangkok. */
+export function formatSheetDateTime(value: unknown): string {
   const parsed = parseSheetDate(value)
-  if (!parsed) return fallback
+  if (!parsed) return DATE_DISPLAY_FALLBACK
 
   const instant = parsed.kind === 'civil'
     ? civilDateAsBangkokInstant(parsed)
     : parsed.value
 
-  return new Intl.DateTimeFormat('en-GB', {
+  const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: BANGKOK_TIME_ZONE,
-    day: 'numeric',
+    day: '2-digit',
     month: 'short',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(instant)
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(instant)
+  const fields = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+  return `${fields.day} ${fields.month} ${fields.year} ${fields.hour}:${fields.minute}:${fields.second}`
 }
 
 /** Return today's Bangkok civil date for date inputs and date-only defaults. */
@@ -259,6 +255,17 @@ function toIsoDate(date: CivilDate): string {
 
 function civilDateAsBangkokInstant(date: CivilDate): Date {
   return new Date(`${toIsoDate(date)}T00:00:00${BANGKOK_OFFSET}`)
+}
+
+function formatBangkokDateParts(value: Date): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: BANGKOK_TIME_ZONE,
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).formatToParts(value)
+  const fields = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+  return `${fields.day} ${fields.month} ${fields.year}`
 }
 
 function partsInBangkok(value: Date): { date: string } {

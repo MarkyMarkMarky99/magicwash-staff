@@ -26,12 +26,10 @@ Your job is to connect already-built UI to the real application system.
 - Explicitly report anything missing or unverified
 ### Output
 Report only:
-- status: DONE | PARTIAL | BLOCKED
-  - DONE: fully connected and verified end-to-end
-  - PARTIAL: some paths connected and verified, others missing (e.g. happy path works, some error cases don't)
-  - BLOCKED: cannot proceed without a decision or resource from above (e.g. required backend doesn't exist, existing pattern can't support this integration)
 - files changed
-- what was connected
-- if PARTIAL or BLOCKED: exactly what is missing and what decision or resource is needed to proceed
+- what was connected, and which paths you verified end-to-end
+- anything left unverified or incomplete, and exactly what is missing
+- `BLOCKED` plus the reason, if you could not proceed — e.g. the required backend does not
+  exist, or no existing pattern can support this integration
 The working integration is the primary deliverable. Keep the report short.
 """
