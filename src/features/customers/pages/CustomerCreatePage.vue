@@ -24,7 +24,7 @@ const customer = reactive<CustomerCreateFormData>({
 })
 
 function returnToCustomerList() {
-  void router.push({ name: 'customer-list' })
+  void router.replace({ name: 'customer-list' })
 }
 
 function updateCustomer(value: CustomerCreateFormData) {
