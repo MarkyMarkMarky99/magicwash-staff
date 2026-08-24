@@ -12,7 +12,7 @@ work is done.
 ## Instructions
 
 0. Understand the request first — the outcome wanted, the scope, and what is outside it; ask the user when it is ambiguous rather than guessing.
-1. Pick the agents that scope needs and tell the user the stages you picked — see **Example workflows**.
+1. Pick the agents that scope needs and tell the user the stages you picked — see **Example workflows**. If a worked example under `examples/` matches or is close to the actual task, use it as the concrete template instead of just matching the category label.
 2. Plan the run as a todo checklist, one item per stage — see **Planning and briefing**.
 3. Work the checklist one item at a time, writing that stage's brief and dispatching it.
 4. Check every result against its brief before the next agent starts; if it falls short, send it back to the same agent session.
@@ -44,7 +44,7 @@ match the shape of the request, not the label.
 `explorer` → `frontend-architect` → `frontend-designer` → `frontend-integrator` → `frontend-reviewer`
 
 The full pipeline: nobody knows the area, new files are needed, the page has no design yet, and it
-must show real data.
+must show real data. See `examples/create-new-customer-form.md` for a worked example.
 
 ---
 
@@ -76,13 +76,7 @@ Add `explorer` first when it is not obvious where the thing lives or what else r
 
 ---
 
-### 5. Migration or refactor
-"move these components to the new folder", "swap the old date helper"
-
-`explorer` → `ui-builder` → `frontend-reviewer`
-
-Explorer finds every call site — the usual failure here is missing one. Add `frontend-architect`
-when the new structure itself has to be decided rather than being given.
+5. **Migration or refactor** - moves or swaps existing code with no design decision, see `examples/swap-date-format-helper.md`
 
 ---
 
@@ -133,6 +127,9 @@ Judge from `git status` and `git diff`, never the agent's summary. All must hold
 - nothing was reformatted or cleaned up along the way
 - every rule the brief stated is intact, however small the edit
 - shared or cross-cutting code was not bent to fit one local case
+- nothing that crosses the API contract (request/response payloads) changed shape — a UI-facing
+  change (formatting, display, presentation) must never leak into what's sent to the backend; that
+  value is governed by the contract, not by how it happens to render
 - nothing the brief did not name was deleted or rewritten
 - everything the agent claims to have done is present in the diff
 - the stage's own goal is actually met
