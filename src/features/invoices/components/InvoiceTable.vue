@@ -17,10 +17,6 @@ function formatCurrency(value: number) {
   })}`
 }
 
-function formatDate(value: string | null) {
-  return formatSheetDate(value, '-')
-}
-
 function getBillingTypeLabel(billingType: InvoiceListItemDto['billingType']) {
   return billingType === 'CYCLE' ? 'Cycle billing' : 'Order billing'
 }
@@ -94,11 +90,11 @@ function getStatusBadgeClass(status: InvoiceStatusDto) {
           </td>
 
           <td class="px-4 py-3 text-sm text-on-surface">
-            {{ formatDate(invoice.issuedDate) }}
+            {{ formatSheetDate(invoice.issuedDate) }}
           </td>
 
           <td class="px-4 py-3 text-sm text-on-surface">
-            {{ formatDate(invoice.dueDate) }}
+            {{ formatSheetDate(invoice.dueDate) }}
           </td>
 
           <td class="px-4 py-3">

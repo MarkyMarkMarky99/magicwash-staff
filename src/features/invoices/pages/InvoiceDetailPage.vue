@@ -63,10 +63,6 @@ function formatMoney(value: number | null) {
   return `${value < 0 ? '-' : ''}฿${amount}`
 }
 
-function formatDate(value: string | null) {
-  return formatSheetDate(value, '—')
-}
-
 function formatAdjustment(adjustment: { calculation: string; value: number }) {
   if (adjustment.calculation === 'PERCENT') return `${adjustment.value}%`
   return formatMoney(adjustment.value)
@@ -145,13 +141,13 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
                 <div class="flex items-center gap-2">
                   <p class="whitespace-nowrap font-label text-[9px] font-bold uppercase tracking-wide text-on-surface-variant">Issued</p>
                   <span class="inline-flex items-center whitespace-nowrap rounded-full bg-primary/10 px-2.5 py-1 font-headline text-[11px] font-bold text-primary">
-                    {{ formatDate(invoice.issuedDate) }}
+                    {{ formatSheetDate(invoice.issuedDate) }}
                   </span>
                 </div>
                 <div class="flex items-center gap-2">
                   <p class="whitespace-nowrap font-label text-[9px] font-bold uppercase tracking-wide text-on-surface-variant">Due</p>
                   <span class="inline-flex items-center whitespace-nowrap rounded-full bg-primary/10 px-2.5 py-1 font-headline text-[11px] font-bold text-primary">
-                    {{ formatDate(invoice.dueDate) }}
+                    {{ formatSheetDate(invoice.dueDate) }}
                   </span>
                 </div>
                 <div
@@ -160,7 +156,7 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
                 >
                   <p class="whitespace-nowrap font-label text-[9px] font-bold uppercase tracking-wide text-on-surface-variant">Billing</p>
                   <span class="inline-flex items-center whitespace-nowrap rounded-full bg-primary/10 px-2.5 py-1 font-headline text-[11px] font-bold text-primary">
-                    {{ formatDate(invoice.billingPeriodStart) }} – {{ formatDate(invoice.billingPeriodEnd) }}
+                    {{ formatSheetDate(invoice.billingPeriodStart) }} – {{ formatSheetDate(invoice.billingPeriodEnd) }}
                   </span>
                 </div>
               </div>

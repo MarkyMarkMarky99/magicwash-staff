@@ -48,11 +48,7 @@ const config = computed(() => statusConfig[props.appointment.status])
 const next = computed(() => nextStatus[props.appointment.status])
 const action = computed(() => next.value ? actionLabels[next.value] : null)
 const canReschedule = computed(() => !['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(props.appointment.status))
-const formattedDate = computed(() => formatSheetDate(
-  props.appointment.appointmentDate,
-  '—',
-  { weekday: 'short' },
-))
+const formattedDate = computed(() => formatSheetDate(props.appointment.appointmentDate))
 
 onUnmounted(() => clearTimeout(toastTimer))
 

@@ -1,4 +1,5 @@
 import type { InvoicePriceListItemDto } from '../services/invoice-price-list.service'
+import { formatSheetDate } from '@/shared/utils/sheet-date'
 import { createEmptyLineItemRow, type LineItemFormRow } from '../types/invoice-create.types'
 
 export const PRICE_LIST_RENDER_CAP = 2000
@@ -136,15 +137,8 @@ export function capGroupedItems(
   return { groups: capped, truncated: total > cap, renderedCount }
 }
 
-export function formatPriceListDate(value: string | null | undefined): string {
-  if (value == null || value === '') return 'ไม่กำหนด'
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/)
-  if (!match) return value
-  return `${match[3]}/${match[2]}/${match[1]}`
-}
-
 export function formatEffectiveRange(from: string, to: string | null): string {
-  return `มีผล: ${formatPriceListDate(from)} – ${formatPriceListDate(to)}`
+  return `มีผล: ${formatSheetDate(from)} – ${formatSheetDate(to)}`
 }
 
 export function formatBaht(price: number): string {

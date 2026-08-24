@@ -244,9 +244,9 @@ test('iconForCategory is generic (hints, not a hardcoded catalog of names)', () 
   assert.equal(iconForCategory('Mystery Future Category'), 'local_laundry_service')
 })
 
-test('formatEffectiveRange shows an open end date as ไม่กำหนด', () => {
-  assert.equal(formatEffectiveRange('2026-01-01', '2026-12-31'), 'มีผล: 01/01/2026 – 31/12/2026')
-  assert.equal(formatEffectiveRange('2026-01-01', null), 'มีผล: 01/01/2026 – ไม่กำหนด')
+test('formatEffectiveRange uses the shared date format and fallback', () => {
+  assert.equal(formatEffectiveRange('2026-01-01', '2026-12-31'), 'มีผล: 01 Jan 2026 – 31 Dec 2026')
+  assert.equal(formatEffectiveRange('2026-01-01', null), 'มีผล: 01 Jan 2026 – —')
   assert.equal(formatBaht(0), '฿0')
 })
 

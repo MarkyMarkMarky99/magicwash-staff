@@ -6,9 +6,6 @@ const props = defineProps<{
   appointment: AppointmentListDto
 }>()
 
-function formattedDate() {
-  return formatSheetDate(props.appointment.appointmentDate, '—', { day: '2-digit' })
-}
 </script>
 
 <template>
@@ -20,7 +17,7 @@ function formattedDate() {
     <div class="min-w-0 flex-grow">
       <div class="mb-0.5 flex items-center gap-1.5">
         <h3 class="font-headline text-[14px] font-bold leading-tight text-primary">
-          {{ formattedDate() }}
+          {{ formatSheetDate(appointment.appointmentDate) }}
         </h3>
         <span class="shrink-0 rounded-full bg-amber-100 px-1.5 py-px font-label text-[9px] font-bold uppercase tracking-wide text-amber-700">
           Waiting pickup
