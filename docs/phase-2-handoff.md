@@ -33,14 +33,7 @@
 > ทั้งหมดแก้ที่ **ไฟล์เทสต์เท่านั้น** production ไม่ถูกแตะแม้แต่ไบต์เดียว · mutation ทั้ง 5 ข้อรันจริง
 > เห็นแดงจริง แล้ว revert · suite เต็ม 43 ไฟล์ผ่านหมด
 >
-> ⚠️ **ต้นเหตุที่แท้จริงยังอยู่:** `InvoiceServiceOptions.now` (`invoice.service.ts:264`) และ
-> `AppointmentServiceOptions.now` (`appointment.service.ts:58`) ประกาศไว้แต่**ไม่มีที่ไหนอ่านเลย**
-> คนเขียนเทสต์ส่ง `now: () => fixedNow` เข้าไปโดยเชื่อว่าคุมนาฬิกาได้ แล้วมันตกพื้นเงียบๆ
-> จึงไป assert เวลาที่ไม่มีใครควบคุม · ยังไม่ลบ เพราะงานซ่อมต้องมี blast radius เป็นศูนย์ —
-> **เป็นงานแยกที่ยังไม่มีใครทำ**
 
-> ⚠️ **เอกสารฉบับนี้คือสถานะจริง** เอกสารอื่นใน `docs/` เป็นบันทึกประวัติศาสตร์ ดูรายชื่อ
-> ท้ายหมวด 1c ก่อนเชื่ออะไรในนั้น
 
 **นี่คือครั้งแรกที่ `GOOGLE_SERVICE_ACCOUNT_KEY` ฝั่ง server ถูกใช้เขียนจริง** — เจอปัญหาจริง 1 ข้อ
 ระหว่างทาง (env var scope บน Vercel) แก้แล้ว รายละเอียดอยู่หมวด 2
@@ -570,7 +563,6 @@ git show d069622:docs/<ชื่อไฟล์>
    `src/components/forms/CreateOrderForm.vue` **ไม่มีอยู่ในดิสก์แล้ว** และ route `/forms` หายไปจาก
    `src/router/index.js` แล้ว · ตัวสุดท้ายที่ค้างคือ `src/layouts/FormOverlayLayout.vue`
    (ไม่มีใคร import) **ลบแล้ว 2026-08-14** ⇒ เส้นทางนี้ปิดสมบูรณ์
-   **`src/layouts/FormLayout.vue` เป็นคนละไฟล์ ยังใช้อยู่ อย่าลบตาม**
 2. **`src/api/photos.js` (`savePhoto`) — ยังใช้งานจริง ไม่ใช่ของที่เคยบันทึกไว้ในหมวดนี้มาก่อน**
    เส้นทางจริง: การ์ด/รายละเอียด order → `/gallery/:key` → `OrderGalleryPage` →
    `usePhotoUpload` → `savePhoto` → Apps Script (hardcode URL ไว้เองที่ `src/api/photos.js:3`
@@ -913,10 +905,6 @@ Sheets API** · แบ่งหน้าที่ถาวร: Apps Script = ค
 ⇒ `Customers.db-contract.ts` ตั้ง `writes: false` **แต่แปลว่า "ยังไม่เปิด" ไม่ใช่ "ห้ามเปิด"**
 route POST/PATCH ต้องคง fail แบบเดิมไว้ **ห้ามถอดออก** (จะกลายเป็น behavior change)
 
-**เพิ่ม `certainty` เข้า `appointment-api.schema.ts` — ตัดสินแล้วว่าต้องทำ แต่เป็นงานแยก**
-วันนี้ error ทุกคลาสตกเป็น `500 INTERNAL_ERROR` ข้อความจริงถูก `console.error` ไว้แต่ไม่ถึง client
-(`api-handler.ts:58-71`) · ตัดสิน 2026-08-10 ว่าต้องเพิ่ม mapping ไม่ปล่อยเป็น 500 เสมอ
-แต่มันแตะ API contract ⇒ กระทบ frontend ⇒ ห้ามทำปนกับงานอื่น
 · `certainty` เป็น public contract แล้ว (`contracts/invoices/invoice-api.schema.ts`)
 **ห้ามยุบ error taxonomy**
 
