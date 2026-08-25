@@ -55,6 +55,47 @@ for (const [catalogRows, kind] of [
 }
 
 {
+  const catalogError = new Error('catalog unavailable')
+  const { service, calls, packageAppends, openingAppends } = createService({ catalogError })
+  const resultPromise = service.create(request)
+  await assert.doesNotReject(resultPromise)
+  const result = await resultPromise
+  assert.deepEqual(result, { kind: 'catalog_read_failed', packageCode: 'GOLD', message: 'catalog unavailable' })
+  assert.deepEqual(calls, ['catalog.read'])
+  assert.deepEqual(packageAppends, [])
+  assert.deepEqual(openingAppends, [])
+}
+
+{
+  const { service, calls, packageAppends, openingAppends } = createService({
+    catalogRows: [
+      { package_code: 'GOLD', included_credit: 10, deleted_at: null },
+      { package_code: 'GOLD', included_credit: 10, deleted_at: null },
+    ],
+  })
+  assert.deepEqual(await service.create(request), { kind: 'catalog_read_failed', packageCode: 'GOLD', message: 'duplicate package_code in catalog' })
+  assert.deepEqual(calls, ['catalog.read'])
+  assert.deepEqual(packageAppends, [])
+  assert.deepEqual(openingAppends, [])
+}
+
+{
+  const { service, calls, packageAppends, openingAppends } = createService({ catalogRows: [{ package_code: 'GOLD', included_credit: 'abc', deleted_at: null }] })
+  assert.deepEqual(await service.create(request), { kind: 'catalog_read_failed', packageCode: 'GOLD', message: 'catalog included_credit is not a number' })
+  assert.deepEqual(calls, ['catalog.read'])
+  assert.deepEqual(packageAppends, [])
+  assert.deepEqual(openingAppends, [])
+}
+
+{
+  const { service, calls, packageAppends, openingAppends } = createService({ catalogRows: [{ package_code: 'GOLD', included_credit: -5, deleted_at: null }] })
+  assert.deepEqual(await service.create(request), { kind: 'catalog_read_failed', packageCode: 'GOLD', message: 'catalog included_credit is negative' })
+  assert.deepEqual(calls, ['catalog.read'])
+  assert.deepEqual(packageAppends, [])
+  assert.deepEqual(openingAppends, [])
+}
+
+{
   const generated = new CustomerPackagePurchaseService({
     catalogRepository: () => ({ read: async () => [{ package_code: 'GOLD', included_credit: 1, deleted_at: null }] }) as never,
     packageRepository: () => ({ append: async (row: Row) => ({ ...row, created_at: '2026-08-25 12:00:01' }) }) as never,

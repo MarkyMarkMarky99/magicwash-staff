@@ -57,6 +57,36 @@ const request = { customerPackageId: 'package-1', type: 'USAGE', creditChange: -
 }
 
 {
+  const readError = new Error('parent lookup unavailable')
+  const { service, calls, appended } = createService({ readError })
+  const resultPromise = service.append(request)
+  await assert.doesNotReject(resultPromise)
+  const result = await resultPromise
+  assert.deepEqual(result, { kind: 'package_lookup_failed', customerPackageId: 'package-1', message: 'parent lookup unavailable' })
+  assert.deepEqual(calls, ['parent.read'])
+  assert.deepEqual(appended, [])
+}
+
+{
+  const { service, calls, appended } = createService({
+    parentRows: [
+      { id: 'package-1', customer_id: 'customer-1' },
+      { id: 'package-1', customer_id: 'customer-1' },
+    ],
+  })
+  assert.deepEqual(await service.append(request), { kind: 'package_lookup_failed', customerPackageId: 'package-1', message: 'duplicate customer package id' })
+  assert.deepEqual(calls, ['parent.read'])
+  assert.deepEqual(appended, [])
+}
+
+for (const customerId of [null, '   ', 42]) {
+  const { service, calls, appended } = createService({ parentRows: [{ id: 'package-1', customer_id: customerId }] })
+  assert.deepEqual(await service.append(request), { kind: 'package_lookup_failed', customerPackageId: 'package-1', message: 'parent package row has no customer_id' })
+  assert.deepEqual(calls, ['parent.read'])
+  assert.deepEqual(appended, [])
+}
+
+{
   const { service, calls } = createService({ parentRows: [{ id: 'package-1', customer_id: 'customer-1', deleted_at: '2026-08-20' }] })
   assert.equal((await service.append(request)).kind, 'created')
   assert.deepEqual(calls, ['parent.read', 'ledger.append'])
