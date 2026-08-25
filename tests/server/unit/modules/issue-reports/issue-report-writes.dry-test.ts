@@ -63,7 +63,7 @@ try {
   }))
   assert.equal(created.status, 201)
   assert.match(String(rows[0]![0]), /^ISS-[0-9a-f]{8}$/)
-  assert.deepEqual(rows[0]!.slice(1, 5), ['Broken dryer', 'Stops after five minutes', 'OPEN', null])
+  assert.deepEqual(rows[0]!.slice(1, 5), ['Broken dryer', 'Stops after five minutes', 'OPEN', ''])
   assert.match(String(rows[0]![5]), /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
   assert.equal(rows[0]![6], 'staff-1')
   assert.equal(rows[0]![7], null)
