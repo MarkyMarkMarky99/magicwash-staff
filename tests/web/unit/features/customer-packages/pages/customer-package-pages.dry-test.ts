@@ -6,8 +6,9 @@ function page(name: string): string {
 }
 
 const list = page('CustomerPackageListPage.vue')
+const listCards = readFileSync(new URL('../../../../../../src/features/customer-packages/components/CustomerPackageListCards.vue', import.meta.url), 'utf8')
 for (const field of ['customerName', 'packageName', 'status', 'remainingCredit', 'usedCredit', 'totalCredit', 'packageCode']) {
-  assert.match(list, new RegExp(`\\b${field}\\b`), `list must render ${field}`)
+  assert.match(listCards, new RegExp(`\\b${field}\\b`), `list must render ${field}`)
 }
 assert.match(list, /router\.push\(/, 'clicking a list card must navigate to detail')
 
