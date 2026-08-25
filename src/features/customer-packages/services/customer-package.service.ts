@@ -7,7 +7,6 @@ import {
   customerPackageDetailResponseSchema,
   customerPackageListQuerySchema,
   customerPackageListResponseSchema,
-  packageTransactionSchema,
 } from '@contracts/customer-packages/customer-package-view-api.schema'
 import {
   appendPackageTransactionRequestSchema,
@@ -22,6 +21,50 @@ type CreateCustomerPackageRequest = z.infer<typeof createCustomerPackageRequestS
 type CreateCustomerPackageResponse = z.infer<typeof createCustomerPackageResponseSchema>
 type AppendPackageTransactionRequest = z.infer<typeof appendPackageTransactionRequestSchema>
 type AppendPackageTransactionResponse = z.infer<typeof appendPackageTransactionResponseSchema>
+
+const customerPackageStringFields = [
+  'customerPackageId',
+  'customerId',
+  'customerName',
+  'customerPhone',
+  'customerAddress',
+  'packageCode',
+  'packageName',
+  'packageEligibleService',
+  'startDate',
+  'expiryDate',
+  'status',
+  'serviceDay',
+  'timeSlot',
+  'invoiceId',
+  'notes',
+] as const
+
+const packageTransactionStringFields = [
+  'id',
+  'type',
+  'referenceSource',
+  'referenceId',
+  'notes',
+  'createdAt',
+] as const
+
+/**
+ * GViz can infer numeric-looking string cells as numbers. Stringifying those
+ * values restores the DTO's runtime type, but does not recover a lost leading
+ * zero: String(851344035) cannot restore the 0 from a source value like
+ * "0851344035". The sheet column must be Plain Text to preserve that digit.
+ */
+function normalizeGvizStringFields<T extends object>(value: T, fields: readonly (keyof T)[]): T {
+  const normalized = { ...value } as T
+  for (const field of fields) {
+    const fieldValue = normalized[field]
+    if (fieldValue !== null && fieldValue !== undefined && typeof fieldValue !== 'string') {
+      Object.assign(normalized, { [field]: String(fieldValue) })
+    }
+  }
+  return normalized
+}
 
 export async function getCustomerPackages(filter: CustomerPackageListQuery): Promise<{
   items: CustomerPackageListItem[]
@@ -42,16 +85,21 @@ export async function getCustomerPackages(filter: CustomerPackageListQuery): Pro
     querySchema: customerPackageListQuerySchema,
   })
 
-  return { items, page: pagination.page, perPage: pagination.perPage }
+  return {
+    items: items.map((item) => normalizeGvizStringFields(item, customerPackageStringFields)),
+    page: pagination.page,
+    perPage: pagination.perPage,
+  }
 }
 
 export async function getCustomerPackageDetail(id: string): Promise<CustomerPackageDetail | null> {
   try {
     const detail = await apiGet<CustomerPackageDetail>('/api/customer-packages/' + encodeURIComponent(id))
-    return customerPackageDetailResponseSchema.parse({
+    const transactions = detail.transactions.map((transaction) => normalizeGvizStringFields(transaction, packageTransactionStringFields))
+    return normalizeGvizStringFields({
       ...detail,
-      transactions: detail.transactions.map((transaction) => packageTransactionSchema.parse(transaction)),
-    })
+      transactions,
+    }, customerPackageStringFields)
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) return null
     throw error

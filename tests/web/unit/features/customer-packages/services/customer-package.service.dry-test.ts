@@ -25,11 +25,13 @@ for (const name of ['keyword', 'customerId', 'status', 'packageCode', 'page', 'p
   assert.match(list, new RegExp(`\\b${name}\\b`), `list query must include ${name}`)
 }
 assert.doesNotMatch(list, /\btransactions\b/, 'list items must omit transactions')
+assert.match(list, /normalizeGvizStringFields/, 'list reads must normalize GViz-inferred string fields')
 
 const detail = exportedFunction('getCustomerPackageDetail')
 assert.match(detail, /apiGet[\s\S]*?['"]\/api\/customer-packages\//, 'detail must use apiGet at the detail endpoint')
 assert.match(detail, /404[\s\S]*?null|null[\s\S]*?404/, 'detail must map HTTP 404 to null')
-assert.match(detail, /packageTransactionSchema/, 'detail transactions must use packageTransactionSchema')
+assert.match(detail, /normalizeGvizStringFields/, 'detail reads must normalize GViz-inferred string fields')
+assert.doesNotMatch(detail, /(?:customerPackageDetailResponseSchema|packageTransactionSchema)\.parse\(/, 'detail reads must not runtime-parse GViz data')
 
 assert.doesNotMatch(source, /\bapiPost\b/, 'customer-package writes must not import or call apiPost')
 for (const [name, endpoint, responseSchema] of [
@@ -99,6 +101,55 @@ await withFetch(async (input) => {
 
 await withFetch(async () => jsonResponse({ message: 'not found' }, 404), async () => {
   await assert.doesNotReject(async () => assert.equal(await getCustomerPackageDetail('missing-package'), null))
+})
+
+const detailWithNumericPhone = {
+  customerPackageId: 'package-1',
+  customerId: 'customer-1',
+  customerName: 'Customer One',
+  customerPhone: 851344035,
+  customerAddress: null,
+  packageCode: 'PACKAGE-1',
+  packageName: 'Package One',
+  packageEligibleService: 'Laundry',
+  startDate: '2026-08-25',
+  expiryDate: null,
+  status: 'ACTIVE',
+  serviceDay: null,
+  timeSlot: null,
+  invoiceId: null,
+  notes: null,
+  remainingCredit: 10,
+  usedCredit: 0,
+  totalCredit: 10,
+  transactions: [{
+    id: 'transaction-1',
+    type: 'PURCHASE',
+    creditChange: 10,
+    remainingCredit: 10,
+    referenceSource: null,
+    referenceId: null,
+    notes: null,
+    createdAt: '2026-08-25T00:00:00Z',
+  }],
+}
+const { transactions: _transactions, ...listItemWithNumericPhone } = detailWithNumericPhone
+
+await withFetch(async () => jsonResponse({
+  data: [listItemWithNumericPhone],
+  meta: { pagination: { page: 1, perPage: 25 } },
+}), async () => {
+  const result = await getCustomerPackages({
+    keyword: '', customerId: null, status: null, packageCode: null,
+    page: 1, perPage: 25, sortBy: 'startDate', sortOrder: 'desc',
+  })
+  assert.equal(result.items[0]?.customerPhone, '851344035')
+})
+
+await withFetch(async () => jsonResponse({ data: detailWithNumericPhone }), async () => {
+  const result = await getCustomerPackageDetail('package-1')
+  assert.equal(result?.customerPhone, '851344035')
+  assert.equal(result?.transactions[0]?.creditChange, 10)
 })
 
 const createResponses = [
