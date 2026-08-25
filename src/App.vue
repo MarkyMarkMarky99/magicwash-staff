@@ -15,7 +15,7 @@ onMounted(() => void appointmentStore.loadInitial())
     <RouterView v-slot="{ Component }">
       <!-- Form pages must not be cached: their component-local refs would otherwise survive across subjects. `exclude` matches component names, so renaming one of these files silently removes it from this list. -->
       <KeepAlive
-        :exclude="['CreateAppointmentPage', 'RescheduleAppointmentPage', 'InvoiceCreatePage', 'CustomerPackageCreatePage', 'PriceListFormPage']"
+        :exclude="['CreateAppointmentPage', 'RescheduleAppointmentPage', 'InvoiceCreatePage', 'CustomerPackageCreatePage', 'PriceListFormPage', 'IssueReportFormPage']"
       >
         <component :is="Component" />
       </KeepAlive>
