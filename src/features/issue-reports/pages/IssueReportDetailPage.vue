@@ -98,7 +98,13 @@ watch(() => props.id, () => void loadDetail(), { immediate: true })
             <div><dt class="font-semibold text-on-surface-variant">รหัส</dt><dd>{{ report.issueReportId }}</dd></div>
             <div><dt class="font-semibold text-on-surface-variant">รายละเอียด</dt><dd class="whitespace-pre-wrap">{{ report.description }}</dd></div>
             <div><dt class="font-semibold text-on-surface-variant">สถานะ</dt><dd>{{ report.status }}</dd></div>
-            <div><dt class="font-semibold text-on-surface-variant">ลิงก์ภาพหน้าจอ</dt><dd>{{ report.screenshotUrl ?? '—' }}</dd></div>
+            <div>
+              <dt class="font-semibold text-on-surface-variant">ลิงก์ภาพหน้าจอ</dt>
+              <dd>
+                <a v-if="report.screenshotUrl" :href="report.screenshotUrl" class="break-all text-primary underline" target="_blank" rel="noopener noreferrer">{{ report.screenshotUrl }}</a>
+                <template v-else>—</template>
+              </dd>
+            </div>
             <div><dt class="font-semibold text-on-surface-variant">สร้างเมื่อ</dt><dd>{{ report.createdAt }}</dd></div>
             <div><dt class="font-semibold text-on-surface-variant">ผู้แจ้ง</dt><dd>{{ report.createdBy ?? '—' }}</dd></div>
             <div><dt class="font-semibold text-on-surface-variant">อัปเดตเมื่อ</dt><dd>{{ report.updatedAt ?? '—' }}</dd></div>
