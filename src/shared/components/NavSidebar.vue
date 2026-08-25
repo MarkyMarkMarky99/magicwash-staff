@@ -66,6 +66,16 @@ function navigate(path) {
         <li>
           <button
             class="w-full flex items-center gap-4 px-5 py-3 text-left hover:bg-black/5 transition-colors"
+            :class="route.path.startsWith('/customer-packages') ? 'text-primary font-semibold' : ''"
+            @click="navigate('/customer-packages')"
+          >
+            <span class="material-symbols-outlined">redeem</span>
+            <span>Customer packages</span>
+          </button>
+        </li>
+        <li>
+          <button
+            class="w-full flex items-center gap-4 px-5 py-3 text-left hover:bg-black/5 transition-colors"
             :class="route.path === '/invoices' ? 'text-primary font-semibold' : ''"
             @click="navigate('/invoices')"
           >

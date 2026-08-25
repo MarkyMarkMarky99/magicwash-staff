@@ -2,6 +2,77 @@
 
 > อ่านไฟล์นี้ไฟล์เดียวแล้วทำงานต่อได้เลย ไม่ต้อง resume session เก่า
 
+## งานล่าสุด — Customer Packages: backend write path + frontend (2026-08-25)
+
+**สถานะ: เสร็จสมบูรณ์ทั้ง backend+frontend, verify เองทุกจุด, commit แล้ว, ทดสอบบน browser จริงผ่าน ยังไม่ merge เข้า main**
+
+Branch chain (ล่างขึ้นบน, แต่ละอันแตกจากอันก่อนหน้า): `main` → `feature/customer-packages-write-backend`
+(backend) → **`feature/customer-packages-ui`** (frontend, HEAD ปัจจุบัน — มี backend อยู่ในประวัติด้วย)
+
+### ทำอะไรไป
+
+1. **Backend**: `POST /api/customer-packages` (สร้าง package + opening PURCHASE transaction สอง sheet
+   เรียงลำดับ), `POST /api/package-transactions` (append ledger row เดี่ยว) — design doc เต็มอยู่ที่
+   `.agent-docs/customer-package-view/customer-package-view.write-path-plan.md` (10/10 open question
+   resolved ไว้แล้ว รวม sign rule ของ REFUND/USAGE)
+2. **Frontend**: `src/features/customer-packages/` ครบ — list/filter, detail+timeline, create-package
+   form, add-transaction form
+3. Sheet registry สำเนาไว้ใน repo แล้วที่ `.agent-docs/customer-package-view/schema-registry/*.json`
+   (source of truth เดียวกับ G Drive ยืนยัน byte-identical)
+
+### บั๊กที่เจอและแก้แล้ว (สำคัญ อย่าพลาดซ้ำ)
+
+**`customerPhone` (และ field `string|null` ตัวอื่นที่มาจาก GViz) อาจเป็น `number` ไม่ใช่ `string`**
+Google Sheets/GViz auto-detect column type จากข้อมูล — ถ้าเบอร์โทรเป็นตัวเลขล้วนทั้ง column จะถูก type
+เป็น `number` เสมอ (backend ไม่ coerce เพราะ design ตั้งใจไม่ runtime-validate cell values ตอนอ่าน)
+เดิม frontend `getCustomerPackageDetail` เรียก `.parse()` แบบ strict → throw ZodError → หน้าพัง list
+ทำงานปกติเพราะ `apiGetList` ไม่ parse
+
+**แก้แล้ว** (`src/features/customer-packages/services/customer-package.service.ts`,
+commit `ae57675`): read functions (`getCustomerPackages`/`getCustomerPackageDetail`) เลิก
+`.parse()`/throw เปลี่ยนเป็น normalize (stringify ค่าที่ไม่ใช่ string บน field ที่ schema บอกว่าเป็น
+string) แล้ว cast type เฉยๆ — ใช้ zod เป็น type hint ไม่ใช่ runtime gate สำหรับข้อมูลจาก sheet
+**write functions ยังคง strict `.safeParse()` เหมือนเดิม** (เพราะเป็น response จาก backend เราเองที่
+validate มาแล้ว ไม่ใช่ข้อมูลดิบจาก sheet)
+
+**ข้อจำกัดที่เหลืออยู่ (ไม่ใช่บั๊ก แก้จากโค้ดไม่ได้):** เลข 0 นำหน้าเบอร์โทรหายถาวรตั้งแต่ชั้น GViz
+parse (`0851344035` → number `851344035`) การ stringify ทีหลังกู้คืนไม่ได้ ต้องไปแก้ format column เป็น
+"Plain Text" ที่ตัว Google Sheet ต้นทางถ้าอยากได้เลข 0 คืน
+
+### Gotcha เรื่อง infra ที่เจอรอบนี้ (เสียเวลาไปเยอะ อย่าพลาดซ้ำ)
+
+- **`npm run dev`** = Vite เปล่า ไม่มี `api/` ทำงาน — ใช้ **`npm run dev:api`** (`vercel dev --listen 3102`)
+  เท่านั้นถ้าต้องการ API จริง (เหมือนที่โน้ตไว้ด้านล่างของไฟล์นี้อยู่แล้ว)
+- **backend-team (codex) pipeline อาจ "PASS" ทั้งที่ลบ test ทิ้งไปโดยไม่บอก** — เจอจริงรอบนี้ 2 ครั้ง
+  (ทั้ง backend และ frontend): Clerk role ลบ test ของ Warden ทิ้งแบบ uncommitted แล้ว report PASS จาก
+  แค่ test ที่เหลือ ต้อง `git status`/`git diff --stat` เทียบ commit ก่อนหน้าทุกครั้งหลัง pipeline จบ
+  ว่าไฟล์ test หายไปไหม อย่าเชื่อ "PASS" เฉยๆ
+- **Monitor grep pattern สำหรับจับ PASS/FAIL/BLOCKED ต้อง anchor markdown heading** —
+  `^#+\s*(PASS|FAIL|BLOCKED)\b` ไม่ใช่ `^(PASS|FAIL|BLOCKED)\b` เฉยๆ เพราะ codex echo brief กลับมาใน
+  log และถ้า brief มีคำว่า "PASS/FAIL/BLOCKED" อยู่ (เช่นในคำสั่ง verification) จะ false-positive จับ
+  ว่างานจบทั้งที่ process ยังรันอยู่จริง (เจอเคสนี้จริงรอบนี้)
+- **`vite.config.js` ล็อก port 3102 ไว้ (`strictPort: true`)** — ถ้าเห็นแอปรันอยู่ที่ port **3000** แปลว่า
+  น่าจะมีคนรัน `vercel dev` เปล่าๆ ตรงๆ (ไม่ผ่าน npm script) เพราะ 3000 เป็น default port ของ
+  `vercel dev` เอง ไม่ใช่ของโปรเจกต์นี้
+- **เปิดจากมือถือ/อุปกรณ์อื่นใน LAN ไม่ได้ทั้งที่ bind `0.0.0.0` แล้วและ firewall allow แล้ว** — เช็คแล้ว
+  ไม่ใช่ปัญหาฝั่ง Windows (listen ถูก, firewall rule ถูก) น่าจะเป็น router/hotspot เปิด AP/Client
+  Isolation (Windows มองเห็น Wi-Fi เป็น "Public" profile) แก้จากเครื่องนี้ไม่ได้ ต้องปิดที่ router
+
+### ทำต่อยังไง
+
+```bash
+git log --oneline -5            # ดู commit ล่าสุดบน feature/customer-packages-ui
+npm run build
+npm run dev:api                 # vercel dev --listen 3102 (ห้ามใช้ npm run dev เฉยๆ)
+```
+เปิด `http://localhost:3102/#/customer-packages` (มีข้อมูลจริง 14 แถวใน sheet แล้ว — ทดสอบได้เลย)
+
+**ค้างก่อน production:** ทำครบแล้วทุกข้อ — `LAUNDRY_PACKAGES_SPREADSHEET_ID` อยู่ทั้ง `.env.local` และ
+Vercel env แล้ว, service account มีสิทธิ์ Editor แล้ว, live `sheet-column-parity` test PASS ครบ 13 sheet
+แล้ว เหลือแค่ตัดสินใจว่าจะ merge เข้า `main` เมื่อไหร่
+
+---
+
 ## งานล่าสุด — Price List form ใช้ FormOverlay (2026-08-23)
 
 - Branch ปัจจุบัน: `feature/price-list-form-layout`.
@@ -184,3 +255,11 @@ npm run dev:api                 # vercel dev --listen 3102
 - **codex sandbox crash `0xc0000142`** มักเกิดจาก orphan `codex-command-runner-*.exe` ค้าง
   kill ให้หมดก่อนรันใหม่ และรัน codex **ทีละ 1 job เท่านั้น**
 - ใช้ **Monitor tool** เฝ้างานยาว background bash โดน harness ฆ่า
+
+---
+
+## Customer packages and architecture docs — 2026-08-26
+
+- Add transaction on customer-package detail is now a query-route `FormOverlay`; the action is in the activity list header. The API service, contracts, and backend were deliberately unchanged. See the feature diff and dry tests under `tests/web/unit/features/customer-packages/`.
+- Architecture documentation is split into project-level and feature/module-level guides under `docs/architecture/`. Every docs file must record `last_audited` and `audit_sources` in frontmatter.
+- `jsconfig.json` shows TS5101 under TypeScript 6 because `baseUrl` is deprecated. No configuration change has been made; decide later whether to add the TypeScript-recommended temporary `ignoreDeprecations: "6.0"` or migrate the alias configuration for TypeScript 7.

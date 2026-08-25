@@ -17,6 +17,12 @@ for (const field of ['remainingCredit', 'usedCredit', 'totalCredit']) {
   assert.match(detail, new RegExp(`\\b${field}\\b`), `detail must render DTO ${field} directly`)
 }
 assert.match(detail, /ListContainer/, 'detail must render its transaction timeline with ListContainer')
+assert.match(detail, /<template #actions><button[^>]*@click="openTransaction"/, 'add transaction must be an action in the activity ListContainer')
+assert.match(detail, /CustomerPackageTransactionForm/, 'detail page must render the transaction form boundary')
+assert.match(detail, /useCustomerPackageTransactionRoute/, 'transaction form visibility must be query-route controlled')
+assert.match(detail, /await loadDetail\(\)[\s\S]{0,300}resetTransactionForm\(\)[\s\S]{0,300}closeTransactionForm\(\)/, 'a created transaction must refresh details before clearing and closing')
+assert.match(detail, /transactionRetryBlocked/, 'unknown write outcomes must block unsafe resubmission')
+assert.match(detail, /needs reconciliation/, 'unknown write outcome must tell staff to reconcile activity')
 for (const type of ['PURCHASE', 'USAGE']) {
   assert.match(detail, new RegExp(`\\b${type}\\b`), `timeline labels must cover ${type}`)
 }
