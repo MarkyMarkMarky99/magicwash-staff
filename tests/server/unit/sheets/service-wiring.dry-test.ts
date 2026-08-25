@@ -14,6 +14,7 @@ import { generateKeyPairSync } from 'node:crypto'
 //    a dynamic import inside each test rather than a static one at the top. ──
 process.env.PORTAL_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 process.env.APPOINTMENTS_SPREADSHEET_ID = 'characterization-spreadsheet-id'
+process.env.LAUNDRY_PACKAGES_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
 process.env.GOOGLE_SERVICE_ACCOUNT_KEY = Buffer.from(JSON.stringify({
   client_email: 'service-wiring@example.test',
@@ -631,6 +632,143 @@ test('CustomerPackageView service wiring decodes and safely falls back for trans
       assert.deepEqual(detail.transactions, [])
     },
   )
+})
+
+test('customer-package write wiring preserves field maps, shared singletons, and route contracts', async () => {
+  const [
+    viewModule,
+    purchaseModule,
+    transactionModule,
+    packageRoutesModule,
+    customerPackagesRepositoryModule,
+    packageTransactionsRepositoryModule,
+    packagesRepositoryModule,
+  ] = await Promise.all([
+    import('../../../../server/modules/customer-packages/customer-package-view.module.js'),
+    import('../../../../server/modules/customer-packages/customer-package-purchase.service.js'),
+    import('../../../../server/modules/customer-packages/package-transaction.service.js'),
+    import('../../../../server/modules/customer-packages/package-transaction.module.js'),
+    import('../../../../server/sheets/CustomerPackages/CustomerPackages.repository.js'),
+    import('../../../../server/sheets/PackageTransactions/PackageTransactions.repository.js'),
+    import('../../../../server/sheets/Packages/Packages.repository.js'),
+  ])
+
+  const { customerPackageRoutes, customerPackageViewService } = viewModule
+  const { customerPackagePurchaseService } = purchaseModule
+  const { packageTransactionService } = transactionModule
+  const { packageTransactionRoutes } = packageRoutesModule
+
+  const purchaseInternals = customerPackagePurchaseService as unknown as {
+    transactionService: unknown
+    packageRepository: unknown
+    catalogRepository: unknown
+  }
+  const transactionInternals = packageTransactionService as unknown as {
+    packageRepository: unknown
+    transactionRepository: unknown
+  }
+  assert.strictEqual(purchaseInternals.transactionService, packageTransactionService)
+  assert.strictEqual(purchaseInternals.packageRepository, customerPackagesRepositoryModule.getCustomerPackagesRepository)
+  assert.strictEqual(purchaseInternals.catalogRepository, packagesRepositoryModule.getPackagesRepository)
+  assert.strictEqual(transactionInternals.packageRepository, customerPackagesRepositoryModule.getCustomerPackagesRepository)
+  assert.strictEqual(transactionInternals.transactionRepository, packageTransactionsRepositoryModule.getPackageTransactionsRepository)
+
+  const { customerPackagesFieldMap, packageTransactionsFieldMap, packagesFieldMap } = await import(
+    '../../../../server/modules/customer-packages/customer-package.mapping.js'
+  )
+  assert.deepEqual(customerPackagesFieldMap, {
+    id: 'customerPackageId', customer_id: 'customerId', package_code: 'packageCode',
+    start_date: 'startDate', expiry_date: 'expiryDate', service_day: 'serviceDay',
+    time_slot: 'timeSlot', invoice_id: 'invoiceId', notes: 'notes', created_at: 'createdAt',
+    created_by: 'createdBy', updated_at: 'updatedAt', updated_by: 'updatedBy',
+    deleted_at: 'deletedAt', deleted_by: 'deletedBy',
+  })
+  assert.deepEqual(packageTransactionsFieldMap, {
+    id: 'transactionId', customer_package_id: 'customerPackageId', customer_id: 'customerId',
+    type: 'type', reference_source: 'referenceSource', reference_id: 'referenceId',
+    credit_change: 'creditChange', notes: 'notes', created_at: 'createdAt', created_by: 'createdBy',
+  })
+  assert.deepEqual(packagesFieldMap, {
+    package_code: 'packageCode', name: 'name', eligible_service: 'eligibleService',
+    included_credit: 'includedCredit', price: 'price', notes: 'notes', created_at: 'createdAt',
+    created_by: 'createdBy', updated_at: 'updatedAt', updated_by: 'updatedBy',
+    deleted_at: 'deletedAt', deleted_by: 'deletedBy',
+  })
+
+  const request = (method: string, body: unknown = undefined, params: Record<string, string> = {}) => ({
+    method, query: {}, body, headers: {}, params,
+  })
+
+  const purchaseMethods = customerPackagePurchaseService as unknown as {
+    create: (payload: unknown) => Promise<unknown>
+  }
+  const originalPurchaseCreate = purchaseMethods.create
+  const createdResponse = {
+    kind: 'created', customerPackageId: 'package-1', customerId: 'customer-1',
+    packageCode: 'GOLD', openingCredit: 10, transactionId: 'transaction-1',
+    createdAt: '2026-08-25 12:00:01',
+  }
+  purchaseMethods.create = async () => createdResponse
+  try {
+    const result = await customerPackageRoutes.collection.handleRequest(request('POST'))
+    assert.equal(result.status, 201)
+    assert.deepEqual(result.body, createdResponse)
+    assert.equal('success' in (result.body as object), false)
+  } finally {
+    purchaseMethods.create = originalPurchaseCreate
+  }
+
+  const viewMethods = customerPackageViewService as unknown as {
+    list: (query: unknown) => Promise<unknown>
+    getById: (id: string) => Promise<unknown>
+  }
+  const originalList = viewMethods.list
+  const originalGetById = viewMethods.getById
+  const viewRow = { customerPackageId: 'package-1', status: 'ACTIVE', transactions: [] }
+  viewMethods.list = async () => ({ items: [viewRow], pagination: { page: 1, perPage: 1, total: 1, totalPages: 1 } })
+  viewMethods.getById = async () => viewRow
+  try {
+    const listResult = await customerPackageRoutes.collection.handleRequest(request('GET'))
+    assert.equal(listResult.status, 200)
+    assert.equal((listResult.body as { success: boolean }).success, true)
+    assert.deepEqual((listResult.body as { data: unknown }).data, [viewRow])
+
+    const detailResult = await customerPackageRoutes.item!.handleRequest(request('GET', undefined, { id: 'package-1' }))
+    assert.equal(detailResult.status, 200)
+    assert.deepEqual((detailResult.body as { data: unknown }).data, viewRow)
+  } finally {
+    viewMethods.list = originalList
+    viewMethods.getById = originalGetById
+  }
+
+  const patchResult = await customerPackageRoutes.item!.handleRequest(request('PATCH', {}, { id: 'package-1' }))
+  assert.equal(patchResult.status, 404)
+  assert.equal((patchResult.body as { success: boolean }).success, false)
+  assert.equal((patchResult.body as { error: { code: string } }).error.code, 'NOT_FOUND')
+
+  const transactionMethods = packageTransactionService as unknown as {
+    append: (payload: unknown) => Promise<unknown>
+  }
+  const originalTransactionAppend = transactionMethods.append
+  const transactionResponse = {
+    kind: 'created', transactionId: 'transaction-1', customerPackageId: 'package-1',
+    customerId: 'customer-1', type: 'USAGE', creditChange: -1,
+    createdAt: '2026-08-25 12:00:02',
+  }
+  transactionMethods.append = async () => transactionResponse
+  try {
+    const result = await packageTransactionRoutes.collection.handleRequest(request('POST'))
+    assert.equal(result.status, 201)
+    assert.deepEqual(result.body, transactionResponse)
+    assert.equal('success' in (result.body as object), false)
+  } finally {
+    transactionMethods.append = originalTransactionAppend
+  }
+
+  const methodResult = await packageTransactionRoutes.collection.handleRequest(request('GET'))
+  assert.equal(methodResult.status, 405)
+  assert.equal((methodResult.headers as { Allow: string }).Allow, 'POST')
+  assert.equal(packageTransactionRoutes.item, undefined)
 })
 
 async function main(): Promise<void> {

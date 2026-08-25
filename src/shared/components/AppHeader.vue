@@ -17,7 +17,7 @@ const { goBack } = useGoBack()
 
 const SEARCHABLE_ROUTES = ['/customers', '/invoices', '/price-list']
 const canSearch = computed(() => SEARCHABLE_ROUTES.includes(route.path))
-const isGallery = computed(() => route.path.startsWith('/gallery/'))
+const canGoBack = computed(() => Boolean(route.meta.parent))
 
 </script>
 
@@ -40,9 +40,9 @@ const isGallery = computed(() => route.path.startsWith('/gallery/'))
         @click="canSearch && toggleSearch()"
       >search</button>
 
-      <!-- Back button — shown on detail pages -->
+      <!-- Back button — shown on routes with a declared parent -->
       <button
-        v-if="route.name === 'customer-packages-preview' || route.name === 'customer-order-history' || route.name === 'invoice-create' || route.name === 'invoice-detail' || route.name === 'appointment-pending' || isGallery"
+        v-if="canGoBack"
         class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
         aria-label="Go back"
         @click="goBack"

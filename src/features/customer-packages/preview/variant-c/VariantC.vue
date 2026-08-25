@@ -4,53 +4,10 @@ import ListContainer from '@/shared/components/ListContainer.vue'
 import { formatSheetDate, formatSheetDateTime } from '@/shared/utils/sheet-date'
 import { CUSTOMER_PACKAGES } from '../customer-packages.fixture'
 
-type PackageStatus = 'Active' | 'Expiring soon' | 'Paused'
-
-interface Transaction {
-  date: string
-  label: string
-  detail: string
-  amount: number
-}
-
-interface CustomerPackage {
-  id: string
-  customer: string
-  initials: string
-  phone: string
-  service: string
-  status: PackageStatus
-  used: number
-  total: number
-  expires: string
-  purchased: string
-  transactions: Transaction[]
-}
-
 const sourcePackage = CUSTOMER_PACKAGES[0]
-const redeemedCredits = sourcePackage.transactions.reduce((sum, transaction) => sum + (transaction.credit_change < 0 ? Math.abs(transaction.credit_change) : 0), 0)
-const customerPackage: CustomerPackage = {
-  id: sourcePackage.customer_id,
-  customer: sourcePackage.customer_name,
-  initials: sourcePackage.customer_name.slice(0, 2),
-  phone: sourcePackage.customer_phone,
-  service: (sourcePackage.package_eligible_service || sourcePackage.package_name).replaceAll('_', ' '),
-  status: sourcePackage.status.toLowerCase() === 'active' ? 'Active' : 'Paused',
-  used: redeemedCredits,
-  total: sourcePackage.remaining_credit + redeemedCredits,
-  expires: sourcePackage.expiry_date,
-  purchased: sourcePackage.start_date,
-  transactions: sourcePackage.transactions.map((transaction) => ({
-    date: transaction.created_at,
-    label: transaction.credit_change < 0 ? 'Wash credit redeemed' : 'Package purchased',
-    detail: `${transaction.reference_source} · ${transaction.reference_id}${transaction.notes ? ` · ${transaction.notes}` : ''}`,
-    amount: transaction.credit_change,
-  })),
-}
 
 const showAllTransactions = ref(false)
-const remaining = computed(() => customerPackage.total - customerPackage.used)
-const visibleTransactions = computed(() => showAllTransactions.value ? customerPackage.transactions : customerPackage.transactions.slice(0, 2))
+const visibleTransactions = computed(() => showAllTransactions.value ? sourcePackage.transactions : sourcePackage.transactions.slice(0, 2))
 
 function formatCreditChange(value: number) {
   return `${value > 0 ? '+' : ''}${value} credit${Math.abs(value) === 1 ? '' : 's'}`
@@ -65,13 +22,13 @@ function formatCreditChange(value: number) {
           <div class="min-w-0">
             <div class="flex items-center gap-2">
               <span class="material-symbols-outlined text-primary" aria-hidden="true">person</span>
-              <h1 class="truncate font-headline text-lg font-bold text-primary">{{ customerPackage.customer }}</h1>
+              <h1 class="truncate font-headline text-lg font-bold text-primary">{{ sourcePackage.customerName }}</h1>
               <span class="shrink-0 rounded-full bg-secondary-container px-2 py-1 font-label text-[9px] font-bold uppercase tracking-wide text-on-secondary-container">{{ sourcePackage.status }}</span>
             </div>
-            <p class="mt-1 text-xs text-on-surface-variant">{{ sourcePackage.customer_id }} · {{ customerPackage.phone || 'No phone on file' }}</p>
-            <p v-if="sourcePackage.customer_address" class="mt-1 text-xs text-on-surface-variant"><span class="material-symbols-outlined mr-1 align-middle text-[14px]" aria-hidden="true">location_on</span>{{ sourcePackage.customer_address }}</p>
+            <p class="mt-1 text-xs text-on-surface-variant">{{ sourcePackage.customerId }} · {{ sourcePackage.customerPhone || 'No phone on file' }}</p>
+            <p v-if="sourcePackage.customerAddress" class="mt-1 text-xs text-on-surface-variant"><span class="material-symbols-outlined mr-1 align-middle text-[14px]" aria-hidden="true">location_on</span>{{ sourcePackage.customerAddress }}</p>
           </div>
-          <a v-if="customerPackage.phone" :href="`tel:${customerPackage.phone}`" class="inline-flex shrink-0 items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-on-primary shadow-sm transition hover:opacity-90"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">call</span><span class="hidden sm:inline">Call customer</span></a>
+          <a v-if="sourcePackage.customerPhone" :href="`tel:${sourcePackage.customerPhone}`" class="inline-flex shrink-0 items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-on-primary shadow-sm transition hover:opacity-90"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">call</span><span class="hidden sm:inline">Call customer</span></a>
         </div>
       </div>
     </div>
@@ -80,17 +37,17 @@ function formatCreditChange(value: number) {
       <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4">
         <p class="min-w-0 truncate font-label text-[10px] font-bold uppercase tracking-[0.18em] text-on-primary/70">Package detail</p>
         <p class="shrink-0 text-right font-label text-[10px] font-bold uppercase tracking-[0.18em] text-on-primary/70">Credits remaining</p>
-        <h3 class="mt-1 min-w-0 truncate self-center font-headline text-xl font-extrabold leading-tight tracking-tight">{{ sourcePackage.package_name }}</h3>
-        <p class="mt-1 shrink-0 self-center text-right font-headline text-4xl font-extrabold leading-none text-secondary-container">{{ remaining }}</p>
-        <p class="mt-1 min-w-0 truncate font-body text-xs capitalize leading-tight text-on-primary/75">{{ sourcePackage.package_code }} · {{ customerPackage.service }}</p>
-        <p class="mt-1 shrink-0 text-right font-body text-xs leading-tight text-on-primary/75">of {{ customerPackage.total }} included</p>
+        <h3 class="mt-1 min-w-0 truncate self-center font-headline text-xl font-extrabold leading-tight tracking-tight">{{ sourcePackage.packageName }}</h3>
+        <p class="mt-1 shrink-0 self-center text-right font-headline text-4xl font-extrabold leading-none text-secondary-container">{{ sourcePackage.remainingCredit }}</p>
+        <p class="mt-1 min-w-0 truncate font-body text-xs capitalize leading-tight text-on-primary/75">{{ sourcePackage.packageCode }} · {{ sourcePackage.packageEligibleService }}</p>
+        <p class="mt-1 shrink-0 text-right font-body text-xs leading-tight text-on-primary/75">of {{ sourcePackage.totalCredit }} included</p>
       </div>
-      <div class="mt-5 grid grid-cols-2 gap-3 border-t border-on-primary/20 pt-3"><div><p class="font-label text-[9px] uppercase tracking-wide text-on-primary/65">Valid until</p><p class="mt-0.5 font-headline text-[12px] font-bold">{{ formatSheetDate(customerPackage.expires) }}</p></div><div><p class="font-label text-[9px] uppercase tracking-wide text-on-primary/65">Pickup window</p><p class="mt-0.5 truncate font-headline text-[12px] font-bold">{{ sourcePackage.service_day || 'Flexible' }} · {{ sourcePackage.time_slot || 'By appointment' }}</p></div></div>
+      <div class="mt-5 grid grid-cols-2 gap-3 border-t border-on-primary/20 pt-3"><div><p class="font-label text-[9px] uppercase tracking-wide text-on-primary/65">Valid until</p><p class="mt-0.5 font-headline text-[12px] font-bold">{{ formatSheetDate(sourcePackage.expiryDate ?? '') }}</p></div><div><p class="font-label text-[9px] uppercase tracking-wide text-on-primary/65">Pickup window</p><p class="mt-0.5 truncate font-headline text-[12px] font-bold">{{ sourcePackage.serviceDay || 'Flexible' }} · {{ sourcePackage.timeSlot || 'By appointment' }}</p></div></div>
     </section>
 
-    <ListContainer class="mt-3" title="Recent activity" icon="history" :count="customerPackage.transactions.length" count-label="events" top-divider>
+    <ListContainer class="mt-3" title="Recent activity" icon="history" :count="sourcePackage.transactions.length" count-label="events" top-divider>
       <template #actions><button class="text-button" type="button" @click="showAllTransactions = !showAllTransactions">{{ showAllTransactions ? 'Show less' : 'View all' }}</button></template>
-        <ol class="timeline px-4"><li v-for="transaction in visibleTransactions" :key="`${transaction.date}-${transaction.label}`"><span class="timeline-dot" :class="{ credit: transaction.amount > 0 }" /><div class="transaction-copy"><strong>{{ transaction.label }}</strong><small>{{ transaction.detail }}</small></div><div class="text-right"><time class="block">{{ formatSheetDateTime(transaction.date) }}</time><small v-if="transaction.amount !== 0" class="mt-1 block text-[10px] font-semibold" :class="transaction.amount > 0 ? 'text-secondary' : 'text-tertiary'">{{ formatCreditChange(transaction.amount) }}</small></div></li></ol>
+        <ol class="timeline px-4"><li v-for="transaction in visibleTransactions" :key="transaction.id"><span class="timeline-dot" :class="{ credit: transaction.creditChange > 0 }" /><div class="transaction-copy"><strong>{{ transaction.type }}</strong><small>{{ transaction.referenceSource }} · {{ transaction.referenceId }}<template v-if="transaction.notes"> · {{ transaction.notes }}</template></small></div><div class="text-right"><time class="block">{{ formatSheetDateTime(transaction.createdAt) }}</time><small v-if="transaction.creditChange !== 0" class="mt-1 block text-[10px] font-semibold" :class="transaction.creditChange > 0 ? 'text-secondary' : 'text-tertiary'">{{ formatCreditChange(transaction.creditChange) }}</small></div></li></ol>
     </ListContainer>
 
   </main>
