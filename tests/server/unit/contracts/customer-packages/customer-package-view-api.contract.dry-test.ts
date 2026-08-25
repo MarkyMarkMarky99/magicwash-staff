@@ -1,12 +1,10 @@
 import assert from 'node:assert/strict'
 import {
-  customerPackageCreateSchema,
   customerPackageDetailResponseSchema,
   customerPackageListQuerySchema,
   customerPackageListResponseSchema,
   customerPackagePortalRowSchema,
   customerPackageSortFieldSchema,
-  customerPackageUpdateSchema,
   customerPackageViewApiContract,
   packageCreditMovementTypeSchema,
 } from '../../../../../contracts/customer-packages/customer-package-view-api.schema.js'
@@ -85,44 +83,9 @@ assert.throws(() => customerPackageListQuerySchema.parse({ sortBy: 'transactions
 assert.ok(!('transactions' in customerPackageListResponseSchema.shape))
 assert.ok('transactions' in customerPackageDetailResponseSchema.shape)
 
-// Both halves of each write slot are required for createCrudRoutes to mount POST/PATCH.
-assert.ok(customerPackageViewApiContract.request?.create)
-assert.ok(customerPackageViewApiContract.response.create)
-assert.ok(customerPackageViewApiContract.request?.update)
-assert.ok(customerPackageViewApiContract.response.update)
-assert.equal(
-  customerPackageViewApiContract.response.create,
-  customerPackageDetailResponseSchema,
-)
-assert.equal(
-  customerPackageViewApiContract.response.update,
-  customerPackageDetailResponseSchema,
-)
-
-const created = customerPackageCreateSchema.parse({ customerId: 'c1', packageCode: 'GOLD' })
-assert.deepEqual(created, {
-  customerId: 'c1',
-  packageCode: 'GOLD',
-  invoiceId: null,
-  startDate: null,
-  expiryDate: null,
-  serviceDay: null,
-  timeSlot: null,
-  notes: null,
-})
-for (const field of [
-  'id',
-  'customerPackageId',
-  'createdAt',
-  'createdBy',
-  'remainingCredit',
-]) {
-  assert.ok(
-    !(field in customerPackageCreateSchema.shape),
-    `'${field}' is server-owned and must not be accepted on create`,
-  )
-}
-assert.throws(() => customerPackageCreateSchema.parse({ packageCode: 'GOLD' }))
+assert.equal(customerPackageViewApiContract.request, undefined)
+assert.equal(customerPackageViewApiContract.response.create, undefined)
+assert.equal(customerPackageViewApiContract.response.update, undefined)
 
 const overspentRow = {
   customerPackageId: 'aifjqbax',
@@ -175,30 +138,7 @@ const orphanRow = {
 }
 assert.doesNotThrow(() => customerPackageDetailResponseSchema.parse(orphanRow))
 
-// Updates are keyed by business intent, not by arbitrary database columns.
-assert.deepEqual(
-  customerPackageUpdateSchema.options.map((option) => option.shape.intent.value),
-  ['reschedule', 'cancel', 'recordCredit'],
-)
-assert.throws(() => customerPackageUpdateSchema.parse({ intent: 'nope' }))
-assert.equal(customerPackageUpdateSchema.parse({ intent: 'cancel' }).intent, 'cancel')
-
 // Only create may open a package, so PURCHASE is not a recordable movement.
 assert.ok(!packageCreditMovementTypeSchema.options.includes('PURCHASE' as never))
-assert.throws(() =>
-  customerPackageUpdateSchema.parse({ intent: 'recordCredit', type: 'PURCHASE', creditChange: 1 }),
-)
-
-// Spending past the package is allowed; the overage is billed, not rejected.
-const overspend = customerPackageUpdateSchema.parse({
-  intent: 'recordCredit',
-  type: 'USAGE',
-  creditChange: -99,
-})
-assert.equal(overspend.intent, 'recordCredit')
-if (overspend.intent === 'recordCredit') {
-  assert.equal(overspend.creditChange, -99)
-  assert.equal(overspend.referenceSource, null)
-}
 
 console.log('customer-package-view-api.contract.dry-test: OK')

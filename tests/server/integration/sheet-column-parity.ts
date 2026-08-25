@@ -17,6 +17,9 @@ import { customerPackageViewDbContract } from '../../../server/sheets/CustomerPa
 import { laundryPhotosDbContract } from '../../../server/sheets/LaundryPhotos/LaundryPhotos.db-contract.js'
 import { orderFormDbContract } from '../../../server/sheets/OrderForm/OrderForm.db-contract.js'
 import { priceListDbContract } from '../../../server/sheets/PriceList/PriceList.db-contract.js'
+import { customerPackagesDbContract } from '../../../server/sheets/CustomerPackages/CustomerPackages.db-contract.js'
+import { packageTransactionsDbContract } from '../../../server/sheets/PackageTransactions/PackageTransactions.db-contract.js'
+import { packagesDbContract } from '../../../server/sheets/Packages/Packages.db-contract.js'
 
 const GVIZ_BASE_URL = 'https://docs.google.com/spreadsheets/d'
 
@@ -46,6 +49,12 @@ interface GvizResponse {
 }
 
 const readableSheets: readonly ReadableSheet[] = [
+  {
+    name: 'CustomerPackages',
+    sheetName: customerPackagesDbContract.sheetName,
+    spreadsheetIdEnv: customerPackagesDbContract.spreadsheetId!,
+    rowSchema: customerPackagesDbContract.row,
+  },
   {
     name: 'Appointments',
     sheetName: appointmentsDbContract.sheetName,
@@ -99,6 +108,18 @@ const readableSheets: readonly ReadableSheet[] = [
     sheetName: laundryPhotosDbContract.sheetName,
     spreadsheetIdEnv: laundryPhotosDbContract.spreadsheetId!,
     rowSchema: laundryPhotosDbContract.row,
+  },
+  {
+    name: 'PackageTransactions',
+    sheetName: packageTransactionsDbContract.sheetName,
+    spreadsheetIdEnv: packageTransactionsDbContract.spreadsheetId!,
+    rowSchema: packageTransactionsDbContract.row,
+  },
+  {
+    name: 'Packages',
+    sheetName: packagesDbContract.sheetName,
+    spreadsheetIdEnv: packagesDbContract.spreadsheetId!,
+    rowSchema: packagesDbContract.row,
   },
   {
     name: 'PriceList',

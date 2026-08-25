@@ -13,10 +13,14 @@ import { orderFormDbContract } from '../../../../server/sheets/OrderForm/OrderFo
 import { ordersViewDbContract } from '../../../../server/sheets/OrdersView/OrdersView.db-contract.js'
 import { paymentsDbContract } from '../../../../server/sheets/Payments/Payments.db-contract.js'
 import { priceListDbContract } from '../../../../server/sheets/PriceList/PriceList.db-contract.js'
+import { customerPackagesDbContract } from '../../../../server/sheets/CustomerPackages/CustomerPackages.db-contract.js'
+import { packageTransactionsDbContract } from '../../../../server/sheets/PackageTransactions/PackageTransactions.db-contract.js'
+import { packagesDbContract } from '../../../../server/sheets/Packages/Packages.db-contract.js'
 
-const expectedSheetCount = 11
+const expectedSheetCount = 14
 const expectedSheetDirectories = [
   'Appointments',
+  'CustomerPackages',
   'CustomerPackageView',
   'Customers',
   'InvoiceItems',
@@ -25,6 +29,8 @@ const expectedSheetDirectories = [
   'LaundryPhotos',
   'OrderForm',
   'OrdersView',
+  'PackageTransactions',
+  'Packages',
   'Payments',
   'PriceList',
 ] as const
@@ -35,6 +41,12 @@ const bindings = [
     contract: appointmentsDbContract,
     expectedSpreadsheetId: 'APPOINTMENTS_SPREADSHEET_ID',
     expectedSheetName: 'Appointments',
+  },
+  {
+    name: 'CustomerPackages',
+    contract: customerPackagesDbContract,
+    expectedSpreadsheetId: 'LAUNDRY_PACKAGES_SPREADSHEET_ID',
+    expectedSheetName: 'CustomerPackages',
   },
   {
     name: 'CustomerPackageView',
@@ -83,6 +95,18 @@ const bindings = [
     contract: ordersViewDbContract,
     expectedSpreadsheetId: 'PORTAL_SPREADSHEET_ID',
     expectedSheetName: 'OrdersView',
+  },
+  {
+    name: 'PackageTransactions',
+    contract: packageTransactionsDbContract,
+    expectedSpreadsheetId: 'LAUNDRY_PACKAGES_SPREADSHEET_ID',
+    expectedSheetName: 'PackageTransactions',
+  },
+  {
+    name: 'Packages',
+    contract: packagesDbContract,
+    expectedSpreadsheetId: 'LAUNDRY_PACKAGES_SPREADSHEET_ID',
+    expectedSheetName: 'Packages',
   },
   {
     name: 'Payments',
