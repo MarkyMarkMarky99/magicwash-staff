@@ -83,9 +83,13 @@ assert.throws(() => customerPackageListQuerySchema.parse({ sortBy: 'transactions
 assert.ok(!('transactions' in customerPackageListResponseSchema.shape))
 assert.ok('transactions' in customerPackageDetailResponseSchema.shape)
 
-assert.equal(customerPackageViewApiContract.request, undefined)
-assert.equal(customerPackageViewApiContract.response.create, undefined)
-assert.equal(customerPackageViewApiContract.response.update, undefined)
+const readOnlyContract = customerPackageViewApiContract as unknown as {
+  request?: unknown
+  response: Record<string, unknown>
+}
+assert.equal(readOnlyContract.request, undefined)
+assert.equal(readOnlyContract.response.create, undefined)
+assert.equal(readOnlyContract.response.update, undefined)
 
 const overspentRow = {
   customerPackageId: 'aifjqbax',
