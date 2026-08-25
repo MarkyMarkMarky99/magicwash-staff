@@ -1,6 +1,11 @@
 import { z } from 'zod'
 import { API_PAGINATION_DEFAULTS } from '../shared/api.schema.js'
 import type { ModuleApiContract } from '../shared/module-api-contract.js'
+export {
+  packageCreditMovementTypeSchema,
+  packageTransactionTypeSchema,
+} from './package-transaction-api.schema.js'
+import { packageTransactionTypeSchema } from './package-transaction-api.schema.js'
 
 /**
  * Customer packages READ contract, backing the `CustomerPackageView` portal sheet.
@@ -16,16 +21,6 @@ export const customerPackageStatusSchema = z.enum([
   'ACTIVE',
   'EXPIRED',
   'CANCELLED',
-])
-
-export const packageTransactionTypeSchema = z.enum([
-  'PURCHASE',
-  'USAGE',
-  'REFUND',
-  'ADJUSTMENT',
-  'EXPIRE',
-  'VOID',
-  'TRANSFER',
 ])
 
 export const packageTransactionSchema = z.object({
@@ -104,68 +99,10 @@ export const customerPackageListQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 })
 
-/**
- * Create a package for a customer. The server owns the id, the timestamps and
- * the opening credit — the last of those comes from the package catalog.
- */
-export const customerPackageCreateSchema = z.object({
-  customerId: z.string().trim().min(1),
-  packageCode: z.string().trim().min(1),
-  invoiceId: z.string().trim().min(1).nullable().optional().default(null),
-  startDate: z.string().nullable().optional().default(null),
-  expiryDate: z.string().nullable().optional().default(null),
-  serviceDay: z.string().nullable().optional().default(null),
-  timeSlot: z.string().nullable().optional().default(null),
-  notes: z.string().nullable().optional().default(null),
-})
-
-/** Every credit movement except the opening one, which only `create` may write. */
-export const packageCreditMovementTypeSchema = packageTransactionTypeSchema.exclude([
-  'PURCHASE',
-])
-
-/**
- * Changes to an existing package, keyed by what happened rather than by which
- * fields move. Where each intent lands is the service's business.
- */
-export const customerPackageUpdateSchema = z.discriminatedUnion('intent', [
-  z.object({
-    intent: z.literal('reschedule'),
-    startDate: z.string().nullable().optional(),
-    expiryDate: z.string().nullable().optional(),
-    serviceDay: z.string().nullable().optional(),
-    timeSlot: z.string().nullable().optional(),
-    notes: z.string().nullable().optional(),
-  }),
-  z.object({
-    intent: z.literal('cancel'),
-    notes: z.string().nullable().optional(),
-  }),
-  z.object({
-    intent: z.literal('recordCredit'),
-    type: packageCreditMovementTypeSchema,
-    /** Signed. Spending past the package is allowed; the overage is billed. */
-    creditChange: z.number(),
-    referenceSource: z.string().trim().min(1).nullable().optional().default(null),
-    referenceId: z.string().trim().min(1).nullable().optional().default(null),
-    notes: z.string().nullable().optional().default(null),
-  }),
-])
-
-/** Writes answer with the whole document, so a client can replace its copy. */
-export const customerPackageCreateResponseSchema = customerPackageDetailResponseSchema
-export const customerPackageUpdateResponseSchema = customerPackageDetailResponseSchema
-
 export const customerPackageViewApiContract = {
   query: { list: customerPackageListQuerySchema },
-  request: {
-    create: customerPackageCreateSchema,
-    update: customerPackageUpdateSchema,
-  },
   response: {
     list: customerPackageListResponseSchema,
     detail: customerPackageDetailResponseSchema,
-    create: customerPackageCreateResponseSchema,
-    update: customerPackageUpdateResponseSchema,
   },
 } satisfies ModuleApiContract

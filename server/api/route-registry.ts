@@ -13,6 +13,10 @@ export const routeRegistry = {
     import('../modules/customer-packages/customer-package-view.module.js').then(
       (module) => module.customerPackageRoutes,
     ),
+  'package-transactions': (): ReturnType<RouteLoader> =>
+    import('../modules/customer-packages/package-transaction.module.js').then(
+      (module) => module.packageTransactionRoutes,
+    ),
   'price-list': (): ReturnType<RouteLoader> =>
     import('../modules/price-list/price-list.module.js').then((module) => module.priceListRoutes),
 } satisfies Record<string, RouteLoader>

@@ -5,9 +5,14 @@ import {
   type JsonColumnMap,
 } from '../../shared/services/base-crud.service.js'
 import type { ApiRowFromFieldMap } from '../../shared/repositories/base.repository.js'
-import { createCrudRoutes } from '../../shared/http/crud-routes.js'
+import { ApiHandler } from '../../shared/http/api-handler.js'
+import { ApiError } from '../../shared/http/api-error.js'
+import type { GatewayModuleRoutes } from '../../shared/http/gateway.types.js'
+import { ok, okPaged, type ApiResult } from '../../shared/http/response.js'
 import { getCustomerPackageViewRepository } from '../../sheets/CustomerPackageView/CustomerPackageView.repository.js'
 import { customerPackageViewRowSchema } from '../../sheets/CustomerPackageView/CustomerPackageView.db-contract.js'
+import type { createCustomerPackageResponseSchema } from '../../../contracts/customer-packages/customer-package-api.schema.js'
+import { customerPackagePurchaseService } from './customer-package-purchase.service.js'
 
 type CustomerPackageViewDbRow = z.infer<typeof customerPackageViewRowSchema>
 
@@ -44,30 +49,23 @@ type CustomerPackageViewApiRow = ApiRowFromFieldMap<
   typeof customerPackageViewFieldMap
 >
 type CustomerPackageListQuery = z.infer<typeof customerPackageViewApiContract.query.list>
-type CustomerPackageCreate = z.infer<typeof customerPackageViewApiContract.request.create>
-type CustomerPackageUpdate = z.infer<typeof customerPackageViewApiContract.request.update>
 type CustomerPackageListResponse = z.infer<
   typeof customerPackageViewApiContract.response.list
 >
 type CustomerPackageDetailResponse = z.infer<
   typeof customerPackageViewApiContract.response.detail
 >
-type CustomerPackageCreateResponse = z.infer<
-  typeof customerPackageViewApiContract.response.create
->
-type CustomerPackageUpdateResponse = z.infer<
-  typeof customerPackageViewApiContract.response.update
->
+type CreateCustomerPackageResponse = z.infer<typeof createCustomerPackageResponseSchema>
 
 type CustomerPackageViewService = BaseCrudService<
   CustomerPackageViewApiRow,
   CustomerPackageListQuery,
-  CustomerPackageCreate,
-  CustomerPackageUpdate,
+  never,
+  never,
   CustomerPackageListResponse,
   CustomerPackageDetailResponse,
-  CustomerPackageCreateResponse,
-  CustomerPackageUpdateResponse,
+  never,
+  never,
   CustomerPackageViewDbRow,
   typeof customerPackageViewFieldMap
 >
@@ -81,7 +79,29 @@ export const customerPackageViewService: CustomerPackageViewService = new BaseCr
   jsonColumns: customerPackageViewJsonColumns,
 })
 
-export const customerPackageRoutes = createCrudRoutes(
-  customerPackageViewService,
-  customerPackageViewApiContract,
-)
+function statusForCreateResponse(response: CreateCustomerPackageResponse): number {
+  switch (response.kind) {
+    case 'created': return 201
+    case 'validation_error': return 422
+    case 'catalog_read_failed': return 502
+    case 'opening_transaction_write_failed': return 500
+    case 'package_write_failed': return 500
+  }
+}
+
+export const customerPackageRoutes: GatewayModuleRoutes = {
+  collection: new ApiHandler({
+    GET: async (req) => {
+      const { items, pagination } = await customerPackageViewService.list(req.query)
+      return okPaged(items, pagination)
+    },
+    POST: async (req): Promise<ApiResult<CreateCustomerPackageResponse>> => {
+      const response = await customerPackagePurchaseService.create(req.body)
+      return { status: statusForCreateResponse(response), body: response }
+    },
+  }),
+  item: new ApiHandler({
+    GET: async (req) => ok(await customerPackageViewService.getById(req.params.id)),
+    PATCH: async () => { throw ApiError.notFound('Route not found') },
+  }),
+}
