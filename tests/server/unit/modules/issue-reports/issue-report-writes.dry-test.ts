@@ -27,12 +27,23 @@ globalThis.fetch = (async (input: URL | string, init?: RequestInit) => {
   const path = decodeURIComponent(new URL(url).pathname)
   if (init?.method === 'GET' && path.endsWith('/values/IssueReports!1:1')) return jsonResponse({ values: [headers] })
   if (init?.method === 'GET' && path.endsWith('/values/IssueReports!A:A')) return jsonResponse({ values: [['IssueReportID'], ...rows.map((row) => [row[0]])] })
+  if (init?.method === 'GET' && path.endsWith('/gviz/tq')) {
+    return jsonResponse({
+      status: 'ok',
+      table: {
+        cols: headers.map((label, index) => ({ id: String.fromCharCode(65 + index), label })),
+        rows: rows.map((row) => ({
+          c: row.map((value) => (value === null ? null : { v: value })),
+        })),
+      },
+    })
+  }
   if (init?.method === 'POST' && path.endsWith('/values/IssueReports:append')) {
     const body = JSON.parse(String(init.body)) as { values: unknown[][] }
     assert.equal(body.values.length, 1)
     assert.equal(body.values[0]!.length, 9)
     rows.push(body.values[0]!)
-    return jsonResponse({ updates: { updatedData: { values: body.values } } })
+    return jsonResponse({ updates: { updatedRows: body.values.length, updatedData: { values: body.values } } })
   }
   throw new Error(`Unexpected request: ${init?.method} ${path}`)
 }) as typeof fetch

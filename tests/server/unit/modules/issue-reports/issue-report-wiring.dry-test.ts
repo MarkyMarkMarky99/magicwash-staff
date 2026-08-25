@@ -34,6 +34,6 @@ assert.equal(collectionDelete.status, 405)
 assert.equal(collectionDelete.headers?.Allow, 'GET, POST')
 const itemDelete = await issueReportModule.issueReportRoutes.item!.handleRequest({ method: 'DELETE', query: {}, body: undefined, headers: {}, params: { id: 'ISS-3f8a1c92' } })
 assert.equal(itemDelete.status, 405)
-assert.equal(itemDelete.headers?.Allow, 'PATCH')
+assert.equal(itemDelete.headers?.Allow, 'GET, PATCH')
 
 console.log('issue-report wiring dry test passed')
