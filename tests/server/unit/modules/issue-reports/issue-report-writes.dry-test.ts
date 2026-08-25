@@ -66,8 +66,8 @@ try {
   assert.deepEqual(rows[0]!.slice(1, 5), ['Broken dryer', 'Stops after five minutes', 'OPEN', ''])
   assert.match(String(rows[0]![5]), /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
   assert.equal(rows[0]![6], 'staff-1')
-  assert.equal(rows[0]![7], null)
-  assert.equal(rows[0]![8], null)
+  assert.equal(rows[0]![7], '')
+  assert.equal(rows[0]![8], '')
 
   const onlyUpdatedBy = await issueReportRoutes.item!.handleRequest(request('PATCH', { updatedBy: 'staff-2' }, { id: String(rows[0]![0]) }))
   assert.equal(onlyUpdatedBy.status, 422)
