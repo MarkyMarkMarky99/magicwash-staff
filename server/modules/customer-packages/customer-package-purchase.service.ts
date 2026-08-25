@@ -50,8 +50,14 @@ export class CustomerPackagePurchaseService {
     if (catalogRows.length === 0) return { kind: 'validation_error', issues: [{ path: 'packageCode', message: 'unknown package code' }] }
     if (catalogRows.length > 1) return { kind: 'catalog_read_failed', packageCode: request.packageCode, message: 'duplicate package_code in catalog' }
     const catalog = catalogRows[0]
-    if (typeof catalog.deleted_at === 'string' && catalog.deleted_at.trim() !== '') return { kind: 'validation_error', issues: [{ path: 'packageCode', message: 'package is retired from sale' }] }
-    const raw = catalog.included_credit
+    const deletedAt: unknown = catalog.deleted_at
+    if (deletedAt !== null && deletedAt !== undefined) {
+      if (typeof deletedAt !== 'string') return { kind: 'catalog_read_failed', packageCode: request.packageCode, message: 'catalog row has invalid deleted_at' }
+      if (deletedAt.trim() !== '') return { kind: 'validation_error', issues: [{ path: 'packageCode', message: 'package is retired from sale' }] }
+    }
+    // GViz rows are not runtime-validated; this can be null or dirty text despite
+    // the physical row schema declaring the intended numeric column type.
+    const raw: unknown = catalog.included_credit
     const isEmpty = raw === null || raw === undefined || (typeof raw === 'string' && raw.trim() === '')
     const openingCredit = isEmpty ? Number.NaN : typeof raw === 'number' ? raw : Number(raw)
     if (isEmpty) return { kind: 'catalog_read_failed', packageCode: request.packageCode, message: 'catalog row has no included_credit' }
