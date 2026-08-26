@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import * as appointmentApi from '../../../../../contracts/appointments/appointment-api.schema.js'
 
-const deprecatedSchemaNames = ['appointmentCreateSchema', 'appointmentUpdateSchema'] as const
+const deprecatedSchemaNames = ['appointment' + 'CreateSchema', 'appointment' + 'UpdateSchema'] as const
 const canonicalSchemaNames = [
   'createAppointmentRequestSchema',
   'updateAppointmentRequestSchema',
@@ -12,7 +12,7 @@ const canonicalSchemaNames = [
 const filesThatMustNotUseDeprecatedNames = [
   new URL('../../../../../contracts/appointments/appointment-api.schema.ts', import.meta.url),
   new URL('../../../../../server/modules/appointments/appointment.service.ts', import.meta.url),
-  new URL('../../../modules/appointments/appointment-write.fixtures.ts', import.meta.url),
+  new URL('../../modules/appointments/appointment-write.fixtures.ts', import.meta.url),
 ]
 
 for (const deprecatedSchemaName of deprecatedSchemaNames) {
