@@ -63,5 +63,6 @@ export const invoiceRoutes: GatewayModuleRoutes = {
   }),
   item: new ApiHandler({
     GET: async (req) => ok(await invoiceService.getById(req.params.id)),
+    PATCH: async (req) => ok(await invoiceService.update(req.params.id, req.body)),
   }),
 }

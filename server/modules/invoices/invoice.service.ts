@@ -1,11 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import type { z } from 'zod'
 import {
+  invoiceApiContract,
   invoiceCreateSchema,
+  invoiceStatusUpdateSchema,
   type CreateInvoiceResponse,
   type InvoiceAdjustmentInput,
+  type UpdateInvoiceResponse,
 } from '../../../contracts/invoices/invoice-api.schema.js'
-import { invoiceViewApiContract } from '../../../contracts/invoices/invoice-view-api.schema.js'
 import {
   computeInvoiceLine,
   computeInvoiceTotal,
@@ -37,6 +39,7 @@ import {
 import { Mapper, type ApiRowFromFieldMap } from '../../shared/repositories/base.repository.js'
 import { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
+import { ApiError } from '../../shared/http/api-error.js'
 import type { ApiQueryParams } from '../../shared/http/api-handler.js'
 import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
 
@@ -177,6 +180,7 @@ function classifyWriteFailure(error: unknown): WriteFailure {
 export interface InvoiceHeaderPort {
   read(query?: ReadQueryDTO<Partial<InvoicesDbRow>>): Promise<Array<Partial<InvoicesDbRow>>>
   append(data: Partial<InvoicesDbRow>): Promise<unknown>
+  update(keyValue: string, patch: Partial<InvoicesDbRow>): Promise<unknown>
 }
 export interface InvoiceItemWriter {
   batchAppend(rows: Array<Partial<InvoiceItemsDbRow>>): Promise<unknown[]>
@@ -226,9 +230,16 @@ function mapInvoicesViewRowToApi(
 }
 
 type InvoiceViewApiRow = ApiRowFromFieldMap<InvoicesViewDbRow, typeof invoicesViewFieldMap>
-type InvoiceViewListQuery = z.infer<typeof invoiceViewApiContract.query.list>
-type InvoiceViewListResponse = z.infer<typeof invoiceViewApiContract.response.list>
-type InvoiceViewDetailResponse = z.infer<typeof invoiceViewApiContract.response.detail>
+const invoiceReadContract = {
+  query: invoiceApiContract.query,
+  response: {
+    list: invoiceApiContract.response.list,
+    detail: invoiceApiContract.response.detail,
+  },
+}
+type InvoiceViewListQuery = z.infer<typeof invoiceReadContract.query.list>
+type InvoiceViewListResponse = z.infer<typeof invoiceReadContract.response.list>
+type InvoiceViewDetailResponse = z.infer<typeof invoiceReadContract.response.detail>
 
 /** Read-only injection seam. The production getter returns DB-shaped rows;
  * adapters may inject a reader whose rows are already API-shaped. The shared
@@ -335,7 +346,7 @@ export class InvoiceService {
       // rest of the row (customer, items, adjustments, payments) is
       // serialized JSON.
       repository: this.invoiceViewRepository,
-      api: invoiceViewApiContract,
+      api: invoiceReadContract,
       searchFields: ['invoiceNumber', 'customerId'],
       fieldMap: invoicesViewFieldMap,
       jsonColumns: invoicesViewJsonColumns,
@@ -543,6 +554,49 @@ export class InvoiceService {
     }
   }
 
+  async update(invoiceNumber: string, payload: unknown): Promise<UpdateInvoiceResponse> {
+    const request = parseOrThrow(invoiceStatusUpdateSchema, payload)
+    if (invoiceNumber.trim() === '') {
+      throw ApiError.notFound('Invoice number is required')
+    }
+
+    const rows = await this.invoiceRepository().read({ select: ['invoice_number', 'status'] })
+    const invoice = rows.find((row) => row.invoice_number === invoiceNumber)
+    if (invoice === undefined) {
+      throw ApiError.notFound(`Invoice '${invoiceNumber}' not found`)
+    }
+
+    if (invoice.status !== request.status) {
+      if (invoice.status !== 'ISSUED') {
+        throw ApiError.conflict(`Invoice '${invoiceNumber}' cannot transition from ${invoice.status}`)
+      }
+
+      try {
+        await this.invoiceRepository().update(invoiceNumber, {
+          status: request.status,
+          updated_by: 'staff',
+        })
+      } catch (error) {
+        const failure = classifyWriteFailure(error)
+        throw ApiError.internal(failure.message, {
+          stage: 'invoice_status_write',
+          certainty: failure.certainty,
+        })
+      }
+    }
+
+    try {
+      const viewSync = await this.syncInvoiceView(invoiceNumber)
+      return {
+        invoiceNumber,
+        status: request.status,
+        viewSynced: viewSync.outcome === 'confirmed',
+      }
+    } catch {
+      return { invoiceNumber, status: request.status, viewSynced: false }
+    }
+  }
+
   /**
    * List invoices. `dateFrom`/`dateTo` are a range filter against
    * `issuedDate`, not a literal equality column — see `listWithDateRange`'s
@@ -579,7 +633,7 @@ export class InvoiceService {
   private async listWithDateRange(
     query: ApiQueryParams,
   ): Promise<ServiceListResult<InvoiceViewListResponse>> {
-    const validQuery = parseOrThrow(invoiceViewApiContract.query.list, query)
+    const validQuery = parseOrThrow(invoiceReadContract.query.list, query)
 
     // dateFrom/dateTo are intentionally omitted from the DB query: they are
     // range semantics applied below in JavaScript, not physical columns.
@@ -629,7 +683,7 @@ export class InvoiceService {
     row: Record<string, unknown>,
   ): InvoiceViewListResponse {
     const output: Record<string, unknown> = {}
-    for (const field of Object.keys(invoiceViewApiContract.response.list.shape)) {
+    for (const field of Object.keys(invoiceReadContract.response.list.shape)) {
       output[field] = row[field]
     }
     return output as InvoiceViewListResponse
