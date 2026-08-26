@@ -53,7 +53,6 @@ export const createAppointmentRequestSchema = z.object({
   notes: z.string().nullish(),
   createdBy: z.string().min(1),
 })
-export const appointmentCreateSchema = createAppointmentRequestSchema
 
 // ── Update: every mutable field optional, updatedBy required, at least one change.
 //    "At least one change" is derived from the data itself — any defined field other
@@ -74,7 +73,6 @@ export const updateAppointmentRequestSchema = z
     (data) => Object.entries(data).some(([key, value]) => key !== 'updatedBy' && value !== undefined),
     { message: 'At least one updatable field is required' },
   )
-export const appointmentUpdateSchema = updateAppointmentRequestSchema
 
 // ── List query: validates/coerces/defaults the raw URL params in one pass.
 //    Its inferred output — the AppointmentFilter the repository consumes — is

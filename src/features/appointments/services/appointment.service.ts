@@ -2,12 +2,12 @@ import type { z } from 'zod'
 import {
   appointmentDetailResponseSchema,
   appointmentCreateResponseSchema,
-  appointmentCreateSchema,
+  createAppointmentRequestSchema,
   appointmentWriteFailureCertaintySchema,
   appointmentListQuerySchema,
   appointmentListResponseSchema,
   appointmentUpdateResponseSchema,
-  appointmentUpdateSchema,
+  updateAppointmentRequestSchema,
 } from '@contracts/appointments/appointment-api.schema'
 import { apiErrorResponseSchema } from '@contracts/shared/api.schema'
 import { apiGet, apiGetList, ApiError, type ListResult } from '@/shared/api/api-client'
@@ -15,8 +15,8 @@ import { normalizeSheetDate } from '@/shared/utils/sheet-date'
 
 const APPOINTMENTS_ENDPOINT = '/api/appointments'
 
-type AppointmentCreateRequest = z.input<typeof appointmentCreateSchema>
-type AppointmentUpdateRequest = z.input<typeof appointmentUpdateSchema>
+type AppointmentCreateRequest = z.input<typeof createAppointmentRequestSchema>
+type AppointmentUpdateRequest = z.input<typeof updateAppointmentRequestSchema>
 type AppointmentListQuery = z.input<typeof appointmentListQuerySchema>
 type AppointmentWriteFailureCertainty = z.infer<typeof appointmentWriteFailureCertaintySchema>
 
@@ -80,7 +80,7 @@ export function createAppointment(
 ): Promise<AppointmentCreateDto> {
   return appointmentWrite<AppointmentCreateDto>(APPOINTMENTS_ENDPOINT, 'POST', {
     data: { ...data, createdBy: LEGACY_APPOINTMENT_ACTOR },
-    requestSchema: appointmentCreateSchema,
+    requestSchema: createAppointmentRequestSchema,
   })
 }
 
@@ -94,7 +94,7 @@ export function updateAppointment(
     'PATCH',
     {
       data: { ...data, updatedBy: LEGACY_APPOINTMENT_ACTOR },
-      requestSchema: appointmentUpdateSchema,
+      requestSchema: updateAppointmentRequestSchema,
     },
   )
 }

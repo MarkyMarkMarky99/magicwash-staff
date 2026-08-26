@@ -6,9 +6,10 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@contracts/*": ["contracts/*"]
+      "@contracts/*": ["contracts/*"],
+      "@shared/*": ["shared/*"]
     }
   },
-  "include": ["src/**/*.js", "src/**/*.ts", "src/**/*.vue", "contracts/**/*.ts"],
+  "include": ["src/**/*.js", "src/**/*.ts", "src/**/*.vue", "contracts/**/*.ts", "shared/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

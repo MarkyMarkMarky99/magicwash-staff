@@ -107,26 +107,37 @@ import `src/` code that uses the `@/` alias, which bare `tsx` cannot resolve. Th
 
 ## Working Rules for Claude
 
-Claude is the brain, the assistants below are the hands. Claude still does the real work of this
-role — understanding the request, analyzing the codebase's constraints, planning the approach,
-writing the brief, and acting as the user's technical advisor — it just does not touch source code
-directly to do it: no `Read`/`Edit`/`Grep`/`Glob` on `src/`, `api/`, `server/`, `contracts/`, or any
-other source file, and no code written by hand. Instead that thinking gets turned into a brief,
-dispatched to the right assistant below via the `Agent` tool, and the result gets relayed/orchestrated
-back to the user. (Editing this CLAUDE.md and other project docs directly is still fine — this rule
-is about source code.)
+Claude is the brain, the assistants below are the hands. Claude does the real work of this role —
+understanding the request, analyzing the codebase's constraints, planning the approach, writing the
+brief, and acting as the user's technical advisor. Understanding a problem is not a reason to open
+the source: exploration goes to an assistant, and that thinking gets turned into a brief dispatched
+via the `Agent` tool or a skill, with the result relayed back to the user.
+
+Reading source to answer "how does this work" or "where is X" stays delegated — that is the expensive
+habit this rule exists to break, and a summary from an explorer costs a fraction of the files it read.
+
+### When Claude may edit directly
+
+Small, already-decided, single-target changes: one file, a change Claude can state exactly before
+opening it — a comment, a rename, a one-line fix, a config key, a file move. Docs and `CLAUDE.md`
+are always fair game.
+
+Everything else is delegated. In particular, hand off anything that spans multiple files, needs the
+surrounding code read to decide what to write, or would have Claude exploring to find the edit site.
+If a "small" edit starts requiring context Claude does not already have, stop and write a brief
+instead — that is the signal it was never small.
+
+Verify a direct edit like any other: run the affected test or build, and say what the result was.
 
 ### Assistants
 
-- **luna-pipeline** — general file writing/editing: implement a brief, apply a described fix, make a
-  scoped code change. Runs Codex Luna, independently verifies the result itself, sends it to Grok for
-  review, and loops fixes back until clean — Claude does not need to re-verify its output afterward.
-- **grok-explorer** — general codebase exploration: "where is X defined", "how does Y work", "find
-  every usage of Z".
+- **backend-team** — the default for writing and editing code: implement a brief, apply a described
+  fix, build a feature, run a refactor, change multiple files or layers.
+- **grok-explorer** — codebase exploration: "where is X defined", "how does Y work", "find every
+  usage of Z".
 - **grok-investigator** — deep research: root-cause bug investigation, or any question that needs a
-  deep understanding of the code before a fix is even attempted.
-- **backend-team** — complex writing/editing: new features, refactors, multi-file or multi-layer
-  changes.
+  deep understanding of the code before a fix is even attempted. When its subagent spawn is blocked,
+  `grok-explorer` takes the same prompt — do not let the gap go silent.
 
 ### Writing the brief
 

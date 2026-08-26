@@ -3,7 +3,7 @@ import {
   computeInvoiceLine,
   computeInvoiceTotal,
   roundMoney,
-} from '../../../contracts/invoices/invoice-calculator.js'
+} from '../../../shared/utils/invoice-calculator.js'
 
 const tests: Array<{ name: string; run: () => Promise<void> | void }> = []
 

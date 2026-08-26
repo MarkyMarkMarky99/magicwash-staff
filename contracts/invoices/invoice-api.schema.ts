@@ -11,7 +11,7 @@ import { z } from 'zod'
  * `SheetRepository` and the Sheets API; the module service owns their
  * DB-to-API mapping. The arithmetic both this request and the write
  * payload rely on lives once, in
- * `contracts/invoices/invoice-calculator.ts`, imported by both the server
+ * `shared/utils/invoice-calculator.ts`, imported by both the server
  * (authoritative) and the client (live preview) — never duplicated.
  */
 

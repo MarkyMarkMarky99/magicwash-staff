@@ -2,7 +2,7 @@
 /**
  * Presentation only — props in, events out. Reused at both invoice level and
  * per-line level; the two levels apply the same shape with different
- * arithmetic (see `contracts/invoices/invoice-calculator.ts`), but this
+ * arithmetic (see `shared/utils/invoice-calculator.ts`), but this
  * component doesn't know or care which — it just edits a list of rows.
  */
 import type { AdjustmentFormRow } from '../types/invoice-create.types'

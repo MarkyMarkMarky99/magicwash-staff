@@ -45,3 +45,9 @@ Avoid direct dependencies between unrelated features.
 Keep code inside its owning feature unless it is genuinely reusable across multiple features.
 
 Cross-feature reusable code belongs in `src/shared/`.
+
+Code the backend must execute identically belongs in the repository-root `shared/`
+instead — a calculation whose result the UI previews and the backend stores. Two copies
+of one rule diverge silently.
+
+`src/shared/` is frontend-only; root `shared/` is the only folder both runtimes import.

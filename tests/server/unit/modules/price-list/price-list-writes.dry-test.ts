@@ -327,6 +327,9 @@ await withMockSheets(async (calls) => {
   assert.deepEqual(afterUpdate, updated)
 
   const beforeMissingUpdate = calls.length
+  const beforeMissingUpdateWritePosts = calls.filter(
+    (call) => call.init?.method === 'POST' && call.url.includes('sheets.googleapis.com'),
+  ).length
   assertApiError(
     await priceListRoutes.item!.handleRequest(
       request('PATCH', { active: false }, { id: 'ffffffff' }),
@@ -335,6 +338,11 @@ await withMockSheets(async (calls) => {
     'NOT_FOUND',
   )
   assert.equal(calls.length > beforeMissingUpdate, true)
+  assert.equal(
+    calls.filter((call) => call.init?.method === 'POST' && call.url.includes('sheets.googleapis.com'))
+      .length,
+    beforeMissingUpdateWritePosts,
+  )
 
   const beforeMissingPathId = calls.length
   assertApiError(
