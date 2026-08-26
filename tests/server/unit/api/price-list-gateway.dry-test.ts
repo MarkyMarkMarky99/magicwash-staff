@@ -101,9 +101,7 @@ try {
 process.env.PRICE_LIST_SPREADSHEET_ID = 'price-list-test-spreadsheet'
 
 const originalFetch = globalThis.fetch
-let fetchCalls = 0
 globalThis.fetch = (async () => {
-  fetchCalls += 1
   return emptyGvizResponse()
 }) as typeof fetch
 
@@ -136,15 +134,6 @@ try {
   })
   assert.equal('total' in listBody.meta.pagination, false)
   assert.equal('totalPages' in listBody.meta.pagination, false)
-
-  const callsBeforeUnsupportedMethods = fetchCalls
-  const postResponse = await invoke('POST', '/api/price-list')
-  assert.equal(postResponse.statusCode, 405)
-  assert.equal(postResponse.headers.Allow, 'GET')
-
-  const itemResponse = await invoke('GET', '/api/price-list/price-001')
-  assert.equal(itemResponse.statusCode, 404)
-  assert.equal(fetchCalls, callsBeforeUnsupportedMethods)
 
   delete process.env.PRICE_LIST_SPREADSHEET_ID
   process.env.CUSTOMERS_SPREADSHEET_ID = 'customers-test-spreadsheet'

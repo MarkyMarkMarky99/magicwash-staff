@@ -10,7 +10,7 @@ import {
   computeInvoiceLine,
   computeInvoiceTotal,
   roundMoney,
-} from '../../../contracts/invoices/invoice-calculator.js'
+} from '../../../shared/utils/invoice-calculator.js'
 import { getInvoicesRepository } from '../../sheets/Invoices/Invoices.repository.js'
 import { invoicesRowSchema } from '../../sheets/Invoices/Invoices.db-contract.js'
 import { getInvoiceItemsRepository } from '../../sheets/InvoiceItems/InvoiceItems.repository.js'

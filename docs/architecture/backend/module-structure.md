@@ -43,4 +43,10 @@ Keep module-specific logic inside its owning module.
 
 Move code to `server/shared/` only when it is genuinely reusable across multiple modules.
 
+Move it to the repository-root `shared/` instead when the frontend must execute the same
+logic — a calculation whose result the UI previews and the backend stores. Two copies of
+one rule diverge silently.
+
+`server/shared/` is backend-only; root `shared/` is the only folder both runtimes import.
+
 Do not create layers merely for structural consistency.

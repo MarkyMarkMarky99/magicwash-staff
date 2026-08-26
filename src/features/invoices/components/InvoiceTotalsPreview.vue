@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Presentation only. Numbers are computed by the page (using the shared
- * `contracts/invoices/invoice-calculator.ts`), never here — this component
+ * `shared/utils/invoice-calculator.ts`), never here — this component
  * only formats and displays what it's given.
  */
 defineProps<{
