@@ -12,7 +12,7 @@ const canonicalSchemaNames = [
 const filesThatMustNotUseDeprecatedNames = [
   new URL('../../../../../contracts/appointments/appointment-api.schema.ts', import.meta.url),
   new URL('../../../../../server/modules/appointments/appointment.service.ts', import.meta.url),
-  new URL('../../../../modules/appointments/appointment-write.fixtures.ts', import.meta.url),
+  new URL('../../../modules/appointments/appointment-write.fixtures.ts', import.meta.url),
 ]
 
 for (const deprecatedSchemaName of deprecatedSchemaNames) {
