@@ -1,4 +1,3 @@
-```md
 ---
 last_audited: 2026-08-26
 audit_sources:
@@ -117,4 +116,3 @@ Mapping between the two belongs in the backend module/service.
 - `docs/conventions/contracts.md`
 - `docs/architecture/frontend/feature-structure.md`
 - `docs/architecture/backend/module-structure.md`
-```

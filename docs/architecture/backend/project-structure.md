@@ -3,6 +3,7 @@ last_audited: 2026-08-26
 audit_sources:
   - api/[...path].ts
   - server/api/route-registry.ts
+  - server/shared/http/crud-routes.ts
   - server/modules/customers/customer.module.ts
   - server/modules/invoices/invoice.service.ts
   - server/sheets/Customers/Customers.repository.ts
@@ -77,5 +78,6 @@ Persistence must not depend on business modules or frontend concerns.
 
 - `module-structure.md` — internal structure of backend modules
 - `persistence.md` — sheet contracts and repositories
-- `api-routing.md` — gateway and route registry
-- `data-flow.md` — backend request and response flow
+- `service-layer.md` — routes, services, and DB-to-API mapping
+
+Route registration lives in `server/api/route-registry.ts`: each key is the URL segment and each value is a lazy `import()` of the module's exported routes.

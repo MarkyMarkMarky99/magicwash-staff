@@ -62,7 +62,8 @@ Features
 
 ## Related Documentation
 
-- `module-structure.md` — internal structure of frontend features
-- `data-flow.md` — frontend data flow
-- `routing.md` — routing architecture
-- `state-management.md` — state ownership and Pinia usage
+- `feature-structure.md` — internal structure of frontend features
+- `../../conventions/components.md` — shared vs feature component ownership
+- `../../design/patterns/forms.md` — routed form pages and shared form controls
+
+Feature routes are aggregated by spreading each feature's exported `*Routes` array into `src/router/index.js`; there are no nested `children` routes.

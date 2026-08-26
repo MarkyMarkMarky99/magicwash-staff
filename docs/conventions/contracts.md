@@ -1,4 +1,3 @@
-```md
 ---
 last_audited: 2026-08-26
 audit_sources:
@@ -73,4 +72,3 @@ Do not put API field mappings inside DB contracts.
 - `docs/conventions/naming.md`
 - `docs/architecture/backend/service-layer.md`
 - `docs/architecture/backend/persistence.md`
-```
