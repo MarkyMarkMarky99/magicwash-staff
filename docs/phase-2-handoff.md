@@ -148,7 +148,7 @@ note ใต้ §2.6 ในแผน
 รับ notification แบบนั้น) ต้องส่งข้อความสั่งให้กลับไปทำต่อ รอบสองมันแก้ปัญหาได้เองถูกต้อง —
 เช็ค `git status` ก่อน, รัน verify เองแทนที่จะเชื่อผลจาก codex session ที่ยังไม่เสถียร (เจอ
 `CreateProcessAsUserW 1312` ระหว่างทางอีกแต่ฟื้นเองได้) แล้ว mutation-test ครบทั้ง 4 guard จริง
-⇒ **ต้องอ่าน result ของ `luna-pipeline` ก่อนเชื่อว่า "เสร็จ" เสมอ** ถ้ารายงานไม่มี verification
+⇒ **ต้องอ่าน result ของตัวที่รับงานก่อนเชื่อว่า "เสร็จ" เสมอ** ถ้ารายงานไม่มี verification
 output จริงและไม่มี grok verdict ให้ resume สั่งทำต่อ อย่าเพิ่งรายงานผู้ใช้ว่าเสร็จ
 
 **§2.7 คือครั้งแรกที่ตัวแผนเองเปลี่ยนพฤติกรรมบน live path** ต่างจาก §2.2–2.6 ที่เป็น building
@@ -769,13 +769,23 @@ transport ใหม่** (เขียน 1 แถว → ตรวจ → ย�
 
 ## 3. วิธีทำงาน — สามฝ่าย
 
-| ใคร | ทำอะไร |
+> **⚠ หมวดนี้เป็นบันทึกของ phase 2 ไม่ใช่วิธีทำงานปัจจุบัน (ปรับปรุง 2026-08-27)**
+>
+> `luna-pipeline` และ `test-pipeline` **ถูกลบไปแล้ว** ไฟล์ agent ไม่มีอยู่จริงอีกต่อไป และหมวด
+> **Delegating code to Codex luna** ใน `CLAUDE.md` ก็ไม่มีแล้วเช่นกัน
+>
+> วิธีทำงานที่ใช้จริงอยู่ใน `CLAUDE.md` หมวด **Working Rules for Claude** — โดยสรุปคือ
+> `backend-team` เป็นค่าเริ่มต้นของงานเขียน/แก้โค้ด, `grok-explorer` / `grok-investigator`
+> สำหรับสำรวจและสืบสาเหตุ, และ Claude แก้เองได้เฉพาะงานเล็กเป้าหมายเดียว
+>
+> **บทเรียนในหมวดนี้ยังใช้ได้ทั้งหมด** — เปลี่ยนแค่ชื่อเครื่องมือ อ่านคำว่า "luna" เป็น
+> "ตัวที่เขียนโค้ดให้" และ "pipeline" เป็น "ด่านตรวจรับก่อนถึง Claude"
+
+| ใคร | ทำอะไร (ตามที่ใช้ใน phase 2) |
 |---|---|
 | **Claude** | เขียน brief, ตัดสินใจเชิงสถาปัตยกรรม, **ตรวจงาน** — ไม่แก้โค้ดเอง |
 | **Codex `gpt-5.6-luna`** | เขียนและแก้โค้ดทั้งหมด |
 | **Grok** | สำรวจโค้ด, สืบหาสาเหตุบั๊ก, audit — ไม่แก้อะไร |
-
-คำสั่งเรียกอยู่ใน `CLAUDE.md` หมวด **Delegating code to Codex luna** — อ่านก่อนเริ่ม
 
 **subagent `luna-pipeline`** (`.claude/agents/luna-pipeline.md`, local เท่านั้น — ไม่ push
 เพราะ `.claude/` อยู่ใน `.gitignore`) ทำ loop dispatch→verify→grok review→ส่งกลับไปแก้ที่ luna
@@ -799,8 +809,9 @@ finding), §2.6 (จบ turn ตัวเองก่อนเสร็จรอ
 Claude หลักเชื่อรายงานแล้วเดินต่อ** กฎ "ห้ามเชื่อรายงานของ agent" ในเอกสารนี้หมายถึง **luna
 กับ grok** ไม่ได้หมายถึงตัว sonnet wrapper ซึ่งมีหน้าที่เป็นคนที่ใช้ความไม่เชื่อนั้นไปแล้ว
 
-⇒ **เวลารายงานของ pipeline ดูไม่พอ ให้ไปแก้ที่ `.claude/agents/luna-pipeline.md` ไม่ใช่มา
-ตรวจเองซ้ำ หรือแปะคำสั่งพิเศษเพิ่มใน prompt ทุกครั้ง**
+⇒ **เวลารายงานของ pipeline ดูไม่พอ ให้ไปแก้ที่นิยามของตัวที่รับงาน ไม่ใช่มาตรวจเองซ้ำ หรือ
+แปะคำสั่งพิเศษเพิ่มใน prompt ทุกครั้ง** (ตอนนั้นคือ `.claude/agents/luna-pipeline.md` ซึ่งลบไปแล้ว
+— ปัจจุบันคือ `.claude/skills/backend-team/SKILL.md`)
 
 สิ่งที่อุดเข้าไปแล้วรอบ 2026-08-10 (เดิมขาด ทำให้ต้องสั่งเสริมเองทุกครั้ง):
 - รัน **ชุด dry-test ของ server ทั้งหมด** ไม่ใช่แค่ไฟล์ที่ luna แตะ (เดิมพลาดมาแล้วที่ §2.7 —
@@ -1010,7 +1021,7 @@ scratchpad โฟลเดอร์เดียวกัน · Luna ฝั่ง
 sonnet wrapper" ตั้งอยู่บนสมมติฐานว่า pipeline ทำงานในกรอบ ซึ่งรอบนั้นไม่จริง) **แต่แล้วลงมือ
 mutation test เอง ซึ่งต้องแก้ไฟล์ production** · ข้อยกเว้น "แก้ได้เฉพาะ mutation test ที่ revert
 เสมอ" เขียนไว้สำหรับ **pipeline** ไม่ได้เขียนไว้สำหรับ Claude
-⇒ ข้อสรุปที่ถูกควรนำไปสู่ **"เรียก `test-pipeline` Phase B"** ไม่ใช่ **"ลงมือเอง"**
+⇒ ข้อสรุปที่ถูกควรนำไปสู่ **"สั่งตัวที่รับงานให้ทำ mutation test"** ไม่ใช่ **"ลงมือเอง"**
 ราคาที่จ่ายจริง: `appointment.service.ts` line ending เพี้ยน 91 บรรทัด (LF→CRLF) จากการที่
 Claude ใช้ Edit แทน `apply_patch` ต้องเสียเวลาพิสูจน์ว่าไม่กระทบ
 
@@ -1103,5 +1114,4 @@ Vercel Authentication อีก — ตอนนี้ความปลอด�
 | `tests/server/integration/sheet-column-parity.ts` | ด่านเทียบ contract กับชีตจริง — ครบ 8 ชีตแล้ว |
 | `tests/server/integration/sheets-api-access-check.ts` | ยืนยัน service account auth ใช้ได้จริง (ไม่ได้พิสูจน์สิทธิ์เขียน) |
 | `tests/server/unit/sheets/writing-workbook-binding.dry-test.ts` | ชีตที่เขียนได้ ห้ามผูก `PORTAL_SPREADSHEET_ID` |
-| `.claude/agents/luna-pipeline.md` | pipeline เขียนโค้ด + **ด่านตรวจรับ** (local เท่านั้น ไม่ push) |
-| `.claude/agents/test-pipeline.md` | test architect + ด่านตรวจรับสำหรับ §2.9 (local เท่านั้น) |
+| `.claude/skills/backend-team/SKILL.md` | pipeline เขียนโค้ด + **ด่านตรวจรับ** (local เท่านั้น ไม่ push) |
