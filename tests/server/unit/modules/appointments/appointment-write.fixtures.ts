@@ -5,12 +5,12 @@ import type {
   SheetsApiValueRange,
 } from '../../../../../server/shared/repositories/sheets-api.client.js'
 import {
-  appointmentCreateSchema,
-  appointmentUpdateSchema,
+  createAppointmentRequestSchema,
+  updateAppointmentRequestSchema,
 } from '../../../../../contracts/appointments/appointment-api.schema.js'
 
-type AppointmentCreateRequest = z.input<typeof appointmentCreateSchema>
-type AppointmentUpdateRequest = z.input<typeof appointmentUpdateSchema>
+type AppointmentCreateRequest = z.input<typeof createAppointmentRequestSchema>
+type AppointmentUpdateRequest = z.input<typeof updateAppointmentRequestSchema>
 
 export interface AppointmentCreateWriteFixture {
   name: string
