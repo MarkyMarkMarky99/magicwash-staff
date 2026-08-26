@@ -44,18 +44,38 @@ assert.ok(updateSchema)
 
 assert.deepEqual(
   createSchema.parse({
-    title: '  Broken dryer  ', description: '  Stops after five minutes  ', screenshotUrl: '  proof  ', createdBy: '  staff-1  ',
+    title: '  Broken dryer  ', description: '  Stops after five minutes  ', screenshotUrl: '  https://example.com/x  ', createdBy: '  staff-1  ',
   }),
-  { title: 'Broken dryer', description: 'Stops after five minutes', screenshotUrl: 'proof', createdBy: 'staff-1' },
+  { title: 'Broken dryer', description: 'Stops after five minutes', screenshotUrl: 'https://example.com/x', createdBy: 'staff-1' },
+)
+assert.equal(
+  createSchema.parse({
+    title: 'Title', description: 'Description', screenshotUrl: 'https://drive.google.com/x', createdBy: 'staff-1',
+  }).screenshotUrl,
+  'https://drive.google.com/x',
+)
+assert.equal(
+  updateSchema.parse({ screenshotUrl: 'http://example.com/x', updatedBy: 'staff-2' }).screenshotUrl,
+  'http://example.com/x',
 )
 assert.deepEqual(
   createSchema.parse({ title: 'Title', description: 'Description', createdBy: 'staff-1', status: 'CLOSED', issueReportId: 'ISS-deadbeef' }),
   { title: 'Title', description: 'Description', createdBy: 'staff-1' },
 )
+assert.deepEqual(
+  createSchema.parse({ title: 'Title', description: 'Description', screenshotUrl: null, createdBy: 'staff-1' }),
+  { title: 'Title', description: 'Description', screenshotUrl: null, createdBy: 'staff-1' },
+)
 for (const input of [
   { title: '', description: 'Description', createdBy: 'staff-1' },
   { title: 'Title', description: ' ', createdBy: 'staff-1' },
   { title: 'Title', description: 'Description', createdBy: '' },
+  { title: 'Title', description: 'Description', screenshotUrl: 'javascript:alert(1)', createdBy: 'staff-1' },
+  { title: 'Title', description: 'Description', screenshotUrl: 'data:,', createdBy: 'staff-1' },
+  { title: 'Title', description: 'Description', screenshotUrl: 'file:///proof.png', createdBy: 'staff-1' },
+  { title: 'Title', description: 'Description', screenshotUrl: 'ftp://example.com/proof.png', createdBy: 'staff-1' },
+  { title: 'Title', description: 'Description', screenshotUrl: 'my screenshot', createdBy: 'staff-1' },
+  { title: 'Title', description: 'Description', screenshotUrl: '', createdBy: 'staff-1' },
 ]) {
   assert.throws(() => createSchema.parse(input), JSON.stringify(input))
 }
