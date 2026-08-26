@@ -4,8 +4,13 @@ import type { ModuleApiContract } from '../shared/module-api-contract.js'
 
 export const issueReportStatusSchema = z.enum(['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'])
 
-// Free-form link text: Drive/shortener URLs vary, so no .url() check.
-const screenshotUrlSchema = z.string().trim().min(1)
+const screenshotUrlSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .refine((value) => /^https?:\/\//i.test(value), {
+    message: 'screenshotUrl must start with http:// or https://',
+  })
 
 export const issueReportCreateSchema = z.object({
   title: z.string().trim().min(1),
