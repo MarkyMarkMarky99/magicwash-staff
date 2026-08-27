@@ -5,14 +5,19 @@ import { ApiError } from '../../../../../server/shared/http/api-error.js'
 import { CustomerPackageReadService } from '../../../../../server/modules/customer-packages/customer-package-read.service.js'
 
 type Row = Record<string, unknown>
-type ReadCall = { repository: string; dto: { where?: Record<string, unknown>; pagination?: unknown } }
+type ReadCall = { repository: string; dto: { id?: unknown; where?: Record<string, unknown>; pagination?: unknown } }
 
 function createService(input: { packages?: Row[]; transactions?: Row[]; catalog?: Row[]; customers?: Row[] } = {}) {
   const calls: ReadCall[] = []
   const repository = (name: string, rows: Row[]) => () => ({
     read: async (dto: ReadCall['dto']) => {
-      calls.push({ repository: name, dto })
-      return rows
+      const where = dto.id === undefined ? dto.where : { id: dto.id }
+      calls.push({ repository: name, dto: { ...dto, where } })
+      return rows.filter((row) => Object.entries(where ?? {}).every(([key, value]) =>
+        key === 'id'
+          ? String(row[key] ?? '').trim() === String(value)
+          : row[key] === value,
+      ))
     },
   })
 
