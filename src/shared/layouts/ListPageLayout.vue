@@ -11,6 +11,9 @@ const props = withDefaults(defineProps<{
   embedded?: boolean
 }>(), {
   searchPlaceholder: 'Search…',
+  // Vue casts an absent boolean prop to `false`, never `undefined`, so `showSearch`
+  // must default to `true` explicitly — otherwise no caller ever enables the search bar.
+  showSearch: true,
   searchDebounceMs: 300,
   embedded: false,
 })
@@ -21,7 +24,7 @@ const emit = defineEmits<{
 
 const { searchOpen, closeSearch } = useHeaderSearch()
 const keywordInput = ref(props.searchValue ?? '')
-const searchEnabled = computed(() => props.showSearch ?? props.searchValue !== undefined)
+const searchEnabled = computed(() => props.showSearch && props.searchValue !== undefined)
 let debounceTimer: ReturnType<typeof setTimeout> | undefined
 
 watch(
