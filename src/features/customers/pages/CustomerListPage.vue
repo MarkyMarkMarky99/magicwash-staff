@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
+import { computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { customerTypeSchema } from '@contracts/customers/customer-api.schema'
-import AppLayout from '@/shared/layouts/AppLayout.vue'
+import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
-import { useHeaderSearch } from '@/shared/composables/useHeaderSearch'
 import CustomerTypeTabs from '../components/CustomerTypeTabs.vue'
 import CustomerCard from '../components/CustomerCard.vue'
 import { useCustomerStore } from '../stores/customer.store'
@@ -16,7 +15,6 @@ const router = useRouter()
 const { customers, loading, error } = storeToRefs(customerStore)
 
 const { filter, updateFilter } = useCustomerFilterRoute()
-const { searchOpen, openSearch, closeSearch } = useHeaderSearch()
 
 // Type-tab counts: a trivial count over the full list (every customer is loaded),
 // so each tab shows the true total per type, independent of the active search.
@@ -55,102 +53,50 @@ function selectType(key: string) {
   updateFilter({ customerType: key === 'all' ? null : (key as typeof filter.value.customerType) })
 }
 
-// Local search buffer mirrors the URL keyword and pushes debounced changes up,
-// so typing (incl. Thai IME composition) never fights the async route update.
-const SEARCH_DEBOUNCE_MS = 250
-const keywordInput = ref(filter.value.keyword)
-let debounceTimer: ReturnType<typeof setTimeout> | undefined
-
-watch(
-  () => filter.value.keyword,
-  (value) => {
-    if (value !== keywordInput.value) keywordInput.value = value
-  },
-)
-
-watch(keywordInput, (value) => {
-  clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => {
-    if (value !== filter.value.keyword) updateFilter({ keyword: value })
-  }, SEARCH_DEBOUNCE_MS)
-})
-
-function clearKeyword() {
-  keywordInput.value = ''
-  clearTimeout(debounceTimer)
-  if (filter.value.keyword) updateFilter({ keyword: '' })
-}
-
 onMounted(() => {
   customerStore.loadCustomers()
-  // Reveal the search bar if a keyword is already active in the URL, so an active
-  // filter is never hidden behind a collapsed bar.
-  if (filter.value.keyword) openSearch()
 })
-
-onBeforeUnmount(() => clearTimeout(debounceTimer))
-onUnmounted(() => closeSearch())
 </script>
 
 <template>
-  <AppLayout>
-    <!-- Type tabs -->
-    <div class="flex-none bg-primary text-on-primary w-full min-w-0">
+  <ListPageLayout
+    :search-value="filter.keyword"
+    search-placeholder="Search by index, name, phone, or address…"
+    @update:search-value="updateFilter({ keyword: $event })"
+  >
+    <template #filters>
+      <div class="flex-none bg-primary text-on-primary w-full min-w-0">
       <CustomerTypeTabs :active-type="activeType" :counts="typeCounts" @select="selectType" />
-    </div>
+      </div>
+    </template>
 
-    <!-- Search bar — toggled from the header search button -->
-    <div
-      v-if="searchOpen"
-      class="flex-none bg-surface-container px-4 py-2 flex items-center gap-2 border-b border-outline-variant/20"
+    <ListContainer
+      title="Customers"
+      icon="group"
+      :count="filteredCustomers.length"
+      count-label="Customers"
+      :loading="loading"
+      :error="error"
+      :empty="filteredCustomers.length === 0"
+      empty-text="No customers"
+      :skeleton-rows="4"
     >
-      <span class="material-symbols-outlined text-on-surface-variant text-[18px] shrink-0" aria-hidden="true">search</span>
-      <input
-        v-model="keywordInput"
-        type="text"
-        placeholder="Search by index, name, phone, or address…"
-        class="flex-1 bg-transparent font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 outline-none min-w-0"
-        autofocus
+      <template #actions>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 font-label text-[10px] font-bold text-on-primary transition-colors hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          aria-label="Add customer"
+          @click="router.push({ name: 'customer-create' })"
+        >
+          <span class="material-symbols-outlined text-[16px]" aria-hidden="true">person_add</span>
+          <span>เพิ่มลูกค้า</span>
+        </button>
+      </template>
+      <CustomerCard
+        v-for="c in filteredCustomers"
+        :key="c.customerId"
+        :customer="c"
       />
-      <button
-        v-if="keywordInput"
-        type="button"
-        class="material-symbols-outlined text-on-surface-variant text-[18px] hover:text-on-surface transition-colors shrink-0"
-        aria-label="Clear search"
-        @click="clearKeyword"
-      >close</button>
-    </div>
-
-    <!-- Main content -->
-    <main class="flex-1 overflow-y-auto no-scrollbar pb-20 w-full bg-surface min-w-0">
-      <ListContainer
-        title="Customers"
-        icon="group"
-        :count="filteredCustomers.length"
-        count-label="Customers"
-        :loading="loading"
-        :error="error"
-        :empty="filteredCustomers.length === 0"
-        empty-text="No customers"
-        :skeleton-rows="4"
-      >
-        <template #actions>
-          <button
-            type="button"
-            class="inline-flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 font-label text-[10px] font-bold text-on-primary transition-colors hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            aria-label="Add customer"
-            @click="router.push({ name: 'customer-create' })"
-          >
-            <span class="material-symbols-outlined text-[15px]" aria-hidden="true">person_add</span>
-            เพิ่มลูกค้า
-          </button>
-        </template>
-        <CustomerCard
-          v-for="c in filteredCustomers"
-          :key="c.customerId"
-          :customer="c"
-        />
-      </ListContainer>
-    </main>
-  </AppLayout>
+    </ListContainer>
+  </ListPageLayout>
 </template>

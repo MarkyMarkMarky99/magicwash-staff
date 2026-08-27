@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { watch, onMounted, onUnmounted } from 'vue'
+import { watch, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import AppLayout from '@/shared/layouts/AppLayout.vue'
+import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import { useHeaderSearch } from '@/shared/composables/useHeaderSearch'
 import InvoiceFilterBar from '../components/InvoiceFilterBar.vue'
@@ -21,7 +21,7 @@ const {
 } = storeToRefs(invoiceStore)
 
 const { filter, updateFilter } = useInvoiceFilterRoute()
-const { searchOpen, openSearch, closeSearch } = useHeaderSearch()
+const { searchOpen } = useHeaderSearch()
 
 const INVOICE_STATUSES: InvoiceStatusDto[] = [
   'DRAFT',
@@ -56,14 +56,9 @@ watch(
   { immediate: true },
 )
 
-// Reveal the search bar on load if a search/date filter is already active in the
-// URL, so an active filter is never hidden behind a collapsed bar.
 onMounted(() => {
-  const { keyword, dateFrom, dateTo } = filter.value
-  if (keyword || dateFrom || dateTo) openSearch()
+  if (filter.value.dateFrom || filter.value.dateTo) searchOpen.value = true
 })
-
-onUnmounted(() => closeSearch())
 
 function openInvoice(invoice: InvoiceListItemDto) {
   router.push({ name: 'invoice-detail', params: { invoiceNumber: invoice.invoiceNumber } })
@@ -71,31 +66,51 @@ function openInvoice(invoice: InvoiceListItemDto) {
 </script>
 
 <template>
-  <AppLayout>
-    <InvoiceFilterBar
-      :filter="filter"
-      :tabs="statusFilters"
-      :search-open="searchOpen"
-      @filter-change="updateFilter"
-    />
-
-    <main class="flex-1 overflow-y-auto no-scrollbar pb-20 w-full bg-surface min-w-0">
-      <ListContainer
-        title="Invoices"
-        icon="receipt_long"
-        :count="total"
-        count-label="Invoices"
-        :loading="loading"
-        :error="error"
-        :empty="invoices.length === 0"
-        empty-text="No invoices"
-        :skeleton-rows="4"
-      >
-        <InvoiceTable
-          :invoices="invoices"
-          @select="openInvoice"
+  <ListPageLayout
+    :search-value="filter.keyword"
+    search-placeholder="Search invoice number or customer ID…"
+    @update:search-value="updateFilter({ keyword: $event })"
+  >
+    <template #filters>
+      <div class="invoice-list-filter-seam">
+        <InvoiceFilterBar
+          :filter="filter"
+          :tabs="statusFilters"
+          :search-open="searchOpen"
+          @filter-change="updateFilter"
         />
-      </ListContainer>
-    </main>
-  </AppLayout>
+      </div>
+    </template>
+
+    <ListContainer
+      title="Invoices"
+      icon="receipt_long"
+      :count="total"
+      count-label="Invoices"
+      :loading="loading"
+      :error="error"
+      :empty="invoices.length === 0"
+      empty-text="No invoices"
+      :skeleton-rows="4"
+    >
+      <InvoiceTable
+        :invoices="invoices"
+        @select="openInvoice"
+      />
+    </ListContainer>
+  </ListPageLayout>
 </template>
+
+<style scoped>
+.invoice-list-filter-seam :deep(section > div:nth-child(2) > span:first-child),
+.invoice-list-filter-seam :deep(section > div:nth-child(2) > input),
+.invoice-list-filter-seam :deep(section > div:nth-child(2) > button[aria-label='Clear search']),
+.invoice-list-filter-seam :deep(section > div:nth-child(2) > span.w-px) {
+  display: none;
+}
+
+.invoice-list-filter-seam :deep(section > div:nth-child(2) > button[aria-label='Show filters']),
+.invoice-list-filter-seam :deep(section > div:nth-child(2) > button[aria-label='Hide filters']) {
+  margin-left: auto;
+}
+</style>
