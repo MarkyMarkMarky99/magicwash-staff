@@ -38,6 +38,9 @@ function serviceWithOrderLinkError(error: unknown): InvoiceService {
     async append(data) {
       return data
     },
+    async update(_id, data) {
+      return data
+    },
   }
   const orderFormRepository: OrderFormWriter = {
     async update() {

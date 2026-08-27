@@ -42,6 +42,9 @@ function createService(config: FakeConfig = {}): Fakes {
       calls.push('Invoice.create')
       return { ...data }
     },
+    async update(_id, data) {
+      return data
+    },
   }
 
   const invoiceItemRepository: InvoiceItemWriter = {

@@ -2,7 +2,7 @@ import type { z } from 'zod'
 import { ApiHandler } from '../../shared/http/api-handler.js'
 import type { GatewayModuleRoutes } from '../../shared/http/gateway.types.js'
 import type { ApiResult } from '../../shared/http/response.js'
-import type { appendPackageTransactionResponseSchema } from '../../../contracts/customer-packages/package-transaction-api.schema.js'
+import type { appendPackageTransactionResponseSchema } from '../../../contracts/customer-packages/customer-package-api.schema.js'
 import { packageTransactionService } from './package-transaction.service.js'
 
 type AppendPackageTransactionResponse = z.infer<typeof appendPackageTransactionResponseSchema>

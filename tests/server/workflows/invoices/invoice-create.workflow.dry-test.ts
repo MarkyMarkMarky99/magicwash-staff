@@ -60,6 +60,9 @@ async function main(): Promise<void> {
       persistedInvoiceCommand = data
       return { ...data }
     },
+    async update(_id, data) {
+      return data
+    },
   }
   const orderFormRepository: OrderFormWriter = {
     async update(id, data) {

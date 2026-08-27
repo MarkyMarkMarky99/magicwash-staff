@@ -6,7 +6,7 @@ import {
   customerPackageListQuerySchema,
   customerPackageStatusSchema,
   customerPackageSortFieldSchema,
-} from '@contracts/customer-packages/customer-package-view-api.schema'
+} from '@contracts/customer-packages/customer-package-api.schema'
 
 export type CustomerPackageFilter = z.infer<typeof customerPackageListQuerySchema>
 type CustomerPackageStatus = z.infer<typeof customerPackageStatusSchema>

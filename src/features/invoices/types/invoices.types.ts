@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import {
   invoiceListResponseSchema,
-  invoiceViewStatusSchema,
-} from '@contracts/invoices/invoice-view-api.schema'
+  invoiceStatusSchema,
+} from '@contracts/invoices/invoice-api.schema'
 
 export type InvoiceItemUnitDto = 'PIECE' | 'KG' | 'PAIR' | 'SET'
 
@@ -12,7 +12,7 @@ export type PaymentStatusDto = 'PENDING' | 'VERIFYING' | 'VERIFIED' | 'FAILED' |
 
 export type PaymentSummaryStatusDto = 'UNPAID' | 'PARTIALLY_PAID' | 'PAID'
 
-export type InvoiceStatusDto = z.infer<typeof invoiceViewStatusSchema>
+export type InvoiceStatusDto = z.infer<typeof invoiceStatusSchema>
 
 /** Read-contract projection used by the invoice list and table. */
 export type InvoiceListItemDto = z.infer<typeof invoiceListResponseSchema>

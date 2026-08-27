@@ -4,7 +4,7 @@ import FormInput from '@/shared/components/FormInput.vue'
 import FormLabel from '@/shared/components/FormLabel.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
-import type { packageCreditMovementTypeSchema } from '@contracts/customer-packages/package-transaction-api.schema'
+import type { packageCreditMovementTypeSchema } from '@contracts/customer-packages/customer-package-api.schema'
 
 type TransactionType = z.infer<typeof packageCreditMovementTypeSchema>
 

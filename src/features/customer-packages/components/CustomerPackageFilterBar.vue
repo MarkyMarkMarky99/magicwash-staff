@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { customerPackageStatusSchema } from '@contracts/customer-packages/customer-package-view-api.schema'
+import { customerPackageStatusSchema } from '@contracts/customer-packages/customer-package-api.schema'
 import type { CustomerPackageFilter } from '../composables/useCustomerPackageFilterRoute'
 defineProps<{ filter: CustomerPackageFilter }>()
 const emit = defineEmits<{ change: [Partial<CustomerPackageFilter>] }>()
