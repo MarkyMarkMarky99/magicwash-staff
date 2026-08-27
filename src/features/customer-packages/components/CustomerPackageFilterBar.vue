@@ -8,7 +8,6 @@ const packageStatuses = [null, ...customerPackageStatusSchema.options] as const
 
 <template>
   <section class="space-y-3 px-4 py-3">
-    <input :value="filter.keyword" class="w-full rounded-xl bg-surface-container px-3 py-2 font-body text-sm" placeholder="Search customer or package" @input="emit('change', { keyword: ($event.target as HTMLInputElement).value })">
     <div class="grid grid-cols-2 gap-2">
       <input :value="filter.customerId ?? ''" class="rounded-xl bg-surface-container px-3 py-2 font-body text-sm" placeholder="Customer ID" @input="emit('change', { customerId: ($event.target as HTMLInputElement).value || null })">
       <input :value="filter.packageCode ?? ''" class="rounded-xl bg-surface-container px-3 py-2 font-body text-sm" placeholder="Package code" @input="emit('change', { packageCode: ($event.target as HTMLInputElement).value || null })">

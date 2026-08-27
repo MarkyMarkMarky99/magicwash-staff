@@ -8,7 +8,7 @@ import { issueReportRoutes } from '../../../../../src/features/issue-reports/rou
 import { packageRoutes } from '../../../../../src/features/packages/routes'
 import { priceListRoutes } from '../../../../../src/features/price-list/routes'
 
-const searchablePaths = new Set(['/customers', '/invoices', '/price-list'])
+const searchablePaths = new Set(['/customers', '/invoices', '/price-list', '/customer-packages', '/packages'])
 const routes = [
   ...appointmentRoutes,
   ...customerRoutes,

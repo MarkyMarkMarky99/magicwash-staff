@@ -23,9 +23,7 @@ watch(filter, (value) => { void store.fetchCustomerPackages(value) }, { immediat
     @update:search-value="updateFilter({ keyword: $event })"
   >
     <template #filters>
-      <div class="customer-package-filters">
-        <CustomerPackageFilterBar :filter="filter" @change="updateFilter" />
-      </div>
+      <CustomerPackageFilterBar :filter="filter" @change="updateFilter" />
     </template>
 
     <ListContainer title="Customer packages" icon="card_membership" :count="items.length" count-label="packages" :loading="loading" :error="error" :empty="items.length === 0" empty-text="No customer packages" :skeleton-rows="4">
@@ -43,9 +41,3 @@ watch(filter, (value) => { void store.fetchCustomerPackages(value) }, { immediat
     </ListContainer>
   </ListPageLayout>
 </template>
-
-<style scoped>
-.customer-package-filters :deep(> section > input) {
-  display: none;
-}
-</style>

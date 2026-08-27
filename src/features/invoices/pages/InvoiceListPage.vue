@@ -72,14 +72,12 @@ function openInvoice(invoice: InvoiceListItemDto) {
     @update:search-value="updateFilter({ keyword: $event })"
   >
     <template #filters>
-      <div class="invoice-list-filter-seam">
-        <InvoiceFilterBar
-          :filter="filter"
-          :tabs="statusFilters"
-          :search-open="searchOpen"
-          @filter-change="updateFilter"
-        />
-      </div>
+      <InvoiceFilterBar
+        :filter="filter"
+        :tabs="statusFilters"
+        :search-open="searchOpen"
+        @filter-change="updateFilter"
+      />
     </template>
 
     <ListContainer
@@ -100,17 +98,3 @@ function openInvoice(invoice: InvoiceListItemDto) {
     </ListContainer>
   </ListPageLayout>
 </template>
-
-<style scoped>
-.invoice-list-filter-seam :deep(section > div:nth-child(2) > span:first-child),
-.invoice-list-filter-seam :deep(section > div:nth-child(2) > input),
-.invoice-list-filter-seam :deep(section > div:nth-child(2) > button[aria-label='Clear search']),
-.invoice-list-filter-seam :deep(section > div:nth-child(2) > span.w-px) {
-  display: none;
-}
-
-.invoice-list-filter-seam :deep(section > div:nth-child(2) > button[aria-label='Show filters']),
-.invoice-list-filter-seam :deep(section > div:nth-child(2) > button[aria-label='Hide filters']) {
-  margin-left: auto;
-}
-</style>

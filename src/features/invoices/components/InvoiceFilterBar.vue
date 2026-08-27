@@ -21,31 +21,8 @@ const emit = defineEmits<{
   filterChange: [payload: Partial<InvoiceFilter>]
 }>()
 
-const SEARCH_DEBOUNCE_MS = 300
-
-// Local input buffer so typing (incl. Thai IME composition) never fights the
-// async route update. The URL filter stays the source of truth for fetching;
-// this ref only mirrors it and pushes debounced changes up.
-const keywordInput = ref(props.filter.keyword)
-let debounceTimer: ReturnType<typeof setTimeout> | undefined
-
-watch(
-  () => props.filter.keyword,
-  (value) => {
-    if (value !== keywordInput.value) keywordInput.value = value
-  },
-)
-
-watch(keywordInput, (value) => {
-  clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => {
-    if (value !== props.filter.keyword) emit('filterChange', { keyword: value })
-  }, SEARCH_DEBOUNCE_MS)
-})
-
-// Date inputs get the same local-buffer + debounce treatment as keyword —
-// a native <input type="date"> fires one change per keystroke while typing,
-// and without debouncing that means one fetch per keystroke.
+// Date inputs use local buffers + debouncing because a native <input type="date">
+// fires one change per keystroke while typing.
 const DATE_DEBOUNCE_MS = 300
 
 const dateFromInput = ref(props.filter.dateFrom ?? '')
@@ -86,7 +63,6 @@ watch(dateToInput, (value) => {
 })
 
 onBeforeUnmount(() => {
-  clearTimeout(debounceTimer)
   clearTimeout(dateFromTimer)
   clearTimeout(dateToTimer)
 })
@@ -102,12 +78,6 @@ watch(
     if (!open) filterOpen.value = false
   },
 )
-
-function clearKeyword() {
-  keywordInput.value = ''
-  clearTimeout(debounceTimer)
-  if (props.filter.keyword) emit('filterChange', { keyword: '' })
-}
 
 function updateStatus(status: string) {
   emit('filterChange', {
@@ -126,29 +96,10 @@ function updateStatus(status: string) {
       />
     </div>
 
-    <!-- Search bar — toggled from the header search button -->
     <div
       v-if="searchOpen"
-      class="bg-surface-container px-4 py-2 flex items-center gap-2 border-b border-outline-variant/20"
+      class="bg-surface-container px-4 py-2 flex items-center justify-end border-b border-outline-variant/20"
     >
-      <span class="material-symbols-outlined text-on-surface-variant text-[18px] shrink-0" aria-hidden="true">search</span>
-      <input
-        v-model="keywordInput"
-        type="text"
-        placeholder="Search invoice number or customer ID…"
-        class="flex-1 bg-transparent font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 outline-none min-w-0"
-        autofocus
-      />
-      <button
-        v-if="keywordInput"
-        type="button"
-        class="material-symbols-outlined text-on-surface-variant text-[18px] hover:text-on-surface transition-colors shrink-0"
-        aria-label="Clear search"
-        @click="clearKeyword"
-      >close</button>
-
-      <span class="w-px h-5 bg-outline-variant/30 shrink-0" aria-hidden="true"></span>
-
       <!-- Filter action button (date range) -->
       <button
         type="button"
