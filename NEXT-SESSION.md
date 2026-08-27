@@ -2,33 +2,61 @@
 
 ## Where we are
 
-On **`main`** at `89e9156`, pushed. Everything that had been sitting on feature branches is now
-merged **except three branches that conflict** (below). `main` push = Vercel prod deploy.
+On **`main`** at `b0a3985`, pushed and live on `https://magicwash-staff.vercel.app`.
+`main` push = Vercel prod deploy. Two branches still conflict (below).
 
-Landed this session:
+Landed 2026-08-27, built as three parallel jobs in three worktrees off a frozen contract:
 
-- `feat(customer-packages): add New package entry point to list page` — the create page, its route,
-  and `POST /api/customer-packages` all already existed; nothing navigated to them, so the flow was
-  URL-only. One 10-line diff on `CustomerPackageListPage.vue` using `ListContainer`'s existing
-  `#actions` slot. Slot sits above the `v-if="contentVisible"` branch, so the button shows in the
-  empty/error states too — required, or the first package can never be created.
-- Merge of `refactor/customer-package-contract-merge` (invoice contract merge + status-only update +
-  customer-package contract collapse) into main.
-- Merge of `feature/issue-reports` (clean, 31 files).
+- **`packages` module** — CRUD API over the existing `Packages` catalog sheet
+  (`GET`/`POST /api/packages`, `GET`/`PATCH /api/packages/:id`), plus `src/features/packages/`
+  (list, form, store, service) for staff.
+- **customer-package reads no longer touch `CustomerPackageView`.** That formula view never
+  refreshed, so appended rows were invisible. List/detail are now assembled in
+  `customer-package-read.service.ts` from `CustomerPackages` + `PackageTransactions` + `Packages`
+  + `Customers` — 4 GViz calls, in-memory join, filter/sort/page in memory because GViz `where`
+  is equality-only. Design: `docs/customer-package-view-service-assembly.md`.
+- **Pickers on the create-customer-package form** — `packageCode` is a dropdown, `customerId` is a
+  filterable `CustomerPicker` over the cached customer list.
+- **Datetime convention written down** (`docs/conventions/datetime.md`) plus a read-side fix:
+  `normalizeSheetTimestamp` used to truncate an offset-bearing ISO string, relabelling UTC as
+  Bangkok, 7 hours wrong. It now converts. Legacy ISO rows in `Packages` come back in the
+  project format.
+- **IssueReports sheet is live** — see below.
 
-Gates run before each merge: `npm run typecheck:api` and `npm run build`, both green.
+Verified by hitting the live API, not just typecheck: all four surfaces on prod return 200, package
+CRUD round-trips through the sheet (create/edit/deactivate/duplicate-reject/404), a deactivated
+package is still rejected for purchase, and a newly created customer package appears immediately —
+the bug that started the work.
 
 ## Do this first
 
-1. **Set `ISSUE_REPORTS_SPREADSHEET_ID` on Vercel (Production + Preview).** `feature/issue-reports`
-   is now live on prod and its sheet binding reads that env var. Missing env = the feature fails in
-   production, and nothing in typecheck/build catches it.
-2. **Hit the deployed prod alias with a real request.** A merge to main took prod fully down once
-   before (relative imports missing `.js`, an @vercel/node bundling rule); typecheck, dry-tests and
-   `vercel dev` all missed it. Only a live hit catches that class of bug. Use the alias domain, not
-   the per-deployment URL.
-3. **Smoke test the create-package flow end to end** — button → form → POST. That form has never
-   been exercised through the UI, only read. `/frontend-test` is the tool for this.
+1. **Smoke test through the UI in a browser.** Everything so far was proven at the API layer.
+   `npm run build` is esbuild only and `.vue` files cannot be unit tested, so no frontend behaviour
+   has been verified: the packages list/form pages, the package dropdown, and the customer picker
+   have never been clicked. `/frontend-test` is the tool for this.
+2. **Delete the leftover test data.** `ZZTEST01` in the `Packages` catalog (created by a live write
+   test, deactivated but still listed), and customer package `af9f0651` for พิมพ์นิดา, which is a
+   real ACTIVE GOLD 50-credit package. `SheetRepository.delete()` throws, so both must go by hand.
+
+## Physical sheet setup — three traps no test catches
+
+Found the hard way while wiring up IssueReports. All three must be true of any new tab, and every
+one of them fails at runtime with a different error:
+
+1. **Share → General access = "Anyone with the link" → Viewer.** Reads go through GViz
+   unauthenticated; a private sheet fails every read with `GViz read failed: 401`. Editor rights for
+   the service account cover writes only — writes can succeed while every read 401s.
+2. **The header row must hold every contract key.** Missing one gives
+   `GViz query error: Invalid query: NO_COLUMN: F`.
+3. **The grid must be exactly as wide as the contract.** A fresh Google tab is 26 columns wide and
+   the reader throws `No DB field resolves for GViz column 'J'` on the first column it cannot map.
+   Delete the surplus. `Packages` is exactly 12 wide for its 12 fields.
+
+`docs/scripts/create-issue-reports-sheet.gs` is a container-bound Apps Script that does 2 and 3 and
+prints reminders for 1. Copy it as the template for the next sheet.
+
+`ISSUE_REPORTS_SPREADSHEET_ID` is set in `.env.local` and in all three Vercel environments, and
+`G:\My Drive\...\GoogleSheets\IssueReport.json` now exists (registry is 21 files).
 
 ## Two branches left unmerged, both conflicting
 
