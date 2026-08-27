@@ -69,12 +69,12 @@ async function expectApiError(action: () => Promise<unknown>, code: string, stat
   const { service } = createService()
   const result = await service.list({ keyword: '', sortBy: 'remainingCredit', sortOrder: 'desc', page: 1, perPage: 3 })
   assert.deepEqual(result.pagination, { page: 1, perPage: 3 })
-  assert.deepEqual(result.items.map((row) => row.customerPackageId), [' package-1 ', 'package-3', 'package-2'])
+  assert.deepEqual(result.items.map((row) => row.customerPackageId), [' package-1 ', 'package-2', 'package-3'])
   assert.equal('transactions' in result.items[0]!, false)
-  assert.equal(result.items[1]?.remainingCredit, -2)
-  assert.equal(result.items[1]?.usedCredit, 2)
-  assert.equal(result.items[1]?.totalCredit, 0)
-  assert.equal(result.items[2]?.status, 'CANCELLED')
+  assert.equal(result.items[2]?.remainingCredit, -2)
+  assert.equal(result.items[2]?.usedCredit, 2)
+  assert.equal(result.items[2]?.totalCredit, 0)
+  assert.equal(result.items[1]?.status, 'CANCELLED')
 }
 
 {
