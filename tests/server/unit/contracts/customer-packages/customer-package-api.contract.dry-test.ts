@@ -163,7 +163,7 @@ const overspentRow = {
       referenceSource: 'CustomerPackages',
       referenceId: 'aifjqbax',
       notes: null,
-      createdAt: '2026-07-13T18:08:20+07:00',
+      createdAt: '2026-07-13 18:08:20',
     },
   ],
 }

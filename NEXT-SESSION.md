@@ -48,6 +48,21 @@ looking for that work — it is all on main via `63f110c` plus the contract-merg
 
 All other branches were merged and deleted (8 local, 3 on origin). Only these two remain.
 
+## Datetime helper consolidation — deferred on purpose
+
+Convention is now written down in `docs/conventions/datetime.md`: one format,
+`yyyy-MM-dd HH:mm:ss` Asia/Bangkok, write side and read side, and where cross-boundary code lives.
+
+New cross-boundary datetime helpers go in root **`shared/utils/`** — the only directory both sides
+import (`api/tsconfig.json` includes `../shared/**/*.ts`; frontend has the `@shared` alias). The
+customer-package read-assembly job creates the first one there.
+
+**Not migrated yet, deliberately:** `server/shared/utils/bangkok-timestamp.ts` (write side) and
+`src/shared/utils/sheet-date.ts` (frontend parse/display) still hold their own implementations.
+Moving the write-side helper touches `SheetRepository`, which every module depends on, so it must be
+its own job on a quiet tree — doing it alongside feature work would collide with every branch in
+flight. Do it after the packages/customer-package work lands, not before.
+
 ## Still open from before
 
 - **CANCELLED vs VOID** — nothing in code, the DB contract, or the G Drive registry defines the

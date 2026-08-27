@@ -41,6 +41,11 @@ const declaredAudits = [
     contract: customersDbContract,
     expected: { onAppend: [], onUpdate: ['UpdatedAt'] },
   },
+  {
+    name: 'Packages',
+    contract: packagesDbContract,
+    expected: { onAppend: ['created_at'], onUpdate: ['updated_at'] },
+  },
 ] as const
 
 for (const { name, contract, expected } of declaredAudits) {
@@ -56,6 +61,5 @@ assert.equal(
   false,
   'InvoiceItems must omit the audit key entirely',
 )
-assert.equal('audit' in packagesDbContract, false, 'Packages catalog must omit audit declarations')
 
 console.log('sheet audit declarations dry test passed')
