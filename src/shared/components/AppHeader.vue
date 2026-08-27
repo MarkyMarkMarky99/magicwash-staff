@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
 import logoUrl from '../../assets/logo.png'
@@ -15,9 +15,15 @@ const { searchOpen, toggleSearch } = useHeaderSearch()
 const { pendingCount } = storeToRefs(useAppointmentStore())
 const { goBack } = useGoBack()
 
-const SEARCHABLE_ROUTES = ['/customers', '/invoices', '/price-list']
-const canSearch = computed(() => SEARCHABLE_ROUTES.includes(route.path))
+const canSearch = computed(() => route.meta.searchable === true)
 const canGoBack = computed(() => Boolean(route.meta.parent))
+
+watch(
+  () => route.path,
+  () => {
+    searchOpen.value = false
+  },
+)
 
 </script>
 
