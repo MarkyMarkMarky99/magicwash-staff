@@ -5,6 +5,7 @@ import { customerRoutes } from '@/features/customers/routes'
 import { customerPackageRoutes } from '@/features/customer-packages/routes'
 import { galleryRoutes } from '@/features/gallery/routes'
 import { priceListRoutes } from '@/features/price-list/routes'
+import { packageRoutes } from '@/features/packages/routes'
 import { issueReportRoutes } from '@/features/issue-reports/routes'
 
 const routes = [
@@ -14,6 +15,7 @@ const routes = [
   ...customerPackageRoutes,
   ...galleryRoutes,
   ...priceListRoutes,
+  ...packageRoutes,
   ...issueReportRoutes,
 ]
 
