@@ -62,7 +62,7 @@ const rows: PackageRow[] = [
     5,
     75,
     '',
-    '2026-07-01 10:00:00',
+    '2026-07-13T11:00:23.534631+00:00',
     'staff-1',
     '2026-08-01 12:00:00',
     'staff-2',
@@ -197,6 +197,7 @@ globalThis.fetch = (async (input: URL | string, init?: RequestInit) => {
 try {
   const listed = await packageRoutes.collection.handleRequest(request('GET'))
   const listedData = listDataOf(listed)
+  assert.equal(listedData.find((item) => item.packageCode === 'PKG-RETIRED')?.createdAt, '2026-07-13 18:00:23')
   assert.equal(listedData.find((item) => item.packageCode === 'PKG-RETIRED')?.deletedAt, '2026-08-01 12:00:00')
 
   const invalidCallCount = calls.length

@@ -9,6 +9,7 @@ import type {
 import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
 import { DuplicatePrimaryKeyError } from '../../shared/repositories/sheets-api.client.js'
 import { BaseCrudService } from '../../shared/services/base-crud.service.js'
+import { normalizeSheetTimestamp } from '../../../shared/utils/bangkok-datetime.js'
 import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
 import { packagesRowSchema } from '../../sheets/Packages/Packages.db-contract.js'
 import { getPackagesRepository } from '../../sheets/Packages/Packages.repository.js'
@@ -104,12 +105,19 @@ async function updatePackage(
 
 function createPackageTransformer(): RepositoryTransformer {
   return {
-    response(response) {
+    response(response, context) {
       if (!isRecord(response)) {
         return response
       }
 
       const row = { ...response }
+      if (context.request.operation === 'read') {
+        row.created_at = normalizeSheetTimestamp(row.created_at)
+        row.updated_at = normalizeSheetTimestamp(row.updated_at)
+        if (row.deleted_at !== null && row.deleted_at !== undefined && String(row.deleted_at).trim() !== '') {
+          row.deleted_at = normalizeSheetTimestamp(row.deleted_at)
+        }
+      }
       for (const column of ['notes', 'updated_at', 'updated_by', 'deleted_at', 'deleted_by']) {
         if (row[column] === '') {
           row[column] = null
