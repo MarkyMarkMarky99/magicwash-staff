@@ -1,4 +1,4 @@
-import { customerPackageDetailResponseSchema } from '@contracts/customer-packages/customer-package-view-api.schema'
+import { customerPackageDetailResponseSchema } from '@contracts/customer-packages/customer-package-api.schema'
 
 export const CUSTOMER_PACKAGES = [
   customerPackageDetailResponseSchema.parse({

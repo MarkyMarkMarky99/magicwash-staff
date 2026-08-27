@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { z } from 'zod'
-import { customerPackageListResponseSchema } from '@contracts/customer-packages/customer-package-view-api.schema'
+import { customerPackageListResponseSchema } from '@contracts/customer-packages/customer-package-api.schema'
 type CustomerPackageListItem = z.infer<typeof customerPackageListResponseSchema>
 defineProps<{ items: CustomerPackageListItem[] }>()
 const emit = defineEmits<{ select: [CustomerPackageListItem] }>()

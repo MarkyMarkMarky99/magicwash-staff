@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { customerPackageViewApiContract } from '../../../contracts/customer-packages/customer-package-view-api.schema.js'
+import { customerPackageApiContract } from '../../../contracts/customer-packages/customer-package-api.schema.js'
 import {
   BaseCrudService,
   type JsonColumnMap,
@@ -48,12 +48,12 @@ type CustomerPackageViewApiRow = ApiRowFromFieldMap<
   CustomerPackageViewDbRow,
   typeof customerPackageViewFieldMap
 >
-type CustomerPackageListQuery = z.infer<typeof customerPackageViewApiContract.query.list>
+type CustomerPackageListQuery = z.infer<typeof customerPackageApiContract.query.list>
 type CustomerPackageListResponse = z.infer<
-  typeof customerPackageViewApiContract.response.list
+  typeof customerPackageApiContract.response.list
 >
 type CustomerPackageDetailResponse = z.infer<
-  typeof customerPackageViewApiContract.response.detail
+  typeof customerPackageApiContract.response.detail
 >
 type CreateCustomerPackageResponse = z.infer<typeof createCustomerPackageResponseSchema>
 
@@ -73,7 +73,7 @@ type CustomerPackageViewService = BaseCrudService<
 // GViz `contains` cannot search within the serialized transactions cell.
 export const customerPackageViewService: CustomerPackageViewService = new BaseCrudService({
   repository: getCustomerPackageViewRepository,
-  api: customerPackageViewApiContract,
+  api: customerPackageApiContract,
   searchFields: ['customerPackageId', 'customerId', 'customerName', 'packageCode'],
   fieldMap: customerPackageViewFieldMap,
   jsonColumns: customerPackageViewJsonColumns,

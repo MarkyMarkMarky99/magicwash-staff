@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import type { CustomerPackageFilter } from '../composables/useCustomerPackageFilterRoute'
 import { getCustomerPackages } from '../services/customer-package.service'
 import type { z } from 'zod'
-import { customerPackageListResponseSchema } from '@contracts/customer-packages/customer-package-view-api.schema'
+import { customerPackageListResponseSchema } from '@contracts/customer-packages/customer-package-api.schema'
 
 type CustomerPackageListItem = z.infer<typeof customerPackageListResponseSchema>
 

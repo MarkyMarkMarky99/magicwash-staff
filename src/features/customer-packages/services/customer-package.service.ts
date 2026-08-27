@@ -7,11 +7,9 @@ import {
   customerPackageDetailResponseSchema,
   customerPackageListQuerySchema,
   customerPackageListResponseSchema,
-} from '@contracts/customer-packages/customer-package-view-api.schema'
-import {
   appendPackageTransactionRequestSchema,
   appendPackageTransactionResponseSchema,
-} from '@contracts/customer-packages/package-transaction-api.schema'
+} from '@contracts/customer-packages/customer-package-api.schema'
 import { apiGet, apiGetList, ApiError } from '@/shared/api/api-client'
 
 type CustomerPackageListItem = z.infer<typeof customerPackageListResponseSchema>
