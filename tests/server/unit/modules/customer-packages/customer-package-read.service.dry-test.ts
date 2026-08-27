@@ -58,7 +58,7 @@ async function expectApiError(action: () => Promise<unknown>, code: string, stat
   assert.equal(calls.length, 4)
   assert.deepEqual(calls.map((call) => call.repository), ['packages', 'transactions', 'catalog', 'customers'])
   assert.deepEqual(calls[0]?.dto.where, { customer_id: 'customer-1', package_code: 'GOLD' })
-  assert.deepEqual(calls[1]?.dto.where, {})
+  assert.equal(calls[1]?.dto.where, undefined)
   assert.deepEqual(calls[2]?.dto.where, { package_code: 'GOLD' })
   assert.deepEqual(calls[3]?.dto.where, { CustomerID: 'customer-1' })
   assert.ok(calls.every((call) => call.dto.pagination === undefined))
