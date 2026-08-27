@@ -2,56 +2,83 @@
 
 ## Where we are
 
-Branch **`feat/invoice-status-update`** (cut from `chore/api-contract-cleanup`), one commit:
-`244b7f4 refactor: merge invoice contracts and add status-only update`. Not merged, not pushed.
+On **`main`** at `89e9156`, pushed. Everything that had been sitting on feature branches is now
+merged **except three branches that conflict** (below). `main` push = Vercel prod deploy.
 
-Plan doc `docs/plans/invoice-contract-merge-and-status-update.md` is still **untracked** on purpose
-— decide whether it belongs in the repo or was scaffolding.
+Landed this session:
 
-All gates verified independently (not just the pipeline's self-report): `npm run typecheck:api`,
-`npm run build`, and all 9 invoice dry-tests pass.
+- `feat(customer-packages): add New package entry point to list page` — the create page, its route,
+  and `POST /api/customer-packages` all already existed; nothing navigated to them, so the flow was
+  URL-only. One 10-line diff on `CustomerPackageListPage.vue` using `ListContainer`'s existing
+  `#actions` slot. Slot sits above the `v-if="contentVisible"` branch, so the button shows in the
+  empty/error states too — required, or the first package can never be created.
+- Merge of `refactor/customer-package-contract-merge` (invoice contract merge + status-only update +
+  customer-package contract collapse) into main.
+- Merge of `feature/issue-reports` (clean, 31 files).
 
-## Two decisions waiting on the user
+Gates run before each merge: `npm run typecheck:api` and `npm run build`, both green.
 
-1. **CANCELLED vs VOID** — nothing in the code, the DB contract, or the G Drive registry defines
-   the difference. The contract currently accepts **both**, chosen because both already exist in
-   the sheet's enum, so accepting both invents nothing and forecloses nothing. If the business only
-   has one notion of "cancel", drop the other from `invoiceStatusUpdateSchema` — the structure does
-   not change either way.
-2. **`z.infer` exports in schema files** — the standing rule is that schema files are pure runtime
-   contracts with no type exports. `invoice-api.schema.ts` has 12, and the in-progress
-   `chore/api-contract-cleanup` commit kept them. This branch **kept them and added 2 more**
-   (`UpdateInvoiceRequest`, `UpdateInvoiceResponse`) to keep the diff revertible. Stripping them is
-   a separate pass across all contract files, not an invoice-only change.
+## Do this first
 
-## Deferred, with reasons
+1. **Set `ISSUE_REPORTS_SPREADSHEET_ID` on Vercel (Production + Preview).** `feature/issue-reports`
+   is now live on prod and its sheet binding reads that env var. Missing env = the feature fails in
+   production, and nothing in typecheck/build catches it.
+2. **Hit the deployed prod alias with a real request.** A merge to main took prod fully down once
+   before (relative imports missing `.js`, an @vercel/node bundling rule); typecheck, dry-tests and
+   `vercel dev` all missed it. Only a live hit catches that class of bug. Use the alias domain, not
+   the per-deployment URL.
+3. **Smoke test the create-package flow end to end** — button → form → POST. That form has never
+   been exercised through the UI, only read. `/frontend-test` is the tool for this.
 
-- **Cancel/void UI** — user deferred it. The plan doc has the design (where the action sits on
-  `InvoiceDetailPage.vue`, confirmation, in-flight and failure states). Note the page renders status
-  in a sticky footer whose container is hard-coded `bg-primary`; the `statusStyles[].badge` classes
-  are dead code, only `.icon` is read.
+## Three branches left unmerged, all conflicting
+
+Deliberately not resolved: resolving these is code work, not a merge button.
+
+| Branch | Conflicts |
+|---|---|
+| `feature/customer-packages-write-backend` | 6 files — `customer-package-api.schema.ts` (add/add), `customer-package-view-api.schema.ts` (deleted on main, modified there), `customer-package-view.module.ts`, `package-transaction.module.ts`, `package-transaction.service.ts`, plus a test rename/collide |
+| `feature/customer-create-form` | `src/App.vue` (the `KeepAlive` exclude list) |
+| `feature/invoice-create-form-redesign` | `PriceListFormPage.vue`, `.user/memory/MEMORY.md` |
+
+**Check `feature/customer-packages-write-backend` for redundancy before touching the conflicts.**
+Its write path landed separately as `63f110c` and was then refactored on the contract-merge branch,
+which is why it collides add/add across the whole module. It may hold nothing main lacks — in which
+case the answer is to delete the branch, not to merge it.
+
+All other branches were merged and deleted (7 local, 3 on origin). Only these three remain.
+
+## Still open from before
+
+- **CANCELLED vs VOID** — nothing in code, the DB contract, or the G Drive registry defines the
+  difference. `invoiceStatusUpdateSchema` accepts **both**, because both already exist in the sheet
+  enum: accepting both invents nothing. If the business has only one notion of "cancel", drop the
+  other; the structure does not change either way.
+- **`z.infer` exports in schema files** — standing rule is that schema files carry no type exports.
+  `invoice-api.schema.ts` has 14. Stripping them is a pass across all contract files, not an
+  invoice-only change.
+- **Cancel/void UI** — deferred by the user. Design is in
+  `docs/plans/invoice-contract-merge-and-status-update.md`.
 - **Nested invoice+items update** — blocked, not skipped. `SheetRepository.delete()` throws, the
-  Sheets client exposes only `values.*` (no structural `batchUpdate`/`deleteDimension`, and
-  `SheetContract` stores no gid), and `InvoiceItems` has no soft-delete column. Removing a line has
-  no representation today. Any of those three would have to change first.
+  Sheets client exposes only `values.*` (no `batchUpdate`/`deleteDimension`, and `SheetContract`
+  stores no gid), and `InvoiceItems` has no soft-delete column. Removing a line has no
+  representation today; one of those three must change first.
 
 ## Facts worth not rediscovering
 
+- Customer-package create is **complete server-side**: route → `customerPackagePurchaseService.create`
+  → read `Packages` catalog by `packageCode` (rejects retired/`deleted_at`) → append `PURCHASE`
+  opening row to `PackageTransactions` → append to `CustomerPackages`. Server fills `id` (8-char)
+  and `created_at`. `CustomerPackages` has **no status column** — status lives on the read-only
+  `CustomerPackageView` portal sheet.
+- `PATCH /api/customer-packages/:id` is a **stub that always 404s** — editing a package is
+  undefined product-wise, not a bug.
 - `invoiceViewResolveStatus_` (Apps Script) recomputes status **only when the stored value is
-  `ISSUED`**, deriving PAID/PARTIALLY_PAID/OVERDUE/UNPAID from payments. `DRAFT`/`CANCELLED`/`VOID`
-  pass through. That is why a status PATCH survives a re-sync.
-- Apps Script is **not** fully retired: `APPSCRIPT_INVOICE_VIEW_SYNC_URL` (invoice view sync) and
-  `src/api/photos.js` (hardcoded gallery gateway) are both still live. Row writes did move to
-  Sheets API v4 with a service account; **reads are still unauthenticated GViz**.
-- `writes.update` lives only in `server/sheets/Invoices/Invoices.db-contract.ts` — the G Drive
-  registry does not carry it, so no registry change was needed.
-- The read-side `BaseCrudService` inside `InvoiceService` cannot take the merged bundle (its
-  generics were `never`); a module-local `invoiceReadContract` narrows it to query + list/detail.
-- Stale references to the deleted `invoice-view-api.schema` remain in `.worktrees/grok-picker-redesign/`.
-  That worktree is a separate tree and was deliberately left alone.
-
-## Pipeline notes
-
-The Codex pipeline could not stage its own deletion (`.git/index.lock` permission denied inside the
-sandbox — a known limitation). It reported this honestly; the deletion and one comment-only edit
-were staged and committed from outside. Checkpoint commits were squashed into the single commit above.
+  `ISSUED`**, deriving PAID/PARTIALLY_PAID/OVERDUE/UNPAID from payments. DRAFT/CANCELLED/VOID pass
+  through — that is why a status PATCH survives a re-sync.
+- Apps Script is **not** retired: `APPSCRIPT_INVOICE_VIEW_SYNC_URL` and `src/api/photos.js` are still
+  live. Row writes moved to Sheets API v4 with a service account; **reads are still unauthenticated
+  GViz**.
+- `npm run build` is esbuild only — **no frontend type-check exists**. A broken prop contract ships
+  green. Only `typecheck:api` type-checks anything.
+- `.vue` SFCs **cannot be unit tested** here; tests are plain TS run with `npx tsx`. "No automated
+  test was possible" is the correct report for a component change, not a gap to paper over.
