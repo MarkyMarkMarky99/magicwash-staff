@@ -30,22 +30,23 @@ Gates run before each merge: `npm run typecheck:api` and `npm run build`, both g
 3. **Smoke test the create-package flow end to end** — button → form → POST. That form has never
    been exercised through the UI, only read. `/frontend-test` is the tool for this.
 
-## Three branches left unmerged, all conflicting
+## Two branches left unmerged, both conflicting
 
 Deliberately not resolved: resolving these is code work, not a merge button.
 
 | Branch | Conflicts |
 |---|---|
-| `feature/customer-packages-write-backend` | 6 files — `customer-package-api.schema.ts` (add/add), `customer-package-view-api.schema.ts` (deleted on main, modified there), `customer-package-view.module.ts`, `package-transaction.module.ts`, `package-transaction.service.ts`, plus a test rename/collide |
 | `feature/customer-create-form` | `src/App.vue` (the `KeepAlive` exclude list) |
 | `feature/invoice-create-form-redesign` | `PriceListFormPage.vue`, `.user/memory/MEMORY.md` |
 
-**Check `feature/customer-packages-write-backend` for redundancy before touching the conflicts.**
-Its write path landed separately as `63f110c` and was then refactored on the contract-merge branch,
-which is why it collides add/add across the whole module. It may hold nothing main lacks — in which
-case the answer is to delete the branch, not to merge it.
+`feature/customer-packages-write-backend` was **deleted as superseded**, verified before deleting:
+its service and db-contract files were byte-identical to main's, its `package-transaction.service.ts`
+differed only in two import-path lines, its `customer-package-api.schema.ts` was 127 lines *shorter*
+than main's merged one, and its three contract dry-tests are a subset of main's consolidated
+182-line test. The conflicts were the already-merged contract collapse, nothing more. Do not go
+looking for that work — it is all on main via `63f110c` plus the contract-merge branch.
 
-All other branches were merged and deleted (7 local, 3 on origin). Only these three remain.
+All other branches were merged and deleted (8 local, 3 on origin). Only these two remain.
 
 ## Still open from before
 
