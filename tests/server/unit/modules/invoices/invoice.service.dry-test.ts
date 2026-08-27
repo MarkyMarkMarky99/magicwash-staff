@@ -69,6 +69,9 @@ function createService(config: FakeConfig = {}): Fakes {
       if (config.invoiceError) throw config.invoiceError
       return { ...data }
     },
+    async update(_id, data) {
+      return data
+    },
   }
 
   const orderFormRepository: OrderFormWriter = {

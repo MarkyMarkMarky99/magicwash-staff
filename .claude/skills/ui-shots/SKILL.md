@@ -18,7 +18,7 @@ images. When both are needed, run both.
 Write the brief to a file (not a shell heredoc — brief text breaks shell quoting), then:
 
 ```bash
-codex exec -s workspace-write -c sandbox_workspace_write.network_access=true -m gpt-5.6-luna -c model_reasoning_effort="xhigh" - < <brieffile>
+codex exec -s workspace-write -c sandbox_workspace_write.network_access=true -m gpt-5.6-luna -c model_reasoning_effort="medium" - < <brieffile>
 ```
 
 Add `--skip-git-repo-check` when the working directory is not a git repo, e.g. a scratchpad of

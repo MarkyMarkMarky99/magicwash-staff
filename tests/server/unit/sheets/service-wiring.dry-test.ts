@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict'
 import { generateKeyPairSync } from 'node:crypto'
+import { deriveGVizColumns, type GSheetRowSchema } from '../../../../server/shared/repositories/utils/gviz-query.builder.js'
+import { customerPackagesRowSchema } from '../../../../server/sheets/CustomerPackages/CustomerPackages.db-contract.js'
+import { packageTransactionsRowSchema } from '../../../../server/sheets/PackageTransactions/PackageTransactions.db-contract.js'
+import { packagesRowSchema } from '../../../../server/sheets/Packages/Packages.db-contract.js'
+import { customersRowSchema } from '../../../../server/sheets/Customers/Customers.db-contract.js'
 
 // ── Drives the REAL production wiring: the services exported by
 //    order.module.ts / appointment.module.ts, built on the real repository
@@ -14,6 +19,8 @@ import { generateKeyPairSync } from 'node:crypto'
 //    a dynamic import inside each test rather than a static one at the top. ──
 process.env.PORTAL_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 process.env.APPOINTMENTS_SPREADSHEET_ID = 'characterization-spreadsheet-id'
+process.env.LAUNDRY_PACKAGES_SPREADSHEET_ID = 'characterization-spreadsheet-id'
+process.env.CUSTOMERS_SPREADSHEET_ID = 'characterization-customers-id'
 const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
 process.env.GOOGLE_SERVICE_ACCOUNT_KEY = Buffer.from(JSON.stringify({
   client_email: 'service-wiring@example.test',
@@ -51,6 +58,13 @@ function gvizBody(columns: string[], values: unknown[]): string {
       rows: [{ c: values.map((value) => (value === null ? null : { v: value })) }],
     },
   })});`
+}
+
+function sheetGvizBody(rowSchema: GSheetRowSchema, values: unknown[]): string {
+  const columns = deriveGVizColumns(rowSchema)
+  const keys = Object.keys(rowSchema.shape)
+  assert.equal(values.length, keys.length)
+  return gvizBody(keys.map((key) => columns[key]), values)
 }
 
 async function withMockFetch<T>(
@@ -94,10 +108,10 @@ async function productionInvoiceService() {
 
 /** The service the API actually serves `/api/customer-packages` with. */
 async function productionCustomerPackageService() {
-  const { customerPackageViewService } = await import(
+  const { customerPackageReadService } = await import(
     '../../../../server/modules/customer-packages/customer-package-view.module.js'
   )
-  return customerPackageViewService
+  return customerPackageReadService
 }
 
 test('OrdersView service wiring maps DB columns and decodes the declared JSON cell', async () => {
@@ -538,99 +552,198 @@ test('InvoicesView date-range wiring maps DB rows before safe JSON fallbacks', a
   )
 })
 
-test('CustomerPackageView service wiring decodes and safely falls back for transactions JSON', async () => {
-  const validBody = gvizBody(
-    ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S'],
-    [
-      'package-1',
-      'd2ec63e7',
-      'Punch Aonny',
-      '0812345678',
-      '123 Main Road',
-      'PKG-10',
-      'Ten Washes',
-      'WSIR',
-      '2026-08-01',
-      '2026-09-01',
-      'ACTIVE',
-      'MON',
-      '10:00-12:00',
-      null,
-      null,
-      9,
-      1,
-      10,
-      JSON.stringify([
-        {
-          id: 'tx-1',
-          type: 'USAGE',
-          credit_change: -1,
-          remaining_credit: 9,
-          reference_source: 'ORDER',
-          reference_id: 'order-1',
-          notes: null,
-          created_at: '2026-08-02 10:00:00',
-        },
-      ]),
-    ],
-  )
-  const malformedBody = gvizBody(
-    ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S'],
-    [
-      'package-2',
-      'd2ec63e7',
-      'Punch Aonny',
-      '0812345678',
-      '123 Main Road',
-      'PKG-10',
-      'Ten Washes',
-      'WSIR',
-      '2026-08-01',
-      '2026-09-01',
-      'ACTIVE',
-      'MON',
-      '10:00-12:00',
-      null,
-      null,
-      10,
-      0,
-      10,
-      '{bad json',
-    ],
-  )
-
+test('customer-package read service assembles list and detail from four source sheets', async () => {
   await withMockFetch(
-    async () => response(validBody),
+    async (url) => {
+      switch (new URL(url).searchParams.get('sheet')) {
+        case 'CustomerPackages':
+          return response(sheetGvizBody(customerPackagesRowSchema, [
+            'package-1', 'd2ec63e7', 'PKG-10', '2026-08-01', '2026-09-01', 'MON', '10:00-12:00',
+            null, null, '2026-08-01 09:00:00', 'staff-1', null, null, null, null,
+          ]))
+        case 'PackageTransactions':
+          return response(sheetGvizBody(packageTransactionsRowSchema, [
+            'tx-1', 'package-1', 'd2ec63e7', 'PURCHASE', 'CustomerPackages', 'package-1', 10, null,
+            'Date(2026,7,1,9,30,0)', 'staff-1',
+          ]))
+        case 'Packages':
+          return response(sheetGvizBody(packagesRowSchema, [
+            'PKG-10', 'Ten Washes', 'WSIR', 10, 1000, null, '2026-07-01 09:00:00', 'staff-1',
+            '2026-07-01 09:00:00', 'staff-1', '2026-08-01', 'staff-1',
+          ]))
+        case 'Customers':
+          return response(sheetGvizBody(customersRowSchema, [
+            '2026-07-01 09:00:00', 'd2ec63e7', '1', 'Punch Aonny', '0812345678', '123 Main Road',
+            null, null, null, null, null, null, 'Regular', null, null, null, null, null, null, null,
+          ]))
+        default:
+          throw new Error(`Unexpected customer-package sheet: ${new URL(url).searchParams.get('sheet')}`)
+      }
+    },
     async (calls) => {
       const service = await productionCustomerPackageService()
       const listRow = (await service.list({ page: 1, perPage: 1 })).items[0]
-      assert.equal(calls.length, 1)
+      assert.equal(calls.length, 4)
       assert.equal(listRow.customerName, 'Punch Aonny')
+      assert.equal('transactions' in listRow, false)
 
+      calls.length = 0
       const detail = await service.getById('package-1')
+      assert.equal(calls.length, 4)
       assert.deepEqual(detail.transactions, [
         {
           id: 'tx-1',
-          type: 'USAGE',
-          creditChange: -1,
-          remainingCredit: 9,
-          referenceSource: 'ORDER',
-          referenceId: 'order-1',
+          type: 'PURCHASE',
+          creditChange: 10,
+          remainingCredit: 10,
+          referenceSource: 'CustomerPackages',
+          referenceId: 'package-1',
           notes: null,
-          createdAt: '2026-08-02 10:00:00',
+          createdAt: '2026-08-01 09:30:00',
         },
       ])
-      assert.equal(calls.length, 2)
+      assert.equal(detail.customerName, 'Punch Aonny')
+      assert.equal(detail.packageName, 'Ten Washes')
+      assert.ok(detail.transactions.every((entry) => !entry.createdAt.includes('T') && !entry.createdAt.includes('+07:00')))
     },
   )
+})
 
-  await withMockFetch(
-    async () => response(malformedBody),
-    async () => {
-      const detail = await (await productionCustomerPackageService()).getById('package-2')
-      assert.deepEqual(detail.transactions, [])
-    },
+test('customer-package write wiring preserves field maps, shared singletons, and route contracts', async () => {
+  const [
+    viewModule,
+    purchaseModule,
+    transactionModule,
+    packageRoutesModule,
+    customerPackagesRepositoryModule,
+    packageTransactionsRepositoryModule,
+    packagesRepositoryModule,
+  ] = await Promise.all([
+    import('../../../../server/modules/customer-packages/customer-package-view.module.js'),
+    import('../../../../server/modules/customer-packages/customer-package-purchase.service.js'),
+    import('../../../../server/modules/customer-packages/package-transaction.service.js'),
+    import('../../../../server/modules/customer-packages/package-transaction.module.js'),
+    import('../../../../server/sheets/CustomerPackages/CustomerPackages.repository.js'),
+    import('../../../../server/sheets/PackageTransactions/PackageTransactions.repository.js'),
+    import('../../../../server/sheets/Packages/Packages.repository.js'),
+  ])
+
+  const { customerPackageRoutes, customerPackageReadService } = viewModule
+  const { customerPackagePurchaseService } = purchaseModule
+  const { packageTransactionService } = transactionModule
+  const { packageTransactionRoutes } = packageRoutesModule
+
+  const purchaseInternals = customerPackagePurchaseService as unknown as {
+    transactionService: unknown
+    packageRepository: unknown
+    catalogRepository: unknown
+  }
+  const transactionInternals = packageTransactionService as unknown as {
+    packageRepository: unknown
+    transactionRepository: unknown
+  }
+  assert.strictEqual(purchaseInternals.transactionService, packageTransactionService)
+  assert.strictEqual(purchaseInternals.packageRepository, customerPackagesRepositoryModule.getCustomerPackagesRepository)
+  assert.strictEqual(purchaseInternals.catalogRepository, packagesRepositoryModule.getPackagesRepository)
+  assert.strictEqual(transactionInternals.packageRepository, customerPackagesRepositoryModule.getCustomerPackagesRepository)
+  assert.strictEqual(transactionInternals.transactionRepository, packageTransactionsRepositoryModule.getPackageTransactionsRepository)
+
+  const { customerPackagesFieldMap, packageTransactionsFieldMap, packagesFieldMap } = await import(
+    '../../../../server/modules/customer-packages/customer-package.mapping.js'
   )
+  assert.deepEqual(customerPackagesFieldMap, {
+    id: 'customerPackageId', customer_id: 'customerId', package_code: 'packageCode',
+    start_date: 'startDate', expiry_date: 'expiryDate', service_day: 'serviceDay',
+    time_slot: 'timeSlot', invoice_id: 'invoiceId', notes: 'notes', created_at: 'createdAt',
+    created_by: 'createdBy', updated_at: 'updatedAt', updated_by: 'updatedBy',
+    deleted_at: 'deletedAt', deleted_by: 'deletedBy',
+  })
+  assert.deepEqual(packageTransactionsFieldMap, {
+    id: 'transactionId', customer_package_id: 'customerPackageId', customer_id: 'customerId',
+    type: 'type', reference_source: 'referenceSource', reference_id: 'referenceId',
+    credit_change: 'creditChange', notes: 'notes', created_at: 'createdAt', created_by: 'createdBy',
+  })
+  assert.deepEqual(packagesFieldMap, {
+    package_code: 'packageCode', name: 'name', eligible_service: 'eligibleService',
+    included_credit: 'includedCredit', price: 'price', notes: 'notes', created_at: 'createdAt',
+    created_by: 'createdBy', updated_at: 'updatedAt', updated_by: 'updatedBy',
+    deleted_at: 'deletedAt', deleted_by: 'deletedBy',
+  })
+
+  const request = (method: string, body: unknown = undefined, params: Record<string, string> = {}) => ({
+    method, query: {}, body, headers: {}, params,
+  })
+
+  const purchaseMethods = customerPackagePurchaseService as unknown as {
+    create: (payload: unknown) => Promise<unknown>
+  }
+  const originalPurchaseCreate = purchaseMethods.create
+  const createdResponse = {
+    kind: 'created', customerPackageId: 'package-1', customerId: 'customer-1',
+    packageCode: 'GOLD', openingCredit: 10, transactionId: 'transaction-1',
+    createdAt: '2026-08-25 12:00:01',
+  }
+  purchaseMethods.create = async () => createdResponse
+  try {
+    const result = await customerPackageRoutes.collection.handleRequest(request('POST'))
+    assert.equal(result.status, 201)
+    assert.deepEqual(result.body, createdResponse)
+    assert.equal('success' in (result.body as object), false)
+  } finally {
+    purchaseMethods.create = originalPurchaseCreate
+  }
+
+  const readMethods = customerPackageReadService as unknown as {
+    list: (query: unknown) => Promise<unknown>
+    getById: (id: string) => Promise<unknown>
+  }
+  const originalList = readMethods.list
+  const originalGetById = readMethods.getById
+  const viewRow = { customerPackageId: 'package-1', status: 'ACTIVE', transactions: [] }
+  readMethods.list = async () => ({ items: [viewRow], pagination: { page: 1, perPage: 1, total: 1, totalPages: 1 } })
+  readMethods.getById = async () => viewRow
+  try {
+    const listResult = await customerPackageRoutes.collection.handleRequest(request('GET'))
+    assert.equal(listResult.status, 200)
+    assert.equal((listResult.body as { success: boolean }).success, true)
+    assert.deepEqual((listResult.body as { data: unknown }).data, [viewRow])
+
+    const detailResult = await customerPackageRoutes.item!.handleRequest(request('GET', undefined, { id: 'package-1' }))
+    assert.equal(detailResult.status, 200)
+    assert.deepEqual((detailResult.body as { data: unknown }).data, viewRow)
+  } finally {
+    readMethods.list = originalList
+    readMethods.getById = originalGetById
+  }
+
+  const patchResult = await customerPackageRoutes.item!.handleRequest(request('PATCH', {}, { id: 'package-1' }))
+  assert.equal(patchResult.status, 404)
+  assert.equal((patchResult.body as { success: boolean }).success, false)
+  assert.equal((patchResult.body as { error: { code: string } }).error.code, 'NOT_FOUND')
+
+  const transactionMethods = packageTransactionService as unknown as {
+    append: (payload: unknown) => Promise<unknown>
+  }
+  const originalTransactionAppend = transactionMethods.append
+  const transactionResponse = {
+    kind: 'created', transactionId: 'transaction-1', customerPackageId: 'package-1',
+    customerId: 'customer-1', type: 'USAGE', creditChange: -1,
+    createdAt: '2026-08-25 12:00:02',
+  }
+  transactionMethods.append = async () => transactionResponse
+  try {
+    const result = await packageTransactionRoutes.collection.handleRequest(request('POST'))
+    assert.equal(result.status, 201)
+    assert.deepEqual(result.body, transactionResponse)
+    assert.equal('success' in (result.body as object), false)
+  } finally {
+    transactionMethods.append = originalTransactionAppend
+  }
+
+  const methodResult = await packageTransactionRoutes.collection.handleRequest(request('GET'))
+  assert.equal(methodResult.status, 405)
+  assert.equal((methodResult.headers as { Allow: string }).Allow, 'POST')
+  assert.equal(packageTransactionRoutes.item, undefined)
 })
 
 async function main(): Promise<void> {

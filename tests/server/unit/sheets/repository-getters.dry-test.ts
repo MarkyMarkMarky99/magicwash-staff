@@ -7,6 +7,8 @@ const environmentKeys = [
   'CUSTOMERS_SPREADSHEET_ID',
   'INVOICES_SPREADSHEET_ID',
   'PRICE_LIST_SPREADSHEET_ID',
+  'LAUNDRY_PACKAGES_SPREADSHEET_ID',
+  'ISSUE_REPORTS_SPREADSHEET_ID',
 ] as const
 
 for (const key of environmentKeys) {
@@ -25,6 +27,10 @@ const [
   customerPackageViewModule,
   laundryPhotosModule,
   priceListModule,
+  customerPackagesModule,
+  packageTransactionsModule,
+  packagesModule,
+  issueReportsModule,
 ] = await Promise.all([
   import('../../../../server/sheets/OrderForm/OrderForm.repository.js'),
   import('../../../../server/sheets/OrdersView/OrdersView.repository.js'),
@@ -37,6 +43,10 @@ const [
   import('../../../../server/sheets/CustomerPackageView/CustomerPackageView.repository.js'),
   import('../../../../server/sheets/LaundryPhotos/LaundryPhotos.repository.js'),
   import('../../../../server/sheets/PriceList/PriceList.repository.js'),
+  import('../../../../server/sheets/CustomerPackages/CustomerPackages.repository.js'),
+  import('../../../../server/sheets/PackageTransactions/PackageTransactions.repository.js'),
+  import('../../../../server/sheets/Packages/Packages.repository.js'),
+  import('../../../../server/sheets/IssueReports/IssueReports.repository.js'),
 ])
 
 process.env.ORDERS_SPREADSHEET_ID = 'orders-spreadsheet-id'
@@ -45,6 +55,8 @@ process.env.APPOINTMENTS_SPREADSHEET_ID = 'appointments-spreadsheet-id'
 process.env.CUSTOMERS_SPREADSHEET_ID = 'customers-spreadsheet-id'
 process.env.INVOICES_SPREADSHEET_ID = 'invoices-spreadsheet-id'
 process.env.PRICE_LIST_SPREADSHEET_ID = 'price-list-spreadsheet-id'
+process.env.LAUNDRY_PACKAGES_SPREADSHEET_ID = 'laundry-packages-spreadsheet-id'
+process.env.ISSUE_REPORTS_SPREADSHEET_ID = 'issue-reports-spreadsheet-id'
 
 const getters = [
   ['OrderForm', orderFormModule.getOrderFormRepository],
@@ -58,6 +70,10 @@ const getters = [
   ['CustomerPackageView', customerPackageViewModule.getCustomerPackageViewRepository],
   ['LaundryPhotos', laundryPhotosModule.getLaundryPhotosRepository],
   ['PriceList', priceListModule.getPriceListRepository],
+  ['CustomerPackages', customerPackagesModule.getCustomerPackagesRepository],
+  ['PackageTransactions', packageTransactionsModule.getPackageTransactionsRepository],
+  ['Packages', packagesModule.getPackagesRepository],
+  ['IssueReports', issueReportsModule.getIssueReportsRepository],
 ] as const
 
 for (const [sheet, getRepository] of getters) {

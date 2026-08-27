@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { invoiceDetailResponseSchema } from '@contracts/invoices/invoice-view-api.schema'
+import { invoiceDetailResponseSchema } from '@contracts/invoices/invoice-api.schema'
 import { apiGet, ApiError } from '@/shared/api/api-client'
 
 export type InvoiceDetailDto = z.infer<typeof invoiceDetailResponseSchema>

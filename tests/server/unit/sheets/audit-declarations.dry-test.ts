@@ -4,8 +4,23 @@ import { customersDbContract } from '../../../../server/sheets/Customers/Custome
 import { invoiceItemsDbContract } from '../../../../server/sheets/InvoiceItems/InvoiceItems.db-contract.js'
 import { invoicesDbContract } from '../../../../server/sheets/Invoices/Invoices.db-contract.js'
 import { orderFormDbContract } from '../../../../server/sheets/OrderForm/OrderForm.db-contract.js'
+import { customerPackagesDbContract } from '../../../../server/sheets/CustomerPackages/CustomerPackages.db-contract.js'
+import { packageTransactionsDbContract } from '../../../../server/sheets/PackageTransactions/PackageTransactions.db-contract.js'
+import { packagesDbContract } from '../../../../server/sheets/Packages/Packages.db-contract.js'
+import { issueReportsDbContract } from '../../../../server/sheets/IssueReports/IssueReports.db-contract.js'
 
 const declaredAudits = [
+  { name: 'IssueReports', contract: issueReportsDbContract, expected: { onAppend: ['CreatedAt'], onUpdate: ['UpdatedAt'] } },
+  {
+    name: 'CustomerPackages',
+    contract: customerPackagesDbContract,
+    expected: { onAppend: ['created_at'] },
+  },
+  {
+    name: 'PackageTransactions',
+    contract: packageTransactionsDbContract,
+    expected: { onAppend: ['created_at'] },
+  },
   {
     name: 'Appointments',
     contract: appointmentsDbContract,
@@ -25,6 +40,11 @@ const declaredAudits = [
     name: 'Customers',
     contract: customersDbContract,
     expected: { onAppend: [], onUpdate: ['UpdatedAt'] },
+  },
+  {
+    name: 'Packages',
+    contract: packagesDbContract,
+    expected: { onAppend: ['created_at'], onUpdate: ['updated_at'] },
   },
 ] as const
 

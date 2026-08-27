@@ -10,6 +10,10 @@ import { orderFormDbContract } from '../../../../server/sheets/OrderForm/OrderFo
 import { ordersViewDbContract } from '../../../../server/sheets/OrdersView/OrdersView.db-contract.js'
 import { paymentsDbContract } from '../../../../server/sheets/Payments/Payments.db-contract.js'
 import { priceListDbContract } from '../../../../server/sheets/PriceList/PriceList.db-contract.js'
+import { customerPackagesDbContract } from '../../../../server/sheets/CustomerPackages/CustomerPackages.db-contract.js'
+import { packageTransactionsDbContract } from '../../../../server/sheets/PackageTransactions/PackageTransactions.db-contract.js'
+import { packagesDbContract } from '../../../../server/sheets/Packages/Packages.db-contract.js'
+import { issueReportsDbContract } from '../../../../server/sheets/IssueReports/IssueReports.db-contract.js'
 import { deriveGVizColumns } from '../../../../server/shared/repositories/utils/gviz-query.builder.js'
 
 interface SheetContractLike {
@@ -25,6 +29,22 @@ interface ColumnOrderTest {
 }
 
 const tests: ColumnOrderTest[] = [
+  {
+    name: 'IssueReports',
+    contract: issueReportsDbContract,
+    expected: { IssueReportID: 'A', Title: 'B', Description: 'C', Status: 'D', ScreenshotUrl: 'E', CreatedAt: 'F', CreatedBy: 'G', UpdatedAt: 'H', UpdatedBy: 'I' },
+    primaryKeyColumn: 'A',
+  },
+  {
+    name: 'CustomerPackages',
+    contract: customerPackagesDbContract,
+    expected: {
+      id: 'A', customer_id: 'B', package_code: 'C', start_date: 'D', expiry_date: 'E',
+      service_day: 'F', time_slot: 'G', invoice_id: 'H', notes: 'I', created_at: 'J',
+      created_by: 'K', updated_at: 'L', updated_by: 'M', deleted_at: 'N', deleted_by: 'O',
+    },
+    primaryKeyColumn: 'A',
+  },
   {
     name: 'OrderForm',
     contract: orderFormDbContract,
@@ -261,6 +281,25 @@ const tests: ColumnOrderTest[] = [
       usedCredit: 'Q',
       totalCredit: 'R',
       transactionsJson: 'S',
+    },
+    primaryKeyColumn: 'A',
+  },
+  {
+    name: 'PackageTransactions',
+    contract: packageTransactionsDbContract,
+    expected: {
+      id: 'A', customer_package_id: 'B', customer_id: 'C', type: 'D', reference_source: 'E',
+      reference_id: 'F', credit_change: 'G', notes: 'H', created_at: 'I', created_by: 'J',
+    },
+    primaryKeyColumn: 'A',
+  },
+  {
+    name: 'Packages',
+    contract: packagesDbContract,
+    expected: {
+      package_code: 'A', name: 'B', eligible_service: 'C', included_credit: 'D', price: 'E',
+      notes: 'F', created_at: 'G', created_by: 'H', updated_at: 'I', updated_by: 'J',
+      deleted_at: 'K', deleted_by: 'L',
     },
     primaryKeyColumn: 'A',
   },

@@ -40,5 +40,5 @@ export const invoicesDbContract = {
     onAppend: ['created_at'],
     onUpdate: [],
   },
-  writes: { append: true, update: false, delete: false },
+  writes: { append: true, update: true, delete: false },
 } satisfies SheetContract

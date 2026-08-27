@@ -1,186 +1,128 @@
-# NEXT-SESSION.md
+# Next session
 
-> อ่านไฟล์นี้ไฟล์เดียวแล้วทำงานต่อได้เลย ไม่ต้อง resume session เก่า
+## Where we are
 
-## งานล่าสุด — Price List form ใช้ FormOverlay (2026-08-23)
+On **`main`** at `b0a3985`, pushed and live on `https://magicwash-staff.vercel.app`.
+`main` push = Vercel prod deploy. Two branches still conflict (below).
 
-- Branch ปัจจุบัน: `feature/price-list-form-layout`.
-- งานล่าสุด: Create/Reschedule Appointment เปลี่ยนจาก `FormLayout` ให้แต่ละ parent page เป็น owner ของ `FormOverlay` เพื่อกำหนด title/submit แยกกัน; `AppointmentForm` เหลือเฉพาะ body fields. Header แสดง context → ชื่อลูกค้าเด่นสุด → ที่อยู่, พร้อม fallback title ที่ไม่ว่างและยังคง error/submit gating. ลบ customer card ใน body (แต่คงคำเตือน create กรณีข้อมูลลูกค้าไม่ครบ) และแก้ nested gutter. `frontend-reviewer` อนุมัติ; `npm run build` และ `git diff --check` ผ่าน.
-- การตัดสินใจใหม่: เอา PICKUP/DELIVERY tabs และข้อความ `DELIVERY - LINKED TO THIS ORDER` ออกจาก AppointmentForm. สร้างนัดจาก Schedule ปกติเป็น PICKUP เสมอ; DELIVERY ต้องผ่าน selected-order intent เท่านั้น (`deliveryOrderId` ที่ไม่ว่าง) ซึ่งยังส่ง order linkage เดิม. eyebrow ของ create overlay คือ `SCHEDULE A PICKUP` หรือ `SCHEDULE A DELIVERY` ตาม flow. `frontend-reviewer` อนุมัติ.
-- shared refactor ใหม่: `FormOptionGrid` หน้าตาเทียบ `FormInput` สำหรับ label/font/control/focus แต่คง selected/disabled และ card variant. ใช้ semantic `fieldset`/`legend` เพื่อ label กลุ่มปุ่มอย่างถูกต้อง; ห้ามกลับไปใช้ `FormLabel` เพราะ `<label for>` เชื่อมกลุ่มหลายปุ่มไม่ได้. ตรวจ usage จริงใน AppointmentForm แล้วและ reviewer อนุมัติ.
-- `PriceListFormPage.vue` เปลี่ยนจาก page shell/header/footer ของตัวเองมาใช้ `FormOverlay` แล้ว จึงใช้ header ดีไซน์มาตรฐานเดียวกันและมี footer ปุ่ม `บันทึกราคา` ปุ่มเดียวตามคำสั่ง (ไม่มีปุ่มยกเลิก). Page เหลือเฉพาะ body slot; legacy header ไม่มีแล้ว.
-- คง create/update, store/API flow, validation, route loading/error, FormInput, native select, ช่องราคา, switches และ Thai typography ไว้ทั้งหมด; `closeOnBackdrop` ปิด และปุ่มปิด header กลับไป Price List. ลบส่วนแสดงรหัสรายการที่ระบบกำหนด พร้อม state/CSS ที่เกี่ยวข้อง.
-- หลัง commit `858adca` มีงาน uncommitted เพิ่ม: ลบ font import/CSS placeholder ที่เกิน, เพิ่ม shared `FormSwitch` แบบ generic และย้าย switch เปิดใช้งาน/เครดิตมาใช้, ย้าย “ช่วงเวลาราคา” ขึ้นก่อน “รายการ”, ทำ gap ระหว่าง sections ให้เท่ากัน และลบ gap ก่อน switch. ตรวจ `git diff --check` และ `npm run build` ผ่าน. ห้ามเขียน `G:\My Drive\Magicwash\Database\GoogleSheets\*.json`.
+Landed 2026-08-27, built as three parallel jobs in three worktrees off a frozen contract:
 
----
+- **`packages` module** — CRUD API over the existing `Packages` catalog sheet
+  (`GET`/`POST /api/packages`, `GET`/`PATCH /api/packages/:id`), plus `src/features/packages/`
+  (list, form, store, service) for staff.
+- **customer-package reads no longer touch `CustomerPackageView`.** That formula view never
+  refreshed, so appended rows were invisible. List/detail are now assembled in
+  `customer-package-read.service.ts` from `CustomerPackages` + `PackageTransactions` + `Packages`
+  + `Customers` — 4 GViz calls, in-memory join, filter/sort/page in memory because GViz `where`
+  is equality-only. Design: `docs/customer-package-view-service-assembly.md`.
+- **Pickers on the create-customer-package form** — `packageCode` is a dropdown, `customerId` is a
+  filterable `CustomerPicker` over the cached customer list.
+- **Datetime convention written down** (`docs/conventions/datetime.md`) plus a read-side fix:
+  `normalizeSheetTimestamp` used to truncate an offset-bearing ISO string, relabelling UTC as
+  Bangkok, 7 hours wrong. It now converts. Legacy ISO rows in `Packages` come back in the
+  project format.
+- **IssueReports sheet is live** — see below.
 
-# งานล่าสุด: ปุ่มเลือกรายการจากรายการราคา ในหน้า Create Invoice
+Verified by hitting the live API, not just typecheck: all four surfaces on prod return 200, package
+CRUD round-trips through the sheet (create/edit/deactivate/duplicate-reject/404), a deactivated
+package is still rejected for purchase, and a newly created customer package appears immediately —
+the bug that started the work.
 
-**สถานะ: เสร็จสมบูรณ์ — พิสูจน์บน browser จริงแล้ว commit แล้ว ตัดสิน 4 ข้อครบแล้ว (2026-08-20) ทุกข้อ = ปล่อยไว้ตามเดิม ไม่มีงานโค้ดเพิ่มจาก Q1-Q4 รอตัดสินใจว่าจะ merge เข้า main เมื่อไหร่**
+## Do this first
 
-**Branch: `feature/invoice-item-picker`** ตัดจาก `main` = `de85ec9` (ตรงกับ `origin/main`)
-ยังไม่ merge เข้า `main`
+1. **Smoke test through the UI in a browser.** Everything so far was proven at the API layer.
+   `npm run build` is esbuild only and `.vue` files cannot be unit tested, so no frontend behaviour
+   has been verified: the packages list/form pages, the package dropdown, and the customer picker
+   have never been clicked. `/frontend-test` is the tool for this.
+2. **Delete the leftover test data.** `ZZTEST01` in the `Packages` catalog (created by a live write
+   test, deactivated but still listed), and customer package `af9f0651` for พิมพ์นิดา, which is a
+   real ACTIVE GOLD 50-credit package. `SheetRepository.delete()` throws, so both must go by hand.
 
-## ทำอะไรไป
+## Physical sheet setup — three traps no test catches
 
-เพิ่มปุ่ม **`เลือกจากรายการราคา`** ในหน้า Create Invoice ข้างปุ่ม `Add line` เดิม
-กด → เปิด full-screen overlay แสดงรายการราคา (ค้นหาได้ จัดกลุ่มตามหมวด) → แตะปุ่มราคา →
-เพิ่มเป็น line item 1 บรรทัด (`ชื่อสินค้า (บริการ)`, qty 1, ราคาที่แตะ) → overlay ปิดเอง
+Found the hard way while wiring up IssueReports. All three must be true of any new tab, and every
+one of them fails at runtime with a different error:
 
-### ไฟล์ (9 ไฟล์)
-สร้าง:
-| ไฟล์ | หน้าที่ |
+1. **Share → General access = "Anyone with the link" → Viewer.** Reads go through GViz
+   unauthenticated; a private sheet fails every read with `GViz read failed: 401`. Editor rights for
+   the service account cover writes only — writes can succeed while every read 401s.
+2. **The header row must hold every contract key.** Missing one gives
+   `GViz query error: Invalid query: NO_COLUMN: F`.
+3. **The grid must be exactly as wide as the contract.** A fresh Google tab is 26 columns wide and
+   the reader throws `No DB field resolves for GViz column 'J'` on the first column it cannot map.
+   Delete the surplus. `Packages` is exactly 12 wide for its 12 fields.
+
+`docs/scripts/create-issue-reports-sheet.gs` is a container-bound Apps Script that does 2 and 3 and
+prints reminders for 1. Copy it as the template for the next sheet.
+
+`ISSUE_REPORTS_SPREADSHEET_ID` is set in `.env.local` and in all three Vercel environments, and
+`G:\My Drive\...\GoogleSheets\IssueReport.json` now exists (registry is 21 files).
+
+## Two branches left unmerged, both conflicting
+
+Deliberately not resolved: resolving these is code work, not a merge button.
+
+| Branch | Conflicts |
 |---|---|
-| `src/features/invoices/services/invoice-price-list.service.ts` | `fetchAllPriceListRows()` วน pagination |
-| `src/features/invoices/stores/invoice-price-list.store.ts` | Pinia id `invoice-price-list` |
-| `src/features/invoices/utils/price-list-line.ts` | pure mapping row → `LineItemFormRow` |
-| `src/features/invoices/composables/useInvoiceItemPickerRoute.ts` | overlay route (query param) |
-| `src/features/invoices/components/InvoicePriceListPicker.vue` | overlay UI |
-| `tests/web/unit/.../price-list-line.dry-test.ts` | test mapping |
-| `tests/web/unit/.../invoice-price-list.dry-test.ts` | test pagination |
+| `feature/customer-create-form` | `src/App.vue` (the `KeepAlive` exclude list) |
+| `feature/invoice-create-form-redesign` | `PriceListFormPage.vue`, `.user/memory/MEMORY.md` |
 
-แก้:
-- `src/features/invoices/components/InvoiceLineItemsEditor.vue` — ปุ่ม + emit `pickFromPriceList`
-- `src/features/invoices/pages/InvoiceCreatePage.vue` — wiring
+`feature/customer-packages-write-backend` was **deleted as superseded**, verified before deleting:
+its service and db-contract files were byte-identical to main's, its `package-transaction.service.ts`
+differed only in two import-path lines, its `customer-package-api.schema.ts` was 127 lines *shorter*
+than main's merged one, and its three contract dry-tests are a subset of main's consolidated
+182-line test. The conflicts were the already-merged contract collapse, nothing more. Do not go
+looking for that work — it is all on main via `63f110c` plus the contract-merge branch.
 
----
+All other branches were merged and deleted (8 local, 3 on origin). Only these two remain.
 
-## การตัดสินใจสำคัญ + เหตุผล (อย่าย้อนกลับโดยไม่อ่าน)
+## Datetime helper consolidation — deferred on purpose
 
-### D1 — ทำไมเป็น overlay ไม่ใช่ navigate ไปหน้า `/price-list` จริง
-**นี่คือหัวใจของงานทั้งหมด** `src/App.vue:18` มี `<KeepAlive :exclude="[…,'InvoiceCreatePage',…]>`
-→ หน้านี้**ไม่เคยถูก cache** navigate ออก = unmount = local refs หายหมด
-(`invoiceNumber`, `issuedDate`, `dueDate`, `items`, `invoiceAdjustments`) และฟีเจอร์นี้ไม่มี draft persistence เลย
+Convention is now written down in `docs/conventions/datetime.md`: one format,
+`yyyy-MM-dd HH:mm:ss` Asia/Bangkok, write side and read side, and where cross-boundary code lives.
 
-⇒ ถ้าทำตามตัวอักษร (ไปหน้า pricelist แล้วกลับ) **ร่างใบแจ้งหนี้ทั้งใบหาย** — ทั้งเลขที่ วันที่ และทุกบรรทัดที่กรอกไว้
+New cross-boundary datetime helpers go in root **`shared/utils/`** — the only directory both sides
+import (`api/tsconfig.json` includes `../shared/**/*.ts`; frontend has the `@shared` alias). The
+customer-package read-assembly job creates the first one there.
 
-ทางเลือกอีกทาง คือยก form state ทั้งหมดขึ้น Pinia = refactor หน้า 600 บรรทัด และรื้อเหตุผลที่หน้านี้
-ถูกใส่ใน exclude list ตั้งแต่แรก (ข้อมูลลูกค้าคนก่อนค้างมาถึงคนถัดไป แล้วถูก submit ผิดคน)
+**Not migrated yet, deliberately:** `server/shared/utils/bangkok-timestamp.ts` (write side) and
+`src/shared/utils/sheet-date.ts` (frontend parse/display) still hold their own implementations.
+Moving the write-side helper touches `SheetRepository`, which every module depends on, so it must be
+its own job on a quiet tree — doing it alongside feature work would collide with every branch in
+flight. Do it after the packages/customer-package work lands, not before.
 
-ผู้ใช้ยังเห็นรายการราคาและกดเลือกเหมือนที่ขอทุกอย่าง เปลี่ยนแค่กลไกข้างใน
+## Still open from before
 
-### D2 — overlay ผูกกับ query param `?picker=price-list`
-ตาม convention ของโปรเจกต์ (`CLAUDE.md` → "Overlays must never own browser history")
-template คือ `src/features/customers/composables/useOrderSheetRoute.ts`
-**ห้ามเด็ดขาด:** `history.pushState`, `history.back()`, `popstate`, nested/`children` routes
-(เหตุผลเต็มอยู่ใน `docs/frontend-layout-nav-refactor.md`)
+- **CANCELLED vs VOID** — nothing in code, the DB contract, or the G Drive registry defines the
+  difference. `invoiceStatusUpdateSchema` accepts **both**, because both already exist in the sheet
+  enum: accepting both invents nothing. If the business has only one notion of "cancel", drop the
+  other; the structure does not change either way.
+- **`z.infer` exports in schema files** — standing rule is that schema files carry no type exports.
+  `invoice-api.schema.ts` has 14. Stripping them is a pass across all contract files, not an
+  invoice-only change.
+- **Cancel/void UI** — deferred by the user. Design is in
+  `docs/plans/invoice-contract-merge-and-status-update.md`.
+- **Nested invoice+items update** — blocked, not skipped. `SheetRepository.delete()` throws, the
+  Sheets client exposes only `values.*` (no `batchUpdate`/`deleteDimension`, and `SheetContract`
+  stores no gid), and `InvoiceItems` has no soft-delete column. Removing a line has no
+  representation today; one of those three must change first.
 
-### D3 — invoices ไม่ import จาก `src/features/price-list/`
-มี service + store ของตัวเอง เพราะ `CLAUDE.md` ห้าม cross-feature import
-ไม่ใช่โค้ดซ้ำจริง — ของ invoices วน pagination จนหมดและ**ไม่ cache เลย**, ของ price-list ทำตรงข้ามทั้งสองอย่าง
-label ภาษาไทย 3 ตัว copy เป็น literal จาก `ServicePriceTriad.vue` (ยืนยัน byte-match แล้ว)
+## Facts worth not rediscovering
 
-### D4 — ไม่ cache ราคา
-`reload()` ยิงใหม่ทุกครั้งที่เปิด picker — ราคาเป็นข้อมูลตั้งบิล cache ค้างแล้วออกบิลผิดราคาได้
-มี `requestId` counter กัน response เก่าเขียนทับของใหม่
-
-### D5 — 1 แตะ = 1 บรรทัด แล้วปิด
-ตามที่สั่งตรงตัว ไม่ทำ multi-select (ดู Q2)
-
-### D6 — `0` เป็นราคาที่ถูกต้อง
-ทุกจุดเช็คด้วย `!== null` / `!== undefined` เท่านั้น **ห้ามใช้ truthiness** (`if (price)`, `price || x`)
-ไม่งั้นของฟรีหายเงียบ — มี dry test คุม และ mutation test พิสูจน์แล้วว่า guard ทำงานจริง
-
-### D7 — `itemCode` ไม่ถูกพาไปที่ line item
-`LineItemFormRow` ไม่มี field อ้างอิงระดับบรรทัด (มีแต่ `AdjustmentFormRow` ที่มี `refSource`/`refCode`)
-จะเพิ่มต้องแก้ contract + backend + sheet — เกินขอบเขต
-
----
-
-## หลักฐานที่มี
-
-**Browser proof — Chrome จริง 151, headed, 390×844, `vercel dev` port 3102 — 11/12 PASS**
-artifacts: `C:\Users\Asus\AppData\Local\Temp\invoice-price-list-picker-proof-20260820\`
-(มี video `.webm` และ screenshot ทุกฉาก — ยังไม่ถูกลบ)
-
-| ฉาก | ผล | ค่าที่วัดได้ |
-|---|---|---|
-| เปิด picker | PASS | hash มี `picker=price-list`, 20 แถวจริง |
-| ค้นหา | PASS | 20 → 3 แถว |
-| เลือกรายการ | PASS | `หมอนหนุนขนเป็ด (ดรายคลีน)` qty 1 ราคา 300 |
-| **ร่างไม่หาย** | PASS | เลขที่/วันที่/6 บรรทัดเดิม ไม่เปลี่ยน (diff `[]`) |
-| กด Back | PASS | overlay ปิด ยังอยู่หน้าเดิม customerId/orderId ครบ |
-| Back→Forward | PASS | picker เปิดใหม่ ร่างยังอยู่ |
-| Back 2 ครั้ง | PASS | ออกไป `#/customers/e6741c92/orders` = push แค่ 1 entry |
-| Deep link | PASS | เปิดมาพร้อม 20 แถว ปิดแล้วไม่หลุดออกจากแอป |
-| แตะรัว 2 ปุ่ม | PASS | ได้ 1 บรรทัด |
-| เปิด/ปิดรัว | PASS | ไม่ค้าง |
-| API ล่ม + retry | PASS | ขึ้น `ไม่สามารถโหลดรายการราคาได้` + ปุ่มลองใหม่ → โหลดสำเร็จ |
-| ราคา 0 | ไม่ได้พิสูจน์ | ดูด้านล่าง |
-
-**เรื่องราคา 0:** ในข้อมูลจริงมีแถวราคา 0 แถวเดียวคือ `TEST-ยืนยันการแก้บั๊ก` ซึ่ง `active=false`
-picker เลยไม่แสดง — **ซึ่งถูกต้องตามกฎ** แต่แปลว่ายังไม่มีหลักฐานจาก browser ว่าแถวราคา 0 ที่ `active=true`
-จะกดได้จริง หลักฐานชั้นอื่นมี: dry test ครอบ (`0` → `unitPrice:'0'`) และ mutation test พิสูจน์ guard แล้ว
-**ถ้าอยากปิดช่องนี้จริง:** ตั้ง `active=true` ให้แถวทดสอบนั้นในชีต แล้วรัน browser proof ซ้ำ
-
-**ด่านอื่นที่ผ่าน:** `npm run build` PASS · dry test 2 ไฟล์ PASS · lockfile ไม่ถูกแตะ ·
-audit 18 กฎ 17 PASS · mutation test 2 guard แดงเมื่อดัดแปลงแล้ว revert สะอาด ·
-review 2 รอบโดย Grok รอบสองสะอาด · repo ไม่ถูกแตะระหว่างตรวจ
-
----
-
-## ✅ คำถามที่ตัดสินแล้ว (ตัดสินใจ 2026-08-20 — ทุกข้อ = ปล่อยไว้ตามเดิม ไม่มีงานโค้ดเพิ่ม)
-
-### Q1 — ราคาหมดอายุ
-แถวราคามี `effectiveFrom` / `effectiveTo` แถวที่ `active: true` **อาจหมดอายุหรือยังไม่เริ่มใช้ก็ได้**
-ตอนนี้ picker แสดงเฉพาะ `active === true` และ**โชว์ช่วงวันที่บนการ์ด**ให้คนเห็น แต่ไม่กรองตามวันที่
-
-เหตุผลที่ไม่แก้:
-- แก้ให้ถูกต้องต้องเพิ่ม API ที่คืนเฉพาะราคาที่ effective ณ วันที่ออกบิล
-  (`CLAUDE.md` ห้าม derive business logic ฝั่ง frontend — เขียน `if (effectiveTo < today)` ไม่ได้)
-- นั่นคืองาน backend หลายชั้น (contract + server module + route + tests)
-- ทั้งแอปตอนนี้ รวม `PriceListPage` เอง ก็ใช้ `active` เป็นสวิตช์เหมือนกันหมด — ไม่ได้ทำให้แย่ลงกว่าเดิม
-
-**ตัดสิน (2026-08-20): ปล่อยไว้ตามเดิม** ถ้าจะกลับมาทำทีหลัง งานคือ: เพิ่ม query param วันที่เข้า
-`priceListListQuerySchema` → `server/modules/price-list/` กรอง `effectiveFrom <= date <= (effectiveTo ?? ∞)` →
-frontend ส่ง `issuedDate` ไป
-
-### Q2 — เลือกหลายรายการรวดเดียว?
-ตอนนี้แตะ 1 ครั้ง = ปิด ต้องเปิดใหม่ทุกชิ้น
-
-**ตัดสิน (2026-08-20): คงเดิม 1 แตะ = ปิด** ไม่ทำ multi-select
-
-### Q3 — layout: หน้า create invoice scroll แนวนอนได้ที่ 390px
-เห็นจาก screenshot `C-select-corrected.png` — มี scrollbar แนวนอน เนื้อหาถูกดันออกนอกจอ
-สงสัยว่าปุ่มใหม่ (ข้อความไทยยาว) เป็นตัวดัน **ยังไม่พิสูจน์** — Codex sandbox crash 2 รอบระหว่างวัด
-
-**ตัดสิน (2026-08-20): ปล่อยไว้ก่อน** เก็บเป็น backlog แยก ไม่บล็อกการ merge
-**วิธีพิสูจน์ทีหลัง:** เปิดหน้านี้ที่ 390px วัด `document.documentElement.scrollWidth` แล้วซ่อนปุ่มใหม่ด้วย
-`display:none` วัดซ้ำ ถ้าเลขลดลงมา ≤390 = ปุ่มใหม่เป็นเหตุ
-**วิธีแก้ที่น่าจะพอ:** เปลี่ยน label เป็น `เลือกรายการ` (สั้นลง) หรือให้แถวปุ่ม wrap ได้
-
-### Q4 — ไม่มี frontend type-check ทั้งโปรเจกต์
-`npm run build` = esbuild เฉยๆ prop/emit contract พังก็ build เขียว `vue-tsc` ไม่ได้ติดตั้ง
-
-**ตัดสิน (2026-08-20): ปล่อยไว้ ไม่ทำตอนนี้** ถือเป็น toolchain change แยกทั้ง repo ไม่เกี่ยวกับ feature นี้
-
----
-
-## ทำต่อยังไง
-
-```bash
-git log --oneline -3            # ควรเห็น commit ของงานนี้บน feature/invoice-item-picker
-npm run build
-npx tsx --tsconfig jsconfig.json tests/web/unit/features/invoices/utils/price-list-line.dry-test.ts
-npx tsx --tsconfig jsconfig.json tests/web/unit/features/invoices/services/invoice-price-list.dry-test.ts
-npm run dev:api                 # vercel dev --listen 3102
-```
-เปิด `http://localhost:3102/#/invoices/create?customerId=<id>&orderId=<id>`
-(customer ที่มี order ใช้ได้จริง: `e6741c92`)
-
-**อย่าใช้ `npm run dev`** — เป็น vite เปล่า `api/` ไม่ทำงาน หน้าจะไม่มีข้อมูล
-
-**อย่าแตะ:** `src/shared/**`, `contracts/**`, `api/**`, `server/**`, `src/features/price-list/**`,
-`src/App.vue`, `routes.ts` ทุกไฟล์, `G:\My Drive\Magicwash\Database\GoogleSheets\*.json`
-
----
-
-## หมายเหตุ infra (เสียเวลาไปเยอะ อย่าพลาดซ้ำ)
-
-- **harness แจ้ง `killed` ทั้งที่ process ยังไม่ตาย** — เช็ค `tasklist | grep codex` ก่อนเสมอ
-  อย่าฆ่าแล้วรันใหม่ทันที
-- **อย่า pipe codex ผ่าน `tail`** — output หายทั้งก้อนเมื่อ harness kill wrapper
-  ให้ redirect ลงไฟล์ `> log 2>&1` แล้วค่อยอ่าน
-- **codex sandbox crash `0xc0000142`** มักเกิดจาก orphan `codex-command-runner-*.exe` ค้าง
-  kill ให้หมดก่อนรันใหม่ และรัน codex **ทีละ 1 job เท่านั้น**
-- ใช้ **Monitor tool** เฝ้างานยาว background bash โดน harness ฆ่า
+- Customer-package create is **complete server-side**: route → `customerPackagePurchaseService.create`
+  → read `Packages` catalog by `packageCode` (rejects retired/`deleted_at`) → append `PURCHASE`
+  opening row to `PackageTransactions` → append to `CustomerPackages`. Server fills `id` (8-char)
+  and `created_at`. `CustomerPackages` has **no status column** — status lives on the read-only
+  `CustomerPackageView` portal sheet.
+- `PATCH /api/customer-packages/:id` is a **stub that always 404s** — editing a package is
+  undefined product-wise, not a bug.
+- `invoiceViewResolveStatus_` (Apps Script) recomputes status **only when the stored value is
+  `ISSUED`**, deriving PAID/PARTIALLY_PAID/OVERDUE/UNPAID from payments. DRAFT/CANCELLED/VOID pass
+  through — that is why a status PATCH survives a re-sync.
+- Apps Script is **not** retired: `APPSCRIPT_INVOICE_VIEW_SYNC_URL` and `src/api/photos.js` are still
+  live. Row writes moved to Sheets API v4 with a service account; **reads are still unauthenticated
+  GViz**.
+- `npm run build` is esbuild only — **no frontend type-check exists**. A broken prop contract ships
+  green. Only `typecheck:api` type-checks anything.
+- `.vue` SFCs **cannot be unit tested** here; tests are plain TS run with `npx tsx`. "No automated
+  test was possible" is the correct report for a component change, not a gap to paper over.

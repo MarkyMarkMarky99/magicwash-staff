@@ -12,6 +12,6 @@
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["**/*.ts", "../server/**/*.ts", "../contracts/**/*.ts", "../tests/server/**/*.ts"],
+  "include": ["**/*.ts", "../server/**/*.ts", "../contracts/**/*.ts", "../shared/**/*.ts", "../tests/server/**/*.ts"],
   "exclude": ["node_modules"]
 }

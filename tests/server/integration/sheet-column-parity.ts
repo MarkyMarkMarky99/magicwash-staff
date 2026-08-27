@@ -17,6 +17,10 @@ import { customerPackageViewDbContract } from '../../../server/sheets/CustomerPa
 import { laundryPhotosDbContract } from '../../../server/sheets/LaundryPhotos/LaundryPhotos.db-contract.js'
 import { orderFormDbContract } from '../../../server/sheets/OrderForm/OrderForm.db-contract.js'
 import { priceListDbContract } from '../../../server/sheets/PriceList/PriceList.db-contract.js'
+import { customerPackagesDbContract } from '../../../server/sheets/CustomerPackages/CustomerPackages.db-contract.js'
+import { packageTransactionsDbContract } from '../../../server/sheets/PackageTransactions/PackageTransactions.db-contract.js'
+import { packagesDbContract } from '../../../server/sheets/Packages/Packages.db-contract.js'
+import { issueReportsDbContract } from '../../../server/sheets/IssueReports/IssueReports.db-contract.js'
 
 const GVIZ_BASE_URL = 'https://docs.google.com/spreadsheets/d'
 
@@ -46,6 +50,12 @@ interface GvizResponse {
 }
 
 const readableSheets: readonly ReadableSheet[] = [
+  {
+    name: 'CustomerPackages',
+    sheetName: customerPackagesDbContract.sheetName,
+    spreadsheetIdEnv: customerPackagesDbContract.spreadsheetId!,
+    rowSchema: customerPackagesDbContract.row,
+  },
   {
     name: 'Appointments',
     sheetName: appointmentsDbContract.sheetName,
@@ -101,10 +111,28 @@ const readableSheets: readonly ReadableSheet[] = [
     rowSchema: laundryPhotosDbContract.row,
   },
   {
+    name: 'PackageTransactions',
+    sheetName: packageTransactionsDbContract.sheetName,
+    spreadsheetIdEnv: packageTransactionsDbContract.spreadsheetId!,
+    rowSchema: packageTransactionsDbContract.row,
+  },
+  {
+    name: 'Packages',
+    sheetName: packagesDbContract.sheetName,
+    spreadsheetIdEnv: packagesDbContract.spreadsheetId!,
+    rowSchema: packagesDbContract.row,
+  },
+  {
     name: 'PriceList',
     sheetName: priceListDbContract.sheetName,
     spreadsheetIdEnv: priceListDbContract.spreadsheetId!,
     rowSchema: priceListDbContract.row,
+  },
+  {
+    name: 'IssueReports',
+    sheetName: issueReportsDbContract.sheetName,
+    spreadsheetIdEnv: issueReportsDbContract.spreadsheetId!,
+    rowSchema: issueReportsDbContract.row,
   },
 ]
 
