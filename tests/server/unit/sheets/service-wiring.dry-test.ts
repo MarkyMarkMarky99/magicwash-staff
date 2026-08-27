@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict'
 import { generateKeyPairSync } from 'node:crypto'
+import { deriveGVizColumns, type GSheetRowSchema } from '../../../../server/shared/repositories/utils/gviz-query.builder.js'
+import { customerPackagesRowSchema } from '../../../../server/sheets/CustomerPackages/CustomerPackages.db-contract.js'
+import { packageTransactionsRowSchema } from '../../../../server/sheets/PackageTransactions/PackageTransactions.db-contract.js'
+import { packagesRowSchema } from '../../../../server/sheets/Packages/Packages.db-contract.js'
+import { customersRowSchema } from '../../../../server/sheets/Customers/Customers.db-contract.js'
 
 // ── Drives the REAL production wiring: the services exported by
 //    order.module.ts / appointment.module.ts, built on the real repository
@@ -15,6 +20,7 @@ import { generateKeyPairSync } from 'node:crypto'
 process.env.PORTAL_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 process.env.APPOINTMENTS_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 process.env.LAUNDRY_PACKAGES_SPREADSHEET_ID = 'characterization-spreadsheet-id'
+process.env.CUSTOMERS_SPREADSHEET_ID = 'characterization-customers-id'
 const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
 process.env.GOOGLE_SERVICE_ACCOUNT_KEY = Buffer.from(JSON.stringify({
   client_email: 'service-wiring@example.test',
@@ -52,6 +58,13 @@ function gvizBody(columns: string[], values: unknown[]): string {
       rows: [{ c: values.map((value) => (value === null ? null : { v: value })) }],
     },
   })});`
+}
+
+function sheetGvizBody(rowSchema: GSheetRowSchema, values: unknown[]): string {
+  const columns = deriveGVizColumns(rowSchema)
+  const keys = Object.keys(rowSchema.shape)
+  assert.equal(values.length, keys.length)
+  return gvizBody(keys.map((key) => columns[key]), values)
 }
 
 async function withMockFetch<T>(
@@ -95,10 +108,10 @@ async function productionInvoiceService() {
 
 /** The service the API actually serves `/api/customer-packages` with. */
 async function productionCustomerPackageService() {
-  const { customerPackageViewService } = await import(
+  const { customerPackageReadService } = await import(
     '../../../../server/modules/customer-packages/customer-package-view.module.js'
   )
-  return customerPackageViewService
+  return customerPackageReadService
 }
 
 test('OrdersView service wiring maps DB columns and decodes the declared JSON cell', async () => {
@@ -539,97 +552,59 @@ test('InvoicesView date-range wiring maps DB rows before safe JSON fallbacks', a
   )
 })
 
-test('CustomerPackageView service wiring decodes and safely falls back for transactions JSON', async () => {
-  const validBody = gvizBody(
-    ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S'],
-    [
-      'package-1',
-      'd2ec63e7',
-      'Punch Aonny',
-      '0812345678',
-      '123 Main Road',
-      'PKG-10',
-      'Ten Washes',
-      'WSIR',
-      '2026-08-01',
-      '2026-09-01',
-      'ACTIVE',
-      'MON',
-      '10:00-12:00',
-      null,
-      null,
-      9,
-      1,
-      10,
-      JSON.stringify([
-        {
-          id: 'tx-1',
-          type: 'USAGE',
-          credit_change: -1,
-          remaining_credit: 9,
-          reference_source: 'ORDER',
-          reference_id: 'order-1',
-          notes: null,
-          created_at: '2026-08-02 10:00:00',
-        },
-      ]),
-    ],
-  )
-  const malformedBody = gvizBody(
-    ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S'],
-    [
-      'package-2',
-      'd2ec63e7',
-      'Punch Aonny',
-      '0812345678',
-      '123 Main Road',
-      'PKG-10',
-      'Ten Washes',
-      'WSIR',
-      '2026-08-01',
-      '2026-09-01',
-      'ACTIVE',
-      'MON',
-      '10:00-12:00',
-      null,
-      null,
-      10,
-      0,
-      10,
-      '{bad json',
-    ],
-  )
-
+test('customer-package read service assembles list and detail from four source sheets', async () => {
   await withMockFetch(
-    async () => response(validBody),
+    async (url) => {
+      switch (new URL(url).searchParams.get('sheet')) {
+        case 'CustomerPackages':
+          return response(sheetGvizBody(customerPackagesRowSchema, [
+            'package-1', 'd2ec63e7', 'PKG-10', '2026-08-01', '2026-09-01', 'MON', '10:00-12:00',
+            null, null, '2026-08-01 09:00:00', 'staff-1', null, null, null, null,
+          ]))
+        case 'PackageTransactions':
+          return response(sheetGvizBody(packageTransactionsRowSchema, [
+            'tx-1', 'package-1', 'd2ec63e7', 'PURCHASE', 'CustomerPackages', 'package-1', 10, null,
+            'Date(2026,7,1,9,30,0)', 'staff-1',
+          ]))
+        case 'Packages':
+          return response(sheetGvizBody(packagesRowSchema, [
+            'PKG-10', 'Ten Washes', 'WSIR', 10, 1000, null, '2026-07-01 09:00:00', 'staff-1',
+            '2026-07-01 09:00:00', 'staff-1', '2026-08-01', 'staff-1',
+          ]))
+        case 'Customers':
+          return response(sheetGvizBody(customersRowSchema, [
+            '2026-07-01 09:00:00', 'd2ec63e7', '1', 'Punch Aonny', '0812345678', '123 Main Road',
+            null, null, null, null, null, null, 'Regular', null, null, null, null, null, null, null,
+          ]))
+        default:
+          throw new Error(`Unexpected customer-package sheet: ${new URL(url).searchParams.get('sheet')}`)
+      }
+    },
     async (calls) => {
       const service = await productionCustomerPackageService()
       const listRow = (await service.list({ page: 1, perPage: 1 })).items[0]
-      assert.equal(calls.length, 1)
+      assert.equal(calls.length, 4)
       assert.equal(listRow.customerName, 'Punch Aonny')
+      assert.equal('transactions' in listRow, false)
 
+      calls.length = 0
       const detail = await service.getById('package-1')
+      assert.equal(calls.length, 4)
       assert.deepEqual(detail.transactions, [
         {
           id: 'tx-1',
-          type: 'USAGE',
-          creditChange: -1,
-          remainingCredit: 9,
-          referenceSource: 'ORDER',
-          referenceId: 'order-1',
+          type: 'PURCHASE',
+          creditChange: 10,
+          remainingCredit: 10,
+          referenceSource: 'CustomerPackages',
+          referenceId: 'package-1',
           notes: null,
-          createdAt: '2026-08-02 10:00:00',
+          createdAt: '2026-08-01 09:30:00',
         },
       ])
-      assert.equal(calls.length, 2)
-    },
-  )
-
-  await withMockFetch(
-    async () => response(malformedBody),
-    async () => {
-      const detail = await (await productionCustomerPackageService()).getById('package-2')
-      assert.deepEqual(detail.transactions, [])
+      assert.equal(detail.customerName, 'Punch Aonny')
+      assert.equal(detail.packageName, 'Ten Washes')
+      assert.ok(detail.transactions.every((entry) => !entry.createdAt.includes('T') && !entry.createdAt.includes('+07:00')))
     },
   )
 })
@@ -653,7 +628,7 @@ test('customer-package write wiring preserves field maps, shared singletons, and
     import('../../../../server/sheets/Packages/Packages.repository.js'),
   ])
 
-  const { customerPackageRoutes, customerPackageViewService } = viewModule
+  const { customerPackageRoutes, customerPackageReadService } = viewModule
   const { customerPackagePurchaseService } = purchaseModule
   const { packageTransactionService } = transactionModule
   const { packageTransactionRoutes } = packageRoutesModule
@@ -718,15 +693,15 @@ test('customer-package write wiring preserves field maps, shared singletons, and
     purchaseMethods.create = originalPurchaseCreate
   }
 
-  const viewMethods = customerPackageViewService as unknown as {
+  const readMethods = customerPackageReadService as unknown as {
     list: (query: unknown) => Promise<unknown>
     getById: (id: string) => Promise<unknown>
   }
-  const originalList = viewMethods.list
-  const originalGetById = viewMethods.getById
+  const originalList = readMethods.list
+  const originalGetById = readMethods.getById
   const viewRow = { customerPackageId: 'package-1', status: 'ACTIVE', transactions: [] }
-  viewMethods.list = async () => ({ items: [viewRow], pagination: { page: 1, perPage: 1, total: 1, totalPages: 1 } })
-  viewMethods.getById = async () => viewRow
+  readMethods.list = async () => ({ items: [viewRow], pagination: { page: 1, perPage: 1, total: 1, totalPages: 1 } })
+  readMethods.getById = async () => viewRow
   try {
     const listResult = await customerPackageRoutes.collection.handleRequest(request('GET'))
     assert.equal(listResult.status, 200)
@@ -737,8 +712,8 @@ test('customer-package write wiring preserves field maps, shared singletons, and
     assert.equal(detailResult.status, 200)
     assert.deepEqual((detailResult.body as { data: unknown }).data, viewRow)
   } finally {
-    viewMethods.list = originalList
-    viewMethods.getById = originalGetById
+    readMethods.list = originalList
+    readMethods.getById = originalGetById
   }
 
   const patchResult = await customerPackageRoutes.item!.handleRequest(request('PATCH', {}, { id: 'package-1' }))
