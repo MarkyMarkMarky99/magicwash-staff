@@ -19,6 +19,8 @@ export const routeRegistry = {
     ),
   'price-list': (): ReturnType<RouteLoader> =>
     import('../modules/price-list/price-list.module.js').then((module) => module.priceListRoutes),
+  packages: (): ReturnType<RouteLoader> =>
+    import('../modules/packages/package.module.js').then((module) => module.packageRoutes),
   'issue-reports': (): ReturnType<RouteLoader> =>
     import('../modules/issue-reports/issue-report.module.js').then((module) => module.issueReportRoutes),
 } satisfies Record<string, RouteLoader>

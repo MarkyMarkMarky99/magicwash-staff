@@ -22,5 +22,9 @@ export const packagesDbContract = {
   primaryKey: 'package_code',
   sheetName: 'Packages',
   spreadsheetId: 'LAUNDRY_PACKAGES_SPREADSHEET_ID',
-  writes: { append: false, update: false, delete: false },
+  audit: {
+    onAppend: ['created_at'],
+    onUpdate: ['updated_at'],
+  },
+  writes: { append: true, update: true, delete: false },
 } satisfies SheetContract
