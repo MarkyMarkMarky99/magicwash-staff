@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 import { customerTypeSchema } from '@contracts/customers/customer-api.schema'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
@@ -11,6 +12,7 @@ import { useCustomerStore } from '../stores/customer.store'
 import { useCustomerFilterRoute } from '../composables/useCustomerFilterRoute'
 
 const customerStore = useCustomerStore()
+const router = useRouter()
 const { customers, loading, error } = storeToRefs(customerStore)
 
 const { filter, updateFilter } = useCustomerFilterRoute()
@@ -132,6 +134,17 @@ onUnmounted(() => closeSearch())
         empty-text="No customers"
         :skeleton-rows="4"
       >
+        <template #actions>
+          <button
+            type="button"
+            class="inline-flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 font-label text-[10px] font-bold text-on-primary transition-colors hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            aria-label="Add customer"
+            @click="router.push({ name: 'customer-create' })"
+          >
+            <span class="material-symbols-outlined text-[15px]" aria-hidden="true">person_add</span>
+            เพิ่มลูกค้า
+          </button>
+        </template>
         <CustomerCard
           v-for="c in filteredCustomers"
           :key="c.customerId"

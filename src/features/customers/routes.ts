@@ -7,6 +7,12 @@ export const customerRoutes: RouteRecordRaw[] = [
     component: () => import('./pages/CustomerListPage.vue'),
   },
   {
+    path: '/customers/new',
+    name: 'customer-create',
+    component: () => import('./pages/CustomerCreatePage.vue'),
+    meta: { parent: 'customer-list' },
+  },
+  {
     path: '/customers/:customerId/orders',
     name: 'customer-order-history',
     component: () => import('./pages/CustomerOrderHistoryPage.vue'),
