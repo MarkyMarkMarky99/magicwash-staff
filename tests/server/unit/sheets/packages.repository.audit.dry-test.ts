@@ -11,6 +11,7 @@ import {
 import { formatBangkokTimestamp } from '../../../../server/shared/utils/bangkok-timestamp.js'
 
 type PackagesRow = z.infer<typeof packagesRowSchema>
+type Cell = string | number | boolean | null
 
 const headers = [
   'package_code',
@@ -37,7 +38,7 @@ type Call = AppendCall | UpdateCall
 function repository(config: {
   calls: Call[]
   existingKeys?: string[][]
-  readRange?: string[][]
+  readRange?: Cell[][]
 }): SheetRepository<PackagesRow> {
   const client = new SheetsApiClient({
     spreadsheetId: 'packages-test-spreadsheet',

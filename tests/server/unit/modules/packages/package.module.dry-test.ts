@@ -129,6 +129,14 @@ function dataOf(result: { status: number; body: unknown }): Record<string, unkno
   return body.data as Record<string, unknown>
 }
 
+function listDataOf(result: { status: number; body: unknown }): Array<Record<string, unknown>> {
+  assert.equal(result.status, 200)
+  const body = bodyOf(result)
+  assert.equal(body.success, true)
+  assert.ok(Array.isArray(body.data))
+  return body.data as Array<Record<string, unknown>>
+}
+
 function assertApiError(result: { status: number; body: unknown }, status: number): void {
   assert.equal(result.status, status)
   const body = bodyOf(result)
@@ -188,9 +196,8 @@ globalThis.fetch = (async (input: URL | string, init?: RequestInit) => {
 
 try {
   const listed = await packageRoutes.collection.handleRequest(request('GET'))
-  const listedData = dataOf(listed)
-  assert.ok(Array.isArray(listedData))
-  assert.equal((listedData.find((item) => (item as Record<string, unknown>).packageCode === 'PKG-RETIRED') as Record<string, unknown>).deletedAt, '2026-08-01 12:00:00')
+  const listedData = listDataOf(listed)
+  assert.equal(listedData.find((item) => item.packageCode === 'PKG-RETIRED')?.deletedAt, '2026-08-01 12:00:00')
 
   const invalidCallCount = calls.length
   const invalidCreate = await packageRoutes.collection.handleRequest(request('POST', {
@@ -237,8 +244,8 @@ try {
   assert.equal(deactivateBody.data.some((entry) => entry.range.includes('K')), true)
   assert.equal(deactivateBody.data.some((entry) => entry.range.includes('L')), true)
 
-  const listedWithRetired = dataOf(await packageRoutes.collection.handleRequest(request('GET')))
-  assert.ok((listedWithRetired.find((item) => (item as Record<string, unknown>).packageCode === 'PKG-NEW') as Record<string, unknown>).deletedAt)
+  const listedWithRetired = listDataOf(await packageRoutes.collection.handleRequest(request('GET')))
+  assert.ok(listedWithRetired.find((item) => item.packageCode === 'PKG-NEW')?.deletedAt)
 
   const reactivatedResult = await packageRoutes.item!.handleRequest(request('PATCH', {
     active: true,
