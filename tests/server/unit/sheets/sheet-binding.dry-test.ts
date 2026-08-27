@@ -16,8 +16,9 @@ import { priceListDbContract } from '../../../../server/sheets/PriceList/PriceLi
 import { customerPackagesDbContract } from '../../../../server/sheets/CustomerPackages/CustomerPackages.db-contract.js'
 import { packageTransactionsDbContract } from '../../../../server/sheets/PackageTransactions/PackageTransactions.db-contract.js'
 import { packagesDbContract } from '../../../../server/sheets/Packages/Packages.db-contract.js'
+import { issueReportsDbContract } from '../../../../server/sheets/IssueReports/IssueReports.db-contract.js'
 
-const expectedSheetCount = 14
+const expectedSheetCount = 15
 const expectedSheetDirectories = [
   'Appointments',
   'CustomerPackages',
@@ -26,6 +27,7 @@ const expectedSheetDirectories = [
   'InvoiceItems',
   'Invoices',
   'InvoicesView',
+  'IssueReports',
   'LaundryPhotos',
   'OrderForm',
   'OrdersView',
@@ -36,6 +38,12 @@ const expectedSheetDirectories = [
 ] as const
 
 const bindings = [
+  {
+    name: 'IssueReports',
+    contract: issueReportsDbContract,
+    expectedSpreadsheetId: 'ISSUE_REPORTS_SPREADSHEET_ID',
+    expectedSheetName: 'IssueReports',
+  },
   {
     name: 'Appointments',
     contract: appointmentsDbContract,

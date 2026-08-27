@@ -7,8 +7,10 @@ import { orderFormDbContract } from '../../../../server/sheets/OrderForm/OrderFo
 import { customerPackagesDbContract } from '../../../../server/sheets/CustomerPackages/CustomerPackages.db-contract.js'
 import { packageTransactionsDbContract } from '../../../../server/sheets/PackageTransactions/PackageTransactions.db-contract.js'
 import { packagesDbContract } from '../../../../server/sheets/Packages/Packages.db-contract.js'
+import { issueReportsDbContract } from '../../../../server/sheets/IssueReports/IssueReports.db-contract.js'
 
 const declaredAudits = [
+  { name: 'IssueReports', contract: issueReportsDbContract, expected: { onAppend: ['CreatedAt'], onUpdate: ['UpdatedAt'] } },
   {
     name: 'CustomerPackages',
     contract: customerPackagesDbContract,
