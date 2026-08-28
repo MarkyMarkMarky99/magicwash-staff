@@ -5,6 +5,7 @@ export const priceListRoutes: RouteRecordRaw[] = [
     path: '/price-list',
     name: 'price-list',
     component: () => import('./pages/PriceListPage.vue'),
+    meta: { searchable: true },
   },
   {
     path: '/price-list/new',

@@ -5,6 +5,7 @@ export const packageRoutes: RouteRecordRaw[] = [
     path: '/packages',
     name: 'package-list',
     component: () => import('./pages/PackageListPage.vue'),
+    meta: { searchable: true },
   },
   {
     path: '/packages/new',

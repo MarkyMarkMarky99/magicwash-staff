@@ -3,6 +3,7 @@ import { useRoute, useRouter } from 'vue-router'
 declare module 'vue-router' {
   interface RouteMeta {
     parent?: string
+    searchable?: boolean
   }
 }
 

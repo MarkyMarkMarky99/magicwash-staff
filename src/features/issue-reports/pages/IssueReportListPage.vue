@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import AppLayout from '@/shared/layouts/AppLayout.vue'
+import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import GenericTabs from '@/shared/components/GenericTabs.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import IssueReportCard from '../components/IssueReportCard.vue'
@@ -31,11 +31,13 @@ onMounted(() => void issueReportStore.load())
 </script>
 
 <template>
-  <AppLayout>
-    <div class="flex-none bg-primary text-on-primary">
-      <GenericTabs :tabs="ISSUE_REPORT_TABS" :active-key="activeKey" @select="activeKey = $event" />
-    </div>
-    <main class="min-h-0 flex-1 overflow-y-auto no-scrollbar bg-surface pb-20">
+  <ListPageLayout>
+    <template #filters>
+      <div class="flex-none bg-primary text-on-primary">
+        <GenericTabs :tabs="ISSUE_REPORT_TABS" :active-key="activeKey" @select="activeKey = $event" />
+      </div>
+    </template>
+
       <ListContainer
         title="แจ้งปัญหา"
         icon="bug_report"
@@ -59,6 +61,5 @@ onMounted(() => void issueReportStore.load())
         </template>
         <IssueReportCard v-for="report in filteredItems" :key="report.issueReportId" :report="report" @select="openDetail" />
       </ListContainer>
-    </main>
-  </AppLayout>
+  </ListPageLayout>
 </template>

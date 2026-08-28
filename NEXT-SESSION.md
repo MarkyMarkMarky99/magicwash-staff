@@ -2,8 +2,77 @@
 
 ## Where we are
 
-On **`main`** at `b0a3985`, pushed and live on `https://magicwash-staff.vercel.app`.
-`main` push = Vercel prod deploy. Two branches still conflict (below).
+On **`fix/header-searchable-meta`** at `d285f95`, cut from `feature/customer-module`. Not merged,
+not pushed. Six commits: header searchability (`2a596b6`), the customer-package form overlay
+(`83efbd0`, `5cef96a`), and the list-page shell (`95ea154`, `5b39e8f`, `d285f95`).
+
+Three files carry unrelated uncommitted user edits and must not be swept into a commit:
+`src/features/customers/pages/CustomerListPage.vue` (add-customer button restyled to icon-only),
+`.user/memory/MEMORY.md`, and the untracked `docs/design/patterns/list-pages.md`.
+
+**Nothing here has been opened in a browser.** Three source-text dry-tests and an esbuild build are
+the entire verification. `/frontend-test` is the next step before merging.
+
+`main` is at `b0a3985`, live on `https://magicwash-staff.vercel.app`. `main` push = Vercel prod
+deploy. Two branches still conflict (below).
+
+## Header search is declared by the route, not by AppHeader (`2a596b6`)
+
+`AppHeader` used to hold a private `SEARCHABLE_ROUTES = ['/customers','/invoices','/price-list']`
+compared against `route.path`. Every new list feature therefore had to edit a **shared** component,
+and forgetting it failed silently — the magnifier still rendered, it just did nothing. That cost the
+user hours repeatedly. `canSearch` is now `route.meta.searchable === true`, `searchable?: boolean` is
+declared on `RouteMeta` next to `parent`, and `tests/web/unit/shared/components/app-header-searchable.dry-test.ts`
+asserts the path list never comes back.
+
+**Adding search to a new list page = `meta: { searchable: true }` in that feature's own `routes.ts`.
+Nothing shared gets touched.**
+
+Two details that are load-bearing, not incidental:
+
+- The watcher that closes the search on navigation lives in `AppHeader.vue` and watches
+  **`route.path`**, never `route`/`fullPath`. The filter composables `router.replace` a new
+  `keyword` query on every keystroke; watching the query would slam the bar shut mid-typing.
+- `searchOpen` is a module-level ref in `useHeaderSearch.ts`, i.e. app-global. That is why the
+  close-on-navigate watcher is needed at all. The unused `searchQuery` ref was deleted.
+
+Stale references to `SEARCHABLE_ROUTES` still sit in `docs/plans/issue-reports.md` and
+`docs/packages-module-design.md` — reported, not fixed, out of that job's authorized scope.
+
+## Pagination is broken app-wide — deferred by the user, do not start it here
+
+The user has explicitly ruled backend work out of this branch. Record only.
+
+**No list endpoint in this project returns `total`/`totalPages`.** Every list route answers through
+`okPaged` (`server/shared/http/response.ts:79-90`), which emits `{ page, perPage }` only. The full
+meta schemas exist and are unused: `apiPaginationMetaSchema`/`apiPaginatedSchema`
+(`contracts/shared/api.schema.ts:39-52,78-84`) and `paginatedBody` (`response.ts:31-36`).
+
+Two things claim otherwise and are wrong: `api/CLAUDE.md:187` documents the full meta, and
+`src/shared/api/api-client.ts:18-23` types it — so the frontend has a `total` field that is typed
+present and is `undefined` at runtime. Fix the code or the doc, but they currently disagree.
+
+Six modules dodge this via the cap-once path that `docs/design/patterns/list-pages.md:43-47` allows —
+`perPage` is set to the schema max on the first call, so there is no page 2: customers 2000,
+orders 500, issue-reports 500, packages 200, price-list 100, appointments pending/waiting-pickup 100.
+Appointments **schedule** instead walks pages until a short page (`appointment.store.ts:151-174`).
+
+Only **`invoices`** and **`customer-packages`** use the default `perPage` 20 with no pager UI, so
+records past row 20 are genuinely unreachable today. Invoices hides it: `invoice.service.ts:15-26`
+sets `total = items.length` and `InvoiceListPage` renders `:count="total"` — a current-page length
+displayed as a collection total, the exact thing the pattern doc forbids. `customer-packages` does
+the same thing unhidden with `:count="items.length"`.
+
+Recommended when picked up, in two separately-reviewed steps because step 1 touches every module:
+
+1. Make `okPaged` emit real `total`/`totalPages` and fix invoices' fake `total`. The actual work is
+   the count query — GViz `limit`/`offset` (`gviz-query.builder.ts:96-102`) does not know the
+   unpaged size, so each list request needs a second count call.
+2. Then add pager UI to `invoices` and `customer-packages` only. Leave the six cap-once modules
+   alone; they are compliant as they stand.
+
+The alternative — make those two cap-once like the rest — is smaller but only defers the problem for
+invoices, which grow without bound.
 
 Landed 2026-08-27, built as three parallel jobs in three worktrees off a frozen contract:
 
@@ -57,6 +126,91 @@ prints reminders for 1. Copy it as the template for the next sheet.
 
 `ISSUE_REPORTS_SPREADSHEET_ID` is set in `.env.local` and in all three Vercel environments, and
 `G:\My Drive\...\GoogleSheets\IssueReport.json` now exists (registry is 21 files).
+
+## `ListPageLayout` is now the only list-page shell (`95ea154`, `5b39e8f`, `d285f95`)
+
+`src/shared/layouts/ListPageLayout.vue` owns the shape every list page used to hand-copy:
+`AppLayout` → collapsible header search → `filters` slot (non-scrolling) → scroll `<main>`. Six pages
+render through it: customers, invoices, price-list, customer-packages, packages, issue-reports.
+
+Deliberate boundaries — do not "improve" these:
+
+- **`ListContainer` is not inside the layout.** Pages pass it in the default slot. Absorbing it turns
+  the layout into a prop dump, which is the failure this design exists to avoid.
+- **The layout does not own the keyword.** It renders the input, debounces (`searchDebounceMs`,
+  default 300), and emits `update:searchValue`. Each page keeps its own filter composable and query
+  semantics.
+- **Every prop name is generic** (`searchValue`, `showSearch`, `embedded`, …). It imports nothing
+  from `src/features/` and a dry-test asserts that. If a prop would need renaming to be reused by a
+  feature that does not exist yet, it does not belong here.
+- **The filter row's contents are the page's business.** The layout standardizes *where* tabs/chips
+  sit, not which widget fills them. Converting customer-packages' and packages' chips to
+  `GenericTabs` was deliberately left undone.
+
+`tests/web/unit/shared/layouts/list-page-layout.dry-test.ts` asserts no page declares its own
+`overflow-y-auto` container. That assertion is the anti-drift guard — a new list page that
+hand-rolls its own scroll region fails it.
+
+### The boolean-prop bug that shipped through every gate (`f223ae1`)
+
+`ListPageLayout` shipped with `showSearch?: boolean`, no default, gated as
+`props.showSearch ?? props.searchValue !== undefined`. **Vue casts an absent boolean prop to
+`false`, never `undefined`**, so `??` never fell through and `searchEnabled` was false on all six
+pages: the header magnifier toggled its state correctly and the input row was never rendered
+anywhere. Fixed by defaulting `showSearch: true` and gating with `&&`.
+
+What matters is what did **not** catch it: `npm run build` (esbuild, no type-check) was green, both
+source-text dry-tests passed, and three `frontend-team` review stages approved it. It was found in
+about two minutes by clicking the button in a real browser and reading
+`document.querySelectorAll('input').length`.
+
+**Rule for this repo: a boolean prop gets an explicit default in `withDefaults` and is never gated
+with `??`.** And a UI change is not verified until someone has driven it in a browser — the gates
+here prove the code compiles and the file contains the right strings, nothing more.
+
+`AppointmentSchedulePage`, `PendingAppointmentsPage`, and `CustomerOrderHistoryPage` stay out: their
+structure genuinely differs and forcing them in would add props for one caller each.
+
+**One trap this refactor hit, worth not repeating:** the first attempt hid the now-duplicate keyword
+inputs inside `InvoiceFilterBar`/`CustomerPackageFilterBar` with scoped `:deep()` + `display: none`.
+The inputs stayed focusable and screen-reader-visible, bound to the same state as the new header
+search, behind positional `nth-child` selectors that any markup edit would break. `d285f95` deleted
+the inputs properly. Cause was a brief that said "do not modify shared components" and got applied to
+feature components — those two filter bars live under `src/features/`, not `src/shared/`.
+
+## customer-packages is off-pattern — frontend-only items, still open
+
+Audited 2026-08-28 against `docs/design/patterns/list-pages.md` and `forms.md`. Pagination is
+excluded (see above); everything below is frontend-only and doable without touching the backend.
+
+`CustomerPackageListPage.vue` + `CustomerPackageFilterBar.vue` + `CustomerPackageListCards.vue`:
+
+- Search is a permanently visible field in the filter bar instead of `useHeaderSearch` +
+  `meta.searchable`. The list route declares no `meta` at all, unlike its three peers.
+- Keyword is not debounced — `router.replace` fires on every keystroke.
+- Raw API enums render as-is: `ACTIVE`/`INACTIVE`/`EXPIRED`/`CANCELLED` on both chips and cards. No
+  label map, no semantic badge colors.
+- Filter inputs are placeholder-only with no `<label>`; row buttons have no `focus-visible`.
+- `main` is missing `min-h-0 no-scrollbar w-full min-w-0`; the filter sibling has no `flex-none`.
+
+`CustomerPackageCreatePage.vue`:
+
+- Uses `AppLayout` + an in-page `<form>` instead of `FormOverlay`.
+- Package / service day / time slot are native `<select>`s; `FormOptionGrid` and `FormLabel` unused.
+- The write body is an object literal inside `submit()`, not a single `createPayload()`.
+- Named `CustomerPackageCreatePage.vue` rather than `<Entity>FormPage.vue`. **If it is renamed, the
+  `KeepAlive` exclude entry in `src/App.vue:18` must be updated in the same commit** — that list
+  matches component names, and a silent mismatch reintroduces typed-fields-leak-between-records.
+
+Already correct, do not "fix": it is in the `KeepAlive` exclude list, `meta.parent` on create/detail
+is right, `ListContainer` owns loading/error/empty/skeleton, validity is one computed with submit
+disabled while invalid or submitting, and `"" → null` normalization is done.
+
+## `TUE` is absent from the service-day enum on purpose
+
+`customerPackageServiceDaySchema` (`contracts/customer-packages/customer-package-api.schema.ts:31`)
+is `['SUN','MON','WED','THU','FRI','SAT']`. Tuesday is the shop's closing day. Confirmed by the user
+2026-08-28. **Do not "complete" this enum** — an agent auditing it will read the gap as an omission.
 
 ## Two branches left unmerged, both conflicting
 
