@@ -84,12 +84,11 @@ onMounted(() => {
       <template #actions>
         <button
           type="button"
-          class="inline-flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 font-label text-[10px] font-bold text-on-primary transition-colors hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          class="-my-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10 active:bg-primary/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           aria-label="Add customer"
           @click="router.push({ name: 'customer-create' })"
         >
           <span class="material-symbols-outlined text-[16px]" aria-hidden="true">person_add</span>
-          <span>เพิ่มลูกค้า</span>
         </button>
       </template>
       <CustomerCard
