@@ -279,4 +279,11 @@ flight. Do it after the packages/customer-package work lands, not before.
 - `npm run build` is esbuild only — **no frontend type-check exists**. A broken prop contract ships
   green. Only `typecheck:api` type-checks anything.
 - `.vue` SFCs **cannot be unit tested** here; tests are plain TS run with `npx tsx`. "No automated
-  test was possible" is the correct report for a component change, not a gap to paper over.
+test was possible" is the correct report for a component change, not a gap to paper over.
+
+## Latest maintenance
+
+- `CustomerListPage.vue` normalizes the nullable store error before passing it to `ListContainer`.
+  Its add-customer focus ring uses `outline-solid` plus explicit width so Tailwind IntelliSense does
+  not report conflicting outline utilities. `jsconfig.json` retains `baseUrl` for aliases and uses
+  `ignoreDeprecations: "6.0"` to suppress its TypeScript 6 migration warning.
