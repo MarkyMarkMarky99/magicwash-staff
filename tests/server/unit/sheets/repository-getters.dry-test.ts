@@ -31,6 +31,8 @@ const [
   packageTransactionsModule,
   packagesModule,
   issueReportsModule,
+  orderImagesModule,
+  orderItemFormsModule,
 ] = await Promise.all([
   import('../../../../server/sheets/OrderForm/OrderForm.repository.js'),
   import('../../../../server/sheets/OrdersView/OrdersView.repository.js'),
@@ -47,6 +49,8 @@ const [
   import('../../../../server/sheets/PackageTransactions/PackageTransactions.repository.js'),
   import('../../../../server/sheets/Packages/Packages.repository.js'),
   import('../../../../server/sheets/IssueReports/IssueReports.repository.js'),
+  import('../../../../server/sheets/OrderImages/OrderImages.repository.js'),
+  import('../../../../server/sheets/OrderItemForms/OrderItemForms.repository.js'),
 ])
 
 process.env.ORDERS_SPREADSHEET_ID = 'orders-spreadsheet-id'
@@ -74,6 +78,8 @@ const getters = [
   ['PackageTransactions', packageTransactionsModule.getPackageTransactionsRepository],
   ['Packages', packagesModule.getPackagesRepository],
   ['IssueReports', issueReportsModule.getIssueReportsRepository],
+  ['OrderImages', orderImagesModule.getOrderImagesRepository],
+  ['OrderItemForms', orderItemFormsModule.getOrderItemFormsRepository],
 ] as const
 
 for (const [sheet, getRepository] of getters) {

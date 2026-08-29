@@ -17,8 +17,10 @@ import { customerPackagesDbContract } from '../../../../server/sheets/CustomerPa
 import { packageTransactionsDbContract } from '../../../../server/sheets/PackageTransactions/PackageTransactions.db-contract.js'
 import { packagesDbContract } from '../../../../server/sheets/Packages/Packages.db-contract.js'
 import { issueReportsDbContract } from '../../../../server/sheets/IssueReports/IssueReports.db-contract.js'
+import { orderImagesDbContract } from '../../../../server/sheets/OrderImages/OrderImages.db-contract.js'
+import { orderItemFormsDbContract } from '../../../../server/sheets/OrderItemForms/OrderItemForms.db-contract.js'
 
-const expectedSheetCount = 15
+const expectedSheetCount = 17
 const expectedSheetDirectories = [
   'Appointments',
   'CustomerPackages',
@@ -30,6 +32,8 @@ const expectedSheetDirectories = [
   'IssueReports',
   'LaundryPhotos',
   'OrderForm',
+  'OrderImages',
+  'OrderItemForms',
   'OrdersView',
   'PackageTransactions',
   'Packages',
@@ -97,6 +101,18 @@ const bindings = [
     contract: orderFormDbContract,
     expectedSpreadsheetId: 'ORDERS_SPREADSHEET_ID',
     expectedSheetName: 'OrderForm',
+  },
+  {
+    name: 'OrderImages',
+    contract: orderImagesDbContract,
+    expectedSpreadsheetId: 'ORDERS_SPREADSHEET_ID',
+    expectedSheetName: 'OrderImages',
+  },
+  {
+    name: 'OrderItemForms',
+    contract: orderItemFormsDbContract,
+    expectedSpreadsheetId: 'ORDERS_SPREADSHEET_ID',
+    expectedSheetName: 'OrderItemForms',
   },
   {
     name: 'OrdersView',
