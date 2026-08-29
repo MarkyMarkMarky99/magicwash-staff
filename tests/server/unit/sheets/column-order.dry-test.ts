@@ -14,6 +14,8 @@ import { customerPackagesDbContract } from '../../../../server/sheets/CustomerPa
 import { packageTransactionsDbContract } from '../../../../server/sheets/PackageTransactions/PackageTransactions.db-contract.js'
 import { packagesDbContract } from '../../../../server/sheets/Packages/Packages.db-contract.js'
 import { issueReportsDbContract } from '../../../../server/sheets/IssueReports/IssueReports.db-contract.js'
+import { orderItemFormsDbContract } from '../../../../server/sheets/OrderItemForms/OrderItemForms.db-contract.js'
+import { orderImagesDbContract } from '../../../../server/sheets/OrderImages/OrderImages.db-contract.js'
 import { deriveGVizColumns } from '../../../../server/shared/repositories/utils/gviz-query.builder.js'
 
 interface SheetContractLike {
@@ -321,6 +323,45 @@ const tests: ColumnOrderTest[] = [
       effective_from: 'L',
       effective_to: 'M',
       active: 'N',
+    },
+    primaryKeyColumn: 'A',
+  },
+  {
+    name: 'OrderItemForms',
+    contract: orderItemFormsDbContract,
+    expected: {
+      id: 'A',
+      order_id: 'B',
+      item_id: 'C',
+      description: 'D',
+      quantity: 'E',
+      price: 'F',
+      credits_used: 'G',
+      timestamp: 'H',
+      category: 'I',
+      service_type: 'J',
+      special_instructions: 'K',
+      created_by: 'L',
+      updated_at: 'M',
+      updated_by: 'N',
+      invoice_item_id: 'O',
+    },
+    primaryKeyColumn: 'A',
+  },
+  {
+    name: 'OrderImages',
+    contract: orderImagesDbContract,
+    expected: {
+      id: 'A',
+      customer_id: 'B',
+      delivery_id: 'C',
+      order_id: 'D',
+      image_type: 'E',
+      image_path: 'F',
+      notes: 'G',
+      quantity: 'H',
+      created_at: 'I',
+      created_by: 'J',
     },
     primaryKeyColumn: 'A',
   },

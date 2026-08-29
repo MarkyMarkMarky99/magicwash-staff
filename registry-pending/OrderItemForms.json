@@ -1,0 +1,71 @@
+{
+  "spreadsheetIdProp": "ORDERS_SPREADSHEET_ID",
+  "spreadsheetId": "1tfgJvjXMkH8MIoJ38No9-1DBdG7o0lcPG8dVhPCGw-E",
+  "primaryKey": "id",
+  "title": "OrderItemForms",
+  "type": "object",
+  "required": ["id"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Primary key. Measured 2026-08-30 over 23165 rows: blank on 1074 of them, and every blank belongs to a phantom row that is empty in all columns except quantity (0.0), produced by a column-E fill-down extending past the real data. Row indexes 5 to 20640, not contiguous."
+    },
+    "order_id": {
+      "type": ["string", "null"],
+      "description": "Blank on 1087 of 23165 rows."
+    },
+    "item_id": {
+      "type": ["string", "null"],
+      "description": "Blank on 3532 of 23165 rows."
+    },
+    "description": {
+      "type": ["string", "null"],
+      "description": "Thai free text. Blank on 1151 of 23165 rows."
+    },
+    "quantity": {
+      "type": ["number", "null"],
+      "description": "Decimal, not integer. Measured 2026-08-30 as 0 blanks over 23165 rows, but only because 1074 of those values belong to phantom rows and read 0.0. The zero is an artifact of the column-E fill-down, not evidence the column is always populated, so it is nullable: removing the fill-down would give it real nulls."
+    },
+    "price": {
+      "type": ["number", "null"],
+      "description": "Decimal, not integer. Blank on 2495 of 23165 rows."
+    },
+    "credits_used": {
+      "type": ["number", "null"],
+      "description": "Decimal, not integer - 169 rows hold a non-integer value. Blank on 5619 of 23165 rows."
+    },
+    "timestamp": {
+      "type": ["string", "null"],
+      "description": "Created-timestamp role. Existing values are dd/MM/yyyy HH:mm:ss, so no format is declared. Rows appended through the Sheets API carry the project's Asia/Bangkok yyyy-MM-dd HH:mm:ss instead. Blank on 1074 of 23165 rows, all of them phantom rows."
+    },
+    "category": {
+      "type": ["string", "null"],
+      "description": "Free string, not an enum. Measured 2026-08-30: Tops(11734), Bottoms(5510), Home Textile(2237), Others(1409), Bedding(1), plus 2274 blanks."
+    },
+    "service_type": {
+      "type": ["string", "null"],
+      "description": "Free string, not an enum. Thai and English coexist. Measured 2026-08-30: ซักรีด(11350), WSIR(5522), รีดผ้า(846), ซักแห้ง(648), ซักพับ(579), IRON(366), DRCL(258), WASH(227), plus 3369 blanks."
+    },
+    "special_instructions": {
+      "type": ["string", "null"],
+      "description": "Blank on 23155 of 23165 rows."
+    },
+    "created_by": {
+      "type": ["string", "null"],
+      "description": "Blank on 23162 of 23165 rows."
+    },
+    "updated_at": {
+      "type": ["string", "null"],
+      "description": "Updated-timestamp role, currently unstamped: the contract enables append only. Existing values are dd/MM/yyyy HH:mm:ss, so no format is declared. Blank on 2483 of 23165 rows."
+    },
+    "updated_by": {
+      "type": ["string", "null"],
+      "description": "Blank on 2482 of 23165 rows."
+    },
+    "invoice_item_id": {
+      "type": ["string", "null"],
+      "description": "Empty in all 23165 rows as of 2026-08-30."
+    }
+  }
+}
