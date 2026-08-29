@@ -8,7 +8,7 @@ export const orderItemFormsRowSchema = z
     order_id: z.string().nullable(),
     item_id: z.string().nullable(),
     description: z.string().nullable(),
-    quantity: z.number(),
+    quantity: z.number().nullable(),
     price: z.number().nullable(),
     credits_used: z.number().nullable(),
     timestamp: z.string().nullable(),
@@ -40,6 +40,10 @@ export const orderItemFormsRowSchema = z
 //     returned by read(); `id` comes back null on them. The row schema is never parsed on reads, so
 //     nothing throws, and the append key lookup skips blank key cells. Filtering them belongs to a
 //     consumer, not to this layer.
+//   - `quantity` measures 0 nulls, but only because those 1,074 phantom rows read 0.0. The zero is
+//     an artifact of the fill-down, not evidence the column is always populated, so it is typed
+//     nullable: removing the fill-down would give it real nulls and silently falsify a
+//     non-nullable declaration here and in the schema registry.
 export const orderItemFormsDbContract = {
   row: orderItemFormsRowSchema,
   primaryKey: 'id',

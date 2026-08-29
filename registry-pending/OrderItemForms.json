@@ -4,7 +4,7 @@
   "primaryKey": "id",
   "title": "OrderItemForms",
   "type": "object",
-  "required": ["id", "quantity"],
+  "required": ["id"],
   "additionalProperties": false,
   "properties": {
     "id": {
@@ -24,8 +24,8 @@
       "description": "Thai free text. Blank on 1151 of 23165 rows."
     },
     "quantity": {
-      "type": "number",
-      "description": "Decimal, not integer. No blanks, but 1074 of the values belong to phantom rows and read 0.0."
+      "type": ["number", "null"],
+      "description": "Decimal, not integer. Measured 2026-08-30 as 0 blanks over 23165 rows, but only because 1074 of those values belong to phantom rows and read 0.0. The zero is an artifact of the column-E fill-down, not evidence the column is always populated, so it is nullable: removing the fill-down would give it real nulls."
     },
     "price": {
       "type": ["number", "null"],
