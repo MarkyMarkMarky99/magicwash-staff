@@ -51,6 +51,12 @@ function makeOrderRow(overrides: Partial<OrderFormDbRow> = {}): OrderFormDbRow {
   }
 }
 
+function makeBlankOrderRow(): Partial<OrderFormDbRow> {
+  return Object.fromEntries(
+    Object.keys(makeOrderRow()).map((key) => [key, null]),
+  ) as Partial<OrderFormDbRow>
+}
+
 function makeCustomerRow(overrides: Partial<CustomersDbRow> = {}): CustomersDbRow {
   return {
     Timestamp: '2026-08-30 10:00:00',
@@ -245,6 +251,27 @@ assert.deepEqual(multiCustomerList.items.map((item) => item.customerName), [
   'Customer two',
 ])
 assert.deepEqual((customerRepository.readQueries[2] as { where?: unknown }).where, {})
+
+orderRepository.readRows = [
+  makeBlankOrderRow(),
+  makeOrderRow({ id: 'order-good', customer_id: 'CUS-1' }),
+]
+customerRepository.readRows = [makeCustomerRow({ CustomerID: 'CUS-1', CustomerName: 'Customer one' })]
+const blankRowList = await service.list({ page: 3, perPage: 5, sortBy: 'receivedDate', sortOrder: 'desc' })
+assert.equal(blankRowList.items.length, 1)
+assert.equal(blankRowList.items[0]?.orderId, 'order-good')
+assert.equal(blankRowList.items[0]?.customerName, 'Customer one')
+assert.deepEqual(blankRowList.pagination, { page: 3, perPage: 5 })
+
+const customerReadsBeforeBlankCustomer = customerRepository.readQueries.length
+orderRepository.readRows = [makeOrderRow({ id: 'order-no-customer', customer_id: null as unknown as string })]
+customerRepository.readRows = []
+const blankCustomerList = await service.list({ page: 1, perPage: 5, sortBy: 'receivedDate', sortOrder: 'desc' })
+assert.equal(blankCustomerList.items.length, 1)
+assert.equal(blankCustomerList.items[0]?.orderId, 'order-no-customer')
+assert.equal(blankCustomerList.items[0]?.customerId, '')
+assert.equal(blankCustomerList.items[0]?.customerName, '')
+assert.equal(customerRepository.readQueries.length, customerReadsBeforeBlankCustomer)
 
 orderRepository.readRows = [makeOrderRow({ id: 'order-1', customer_id: 'CUS-1' })]
 customerRepository.readRows = [makeCustomerRow({ CustomerID: 'CUS-1', CustomerName: 'Customer one' })]

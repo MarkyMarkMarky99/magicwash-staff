@@ -100,14 +100,21 @@ export class WorkOrderService extends BaseCrudService<
 
   override async list(query: unknown): Promise<ServiceListResult<WorkOrderListResponse>> {
     const result = await super.list(query)
-    const customerIds = uniqueNonBlankIds(result.items.map((item) => item.customerId))
+    const items = result.items.filter(
+      (item) => typeof item.orderId === 'string' && item.orderId.trim() !== '',
+    )
+    const customerIds = uniqueNonBlankIds(items.map((item) => item.customerId))
     const namesById = await this.readCustomerNames(customerIds)
 
     return {
-      items: result.items.map((item) => ({
-        ...item,
-        customerName: namesById.get(item.customerId.trim()) ?? '',
-      })),
+      items: items.map((item) => {
+        const customerId = normalizeCustomerId(item.customerId)
+        return {
+          ...item,
+          customerId,
+          customerName: namesById.get(customerId) ?? '',
+        }
+      }),
       pagination: result.pagination,
     }
   }
@@ -116,10 +123,12 @@ export class WorkOrderService extends BaseCrudService<
     const row = await super.getById(id)
     const namesById = await this.readCustomerNames([row.customerId])
     const items = await this.orderItemPort.listByOrderId(id)
+    const customerId = normalizeCustomerId(row.customerId)
 
     return {
       ...row,
-      customerName: namesById.get(row.customerId.trim()) ?? '',
+      customerId,
+      customerName: namesById.get(customerId) ?? '',
       items,
     }
   }
@@ -202,8 +211,12 @@ export class WorkOrderService extends BaseCrudService<
   }
 }
 
-function uniqueNonBlankIds(ids: string[]): string[] {
-  return [...new Set(ids.map((id) => id.trim()).filter((id) => id !== ''))]
+function normalizeCustomerId(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function uniqueNonBlankIds(ids: unknown[]): string[] {
+  return [...new Set(ids.map(normalizeCustomerId).filter((id) => id !== ''))]
 }
 
 function toOrderItemRow(
