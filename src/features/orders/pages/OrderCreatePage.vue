@@ -9,6 +9,7 @@ import FormPicker from '@/shared/components/FormPicker.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import { useOrderStore } from '@/features/orders/stores/order.store'
+import { getOrderServiceTypeLabel } from '@/features/orders/order-status-labels'
 
 defineOptions({ name: 'OrderCreatePage' })
 
@@ -19,7 +20,12 @@ const submitted = ref(false)
 const submitting = ref(false)
 const formError = ref<string | null>(null)
 const form = reactive({ customerId: '', receivedDate: '', dueDate: '', serviceType: '', quantity: '', note: '', orderName: '' })
-const serviceOptions = [{ value: 'WSIR', label: 'ซักรีด', icon: 'local_laundry_service' }, { value: 'IRON', label: 'รีด', icon: 'iron' }, { value: 'DRCL', label: 'ซักแห้ง', icon: 'dry_cleaning' }, { value: 'WASH', label: 'ซัก', icon: 'water_drop' }]
+const serviceOptions = [
+  { value: 'WSIR', label: getOrderServiceTypeLabel('WSIR'), icon: 'local_laundry_service' },
+  { value: 'IRON', label: getOrderServiceTypeLabel('IRON'), icon: 'iron' },
+  { value: 'DRCL', label: getOrderServiceTypeLabel('DRCL'), icon: 'dry_cleaning' },
+  { value: 'WASH', label: getOrderServiceTypeLabel('WASH'), icon: 'water_drop' },
+]
 const customerOptions = computed(() => customers.value.map((customer) => ({
   value: customer.customerId,
   label: customer.customerName,
