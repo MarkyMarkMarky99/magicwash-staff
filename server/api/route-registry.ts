@@ -1,4 +1,5 @@
 import type { RouteLoader } from '../shared/http/gateway.types.js'
+import { ApiError } from '../shared/http/api-error.js'
 
 export const routeRegistry = {
   appointments: (): ReturnType<RouteLoader> =>
@@ -23,4 +24,18 @@ export const routeRegistry = {
     import('../modules/packages/package.module.js').then((module) => module.packageRoutes),
   'issue-reports': (): ReturnType<RouteLoader> =>
     import('../modules/issue-reports/issue-report.module.js').then((module) => module.issueReportRoutes),
+  'order-items': (): ReturnType<RouteLoader> =>
+    import('../modules/order-items/order-item.module.js').then((module) => module.orderItemRoutes),
+  'work-orders': (): ReturnType<RouteLoader> =>
+    import('../modules/work-orders/work-order.module.js').then((module) => module.workOrderRoutes),
+  'order-images': (): ReturnType<RouteLoader> =>
+    import('../modules/order-images/order-image.module.js').then((module) => module.orderImageRoutes),
 } satisfies Record<string, RouteLoader>
+
+export async function resolveRoute(moduleName: string): ReturnType<RouteLoader> {
+  const loader = (routeRegistry as Record<string, RouteLoader>)[moduleName]
+  if (loader === undefined) {
+    throw ApiError.notFound('Route not found')
+  }
+  return loader()
+}

@@ -7,6 +7,7 @@ import { galleryRoutes } from '@/features/gallery/routes'
 import { priceListRoutes } from '@/features/price-list/routes'
 import { packageRoutes } from '@/features/packages/routes'
 import { issueReportRoutes } from '@/features/issue-reports/routes'
+import { orderRoutes } from '@/features/orders/routes'
 
 const routes = [
   ...appointmentRoutes,
@@ -17,6 +18,7 @@ const routes = [
   ...priceListRoutes,
   ...packageRoutes,
   ...issueReportRoutes,
+  ...orderRoutes,
 ]
 
 if (import.meta.env.DEV) {

@@ -2,6 +2,10 @@
 
 ## Where we are — 2026-08-23
 
+- **Orders FE state fix (uncommitted):** order detail uses one `orderAction=item|capture` query,
+  normalizes legacy conflicting overlay flags, resets item/photo drafts per order, and discards
+  stale list/detail/customer responses. New dry-test passes 5/5 and production build passes;
+  browser smoke test remains because no browser session was available.
 - **List-page standard:** `docs/design/patterns/list-pages.md` is the required pattern for new or materially reworked root collection pages. It codifies a single scroll-region layout, route-owned/debounced filters, accessible controls, semantic status presentation, and the rule that paged APIs must provide reachable navigation plus full pagination metadata (or the feature must explicitly fetch its bounded collection). It was added after the customer-package list review exposed an inaccessible second page.
 - **Current branch:** `feature/price-list-form-layout`, created from `main`.
 - **Current work:** Price List form uses `FormOverlay` with its standard header and one `บันทึกราคา` footer action. The page only supplies its body slot; the legacy system-assigned item-code note and related state are removed. Page-local duplicate font import and unused placeholder CSS are removed; existing `BaseOverlay` is unchanged. The FormInput migration and Thai typography fixes remain intact. A dedicated shared `FormSwitch` owns the generic boolean-switch UI and replaces both Price List switches. The “ช่วงเวลาราคา” section precedes “รายการ”; its inter-section spacing matches the “รายการ” → service-price gap, and no gap remains before the switches.

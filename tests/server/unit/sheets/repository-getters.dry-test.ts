@@ -17,6 +17,8 @@ for (const key of environmentKeys) {
 
 const [
   orderFormModule,
+  orderItemFormsModule,
+  orderImagesModule,
   ordersViewModule,
   appointmentsModule,
   customersModule,
@@ -31,10 +33,10 @@ const [
   packageTransactionsModule,
   packagesModule,
   issueReportsModule,
-  orderItemFormsModule,
-  orderImagesModule,
 ] = await Promise.all([
   import('../../../../server/sheets/OrderForm/OrderForm.repository.js'),
+  import('../../../../server/sheets/OrderItemForms/OrderItemForms.repository.js'),
+  import('../../../../server/sheets/OrderImages/OrderImages.repository.js'),
   import('../../../../server/sheets/OrdersView/OrdersView.repository.js'),
   import('../../../../server/sheets/Appointments/Appointments.repository.js'),
   import('../../../../server/sheets/Customers/Customers.repository.js'),
@@ -49,8 +51,6 @@ const [
   import('../../../../server/sheets/PackageTransactions/PackageTransactions.repository.js'),
   import('../../../../server/sheets/Packages/Packages.repository.js'),
   import('../../../../server/sheets/IssueReports/IssueReports.repository.js'),
-  import('../../../../server/sheets/OrderItemForms/OrderItemForms.repository.js'),
-  import('../../../../server/sheets/OrderImages/OrderImages.repository.js'),
 ])
 
 process.env.ORDERS_SPREADSHEET_ID = 'orders-spreadsheet-id'
@@ -64,6 +64,8 @@ process.env.ISSUE_REPORTS_SPREADSHEET_ID = 'issue-reports-spreadsheet-id'
 
 const getters = [
   ['OrderForm', orderFormModule.getOrderFormRepository],
+  ['OrderItemForms', orderItemFormsModule.getOrderItemFormsRepository],
+  ['OrderImages', orderImagesModule.getOrderImagesRepository],
   ['OrdersView', ordersViewModule.getOrdersViewRepository],
   ['Appointments', appointmentsModule.getAppointmentsRepository],
   ['Customers', customersModule.getCustomersRepository],
