@@ -26,13 +26,11 @@ export const workOrderListResponseSchema = z.object({
   serviceType: z.string().nullable(),
   status: z.string().nullable(),
   quantity: z.number().nullable(),
-  hangers: z.number().nullable(),
-  bags: z.number().nullable(),
   note: z.string().nullable(),
-  createdAt: z.string().nullable(),
 })
 
 export const workOrderDetailResponseSchema = workOrderListResponseSchema.extend({
+  createdAt: z.string().nullable(),
   orderName: z.string().nullable(),
   orderDescription: z.string().nullable(),
   formImage: z.string().nullable(),
@@ -50,8 +48,6 @@ export const workOrderCreateSchema = z.object({
   dueDate: z.string().trim().min(1),
   serviceType: orderServiceTypeSchema,
   quantity: z.number().nonnegative().nullable().default(null),
-  hangers: z.number().int().nonnegative().nullable().default(null),
-  bags: z.number().int().nonnegative().nullable().default(null),
   note: z.string().trim().min(1).nullable().default(null),
   orderName: z.string().trim().min(1).nullable().default(null),
   orderDescription: z.string().trim().min(1).nullable().default(null),

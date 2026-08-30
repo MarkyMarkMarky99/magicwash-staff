@@ -206,6 +206,7 @@ customerRepository.readRows = [
   makeCustomerRow({ CustomerID: 'CUS-1', CustomerName: 'Duplicate customer' }),
 ]
 const singleCustomerList = await service.list({
+  keyword: 'INV-1',
   customerId: 'CUS-1',
   page: 2,
   perPage: 7,
@@ -221,6 +222,13 @@ assert.deepEqual(
 assert.deepEqual(
   (orderRepository.readQueries[0] as { pagination?: unknown }).pagination,
   { page: 2, perPage: 7 },
+)
+assert.deepEqual(
+  (orderRepository.readQueries[0] as { search?: unknown }).search,
+  {
+    keyword: 'INV-1',
+    fields: ['id', 'order_number', 'customer_id', 'invoice_id'],
+  },
 )
 assert.deepEqual(
   (customerRepository.readQueries[0] as { where?: unknown }).where,
@@ -278,6 +286,9 @@ customerRepository.readRows = [makeCustomerRow({ CustomerID: 'CUS-1', CustomerNa
 const detail = await service.getById('order-1')
 assert.deepEqual(detail.items, embeddedItems)
 assert.equal(detail.customerName, 'Customer one')
+assert.equal(detail.createdAt, '2026-08-30 10:00:00')
+assert.equal('hangers' in detail, false)
+assert.equal('bags' in detail, false)
 assert.deepEqual(itemPortCalls, ['order-1'])
 
 orderRepository.readRows = []

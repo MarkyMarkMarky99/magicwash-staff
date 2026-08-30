@@ -18,64 +18,100 @@ export const useOrderStore = defineStore('orders', () => {
   const currentOrder = ref<WorkOrderDetailDto | null>(null)
   const detailLoading = ref(false)
   const detailError = ref<string | null>(null)
-  const itemSubmitting = ref(false)
+  const itemSubmittingOrderId = ref<string | null>(null)
   const itemError = ref<string | null>(null)
+  const itemErrorOrderId = ref<string | null>(null)
   const orderPhotos = ref([])
   const customers = ref<CustomerLookupDto[]>([])
   const customersLoading = ref(false)
   const customersError = ref<string | null>(null)
+  let listRequestSequence = 0
+  let detailRequestSequence = 0
+  let customerRequestSequence = 0
 
   async function loadList({ keyword = '', status = '', page = 1 }: { keyword?: string; status?: string; page?: number } = {}) {
+    const requestSequence = ++listRequestSequence
     listLoading.value = true
     listError.value = null
     try {
       const result = await listWorkOrders({ keyword, status: status || undefined, page, perPage: PAGE_SIZE })
+      if (requestSequence !== listRequestSequence) return
       orders.value = result.items
       pagination.value = result.pagination
     } catch (reason) {
+      if (requestSequence !== listRequestSequence) return
       orders.value = []
       listError.value = errorMessage(reason, 'Unable to load work orders')
-    } finally { listLoading.value = false }
+    } finally {
+      if (requestSequence === listRequestSequence) listLoading.value = false
+    }
   }
 
   async function loadDetail(orderId: string) {
+    const requestSequence = ++detailRequestSequence
     detailLoading.value = true
     detailError.value = null
-    itemError.value = null
-    try { currentOrder.value = await getWorkOrder(orderId) } catch (reason) {
+    try {
+      const order = await getWorkOrder(orderId)
+      if (requestSequence !== detailRequestSequence) return
+      currentOrder.value = order
+    } catch (reason) {
+      if (requestSequence !== detailRequestSequence) return
       currentOrder.value = null
       detailError.value = errorMessage(reason, 'Unable to load work order')
-    } finally { detailLoading.value = false }
+    } finally {
+      if (requestSequence === detailRequestSequence) detailLoading.value = false
+    }
   }
 
   async function loadCustomers() {
+    const requestSequence = ++customerRequestSequence
     customersLoading.value = true
     customersError.value = null
     try {
-      customers.value = await listCustomersForOrder()
+      const result = await listCustomersForOrder()
+      if (requestSequence !== customerRequestSequence) return
+      customers.value = result
     } catch (reason) {
+      if (requestSequence !== customerRequestSequence) return
       customers.value = []
       customersError.value = errorMessage(reason, 'Unable to load customers')
-    } finally { customersLoading.value = false }
+    } finally {
+      if (requestSequence === customerRequestSequence) customersLoading.value = false
+    }
   }
 
   function create(payload: WorkOrderCreatePayload): Promise<WorkOrderCreateDto> { return createWorkOrder(payload) }
 
   async function addItem(payload: OrderItemCreatePayload) {
-    itemSubmitting.value = true
+    itemSubmittingOrderId.value = payload.orderId
     itemError.value = null
-    try { await createOrderItem(payload); await loadDetail(payload.orderId) } catch (reason) {
-      itemError.value = errorMessage(reason, 'Unable to add order item')
+    itemErrorOrderId.value = payload.orderId
+    try {
+      await createOrderItem(payload)
+    } catch (reason) {
+      if (itemSubmittingOrderId.value === payload.orderId) {
+        itemError.value = errorMessage(reason, 'Unable to add order item')
+      }
       throw reason
-    } finally { itemSubmitting.value = false }
+    } finally {
+      if (itemSubmittingOrderId.value === payload.orderId) itemSubmittingOrderId.value = null
+    }
+  }
+
+  function clearItemError(orderId: string) {
+    if (itemErrorOrderId.value !== orderId) return
+    itemError.value = null
+    itemErrorOrderId.value = null
   }
 
   function clearDetail() {
+    detailRequestSequence += 1
     currentOrder.value = null
     orderPhotos.value = []
+    detailLoading.value = false
     detailError.value = null
-    itemError.value = null
   }
 
-  return { orders, pagination, listLoading, listError, currentOrder, detailLoading, detailError, itemSubmitting, itemError, orderPhotos, customers, customersLoading, customersError, loadList, loadDetail, loadCustomers, create, addItem, clearDetail }
+  return { orders, pagination, listLoading, listError, currentOrder, detailLoading, detailError, itemSubmittingOrderId, itemError, itemErrorOrderId, orderPhotos, customers, customersLoading, customersError, loadList, loadDetail, loadCustomers, create, addItem, clearItemError, clearDetail }
 })

@@ -88,7 +88,7 @@ export class WorkOrderService extends BaseCrudService<
     super({
       repository: orderFormRepository,
       api: workOrderApiContract,
-      searchFields: [],
+      searchFields: ['orderId', 'orderNumber', 'customerId', 'invoiceNumber'],
       fieldMap: orderFormFieldMap,
     })
 
@@ -144,8 +144,6 @@ export class WorkOrderService extends BaseCrudService<
       service_type: data.serviceType,
       status: 'PENDING',
       quantity: data.quantity,
-      hangers: data.hangers,
-      bags: data.bags,
       note: data.note,
       created_by: data.createdBy,
       order_name: data.orderName,

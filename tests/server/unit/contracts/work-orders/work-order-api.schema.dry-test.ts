@@ -17,11 +17,11 @@ const {
 
 const LIST_RESPONSE_FIELDS = [
   'orderId', 'customerId', 'customerName', 'orderNumber', 'invoiceNumber', 'receivedDate',
-  'dueDate', 'serviceType', 'status', 'quantity', 'hangers', 'bags', 'note', 'createdAt',
+  'dueDate', 'serviceType', 'status', 'quantity', 'note',
 ] as const
 
 const DETAIL_RESPONSE_FIELDS = [
-  ...LIST_RESPONSE_FIELDS, 'orderName', 'orderDescription', 'formImage', 'hangersImage',
+  ...LIST_RESPONSE_FIELDS, 'createdAt', 'orderName', 'orderDescription', 'formImage', 'hangersImage',
   'bagsImage', 'createdBy', 'items',
 ] as const
 
@@ -106,8 +106,6 @@ assert.deepEqual(minimalCreate, {
   dueDate: '2026-09-01',
   serviceType: 'DRCL',
   quantity: null,
-  hangers: null,
-  bags: null,
   note: null,
   orderName: null,
   orderDescription: null,
@@ -117,12 +115,14 @@ assert.deepEqual(minimalCreate, {
 assert.equal(workOrderCreateSchema.parse({
   customerId: 'CUS-1', receivedDate: '2026-08-30', dueDate: '2026-09-01', serviceType: 'WASH', createdBy: 'staff-1',
 }).serviceType, 'WASH')
-assert.equal(workOrderCreateSchema.parse({
+const retiredCreateFieldsAreStripped = workOrderCreateSchema.parse({
   customerId: 'CUS-1', receivedDate: '2026-08-30', dueDate: '2026-09-01', serviceType: 'DRCL', createdBy: 'staff-1', hangers: 0,
-}).hangers, 0)
+  bags: 0,
+})
+assert.equal(Object.hasOwn(retiredCreateFieldsAreStripped, 'hangers'), false)
+assert.equal(Object.hasOwn(retiredCreateFieldsAreStripped, 'bags'), false)
 for (const input of [
   { customerId: 'CUS-1', receivedDate: '2026-08-30', dueDate: '2026-09-01', serviceType: 'XXXX', createdBy: 'staff-1' },
-  { customerId: 'CUS-1', receivedDate: '2026-08-30', dueDate: '2026-09-01', serviceType: 'DRCL', createdBy: 'staff-1', hangers: 1.5 },
   { customerId: 'CUS-1', receivedDate: '2026-08-30', dueDate: '2026-09-01', serviceType: 'DRCL', createdBy: 'staff-1', quantity: -1 },
 ]) {
   assert.throws(() => workOrderCreateSchema.parse(input), JSON.stringify(input))
@@ -156,12 +156,13 @@ assert.throws(() => workOrderCreateItemSchema.parse({ quantity: 0 }))
 const listResponse = {
   orderId: 'ORD-1', customerId: 'CUS-1', customerName: '', orderNumber: null, invoiceNumber: null,
   receivedDate: null, dueDate: null, serviceType: 'legacy-service', status: 'legacy-status', quantity: null,
-  hangers: null, bags: null, note: null, createdAt: null,
+  note: null,
 }
 assert.deepEqual(workOrderListResponseSchema.parse(listResponse), listResponse)
 assert.throws(() => workOrderListResponseSchema.parse({ ...listResponse, customerName: null }))
 assert.deepEqual(workOrderDetailResponseSchema.parse({
   ...listResponse,
+  createdAt: null,
   orderName: null,
   orderDescription: null,
   formImage: null,
@@ -171,6 +172,7 @@ assert.deepEqual(workOrderDetailResponseSchema.parse({
   items: [],
 }), {
   ...listResponse,
+  createdAt: null,
   orderName: null,
   orderDescription: null,
   formImage: null,

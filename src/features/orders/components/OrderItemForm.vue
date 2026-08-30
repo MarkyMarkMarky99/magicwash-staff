@@ -8,7 +8,7 @@ import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 
 const itemPayloadSchema = orderItemCreateSchema.omit({ orderId: true, createdBy: true })
-const props = defineProps<{ open: boolean; isSubmitting: boolean; error: string | null }>()
+const props = defineProps<{ open: boolean; orderId: string; isSubmitting: boolean; error: string | null }>()
 const emit = defineEmits<{ close: []; submit: [payload: z.infer<typeof itemPayloadSchema>]; clearError: [] }>()
 const submitted = ref(false)
 const form = reactive({ description: '', quantity: '', price: '', category: '', specialInstructions: '' })
@@ -25,7 +25,7 @@ function resetForm() {
   emit('clearError')
 }
 
-watch(() => props.open, (isOpen) => {
+watch([() => props.open, () => props.orderId], ([isOpen]) => {
   if (isOpen) resetForm()
 })
 
