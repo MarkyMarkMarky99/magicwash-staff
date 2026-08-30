@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import type { z } from 'zod'
 import { orderItemCreateSchema } from '@contracts/order-items/order-item-api.schema'
 import FormInput from '@/shared/components/FormInput.vue'
@@ -9,11 +9,29 @@ import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 
 const itemPayloadSchema = orderItemCreateSchema.omit({ orderId: true, createdBy: true })
 const props = defineProps<{ open: boolean; isSubmitting: boolean; error: string | null }>()
-const emit = defineEmits<{ close: []; submit: [payload: z.infer<typeof itemPayloadSchema>] }>()
+const emit = defineEmits<{ close: []; submit: [payload: z.infer<typeof itemPayloadSchema>]; clearError: [] }>()
 const submitted = ref(false)
 const form = reactive({ description: '', quantity: '', price: '', category: '', specialInstructions: '' })
 const categoryOptions = [{ value: 'Tops', label: 'Tops' }, { value: 'Bottoms', label: 'Bottoms' }, { value: 'Home Textile', label: 'Home Textile' }, { value: 'Others', label: 'Others' }]
 const canSubmit = computed(() => Number.isFinite(Number(form.quantity)) && Number(form.quantity) > 0)
+
+function resetForm() {
+  form.description = ''
+  form.quantity = ''
+  form.price = ''
+  form.category = ''
+  form.specialInstructions = ''
+  submitted.value = false
+  emit('clearError')
+}
+
+watch(() => props.open, (isOpen) => {
+  if (isOpen) resetForm()
+})
+
+watch(() => props.isSubmitting, (isSubmitting, wasSubmitting) => {
+  if (wasSubmitting && !isSubmitting && !props.error) resetForm()
+})
 
 function submit() {
   submitted.value = true
