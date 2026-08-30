@@ -10,6 +10,8 @@ import { invoicesDbContract } from '../../../../server/sheets/Invoices/Invoices.
 import { invoicesViewDbContract } from '../../../../server/sheets/InvoicesView/InvoicesView.db-contract.js'
 import { laundryPhotosDbContract } from '../../../../server/sheets/LaundryPhotos/LaundryPhotos.db-contract.js'
 import { orderFormDbContract } from '../../../../server/sheets/OrderForm/OrderForm.db-contract.js'
+import { orderItemFormsDbContract } from '../../../../server/sheets/OrderItemForms/OrderItemForms.db-contract.js'
+import { orderImagesDbContract } from '../../../../server/sheets/OrderImages/OrderImages.db-contract.js'
 import { ordersViewDbContract } from '../../../../server/sheets/OrdersView/OrdersView.db-contract.js'
 import { paymentsDbContract } from '../../../../server/sheets/Payments/Payments.db-contract.js'
 import { priceListDbContract } from '../../../../server/sheets/PriceList/PriceList.db-contract.js'
@@ -18,7 +20,7 @@ import { packageTransactionsDbContract } from '../../../../server/sheets/Package
 import { packagesDbContract } from '../../../../server/sheets/Packages/Packages.db-contract.js'
 import { issueReportsDbContract } from '../../../../server/sheets/IssueReports/IssueReports.db-contract.js'
 
-const expectedSheetCount = 15
+const expectedSheetCount = 17
 const expectedSheetDirectories = [
   'Appointments',
   'CustomerPackages',
@@ -30,6 +32,8 @@ const expectedSheetDirectories = [
   'IssueReports',
   'LaundryPhotos',
   'OrderForm',
+  'OrderItemForms',
+  'OrderImages',
   'OrdersView',
   'PackageTransactions',
   'Packages',
@@ -97,6 +101,18 @@ const bindings = [
     contract: orderFormDbContract,
     expectedSpreadsheetId: 'ORDERS_SPREADSHEET_ID',
     expectedSheetName: 'OrderForm',
+  },
+  {
+    name: 'OrderItemForms',
+    contract: orderItemFormsDbContract,
+    expectedSpreadsheetId: 'ORDERS_SPREADSHEET_ID',
+    expectedSheetName: 'OrderItemForms',
+  },
+  {
+    name: 'OrderImages',
+    contract: orderImagesDbContract,
+    expectedSpreadsheetId: 'ORDERS_SPREADSHEET_ID',
+    expectedSheetName: 'OrderImages',
   },
   {
     name: 'OrdersView',

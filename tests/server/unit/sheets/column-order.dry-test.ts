@@ -7,6 +7,14 @@ import { invoiceItemsDbContract } from '../../../../server/sheets/InvoiceItems/I
 import { invoicesViewDbContract } from '../../../../server/sheets/InvoicesView/InvoicesView.db-contract.js'
 import { laundryPhotosDbContract } from '../../../../server/sheets/LaundryPhotos/LaundryPhotos.db-contract.js'
 import { orderFormDbContract } from '../../../../server/sheets/OrderForm/OrderForm.db-contract.js'
+import {
+  orderItemFormsDbContract,
+  orderItemFormsRowSchema,
+} from '../../../../server/sheets/OrderItemForms/OrderItemForms.db-contract.js'
+import {
+  orderImagesDbContract,
+  orderImagesRowSchema,
+} from '../../../../server/sheets/OrderImages/OrderImages.db-contract.js'
 import { ordersViewDbContract } from '../../../../server/sheets/OrdersView/OrdersView.db-contract.js'
 import { paymentsDbContract } from '../../../../server/sheets/Payments/Payments.db-contract.js'
 import { priceListDbContract } from '../../../../server/sheets/PriceList/PriceList.db-contract.js'
@@ -70,6 +78,26 @@ const tests: ColumnOrderTest[] = [
       invoice_id: 'S',
       order_name: 'T',
       order_description: 'U',
+    },
+    primaryKeyColumn: 'A',
+  },
+  {
+    name: 'OrderItemForms',
+    contract: orderItemFormsDbContract,
+    expected: {
+      id: 'A', order_id: 'B', item_id: 'C', description: 'D', quantity: 'E', price: 'F',
+      credits_used: 'G', timestamp: 'H', category: 'I', service_type: 'J',
+      special_instructions: 'K', created_by: 'L', updated_at: 'M', updated_by: 'N',
+      invoice_item_id: 'O',
+    },
+    primaryKeyColumn: 'A',
+  },
+  {
+    name: 'OrderImages',
+    contract: orderImagesDbContract,
+    expected: {
+      id: 'A', customer_id: 'B', delivery_id: 'C', order_id: 'D', image_type: 'E',
+      image_path: 'F', notes: 'G', quantity: 'H', created_at: 'I', created_by: 'J',
     },
     primaryKeyColumn: 'A',
   },
@@ -340,5 +368,101 @@ for (const test of tests) {
     `${test.name} primary-key column changed`,
   )
 }
+
+assert.deepEqual(orderItemFormsDbContract.writes, {
+  append: true,
+  update: false,
+  delete: false,
+})
+assert.equal('valueInput' in orderItemFormsDbContract, false)
+assert.deepEqual(orderItemFormsDbContract.audit, {
+  onAppend: ['timestamp'],
+  onUpdate: [],
+})
+
+const expectedOrderImagesColumns = [
+  'id',
+  'customer_id',
+  'delivery_id',
+  'order_id',
+  'image_type',
+  'image_path',
+  'notes',
+  'quantity',
+  'created_at',
+  'created_by',
+] as const
+
+assert.equal(orderImagesDbContract.row, orderImagesRowSchema)
+assert.deepEqual(Object.keys(orderImagesRowSchema.shape), [...expectedOrderImagesColumns])
+
+const nullableOrderImagesRow = Object.fromEntries(
+  expectedOrderImagesColumns.map((column) => [
+    column,
+    column === 'id' || column === 'order_id' ? 'value' : null,
+  ]),
+)
+assert.equal(
+  orderImagesRowSchema.safeParse(nullableOrderImagesRow).success,
+  true,
+  'nullable OrderImages columns must accept null while id and order_id remain strings',
+)
+
+for (const column of expectedOrderImagesColumns) {
+  const missingColumn = { ...nullableOrderImagesRow }
+  delete (missingColumn as Record<string, unknown>)[column]
+  assert.equal(
+    orderImagesRowSchema.safeParse(missingColumn).success,
+    false,
+    `${column} must be required rather than optional`,
+  )
+}
+
+const legacyOrderImagesRow = {
+  id: 'image-1',
+  customer_id: 'customer-1',
+  delivery_id: 'delivery-1',
+  order_id: 'order-1',
+  image_type: 'legacy-custom-type',
+  image_path: 'OrderForm_Images/verbatim/path.jpg',
+  notes: 'legacy note',
+  quantity: 2.75,
+  created_at: '2026-08-30 10:00:00',
+  created_by: 'staff-1',
+}
+assert.deepEqual(orderImagesRowSchema.parse(legacyOrderImagesRow), legacyOrderImagesRow)
+assert.equal(
+  orderImagesRowSchema.safeParse({ ...legacyOrderImagesRow, quantity: '2.75' }).success,
+  false,
+  'quantity must remain a decimal number in kilograms, not a string',
+)
+assert.equal(orderImagesDbContract.primaryKey, 'id')
+assert.equal(orderImagesDbContract.sheetName, 'OrderImages')
+assert.equal(orderImagesDbContract.spreadsheetId, 'ORDERS_SPREADSHEET_ID')
+assert.deepEqual(orderImagesDbContract.writes, {
+  append: true,
+  update: false,
+  delete: false,
+})
+assert.equal('valueInput' in orderImagesDbContract, false)
+
+const legacyOrderItemRow = {
+  id: '',
+  order_id: 'order-1',
+  item_id: null,
+  description: 'ผ้าห่ม legacy',
+  quantity: 0,
+  price: null,
+  credits_used: null,
+  timestamp: null,
+  category: 'ซักรีด',
+  service_type: 'legacy-service-spelling',
+  special_instructions: null,
+  created_by: 'staff-1',
+  updated_at: null,
+  updated_by: null,
+  invoice_item_id: null,
+}
+assert.deepEqual(orderItemFormsRowSchema.parse(legacyOrderItemRow), legacyOrderItemRow)
 
 console.log(`${tests.length} column-order dry tests passed`)

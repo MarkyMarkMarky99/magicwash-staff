@@ -16,6 +16,8 @@ import { invoicesViewDbContract } from '../../../server/sheets/InvoicesView/Invo
 import { customerPackageViewDbContract } from '../../../server/sheets/CustomerPackageView/CustomerPackageView.db-contract.js'
 import { laundryPhotosDbContract } from '../../../server/sheets/LaundryPhotos/LaundryPhotos.db-contract.js'
 import { orderFormDbContract } from '../../../server/sheets/OrderForm/OrderForm.db-contract.js'
+import { orderItemFormsDbContract } from '../../../server/sheets/OrderItemForms/OrderItemForms.db-contract.js'
+import { orderImagesDbContract } from '../../../server/sheets/OrderImages/OrderImages.db-contract.js'
 import { priceListDbContract } from '../../../server/sheets/PriceList/PriceList.db-contract.js'
 import { customerPackagesDbContract } from '../../../server/sheets/CustomerPackages/CustomerPackages.db-contract.js'
 import { packageTransactionsDbContract } from '../../../server/sheets/PackageTransactions/PackageTransactions.db-contract.js'
@@ -67,6 +69,18 @@ const readableSheets: readonly ReadableSheet[] = [
     sheetName: orderFormDbContract.sheetName,
     spreadsheetIdEnv: orderFormDbContract.spreadsheetId!,
     rowSchema: orderFormDbContract.row,
+  },
+  {
+    name: 'OrderItemForms',
+    sheetName: orderItemFormsDbContract.sheetName,
+    spreadsheetIdEnv: orderItemFormsDbContract.spreadsheetId!,
+    rowSchema: orderItemFormsDbContract.row,
+  },
+  {
+    name: 'OrderImages',
+    sheetName: orderImagesDbContract.sheetName,
+    spreadsheetIdEnv: orderImagesDbContract.spreadsheetId!,
+    rowSchema: orderImagesDbContract.row,
   },
   {
     name: 'Invoices',

@@ -8,7 +8,7 @@ export const orderFormRowSchema = z.object({
   customer_id: z.string().min(1),
   received_date: z.string(),
   due_date: z.string(),
-  service_type: z.enum(['WSIR', 'IRON']),
+  service_type: z.enum(['WSIR', 'IRON', 'DRCL', 'WASH']),
   status: z.enum(['PENDING', 'RECEIVED', 'SUBMITTED', 'APPROVED', 'COMPLETED', 'CANCELLED']),
   quantity: z.number().nullable(),
   hangers: z.number().nullable(),
@@ -36,8 +36,8 @@ export const orderFormDbContract = {
   // This valueInput declaration records that intent and guards against a conflict.
   valueInput: { updated_at: 'USER_ENTERED' },
   audit: {
-    onAppend: [],
+    onAppend: ['timestamp'],
     onUpdate: ['updated_at'],
   },
-  writes: { append: false, update: true, delete: false },
+  writes: { append: true, update: true, delete: false },
 } satisfies SheetContract

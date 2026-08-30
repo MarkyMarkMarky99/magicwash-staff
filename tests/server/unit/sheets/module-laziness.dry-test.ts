@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 
 const relevantEnvironmentKeys = [
+  'ORDERS_SPREADSHEET_ID',
   'PORTAL_SPREADSHEET_ID',
   'CUSTOMERS_SPREADSHEET_ID',
   'APPOINTMENTS_SPREADSHEET_ID',
@@ -10,6 +11,9 @@ const relevantEnvironmentKeys = [
 ]
 
 const modulePaths = [
+  '../../../../server/modules/order-items/order-item.module.js',
+  '../../../../server/modules/work-orders/work-order.module.js',
+  '../../../../server/modules/order-images/order-image.module.js',
   '../../../../server/modules/orders/order.module.js',
   '../../../../server/modules/customers/customer.module.js',
   '../../../../server/modules/appointments/appointment.module.js',
@@ -45,7 +49,7 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log('9 module laziness checks passed')
+  console.log('12 module laziness checks passed')
 }
 
 main().catch((error) => {
