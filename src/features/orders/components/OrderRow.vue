@@ -1,16 +1,13 @@
 <script setup lang="ts">
 import type { z } from 'zod'
-import type { orderListResponseSchema } from '@contracts/orders/order-api.schema'
+import type { workOrderListResponseSchema } from '@contracts/work-orders/work-order-api.schema'
+import { formatSheetDate } from '@/shared/utils/sheet-date'
 
-type Order = z.infer<typeof orderListResponseSchema>
+type Order = z.infer<typeof workOrderListResponseSchema>
 
 defineProps<{ order: Order; customerName?: string | null }>()
 const emit = defineEmits<{ select: [orderId: string] }>()
 
-function displayDate(value: string | null) {
-  if (!value) return 'ยังไม่กำหนด'
-  return value
-}
 </script>
 
 <template>
@@ -26,7 +23,7 @@ function displayDate(value: string | null) {
       </div>
       <p class="mt-0.5 truncate font-body text-xs text-on-surface-variant">{{ customerName ?? order.customerId }}</p>
       <div class="mt-2 flex items-center gap-2 font-label text-[10px] text-on-surface-variant">
-        <span>{{ displayDate(order.receivedDate) }}</span><span aria-hidden="true">→</span><span>{{ displayDate(order.dueDate) }}</span>
+        <span>{{ formatSheetDate(order.receivedDate) }}</span><span aria-hidden="true">→</span><span>{{ formatSheetDate(order.dueDate) }}</span>
         <span class="ml-auto rounded bg-surface-container px-1.5 py-0.5 font-bold text-primary">{{ order.serviceType ?? '—' }}</span>
       </div>
     </div>

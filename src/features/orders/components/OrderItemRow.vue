@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { z } from 'zod'
-import type { orderItemSchema } from '@contracts/orders/order-api.schema'
+import type { orderItemResponseSchema } from '@contracts/order-items/order-item-api.schema'
 
-type OrderItem = z.infer<typeof orderItemSchema>
+type OrderItem = z.infer<typeof orderItemResponseSchema>
 defineProps<{ item: OrderItem; index: number }>()
 </script>
 
