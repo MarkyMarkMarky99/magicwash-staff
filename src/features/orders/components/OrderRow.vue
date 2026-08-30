@@ -2,6 +2,7 @@
 import type { z } from 'zod'
 import type { workOrderListResponseSchema } from '@contracts/work-orders/work-order-api.schema'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
+import { getOrderStatusLabel } from '@/features/orders/order-status-labels'
 
 type Order = z.infer<typeof workOrderListResponseSchema>
 
@@ -19,11 +20,13 @@ const emit = defineEmits<{ select: [orderId: string] }>()
     <div class="min-w-0 flex-1">
       <div class="flex items-start justify-between gap-2">
         <p class="truncate font-headline text-sm font-bold text-on-surface">{{ order.orderNumber ?? order.orderId }}</p>
-        <span v-if="order.status" class="shrink-0 rounded-full bg-secondary-container px-2 py-0.5 font-label text-[9px] font-bold uppercase tracking-wide text-on-secondary-container">{{ order.status }}</span>
+        <span v-if="getOrderStatusLabel(order.status)" class="shrink-0 rounded-full bg-secondary-container px-2 py-0.5 font-label text-[9px] font-bold uppercase tracking-wide text-on-secondary-container">{{ getOrderStatusLabel(order.status) }}</span>
       </div>
       <p class="mt-0.5 truncate font-body text-xs text-on-surface-variant">{{ order.customerName?.trim() ? order.customerName : order.customerId }}</p>
       <div class="mt-2 flex items-center gap-2 font-label text-[10px] text-on-surface-variant">
         <span>{{ formatSheetDate(order.receivedDate) }}</span><span aria-hidden="true">→</span><span>{{ formatSheetDate(order.dueDate) }}</span>
+        <span v-if="order.quantity !== null" class="font-bold text-on-surface-variant">{{ order.quantity }} ชิ้น</span>
+        <span v-if="order.invoiceNumber !== null" class="rounded-full bg-tertiary-container px-1.5 py-0.5 font-bold text-on-tertiary-container">{{ order.invoiceNumber }}</span>
         <span class="ml-auto rounded bg-surface-container px-1.5 py-0.5 font-bold text-primary">{{ order.serviceType ?? '—' }}</span>
       </div>
     </div>
