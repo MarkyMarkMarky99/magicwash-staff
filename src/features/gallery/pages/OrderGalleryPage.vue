@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { usePhotoUpload } from '@/composables/usePhotoUpload'
 import { getPhotos } from '@/api/photos'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
-import CameraOverlayPage from '@/features/gallery/components/CameraOverlayPage.vue'
+import CameraOverlay from '@/shared/components/CameraOverlay.vue'
 
 function parseKey(key) {
   const parts = String(key ?? '').split('-')
@@ -348,7 +348,7 @@ function handleCameraClose() {
     <!-- Hidden inputs -->
     <input ref="albumInputRef" type="file" accept="image/*" multiple class="hidden" @change="handleFiles" />
 
-      <CameraOverlayPage
+      <CameraOverlay
         :open="showCamera"
         @capture="handleCameraCapture"
         @close="handleCameraClose"
