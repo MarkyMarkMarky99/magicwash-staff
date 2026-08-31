@@ -14,7 +14,6 @@
 - **Invoice** — `invoiceNumber`, shown when present.
 - **หมายเหตุ** — `note`, own section with line breaks preserved, hidden when empty.
 - **รายการสินค้า** — one row per item: description or `ไม่ได้ระบุรายละเอียด`, quantity, price. The header count is the number of item lines, labelled `รายการ`.
-- **Photos** — photo strip.
 
 `createdAt` and `createdBy` are audit data and are not shown.
 
@@ -25,6 +24,5 @@ The page is not on the `<KeepAlive>` exclude list. The item form overlay it host
 ## Overlays
 
 - `?item=new` — the item form.
-- `?capture=1` — the image capture overlay.
 
-Both use `useOrderOverlayRoute`.
+The item form uses `useOrderOverlayRoute`.

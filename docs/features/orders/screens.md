@@ -48,8 +48,8 @@ Main UI:
 - `AppLayout` (shared layout) as the page shell
 - `AppHeader` back target resolved from `meta.parent`
 - `ListContainer` (shared component) for the items section
-- `OrderItemRow.vue`, `OrderPhotoStrip.vue` — feature-local
-- `FormOverlay` (shared layout) for the add-item overlay; feature-local camera overlay
+- `OrderItemRow.vue` — feature-local
+- `FormOverlay` (shared layout) for the add-item overlay
 
 Sections:
 - Header summary — order number, customer, received date, due date, status, service type
@@ -65,11 +65,9 @@ Sections:
   - default slot: `OrderItemRow.vue` per item; `actions` slot: the add-item button
   - `ListContainer` is a titled collapsible section, not a table — it has no rows/columns model and
     no emits
-- Photos — `OrderPhotoStrip.vue` with the capture button
 
 Actions:
 - Add item — opens `?item=new` (flow: `flows.md` § Add order item; ⛔ Blocker 4)
-- Capture image — opens `?capture=1` (flow: `flows.md` § Capture order image; ⛔ Blockers 5 and 6)
 
 Shared components:
 - `AppHeader`

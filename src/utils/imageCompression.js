@@ -1,4 +1,4 @@
-export const MAX_SIZE_BYTES = 200 * 1024
+const MAX_SIZE_BYTES = 200 * 1024
 const MAX_DIMENSION = 1920 // pre-scale cap before quality search — keeps toBlob fast
 
 function fileToImage(file) {
@@ -52,7 +52,7 @@ async function findBestQuality(canvas, maxBytes) {
   return best // null when even ~lo quality exceeds maxBytes at these dimensions
 }
 
-export async function compressCanvasToJpeg(sourceCanvas, maxBytes = MAX_SIZE_BYTES) {
+async function compressCanvasToJpeg(sourceCanvas, maxBytes = MAX_SIZE_BYTES) {
   let w = sourceCanvas.width
   let h = sourceCanvas.height
   let canvas = sourceCanvas
@@ -98,15 +98,4 @@ export async function compressImage(file, maxBytes = MAX_SIZE_BYTES) {
 
   const basename = file.name.replace(/\.[^.]+$/, '')
   return new File([blob], `${basename}.jpg`, { type: 'image/jpeg' })
-}
-
-/**
- * Compress multiple images concurrently.
- *
- * @param {File[]} files
- * @param {number} maxBytes
- * @returns {Promise<File[]>}
- */
-export async function compressImages(files, maxBytes = MAX_SIZE_BYTES) {
-  return Promise.all(files.map((f) => compressImage(f, maxBytes)))
 }

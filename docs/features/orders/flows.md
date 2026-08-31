@@ -39,7 +39,7 @@
    `createCrudRoutes` computes `canGetById === false`, attaches no item handler, and the request
    404s with `Route not found`. See Blocker 2.
 6. Store → Page → Component — on a future working endpoint, the page renders the DTO directly:
-   header summary, items in `ListContainer`, photo strip.
+   header summary and items in `ListContainer`.
 
 ## Add order item
 
@@ -54,23 +54,6 @@
 7. Store → Page → Router — on a future success, refetch the detail from the API and `close()` the
    `item` query.
 
-## Capture order image
-
-1. Component → Page — user activates Capture on the photo strip.
-2. Page → Router — ⛔ BLOCKED — `open()` pushes `?capture=1`, but there is no orders-owned camera
-   component to render behind it. See Blocker 6.
-3. Component — camera or file input captures an image and collects `image_type`, `notes`,
-   `quantity`.
-4. Component → Store — store coordinates the binary upload, then the `OrderImages` row append.
-5. Store → API — ⛔ BLOCKED — there is no `OrderImages` write endpoint. Sheet-layer registration
-   with `append: true` is in progress on `feat/register-order-sheets`; there is still no contract,
-   module, or route. See Blocker 5.
-6. Component → Store — ⛔ BLOCKED — the only working capture implementation lives in
-   `src/features/gallery/`, `src/api/`, `src/composables/`, `src/utils/`. Calling it from orders is
-   a forbidden cross-feature import, and it writes to `BeforePhoto`/`AfterPhoto` via Apps Script,
-   not to `OrderImages`. See Blocker 6.
-7. Store → Page — on a future success, refetch the photo strip from the API.
-
 ## Add-item overlay navigation and Back
 
 1. Page → Router — open with `router.push({ query: { ...route.query, item: 'new' } })`.
@@ -82,12 +65,3 @@
 5. Page — browser and Android Back are handled entirely by the query-param route. The overlay never
    calls `history.pushState`, `history.back()`, `history.forward()`, and never listens for
    `popstate`.
-
-## Camera overlay navigation and Back
-
-1. Page → Router — open with `router.push({ query: { ...route.query, capture: '1' } })`.
-2. Page — derive open state with `computed` from the route; never mirror it into a local `ref`.
-3. Page → Router — `close()` calls `router.back()` only when this page pushed the entry.
-4. Page → Router — on a deep link or a refresh, `close()` strips `capture` with `router.replace`.
-5. Page → Router — an action that navigates away while the overlay is open uses `router.replace`
-   for the destination, so the overlay entry is consumed rather than left for Back to resurrect.

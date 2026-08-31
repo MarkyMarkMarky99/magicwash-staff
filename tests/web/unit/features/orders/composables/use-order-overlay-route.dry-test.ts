@@ -13,14 +13,13 @@ const detailPageSource = readFileSync(
 
 test('reads the single orderAction query as the overlay source of truth', () => {
   assert.equal(readOrderOverlay({ orderAction: 'item' }), 'item')
-  assert.equal(readOrderOverlay({ orderAction: 'capture' }), 'capture')
   assert.equal(readOrderOverlay({ orderAction: 'unknown' }), null)
 })
 
 test('keeps old deep links usable without opening two overlays', () => {
   assert.equal(readOrderOverlay({ item: 'new' }), 'item')
-  assert.equal(readOrderOverlay({ capture: '1' }), 'capture')
-  assert.equal(readOrderOverlay({ item: 'new', capture: '1' }), 'capture')
+  assert.equal(readOrderOverlay({ capture: '1' }), null)
+  assert.equal(readOrderOverlay({ item: 'new', capture: '1' }), 'item')
 })
 
 test('opening an overlay removes every conflicting current and legacy flag', () => {

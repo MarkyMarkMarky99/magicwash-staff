@@ -2,7 +2,7 @@ import { computed, watch } from 'vue'
 import type { LocationQuery, LocationQueryRaw } from 'vue-router'
 import { useRoute, useRouter } from 'vue-router'
 
-export type OrderOverlay = 'item' | 'capture'
+export type OrderOverlay = 'item'
 
 const OVERLAY_QUERY_KEY = 'orderAction'
 const LEGACY_ITEM_QUERY_KEY = 'item'
@@ -15,12 +15,9 @@ function readFirstQueryValue(value: unknown): string | null {
 
 export function readOrderOverlay(query: LocationQuery): OrderOverlay | null {
   const overlay = readFirstQueryValue(query[OVERLAY_QUERY_KEY])
-  if (overlay === 'item' || overlay === 'capture') return overlay
+  if (overlay === 'item') return overlay
 
-  // Old URLs could contain both flags. Capture used to be mounted last and
-  // therefore appeared on top, so retain that visible state without mounting
-  // both dialogs at once.
-  if (readFirstQueryValue(query[LEGACY_CAPTURE_QUERY_KEY]) === '1') return 'capture'
+  // Keep old item-form deep links usable.
   if (readFirstQueryValue(query[LEGACY_ITEM_QUERY_KEY]) === 'new') return 'item'
   return null
 }
@@ -39,7 +36,6 @@ export function useOrderOverlayRoute() {
   const router = useRouter()
   const activeOverlay = computed(() => readOrderOverlay(route.query))
   const isItemOpen = computed(() => activeOverlay.value === 'item')
-  const isCaptureOpen = computed(() => activeOverlay.value === 'capture')
   let pushedByUs = false
 
   watch(activeOverlay, (overlay) => { if (overlay === null) pushedByUs = false })
@@ -72,5 +68,5 @@ export function useOrderOverlayRoute() {
     void router.replace({ query: buildOrderOverlayQuery(route.query, null) })
   }
 
-  return { activeOverlay, isItemOpen, isCaptureOpen, open, close }
+  return { activeOverlay, isItemOpen, open, close }
 }

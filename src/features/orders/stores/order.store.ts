@@ -21,7 +21,6 @@ export const useOrderStore = defineStore('orders', () => {
   const itemSubmittingOrderId = ref<string | null>(null)
   const itemError = ref<string | null>(null)
   const itemErrorOrderId = ref<string | null>(null)
-  const orderPhotos = ref([])
   const customers = ref<CustomerLookupDto[]>([])
   const customersLoading = ref(false)
   const customersError = ref<string | null>(null)
@@ -108,10 +107,9 @@ export const useOrderStore = defineStore('orders', () => {
   function clearDetail() {
     detailRequestSequence += 1
     currentOrder.value = null
-    orderPhotos.value = []
     detailLoading.value = false
     detailError.value = null
   }
 
-  return { orders, pagination, listLoading, listError, currentOrder, detailLoading, detailError, itemSubmittingOrderId, itemError, itemErrorOrderId, orderPhotos, customers, customersLoading, customersError, loadList, loadDetail, loadCustomers, create, addItem, clearItemError, clearDetail }
+  return { orders, pagination, listLoading, listError, currentOrder, detailLoading, detailError, itemSubmittingOrderId, itemError, itemErrorOrderId, customers, customersLoading, customersError, loadList, loadDetail, loadCustomers, create, addItem, clearItemError, clearDetail }
 })

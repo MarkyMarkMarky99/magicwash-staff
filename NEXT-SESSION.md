@@ -6,10 +6,9 @@ someone would otherwise walk into again.
 
 ## Where we are
 
-- **Uncommitted Orders FE state fix:** order detail now uses one route-owned overlay discriminator,
-  `?orderAction=item|capture`; legacy `?item=new` / `?capture=1` URLs remain readable but can no
-  longer mount two dialogs. Item/photo drafts reset by `orderId`, and store reads ignore stale
-  responses. The route/ref-unwrapping regression test (5/5) and `npm run build` pass; browser smoke testing is
+- **Uncommitted Orders FE state fix:** order detail now uses route-owned `?orderAction=item`;
+  legacy `?item=new` URLs remain readable. Item drafts reset by `orderId`, and store reads ignore
+  stale responses. The route/ref-unwrapping regression test and `npm run build` pass; browser smoke testing is
   still required because no browser session was connected.
 
 The **Orders backend is built and green, on `feat/orders-contracts`: not merged, not deployed, and
@@ -36,7 +35,7 @@ The user runs their own `vercel dev` on port 3000. **Do not start a second dev s
    against the prod alias is the only thing that catches the ESM-extension class of failure, which
    typecheck, dry-tests and `vercel dev` all miss.
 2. **The user reviews the Orders prototype in a browser** — `#/orders`, `#/orders/new`,
-   `#/orders/ORD-...`, plus `?item=new` and `?capture=1` on the detail route.
+   `#/orders/ORD-...`, plus `?item=new` on the detail route.
 3. **Delete the leftover test data.** `ZZTEST01` in the `Packages` catalog (deactivated but still
    listed), and customer package `af9f0651` for พิมพ์นิดา, a real ACTIVE GOLD 50-credit package.
    `SheetRepository.delete()` throws, so both must go by hand.
