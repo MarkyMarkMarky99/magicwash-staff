@@ -141,7 +141,6 @@ assert.deepEqual(parsedItem, {
   description: null,
   quantity: 1,
   price: null,
-  category: null,
   specialInstructions: null,
 })
 for (const field of ['orderId', 'createdBy', 'serviceType']) {

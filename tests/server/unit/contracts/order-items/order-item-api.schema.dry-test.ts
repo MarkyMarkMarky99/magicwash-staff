@@ -5,7 +5,6 @@ import { API_PAGINATION_DEFAULTS } from '../../../../../contracts/shared/api.sch
 const {
   MAX_ORDER_ITEMS_PER_PAGE,
   orderItemApiContract,
-  orderItemCategorySchema,
   orderItemCreateResponseSchema,
   orderItemCreateSchema,
   orderItemDetailResponseSchema,
@@ -17,16 +16,14 @@ const {
 
 const RESPONSE_FIELDS = [
   'orderItemId', 'orderId', 'itemId', 'description', 'quantity', 'price',
-  'creditsUsed', 'category', 'serviceType', 'specialInstructions', 'createdAt', 'createdBy',
+  'creditsUsed', 'serviceType', 'specialInstructions', 'createdAt', 'createdBy',
 ] as const
 
-assert.deepEqual(orderItemCategorySchema.options, ['Tops', 'Bottoms', 'Home Textile', 'Others'])
 assert.deepEqual(orderServiceTypeSchema.options, ['WSIR', 'IRON', 'DRCL', 'WASH'])
 assert.equal(MAX_ORDER_ITEMS_PER_PAGE, 500)
 assert.deepEqual(new Set(Object.keys(orderItemModule)), new Set([
   'MAX_ORDER_ITEMS_PER_PAGE',
   'orderItemApiContract',
-  'orderItemCategorySchema',
   'orderItemCreateResponseSchema',
   'orderItemCreateSchema',
   'orderItemDetailResponseSchema',
@@ -74,7 +71,7 @@ assert.deepEqual(
   }),
   {
     orderId: 'ORD-1', itemId: null, description: null, quantity: 2, price: null,
-    category: null, specialInstructions: null, createdBy: 'staff-1',
+    specialInstructions: null, createdBy: 'staff-1',
   },
 )
 assert.equal(
@@ -85,14 +82,13 @@ for (const input of [
   { orderId: '   ', quantity: 1, createdBy: 'staff-1' },
   { orderId: 'ORD-1', quantity: 0, createdBy: 'staff-1' },
   { orderId: 'ORD-1', quantity: -1, createdBy: 'staff-1' },
-  { orderId: 'ORD-1', quantity: 1, createdBy: 'staff-1', category: 'Bedding' },
 ]) {
   assert.throws(() => orderItemCreateSchema.parse(input), JSON.stringify(input))
 }
 
 const dto = {
   orderItemId: 'ITEM-1', orderId: null, itemId: null, description: 'ผ้าห่ม legacy', quantity: null,
-  price: 0, creditsUsed: null, category: 'Bedding', serviceType: 'legacy-service',
+  price: 0, creditsUsed: null, serviceType: 'legacy-service',
   specialInstructions: null, createdAt: null, createdBy: 'staff-1',
 }
 assert.deepEqual(orderItemResponseSchema.parse(dto), dto)

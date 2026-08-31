@@ -116,7 +116,6 @@ const payload = {
       description: 'shirt',
       quantity: 1,
       price: 25,
-      category: 'Tops',
       specialInstructions: 'steam',
     },
     {
@@ -124,7 +123,6 @@ const payload = {
       description: 'trousers',
       quantity: 2,
       price: 40,
-      category: 'Bottoms',
       specialInstructions: null,
     },
   ],

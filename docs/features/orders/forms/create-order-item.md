@@ -18,14 +18,12 @@ Purpose:
 
 | Field | Required | Component | Validation |
 |---|---|---|---|
-| description | no | FormTextarea | Optional text (Thai) |
+| description | no | FormInput | Optional text (Thai) |
 | quantity | yes | FormInput | Numeric; decimal allowed |
 | price | no | FormInput | Empty or numeric; decimal allowed |
-| category | no | FormOptionGrid | Empty or one of `Tops`, `Bottoms`, `Home Textile`, `Others` |
 | service_type | no | FormOptionGrid | Empty or one of `WSIR`, `IRON`, `DRCL`, `WASH` |
 | special_instructions | no | FormTextarea | Optional text |
 
-- `category` options are the live values; `Bedding` (1 row) is not offered.
 - `service_type` options are the canonical four, not the live label set. See Known data debt in
   `data-model.md`.
 - No frontend mapper layer, and no frontend derivation of totals from `quantity` and `price`.

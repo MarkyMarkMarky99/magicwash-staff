@@ -2,8 +2,6 @@ import { z } from 'zod'
 import { API_PAGINATION_DEFAULTS } from '../shared/api.schema.js'
 import type { ModuleApiContract } from '../shared/module-api-contract.js'
 
-export const orderItemCategorySchema = z.enum(['Tops', 'Bottoms', 'Home Textile', 'Others'])
-
 // Exported for the orders contract's header serviceType in a later task.
 export const orderServiceTypeSchema = z.enum(['WSIR', 'IRON', 'DRCL', 'WASH'])
 
@@ -26,7 +24,6 @@ export const orderItemResponseSchema = z.object({
   quantity: z.number().nullable(),
   price: z.number().nullable(),
   creditsUsed: z.number().nullable(),
-  category: z.string().nullable(),
   serviceType: z.string().nullable(),
   specialInstructions: z.string().nullable(),
   createdAt: z.string().nullable(),
@@ -39,7 +36,6 @@ export const orderItemCreateSchema = z.object({
   description: z.string().trim().min(1).nullable().default(null),
   quantity: z.number().positive(),
   price: z.number().nonnegative().nullable().default(null),
-  category: orderItemCategorySchema.nullable().default(null),
   specialInstructions: z.string().trim().min(1).nullable().default(null),
   createdBy: z.string().trim().min(1),
 })

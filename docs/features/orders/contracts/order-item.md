@@ -21,7 +21,6 @@ Response `200 { data: OrderItemResponse[], meta.pagination: { page, perPage } }`
 - `quantity` — number | null
 - `price` — number | null
 - `creditsUsed` — number | null
-- `category` — string | null (free string on read)
 - `serviceType` — string | null (server-derived, never client-supplied; free string on read, Thai legacy values returned verbatim)
 - `specialInstructions` — string | null
 - `createdAt` — string | null
@@ -53,7 +52,6 @@ Request
 - `description` — string, nullable, default `null`
 - `quantity` — number > 0, required
 - `price` — number ≥ 0, nullable, default `null`
-- `category` — enum `Tops` | `Bottoms` | `Home Textile` | `Others`, nullable, default `null`
 - `specialInstructions` — string, nullable, default `null`
 - `createdBy` — string, required
 - not accepted: `orderItemId`, `serviceType`, `creditsUsed`, `invoiceItemId`, `updatedAt`, `updatedBy`, `timestamp`
@@ -67,7 +65,6 @@ Behaviour
   the client cannot set it, and one order carries exactly one service type
 - an `orderId` that resolves to no `OrderForm` row → 404; the lookup doubles as `orderId` validation
 - `createdAt` is stamped by `audit.onAppend`
-- `Bedding` is not an accepted category (1 legacy row only) → 422
 - a duplicate generated id surfaces as 500 (`DuplicatePrimaryKeyError`)
 
 ## Not available

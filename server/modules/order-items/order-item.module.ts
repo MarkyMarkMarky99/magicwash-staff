@@ -129,7 +129,7 @@ export class OrderItemService extends BaseCrudService<
       description: data.description,
       quantity: data.quantity,
       price: data.price,
-      category: data.category,
+      category: null,
       service_type: rows[0]!.service_type ?? null,
       special_instructions: data.specialInstructions,
       created_by: data.createdBy,

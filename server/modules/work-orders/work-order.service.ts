@@ -228,7 +228,7 @@ function toOrderItemRow(
     description: item.description,
     quantity: item.quantity,
     price: item.price,
-    category: item.category,
+    category: null,
     service_type: data.serviceType,
     special_instructions: item.specialInstructions,
     created_by: data.createdBy,

@@ -68,13 +68,13 @@ itemRepository.readRows = [
   { id: '', order_id: 'order-1', quantity: 0 },
   { id: null, order_id: 'order-1', quantity: 0 },
   { id: 'fc60a477', order_id: 'order-1', item_id: 'item-1', description: 'shirt', quantity: 2,
-    price: 25, credits_used: 1, timestamp: '2026-08-30 10:00:00', category: 'Tops',
+    price: 25, credits_used: 1, timestamp: '2026-08-30 10:00:00',
     service_type: '\u0e0b\u0e31\u0e01\u0e23\u0e35\u0e14', special_instructions: 'fold', created_by: 'staff-1' },
 ]
 const listed = await service.list({ keyword: '', orderId: 'order-1', page: 2, perPage: 5, sortBy: 'createdAt', sortOrder: 'desc' })
 assert.deepEqual(listed, {
   items: [{ orderItemId: 'fc60a477', orderId: 'order-1', itemId: 'item-1', description: 'shirt', quantity: 2,
-    price: 25, creditsUsed: 1, category: 'Tops', serviceType: '\u0e0b\u0e31\u0e01\u0e23\u0e35\u0e14', specialInstructions: 'fold',
+    price: 25, creditsUsed: 1, serviceType: '\u0e0b\u0e31\u0e01\u0e23\u0e35\u0e14', specialInstructions: 'fold',
     createdAt: '2026-08-30 10:00:00', createdBy: 'staff-1' }],
   pagination: { page: 2, perPage: 5 },
 })
@@ -82,7 +82,7 @@ assert.deepEqual(listed, {
 const parentServiceType = '\u0e23\u0e35\u0e14\u0e1c\u0e49\u0e32'
 orderRepository.readRows = [{ id: 'order-1', service_type: parentServiceType as unknown as OrderFormDbRow['service_type'] }]
 const created = await service.create({ orderId: 'order-1', itemId: 'item-from-request', description: 'trousers', quantity: 3,
-  price: 30, category: 'Bottoms', specialInstructions: 'hang', createdBy: 'staff-2', serviceType: 'CLIENT-SUPPLIED' })
+  price: 30, specialInstructions: 'hang', createdBy: 'staff-2', serviceType: 'CLIENT-SUPPLIED' })
 assert.deepEqual(orderRepository.readQueries, [ReadQueryDTO.fromId('order-1')])
 assert.deepEqual(orderRepository.events, ['order-read'])
 assert.deepEqual(itemRepository.events, ['item-read', 'item-append'])
@@ -102,7 +102,7 @@ const missingOrderRepository = makeOrderRepository()
 const missingService = new OrderItemService({ repository: missingItemRepository, orderFormRepository: () => missingOrderRepository })
 await assert.rejects(
   () => missingService.create({ orderId: 'order-404', itemId: 'item-1', description: 'shirt', quantity: 1,
-    price: null, category: null, specialInstructions: null, createdBy: 'staff-1' }),
+    price: null, specialInstructions: null, createdBy: 'staff-1' }),
   (error: unknown) => {
     assert.ok(error instanceof ApiError)
     assert.equal(error.code, API_ERROR_CODES.NOT_FOUND)

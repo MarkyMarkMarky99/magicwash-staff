@@ -13,7 +13,7 @@
 - **จำนวน** — order-level `quantity`.
 - **Invoice** — `invoiceNumber`, shown when present.
 - **หมายเหตุ** — `note`, own section with line breaks preserved, hidden when empty.
-- **รายการสินค้า** — one row per item: description or `ไม่ได้ระบุรายละเอียด`, quantity, category, price. The header count is the number of item lines, labelled `รายการ`.
+- **รายการสินค้า** — one row per item: description or `ไม่ได้ระบุรายละเอียด`, quantity, price. The header count is the number of item lines, labelled `รายการ`.
 - **Photos** — photo strip.
 
 `createdAt` and `createdBy` are audit data and are not shown.

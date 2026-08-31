@@ -6,10 +6,9 @@ An overlay on the order detail screen, opened by `?item=new`. Not a page.
 
 ## Fields
 
-- **รายละเอียดสินค้า** — `description`, optional. Textarea.
+- **รายละเอียดสินค้า** — `description`, optional. Text input.
 - **จำนวน** — `quantity`, required. Number, must be greater than 0.
 - **ราคา** — `price`, optional. Number.
-- **หมวดหมู่** — `category`, optional. Option grid: Tops / Bottoms / Home Textile / Others.
 - **คำแนะนำเพิ่มเติม** — `specialInstructions`, optional. Textarea.
 
 Blank optional fields submit as `null`. `serviceType` belongs to the order, not the item, and is not on this form.
