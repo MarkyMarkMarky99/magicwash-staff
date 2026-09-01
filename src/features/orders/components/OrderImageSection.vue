@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { getOrderImageTypeLabel, ORDER_IMAGE_TYPES, orderImageTypeIcons, orderImageTypeLabels, type OrderImageType } from '@/features/orders/order-image-labels'
+import OrderImageCaptureMenu from '@/features/orders/components/OrderImageCaptureMenu.vue'
+import { getOrderImageTypeLabel, type OrderImageType } from '@/features/orders/order-image-labels'
 import type { OrderImageDto } from '@/features/orders/services/order-image.service'
 
 defineProps<{
@@ -22,14 +23,12 @@ function isDisplayableImagePath(imagePath: string | null): boolean {
 
 <template>
   <section class="border-t border-outline-variant/20 bg-surface px-4 py-5">
-    <p class="font-label text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">หลักฐานรับผ้า</p>
-    <h2 class="font-headline text-base font-bold text-primary">รูปภาพของออเดอร์</h2>
-
-    <div class="mb-3 grid grid-cols-3 gap-2">
-      <button v-for="imageType in ORDER_IMAGE_TYPES" :key="imageType" type="button" class="flex items-center justify-center gap-1 rounded-xl border border-outline-variant/40 bg-surface-container-low px-2 py-2 font-label text-xs font-bold text-primary" @click="emit('capture', imageType)">
-        <span class="material-symbols-outlined text-base">{{ orderImageTypeIcons[imageType] }}</span>
-        {{ orderImageTypeLabels[imageType] }}
-      </button>
+    <div class="mb-3 flex items-start justify-between gap-3">
+      <div>
+        <p class="font-label text-[9px] font-bold uppercase tracking-widest text-on-surface-variant">หลักฐานรับผ้า</p>
+        <h2 class="font-headline text-base font-bold text-primary">รูปภาพของออเดอร์</h2>
+      </div>
+      <OrderImageCaptureMenu @capture="emit('capture', $event)" />
     </div>
 
     <div v-if="uploadError" class="mb-3 flex items-center justify-between gap-2">

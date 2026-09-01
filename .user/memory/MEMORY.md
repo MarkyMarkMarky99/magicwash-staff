@@ -2,6 +2,12 @@
 
 ## Where we are — 2026-08-23
 
+- **Current branch/worktree (2026-09-02):** `feat/shared-dropdown-ui` in
+  `C:\MagicwashGemini\webapp-vue-ui-main`, created from `origin/main` at `c45b710`. It carries
+  generic shared `BaseDropdown`, the three Order Image capture actions in the section header, and
+  the Invoice payment-history migration while preserving its proof lightbox flow. Local invoices
+  returned zero rows, so the dropdown has no record-level browser smoke test; production build
+  passed. The user runs `vercel dev` on port 3001; do not start a second server.
 - **Orders FE state fix (uncommitted):** order detail uses one `orderAction=item|capture` query,
   normalizes legacy conflicting overlay flags, resets item/photo drafts per order, and discards
   stale list/detail/customer responses. New dry-test passes 5/5 and production build passes;

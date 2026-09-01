@@ -6,7 +6,12 @@ someone would otherwise walk into again.
 
 ## Where we are
 
-- Current branch: `chore/remove-dead-orders-photo-prototype`; HEAD is `49bb5df`.
+- Current branch: `feat/shared-dropdown-ui`, created from `origin/main` at `c45b710`.
+- This branch carries only the shared `BaseDropdown`, Order Image capture dropdown, and Invoice
+  payment-history migration. The payment UI retains its rows, proof handling, lightbox suspension,
+  and visual design. Production build passed. Local browser verification could not exercise the
+  payment dropdown because the local API returned zero invoices; do not create test data merely to
+  make the check pass.
 - The Orders frontend uses route-owned `?orderAction=item`; legacy `?item=new` URLs remain readable.
   Item drafts reset by `orderId`, store reads ignore stale responses, and browser smoke testing is
   still required because no browser session was connected.
@@ -15,7 +20,7 @@ someone would otherwise walk into again.
   `docs/features/orders/contracts/`.
 - `feat/orders-frontend` remains an unreviewed clickable prototype. `main` deploys production when
   pushed, so pushing it is a deliberate act.
-- The user runs `vercel dev` on port 3000. Do not start a second server; Vite deliberately pins 3102.
+- The user runs `vercel dev` on port 3001. Do not start a second server; Vite deliberately pins 3102.
 
 ## Commit 49bb5df — dead photo prototype removed
 
