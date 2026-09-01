@@ -264,7 +264,7 @@ async function run(): Promise<void> {
             return true
           },
         )
-        assert.equal(calls.length, 0)
+        assert.equal(calls.length, 1)
       },
     )
     assert.deepEqual(delays, [])
