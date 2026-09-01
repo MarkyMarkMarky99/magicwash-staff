@@ -79,16 +79,10 @@ function appendResponse(values: unknown[][]): Response {
     spreadsheetId: 'spreadsheet-id',
     updates: {
       updatedRows: 1,
+      updatedRange: 'SyntheticAppends!A2:D2',
       updatedData: { values },
     },
   })
-}
-
-// The append duplicate-key guard now does a primary-key column lookup (GET)
-// before every write. A header-only response means findRowNumberByKey finds
-// no existing row, so every test below keeps its original append behavior.
-function lookupResponse(): Response {
-  return jsonResponse({ values: [['AppendID']] })
 }
 
 function sheetsApiRepository(
@@ -121,12 +115,9 @@ function test(name: string, run: () => Promise<void>): void {
   tests.push({ name, run })
 }
 
-test('Sheets API append looks up the primary key before writing', async () => {
+test('Sheets API append does not read the primary key before writing', async () => {
   await withMockFetch(
     async (_url, init) => {
-      if (init?.method === 'GET') {
-        return lookupResponse()
-      }
       assert.equal(init?.method, 'POST')
       return appendResponse([['append-1', 'before', 'middle', 'after']])
     },
@@ -138,17 +129,7 @@ test('Sheets API append looks up the primary key before writing', async () => {
         NullableMiddle: 'middle',
         AfterNullable: 'after',
       })
-      // Production does not add the primary-key lookup GET yet, so today
-      // there is exactly one POST call. Once the duplicate-key guard lands,
-      // a GET lookup will precede it. Assert only the invariant that must
-      // hold in both states: any calls before the POST are GET lookups,
-      // never a second write.
-      const methods = calls.map((call) => call.init?.method)
-      const postIndex = methods.indexOf('POST')
-      assert.ok(postIndex !== -1, 'expected an append POST call')
-      for (let index = 0; index < postIndex; index += 1) {
-        assert.equal(methods[index], 'GET')
-      }
+      assert.deepEqual(calls.map((call) => call.init?.method), ['POST'])
     },
   )
 })
@@ -156,9 +137,7 @@ test('Sheets API append looks up the primary key before writing', async () => {
 test('Sheets API append sends a full-width row with middle blanks preserved', async () => {
   await withMockFetch(
     async (_url, init) => {
-      if (init?.method === 'GET') {
-        return lookupResponse()
-      }
+      assert.equal(init?.method, 'POST')
       assert.deepEqual(JSON.parse(String(init?.body)), {
         majorDimension: 'ROWS',
         values: [['append-2', 'before', '', 'after']],
@@ -179,9 +158,7 @@ test('Sheets API append sends a full-width row with middle blanks preserved', as
 test('Sheets API append uses one USER_ENTERED request option', async () => {
   await withMockFetch(
     async (url, init) => {
-      if (init?.method === 'GET') {
-        return lookupResponse()
-      }
+      assert.equal(init?.method, 'POST')
       const parsed = new URL(url)
       assert.equal(parsed.searchParams.get('valueInputOption'), 'USER_ENTERED')
       assert.equal(parsed.searchParams.getAll('valueInputOption').length, 1)
@@ -219,9 +196,7 @@ test('a conflicting valueInput declaration is rejected before fetch', async () =
 test('append returns the sent full-width row instead of the echoed row', async () => {
   await withMockFetch(
     async (_url, init) => {
-      if (init?.method === 'GET') {
-        return lookupResponse()
-      }
+      assert.equal(init?.method, 'POST')
       return appendResponse([['append-5', 'echo-different', 'echo-middle', 'after']])
     },
     async () => {
@@ -245,9 +220,7 @@ test('append returns the sent full-width row instead of the echoed row', async (
 test('an append echo with a different primary key is rejected', async () => {
   await withMockFetch(
     async (_url, init) => {
-      if (init?.method === 'GET') {
-        return lookupResponse()
-      }
+      assert.equal(init?.method, 'POST')
       return appendResponse([['different-key', 'before', 'middle', 'after']])
     },
     async () => {
@@ -272,9 +245,7 @@ test('an append echo with a different primary key is rejected', async () => {
 test('a contract without a transport declaration appends through the Sheets API', async () => {
   await withMockFetch(
     async (url, init) => {
-      if (init?.method === 'GET') {
-        return lookupResponse()
-      }
+      assert.equal(init?.method, 'POST')
       assert.match(url, /:append/)
       assert.deepEqual(JSON.parse(String(init?.body)), {
         majorDimension: 'ROWS',
@@ -290,9 +261,7 @@ test('a contract without a transport declaration appends through the Sheets API'
         NullableMiddle: '',
         AfterNullable: '',
       })
-      // Today: one POST call. After the duplicate-key guard lands: one
-      // lookup GET plus the append POST.
-      assert.ok(calls.length === 1 || calls.length === 2)
+      assert.deepEqual(calls.map((call) => call.init?.method), ['POST'])
     },
   )
 })

@@ -6,6 +6,7 @@ import { buildSheetHeaderMap } from '../../../../../server/shared/repositories/s
 import {
   SheetsApiClient,
   WriteCommittedUnreadableError,
+  WriteMisalignedAppendError,
   WriteRejectedError,
   WriteTransportError,
 } from '../../../../../server/shared/repositories/sheets-api.client.js'
@@ -103,11 +104,6 @@ function mockSheetsApiClient(
 ): SheetsApiClient {
   return {
     appendRows,
-    // The pre-write duplicate-key guard reads the primary key column before
-    // every append. This suite is about GViz verification after the append
-    // itself, so the lookup always reports "no existing row" (header row
-    // only) and lets the guard fall through to appendRows unchanged.
-    readColumn: async () => [['AppendID']],
   } as unknown as SheetsApiClient
 }
 
@@ -231,6 +227,46 @@ async function run(): Promise<void> {
     assert.deepEqual(delays, [])
   })
   console.log('ok - rejected error bypasses GViz verification')
+
+  await withImmediateTimers(async (delays) => {
+    await withMockFetch(
+      async (_url, init) => {
+        assert.equal(init?.method, 'POST')
+        return new Response(JSON.stringify({
+          spreadsheetId: 'spreadsheet-id',
+          updates: {
+            updatedRows: 1,
+            updatedRange: 'AppendCertainty!B2:C2',
+            updatedData: { values: [['append-misaligned', 'sent']] },
+          },
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      },
+      async (calls) => {
+        const repository = new SheetRepository<AppendRow>({
+          contract: appendContract,
+          sheetHeaderMapLoader: { load: async () => headerMap },
+          sheetsApiClientOptions: {
+            accessTokenProvider: async () => 'test-access-token',
+          },
+        })
+        await assert.rejects(
+          () => repository.append({ AppendID: 'append-misaligned', Label: 'sent' }),
+          (received: unknown) => {
+            assert.ok(received instanceof WriteMisalignedAppendError)
+            assert.ok(!(received instanceof WriteCommittedUnreadableError))
+            assert.ok(!(received instanceof WriteTransportError))
+            return true
+          },
+        )
+        assert.equal(calls.length, 0)
+      },
+    )
+    assert.deepEqual(delays, [])
+  })
+  console.log('ok - misaligned append bypasses GViz verification')
 
   console.log('passed - append certainty dry tests')
 }
