@@ -6,9 +6,13 @@
 > trimmed to 21 columns, the row still landed at column O. The real cause is that columns I–N are
 > empty on every row, so Google's table detection splits the sheet into an `A–H` and an `O–U`
 > table and appends to the latter (`tableRange: "OrderForm!O7924:U8250"`).
-> What shipped from this plan is not harmful and the landed-range assertion is what proved the real
-> cause — but do not re-derive a fix from the reasoning below. The test lists and blast-radius
-> notes remain accurate.
+> **The real fix shipped on 2026-09-02: the append search window is the literal `A:A`.** Narrow
+> enough that column A is the only table in the window, so the row anchors at A. Verified end to
+> end (`updatedRange: OrderForm!A8255:U8255`). See `NEXT-SESSION.md` for the measurements and the
+> rejected alternatives.
+> The landed-range assertion this plan introduced is what proved the real cause and is worth
+> keeping — but do not re-derive anything from the reasoning below. The test lists and
+> blast-radius notes remain accurate.
 
 ## Scope
 

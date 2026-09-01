@@ -81,7 +81,7 @@ await withMockSheets(
     if (call.init?.method === 'GET' && path.endsWith('/values/PriceList!A:A')) {
       return jsonResponse({ values: [['id'], ['a1b2c3d4']] })
     }
-    if (call.init?.method === 'POST' && path.endsWith('/values/PriceList:append')) {
+    if (call.init?.method === 'POST' && path.endsWith('/values/PriceList!A:A:append')) {
       const body = requestBody(call)
       assert.deepEqual(body.values, [
         [
@@ -127,7 +127,7 @@ await withMockSheets(
       active: true,
     })
 
-    const appendCall = calls.find((call) => apiPath(call.url).endsWith('/values/PriceList:append'))
+    const appendCall = calls.find((call) => apiPath(call.url).endsWith('/values/PriceList!A:A:append'))
     assert.ok(appendCall)
     assert.equal(new URL(appendCall.url).searchParams.get('valueInputOption'), 'USER_ENTERED')
     assert.equal(result.id, 'z9y8x7w6')

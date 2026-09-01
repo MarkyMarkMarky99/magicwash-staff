@@ -167,7 +167,7 @@ globalThis.fetch = (async (input: URL | string, init?: RequestInit) => {
   if (init?.method === 'GET' && path.endsWith('/values/Packages!A:A')) {
     return jsonResponse({ values: [['package_code'], ...rows.map((row) => [row[0]])] })
   }
-  if (init?.method === 'POST' && path.endsWith('/values/Packages:append')) {
+  if (init?.method === 'POST' && path.endsWith('/values/Packages!A:A:append')) {
     const body = JSON.parse(String(init.body)) as { values: PackageRow[] }
     assert.equal(body.values.length, 1)
     rows.push([...body.values[0]!] as PackageRow)
@@ -226,7 +226,7 @@ try {
   assert.match(String(created.createdAt), /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
   assert.equal(created.updatedAt, null)
   assert.equal(created.deletedAt, null)
-  const appendBody = JSON.parse(String(calls.find((call) => call.init?.method === 'POST' && pathOf(call.url).endsWith('/values/Packages:append'))?.init?.body)) as { values: PackageRow[] }
+  const appendBody = JSON.parse(String(calls.find((call) => call.init?.method === 'POST' && pathOf(call.url).endsWith('/values/Packages!A:A:append'))?.init?.body)) as { values: PackageRow[] }
   assert.match(appendBody.values[0]![6]!, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
   assert.equal(appendBody.values[0]![8], '')
 

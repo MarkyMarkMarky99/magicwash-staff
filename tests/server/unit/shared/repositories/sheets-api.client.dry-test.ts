@@ -197,7 +197,7 @@ test('appendRows sends the required append query and body', async () => {
   const result = await client.appendRows([['order-1', 'Ready']], 'USER_ENTERED')
   assert.deepEqual(result.updates.updatedData.values, [['order-1', 'Ready']])
   assert.equal(calls.length, 1)
-  const url = assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders:append')
+  const url = assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders!A:A:append')
   assert.equal(url.searchParams.get('valueInputOption'), 'USER_ENTERED')
   assert.equal(url.searchParams.get('insertDataOption'), 'INSERT_ROWS')
   assert.equal(url.searchParams.get('includeValuesInResponse'), 'true')
@@ -222,7 +222,7 @@ test('appendRows does not cap the request at 26 columns', async () => {
 
   await client.appendRows([row], 'USER_ENTERED')
   assert.equal(calls.length, 1)
-  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders:append')
+  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders!A:A:append')
   assert.deepEqual(JSON.parse(String(calls[0]!.init?.body)).values, [row])
 })
 
@@ -240,10 +240,10 @@ test('appendRows accepts a landed range spanning 21 columns', async () => {
 
   await client.appendRows([row], 'USER_ENTERED')
   assert.equal(calls.length, 1)
-  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders:append')
+  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders!A:A:append')
 })
 
-test('appendRows posts to a sheet-scoped append URL, not a column span', async () => {
+test('appendRows posts to the fixed A:A append URL regardless of known width', async () => {
   const { client, calls } = await makeClient('append-known-width-span', async () => {
     return jsonResponse(200, {
       spreadsheetId,
@@ -256,7 +256,7 @@ test('appendRows posts to a sheet-scoped append URL, not a column span', async (
   })
 
   await client.appendRows([['order-1', 'Ready']], 'USER_ENTERED', 21)
-  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders:append')
+  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders!A:A:append')
 })
 
 test('appendRows checks the landed range against the sent-row width, not the known width', async () => {
@@ -274,7 +274,7 @@ test('appendRows checks the landed range against the sent-row width, not the kno
 
   await client.appendRows([row], 'USER_ENTERED', 2)
   assert.equal(calls.length, 1)
-  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders:append')
+  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders!A:A:append')
 })
 
 for (const [label, width] of [
@@ -370,7 +370,7 @@ for (const status of [400, 403, 404, 409]) {
     await expectFailure(client.appendRows([['order-1']], 'RAW'), module.WriteRejectedError, 'rejected')
     assert.equal(responseReturned, true)
     assert.equal(calls.length, 1)
-    const url = assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders:append')
+    const url = assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders!A:A:append')
     assert.equal(url.searchParams.get('insertDataOption'), 'INSERT_ROWS')
   })
 }
@@ -386,7 +386,7 @@ for (const status of [500, 503]) {
     await expectFailure(client.appendRows([['order-1']], 'RAW'), module.WriteTransportError, 'unknown')
     assert.equal(responseReturned, true)
     assert.equal(calls.length, 1)
-    assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders:append')
+    assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders!A:A:append')
   })
 }
 
@@ -400,7 +400,7 @@ test('network failure is an unknown transport result', async () => {
   await expectFailure(client.appendRows([['order-1']], 'RAW'), module.WriteTransportError, 'unknown')
   assert.equal(transportThrown, true)
   assert.equal(calls.length, 1)
-  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders:append')
+  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders!A:A:append')
 })
 
 test('timeout is an unknown transport result and uses the 15 second signal', async () => {
@@ -417,7 +417,7 @@ test('timeout is an unknown transport result and uses the 15 second signal', asy
   assert.equal(signalWasProvided, true)
   assert.equal(transportThrown, true)
   assert.equal(calls.length, 1)
-  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders:append')
+  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders!A:A:append')
 })
 
 test('a successful append without updates is committed but unreadable', async () => {
@@ -427,7 +427,7 @@ test('a successful append without updates is committed but unreadable', async ()
 
   await expectFailure(client.appendRows([['order-1']], 'RAW'), module.WriteCommittedUnreadableError, 'unknown')
   assert.equal(calls.length, 1)
-  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders:append')
+  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders!A:A:append')
 })
 
 test('a successful append with the wrong row count is committed but unreadable', async () => {
@@ -442,7 +442,7 @@ test('a successful append with the wrong row count is committed but unreadable',
 
   await expectFailure(client.appendRows([['order-1']], 'RAW'), module.WriteCommittedUnreadableError, 'unknown')
   assert.equal(calls.length, 1)
-  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders:append')
+  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders!A:A:append')
 })
 
 test('append restores trailing blank cells as null', async () => {
@@ -457,7 +457,7 @@ test('append restores trailing blank cells as null', async () => {
   const result = await client.appendRows([['order-1', '']], 'USER_ENTERED')
   assert.deepEqual(result.updates.updatedData.values, [['order-1', null]])
   assert.equal(calls.length, 1)
-  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders:append')
+  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders!A:A:append')
 })
 
 test('append uses known header width when restoring trailing blank cells', async () => {
@@ -472,7 +472,7 @@ test('append uses known header width when restoring trailing blank cells', async
   const result = await client.appendRows([['order-1']], 'USER_ENTERED', 4)
   assert.deepEqual(result.updates.updatedData.values, [['order-1', null, null, null]])
   assert.equal(calls.length, 1)
-  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders:append')
+  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders!A:A:append')
 })
 
 test('auth failure is rejected before fetch and cannot expose the token', async () => {

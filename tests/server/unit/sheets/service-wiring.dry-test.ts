@@ -245,7 +245,7 @@ test('Appointments create wiring packs Address and uses the DB primary-key colum
       if (init?.method === 'GET' && path.endsWith('/values/Appointments!A:A')) {
         return response('', { values: [['AppointmentID']] })
       }
-      if (init?.method === 'POST' && path.endsWith('/values/Appointments:append')) {
+      if (init?.method === 'POST' && path.endsWith('/values/Appointments!A:A:append')) {
         const request = JSON.parse(String(init.body)) as {
           majorDimension: string
           values: unknown[][]

@@ -147,13 +147,13 @@ async function withMockFetch<T>(
       return response({ json: { values: [['invoice_number']] } })
     }
 
-    if (init?.method === 'POST' && path.endsWith('/values/InvoiceItems:append')) {
+    if (init?.method === 'POST' && path.endsWith('/values/InvoiceItems!A:A:append')) {
       const values = body.values as unknown[][]
       const configured = await dispatchToActiveHandler({ ...body, target: 'InvoiceItem' })
       return resolveWriteResponse(configured, () => appendOk('invoices-spreadsheet-id', 'InvoiceItems', 'N', values))
     }
 
-    if (init?.method === 'POST' && path.endsWith('/values/Invoices:append')) {
+    if (init?.method === 'POST' && path.endsWith('/values/Invoices!A:A:append')) {
       const values = body.values as unknown[][]
       const configured = await dispatchToActiveHandler({ ...body, target: 'Invoice' })
       return resolveWriteResponse(configured, () => appendOk('invoices-spreadsheet-id', 'Invoices', 'P', values))

@@ -139,10 +139,6 @@ function encodeRange(sheetName: string, range: string): string {
   return encodeURIComponent(`${sheetName}!${range}`)
 }
 
-function encodeSheetName(sheetName: string): string {
-  return encodeURIComponent(sheetName)
-}
-
 function restoreTrailingBlanks(
   returnedValues: SheetsApiValues,
   requestedWidth: number,
@@ -307,13 +303,13 @@ export class SheetsApiClient {
       'POST',
       // The range on an append is only a window Google searches for a "table"; it does
       // NOT set the start column. Google writes at the first column of the LAST table it
-      // finds, so a sheet with an all-empty column band is split into several tables and
-      // the row lands at the wrong column. Passing an explicit span here was tried and
-      // measured against the live sheet: `A:U` landed at O and `A:H` landed at C, because
-      // OrderForm leaves both column B and columns I-N empty on every row. Do not add a
-      // span back — it cannot fix this. The landed-range check below is what catches it.
-      // See NEXT-SESSION.md; the deterministic write is values.update at a computed row.
-      buildUrl(this.spreadsheetId, `${encodeSheetName(this.sheetName)}:append`, {
+      // finds in that window. Measured against the live OrderForm sheet, which leaves
+      // column B and columns I-N blank on every row: `A:U` landed at column O and `A:H`
+      // landed at column C, because each window contained several tables. `A:A` is narrow
+      // enough that column A is the only table in it, so the row anchors at A and spans
+      // the full header width. Keep this literal; a width-derived span does not work.
+      // The landed-range check below verifies it every time.
+      buildUrl(this.spreadsheetId, `${encodeRange(this.sheetName, 'A:A')}:append`, {
         valueInputOption: option,
         insertDataOption: 'INSERT_ROWS',
         includeValuesInResponse: 'true',
