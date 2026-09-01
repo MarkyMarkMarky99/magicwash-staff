@@ -297,6 +297,12 @@ export class SheetsApiClient {
 
     const option = requireValueInputOption(valueInputOption)
     const requestedWidth = Math.max(...rows.map((row) => row.length))
+    if (knownWidth !== undefined && (!Number.isInteger(knownWidth) || knownWidth < 1)) {
+      throw new WriteRejectedError(
+        'appendRows',
+        `Cannot build an append range for column width ${String(knownWidth)}.`,
+      )
+    }
     const responseWidth = knownWidth === undefined
       ? requestedWidth
       : Math.max(requestedWidth, knownWidth)
