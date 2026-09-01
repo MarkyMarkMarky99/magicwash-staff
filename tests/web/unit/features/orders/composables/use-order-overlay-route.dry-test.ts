@@ -13,14 +13,16 @@ const detailPageSource = readFileSync(
 
 test('reads the single orderAction query as the overlay source of truth', () => {
   assert.equal(readOrderOverlay({ orderAction: 'item' }), 'item')
-  assert.equal(readOrderOverlay({ orderAction: 'capture' }), 'capture')
+  assert.equal(readOrderOverlay({ orderAction: 'photo-weight' }), 'photo-weight')
+  assert.equal(readOrderOverlay({ orderAction: 'photo-belonging' }), 'photo-belonging')
+  assert.equal(readOrderOverlay({ orderAction: 'photo-document' }), 'photo-document')
   assert.equal(readOrderOverlay({ orderAction: 'unknown' }), null)
 })
 
 test('keeps old deep links usable without opening two overlays', () => {
   assert.equal(readOrderOverlay({ item: 'new' }), 'item')
-  assert.equal(readOrderOverlay({ capture: '1' }), 'capture')
-  assert.equal(readOrderOverlay({ item: 'new', capture: '1' }), 'capture')
+  assert.equal(readOrderOverlay({ capture: '1' }), null)
+  assert.equal(readOrderOverlay({ item: 'new', capture: '1' }), 'item')
 })
 
 test('opening an overlay removes every conflicting current and legacy flag', () => {
@@ -43,7 +45,28 @@ test('closing an overlay strips overlay state while preserving unrelated query s
   )
 })
 
+test('closing a photo overlay also discards its route-owned weight', () => {
+  assert.deepEqual(
+    buildOrderOverlayQuery(
+      { page: '2', orderAction: 'photo-weight', weight: '2.50' },
+      null,
+    ),
+    { page: '2' },
+  )
+})
+
 test('the detail page unwraps nested computed flags before passing them to Boolean props', () => {
   assert.match(detailPageSource, /reactive\(useOrderOverlayRoute\(\)\)/)
   assert.doesNotMatch(detailPageSource, /const orderOverlay = useOrderOverlayRoute\(\)/)
+})
+
+test('reads each photo overlay from the same orderAction key', () => {
+  assert.equal(readOrderOverlay({ orderAction: 'photo-weight' }), 'photo-weight')
+  assert.equal(readOrderOverlay({ orderAction: 'photo-belonging' }), 'photo-belonging')
+  assert.equal(readOrderOverlay({ orderAction: 'photo-document' }), 'photo-document')
+  assert.equal(readOrderOverlay({ orderAction: 'photo-bag' }), null)
+})
+
+test('switching from the item overlay to a photo overlay leaves one flag', () => {
+  assert.deepEqual(buildOrderOverlayQuery({ orderAction: 'item' }, 'photo-weight'), { orderAction: 'photo-weight' })
 })

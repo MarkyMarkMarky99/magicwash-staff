@@ -66,12 +66,13 @@ const orderFormHeaders = [
   'updated_by', 'invoice_id', 'order_name', 'order_description',
 ]
 
-function appendResponse(spreadsheetId: string, values: unknown[][]): Response {
+function appendResponse(spreadsheetId: string, sheetName: string, endColumn: string, values: unknown[][]): Response {
   return response({
     json: {
       spreadsheetId,
       updates: {
         updatedRows: values.length,
+        updatedRange: `${sheetName}!A2:${endColumn}${values.length + 1}`,
         updatedData: { values },
       },
     },
@@ -83,7 +84,7 @@ function sheetsPath(url: string): string {
 }
 
 function isAppendPath(url: string, sheetName: string): boolean {
-  return sheetsPath(url).endsWith(`/values/${sheetName}:append`)
+  return sheetsPath(url).endsWith(`/values/${sheetName}!A:A:append`)
 }
 
 async function withRoutedFetch<T>(
@@ -114,12 +115,12 @@ async function withRoutedFetch<T>(
     if (init?.method === 'GET' && path.endsWith('/values/InvoiceItems!B:B')) {
       return response({ json: { values: [['invoice_item_id']] } })
     }
-    if (init?.method === 'POST' && path.endsWith('/values/InvoiceItems:append')) {
+    if (init?.method === 'POST' && path.endsWith('/values/InvoiceItems!A:A:append')) {
       assert.equal(parsedUrl.searchParams.get('valueInputOption'), 'USER_ENTERED')
       assert.equal(parsedUrl.searchParams.get('insertDataOption'), 'INSERT_ROWS')
       assert.equal(parsedUrl.searchParams.get('includeValuesInResponse'), 'true')
       const values = call.body?.values as unknown[][]
-      return appendResponse('invoices-spreadsheet-id', values)
+      return appendResponse('invoices-spreadsheet-id', 'InvoiceItems', 'N', values)
     }
 
     // ── Invoices: header load + one append ──
@@ -129,12 +130,12 @@ async function withRoutedFetch<T>(
     if (init?.method === 'GET' && path.endsWith('/values/Invoices!A:A')) {
       return response({ json: { values: [['invoice_number']] } })
     }
-    if (init?.method === 'POST' && path.endsWith('/values/Invoices:append')) {
+    if (init?.method === 'POST' && path.endsWith('/values/Invoices!A:A:append')) {
       assert.equal(parsedUrl.searchParams.get('valueInputOption'), 'USER_ENTERED')
       assert.equal(parsedUrl.searchParams.get('insertDataOption'), 'INSERT_ROWS')
       assert.equal(parsedUrl.searchParams.get('includeValuesInResponse'), 'true')
       const values = call.body?.values as unknown[][]
-      return appendResponse('invoices-spreadsheet-id', values)
+      return appendResponse('invoices-spreadsheet-id', 'Invoices', 'P', values)
     }
 
     // ── OrderForm: lookup + PATCH + verify (unchanged Sheets API path) ──
@@ -206,16 +207,14 @@ async function main(): Promise<void> {
 
     // Source-sheet writes use the Sheets API; view synchronization is a
     // separate endpoint.
-    assert.equal(calls.length, 10, 'header×3 + primary-key reads×2 + append×2 + update×3')
+    assert.equal(calls.length, 8, 'header×3 + primary-key read×1 + append×2 + update×2')
     assert.deepEqual(
       calls.map((call) => `${call.method ?? 'GET'} ${sheetsPath(call.url).replace(/^\/v4\/spreadsheets\/[^/]+/, '')}`),
       [
         'GET /values/InvoiceItems!1:1',
-        'GET /values/InvoiceItems!B:B',
-        'POST /values/InvoiceItems:append',
+        'POST /values/InvoiceItems!A:A:append',
         'GET /values/Invoices!1:1',
-        'GET /values/Invoices!A:A',
-        'POST /values/Invoices:append',
+        'POST /values/Invoices!A:A:append',
         'GET /values/OrderForm!1:1',
         'GET /values/OrderForm!A:A',
         'POST /values:batchUpdate',
@@ -327,7 +326,7 @@ async function main(): Promise<void> {
     )
 
     // ── OrderForm: one UPDATE, PATCH-only body (assertions also live in the mock) ──
-    const orderFormCall = calls[8]!
+    const orderFormCall = calls[6]!
     assert.equal(orderFormCall.body?.valueInputOption, 'USER_ENTERED')
     assert.deepEqual(orderFormCall.body?.data, [
       { range: 'OrderForm!S2:S2', values: [['INV-0001']] },

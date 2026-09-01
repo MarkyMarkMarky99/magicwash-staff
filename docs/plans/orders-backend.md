@@ -772,7 +772,6 @@ What each delivers by itself:
   read the same sheet, so they cannot disagree. Not independently deployable: no registry key until
   Phase 3.
 - 3 — the create-order page can submit, and the new order is readable from detail immediately.
-- 4 — the capture overlay can record a photo row against an order.
 
 The display lane (`GET /api/orders`, `OrdersView`) keeps working unchanged throughout.
 

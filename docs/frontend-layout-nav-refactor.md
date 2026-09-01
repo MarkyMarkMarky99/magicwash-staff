@@ -135,7 +135,7 @@ after orders. Both layers stay presentational; only the location differs.
 If yes, it is not shared - put it in the feature.
 
 
-Precedent to read first: `CameraOverlayPage`. It is the only thing in the app that is both a real
+Precedent to read first: `CameraOverlay`. It is the only thing in the app that is both a real
 overlay (its host page stays mounted) and route-addressable -- `/gallery/:key/camera` via
 `meta.openCamera`, dismissed with `router.replace` so it adds no history entry. Read it before
 designing anything new.

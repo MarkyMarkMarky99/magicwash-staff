@@ -14,7 +14,7 @@
 | /orders/new | order-create | OrderCreatePage.vue | { parent: 'order-list' } |
 | /orders/:orderId | order-detail | OrderDetailPage.vue | { parent: 'order-list' }, props: true |
 
-- Overlays: add-item `?item=new`, camera `?capture=1`
+- Overlay: add-item `?item=new`
 - There are no nested/`children` routes anywhere in this project; do not introduce them here
 - Router is `src/router/index.js` (`createWebHashHistory`); it imports `orderRoutes` from
   `src/features/orders/routes.ts` and spreads it into the `routes` array
@@ -39,7 +39,7 @@
 - Feature root: `src/features/orders/` — does not exist yet
 - `routes.ts` — exports `orderRoutes`
 - `pages/` — OrderListPage.vue, OrderCreatePage.vue, OrderDetailPage.vue
-- `components/` — OrderItemRow.vue, OrderPhotoStrip.vue, order-local form and camera UI
+- `components/` — OrderItemRow.vue and order-local form UI
 - `composables/` — parameterised query-overlay composable (below)
 - `stores/`, `services/` — feature state and API calls
 
@@ -71,13 +71,11 @@ Order UI today lives in `src/features/customers/`:
 - Items section: shared `ListContainer` — exact props in `screens.md`
 - Item rows: feature-local `OrderItemRow.vue` in the default slot
 - Add-item trigger: `ListContainer` `actions` slot
-- Photo strip: feature-local `OrderPhotoStrip.vue`, below the items section
-- Capture trigger: button on the photo strip
 
 ## Overlay and architecture rules
 
 - `useOrderSheetRoute.ts` cannot be reused: its `QUERY_KEY` is hardcoded to `'order'`, and this plan
-  needs `item` and `capture`.
+  needs `item`.
 - Build a parameterised composable in `src/features/orders/composables/` — not in `src/shared/`,
   because it is feature code. It must reproduce both non-obvious behaviours of the existing
   template:
@@ -102,7 +100,7 @@ Order UI today lives in `src/features/customers/`:
 - `src/App.vue` KeepAlive `exclude`, verbatim: `'CreateAppointmentPage'`,
   `'RescheduleAppointmentPage'`, `'InvoiceCreatePage'`, `'CustomerCreatePage'`,
   `'CustomerPackageCreatePage'`, `'PriceListFormPage'`, `'PackageFormPage'`, `'IssueReportFormPage'`.
-  Add `OrderCreatePage` and nothing else — the item and capture overlays are not pages.
+  Add `OrderCreatePage` and nothing else — the item overlay is not a page.
 - `exclude` matches the component name, not the file path. Renaming a form page silently drops it
   from the list and reintroduces the bug where one customer's typed input survives into another's
   record. A page on that list must use `onMounted`, never `onActivated`/`onDeactivated`, which never

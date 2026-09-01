@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { ZodError } from 'zod'
 import * as orderImageModule from '../../../../../contracts/order-images/order-image-api.schema.js'
 import { API_PAGINATION_DEFAULTS } from '../../../../../contracts/shared/api.schema.js'
 
@@ -19,7 +20,7 @@ const RESPONSE_FIELDS = [
   'notes', 'quantity', 'createdAt', 'createdBy',
 ] as const
 
-assert.deepEqual(orderImageTypeSchema.options, ['BAG', 'WEIGHT', 'DOCUMENT', 'FORM', 'PICKUP', 'HANGERS', 'DELIVERED'])
+assert.deepEqual(orderImageTypeSchema.options, ['WEIGHT', 'BELONGING', 'DOCUMENT'])
 assert.equal(MAX_ORDER_IMAGES_PER_PAGE, 500)
 assert.deepEqual(new Set(Object.keys(orderImageModule)), new Set([
   'MAX_ORDER_IMAGES_PER_PAGE',
@@ -61,21 +62,30 @@ for (const input of [
   assert.throws(() => orderImageListQuerySchema.parse(input), JSON.stringify(input))
 }
 
-const minimalCreate = { orderId: 'ORD-1', imageType: 'BAG', imagePath: 'https://firebasestorage.example/x.jpg', createdBy: 'staff-1' }
+const minimalCreate = { orderId: 'ORD-1', imageType: 'WEIGHT', imagePath: 'https://firebasestorage.example/x.jpg', createdBy: 'staff-1' }
 assert.deepEqual(orderImageCreateSchema.parse(minimalCreate), {
-  orderId: 'ORD-1', customerId: null, deliveryId: null, imageType: 'BAG',
+  orderId: 'ORD-1', customerId: null, deliveryId: null, imageType: 'WEIGHT',
   imagePath: 'https://firebasestorage.example/x.jpg', notes: null, quantity: null, createdBy: 'staff-1',
 })
+for (const imageType of ['WEIGHT', 'BELONGING', 'DOCUMENT'] as const) {
+  assert.equal(orderImageCreateSchema.parse({ ...minimalCreate, imageType }).imageType, imageType)
+}
 assert.equal(
   orderImageCreateSchema.parse({ ...minimalCreate, deliveryId: '  DEL-1  ' }).deliveryId,
   'DEL-1',
 )
 assert.equal(orderImageCreateSchema.parse({ ...minimalCreate, imagePath: 'HTTPS://example.com/x.jpg' }).imagePath, 'HTTPS://example.com/x.jpg')
-assert.equal(orderImageCreateSchema.parse({ ...minimalCreate, imageType: 'BAG' }).imageType, 'BAG')
 assert.throws(
   () => orderImageCreateSchema.parse({ ...minimalCreate, imagePath: 'OrderForm_Images/x.jpg' }),
   /imagePath must start with http:\/\/ or https:\/\//,
 )
+for (const imageType of ['BAG', 'FORM', 'PICKUP', 'HANGERS', 'DELIVERED', 'UNRECOGNIZED'] as const) {
+  assert.throws(
+    () => orderImageCreateSchema.parse({ ...minimalCreate, imageType }),
+    ZodError,
+    `create schema must reject imageType ${imageType}`,
+  )
+}
 assert.throws(() => orderImageCreateSchema.parse({ ...minimalCreate, imageType: 'bag' }))
 assert.throws(() => orderImageCreateSchema.parse({ ...minimalCreate, quantity: -0.01 }))
 
@@ -88,5 +98,8 @@ assert.deepEqual(Object.keys(orderImageResponseSchema.parse(dto)), RESPONSE_FIEL
 assert.equal(orderImageDetailResponseSchema, orderImageResponseSchema)
 assert.equal(orderImageCreateResponseSchema, orderImageResponseSchema)
 assert.throws(() => orderImageUpdateSchema.parse({}))
+for (const imageType of ['BAG', 'HANGERS', 'DELIVERED', 'UNRECOGNIZED', null] as const) {
+  assert.equal(orderImageResponseSchema.parse({ ...dto, imageType }).imageType, imageType)
+}
 
 console.log('order-image-api.schema.dry-test: OK')

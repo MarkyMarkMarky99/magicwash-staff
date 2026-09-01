@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { API_PAGINATION_DEFAULTS } from '../shared/api.schema.js'
 import type { ModuleApiContract } from '../shared/module-api-contract.js'
 
-export const orderImageTypeSchema = z.enum(['BAG', 'WEIGHT', 'DOCUMENT', 'FORM', 'PICKUP', 'HANGERS', 'DELIVERED'])
+export const orderImageTypeSchema = z.enum(['WEIGHT', 'BELONGING', 'DOCUMENT'])
 
 export const MAX_ORDER_IMAGES_PER_PAGE = 500
 

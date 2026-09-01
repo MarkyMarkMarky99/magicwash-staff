@@ -107,13 +107,10 @@ function appendResponse(values: unknown[][]): Response {
     spreadsheetId: 'spreadsheet-id',
     updates: {
       updatedRows: values.length,
+      updatedRange: 'BatchAppendSheet!A2:D4',
       updatedData: { values },
     },
   })
-}
-
-function lookupResponse(): Response {
-  return jsonResponse({ values: [['AppendID']] })
 }
 
 function sheetsApiRepository(
@@ -149,9 +146,6 @@ function test(name: string, run: () => Promise<void>): void {
 test('Sheets API batchAppend issues exactly one appendRows request with all rows', async () => {
   await withMockFetch(
     async (_url, init) => {
-      if (init?.method === 'GET') {
-        return lookupResponse()
-      }
       assert.equal(init?.method, 'POST')
       const body = JSON.parse(String(init?.body)) as { values: unknown[][] }
       assert.equal(body.values.length, threeBatchRows.length)
@@ -160,8 +154,8 @@ test('Sheets API batchAppend issues exactly one appendRows request with all rows
     async (calls) => {
       const repository = sheetsApiRepository()
       await repository.batchAppend(threeBatchRows)
-      assert.deepEqual(calls.map((call) => call.init?.method), ['GET', 'POST'])
-      assert.equal(calls.length, 2)
+      assert.deepEqual(calls.map((call) => call.init?.method), ['POST'])
+      assert.equal(calls.length, 1)
     },
   )
 })
@@ -169,9 +163,7 @@ test('Sheets API batchAppend issues exactly one appendRows request with all rows
 test('every batch row is full header width with blanks at omitted middle columns', async () => {
   await withMockFetch(
     async (_url, init) => {
-      if (init?.method === 'GET') {
-        return lookupResponse()
-      }
+      assert.equal(init?.method, 'POST')
       assert.deepEqual(JSON.parse(String(init?.body)), {
         majorDimension: 'ROWS',
         values: expectedSentValues,
@@ -188,9 +180,7 @@ test('every batch row is full header width with blanks at omitted middle columns
 test('Sheets API batchAppend uses one USER_ENTERED request option', async () => {
   await withMockFetch(
     async (url, init) => {
-      if (init?.method === 'GET') {
-        return lookupResponse()
-      }
+      assert.equal(init?.method, 'POST')
       const parsed = new URL(url)
       assert.equal(parsed.searchParams.get('valueInputOption'), 'USER_ENTERED')
       assert.equal(parsed.searchParams.getAll('valueInputOption').length, 1)
@@ -229,8 +219,10 @@ test('batchAppend returns the sent full-width rows instead of the echoed rows', 
   ]
 
   await withMockFetch(
-    async (_url, init) =>
-      init?.method === 'GET' ? lookupResponse() : appendResponse(differingEcho),
+    async (_url, init) => {
+      assert.equal(init?.method, 'POST')
+      return appendResponse(differingEcho)
+    },
     async () => {
       const repository = sheetsApiRepository()
       const returned = await repository.batchAppend(threeBatchRows)
@@ -267,8 +259,10 @@ test('a mismatched primary key in a non-first echoed row throws WriteRowIdentity
   ]
 
   await withMockFetch(
-    async (_url, init) =>
-      init?.method === 'GET' ? lookupResponse() : appendResponse(echoWithBadSecondKey),
+    async (_url, init) => {
+      assert.equal(init?.method, 'POST')
+      return appendResponse(echoWithBadSecondKey)
+    },
     async () => {
       const repository = sheetsApiRepository()
       await assert.rejects(
@@ -284,12 +278,10 @@ test('a mismatched primary key in a non-first echoed row throws WriteRowIdentity
 
 test('a row-count mismatch is committed-but-unreadable, never a rejection', async () => {
   await withMockFetch(
-    async (_url, init) =>
-      init?.method === 'GET'
-        ? lookupResponse()
-        :
+    async (_url, init) => {
+      assert.equal(init?.method, 'POST')
       // API confirms a write but returns fewer rows than sent — never "rejected".
-      jsonResponse({
+      return jsonResponse({
         spreadsheetId: 'spreadsheet-id',
         updates: {
           updatedRows: 1,
@@ -297,7 +289,8 @@ test('a row-count mismatch is committed-but-unreadable, never a rejection', asyn
             values: [['batch-1', 'before-1', '', 'after-1']],
           },
         },
-      }),
+      })
+    },
     async () => {
       const repository = sheetsApiRepository()
       await assert.rejects(
@@ -319,9 +312,7 @@ test('a row-count mismatch is committed-but-unreadable, never a rejection', asyn
 test('a contract without a transport declaration batchAppends through the Sheets API', async () => {
   await withMockFetch(
     async (url, init) => {
-      if (init?.method === 'GET') {
-        return lookupResponse()
-      }
+      assert.equal(init?.method, 'POST')
       assert.match(url, /:append/)
       assert.deepEqual(JSON.parse(String(init?.body)), {
         majorDimension: 'ROWS',
@@ -351,8 +342,8 @@ test('a contract without a transport declaration batchAppends through the Sheets
           AfterNullable: '',
         },
       ])
-      assert.deepEqual(calls.map((call) => call.init?.method), ['GET', 'POST'])
-      assert.equal(calls.length, 2)
+      assert.deepEqual(calls.map((call) => call.init?.method), ['POST'])
+      assert.equal(calls.length, 1)
     },
   )
 })

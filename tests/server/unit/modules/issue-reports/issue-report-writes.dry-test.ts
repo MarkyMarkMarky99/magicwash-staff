@@ -38,12 +38,18 @@ globalThis.fetch = (async (input: URL | string, init?: RequestInit) => {
       },
     })
   }
-  if (init?.method === 'POST' && path.endsWith('/values/IssueReports:append')) {
+  if (init?.method === 'POST' && path.endsWith('/values/IssueReports!A:A:append')) {
     const body = JSON.parse(String(init.body)) as { values: unknown[][] }
     assert.equal(body.values.length, 1)
     assert.equal(body.values[0]!.length, 9)
     rows.push(body.values[0]!)
-    return jsonResponse({ updates: { updatedRows: body.values.length, updatedData: { values: body.values } } })
+    return jsonResponse({
+      updates: {
+        updatedRows: body.values.length,
+        updatedRange: 'IssueReports!A2:I2',
+        updatedData: { values: body.values },
+      },
+    })
   }
   throw new Error(`Unexpected request: ${init?.method} ${path}`)
 }) as typeof fetch

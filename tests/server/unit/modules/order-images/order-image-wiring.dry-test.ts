@@ -242,7 +242,7 @@ assert.equal('created_at' in withDelivery, false)
 
 await service.create({
   orderId: 'order-1',
-  imageType: 'BAG',
+  imageType: 'BELONGING',
   imagePath: 'https://storage.example/bag.jpg',
   createdBy: 'staff-1',
 })

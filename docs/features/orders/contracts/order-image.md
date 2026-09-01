@@ -3,8 +3,8 @@
 Module `order-images` (Phase 4). Source: [`docs/plans/orders-backend.md`](../../../plans/orders-backend.md).
 Sheet: `OrderImages` (read + append).
 
-The binary never reaches the API. The frontend uploads to Firebase Storage
-(`src/api/storage.js` → `uploadRaw`) and this endpoint only records which URL belongs to which order.
+The binary never reaches the API. The frontend uploads to Firebase Storage and this endpoint
+only records which URL belongs to which order.
 
 ## `GET /api/order-images` — list
 
@@ -42,7 +42,7 @@ Errors: 400 blank id · 404 not found · 409 multiple rows.
 Request
 - `orderId` — string, required
 - `customerId` — string, nullable, default `null`
-- `imageType` — enum `BAG` | `WEIGHT` | `DOCUMENT` | `FORM` | `PICKUP` | `HANGERS` | `DELIVERED`, required
+- `imageType` — enum `WEIGHT` | `BELONGING` | `DOCUMENT`, required (write side only; the read path returns the sheet's 13 live spellings verbatim)
 - `imagePath` — string, required, must start with `http://` or `https://` → otherwise 422
 - `deliveryId` — string, optional, nullable, default `null`
 - `notes` — string, nullable, default `null`
