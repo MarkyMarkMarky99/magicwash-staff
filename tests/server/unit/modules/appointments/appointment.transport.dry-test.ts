@@ -149,10 +149,9 @@ async function assertCreateTransport(
       const service = createService(id, now)
       await service.create(fixture.frontendRequest)
 
-      assert.equal(calls.length, 3)
+      assert.equal(calls.length, 2)
       assert.equal(apiPath(calls[0]), '/v4/spreadsheets/appointment-spreadsheet-id/values/Appointments!1:1')
-      assert.equal(apiPath(calls[1]), '/v4/spreadsheets/appointment-spreadsheet-id/values/Appointments!A:A')
-      assertAppendRequest(calls[2], fixture)
+      assertAppendRequest(calls[1], fixture)
     },
   )
 }

@@ -84,7 +84,8 @@ function sheetsPath(url: string): string {
 }
 
 function isAppendPath(url: string, sheetName: string): boolean {
-  return sheetsPath(url).endsWith(`/values/${sheetName}:append`)
+  const endColumn = sheetName === 'InvoiceItems' ? 'N' : 'P'
+  return sheetsPath(url).endsWith(`/values/${sheetName}!A:${endColumn}:append`)
 }
 
 async function withRoutedFetch<T>(
@@ -207,15 +208,13 @@ async function main(): Promise<void> {
 
     // Source-sheet writes use the Sheets API; view synchronization is a
     // separate endpoint.
-    assert.equal(calls.length, 10, 'header×3 + primary-key reads×2 + append×2 + update×3')
+    assert.equal(calls.length, 8, 'header×3 + primary-key read×1 + append×2 + update×2')
     assert.deepEqual(
       calls.map((call) => `${call.method ?? 'GET'} ${sheetsPath(call.url).replace(/^\/v4\/spreadsheets\/[^/]+/, '')}`),
       [
         'GET /values/InvoiceItems!1:1',
-        'GET /values/InvoiceItems!B:B',
         'POST /values/InvoiceItems!A:N:append',
         'GET /values/Invoices!1:1',
-        'GET /values/Invoices!A:A',
         'POST /values/Invoices!A:P:append',
         'GET /values/OrderForm!1:1',
         'GET /values/OrderForm!A:A',
