@@ -12,6 +12,7 @@ const emit = defineEmits<{
 
 const rawWeight = ref('')
 const weightError = ref<string | null>(null)
+const suppressClose = ref(false)
 
 function submit(): void {
   const weight = parseOrderImageWeight(rawWeight.value)
@@ -20,19 +21,30 @@ function submit(): void {
     return
   }
   weightError.value = null
+  suppressClose.value = true
   emit('submit', weight)
+}
+
+function handleClose(): void {
+  if (suppressClose.value && !props.open) {
+    suppressClose.value = false
+    return
+  }
+  suppressClose.value = false
+  emit('close')
 }
 
 watch(() => props.open, (isOpen) => {
   if (isOpen) {
     rawWeight.value = ''
     weightError.value = null
+    suppressClose.value = false
   }
 })
 </script>
 
 <template>
-  <BaseOverlay :open="open" aria-label="ระบุน้ำหนัก" @close="emit('close')">
+  <BaseOverlay :open="open" aria-label="ระบุน้ำหนัก" @close="handleClose">
     <div class="p-5">
       <h2 class="font-headline text-2xl font-bold text-primary">ระบุน้ำหนัก</h2>
       <p class="mt-2 font-body text-sm text-on-surface-variant">ใส่น้ำหนักก่อนถ่ายรูป น้ำหนักนี้จะใช้กับทุกรูปในครั้งนี้</p>
