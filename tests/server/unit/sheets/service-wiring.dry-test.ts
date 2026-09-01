@@ -245,7 +245,7 @@ test('Appointments create wiring packs Address and uses the DB primary-key colum
       if (init?.method === 'GET' && path.endsWith('/values/Appointments!A:A')) {
         return response('', { values: [['AppointmentID']] })
       }
-      if (init?.method === 'POST' && path.endsWith('/values/Appointments:append')) {
+      if (init?.method === 'POST' && path.endsWith('/values/Appointments!A:Q:append')) {
         const request = JSON.parse(String(init.body)) as {
           majorDimension: string
           values: unknown[][]
@@ -254,6 +254,7 @@ test('Appointments create wiring packs Address and uses the DB primary-key colum
           spreadsheetId: 'characterization-spreadsheet-id',
           updates: {
             updatedRows: 1,
+            updatedRange: 'Appointments!A2:Q2',
             updatedData: { values: request.values },
           },
         })

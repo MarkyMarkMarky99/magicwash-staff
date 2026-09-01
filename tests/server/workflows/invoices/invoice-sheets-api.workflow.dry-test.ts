@@ -66,12 +66,13 @@ const orderFormHeaders = [
   'updated_by', 'invoice_id', 'order_name', 'order_description',
 ]
 
-function appendResponse(spreadsheetId: string, values: unknown[][]): Response {
+function appendResponse(spreadsheetId: string, sheetName: string, endColumn: string, values: unknown[][]): Response {
   return response({
     json: {
       spreadsheetId,
       updates: {
         updatedRows: values.length,
+        updatedRange: `${sheetName}!A2:${endColumn}${values.length + 1}`,
         updatedData: { values },
       },
     },
@@ -114,12 +115,12 @@ async function withRoutedFetch<T>(
     if (init?.method === 'GET' && path.endsWith('/values/InvoiceItems!B:B')) {
       return response({ json: { values: [['invoice_item_id']] } })
     }
-    if (init?.method === 'POST' && path.endsWith('/values/InvoiceItems:append')) {
+    if (init?.method === 'POST' && path.endsWith('/values/InvoiceItems!A:N:append')) {
       assert.equal(parsedUrl.searchParams.get('valueInputOption'), 'USER_ENTERED')
       assert.equal(parsedUrl.searchParams.get('insertDataOption'), 'INSERT_ROWS')
       assert.equal(parsedUrl.searchParams.get('includeValuesInResponse'), 'true')
       const values = call.body?.values as unknown[][]
-      return appendResponse('invoices-spreadsheet-id', values)
+      return appendResponse('invoices-spreadsheet-id', 'InvoiceItems', 'N', values)
     }
 
     // ── Invoices: header load + one append ──
@@ -129,12 +130,12 @@ async function withRoutedFetch<T>(
     if (init?.method === 'GET' && path.endsWith('/values/Invoices!A:A')) {
       return response({ json: { values: [['invoice_number']] } })
     }
-    if (init?.method === 'POST' && path.endsWith('/values/Invoices:append')) {
+    if (init?.method === 'POST' && path.endsWith('/values/Invoices!A:P:append')) {
       assert.equal(parsedUrl.searchParams.get('valueInputOption'), 'USER_ENTERED')
       assert.equal(parsedUrl.searchParams.get('insertDataOption'), 'INSERT_ROWS')
       assert.equal(parsedUrl.searchParams.get('includeValuesInResponse'), 'true')
       const values = call.body?.values as unknown[][]
-      return appendResponse('invoices-spreadsheet-id', values)
+      return appendResponse('invoices-spreadsheet-id', 'Invoices', 'P', values)
     }
 
     // ── OrderForm: lookup + PATCH + verify (unchanged Sheets API path) ──
@@ -212,10 +213,10 @@ async function main(): Promise<void> {
       [
         'GET /values/InvoiceItems!1:1',
         'GET /values/InvoiceItems!B:B',
-        'POST /values/InvoiceItems:append',
+        'POST /values/InvoiceItems!A:N:append',
         'GET /values/Invoices!1:1',
         'GET /values/Invoices!A:A',
-        'POST /values/Invoices:append',
+        'POST /values/Invoices!A:P:append',
         'GET /values/OrderForm!1:1',
         'GET /values/OrderForm!A:A',
         'POST /values:batchUpdate',

@@ -100,7 +100,7 @@ function assertAppendRequest(
   fixture: AppointmentCreateWriteFixture,
 ): void {
   const url = new URL(call.url)
-  assert.equal(apiPath(call), '/v4/spreadsheets/appointment-spreadsheet-id/values/Appointments:append')
+  assert.equal(apiPath(call), '/v4/spreadsheets/appointment-spreadsheet-id/values/Appointments!A:Q:append')
   assert.equal(url.searchParams.get('valueInputOption'), 'USER_ENTERED')
   assert.equal(url.searchParams.getAll('valueInputOption').length, 1)
   assert.equal(url.searchParams.get('insertDataOption'), 'INSERT_ROWS')
@@ -135,8 +135,13 @@ async function assertCreateTransport(
       if (init?.method === 'GET' && path.endsWith('/values/Appointments!A:A')) {
         return response({ json: { values: [['AppointmentID']] } })
       }
-      if (init?.method === 'POST' && path.endsWith('/values/Appointments:append')) {
-        return response({ json: fixture.sheetsApiResponse })
+      if (init?.method === 'POST' && path.endsWith('/values/Appointments!A:Q:append')) {
+        return response({
+          json: {
+            ...fixture.sheetsApiResponse,
+            updates: { ...fixture.sheetsApiResponse.updates, updatedRange: 'Appointments!A2:Q2' },
+          },
+        })
       }
       throw new Error(`Unexpected Sheets API request: ${init?.method} ${path}`)
     },

@@ -201,14 +201,14 @@ async function withMockSheets(run: (calls: FetchCall[]) => Promise<void>): Promi
     if (failWrites && init?.method === 'POST') {
       return jsonResponse({ error: 'write rejected by fake Sheets API' }, 503)
     }
-    if (init?.method === 'POST' && path.endsWith('/values/PriceList:append')) {
+    if (init?.method === 'POST' && path.endsWith('/values/PriceList!A:N:append')) {
       const body = JSON.parse(String(init.body)) as { values?: SheetRow[] }
       assert.ok(Array.isArray(body.values))
       assert.equal(body.values.length, 1)
       sheetRows.push([...body.values[0]!])
       return jsonResponse({
         spreadsheetId: process.env.PRICE_LIST_SPREADSHEET_ID,
-        updates: { updatedRows: 1, updatedData: { values: body.values } },
+        updates: { updatedRows: 1, updatedRange: 'PriceList!A2:N2', updatedData: { values: body.values } },
       })
     }
     if (init?.method === 'POST' && path.endsWith('/values:batchUpdate')) {
@@ -283,7 +283,7 @@ await withMockSheets(async (calls) => {
   assert.equal(JSON.stringify(firstCreate.body).includes('Date('), false)
 
   const appendCall = calls.find(
-    (call) => call.init?.method === 'POST' && apiPath(call.url).endsWith('/values/PriceList:append'),
+    (call) => call.init?.method === 'POST' && apiPath(call.url).endsWith('/values/PriceList!A:N:append'),
   )
   assert.ok(appendCall)
   const appendUrl = new URL(appendCall.url)

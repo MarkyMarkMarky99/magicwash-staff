@@ -77,12 +77,13 @@ function dispatchToActiveHandler(
   return activeHandler(body)
 }
 
-function appendOk(spreadsheetId: string, values: unknown[][]): Response {
+function appendOk(spreadsheetId: string, sheetName: string, endColumn: string, values: unknown[][]): Response {
   return response({
     json: {
       spreadsheetId,
       updates: {
         updatedRows: values.length,
+        updatedRange: `${sheetName}!A2:${endColumn}${values.length + 1}`,
         updatedData: { values },
       },
     },
@@ -146,16 +147,16 @@ async function withMockFetch<T>(
       return response({ json: { values: [['invoice_number']] } })
     }
 
-    if (init?.method === 'POST' && path.endsWith('/values/InvoiceItems:append')) {
+    if (init?.method === 'POST' && path.endsWith('/values/InvoiceItems!A:N:append')) {
       const values = body.values as unknown[][]
       const configured = await dispatchToActiveHandler({ ...body, target: 'InvoiceItem' })
-      return resolveWriteResponse(configured, () => appendOk('invoices-spreadsheet-id', values))
+      return resolveWriteResponse(configured, () => appendOk('invoices-spreadsheet-id', 'InvoiceItems', 'N', values))
     }
 
-    if (init?.method === 'POST' && path.endsWith('/values/Invoices:append')) {
+    if (init?.method === 'POST' && path.endsWith('/values/Invoices!A:P:append')) {
       const values = body.values as unknown[][]
       const configured = await dispatchToActiveHandler({ ...body, target: 'Invoice' })
-      return resolveWriteResponse(configured, () => appendOk('invoices-spreadsheet-id', values))
+      return resolveWriteResponse(configured, () => appendOk('invoices-spreadsheet-id', 'Invoices', 'P', values))
     }
 
     if (init?.method === 'GET' && path.endsWith('/values/OrderForm!1:1')) {
