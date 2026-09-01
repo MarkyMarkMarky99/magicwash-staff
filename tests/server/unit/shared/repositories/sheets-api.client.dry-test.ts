@@ -259,6 +259,24 @@ test('appendRows derives the append span from the known header width', async () 
   assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders!A:U:append')
 })
 
+test('appendRows uses the sent-row width when known width is smaller', async () => {
+  const row = ['order-1', 'Ready', '2026-08-19']
+  const { client, calls } = await makeClient('append-known-width-smaller-than-row', async () => {
+    return jsonResponse(200, {
+      spreadsheetId,
+      updates: {
+        updatedRows: 1,
+        updatedRange: 'Orders!A2:C2',
+        updatedData: { values: [row] },
+      },
+    })
+  })
+
+  await client.appendRows([row], 'USER_ENTERED', 2)
+  assert.equal(calls.length, 1)
+  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders!A:C:append')
+})
+
 for (const [label, width] of [
   ['zero', 0],
   ['negative', -1],
