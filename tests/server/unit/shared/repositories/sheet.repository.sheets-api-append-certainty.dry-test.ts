@@ -104,6 +104,9 @@ function mockSheetsApiClient(
 ): SheetsApiClient {
   return {
     appendRows,
+    // The pre-write duplicate-key column read was removed; this stub only exists
+    // to satisfy the SheetsApiClient cast and is never called.
+    readColumn: async () => [['AppendID']],
   } as unknown as SheetsApiClient
 }
 

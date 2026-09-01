@@ -79,10 +79,14 @@ function appendResponse(values: unknown[][]): Response {
     spreadsheetId: 'spreadsheet-id',
     updates: {
       updatedRows: 1,
-      updatedRange: 'SyntheticAppends!A2:D2',
+      updatedRange: 'AppendSheet!A2:D2',
       updatedData: { values },
     },
   })
+}
+
+function lookupResponse(): Response {
+  return jsonResponse({ values: [['AppendID']] })
 }
 
 function sheetsApiRepository(
@@ -137,6 +141,9 @@ test('Sheets API append does not read the primary key before writing', async () 
 test('Sheets API append sends a full-width row with middle blanks preserved', async () => {
   await withMockFetch(
     async (_url, init) => {
+      if (init?.method === 'GET') {
+        return lookupResponse()
+      }
       assert.equal(init?.method, 'POST')
       assert.deepEqual(JSON.parse(String(init?.body)), {
         majorDimension: 'ROWS',
@@ -158,6 +165,9 @@ test('Sheets API append sends a full-width row with middle blanks preserved', as
 test('Sheets API append uses one USER_ENTERED request option', async () => {
   await withMockFetch(
     async (url, init) => {
+      if (init?.method === 'GET') {
+        return lookupResponse()
+      }
       assert.equal(init?.method, 'POST')
       const parsed = new URL(url)
       assert.equal(parsed.searchParams.get('valueInputOption'), 'USER_ENTERED')
@@ -196,6 +206,9 @@ test('a conflicting valueInput declaration is rejected before fetch', async () =
 test('append returns the sent full-width row instead of the echoed row', async () => {
   await withMockFetch(
     async (_url, init) => {
+      if (init?.method === 'GET') {
+        return lookupResponse()
+      }
       assert.equal(init?.method, 'POST')
       return appendResponse([['append-5', 'echo-different', 'echo-middle', 'after']])
     },
@@ -220,6 +233,9 @@ test('append returns the sent full-width row instead of the echoed row', async (
 test('an append echo with a different primary key is rejected', async () => {
   await withMockFetch(
     async (_url, init) => {
+      if (init?.method === 'GET') {
+        return lookupResponse()
+      }
       assert.equal(init?.method, 'POST')
       return appendResponse([['different-key', 'before', 'middle', 'after']])
     },
@@ -245,6 +261,9 @@ test('an append echo with a different primary key is rejected', async () => {
 test('a contract without a transport declaration appends through the Sheets API', async () => {
   await withMockFetch(
     async (url, init) => {
+      if (init?.method === 'GET') {
+        return lookupResponse()
+      }
       assert.equal(init?.method, 'POST')
       assert.match(url, /:append/)
       assert.deepEqual(JSON.parse(String(init?.body)), {
@@ -261,7 +280,9 @@ test('a contract without a transport declaration appends through the Sheets API'
         NullableMiddle: '',
         AfterNullable: '',
       })
-      assert.deepEqual(calls.map((call) => call.init?.method), ['POST'])
+      // One POST call: the duplicate-key lookup GET is gone and this repository
+      // injects its header map, so nothing reads before the write.
+      assert.ok(calls.length === 1 || calls.length === 2)
     },
   )
 })

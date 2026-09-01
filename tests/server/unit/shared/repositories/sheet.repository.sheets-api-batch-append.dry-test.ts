@@ -107,7 +107,7 @@ function appendResponse(values: unknown[][]): Response {
     spreadsheetId: 'spreadsheet-id',
     updates: {
       updatedRows: values.length,
-      updatedRange: 'SyntheticBatchAppends!A2:D4',
+      updatedRange: 'BatchAppendSheet!A2:D4',
       updatedData: { values },
     },
   })

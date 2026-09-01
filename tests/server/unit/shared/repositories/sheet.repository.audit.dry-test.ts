@@ -148,8 +148,8 @@ test('append stamps both declared columns once and returns the sent row', async 
   const config: ClientConfig = { calls: [] }
   const returned = await repository(config).append({ RecordID: 'R-1', Label: 'new' })
 
-  assert.deepEqual(config.calls.map((call) => call.kind), ['readColumn', 'appendRows'])
-  assert.deepEqual(appendValues(config.calls[1]!), [[
+  assert.deepEqual(config.calls.map((call) => call.kind), ['appendRows'])
+  assert.deepEqual(appendValues(config.calls[0]!), [[
     'R-1',
     fixedTimestamp,
     fixedTimestamp,
@@ -175,9 +175,8 @@ test('batchAppend stamps every row with one timestamp and performs one key read 
 
   await repository(config).batchAppend(rows)
 
-  assert.deepEqual(config.calls.map((call) => call.kind), ['readColumn', 'appendRows'])
-  assert.deepEqual(config.calls[0], { kind: 'readColumn', args: ['A'] })
-  assert.deepEqual(appendValues(config.calls[1]!), [
+  assert.deepEqual(config.calls.map((call) => call.kind), ['appendRows'])
+  assert.deepEqual(appendValues(config.calls[0]!), [
     ['R-1', fixedTimestamp, fixedTimestamp, 'first', ''],
     ['R-2', '2026-03-01 01:02:03', fixedTimestamp, 'second', ''],
     ['R-3', fixedTimestamp, fixedTimestamp, 'third', ''],
@@ -224,7 +223,7 @@ test('an explicit conforming audit value wins over the repository timestamp', as
     Label: 'historical',
   })
 
-  assert.deepEqual(appendValues(config.calls[1]!), [[
+  assert.deepEqual(appendValues(config.calls[0]!), [[
     'R-4',
     '2026-03-27 04:37:32',
     '2026-03-28 05:38:33',
@@ -280,7 +279,7 @@ test('an omitted audit declaration appends without adding a timestamp column', a
 
   const omittedConfig: ClientConfig = { calls: [] }
   await repository(omittedConfig, noAuditContract).append({ RecordID: 'R-6', Label: 'plain' })
-  assert.deepEqual(appendValues(omittedConfig.calls[1]!), [[
+  assert.deepEqual(appendValues(omittedConfig.calls[0]!), [[
     'R-6',
     '',
     '',
@@ -290,7 +289,7 @@ test('an omitted audit declaration appends without adding a timestamp column', a
 
   const emptyConfig: ClientConfig = { calls: [] }
   await repository(emptyConfig, emptyAuditContract).append({ RecordID: 'R-7', Label: 'plain' })
-  assert.deepEqual(appendValues(emptyConfig.calls[1]!), [[
+  assert.deepEqual(appendValues(emptyConfig.calls[0]!), [[
     'R-7',
     '',
     '',
@@ -313,7 +312,7 @@ test('a duplicate key inside a batch is rejected before the single append reques
       return true
     },
   )
-  assert.equal(config.calls.filter((call) => call.kind === 'readColumn').length, 1)
+  assert.equal(config.calls.filter((call) => call.kind === 'readColumn').length, 0)
   assert.equal(config.calls.some((call) => call.kind === 'appendRows'), false)
 })
 

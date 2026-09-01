@@ -35,7 +35,7 @@ const headerMap = buildSheetHeaderMap(
   'AppendID',
 )
 
-type MockCall = { method: 'appendRows'; args: readonly unknown[] }
+type MockCall = { method: 'readColumn' | 'appendRows'; args: readonly unknown[] }
 
 function appendResponse(values: SheetsApiValues): SheetsApiAppendResponse {
   return {
@@ -49,9 +49,14 @@ function appendResponse(values: SheetsApiValues): SheetsApiAppendResponse {
 
 function mockClient(options: {
   calls: MockCall[]
+  readColumn: SheetsApiClient['readColumn']
   appendRows: SheetsApiClient['appendRows']
 }): SheetsApiClient {
   return {
+    readColumn: async (columnLetter: string) => {
+      options.calls.push({ method: 'readColumn', args: [columnLetter] })
+      return options.readColumn(columnLetter)
+    },
     appendRows: async (...args: Parameters<SheetsApiClient['appendRows']>) => {
       options.calls.push({ method: 'appendRows', args })
       return options.appendRows(...args)
@@ -77,10 +82,14 @@ function test(name: string, run: () => Promise<void>): void {
   tests.push({ name, run })
 }
 
-test('a keyed batch performs one append without a primary-key-column read', async () => {
+test('a keyed batch appends once and never reads the primary-key column', async () => {
   const calls: MockCall[] = []
   const client = mockClient({
     calls,
+    readColumn: async () => {
+      assert.fail('readColumn must not run for a keyed batch')
+      return [['AppendID']]
+    },
     appendRows: async () => appendResponse([
       ['incoming-1', 'one'],
       ['incoming-2', 'two'],
@@ -102,35 +111,44 @@ test('a keyed batch performs one append without a primary-key-column read', asyn
   assert.deepEqual(calls.map((call) => call.method), ['appendRows'])
 })
 
-test('an empty batch preserves the existing append path', async () => {
+test('an empty batch performs zero primary-key-column reads', async () => {
   const calls: MockCall[] = []
   const client = mockClient({
     calls,
+    readColumn: async () => {
+      assert.fail('readColumn must not run for an empty batch')
+      return [['AppendID']]
+    },
     appendRows: async () => appendResponse([]),
   })
 
   await batchRepository(client).batchAppend([])
 
-  assert.deepEqual(calls.map((call) => call.method), ['appendRows'])
+  assert.equal(calls.filter((call) => call.method === 'readColumn').length, 0)
 })
 
-test('a batch whose incoming keys are all blank performs one append', async () => {
+test('a batch whose incoming keys are all blank performs zero primary-key-column reads', async () => {
   const calls: MockCall[] = []
   const client = mockClient({
     calls,
+    readColumn: async () => {
+      assert.fail('readColumn must not run when every incoming key is blank')
+      return [['AppendID']]
+    },
     appendRows: async () => appendResponse([['', 'blank']]),
   })
 
   const returned = await batchRepository(client).batchAppend([{ AppendID: '', Label: 'blank' }])
 
   assert.deepEqual(returned, [{ AppendID: '', Label: 'blank' }])
-  assert.deepEqual(calls.map((call) => call.method), ['appendRows'])
+  assert.equal(calls.filter((call) => call.method === 'readColumn').length, 0)
 })
 
-test('an intra-batch duplicate rejects before any write happens', async () => {
+test('an intra-batch duplicate rejects with the existing error class before any read or write', async () => {
   const calls: MockCall[] = []
   const client = mockClient({
     calls,
+    readColumn: async () => [['AppendID']],
     appendRows: async () => {
       assert.fail('appendRows must not run for an intra-batch duplicate')
       return appendResponse([])
@@ -156,6 +174,7 @@ test('a nonmatching batch appends unchanged full-width rows once', async () => {
   const calls: MockCall[] = []
   const client = mockClient({
     calls,
+    readColumn: async () => [['AppendID']],
     appendRows: async (rows, valueInputOption) => {
       assert.equal(valueInputOption, 'USER_ENTERED')
       assert.deepEqual(rows, [

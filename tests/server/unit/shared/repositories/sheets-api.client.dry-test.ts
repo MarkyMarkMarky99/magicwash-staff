@@ -72,11 +72,16 @@ async function expectFailure(
 async function expectMisalignedAppend(
   promise: Promise<unknown>,
   module: ClientModule,
+  message?: RegExp,
 ): Promise<void> {
   await assert.rejects(promise, (error: unknown) => {
     assert.ok(error instanceof module.WriteMisalignedAppendError)
     assert.ok(!(error instanceof module.WriteCommittedUnreadableError))
     assert.ok(!(error instanceof module.WriteTransportError))
+    assert.equal(error.certainty, 'unknown')
+    if (message !== undefined) {
+      assert.match(error.message, message)
+    }
     return true
   })
 }
@@ -238,6 +243,22 @@ test('appendRows targets the exact explicit span below column Z', async () => {
   assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders!A:U:append')
 })
 
+test('appendRows derives the append span from the known header width', async () => {
+  const { client, calls } = await makeClient('append-known-width-span', async () => {
+    return jsonResponse(200, {
+      spreadsheetId,
+      updates: {
+        updatedRows: 1,
+        updatedRange: 'Orders!A2:B2',
+        updatedData: { values: [['order-1', 'Ready']] },
+      },
+    })
+  })
+
+  await client.appendRows([['order-1', 'Ready']], 'USER_ENTERED', 21)
+  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders!A:U:append')
+})
+
 for (const [label, width] of [
   ['zero', 0],
   ['negative', -1],
@@ -260,8 +281,8 @@ for (const [label, width] of [
 }
 
 for (const [label, updatedRange] of [
-  ['non-A-start', 'Orders!B2:B2'],
-  ['wrong-end-width', 'Orders!A2:C2'],
+  ['outside-A-start', 'Orders!O7981:P7981'],
+  ['narrower-than-sent', 'Orders!A2:A2'],
   ['unparsable', 'not-an-a1-range'],
 ] as const) {
   test(`appendRows rejects an ${label} updatedRange as misaligned`, async () => {
@@ -278,6 +299,7 @@ for (const [label, updatedRange] of [
     await expectMisalignedAppend(
       client.appendRows([['order-1', 'Ready']], 'USER_ENTERED'),
       module,
+      label === 'outside-A-start' ? /O7981:P7981/ : undefined,
     )
     assert.equal(calls.length, 1)
   })
@@ -424,7 +446,7 @@ test('append uses known header width when restoring trailing blank cells', async
   const { client, calls } = await makeClient('known-width-trailing-blanks', async () => jsonResponse(200, {
     updates: {
       updatedRows: 1,
-      updatedRange: 'Orders!A2:D2',
+      updatedRange: 'Orders!A2:A2',
       updatedData: { values: [['order-1']] },
     },
   }))
@@ -493,10 +515,12 @@ test('all public write failure classes expose their certainty', async () => {
   const rejected = new module.WriteRejectedError('appendRows', 'rejected')
   const transport = new module.WriteTransportError('appendRows', 'unknown')
   const committed = new module.WriteCommittedUnreadableError('appendRows')
+  const misaligned = new module.WriteMisalignedAppendError('appendRows', 'landed at O1:P1')
 
   assert.equal(rejected.certainty, 'rejected')
   assert.equal(transport.certainty, 'unknown')
   assert.equal(committed.certainty, 'unknown')
+  assert.equal(misaligned.certainty, 'unknown')
   assert.match(committed.message, /do not retry/i)
 })
 

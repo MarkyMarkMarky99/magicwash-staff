@@ -37,7 +37,7 @@ const headerMap = buildSheetHeaderMap(
   'AppendID',
 )
 
-type MockCall = { method: 'appendRows'; args: readonly unknown[] }
+type MockCall = { method: 'readColumn' | 'appendRows'; args: readonly unknown[] }
 
 function appendResponse(values: SheetsApiValues): SheetsApiAppendResponse {
   return {
@@ -51,9 +51,14 @@ function appendResponse(values: SheetsApiValues): SheetsApiAppendResponse {
 
 function mockClient(options: {
   calls: MockCall[]
+  readColumn: SheetsApiClient['readColumn']
   appendRows: SheetsApiClient['appendRows']
 }): SheetsApiClient {
   return {
+    readColumn: async (columnLetter: string) => {
+      options.calls.push({ method: 'readColumn', args: [columnLetter] })
+      return options.readColumn(columnLetter)
+    },
     appendRows: async (...args: Parameters<SheetsApiClient['appendRows']>) => {
       options.calls.push({ method: 'appendRows', args })
       return options.appendRows(...args)
@@ -78,10 +83,11 @@ function test(name: string, run: () => Promise<void>): void {
   tests.push({ name, run })
 }
 
-test('append does not read the remote primary-key column before writing', async () => {
+test('no existing primary key proceeds to append normally', async () => {
   const calls: MockCall[] = []
   const client = mockClient({
     calls,
+    readColumn: async () => [['AppendID']],
     appendRows: async () => appendResponse([['append-1', 'sent']]),
   })
   const repository = appendRepository(client)
@@ -90,13 +96,18 @@ test('append does not read the remote primary-key column before writing', async 
     await repository.append({ AppendID: 'append-1', Label: 'sent' }),
     { AppendID: 'append-1', Label: 'sent' },
   )
-  assert.deepEqual(calls.map((call) => call.method), ['appendRows'])
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0]?.method, 'appendRows')
 })
 
-test('an empty primary key value is written by append', async () => {
+test('an empty primary key value skips the duplicate check entirely', async () => {
   const calls: MockCall[] = []
   const client = mockClient({
     calls,
+    readColumn: async () => {
+      assert.fail('readColumn must not run when the primary key value is empty')
+      return [['AppendID']]
+    },
     appendRows: async () => appendResponse([['', 'sent']]),
   })
   const repository = appendRepository(client)
@@ -104,13 +115,15 @@ test('an empty primary key value is written by append', async () => {
   const returned = await repository.append({ AppendID: '', Label: 'sent' })
 
   assert.deepEqual(returned, { AppendID: '', Label: 'sent' })
-  assert.deepEqual(calls.map((call) => call.method), ['appendRows'])
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0]?.method, 'appendRows')
 })
 
 test('two matching primary keys in one batch reject before any write happens', async () => {
   const calls: MockCall[] = []
   const client = mockClient({
     calls,
+    readColumn: async () => [['AppendID']],
     appendRows: async () => {
       assert.fail('appendRows must not run once an intra-batch duplicate is found')
       return appendResponse([])
@@ -138,6 +151,7 @@ test('an empty primary key value is written by batchAppend', async () => {
   const calls: MockCall[] = []
   const client = mockClient({
     calls,
+    readColumn: async () => [['AppendID']],
     appendRows: async () => appendResponse([['', 'sent']]),
   })
   const repository = appendRepository(client)
