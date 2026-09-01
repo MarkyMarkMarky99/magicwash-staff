@@ -13,6 +13,9 @@ const detailPageSource = readFileSync(
 
 test('reads the single orderAction query as the overlay source of truth', () => {
   assert.equal(readOrderOverlay({ orderAction: 'item' }), 'item')
+  assert.equal(readOrderOverlay({ orderAction: 'photo-weight' }), 'photo-weight')
+  assert.equal(readOrderOverlay({ orderAction: 'photo-belonging' }), 'photo-belonging')
+  assert.equal(readOrderOverlay({ orderAction: 'photo-document' }), 'photo-document')
   assert.equal(readOrderOverlay({ orderAction: 'unknown' }), null)
 })
 
@@ -36,6 +39,16 @@ test('closing an overlay strips overlay state while preserving unrelated query s
   assert.deepEqual(
     buildOrderOverlayQuery(
       { page: '2', item: 'new', capture: '1', orderAction: 'capture' },
+      null,
+    ),
+    { page: '2' },
+  )
+})
+
+test('closing a photo overlay also discards its route-owned weight', () => {
+  assert.deepEqual(
+    buildOrderOverlayQuery(
+      { page: '2', orderAction: 'photo-weight', weight: '2.50' },
       null,
     ),
     { page: '2' },
