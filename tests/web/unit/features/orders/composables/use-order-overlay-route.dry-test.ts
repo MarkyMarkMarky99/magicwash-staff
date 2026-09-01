@@ -59,3 +59,14 @@ test('the detail page unwraps nested computed flags before passing them to Boole
   assert.match(detailPageSource, /reactive\(useOrderOverlayRoute\(\)\)/)
   assert.doesNotMatch(detailPageSource, /const orderOverlay = useOrderOverlayRoute\(\)/)
 })
+
+test('reads each photo overlay from the same orderAction key', () => {
+  assert.equal(readOrderOverlay({ orderAction: 'photo-weight' }), 'photo-weight')
+  assert.equal(readOrderOverlay({ orderAction: 'photo-belonging' }), 'photo-belonging')
+  assert.equal(readOrderOverlay({ orderAction: 'photo-document' }), 'photo-document')
+  assert.equal(readOrderOverlay({ orderAction: 'photo-bag' }), null)
+})
+
+test('switching from the item overlay to a photo overlay leaves one flag', () => {
+  assert.deepEqual(buildOrderOverlayQuery({ orderAction: 'item' }, 'photo-weight'), { orderAction: 'photo-weight' })
+})
