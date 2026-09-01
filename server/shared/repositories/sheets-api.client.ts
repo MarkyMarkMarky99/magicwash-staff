@@ -79,6 +79,12 @@ export class WriteCommittedUnreadableError extends WriteFailure {
   }
 }
 
+export class WriteMisalignedAppendError extends WriteFailure {
+  constructor(operation: string, message: string) {
+    super(operation, 'unknown', message)
+  }
+}
+
 /**
  * Thrown when a pre-write lookup finds an existing row for the row's primary
  * key before an APPEND is sent. Extends WriteRejectedError (not WriteFailure
@@ -154,6 +160,39 @@ function restoreTrailingBlanks(
 
     return normalizedRow
   })
+}
+
+function columnLetterForWidth(width: number): string {
+  if (!Number.isInteger(width) || width < 1) {
+    throw new WriteRejectedError(
+      'appendRows',
+      `Cannot build an append range for column width ${String(width)}.`,
+    )
+  }
+
+  let value = width
+  let letter = ''
+  while (value > 0) {
+    value -= 1
+    letter = String.fromCharCode(65 + (value % 26)) + letter
+    value = Math.floor(value / 26)
+  }
+  return letter
+}
+
+function appendColumnSpan(width: number): string {
+  return `A:${columnLetterForWidth(width)}`
+}
+
+function parseLandedColumns(
+  updatedRange: string,
+): { readonly start: string; readonly end: string } | null {
+  const a1 = updatedRange.slice(updatedRange.lastIndexOf('!') + 1)
+  const match = /^([A-Z]+)\d+(?::([A-Z]+)\d+)?$/.exec(a1)
+  if (match === null) {
+    return null
+  }
+  return { start: match[1]!, end: match[2] ?? match[1]! }
 }
 
 function buildUrl(spreadsheetId: string, range: string, query?: Record<string, string>): string {
@@ -264,10 +303,12 @@ export class SheetsApiClient {
     const body = await this.requestJson(
       'appendRows',
       'POST',
-      // The header map lives in SheetRepository, which resolves ranges before calling
-      // this client; the client deliberately stays at the level of plain A1 ranges and
-      // knows nothing about SheetHeaderMap.
-      buildUrl(this.spreadsheetId, `${encodeSheetName(this.sheetName)}:append`, {
+      // Google's values:append detects the table from the supplied range and anchors
+      // the new row at that range's first column. A sheet-name-only range lets it
+      // guess, and a sheet whose grid is wider than its headers gets the row written
+      // at the wrong column. The span is derived from the caller's width; the client
+      // still knows nothing about SheetHeaderMap.
+      buildUrl(this.spreadsheetId, `${encodeRange(this.sheetName, appendColumnSpan(responseWidth))}:append`, {
         valueInputOption: option,
         insertDataOption: 'INSERT_ROWS',
         includeValuesInResponse: 'true',
@@ -290,6 +331,16 @@ export class SheetsApiClient {
       returnedValues.length !== rows.length
     ) {
       throw new WriteCommittedUnreadableError('appendRows')
+    }
+
+    const landedRange = isRecord(updates) && typeof updates.updatedRange === 'string' ? updates.updatedRange : undefined
+    const landed = landedRange === undefined ? null : parseLandedColumns(landedRange)
+    const expectedEnd = columnLetterForWidth(requestedWidth)
+    if (landed === null) {
+      throw new WriteMisalignedAppendError('appendRows', `The append committed but Google did not report a readable updatedRange (${String(landedRange)}); the row's location is unverified. Do not retry.`)
+    }
+    if (landed.start !== 'A' || landed.end !== expectedEnd) {
+      throw new WriteMisalignedAppendError('appendRows', `The append committed at ${landedRange} instead of columns A:${expectedEnd}; the row was written to the wrong columns. Do not retry: remove the misplaced row manually.`)
     }
 
     // A subset-column append can be narrower than the physical sheet. The caller

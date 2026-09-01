@@ -183,8 +183,6 @@ export class SheetRepository<TDbRow extends object>
       )
     }
 
-    await this.validateKeys(client, headerMap, [prepared.row])
-
     try {
       const response = await client.appendRows([prepared.values], 'USER_ENTERED', headerMap.width)
 
@@ -322,51 +320,13 @@ export class SheetRepository<TDbRow extends object>
     return preparedRow
   }
 
-  private async validateKeys(
-    client: SheetsApiClient,
-    headerMap: SheetHeaderMap,
-    preparedRows: Array<Record<string, SheetsApiValue>>,
-  ): Promise<void> {
-    const keyValues = preparedRows
-      .map((row) => String(row[this.contract.primaryKey] ?? '').trim())
-      .filter((value) => value !== '')
-    if (keyValues.length === 0) {
-      return
-    }
-
-    const keyColumnLetter = headerMap.letterByName[this.contract.primaryKey]
-    if (keyColumnLetter === undefined) {
-      throw new WriteRejectedError(
-        'APPEND',
-        `Key column '${this.contract.primaryKey}' is not present in the sheet header map`,
-      )
-    }
-
-    const existingKeyValues = await client.readColumn(keyColumnLetter)
-    const uniqueKeyValues = new Set<string>()
-    for (const keyValue of keyValues) {
-      if (uniqueKeyValues.has(keyValue)) {
-        throw new DuplicatePrimaryKeyError('APPEND', this.contract.primaryKey, keyValue)
-      }
-      uniqueKeyValues.add(keyValue)
-    }
-
-    for (const keyValue of uniqueKeyValues) {
-      const existingRowNumber = await findRowNumberByKey(
-        headerMap,
-        this.contract.primaryKey,
-        keyValue,
-        async () => existingKeyValues,
-      )
-      if (existingRowNumber !== null) {
-        throw new DuplicatePrimaryKeyError('APPEND', this.contract.primaryKey, keyValue)
-      }
-    }
-  }
-
+  /**
+   * In-batch duplicate keys only. The remote primary-key column read was removed:
+   * it pulled the entire key column on every append and grew with the table, to
+   * catch a randomUUID().slice(0, 8) collision at roughly 2-in-a-million odds.
+   * Cross-row uniqueness inside one payload costs nothing and stays.
+   */
   private async validateBatchKeys(
-    client: SheetsApiClient,
-    headerMap: SheetHeaderMap,
     preparedRows: Array<Record<string, SheetsApiValue>>,
   ): Promise<void> {
     const keyValues = preparedRows
@@ -376,58 +336,12 @@ export class SheetRepository<TDbRow extends object>
       return
     }
 
-    const keyColumnLetter = headerMap.letterByName[this.contract.primaryKey]
-    if (keyColumnLetter === undefined) {
-      throw new WriteRejectedError(
-        'APPEND',
-        `Key column '${this.contract.primaryKey}' is not present in the sheet header map`,
-      )
-    }
-
-    const existingKeyValues = await client.readColumn(keyColumnLetter)
     const uniqueKeyValues = new Set<string>()
     for (const keyValue of keyValues) {
       if (uniqueKeyValues.has(keyValue)) {
         throw new DuplicatePrimaryKeyError('APPEND', this.contract.primaryKey, keyValue)
       }
       uniqueKeyValues.add(keyValue)
-    }
-
-    const existingRowsByKey = new Map<string, number[]>()
-    for (let index = 1; index < existingKeyValues.length; index += 1) {
-      const cellValue = existingKeyValues[index]?.[0]
-      if (cellValue === undefined) {
-        continue
-      }
-
-      const normalizedCellValue = String(cellValue ?? '').trim()
-      if (normalizedCellValue === '') {
-        continue
-      }
-
-      const matchingRows = existingRowsByKey.get(normalizedCellValue)
-      if (matchingRows === undefined) {
-        existingRowsByKey.set(normalizedCellValue, [index + 1])
-      } else {
-        matchingRows.push(index + 1)
-      }
-    }
-
-    for (const keyValue of uniqueKeyValues) {
-      const matchingRows = existingRowsByKey.get(keyValue)
-      if (matchingRows === undefined) {
-        continue
-      }
-      if (matchingRows.length > 1) {
-        throw new DuplicateRowKeyError(
-          this.contract.primaryKey,
-          keyValue,
-          matchingRows,
-        )
-      }
-      if (matchingRows.length === 1) {
-        throw new DuplicatePrimaryKeyError('APPEND', this.contract.primaryKey, keyValue)
-      }
     }
   }
 
@@ -512,7 +426,7 @@ export class SheetRepository<TDbRow extends object>
       )
     }
 
-    await this.validateBatchKeys(client, headerMap, sentRows)
+    await this.validateBatchKeys(sentRows)
 
     const response = await client.appendRows(
       sentValuesList,

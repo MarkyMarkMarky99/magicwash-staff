@@ -123,6 +123,22 @@ The audit remains open: list search/filter/accessibility/layout and the create f
 `docs/design/patterns/list-pages.md` and `forms.md`. If the form component is renamed, update the
 `KeepAlive` exclusion in `src/App.vue` in the same commit.
 
+## Sheets append landed in the wrong columns — fixed
+
+- A real order on 2026-09-01 was appended 14 columns right of A on OrderForm, then broke
+  `GET /api/work-orders` for everyone. `values:append` was posted with the sheet name as its range,
+  so Google guessed the anchor across the 9 blank grid columns past the 21 headers. Fix, tests and
+  blast radius: `docs/plans/sheets-append-anchor-fix.md`. The sheet grid was trimmed by hand
+  already; the plan is what stops any sheet reaching that state again.
+- The pre-append primary-key column read is gone: an already-existing generated key is no longer
+  detected. In-batch duplicate keys still are.
+- Post-write read-back verification with rollback is deferred to a separate round. Rollback is
+  blocked first: `OrderForm.db-contract.ts` declares `writes: { append: true, update: true,
+  delete: false }`, and deleting a row needs `batchUpdate` + `deleteDimension`, which takes a
+  numeric sheetId rather than a sheet name — a capability this codebase does not have.
+- Staleness is not the obstacle to that round: GViz reflects a newly appended row within
+  milliseconds (established by direct testing on 2026-09-01).
+
 ## Still open
 
 - Define the business distinction between invoice `CANCELLED` and `VOID`; then decide the contract.
