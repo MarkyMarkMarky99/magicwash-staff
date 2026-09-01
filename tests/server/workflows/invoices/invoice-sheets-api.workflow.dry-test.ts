@@ -327,7 +327,7 @@ async function main(): Promise<void> {
     )
 
     // ── OrderForm: one UPDATE, PATCH-only body (assertions also live in the mock) ──
-    const orderFormCall = calls[8]!
+    const orderFormCall = calls[6]!
     assert.equal(orderFormCall.body?.valueInputOption, 'USER_ENTERED')
     assert.deepEqual(orderFormCall.body?.data, [
       { range: 'OrderForm!S2:S2', values: [['INV-0001']] },
