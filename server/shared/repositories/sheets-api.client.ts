@@ -180,10 +180,6 @@ function columnLetterForWidth(width: number): string {
   return letter
 }
 
-function appendColumnSpan(width: number): string {
-  return `A:${columnLetterForWidth(width)}`
-}
-
 function parseLandedColumns(
   updatedRange: string,
 ): { readonly start: string; readonly end: string } | null {
@@ -309,12 +305,15 @@ export class SheetsApiClient {
     const body = await this.requestJson(
       'appendRows',
       'POST',
-      // Google's values:append detects the table from the supplied range and anchors
-      // the new row at that range's first column. A sheet-name-only range lets it
-      // guess, and a sheet whose grid is wider than its headers gets the row written
-      // at the wrong column. The span is derived from the caller's width; the client
-      // still knows nothing about SheetHeaderMap.
-      buildUrl(this.spreadsheetId, `${encodeRange(this.sheetName, appendColumnSpan(responseWidth))}:append`, {
+      // The range on an append is only a window Google searches for a "table"; it does
+      // NOT set the start column. Google writes at the first column of the LAST table it
+      // finds, so a sheet with an all-empty column band is split into several tables and
+      // the row lands at the wrong column. Passing an explicit span here was tried and
+      // measured against the live sheet: `A:U` landed at O and `A:H` landed at C, because
+      // OrderForm leaves both column B and columns I-N empty on every row. Do not add a
+      // span back — it cannot fix this. The landed-range check below is what catches it.
+      // See NEXT-SESSION.md; the deterministic write is values.update at a computed row.
+      buildUrl(this.spreadsheetId, `${encodeSheetName(this.sheetName)}:append`, {
         valueInputOption: option,
         insertDataOption: 'INSERT_ROWS',
         includeValuesInResponse: 'true',

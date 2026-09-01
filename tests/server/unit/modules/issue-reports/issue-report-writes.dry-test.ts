@@ -38,7 +38,7 @@ globalThis.fetch = (async (input: URL | string, init?: RequestInit) => {
       },
     })
   }
-  if (init?.method === 'POST' && path.endsWith('/values/IssueReports!A:I:append')) {
+  if (init?.method === 'POST' && path.endsWith('/values/IssueReports:append')) {
     const body = JSON.parse(String(init.body)) as { values: unknown[][] }
     assert.equal(body.values.length, 1)
     assert.equal(body.values[0]!.length, 9)

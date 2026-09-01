@@ -123,13 +123,33 @@ The audit remains open: list search/filter/accessibility/layout and the create f
 `docs/design/patterns/list-pages.md` and `forms.md`. If the form component is renamed, update the
 `KeepAlive` exclusion in `src/App.vue` in the same commit.
 
-## Sheets append landed in the wrong columns — fixed
+## Sheets append lands in the wrong columns — NOT FIXED, cause now known
 
-- A real order on 2026-09-01 was appended 14 columns right of A on OrderForm, then broke
-  `GET /api/work-orders` for everyone. `values:append` was posted with the sheet name as its range,
-  so Google guessed the anchor across the 9 blank grid columns past the 21 headers. Fix, tests and
-  blast radius: `docs/plans/sheets-append-anchor-fix.md`. The sheet grid was trimmed by hand
-  already; the plan is what stops any sheet reaching that state again.
+**Creating an order still fails.** `POST /api/work-orders` returns 500 by design: the write is
+refused rather than committed to the wrong place.
+
+- **Real cause, proven 2026-09-02 by reproducing the call and reading Google's own response:**
+  every OrderForm row leaves columns **I–N empty** (`hangers`, `bags`, `hangers_image`,
+  `bags_image`, `form_image`, `note` — blank on all 7,980 rows). Google's `values:append` table
+  detection therefore sees two tables, `A–H` and `O–U`, and appends to the last one, anchoring at
+  column **O — index 14**, which is exactly the observed offset. Google says so in the response:
+  `tableRange: "OrderForm!O7924:U8250"`.
+- **The earlier diagnosis in `docs/plans/sheets-append-anchor-fix.md` is WRONG.** It blamed the
+  sheet-name-only append range and the untrimmed grid. Both were disproven: passing an explicit
+  `OrderForm!A:U` range still lands at O, and the grid had already been trimmed to 21 columns. The
+  wide grid was a *symptom* of the same bad write, not its cause. Do not re-derive the fix from
+  that plan's reasoning; only its test/blast-radius sections are still accurate.
+- **What shipped is still worth keeping:** the landed-range assertion in
+  `sheets-api.client.ts` (`WriteMisalignedAppendError`) is what proved the real cause and turns
+  silent corruption into a loud, uncommitted failure. The explicit `A:U` range that ships with it
+  is **unproven** — it fixes nothing on its own; keep or drop it with the real fix.
+- **Two candidate fixes, neither implemented:** (1) replace `values:append` with `values:update` at
+  an explicitly computed row range, which never consults table detection, at the cost of one read
+  for the next row number and a small concurrent-write race; (2) pass `A:H` as the append range so
+  detection anchors on the left block — one line, but still leans on Google's heuristic and must be
+  tested against the live sheet before being believed.
+- **Cleanup owed:** three junk rows written during the 2026-09-02 reproduction sit at sheet rows
+  8249–8251, data in columns O–U, marked `CUS-TEST-CLAUDE`. Delete them.
 - The pre-append primary-key column read is gone: an already-existing generated key is no longer
   detected. In-batch duplicate keys still are.
 - Post-write read-back verification with rollback is deferred to a separate round. Rollback is

@@ -1,5 +1,15 @@
 # Sheets append anchor fix
 
+> **⚠️ THIS PLAN'S DIAGNOSIS IS WRONG — read `NEXT-SESSION.md` first.**
+> It blames a sheet-name-only append range and an untrimmed sheet grid. Both were disproven on
+> 2026-09-02 by reproducing the call: with an explicit `OrderForm!A:U` range and a grid already
+> trimmed to 21 columns, the row still landed at column O. The real cause is that columns I–N are
+> empty on every row, so Google's table detection splits the sheet into an `A–H` and an `O–U`
+> table and appends to the latter (`tableRange: "OrderForm!O7924:U8250"`).
+> What shipped from this plan is not harmful and the landed-range assertion is what proved the real
+> cause — but do not re-derive a fix from the reasoning below. The test lists and blast-radius
+> notes remain accurate.
+
 ## Scope
 
 `values:append` must target an explicit A1 column span instead of the bare sheet name, must assert

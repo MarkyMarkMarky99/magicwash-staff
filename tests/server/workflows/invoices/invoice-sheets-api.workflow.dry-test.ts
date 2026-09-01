@@ -84,8 +84,7 @@ function sheetsPath(url: string): string {
 }
 
 function isAppendPath(url: string, sheetName: string): boolean {
-  const endColumn = sheetName === 'InvoiceItems' ? 'N' : 'P'
-  return sheetsPath(url).endsWith(`/values/${sheetName}!A:${endColumn}:append`)
+  return sheetsPath(url).endsWith(`/values/${sheetName}:append`)
 }
 
 async function withRoutedFetch<T>(
@@ -116,7 +115,7 @@ async function withRoutedFetch<T>(
     if (init?.method === 'GET' && path.endsWith('/values/InvoiceItems!B:B')) {
       return response({ json: { values: [['invoice_item_id']] } })
     }
-    if (init?.method === 'POST' && path.endsWith('/values/InvoiceItems!A:N:append')) {
+    if (init?.method === 'POST' && path.endsWith('/values/InvoiceItems:append')) {
       assert.equal(parsedUrl.searchParams.get('valueInputOption'), 'USER_ENTERED')
       assert.equal(parsedUrl.searchParams.get('insertDataOption'), 'INSERT_ROWS')
       assert.equal(parsedUrl.searchParams.get('includeValuesInResponse'), 'true')
@@ -131,7 +130,7 @@ async function withRoutedFetch<T>(
     if (init?.method === 'GET' && path.endsWith('/values/Invoices!A:A')) {
       return response({ json: { values: [['invoice_number']] } })
     }
-    if (init?.method === 'POST' && path.endsWith('/values/Invoices!A:P:append')) {
+    if (init?.method === 'POST' && path.endsWith('/values/Invoices:append')) {
       assert.equal(parsedUrl.searchParams.get('valueInputOption'), 'USER_ENTERED')
       assert.equal(parsedUrl.searchParams.get('insertDataOption'), 'INSERT_ROWS')
       assert.equal(parsedUrl.searchParams.get('includeValuesInResponse'), 'true')
@@ -213,9 +212,9 @@ async function main(): Promise<void> {
       calls.map((call) => `${call.method ?? 'GET'} ${sheetsPath(call.url).replace(/^\/v4\/spreadsheets\/[^/]+/, '')}`),
       [
         'GET /values/InvoiceItems!1:1',
-        'POST /values/InvoiceItems!A:N:append',
+        'POST /values/InvoiceItems:append',
         'GET /values/Invoices!1:1',
-        'POST /values/Invoices!A:P:append',
+        'POST /values/Invoices:append',
         'GET /values/OrderForm!1:1',
         'GET /values/OrderForm!A:A',
         'POST /values:batchUpdate',
