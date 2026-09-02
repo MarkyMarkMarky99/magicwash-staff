@@ -7,7 +7,7 @@ import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import type { CustomerListDto } from '../services/customer.service'
 
-type BadgeTone = 'neutral' | 'brand' | 'accent' | 'info' | 'warning' | 'success' | 'danger'
+import type { BadgeTone } from '@/shared/components/BaseBadge.vue'
 
 const props = defineProps<{
   customer: CustomerListDto

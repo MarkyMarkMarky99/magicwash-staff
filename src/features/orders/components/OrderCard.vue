@@ -4,8 +4,7 @@ import type { workOrderListResponseSchema } from '@contracts/work-orders/work-or
 import { formatSheetDate } from '@/shared/utils/sheet-date'
 import { isInvoiceActionAvailable } from '../utils/order-invoice-target'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
-
-type BadgeTone = 'neutral' | 'brand' | 'accent' | 'info' | 'warning' | 'success' | 'danger'
+import { presentationFor } from '../order-status-presentation'
 
 type WorkOrderListDto = z.infer<typeof workOrderListResponseSchema>
 export type OrderRowData = Omit<WorkOrderListDto, 'customerName'> & { customerName?: string | null }
@@ -22,35 +21,6 @@ const emit = defineEmits<{
   viewPhotos: [orderId: string]
   viewInvoice: [invoiceNumber: string]
 }>()
-
-interface StatusPresentation {
-  icon: string
-  label: string
-  badgeTone: BadgeTone
-  avatarClass: string
-}
-
-// Unknown status values fall through to a neutral presentation rather than guessing.
-const STATUS_PRESENTATION: Record<string, StatusPresentation> = {
-  SUBMITTED: { icon: 'local_laundry_service', label: 'Submitted', badgeTone: 'warning', avatarClass: 'bg-amber-50 text-amber-600' },
-  PENDING: { icon: 'schedule', label: 'Pending', badgeTone: 'warning', avatarClass: 'bg-amber-50 text-amber-600' },
-  APPROVED: { icon: 'task_alt', label: 'Approved', badgeTone: 'info', avatarClass: 'bg-blue-50 text-blue-700' },
-  RECEIVED: { icon: 'inventory_2', label: 'Received', badgeTone: 'accent', avatarClass: 'bg-teal-50 text-teal-700' },
-  COMPLETED: { icon: 'done_all', label: 'Completed', badgeTone: 'success', avatarClass: 'bg-green-50 text-green-700' },
-  CANCELLED: { icon: 'cancel', label: 'Cancelled', badgeTone: 'danger', avatarClass: 'bg-red-50 text-red-600' },
-}
-
-const FALLBACK_PRESENTATION: StatusPresentation = {
-  icon: 'receipt_long',
-  label: 'Unknown',
-  badgeTone: 'neutral',
-  avatarClass: 'bg-gray-100 text-gray-500',
-}
-
-function presentationFor(status: string | null): StatusPresentation {
-  if (!status) return FALLBACK_PRESENTATION
-  return STATUS_PRESENTATION[status] ?? { ...FALLBACK_PRESENTATION, label: status }
-}
 
 // English labels for the OrderForm sheet's service_type column, matching the card's existing
 // English STATUS_PRESENTATION labels. Not the Thai maps in order-status-labels.ts.

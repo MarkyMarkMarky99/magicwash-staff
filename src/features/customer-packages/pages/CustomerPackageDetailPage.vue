@@ -12,7 +12,7 @@ import { useCustomerPackageTransactionRoute } from '../composables/useCustomerPa
 
 type CustomerPackageDetail = z.infer<typeof customerPackageDetailResponseSchema>
 type TransactionType = z.infer<typeof packageCreditMovementTypeSchema>
-type BadgeTone = 'neutral' | 'brand' | 'accent' | 'info' | 'warning' | 'success' | 'danger'
+import type { BadgeTone } from '@/shared/components/BaseBadge.vue'
 const props = defineProps<{ customerPackageId: string }>()
 const customerPackage = ref<CustomerPackageDetail | null>(null)
 const loading = ref(true)

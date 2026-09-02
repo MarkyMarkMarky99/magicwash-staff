@@ -1,6 +1,6 @@
 <script setup lang="ts">
-type BadgeTone = 'neutral' | 'brand' | 'accent' | 'info' | 'warning' | 'success' | 'danger'
-type BadgeSize = 'xs' | 'sm' | 'md' | 'lg'
+export type BadgeTone = 'neutral' | 'brand' | 'accent' | 'info' | 'warning' | 'success' | 'danger'
+export type BadgeSize = 'xs' | 'sm' | 'md' | 'lg'
 
 const props = withDefaults(
   defineProps<{

@@ -6,7 +6,7 @@ import { formatSheetDate } from '@/shared/utils/sheet-date'
 import type { AppointmentListDto } from '../services/appointment.service'
 
 type AppointmentStatus = AppointmentListDto['status']
-type BadgeTone = 'neutral' | 'brand' | 'accent' | 'info' | 'warning' | 'success' | 'danger'
+import type { BadgeTone } from '@/shared/components/BaseBadge.vue'
 
 const statusConfig: Record<AppointmentStatus, { icon: string; label: string; badgeTone: BadgeTone; avatarClass: string }> = {
   PENDING: { icon: 'schedule', label: 'Pending', badgeTone: 'neutral', avatarClass: 'bg-gray-100 text-gray-500' },

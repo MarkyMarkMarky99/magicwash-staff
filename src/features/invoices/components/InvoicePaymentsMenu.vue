@@ -4,7 +4,7 @@ import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { formatSheetDateTime } from '@/shared/utils/sheet-date'
 import type { InvoiceDetailDto } from '../services/invoice-detail.service'
 
-type BadgeTone = 'neutral' | 'brand' | 'accent' | 'info' | 'warning' | 'success' | 'danger'
+import type { BadgeTone } from '@/shared/components/BaseBadge.vue'
 
 const props = defineProps<{
   payments: InvoiceDetailDto['payments']

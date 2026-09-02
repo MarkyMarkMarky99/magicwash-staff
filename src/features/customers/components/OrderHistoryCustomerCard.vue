@@ -4,7 +4,7 @@ import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.stor
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import type { CustomerDetailDto } from '../services/customer.service'
 
-type BadgeTone = 'neutral' | 'brand' | 'accent' | 'info' | 'warning' | 'success' | 'danger'
+import type { BadgeTone } from '@/shared/components/BaseBadge.vue'
 
 defineProps<{
   customer: CustomerDetailDto

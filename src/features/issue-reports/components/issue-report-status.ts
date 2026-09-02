@@ -10,7 +10,7 @@ export const ISSUE_REPORT_TABS = [
   ...ISSUE_REPORT_STATUS_OPTIONS.map((option) => ({ key: option.value, label: option.label })),
 ]
 
-type BadgeTone = 'neutral' | 'brand' | 'accent' | 'info' | 'warning' | 'success' | 'danger'
+import type { BadgeTone } from '@/shared/components/BaseBadge.vue'
 
 const ISSUE_REPORT_STATUS_BADGE: Record<string, { label: string; tone: BadgeTone }> = {
   OPEN: { label: 'เปิด', tone: 'info' },

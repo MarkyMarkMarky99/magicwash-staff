@@ -3,7 +3,7 @@ import type { z } from 'zod'
 import { customerPackageListResponseSchema } from '@contracts/customer-packages/customer-package-api.schema'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 type CustomerPackageListItem = z.infer<typeof customerPackageListResponseSchema>
-type BadgeTone = 'neutral' | 'brand' | 'accent' | 'info' | 'warning' | 'success' | 'danger'
+import type { BadgeTone } from '@/shared/components/BaseBadge.vue'
 defineProps<{ items: CustomerPackageListItem[] }>()
 const emit = defineEmits<{ select: [CustomerPackageListItem] }>()
 const STATUS_TONES: Record<string, BadgeTone> = {

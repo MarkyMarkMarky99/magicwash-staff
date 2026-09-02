@@ -3,7 +3,7 @@ import type { InvoiceListItemDto, InvoiceStatusDto } from '../types/invoices.typ
 import { formatSheetDate } from '@/shared/utils/sheet-date'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 
-type BadgeTone = 'neutral' | 'brand' | 'accent' | 'info' | 'warning' | 'success' | 'danger'
+import type { BadgeTone } from '@/shared/components/BaseBadge.vue'
 
 defineProps<{
   invoices: InvoiceListItemDto[]
