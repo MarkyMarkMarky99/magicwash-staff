@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { AppointmentListDto } from '../services/waiting-pickup.service'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
+import BaseBadge from '@/shared/components/BaseBadge.vue'
 
 const props = defineProps<{
   appointment: AppointmentListDto
@@ -19,9 +20,7 @@ const props = defineProps<{
         <h3 class="font-headline text-[14px] font-bold leading-tight text-primary">
           {{ formatSheetDate(appointment.appointmentDate) }}
         </h3>
-        <span class="shrink-0 rounded-full bg-amber-100 px-1.5 py-px font-label text-[9px] font-bold uppercase tracking-wide text-amber-700">
-          Waiting pickup
-        </span>
+        <BaseBadge label="Waiting pickup" size="xs" :uppercase="true" tone="warning" />
       </div>
       <div class="flex items-center gap-1.5">
         <span class="material-symbols-outlined text-[13px] text-on-surface-variant" aria-hidden="true">schedule</span>

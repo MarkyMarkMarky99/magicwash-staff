@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { InvoiceListItemDto, InvoiceStatusDto } from '../types/invoices.types'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
+import BaseBadge from '@/shared/components/BaseBadge.vue'
+
+type BadgeTone = 'neutral' | 'brand' | 'accent' | 'info' | 'warning' | 'success' | 'danger'
 
 defineProps<{
   invoices: InvoiceListItemDto[]
@@ -35,18 +38,18 @@ function getStatusLabel(status: InvoiceStatusDto) {
   return labels[status]
 }
 
-function getStatusBadgeClass(status: InvoiceStatusDto) {
-  const badgeClasses: Record<InvoiceStatusDto, string> = {
-    DRAFT: 'bg-gray-100 text-gray-600',
-    UNPAID: 'bg-error-container text-error',
-    OVERDUE: 'bg-error text-on-error',
-    PARTIALLY_PAID: 'bg-blue-100 text-blue-700',
-    PAID: 'bg-success-container text-success',
-    CANCELLED: 'bg-error-container text-on-error-container',
-    VOID: 'bg-error-container text-on-error-container',
+function getStatusBadgeTone(status: InvoiceStatusDto): BadgeTone {
+  const badgeTones: Record<InvoiceStatusDto, BadgeTone> = {
+    DRAFT: 'neutral',
+    UNPAID: 'danger',
+    OVERDUE: 'danger',
+    PARTIALLY_PAID: 'info',
+    PAID: 'success',
+    CANCELLED: 'danger',
+    VOID: 'danger',
   }
 
-  return badgeClasses[status]
+  return badgeTones[status]
 }
 </script>
 
@@ -98,12 +101,12 @@ function getStatusBadgeClass(status: InvoiceStatusDto) {
           </td>
 
           <td class="px-4 py-3">
-            <span
-              class="inline-flex items-center rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wide"
-              :class="getStatusBadgeClass(invoice.status)"
-            >
-              {{ getStatusLabel(invoice.status) }}
-            </span>
+            <BaseBadge
+              :label="getStatusLabel(invoice.status)"
+              size="md"
+              :uppercase="true"
+              :tone="getStatusBadgeTone(invoice.status)"
+            />
           </td>
 
           <td class="px-4 py-3 text-right text-sm font-bold text-on-surface">

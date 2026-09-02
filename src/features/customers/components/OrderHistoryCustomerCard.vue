@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.store'
+import BaseBadge from '@/shared/components/BaseBadge.vue'
 import type { CustomerDetailDto } from '../services/customer.service'
+
+type BadgeTone = 'neutral' | 'brand' | 'accent' | 'info' | 'warning' | 'success' | 'danger'
 
 defineProps<{
   customer: CustomerDetailDto
 }>()
 
-const TYPE_COLORS: Record<string, string> = {
-  Regular: 'bg-gray-100 text-gray-600',
-  Member: 'bg-blue-50 text-blue-700',
-  Corporate: 'bg-amber-50 text-amber-700',
+const TYPE_TONES: Record<string, BadgeTone> = {
+  Regular: 'neutral',
+  Member: 'info',
+  Corporate: 'warning',
 }
 
 const router = useRouter()
@@ -31,13 +34,13 @@ function openNewBooking(customer: CustomerDetailDto) {
           <h2 class="truncate font-headline text-lg font-bold text-primary">
             {{ customer.customerName || '—' }}
           </h2>
-          <span
+          <BaseBadge
             v-if="customer.customerType"
-            class="shrink-0 rounded-full px-2 py-1 font-label text-[9px] font-bold uppercase tracking-wide"
-            :class="TYPE_COLORS[customer.customerType] || 'bg-gray-100 text-gray-600'"
-          >
-            {{ customer.customerType }}
-          </span>
+            :label="customer.customerType"
+            size="md"
+            :uppercase="true"
+            :tone="TYPE_TONES[customer.customerType] || 'neutral'"
+          />
         </div>
 
         <p v-if="customer.phone" class="mt-2 text-sm text-on-surface-variant">

@@ -5,12 +5,12 @@ import type { orderListResponseSchema } from '../../../../../../contracts/orders
 import {
   getInvoiceTarget,
   isInvoiceActionAvailable,
-} from '../../../../../../src/features/customers/utils/order-invoice-target'
+} from '../../../../../../src/features/orders/utils/order-invoice-target'
 
 type OrderListDto = z.infer<typeof orderListResponseSchema>
 
 const orderCardSource = readFileSync(
-  new URL('../../../../../../src/features/customers/components/OrderCard.vue', import.meta.url),
+  new URL('../../../../../../src/features/orders/components/OrderCard.vue', import.meta.url),
   'utf8',
 )
 
@@ -105,7 +105,7 @@ test('the target contains the invoice number without inventing a target for empt
 
 test('the target module is pure and has no Vue or API dependency', () => {
   const targetSource = readFileSync(
-    new URL('../../../../../../src/features/customers/utils/order-invoice-target.ts', import.meta.url),
+    new URL('../../../../../../src/features/orders/utils/order-invoice-target.ts', import.meta.url),
     'utf8',
   )
 

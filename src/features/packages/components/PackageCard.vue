@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
 import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
+import BaseBadge from '@/shared/components/BaseBadge.vue'
 import type { PackageDto } from '../services/package.service'
 
 const props = defineProps<{ package: PackageDto }>()
@@ -30,7 +31,7 @@ function handleKeydown(event: KeyboardEvent) {
       <div class="min-w-0 flex-grow">
         <div class="flex items-center gap-2">
           <h3 class="truncate font-headline text-sm font-bold text-primary">{{ package.name }}</h3>
-          <span v-if="package.deletedAt !== null" class="shrink-0 rounded-full bg-error-container px-2 py-0.5 font-label text-[10px] font-bold text-on-error-container">เลิกขาย</span>
+          <BaseBadge v-if="package.deletedAt !== null" label="เลิกขาย" size="md" tone="danger" />
         </div>
         <p class="truncate font-body text-xs text-on-surface-variant">{{ package.packageCode }} · {{ package.eligibleService }}</p>
         <p class="mt-0.5 font-body text-xs text-on-surface-variant">เครดิต {{ package.includedCredit }} · ฿{{ package.price }}</p>

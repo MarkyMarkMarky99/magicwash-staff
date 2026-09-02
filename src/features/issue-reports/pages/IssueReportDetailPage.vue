@@ -4,9 +4,9 @@ import AppLayout from '@/shared/layouts/AppLayout.vue'
 import FormInput from '@/shared/components/FormInput.vue'
 import FormOptionGrid from '@/shared/components/FormOptionGrid.vue'
 import { ApiError } from '@/shared/api/api-client'
+import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { useIssueReportActor } from '../composables/use-issue-report-actor'
-import IssueReportStatusBadge from '../components/IssueReportStatusBadge.vue'
-import { ISSUE_REPORT_STATUS_OPTIONS } from '../components/issue-report-status'
+import { ISSUE_REPORT_STATUS_OPTIONS, issueReportStatusBadge } from '../components/issue-report-status'
 import { getIssueReport, type IssueReportDto, type IssueReportStatus } from '../services/issue-report.service'
 import { useIssueReportStore } from '../stores/issue-report.store'
 
@@ -92,7 +92,7 @@ watch(() => props.id, () => void loadDetail(), { immediate: true })
               <p class="font-label text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">Issue report</p>
               <h1 class="mt-1 break-words font-headline text-xl font-bold text-primary">{{ report.title }}</h1>
             </div>
-            <IssueReportStatusBadge :status="report.status" />
+            <BaseBadge :label="issueReportStatusBadge(report.status).label" size="lg" :tone="issueReportStatusBadge(report.status).tone" />
           </div>
           <dl class="mt-4 space-y-3 text-sm">
             <div><dt class="font-semibold text-on-surface-variant">รหัส</dt><dd>{{ report.issueReportId }}</dd></div>

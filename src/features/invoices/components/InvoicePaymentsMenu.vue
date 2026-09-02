@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import BaseDropdown from '@/shared/components/BaseDropdown.vue'
+import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { formatSheetDateTime } from '@/shared/utils/sheet-date'
 import type { InvoiceDetailDto } from '../services/invoice-detail.service'
+
+type BadgeTone = 'neutral' | 'brand' | 'accent' | 'info' | 'warning' | 'success' | 'danger'
 
 const props = defineProps<{
   payments: InvoiceDetailDto['payments']
@@ -47,14 +50,14 @@ function methodIcon(method: InvoiceDetailDto['payments'][number]['method']) {
   return method ? icons[method] ?? 'receipt_long' : 'receipt_long'
 }
 
-function statusClass(status: InvoiceDetailDto['payments'][number]['status']) {
-  const classes: Record<string, string> = {
-    PENDING: 'bg-amber-100 text-amber-700',
-    VERIFIED: 'bg-green-100 text-green-700',
-    FAILED: 'bg-error-container text-on-error-container',
-    CANCELLED: 'bg-gray-100 text-gray-600',
+function statusTone(status: InvoiceDetailDto['payments'][number]['status']): BadgeTone {
+  const tones: Record<string, BadgeTone> = {
+    PENDING: 'warning',
+    VERIFIED: 'success',
+    FAILED: 'danger',
+    CANCELLED: 'neutral',
   }
-  return classes[status] ?? 'bg-gray-100 text-gray-600'
+  return tones[status] ?? 'neutral'
 }
 
 function statusLabel(status: InvoiceDetailDto['payments'][number]['status']) {
@@ -100,9 +103,7 @@ function statusLabel(status: InvoiceDetailDto['payments'][number]['status']) {
             <span class="flex min-w-0 items-center gap-1.5">
               <span class="material-symbols-outlined shrink-0 text-[16px] leading-none text-primary" aria-hidden="true">{{ methodIcon(payment.method) }}</span>
               <span class="truncate font-body text-[11px] text-on-surface-variant">{{ formatSheetDateTime(payment.paidAt) }}</span>
-              <span class="inline-flex shrink-0 items-center rounded-full px-2 py-px font-label text-[9px] font-bold" :class="statusClass(payment.status)">
-                {{ statusLabel(payment.status) }}
-              </span>
+              <BaseBadge :label="statusLabel(payment.status)" size="sm" :tone="statusTone(payment.status)" />
             </span>
             <span class="shrink-0 font-headline text-[12px] font-bold text-on-surface">{{ formatMoney(payment.amount) }}</span>
           </span>
@@ -113,9 +114,7 @@ function statusLabel(status: InvoiceDetailDto['payments'][number]['status']) {
             <span class="flex min-w-0 items-center gap-1.5">
               <span class="material-symbols-outlined shrink-0 text-[16px] leading-none text-primary" aria-hidden="true">{{ methodIcon(payment.method) }}</span>
               <span class="truncate font-body text-[11px] text-on-surface-variant">{{ formatSheetDateTime(payment.paidAt) }}</span>
-              <span class="inline-flex shrink-0 items-center rounded-full px-2 py-px font-label text-[9px] font-bold" :class="statusClass(payment.status)">
-                {{ statusLabel(payment.status) }}
-              </span>
+              <BaseBadge :label="statusLabel(payment.status)" size="sm" :tone="statusTone(payment.status)" />
             </span>
             <span class="shrink-0 font-headline text-[12px] font-bold text-on-surface">{{ formatMoney(payment.amount) }}</span>
           </span>

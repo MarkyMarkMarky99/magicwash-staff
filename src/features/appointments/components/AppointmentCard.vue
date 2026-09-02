@@ -1,18 +1,20 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref } from 'vue'
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
+import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
 import type { AppointmentListDto } from '../services/appointment.service'
 
 type AppointmentStatus = AppointmentListDto['status']
+type BadgeTone = 'neutral' | 'brand' | 'accent' | 'info' | 'warning' | 'success' | 'danger'
 
-const statusConfig: Record<AppointmentStatus, { icon: string; label: string; badgeClass: string; avatarClass: string }> = {
-  PENDING: { icon: 'schedule', label: 'Pending', badgeClass: 'bg-gray-100 text-gray-600', avatarClass: 'bg-gray-100 text-gray-500' },
-  CONFIRMED: { icon: 'event_available', label: 'Confirmed', badgeClass: 'bg-teal-50 text-teal-700', avatarClass: 'bg-teal-50 text-teal-700' },
-  IN_TRANSIT: { icon: 'local_shipping', label: 'En Route', badgeClass: 'bg-amber-100 text-amber-700', avatarClass: 'bg-amber-50 text-amber-600' },
-  COMPLETED: { icon: 'task_alt', label: 'Completed', badgeClass: 'bg-green-100 text-green-700', avatarClass: 'bg-green-50 text-green-700' },
-  CANCELLED: { icon: 'cancel', label: 'Cancelled', badgeClass: 'bg-red-100 text-red-700', avatarClass: 'bg-red-50 text-red-700' },
-  NO_SHOW: { icon: 'person_off', label: 'No Show', badgeClass: 'bg-red-100 text-red-700', avatarClass: 'bg-red-50 text-red-700' },
+const statusConfig: Record<AppointmentStatus, { icon: string; label: string; badgeTone: BadgeTone; avatarClass: string }> = {
+  PENDING: { icon: 'schedule', label: 'Pending', badgeTone: 'neutral', avatarClass: 'bg-gray-100 text-gray-500' },
+  CONFIRMED: { icon: 'event_available', label: 'Confirmed', badgeTone: 'accent', avatarClass: 'bg-teal-50 text-teal-700' },
+  IN_TRANSIT: { icon: 'local_shipping', label: 'En Route', badgeTone: 'warning', avatarClass: 'bg-amber-50 text-amber-600' },
+  COMPLETED: { icon: 'task_alt', label: 'Completed', badgeTone: 'success', avatarClass: 'bg-green-50 text-green-700' },
+  CANCELLED: { icon: 'cancel', label: 'Cancelled', badgeTone: 'danger', avatarClass: 'bg-red-50 text-red-700' },
+  NO_SHOW: { icon: 'person_off', label: 'No Show', badgeTone: 'danger', avatarClass: 'bg-red-50 text-red-700' },
 }
 
 const nextStatus: Partial<Record<AppointmentStatus, AppointmentStatus>> = {
@@ -127,7 +129,7 @@ function openMaps() {
           <div class="flex items-center justify-between gap-2 mb-0.5">
             <div class="flex items-center gap-1.5 min-w-0">
               <h3 class="font-headline font-bold text-primary text-[14px] leading-tight truncate">{{ appointment.customerName || appointment.customerId }}</h3>
-              <span :class="['inline-flex items-center px-1.5 py-px rounded-full font-label text-[9px] font-bold uppercase tracking-wide shrink-0', config.badgeClass]">{{ config.label }}</span>
+              <BaseBadge :label="config.label" size="xs" :uppercase="true" :tone="config.badgeTone" />
             </div>
             <span v-if="variant === 'daily'" class="font-body text-[11px] font-semibold text-on-surface-variant shrink-0">{{ appointment.timeSlot }}</span>
           </div>

@@ -3,13 +3,12 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useCustomerOrderHistoryStore } from '../stores/customer-order-history.store'
-import type { OrderListDto } from '../services/order.service'
-import { getInvoiceTarget, isInvoiceActionAvailable } from '../utils/order-invoice-target'
-import OrderCard from './OrderCard.vue'
+import { getInvoiceTarget, isInvoiceActionAvailable } from '@/features/orders/utils/order-invoice-target'
+import OrderCard from '@/features/orders/components/OrderCard.vue'
 import WaitingPickupCard from './WaitingPickupCard.vue'
 
 const emit = defineEmits<{
-  selectOrder: [order: OrderListDto]
+  selectOrder: [orderId: string]
 }>()
 
 const store = useCustomerOrderHistoryStore()
@@ -29,7 +28,7 @@ function refresh() {
 }
 
 function viewPhotos(orderId: string) {
-  router.push(`/gallery/AFT-${orderId}`)
+  router.push(`/gallery/BEF-${orderId}`)
 }
 
 function viewInvoice(invoiceNumber: string) {
@@ -100,6 +99,9 @@ function viewInvoice(invoiceNumber: string) {
           v-for="order in orders"
           :key="order.orderId"
           :order="order"
+          :show-customer-name="false"
+          :show-photos="true"
+          :show-invoice="true"
           @select="emit('selectOrder', $event)"
           @view-photos="viewPhotos"
           @view-invoice="viewInvoice"

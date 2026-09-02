@@ -8,7 +8,6 @@ import { useDeliveryBookingIntentStore } from '@/shared/stores/delivery-booking-
 import { useInvoiceCreateIntentStore } from '@/shared/stores/invoice-create-intent.store'
 import { useCustomerOrderHistoryStore } from '../stores/customer-order-history.store'
 import { useOrderSheetRoute } from '@/features/customers/composables/useOrderSheetRoute'
-import type { OrderListDto } from '../services/order.service'
 import OrderDetailSheet from '../components/OrderDetailSheet.vue'
 import OrderHistoryCustomerCard from '../components/OrderHistoryCustomerCard.vue'
 import OrderList from '../components/OrderList.vue'
@@ -31,8 +30,8 @@ function loadCustomer() {
   store.load(props.customerId)
 }
 
-function openOrder(order: OrderListDto) {
-  openSheet(order.orderId)
+function openOrder(orderId: string) {
+  openSheet(orderId)
 }
 
 function bookDelivery() {

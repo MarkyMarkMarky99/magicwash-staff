@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
+import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { formatSheetDate, formatSheetDateTime } from '@/shared/utils/sheet-date'
 import { CUSTOMER_PACKAGES } from '../customer-packages.fixture'
 
@@ -23,7 +24,7 @@ function formatCreditChange(value: number) {
             <div class="flex items-center gap-2">
               <span class="material-symbols-outlined text-primary" aria-hidden="true">person</span>
               <h1 class="truncate font-headline text-lg font-bold text-primary">{{ sourcePackage.customerName }}</h1>
-              <span class="shrink-0 rounded-full bg-secondary-container px-2 py-1 font-label text-[9px] font-bold uppercase tracking-wide text-on-secondary-container">{{ sourcePackage.status }}</span>
+              <BaseBadge :label="sourcePackage.status" size="md" :uppercase="true" tone="accent" />
             </div>
             <p class="mt-1 text-xs text-on-surface-variant">{{ sourcePackage.customerId }} · {{ sourcePackage.customerPhone || 'No phone on file' }}</p>
             <p v-if="sourcePackage.customerAddress" class="mt-1 text-xs text-on-surface-variant"><span class="material-symbols-outlined mr-1 align-middle text-[14px]" aria-hidden="true">location_on</span>{{ sourcePackage.customerAddress }}</p>

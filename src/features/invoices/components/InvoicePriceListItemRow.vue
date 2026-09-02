@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { InvoicePriceListItemDto } from '../services/invoice-price-list.service'
+import BaseBadge from '@/shared/components/BaseBadge.vue'
 import {
   availableServices,
   formatBaht,
@@ -53,12 +54,7 @@ function onSelect(serviceKey: PriceListServiceKey) {
           <span>{{ item.subcategory }}</span>
           <span v-if="item.itemType" class="text-on-surface-variant/80">· {{ item.itemType }}</span>
           <span v-if="item.variant" class="text-on-surface-variant/70">({{ item.variant }})</span>
-          <span
-            v-if="item.creditEligible"
-            class="ml-0.5 inline-flex items-center rounded-full bg-blue-50 px-1.5 py-px font-label text-[10px] font-medium text-blue-700"
-          >
-            เครดิตได้
-          </span>
+          <BaseBadge v-if="item.creditEligible" label="เครดิตได้" size="xs" tone="info" class="ml-0.5" />
         </div>
 
         <div class="flex items-center gap-1 font-body text-[11px] text-on-surface-variant/80">

@@ -4,16 +4,19 @@ import { useRouter } from 'vue-router'
 import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.store'
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
 import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
+import BaseBadge from '@/shared/components/BaseBadge.vue'
 import type { CustomerListDto } from '../services/customer.service'
+
+type BadgeTone = 'neutral' | 'brand' | 'accent' | 'info' | 'warning' | 'success' | 'danger'
 
 const props = defineProps<{
   customer: CustomerListDto
 }>()
 
-const TYPE_COLORS: Record<string, string> = {
-  Regular: 'bg-gray-100 text-gray-600',
-  Member: 'bg-blue-50 text-blue-700',
-  Corporate: 'bg-amber-50 text-amber-700',
+const TYPE_TONES: Record<string, BadgeTone> = {
+  Regular: 'neutral',
+  Member: 'info',
+  Corporate: 'warning',
 }
 
 const baseRef = ref<InstanceType<typeof BaseSwipeCard> | null>(null)
@@ -92,13 +95,13 @@ function openOrderHistory() {
           <h3 class="font-headline font-bold text-primary text-[14px] leading-tight truncate">
             {{ customer.customerName || '—' }}{{ customer.customerIndex ? ` (${customer.customerIndex})` : '' }}
           </h3>
-          <span
+          <BaseBadge
             v-if="customer.customerType"
-            class="inline-flex items-center px-1.5 py-px rounded-full font-label text-[9px] font-bold uppercase tracking-wide shrink-0"
-            :class="TYPE_COLORS[customer.customerType] || 'bg-gray-100 text-gray-600'"
-          >
-            {{ customer.customerType }}
-          </span>
+            :label="customer.customerType"
+            size="xs"
+            :uppercase="true"
+            :tone="TYPE_TONES[customer.customerType] || 'neutral'"
+          />
         </div>
 
         <!-- Row 2: phone -->

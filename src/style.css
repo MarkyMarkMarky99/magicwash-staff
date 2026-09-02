@@ -31,6 +31,18 @@
   --color-on-error: #ffffff;
   --color-error-container: #ffdad6;
   --color-on-error-container: #93000a;
+  --color-success: #15803d;
+  --color-on-success: #ffffff;
+  --color-success-container: #dcfce7;
+  --color-on-success-container: #14532d;
+  --color-warning: #b45309;
+  --color-on-warning: #ffffff;
+  --color-warning-container: #fef3c7;
+  --color-on-warning-container: #78350f;
+  --color-info: #1d4ed8;
+  --color-on-info: #ffffff;
+  --color-info-container: #dbeafe;
+  --color-on-info-container: #1e3a8a;
 
   /* ── Typography ── */
   --font-headline: "Manrope", sans-serif;
