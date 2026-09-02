@@ -2,6 +2,7 @@
 import type { AppointmentListDto } from '../services/waiting-pickup.service'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
+import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
 
 const props = defineProps<{
   appointment: AppointmentListDto
@@ -11,9 +12,7 @@ const props = defineProps<{
 
 <template>
   <div class="flex gap-3 px-4 py-3">
-    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-outline-variant/10 bg-amber-50 text-amber-600">
-      <span class="material-symbols-outlined text-[20px]" aria-hidden="true">local_shipping</span>
-    </div>
+    <CardLeadingIcon icon="local_shipping" tone="warning" label="Waiting pickup" />
 
     <div class="min-w-0 flex-grow">
       <div class="mb-0.5 flex items-center gap-1.5">

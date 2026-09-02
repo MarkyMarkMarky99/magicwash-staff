@@ -6,10 +6,10 @@ import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import { useHeaderSearch } from '@/shared/composables/useHeaderSearch'
 import InvoiceFilterBar from '../components/InvoiceFilterBar.vue'
-import InvoiceTable from '../components/InvoiceTable.vue'
+import InvoiceCard from '../components/InvoiceCard.vue'
 import { useInvoiceStore } from '../stores/invoice.store'
 import { useInvoiceFilterRoute } from '../composables/useInvoiceFilterRoute'
-import type { InvoiceListItemDto, InvoiceStatusDto } from '../types/invoices.types'
+import type { InvoiceStatusDto } from '../types/invoices.types'
 
 const router = useRouter()
 const invoiceStore = useInvoiceStore()
@@ -60,8 +60,8 @@ onMounted(() => {
   if (filter.value.dateFrom || filter.value.dateTo) searchOpen.value = true
 })
 
-function openInvoice(invoice: InvoiceListItemDto) {
-  router.push({ name: 'invoice-detail', params: { invoiceNumber: invoice.invoiceNumber } })
+function openInvoice(invoiceNumber: string) {
+  router.push({ name: 'invoice-detail', params: { invoiceNumber } })
 }
 </script>
 
@@ -91,8 +91,10 @@ function openInvoice(invoice: InvoiceListItemDto) {
       empty-text="No invoices"
       :skeleton-rows="4"
     >
-      <InvoiceTable
-        :invoices="invoices"
+      <InvoiceCard
+        v-for="invoice in invoices"
+        :key="invoice.invoiceNumber"
+        :invoice="invoice"
         @select="openInvoice"
       />
     </ListContainer>

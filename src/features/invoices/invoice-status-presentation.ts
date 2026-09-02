@@ -8,12 +8,13 @@ export interface StatusPresentation {
 
 // Unknown status values fall through to a neutral presentation rather than guessing.
 export const STATUS_PRESENTATION: Record<string, StatusPresentation> = {
-  SUBMITTED: { icon: 'local_laundry_service', label: 'Submitted', tone: 'warning' },
-  PENDING: { icon: 'schedule', label: 'Pending', tone: 'warning' },
-  APPROVED: { icon: 'task_alt', label: 'Approved', tone: 'info' },
-  RECEIVED: { icon: 'inventory_2', label: 'Received', tone: 'accent' },
-  COMPLETED: { icon: 'done_all', label: 'Completed', tone: 'success' },
+  DRAFT: { icon: 'draft', label: 'Draft', tone: 'neutral' },
+  UNPAID: { icon: 'schedule', label: 'Unpaid', tone: 'danger' },
+  OVERDUE: { icon: 'priority_high', label: 'Overdue', tone: 'danger' },
+  PARTIALLY_PAID: { icon: 'hourglass_bottom', label: 'Partially paid', tone: 'info' },
+  PAID: { icon: 'task_alt', label: 'Paid', tone: 'success' },
   CANCELLED: { icon: 'cancel', label: 'Cancelled', tone: 'danger' },
+  VOID: { icon: 'block', label: 'Void', tone: 'danger' },
 }
 
 export const FALLBACK_PRESENTATION: StatusPresentation = {

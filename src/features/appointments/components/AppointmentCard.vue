@@ -2,19 +2,20 @@
 import { computed, onUnmounted, ref } from 'vue'
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
+import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
 import type { AppointmentListDto } from '../services/appointment.service'
 
 type AppointmentStatus = AppointmentListDto['status']
 import type { BadgeTone } from '@/shared/components/BaseBadge.vue'
 
-const statusConfig: Record<AppointmentStatus, { icon: string; label: string; badgeTone: BadgeTone; avatarClass: string }> = {
-  PENDING: { icon: 'schedule', label: 'Pending', badgeTone: 'neutral', avatarClass: 'bg-gray-100 text-gray-500' },
-  CONFIRMED: { icon: 'event_available', label: 'Confirmed', badgeTone: 'accent', avatarClass: 'bg-teal-50 text-teal-700' },
-  IN_TRANSIT: { icon: 'local_shipping', label: 'En Route', badgeTone: 'warning', avatarClass: 'bg-amber-50 text-amber-600' },
-  COMPLETED: { icon: 'task_alt', label: 'Completed', badgeTone: 'success', avatarClass: 'bg-green-50 text-green-700' },
-  CANCELLED: { icon: 'cancel', label: 'Cancelled', badgeTone: 'danger', avatarClass: 'bg-red-50 text-red-700' },
-  NO_SHOW: { icon: 'person_off', label: 'No Show', badgeTone: 'danger', avatarClass: 'bg-red-50 text-red-700' },
+const statusConfig: Record<AppointmentStatus, { icon: string; label: string; tone: BadgeTone }> = {
+  PENDING: { icon: 'schedule', label: 'Pending', tone: 'neutral' },
+  CONFIRMED: { icon: 'event_available', label: 'Confirmed', tone: 'accent' },
+  IN_TRANSIT: { icon: 'local_shipping', label: 'En Route', tone: 'warning' },
+  COMPLETED: { icon: 'task_alt', label: 'Completed', tone: 'success' },
+  CANCELLED: { icon: 'cancel', label: 'Cancelled', tone: 'danger' },
+  NO_SHOW: { icon: 'person_off', label: 'No Show', tone: 'danger' },
 }
 
 const nextStatus: Partial<Record<AppointmentStatus, AppointmentStatus>> = {
@@ -121,15 +122,18 @@ function openMaps() {
       </template>
 
       <div class="px-4 py-3 flex gap-3" :class="variant === 'pending' ? 'py-4' : ''">
-        <div :class="['w-11 h-11 rounded-full flex items-center justify-center shrink-0 border border-outline-variant/10', config.avatarClass]">
-          <span v-if="updating" class="material-symbols-outlined text-[22px] animate-spin">sync</span>
-          <span v-else class="material-symbols-outlined fill-icon text-[22px]">{{ config.icon }}</span>
-        </div>
+        <CardLeadingIcon
+          :icon="updating ? 'sync' : config.icon"
+          :tone="config.tone"
+          size="md"
+          label="Appointment"
+          :class="updating ? 'animate-spin' : ''"
+        />
         <div class="flex-grow min-w-0 flex flex-col justify-center">
           <div class="flex items-center justify-between gap-2 mb-0.5">
             <div class="flex items-center gap-1.5 min-w-0">
               <h3 class="font-headline font-bold text-primary text-[14px] leading-tight truncate">{{ appointment.customerName || appointment.customerId }}</h3>
-              <BaseBadge :label="config.label" size="xs" :uppercase="true" :tone="config.badgeTone" />
+              <BaseBadge :label="config.label" size="xs" :uppercase="true" :tone="config.tone" />
             </div>
             <span v-if="variant === 'daily'" class="font-body text-[11px] font-semibold text-on-surface-variant shrink-0">{{ appointment.timeSlot }}</span>
           </div>

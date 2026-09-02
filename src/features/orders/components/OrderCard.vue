@@ -4,6 +4,7 @@ import type { workOrderListResponseSchema } from '@contracts/work-orders/work-or
 import { formatSheetDate } from '@/shared/utils/sheet-date'
 import { isInvoiceActionAvailable } from '../utils/order-invoice-target'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
+import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
 import { presentationFor } from '../order-status-presentation'
 
 type WorkOrderListDto = z.infer<typeof workOrderListResponseSchema>
@@ -60,12 +61,11 @@ function selectOrder() {
     @keydown.enter="selectOrder"
     @keydown.space.prevent="selectOrder"
   >
-    <div
-      class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-outline-variant/10"
-      :class="presentationFor(order.status).avatarClass"
-    >
-      <span class="material-symbols-outlined text-[20px]" aria-hidden="true">{{ presentationFor(order.status).icon }}</span>
-    </div>
+    <CardLeadingIcon
+      :icon="presentationFor(order.status).icon"
+      :tone="presentationFor(order.status).tone"
+      label="Order"
+    />
 
     <div class="min-w-0 flex-grow">
       <p
@@ -83,7 +83,7 @@ function selectOrder() {
             :label="presentationFor(order.status).label"
             size="xs"
             :uppercase="true"
-            :tone="presentationFor(order.status).badgeTone"
+            :tone="presentationFor(order.status).tone"
           />
           <BaseBadge
             v-if="serviceTypeLabel(order.serviceType)"
