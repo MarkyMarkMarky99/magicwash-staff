@@ -15,7 +15,7 @@ assert.deepEqual(priceListDbContract.writes, {
 })
 
 const physicalColumns = Object.keys(priceListRowSchema.shape)
-assert.equal(physicalColumns.length, 14)
+assert.equal(physicalColumns.length, 16)
 assert.equal(physicalColumns[0], 'id')
 assert.equal(physicalColumns[4], 'itemtype')
 
@@ -27,9 +27,11 @@ const validPriceListRow = {
   itemtype: 'shirt',
   variant: 'standard',
   display_name_th: 'เสื้อเชิ้ต',
-  wash_dry_iron_price: 0,
-  iron_only_price: 50,
-  dry_clean_price: 120,
+  display_name_en: null,
+  service_type: 'WSIR',
+  price_group: 'DEFAULT',
+  unit: null,
+  price: 0,
   credit_eligible: false,
   effective_from: 'Date(2026,0,1)',
   effective_to: null,
@@ -41,17 +43,15 @@ assert.deepEqual(
   priceListRowSchema.parse({
     ...validPriceListRow,
     variant: null,
-    wash_dry_iron_price: null,
-    iron_only_price: null,
-    dry_clean_price: null,
+    display_name_en: null,
+    unit: null,
     effective_to: null,
   }),
   {
     ...validPriceListRow,
     variant: null,
-    wash_dry_iron_price: null,
-    iron_only_price: null,
-    dry_clean_price: null,
+    display_name_en: null,
+    unit: null,
     effective_to: null,
   },
 )
@@ -80,9 +80,11 @@ for (const field of ['category', 'subcategory', 'itemtype', 'display_name_th']) 
 }
 assertInvalidRow('variant must be non-empty when present', { variant: '' })
 
-for (const field of ['wash_dry_iron_price', 'iron_only_price', 'dry_clean_price']) {
-  assertInvalidRow(`${field} must be numeric when non-null`, { [field]: '0' })
-}
+assertInvalidRow('service_type must be a known service', { service_type: 'OTHER' })
+assertInvalidRow('price_group must be non-empty', { price_group: '' })
+assertInvalidRow('unit must be non-empty when present', { unit: '' })
+assertInvalidRow('price must be numeric', { price: '0' })
+assertInvalidRow('price must be nonnegative', { price: -1 })
 assertInvalidRow('credit_eligible must be boolean', { credit_eligible: 'false' })
 assertInvalidRow('active must be boolean', { active: 'false' })
 

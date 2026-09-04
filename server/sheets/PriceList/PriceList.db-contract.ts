@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { serviceTypeSchema } from '../../../contracts/shared/service-type.schema.js'
 import type { SheetContract } from '../../shared/contracts/sheet-contract.js'
 
 /** KEY ORDER = physical PriceList sheet column order. */
@@ -10,9 +11,11 @@ export const priceListRowSchema = z.object({
   itemtype: z.string().min(1),
   variant: z.string().min(1).nullable(),
   display_name_th: z.string().min(1),
-  wash_dry_iron_price: z.number().nullable(),
-  iron_only_price: z.number().nullable(),
-  dry_clean_price: z.number().nullable(),
+  display_name_en: z.string().min(1).nullable(),
+  service_type: serviceTypeSchema,
+  price_group: z.string().min(1),
+  unit: z.string().min(1).nullable(),
+  price: z.number().nonnegative(),
   credit_eligible: z.boolean(),
   effective_from: z.string(),
   effective_to: z.string().nullable(),

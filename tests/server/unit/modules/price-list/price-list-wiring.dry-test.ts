@@ -25,7 +25,7 @@ function response(text: string): Response {
 }
 
 function gvizBody(values: unknown[] = []): string {
-  const columns = Array.from({ length: 14 }, (_, index) => ({
+  const columns = Array.from({ length: 16 }, (_, index) => ({
     id: String.fromCharCode(65 + index),
   }))
 
@@ -105,9 +105,11 @@ test('list maps the physical itemtype column to itemType and preserves null, fal
     'itemtype-from-db',
     null,
     'เสื้อเชิ้ต',
+    'Shirt',
+    'WSIR',
+    'DEFAULT',
+    'piece',
     0,
-    null,
-    120,
     false,
     'Date(2026,0,1)',
     null,
@@ -128,9 +130,11 @@ test('list maps the physical itemtype column to itemType and preserves null, fal
           itemType: 'itemtype-from-db',
           variant: null,
           displayNameTh: 'เสื้อเชิ้ต',
-          washDryIronPrice: 0,
-          ironOnlyPrice: null,
-          dryCleanPrice: 120,
+          displayNameEn: 'Shirt',
+          serviceType: 'WSIR',
+          priceGroup: 'DEFAULT',
+          unit: 'piece',
+          price: 0,
           creditEligible: false,
           effectiveFrom: '2026-01-01',
           effectiveTo: null,
@@ -146,9 +150,11 @@ test('list maps the physical itemtype column to itemType and preserves null, fal
         'itemType',
         'variant',
         'displayNameTh',
-        'washDryIronPrice',
-        'ironOnlyPrice',
-        'dryCleanPrice',
+        'displayNameEn',
+        'serviceType',
+        'priceGroup',
+        'unit',
+        'price',
         'creditEligible',
         'effectiveFrom',
         'effectiveTo',
@@ -193,8 +199,10 @@ test('dirty legacy string cells remain readable without changing the declared re
     'legacy-itemtype',
     '',
     'Legacy display name',
-    0,
-    null,
+    '',
+    'legacy-service',
+    '',
+    '',
     0,
     false,
     'Date(2025,11,31)',
@@ -222,6 +230,8 @@ test('list queries use physical GViz columns for all keyword fields, equality fi
         category: 'tops',
         subcategory: 'shirt',
         itemType: 'wash',
+        serviceType: 'WSIR',
+        priceGroup: 'DEFAULT',
         page: 2,
         perPage: 5,
         sortBy: 'displayNameTh',
@@ -229,7 +239,7 @@ test('list queries use physical GViz columns for all keyword fields, equality fi
       })
 
       const query = new URL(calls[0].url).searchParams.get('tq') ?? ''
-      for (const physicalColumn of ['B', 'C', 'D', 'E', 'F', 'G']) {
+      for (const physicalColumn of ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']) {
         assert.match(query, new RegExp(`\\b${physicalColumn}\\b`), physicalColumn)
       }
       assert.match(query, /order by G desc/i)
@@ -242,6 +252,25 @@ test('list queries use physical GViz columns for all keyword fields, equality fi
         'effectiveFrom',
       ]) {
         assert.equal(query.includes(apiField), false, `GViz query leaked API field ${apiField}`)
+      }
+    },
+  )
+})
+
+test('every public price-list sort field maps to its physical GViz column', async () => {
+  const { priceListService } = await productionPriceListModule()
+  const expectedColumns = {
+    itemCode: 'B', category: 'C', subcategory: 'D', itemType: 'E', displayNameTh: 'G',
+    serviceType: 'I', priceGroup: 'J', price: 'L', effectiveFrom: 'N',
+  } as const
+
+  await withMockFetch(
+    async () => response(gvizBody()),
+    async (calls) => {
+      for (const [sortBy, column] of Object.entries(expectedColumns)) {
+        await priceListService.list({ page: 1, perPage: 1, sortBy, sortOrder: 'asc' })
+        const query = new URL(calls.at(-1)!.url).searchParams.get('tq') ?? ''
+        assert.match(query, new RegExp(`order by ${column} asc`, 'i'), sortBy)
       }
     },
   )

@@ -19,9 +19,11 @@ const existingRow = [
   'wash',
   'standard',
   'เสื้อเชิ้ต',
+  'Shirt',
+  'WSIR',
+  'DEFAULT',
+  'piece',
   75,
-  40,
-  null,
   true,
   '2026-01-01',
   null,
@@ -92,9 +94,11 @@ await withMockSheets(
           'wash',
           '',
           'กางเกง',
-          90,
           '',
-          180,
+          'WASH',
+          'DEFAULT',
+          '',
+          90,
           false,
           '2026-02-03',
           '',
@@ -105,7 +109,7 @@ await withMockSheets(
         spreadsheetId: process.env.PRICE_LIST_SPREADSHEET_ID,
         updates: {
           updatedRows: 1,
-          updatedRange: 'PriceList!A2:N2',
+          updatedRange: 'PriceList!A2:P2',
           updatedData: { values: body.values },
         },
       })
@@ -120,8 +124,9 @@ await withMockSheets(
       subcategory: 'trousers',
       itemtype: 'wash',
       display_name_th: 'กางเกง',
-      wash_dry_iron_price: 90,
-      dry_clean_price: 180,
+      service_type: 'WASH',
+      price_group: 'DEFAULT',
+      price: 90,
       credit_eligible: false,
       effective_from: '2026-02-03',
       active: true,
@@ -149,15 +154,15 @@ await withMockSheets(
       assert.deepEqual(body, {
         valueInputOption: 'USER_ENTERED',
         data: [
-          { range: 'PriceList!L2:L2', values: [['2026-04-05']] },
-          { range: 'PriceList!M2:M2', values: [['']] },
-          { range: 'PriceList!N2:N2', values: [[false]] },
+          { range: 'PriceList!N2:N2', values: [['2026-04-05']] },
+          { range: 'PriceList!O2:O2', values: [['']] },
+          { range: 'PriceList!P2:P2', values: [[false]] },
         ],
       })
       return jsonResponse({ responses: [{}, {}, {}] })
     }
-    if (call.init?.method === 'GET' && path.endsWith('/values/PriceList!A2:N2')) {
-      return jsonResponse({ values: [[...existingRow.slice(0, 11), '2026-04-05', '', false]] })
+    if (call.init?.method === 'GET' && path.endsWith('/values/PriceList!A2:P2')) {
+      return jsonResponse({ values: [[...existingRow.slice(0, 13), '2026-04-05', '', false]] })
     }
     throw new Error(`Unexpected update request: ${call.init?.method} ${path}`)
   },

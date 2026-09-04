@@ -25,9 +25,11 @@ const SHEET_HEADERS = [
   'itemtype',
   'variant',
   'display_name_th',
-  'wash_dry_iron_price',
-  'iron_only_price',
-  'dry_clean_price',
+  'display_name_en',
+  'service_type',
+  'price_group',
+  'unit',
+  'price',
   'credit_eligible',
   'effective_from',
   'effective_to',
@@ -43,9 +45,11 @@ const sheetRows: SheetRow[] = [
     'wash',
     'standard',
     'เสื้อเชิ้ต',
+    'Shirt',
+    'WSIR',
+    'DEFAULT',
+    'piece',
     75,
-    40,
-    null,
     true,
     'Date(2026,0,1)',
     null,
@@ -72,7 +76,7 @@ function gvizResponse(rows: SheetRow[]): Response {
   const tableRows = rows.map((row) => ({
     c: row.map((value, index) => {
       if (value === null) return null
-      const dateValue = index === 11 || index === 12 ? asGvizDate(value) : value
+      const dateValue = index === 13 || index === 14 ? asGvizDate(value) : value
       return { v: dateValue }
     }),
   }))
@@ -166,10 +170,14 @@ function assertApiError(
 }
 
 const createPayload = {
+  itemCode: 'ITM-0013',
   category: 'bottoms',
   subcategory: 'trousers',
   itemType: 'wash',
   displayNameTh: 'กางเกง',
+  serviceType: 'WASH',
+  priceGroup: 'DEFAULT',
+  price: 90,
   creditEligible: false,
   effectiveFrom: '2026-02-03',
   active: true,
@@ -208,7 +216,7 @@ async function withMockSheets(run: (calls: FetchCall[]) => Promise<void>): Promi
       sheetRows.push([...body.values[0]!])
       return jsonResponse({
         spreadsheetId: process.env.PRICE_LIST_SPREADSHEET_ID,
-        updates: { updatedRows: 1, updatedRange: 'PriceList!A2:N2', updatedData: { values: body.values } },
+        updates: { updatedRows: 1, updatedRange: 'PriceList!A2:P2', updatedData: { values: body.values } },
       })
     }
     if (init?.method === 'POST' && path.endsWith('/values:batchUpdate')) {
@@ -219,8 +227,8 @@ async function withMockSheets(run: (calls: FetchCall[]) => Promise<void>): Promi
         responses: Array.isArray(body.data) ? body.data.map(() => ({})) : [],
       })
     }
-    if (init?.method === 'GET' && /\/values\/PriceList!A\d+:N\d+$/.test(path)) {
-      const rowNumber = Number(/PriceList!A(\d+):N\d+$/.exec(path)![1]) - 2
+    if (init?.method === 'GET' && /\/values\/PriceList!A\d+:P\d+$/.test(path)) {
+      const rowNumber = Number(/PriceList!A(\d+):P\d+$/.exec(path)![1]) - 2
       return jsonResponse({ values: [sheetRows[rowNumber]] })
     }
 
@@ -237,13 +245,14 @@ async function withMockSheets(run: (calls: FetchCall[]) => Promise<void>): Promi
 await withMockSheets(async (calls) => {
   const invalidCreateBodies = [
     { ...createPayload, id: 'client-id' },
-    { ...createPayload, itemCode: 'ITM-9999' },
+    { ...createPayload, itemCode: 'ITEM-9999' },
     (() => {
       const missing = { ...createPayload }
       delete (missing as Record<string, unknown>).category
       return missing
     })(),
     { ...createPayload, effectiveFrom: '03/02/2026' },
+    { ...createPayload, price: -1 },
   ]
 
   for (const body of invalidCreateBodies) {
@@ -258,7 +267,8 @@ await withMockSheets(async (calls) => {
 
   for (const body of [
     { active: false, id: 'changed-id' },
-    { active: false, itemCode: 'ITM-9999' },
+    { active: false, itemCode: 'ITEM-9999' },
+    { price: -1 },
   ]) {
     const before = calls.length
     assertApiError(
@@ -275,9 +285,9 @@ await withMockSheets(async (calls) => {
   assert.equal(firstCreate.status, 201)
   const firstCreated = dataOf(firstCreate)
   assert.match(String(firstCreated.id), /^[a-z0-9]{8}$/)
-  assert.equal(firstCreated.itemCode, 'ITM-0013')
+  assert.equal(firstCreated.itemCode, createPayload.itemCode)
   assert.equal(firstCreated.variant, null)
-  assert.equal(firstCreated.washDryIronPrice, null)
+  assert.equal(firstCreated.price, createPayload.price)
   assert.equal(firstCreated.effectiveFrom, '2026-02-03')
   assert.equal(firstCreated.effectiveTo, null)
   assert.equal(JSON.stringify(firstCreate.body).includes('Date('), false)
@@ -289,16 +299,16 @@ await withMockSheets(async (calls) => {
   const appendUrl = new URL(appendCall.url)
   assert.equal(appendUrl.searchParams.get('valueInputOption'), 'USER_ENTERED')
   const appendBody = JSON.parse(String(appendCall.init?.body)) as { values: SheetRow[] }
-  assert.equal(appendBody.values[0]![11], '2026-02-03')
+  assert.equal(appendBody.values[0]![13], '2026-02-03')
 
   const secondCreate = await priceListRoutes.collection.handleRequest(
-    request('POST', { ...createPayload, displayNameTh: 'กางเกงตัวที่สอง' }),
+    request('POST', { ...createPayload, displayNameTh: 'กางเกงตัวที่สอง', priceGroup: 'DEFAULT2026' }),
   )
   assert.equal(secondCreate.status, 201)
   const secondCreated = dataOf(secondCreate)
   assert.match(String(secondCreated.id), /^[a-z0-9]{8}$/)
   assert.notEqual(secondCreated.id, firstCreated.id)
-  assert.equal(secondCreated.itemCode, 'ITM-0014')
+  assert.equal(secondCreated.itemCode, createPayload.itemCode)
 
   const listAfterCreates = await priceListRoutes.collection.handleRequest(request('GET'))
   const listedAfterCreates = bodyOf(listAfterCreates).data as Array<Record<string, unknown>>
@@ -314,11 +324,11 @@ await withMockSheets(async (calls) => {
   const beforeUpdate = listedAfterCreates.find((item) => item.id === 'a1b2c3d4')
   assert.ok(beforeUpdate)
   const updatedResponse = await priceListRoutes.item!.handleRequest(
-    request('PATCH', { washDryIronPrice: 95, active: false }, { id: 'a1b2c3d4' }),
+    request('PATCH', { price: 95, active: false }, { id: 'a1b2c3d4' }),
   )
   assert.equal(updatedResponse.status, 200)
   const updated = dataOf(updatedResponse)
-  assert.deepEqual(updated, { ...beforeUpdate, washDryIronPrice: 95, active: false })
+  assert.deepEqual(updated, { ...beforeUpdate, price: 95, active: false })
 
   const listAfterUpdate = await priceListRoutes.collection.handleRequest(request('GET'))
   const afterUpdate = (bodyOf(listAfterUpdate).data as Array<Record<string, unknown>>).find(

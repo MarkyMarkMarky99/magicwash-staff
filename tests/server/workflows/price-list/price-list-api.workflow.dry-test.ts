@@ -63,7 +63,7 @@ function request(options: RequestOptions = {}): Record<string, unknown> {
 }
 
 function gvizBody(rows: unknown[] = []): string {
-  const columns = Array.from({ length: 14 }, (_, index) => ({
+  const columns = Array.from({ length: 16 }, (_, index) => ({
     id: String.fromCharCode(65 + index),
   }))
 
@@ -131,9 +131,11 @@ const representativeRow = [
   'wash',
   null,
   'เสื้อเชิ้ต',
+  'Shirt',
+  'WSIR',
+  'DEFAULT',
+  'piece',
   0,
-  null,
-  120,
   false,
   'Date(2026,0,1)',
   null,
@@ -148,9 +150,11 @@ const expectedItem = {
   itemType: 'wash',
   variant: null,
   displayNameTh: 'เสื้อเชิ้ต',
-  washDryIronPrice: 0,
-  ironOnlyPrice: null,
-  dryCleanPrice: 120,
+  displayNameEn: 'Shirt',
+  serviceType: 'WSIR',
+  priceGroup: 'DEFAULT',
+  unit: 'piece',
+  price: 0,
   creditEligible: false,
   effectiveFrom: '2026-01-01',
   effectiveTo: null,
@@ -224,6 +228,8 @@ try {
           category: 'tops',
           subcategory: 'shirt',
           itemType: 'wash',
+          serviceType: 'WSIR',
+          priceGroup: 'DEFAULT',
           active: 'true',
           page: '2',
           perPage: '5',
@@ -241,10 +247,13 @@ try {
       assert.match(query, /E contains 'shirt'/)
       assert.match(query, /F contains 'shirt'/)
       assert.match(query, /G contains 'shirt'/)
+      assert.match(query, /H contains 'shirt'/)
       assert.match(query, /B = 'ITM-0001'/)
       assert.match(query, /C = 'tops'/)
       assert.match(query, /D = 'shirt'/)
       assert.match(query, /E = 'wash'/)
+      assert.match(query, /I = 'WSIR'/)
+      assert.match(query, /J = 'DEFAULT'/)
       assert.match(query, /order by G desc/)
       assert.match(query, /limit 5\noffset 5/)
       assert.equal(query.includes('active'), false)
@@ -266,9 +275,11 @@ try {
             'legacy-itemtype',
             '',
             'Legacy display name',
+            '',
+            'legacy-service',
+            '',
+            '',
             '0',
-            'legacy-price',
-            0,
             'false',
             'Date(2025,11,31)',
             'Date(2026,11,31)',
@@ -290,9 +301,11 @@ try {
           itemType: 'legacy-itemtype',
           variant: '',
           displayNameTh: 'Legacy display name',
-          washDryIronPrice: '0',
-          ironOnlyPrice: 'legacy-price',
-          dryCleanPrice: 0,
+          displayNameEn: '',
+          serviceType: 'legacy-service',
+          priceGroup: '',
+          unit: '',
+          price: '0',
           creditEligible: 'false',
           effectiveFrom: '2025-12-31',
           effectiveTo: '2026-12-31',

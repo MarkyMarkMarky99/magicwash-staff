@@ -23,9 +23,11 @@ export const priceListFieldMap = {
   itemtype: 'itemType',
   variant: 'variant',
   display_name_th: 'displayNameTh',
-  wash_dry_iron_price: 'washDryIronPrice',
-  iron_only_price: 'ironOnlyPrice',
-  dry_clean_price: 'dryCleanPrice',
+  display_name_en: 'displayNameEn',
+  service_type: 'serviceType',
+  price_group: 'priceGroup',
+  unit: 'unit',
+  price: 'price',
   credit_eligible: 'creditEligible',
   effective_from: 'effectiveFrom',
   effective_to: 'effectiveTo',
@@ -39,6 +41,7 @@ export const searchFields = [
   'itemType',
   'variant',
   'displayNameTh',
+  'displayNameEn',
 ] as const
 
 type PriceListApiRow = ApiRowFromFieldMap<PriceListDbRow, typeof priceListFieldMap>
@@ -65,12 +68,10 @@ const priceListRepository: SheetRepositoryContract<PriceListDbRow> = {
   append: async (row) => {
     const existingRows = await getPriceListRepository().read()
     const id = nextPriceListId(existingRows)
-    const itemCode = nextPriceListItemCode(existingRows)
 
     return getPriceListRepository().append({
       ...withPriceListNullableDefaults(row),
       id,
-      item_code: itemCode,
     })
   },
   batchAppend: (rows) => getPriceListRepository().batchAppend(rows),
@@ -91,9 +92,8 @@ export const priceListRoutes = createCrudRoutes(priceListService, priceListApiCo
 const GVIZ_DATE_PATTERN = /^Date\((\d{4}),(\d{1,2}),(\d{1,2})(?:,[^)]+)?\)$/
 const PRICE_LIST_NULLABLE_COLUMNS = [
   'variant',
-  'wash_dry_iron_price',
-  'iron_only_price',
-  'dry_clean_price',
+  'display_name_en',
+  'unit',
   'effective_to',
 ] as const
 
@@ -148,27 +148,6 @@ function nextPriceListId(rows: Array<Partial<PriceListDbRow>>): string {
 
 function createPriceListId(): string {
   return randomUUID().replace(/-/g, '').slice(0, 8)
-}
-
-function nextPriceListItemCode(rows: Array<Partial<PriceListDbRow>>): string {
-  let maximum = 0
-  for (const row of rows) {
-    if (typeof row.item_code !== 'string') {
-      continue
-    }
-
-    const match = /^ITM-(\d+)$/.exec(row.item_code)
-    if (match === null) {
-      continue
-    }
-
-    const suffix = Number(match[1])
-    if (Number.isSafeInteger(suffix)) {
-      maximum = Math.max(maximum, suffix)
-    }
-  }
-
-  return `ITM-${String(maximum + 1).padStart(4, '0')}`
 }
 
 function normalizePriceListDate(value: unknown): unknown {
