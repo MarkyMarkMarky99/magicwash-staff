@@ -19,6 +19,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.2.2",
     "@vercel/node": "^5.8.14",
     "@vitejs/plugin-vue": "^6.0.5",
