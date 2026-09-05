@@ -316,7 +316,8 @@ onMounted(async () => {
 .mode-button:disabled { cursor:not-allowed; opacity:.5; }
 .assigned-code { margin:0 0 12px; color:var(--quiet); font-size:12px; }
 .existing-item-picker { margin-top:4px; }
-.existing-item-list { max-height:190px; margin:-5px 0 13px; overflow-y:auto; border:1px solid var(--line); border-radius:10px; background:#fff; }
+.existing-item-list { max-height:190px; margin:-5px 0 13px; overflow-y:auto; border:1px solid var(--line); border-radius:10px; background:#fff; -ms-overflow-style:none; scrollbar-width:none; }
+.existing-item-list::-webkit-scrollbar { display:none; }
 .existing-item { display:flex; width:100%; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-bottom:1px solid var(--line); color:var(--ink); text-align:left; }
 .existing-item:last-child { border-bottom:0; }
 .existing-item strong,.existing-item small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

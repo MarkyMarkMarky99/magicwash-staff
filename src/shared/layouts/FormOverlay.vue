@@ -227,6 +227,14 @@ function handleSubmit() {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 21px 20px 0;
+  /* Every other scroll region in the app hides its scrollbar (`no-scrollbar` in style.css).
+     This one did not, so a full-height form painted a native bar down the sheet's edge. */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.form-overlay__body::-webkit-scrollbar {
+  display: none;
 }
 
 .form-overlay__footer {
