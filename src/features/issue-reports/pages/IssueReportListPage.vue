@@ -52,11 +52,11 @@ onMounted(() => void issueReportStore.load())
         <template #actions>
           <button
             type="button"
-            class="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-primary px-2.5 py-1 font-label text-[11px] font-bold text-on-primary shadow-sm"
+            class="-my-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10 active:bg-primary/20 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            aria-label="แจ้งปัญหาใหม่"
             @click="openCreate"
           >
-            <span class="material-symbols-outlined text-[16px]" aria-hidden="true">add</span>
-            <span>แจ้งปัญหาใหม่</span>
+            <span class="material-symbols-outlined text-[16px]" aria-hidden="true">report</span>
           </button>
         </template>
         <IssueReportCard v-for="report in filteredItems" :key="report.issueReportId" :report="report" @select="openDetail" />

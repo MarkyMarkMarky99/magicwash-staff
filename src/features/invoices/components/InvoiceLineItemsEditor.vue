@@ -76,11 +76,11 @@ function removeLine(index: number) {
         </button>
         <button
           type="button"
-          class="flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 font-label text-[11px] font-bold text-on-primary transition-colors hover:bg-primary/90"
+          class="-my-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10 active:bg-primary/20 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          aria-label="Add line"
           @click.stop="emit('addLine')"
         >
-          <span class="material-symbols-outlined text-[14px]" aria-hidden="true">add</span>
-          Add line
+          <span class="material-symbols-outlined text-[16px]" aria-hidden="true">playlist_add</span>
         </button>
       </div>
     </template>

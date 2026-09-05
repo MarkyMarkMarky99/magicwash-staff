@@ -45,7 +45,16 @@ onMounted(() => void packageStore.load())
     </template>
 
       <ListContainer title="แพ็กเกจ" icon="inventory_2" :count="filteredPackages.length" count-label="รายการ" :loading="loading && !loaded" :error="loaded ? null : error" :empty="!loading && !error && filteredPackages.length === 0" empty-text="ไม่พบแพ็กเกจ" :skeleton-rows="4">
-        <template #actions><button type="button" class="rounded-full bg-primary px-3 py-1 font-label text-xs font-bold text-on-primary" @click="openCreate">เพิ่มแพ็กเกจ</button></template>
+        <template #actions>
+          <button
+            type="button"
+            class="-my-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10 active:bg-primary/20 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            aria-label="เพิ่มแพ็กเกจ"
+            @click="openCreate"
+          >
+            <span class="material-symbols-outlined text-[16px]" aria-hidden="true">card_membership</span>
+          </button>
+        </template>
         <PackageCard v-for="packageItem in filteredPackages" :key="packageItem.packageCode" :package="packageItem" @edit="openEdit" />
       </ListContainer>
   </ListPageLayout>

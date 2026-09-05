@@ -19,11 +19,11 @@ const { items, loading, error } = storeToRefs(useCustomerPackagesStore())
     <template #actions>
       <button
         type="button"
-        class="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-primary px-2.5 py-1 font-label text-[11px] font-bold text-on-primary shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        class="-my-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10 active:bg-primary/20 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        aria-label="Buy a package"
         @click.stop="emit('buy')"
       >
-        <span class="material-symbols-outlined text-[16px]" aria-hidden="true">add</span>
-        <span>Buy</span>
+        <span class="material-symbols-outlined text-[16px]" aria-hidden="true">add_shopping_cart</span>
       </button>
     </template>
     <CustomerPackageListCards
