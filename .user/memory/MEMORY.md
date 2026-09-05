@@ -1,65 +1,130 @@
 # Project memory
 
-## Where we are — 2026-08-23
+Live note — what is in flight, what is next, what is stuck.
+Rules: `.claude/.rules/memory.md`. Read it before writing here. Finished → delete the line.
 
-- **Current branch/worktree (2026-09-02):** `feat/shared-dropdown-ui` in
-  `C:\MagicwashGemini\webapp-vue-ui-main`, created from `origin/main` at `c45b710`. It carries
-  generic shared `BaseDropdown`, the three Order Image capture actions in the section header, and
-  the Invoice payment-history migration while preserving its proof lightbox flow. Local invoices
-  returned zero rows, so the dropdown has no record-level browser smoke test; production build
-  passed. The user runs `vercel dev` on port 3001; do not start a second server.
-- **Orders FE state fix (uncommitted):** order detail uses one `orderAction=item|capture` query,
-  normalizes legacy conflicting overlay flags, resets item/photo drafts per order, and discards
-  stale list/detail/customer responses. New dry-test passes 5/5 and production build passes;
-  browser smoke test remains because no browser session was available.
-- **List-page standard:** `docs/design/patterns/list-pages.md` is the required pattern for new or materially reworked root collection pages. It codifies a single scroll-region layout, route-owned/debounced filters, accessible controls, semantic status presentation, and the rule that paged APIs must provide reachable navigation plus full pagination metadata (or the feature must explicitly fetch its bounded collection). It was added after the customer-package list review exposed an inaccessible second page.
-- **Current branch:** `feature/price-list-form-layout`, created from `main`.
-- **Current work:** Price List form uses `FormOverlay` with its standard header and one `บันทึกราคา` footer action. The page only supplies its body slot; the legacy system-assigned item-code note and related state are removed. Page-local duplicate font import and unused placeholder CSS are removed; existing `BaseOverlay` is unchanged. The FormInput migration and Thai typography fixes remain intact. A dedicated shared `FormSwitch` owns the generic boolean-switch UI and replaces both Price List switches. The “ช่วงเวลาราคา” section precedes “รายการ”; its inter-section spacing matches the “รายการ” → service-price gap, and no gap remains before the switches.
-- **Appointment form migration:** `CreateAppointmentPage` and `RescheduleAppointmentPage` individually own `FormOverlay` (different action copy); `AppointmentForm` remains body-only. Header is action context → prominent customer name → address; use nonempty fallbacks (reschedule `Appointment`) and retain error/submit gating. Customer card is removed from the body, while create's missing-customer warning remains. `frontend-reviewer` approved after the reschedule fallback and nested-gutter corrections.
-- **Appointment type decision:** The AppointmentForm type tabs and the delivery-linked body badge are removed. Create derives payload type solely from the consumed delivery-order intent: a nonempty `deliveryOrderId` creates `DELIVERY`, otherwise it always creates `PICKUP`. Create header eyebrow is exactly `SCHEDULE A DELIVERY` or `SCHEDULE A PICKUP` accordingly. This preserves selected-order delivery and prevents direct `/new-booking` from creating delivery; `frontend-reviewer` approved.
-- **Shared control decision:** `FormOptionGrid` is visually aligned to `FormInput` (typography, input outline/radius/surface/height/focus) while preserving selected/disabled option states and its card variant. Its label is a semantic `fieldset`/`legend`, not `FormLabel`, because a label `for` cannot associate with a multi-button grid. Its only live usage (`AppointmentForm` timeslots) was checked; `frontend-reviewer` approved.
-- **Cleanup before refactor:** on `refactor/shared-list-page-shell`, move root prototype HTML files into `.agent-docs/` and commit the untracked `.codex` agent config plus `.claude` Python cache as explicitly requested; the ignored `.worktrees/` prototype is outside this repo cleanup.
-- **Shared-list decision:** do not add a page shell yet; existing `ListContainer` is the useful shared boundary. Reconsider only when repeated page behavior can actually move into a shared owner.
+## Where we are — 2026-09-05
 
-- **Branch:** `main` — `overlay-shell` fully merged (`de85ec9`), including the PriceList feature (merged the day before via `codex/pricelist-contracts`). Single worktree at `webapp-vue`; the other worktrees (`webapp-vue-pricelist`, `webapp-vue-orders-refactor`, `.worktrees/*`) were stale/empty and have been deleted.
-- **Current workstream:** frontend layout/navigation refactor (`docs/frontend-layout-nav-refactor.md`) — Stage 3 done and merged: the order detail sheet is route-driven with `?order=<id>` via `useOrderSheetRoute.ts`, rendered through the new shared `BaseOverlay.vue`.
-- **Cleanup pending:** local + remote branch `overlay-shell` is fully merged into `main` — safe to delete, not yet done.
+- **Branches:** `main` (synced) · `feat/price-list-frontend-v2` (current, pushed, **ready to
+  merge**) · `feat/live-order-helper` (pushed, unmerged, kept on purpose). Single worktree.
+- `feat/live-order-helper` holds `getLiveOrderById()` plus a read-only parity script that
+  samples 50 orders and checks `OrdersView` against live `OrderForm` + `OrderItemForms`.
+  Nothing calls it yet.
+- **Pipeline is 3 roles:** mason → clerk (executable tests + gates + mutation proof) → sentinel.
+  The test-first role was removed 2026-09-05: with no code to call it could only regex the
+  source, producing guards that failed against correct code and guards that could not fail.
+- **Never dispatch `backend-team` or any pipeline unless the user names it.** No default
+  code-writing assistant.
 
-## Price list
+## Price list — do this first
 
-- Merged into `main` (`codex/pricelist-contracts`, 2026-08-19). Page live at `#/price-list`, nav entry `รายการราคา`, 76 real rows. Create/edit forms + backend create/update enabled; **no delete, by instruction**.
-- **Still blocked:** share the PriceList sheet with `magicwash-staff-writer@magicwashlaundry-a50ca.iam.gserviceaccount.com` as Editor — writes return 500 wrapping a Google 403 until then. No code change needed after.
-- Also pending: add `PRICE_LIST_SPREADSHEET_ID` to Vercel env; remove the stray empty Vercel project `webapp-vue-pricelist`.
+1. Merge `feat/price-list-frontend-v2` into `main`, delete the branch.
+2. Fill real prices for the 33 rows sitting at placeholder `price 0` (all `active: false`).
 
-## Waiting on the user
+Done, do not redo:
 
-- [ ] Test the merged overlay sheet on a real phone: drag-to-close, scrolling inside the sheet, Android Back, and iOS edge-swipe.
-- [ ] Decide whether to delete branch `overlay-shell` (local + remote) now that it's merged.
+- v2 = 16 columns; the three price columns became `service_type` + `price_group` + `unit` +
+  `price`, plus `display_name_en`. A row is one item × one service × one price group, so
+  `item_code` is deliberately **not unique**.
+- Sheet + G Drive registry migrated, 78 → 79 rows. Backup tab `PriceList_backup_2026-09-04`.
+  `ITM-0086` dropped; `ITM-0087` merged into `ITM-0010` — now 4 rows, two active WSIR at 120
+  and 700, where price is the only thing telling them apart.
+- `itemCode` is minted server-side again when create omits it; update no longer accepts it.
+- Catalogue loads in ONE request (`perPage` cap 1000) — offset paging over the non-unique
+  `item_code` can silently drop rows. Do not reintroduce a page-walk here.
+- Verified: `typecheck:api` clean, server 84/84, web 33/34, build green, browser-tested by the
+  user. The red web test (`packages/pages/package-pages.dry-test.ts`) fails on `origin/main` too.
+- No delete endpoint, by instruction.
 
-## Next
+Reported, not fixed:
 
-- [ ] Add API authentication before launch.
-- [ ] Pass actor identity into repository writes for an audit trail.
-- [ ] Implement API-mediated photo upload and customer writes.
-- [ ] Stage 4: migrate remaining overlays onto the `BaseOverlay` + `useOrderSheetRoute.ts` pattern — still local-state: `OrderGalleryPage.vue` (source picker + lightbox), `InvoiceProofLightbox.vue`, `NavSidebar.vue`. Camera also still mirrors `route.meta` into a local `ref` (`OrderGalleryPage.vue`) — soft conflict with the no-mirror rule in `CLAUDE.md`.
+- `InvoiceItems.service_type` is written `null` unconditionally — a line's service survives
+  only inside the description string.
+- No `active` filter on the list query; the picker fetches everything and filters client-side.
+- **Trap:** clearing a range does not clear number formats. `price` landed where
+  `effective_from` used to sit and rendered as dates until the format was reset.
 
-## Follow-ups
+## Photos — decide before building
 
-- [x] Confirm the two `VITE_*` spreadsheet IDs are unused, then remove them — done, removed in the overlay-shell merge (`.env.example`).
-- [ ] Confirm `CUSTOMERS_SPREADSHEET_ID` is set in every Vercel environment.
-- [ ] Review the pre-existing nested `<button>` in `OrderGalleryPage.vue` (~line 255).
+Destination: one shared camera component for before/after/order images; backend uploads the
+binary to Firebase and writes the URL to Sheets. Small steps, never one pass.
 
-## Gotcha learned this session
+**Blocked on one decision, no branch yet:**
 
-- `npx vercel dev` (serves `:3000`, proxies non-`/api` requests to a Vite child) can leave a long-lived process whose frontend proxy silently breaks while `/api/*` keeps working. Symptom: `/` returns 500 `FUNCTION_INVOCATION_FAILED`, API routes still 200. Fix is to restart `vercel dev` — not an app-code bug, don't chase it in source.
+- (a) extend `OrderImages` with `orderitem_id` + before/after and merge both photo
+  spreadsheets into it — needs a registry edit under `G:\My Drive\...\GoogleSheets\*.json`,
+  **user-only**; or
+- (b) add a separate `laundry-photos` module matching the sheets that already exist.
 
-## Resume reading
+Why (a) is not just wiring:
 
-1. `NEXT-SESSION.md`
-2. `docs/frontend-layout-nav-refactor.md`
-3. `CLAUDE.md` — especially "Overlays must never own browser history"
+- `OrderImages` has no `orderitem_id`; its column is `image_path`, the live sheet uses `image_url`.
+- `OrderImages.image_type` means evidence kind (`BAG`, `WEIGHT`, `DOCUMENT`), not BEF/AFT.
+- `LaundryPhotos.db-contract.ts` sets `writes.append: false` → `append()` throws.
+- No route registered for `LaundryPhotos` or `AfterPhoto`; only `order-images`.
 
-## Project rules
+Live path today: `src/features/gallery/` — `getUserMedia`, client-side compression, browser
+uploads straight to Firebase Storage via `src/firebase.js` (hardcoded config, no env vars),
+then `src/api/photos.js` writes the URL through Apps Script, not this project's `api/`.
+`server/` has no `firebase-admin` and no binary handling. BEF and AFT are two separate
+spreadsheets: tabs `LaundryPhotos` and `AfterPhoto`.
 
-- `CLAUDE.md` is authoritative for frontend architecture, navigation, testing, and working rules.
-- `api/CLAUDE.md` is authoritative for backend work under `api/` and `server/`.
+## Orders backend — built, never executed
+
+- Deploy and hit the three endpoints for real, especially `POST /api/work-orders`, the first
+  append to `OrderForm`. Typecheck, dry tests, and `vercel dev` all miss this class of failure.
+- Two lanes on purpose: `orders` reads browse-only `OrdersView` in the portal workbook;
+  `work-orders` / `order-items` / `order-images` write live staff sheets in
+  `ORDERS_SPREADSHEET_ID`. Never read one lane and write the other — they disagree until Apps
+  Script syncs. Design: `docs/plans/orders-backend.md`.
+- Deliberately absent: `OrderItems` catalogue, package-credit consumption, nested
+  `invoice_item_id` writes, server-side binary upload, retiring the frontend fixtures.
+
+## Deferred by the user
+
+- **Pagination, app-wide.** Responses omit real `total`/`totalPages` while frontend types claim
+  otherwise. Invoices and customer-packages strand rows past 20. Two passes: make `okPaged`
+  count for real and drop invoices' fabricated total, then add pagers to those two modules.
+- **Live Orders sheet data is dirty.** Do not normalize it incidentally. `OrderItemForms` holds
+  1,074 phantom quantity-only rows; categorical columns mix spellings and languages;
+  `OrderImages.image_path` and timestamps mix formats.
+- **Other modules still page-walk** with `order by <non-unique column>` + `limit/offset` and can
+  silently drop rows. Orders and OrderItems will actually hit it.
+
+## Open items
+
+- Add API authentication before launch.
+- Pass actor identity into repository writes for an audit trail.
+- Invoice `CANCELLED` vs `VOID` — decide the business distinction, then the contract. Cancel/void
+  UI deferred; see `docs/plans/invoice-contract-merge-and-status-update.md`.
+- Nested invoice/items update blocked until delete or soft-delete exists.
+- Remove schema-file `z.infer` exports in one dedicated all-contract pass.
+- Consolidate datetime helpers separately — `SheetRepository` is shared by every module.
+- Stage 4 overlays: `OrderGalleryPage.vue`, `InvoiceProofLightbox.vue`, `NavSidebar.vue` are still
+  local-state. `OrderGalleryPage.vue` also mirrors `route.meta` into a local `ref` — soft conflict
+  with the no-mirror rule in `CLAUDE.md`. Review its nested `<button>` (~line 255) while there.
+- `customer-packages` frontend is off-pattern: list search/filter/accessibility/layout and the
+  create form diverge from `docs/design/patterns/list-pages.md` and `forms.md`.
+- Remove stale `SEARCHABLE_ROUTES` references in two old docs.
+- Confirm `CUSTOMERS_SPREADSHEET_ID` is set in every Vercel environment.
+- Test the merged overlay sheet on a real phone: drag-to-close, scroll inside, Android Back,
+  iOS edge-swipe.
+- Manually remove test data: `ZZTEST01` in `Packages`, customer package `af9f0651` (พิมพ์นิดา).
+  `SheetRepository.delete()` throws.
+- Delete leftover `C:\MagicwashGemini\webapp-vue-frontend` — 3 locked native binding files,
+  ~34 MB, from a removed worktree. Needs a restart to release.
+
+## Environment
+
+- User runs `vercel dev` on 3001. Do not start a second server; Vite pins 3102.
+- Pushing `main` deploys production. Deliberate act.
+- `vercel dev` can leave a long-lived process whose frontend proxy breaks silently while `/api/*`
+  keeps working: `/` returns 500 `FUNCTION_INVOCATION_FAILED`, API routes still 200. Restart it —
+  it is not an app-code bug, do not chase it in source.
+
+## Project rules — pointers only
+
+- `CLAUDE.md` — frontend architecture, navigation, testing, working rules.
+- `api/CLAUDE.md` — backend under `api/` and `server/`.
+- `docs/design/patterns/list-pages.md` — required pattern for root collection pages.
+- `docs/frontend-layout-nav-refactor.md` — overlay/navigation rationale.
