@@ -16,9 +16,9 @@ from.
 | 4 | **Bottom sheet** — supplementary detail | partial, slides up | X / backdrop / swipe down | yes |
 | 5 | **Immersive** — camera, lightbox | full, on top | purpose-specific controls | yes |
 
-- Gallery's parent is `customer-list`, not `customer-order-history`, because gallery's path is
+- Gallery's parent is `customer-list`, not `customer-detail`, because gallery's path is
   `/gallery/AFT-<orderId>` and carries no `customerId`, so it cannot construct
-  `/customers/:customerId/orders`. `customer-list` is the nearest reachable ancestor. Without this
+  `/customers/:customerId/:tab?`. `customer-list` is the nearest reachable ancestor. Without this
   note someone will "fix" it later and hit the same wall.
 - `invoice-create` -> `invoice-list` is an interim value: it becomes a form overlay with a close
   button in Stage 4.
@@ -202,7 +202,7 @@ Then click through by hand, each of these **twice** — once arriving from insid
 mid-page refresh, because the refresh case is the entire reason the history-aware pattern exists:
 
 - `customer-packages-preview`
-- `customer-order-history`
+- `customer-detail`
 - gallery
 - `invoice-create`
 - `invoice-detail`

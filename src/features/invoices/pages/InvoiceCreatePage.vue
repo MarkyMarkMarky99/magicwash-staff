@@ -339,7 +339,7 @@ function resetForRetry() {
 function backToOrderHistory() {
   const customerId = order.value?.customerId.trim() ?? readRouteId(route.query.customerId)
   if (customerId) {
-    router.push({ name: 'customer-order-history', params: { customerId } })
+    router.push({ name: 'customer-detail', params: { customerId, tab: 'orders' } })
   } else {
     router.push({ name: 'customer-list' })
   }

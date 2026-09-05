@@ -14,9 +14,9 @@ export const customerRoutes: RouteRecordRaw[] = [
     meta: { parent: 'customer-list' },
   },
   {
-    path: '/customers/:customerId/orders',
-    name: 'customer-order-history',
-    component: () => import('./pages/CustomerOrderHistoryPage.vue'),
+    path: '/customers/:customerId/:tab?',
+    name: 'customer-detail',
+    component: () => import('./pages/CustomerDetailPage.vue'),
     meta: { parent: 'customer-list' },
     props: true,
   },

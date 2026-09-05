@@ -9,7 +9,7 @@ export const invoicesRowSchema = z
   .object({
     invoice_number: z.string().min(1),
     status: invoiceStatusSchema,
-    billing_type: z.enum(['ORDER', 'CYCLE']),
+    billing_type: z.enum(['ORDER', 'CYCLE', 'PACKAGE']),
     billing_period_start: z.string().nullable(),
     billing_period_end: z.string().nullable(),
     issued_date: isoDateSchema,

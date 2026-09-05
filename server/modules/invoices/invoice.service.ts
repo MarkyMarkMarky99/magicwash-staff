@@ -401,9 +401,9 @@ export class InvoiceService {
       invoice_number: request.invoiceNumber,
       invoice_item_id: this.generateItemId(),
       item_no: index + 1, // 1-based, derived from array position — never client-sent
-      // The invoice's single sourceOrderId, fanned out onto every row —
-      // there is no per-line sourceOrderId in this request.
-      source_order_id: request.sourceOrderId,
+      // Package purchases have no source order. Order invoices fan out the
+      // single sourceOrderId onto every line.
+      source_order_id: request.sourceOrderId ?? null,
       // Always null — no per-item traceability, only
       // per-order via sourceOrderId above.
       source_item_id: null,
@@ -441,7 +441,7 @@ export class InvoiceService {
     const invoiceCommand: Partial<InvoicesDbRow> = {
       invoice_number: request.invoiceNumber,
       status: 'ISSUED',
-      billing_type: 'ORDER',
+      billing_type: request.billingType ?? 'ORDER',
       issued_date: request.issuedDate,
       due_date: request.dueDate,
       // Denormalized so GViz can filter without reaching into the JSON
@@ -481,19 +481,21 @@ export class InvoiceService {
     //    invoice_write_failed, so the caller never offers a retry here: a
     //    retry would create a SECOND invoice for money that's already
     //    correctly billed. ──
-    try {
-      await this.orderFormRepository().update(request.sourceOrderId, {
-        invoice_id: request.invoiceNumber,
-        updated_by: this.createdBy,
-      })
-    } catch (error) {
-      const failure = classifyWriteFailure(error)
-      console.error('order_link_failed', error instanceof Error ? error.stack ?? error.message : String(error))
-      return {
-        kind: 'order_link_failed',
-        invoiceNumber: request.invoiceNumber,
-        sourceOrderId: request.sourceOrderId,
-        certainty: failure.certainty,
+    if (request.billingType !== 'PACKAGE') {
+      try {
+        await this.orderFormRepository().update(request.sourceOrderId, {
+          invoice_id: request.invoiceNumber,
+          updated_by: this.createdBy,
+        })
+      } catch (error) {
+        const failure = classifyWriteFailure(error)
+        console.error('order_link_failed', error instanceof Error ? error.stack ?? error.message : String(error))
+        return {
+          kind: 'order_link_failed',
+          invoiceNumber: request.invoiceNumber,
+          sourceOrderId: request.sourceOrderId,
+          certainty: failure.certainty,
+        }
       }
     }
 
@@ -508,8 +510,8 @@ export class InvoiceService {
       request.adjustments,
     )
 
-    // This MUST remain the final external write. The source invoice and
-    // order link are complete before refreshing the materialized view used
+    // This MUST remain the final external write. The source invoice and any
+    // applicable order link are complete before refreshing the materialized view used
     // by the UI.
     //
     // `this.syncInvoiceView` is injectable (`InvoiceServiceOptions`), and the

@@ -47,7 +47,7 @@ function openNewBooking() {
 }
 
 function openOrderHistory() {
-  router.push(`/customers/${encodeURIComponent(props.customer.customerId)}/orders`)
+  router.push({ name: 'customer-detail', params: { customerId: props.customer.customerId, tab: 'orders' } })
 }
 </script>
 

@@ -9,12 +9,14 @@ import BaseOverlay from '@/shared/layouts/BaseOverlay.vue'
 const props = defineProps<{
   open: boolean
   order: OrderListDto | null
+  canUsePackage: boolean
 }>()
 
 const emit = defineEmits<{
   close: []
   bookDelivery: []
   createInvoice: []
+  usePackage: []
 }>()
 
 const router = useRouter()
@@ -147,6 +149,15 @@ function viewPhotos() {
               </button>
             </div>
           </div>
+          <button
+            v-if="canUsePackage"
+            type="button"
+            class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 font-label text-[12px] font-semibold text-on-primary transition-all hover:bg-primary/90 active:scale-[0.98]"
+            @click="emit('usePackage')"
+          >
+            <span class="material-symbols-outlined text-[16px] leading-none" aria-hidden="true">card_membership</span>
+            Use package credit
+          </button>
       </div>
 
       <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">

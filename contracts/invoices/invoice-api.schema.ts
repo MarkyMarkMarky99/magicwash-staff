@@ -14,7 +14,7 @@ export const invoiceStatusSchema = z.enum([
   'VOID',
 ])
 
-export const invoiceBillingTypeSchema = z.enum(['ORDER', 'CYCLE'])
+export const invoiceBillingTypeSchema = z.enum(['ORDER', 'CYCLE', 'PACKAGE'])
 
 /** ISO 8601 calendar date (YYYY-MM-DD), no time component. */
 const invoiceReadIsoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a YYYY-MM-DD date')
@@ -86,10 +86,9 @@ export const invoiceLineInputSchema = z
 
 export type InvoiceLineInput = z.infer<typeof invoiceLineInputSchema>
 
-export const invoiceCreateSchema = z
+const invoiceCreateFieldsSchema = z
   .object({
     invoiceNumber: z.string().trim().min(1),
-    sourceOrderId: z.string().trim().min(1),
     issuedDate: isoDateSchema,
     dueDate: isoDateSchema,
     customer: invoiceCustomerSnapshotInputSchema,
@@ -97,6 +96,19 @@ export const invoiceCreateSchema = z
     items: z.array(invoiceLineInputSchema).min(1),
   })
   .strict()
+
+// Existing order callers remain valid without a billingType. Package purchases
+// have no source order and must never enter the OrderForm linkage stage.
+export const invoiceCreateSchema = z.union([
+  invoiceCreateFieldsSchema.extend({
+    billingType: z.literal('ORDER').optional(),
+    sourceOrderId: z.string().trim().min(1),
+  }),
+  invoiceCreateFieldsSchema.extend({
+    billingType: z.literal('PACKAGE'),
+    sourceOrderId: z.null().optional(),
+  }),
+])
 
 export type CreateInvoiceRequest = z.infer<typeof invoiceCreateSchema>
 

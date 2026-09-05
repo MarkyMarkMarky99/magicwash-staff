@@ -10,7 +10,7 @@ const invoiceViewStatusSchema = z.enum([
   'CANCELLED',
   'VOID',
 ])
-const invoiceViewBillingTypeSchema = z.enum(['ORDER', 'CYCLE'])
+const invoiceViewBillingTypeSchema = z.enum(['ORDER', 'CYCLE', 'PACKAGE'])
 
 /**
  * KEY ORDER = physical InvoicesView sheet column order.
