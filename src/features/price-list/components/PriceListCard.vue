@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
-import { serviceTypeLabel } from '@contracts/shared/service-type-labels'
+import { serviceTypeLabel } from '@/shared/utils/service-type-labels'
 import type { PriceListDto } from '../services/price-list.service'
 
 const props = defineProps<{
@@ -62,7 +62,7 @@ function handleKeydown(event: KeyboardEvent) {
       </span>
 
       <span
-        class="w-[68px] shrink-0 text-right font-headline text-[15px] font-extrabold tabular-nums text-primary"
+        class="min-w-[68px] shrink-0 whitespace-nowrap text-right font-headline text-[15px] font-extrabold tabular-nums text-primary"
         aria-label="ราคา"
       >
         ฿{{ formatPrice(props.item.price) }}

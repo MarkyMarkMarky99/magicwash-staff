@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { serviceTypeLabel } from '@contracts/shared/service-type-labels'
+import { serviceTypeLabel } from '@/shared/utils/service-type-labels'
 import { computed, reactive, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { z } from 'zod'

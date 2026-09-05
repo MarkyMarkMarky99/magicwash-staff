@@ -5,6 +5,9 @@ import type { CustomerPackageFilter } from '../composables/useCustomerPackageFil
 const props = defineProps<{
   filter: CustomerPackageFilter
   open: boolean
+  // ListContainer renders none of the panel's slots while loading, so opening it would flip
+  // aria-expanded on nothing.
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -25,6 +28,7 @@ const hasExtraFilter = computed(() => Boolean(props.filter.customerId || props.f
       : 'text-primary hover:bg-primary/10 active:bg-primary/20'"
     :aria-label="props.open ? 'Hide filters' : 'Show filters'"
     :aria-expanded="props.open"
+    :disabled="props.disabled"
     @click="emit('update:open', !props.open)"
   >
     <span class="material-symbols-outlined text-[16px]" aria-hidden="true">tune</span>

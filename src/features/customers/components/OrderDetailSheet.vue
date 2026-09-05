@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { serviceTypeLabel } from '@contracts/shared/service-type-labels'
+import { serviceTypeLabel } from '@/shared/utils/service-type-labels'
 import { ref, toRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { OrderListDto } from '../services/order.service'

@@ -19,8 +19,12 @@ function createComposableContext(query: Record<string, unknown> = {}) {
   const route = reactive({ query })
   const replaceCalls: unknown[] = []
   const router = {
-    replace(location: unknown) {
+    // The real router writes the new query back onto the route, and `filter` is computed from
+    // the route. A mock that only records the call leaves `filter` pinned to the initial query,
+    // so every merge assertion reads a stale filter and passes no matter what updateFilter does.
+    replace(location: { query?: Record<string, unknown> }) {
       replaceCalls.push(location)
+      route.query = { ...(location.query ?? {}) }
     },
   }
   const app = createApp({ render: () => null })
@@ -83,7 +87,7 @@ test('derives its computed filter from the current route query', () => {
   assert.deepEqual(composable.filter.value, { category: null, serviceType: null })
 })
 
-test('merges updates and replaces the price-list route, removing an all-items category', () => {
+test('merges updates across both dimensions and drops the emptied ones', () => {
   const { replaceCalls, composable } = createComposableContext({ category: 'shirts' })
 
   assert.equal(composable.updateFilter({}), undefined)
@@ -98,14 +102,21 @@ test('merges updates and replaces the price-list route, removing an all-items ca
     query: { category: 'blankets' },
   })
 
+  // The second dimension must survive an update that names only the first one.
   assert.equal(composable.updateFilter({ serviceType: 'IRON' }), undefined)
   assert.deepEqual(replaceCalls[2], {
     name: 'price-list',
-    query: { category: 'shirts', serviceType: 'IRON' },
+    query: { category: 'blankets', serviceType: 'IRON' },
   })
 
   assert.equal(composable.updateFilter({ category: null }), undefined)
   assert.deepEqual(replaceCalls[3], {
+    name: 'price-list',
+    query: { serviceType: 'IRON' },
+  })
+
+  assert.equal(composable.updateFilter({ serviceType: null }), undefined)
+  assert.deepEqual(replaceCalls[4], {
     name: 'price-list',
     query: {},
   })

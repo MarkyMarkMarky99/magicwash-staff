@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { serviceTypeOptions } from '@contracts/shared/service-type-labels'
+import { serviceTypeOptions } from '@/shared/utils/service-type-labels'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'

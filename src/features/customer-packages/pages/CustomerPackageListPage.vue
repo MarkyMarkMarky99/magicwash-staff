@@ -28,9 +28,9 @@ watch(filter, (value) => { void store.fetchCustomerPackages(value) }, { immediat
       <CustomerPackageFilterBar :filter="filter" @change="updateFilter" />
     </template>
 
-    <ListContainer title="Customer packages" icon="card_membership" :count="items.length" count-label="packages" :loading="loading" :error="error" :empty="items.length === 0 && !extraFilterOpen" empty-text="No customer packages" :skeleton-rows="4">
+    <ListContainer title="Customer packages" icon="card_membership" :count="items.length" count-label="packages" :loading="loading" :error="error" :empty="items.length === 0" empty-text="No customer packages" :skeleton-rows="4">
       <template #actions>
-        <CustomerPackageExtraFilter v-model:open="extraFilterOpen" :filter="filter" />
+        <CustomerPackageExtraFilter v-model:open="extraFilterOpen" :filter="filter" :disabled="loading" />
 
         <button
           type="button"
@@ -46,7 +46,21 @@ watch(filter, (value) => { void store.fetchCustomerPackages(value) }, { immediat
         <input :value="filter.packageCode ?? ''" class="rounded-xl bg-surface-container px-3 py-2 font-body text-sm" placeholder="Package code" @input="updateFilter({ packageCode: ($event.target as HTMLInputElement).value || null })">
       </div>
 
-      <p v-if="extraFilterOpen && items.length === 0" class="px-6 py-4 font-body text-sm italic text-on-surface-variant">No customer packages</p>
+      <template #empty>
+        <div v-if="extraFilterOpen" class="grid grid-cols-2 gap-2 bg-surface-container-lowest px-4 py-3">
+          <input :value="filter.customerId ?? ''" class="rounded-xl bg-surface-container px-3 py-2 font-body text-sm" placeholder="Customer ID" @input="updateFilter({ customerId: ($event.target as HTMLInputElement).value || null })">
+          <input :value="filter.packageCode ?? ''" class="rounded-xl bg-surface-container px-3 py-2 font-body text-sm" placeholder="Package code" @input="updateFilter({ packageCode: ($event.target as HTMLInputElement).value || null })">
+        </div>
+        <p class="px-6 py-4 font-body text-sm italic text-on-surface-variant">No customer packages</p>
+      </template>
+
+      <template #error>
+        <div v-if="extraFilterOpen" class="grid grid-cols-2 gap-2 bg-surface-container-lowest px-4 py-3">
+          <input :value="filter.customerId ?? ''" class="rounded-xl bg-surface-container px-3 py-2 font-body text-sm" placeholder="Customer ID" @input="updateFilter({ customerId: ($event.target as HTMLInputElement).value || null })">
+          <input :value="filter.packageCode ?? ''" class="rounded-xl bg-surface-container px-3 py-2 font-body text-sm" placeholder="Package code" @input="updateFilter({ packageCode: ($event.target as HTMLInputElement).value || null })">
+        </div>
+        <p class="px-6 py-4 font-body text-sm text-error">{{ error }}</p>
+      </template>
 
       <CustomerPackageListCards :items="items" @select="router.push({ name: 'customer-package-detail', params: { customerPackageId: $event.customerPackageId } })" />
     </ListContainer>

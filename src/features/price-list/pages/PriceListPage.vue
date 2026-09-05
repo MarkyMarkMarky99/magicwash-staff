@@ -8,7 +8,7 @@ import ListContainer from '@/shared/components/ListContainer.vue'
 import { usePriceListStore } from '../stores/price-list.store'
 import PriceListCard from '../components/PriceListCard.vue'
 import PriceListServiceFilter from '../components/PriceListServiceFilter.vue'
-import { serviceTypeOptions } from '@contracts/shared/service-type-labels'
+import PriceListServicePanel from '../components/PriceListServicePanel.vue'
 import { usePriceListFilterRoute } from '../composables/usePriceListFilterRoute'
 
 defineOptions({ name: 'PriceListPage' })
@@ -114,14 +114,14 @@ onMounted(() => {
       :loading="listLoading"
       :skeleton-rows="4"
       :error="listError"
-      :empty="filteredItems.length === 0 && !serviceFilterOpen"
+      :empty="filteredItems.length === 0"
       empty-text="ไม่พบรายการที่ตรงกับการค้นหา"
     >
       <template #actions>
         <PriceListServiceFilter
           v-model:open="serviceFilterOpen"
           :service-type="filter.serviceType"
-          @select="selectService"
+          :disabled="listLoading"
         />
 
         <button
@@ -137,29 +137,29 @@ onMounted(() => {
         </button>
       </template>
 
-      <div
+      <PriceListServicePanel
         v-if="serviceFilterOpen"
-        class="flex flex-wrap gap-2 bg-surface-container-lowest px-4 py-3"
-      >
-        <button
-          v-for="option in serviceTypeOptions"
-          :key="option.value"
-          type="button"
-          class="rounded-full px-3 py-1 font-label text-[11px] font-semibold transition-colors"
-          :class="filter.serviceType === option.value
-            ? 'bg-primary text-on-primary'
-            : 'bg-surface-container text-on-surface-variant hover:text-on-surface'"
-          :aria-pressed="filter.serviceType === option.value"
-          @click="selectService(filter.serviceType === option.value ? null : option.value)"
-        >{{ option.label }}</button>
-      </div>
+        :service-type="filter.serviceType"
+        @select="selectService"
+      />
 
-      <p
-        v-if="serviceFilterOpen && filteredItems.length === 0"
-        class="px-6 py-4 font-body text-sm italic text-on-surface-variant"
-      >
-        ไม่พบรายการที่ตรงกับการค้นหา
-      </p>
+      <template #empty>
+        <PriceListServicePanel
+          v-if="serviceFilterOpen"
+          :service-type="filter.serviceType"
+          @select="selectService"
+        />
+        <p class="px-6 py-4 font-body text-sm italic text-on-surface-variant">ไม่พบรายการที่ตรงกับการค้นหา</p>
+      </template>
+
+      <template #error>
+        <PriceListServicePanel
+          v-if="serviceFilterOpen"
+          :service-type="filter.serviceType"
+          @select="selectService"
+        />
+        <p class="px-6 py-4 font-body text-sm text-error">{{ listError }}</p>
+      </template>
 
       <PriceListCard
         v-for="item in activeItems"

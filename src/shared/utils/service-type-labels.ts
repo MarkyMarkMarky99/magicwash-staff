@@ -1,11 +1,13 @@
-import { serviceTypeSchema } from './service-type.schema.js'
+import { serviceTypeSchema } from '@contracts/shared/service-type.schema'
 
 /**
  * The one Thai wording for a service-type code, and the one icon for it.
  *
- * This lives in `contracts/shared/` and not in `src/shared/` because a service type is domain
- * vocabulary, and not in any feature because price-list, invoices and orders all display it and
- * features may not import each other. `@contracts/*` is the only path legal from all of them.
+ * This lives in `src/shared/utils/` because price-list, invoices and orders all display a service
+ * type and features may not import each other. It is not in `contracts/` — that folder holds
+ * camelCase API schemas and enums only (CLAUDE.md), and a Thai label is presentation, not contract.
+ * The rule against domain knowledge in `src/shared/` is about presentational components; a util
+ * that every feature needs belongs here, next to `sheet-date.ts`.
  *
  * Before 2026-09-06 there were four copies with two different Thai wordings
  * (`ซัก อบ รีด` in price-list/invoices vs `ซักรีด` in orders). The orders wording won.

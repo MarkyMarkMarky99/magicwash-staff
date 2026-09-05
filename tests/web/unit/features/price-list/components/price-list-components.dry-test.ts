@@ -6,7 +6,10 @@ function source(path: string): string {
 }
 
 const card = source('features/price-list/components/PriceListCard.vue')
-assert.match(card, /serviceType/)
+// The card must render a Thai label, not the raw WSIR/DRCL code — matching /serviceType/
+// alone would pass on the import line even if the code were printed verbatim.
+assert.match(card, /serviceTypeLabel\(props\.item\.serviceType\)/)
+assert.doesNotMatch(card, /\{\{\s*props\.item\.serviceType\s*\}\}/)
 assert.match(card, /price/)
 assert.doesNotMatch(card, /washDryIronPrice|ironOnlyPrice|dryCleanPrice/)
 assert.match(card, /font-extrabold[\s\S]{0,200}props\.item\.price/, 'price must be the prominent element on the card')
@@ -24,11 +27,18 @@ const triad = new URL(
 )
 assert.equal(existsSync(triad), false, 'retired ServicePriceTriad must be deleted')
 
+// The service filter replaced the status tabs; assert the replacement is actually wired.
+const list = source('features/price-list/pages/PriceListPage.vue')
+assert.match(list, /PriceListServiceFilter/)
+assert.match(list, /PriceListServicePanel/)
+// The panel must reach the empty and error slots, or a filter matching nothing cannot be cleared.
+assert.match(list, /#empty[\s\S]{0,400}PriceListServicePanel/)
+assert.match(list, /#error[\s\S]{0,400}PriceListServicePanel/)
+
 const statusTabs = new URL(
   '../../../../../../src/features/price-list/components/PriceListStatusTabs.vue',
   import.meta.url,
 )
-const list = source('features/price-list/pages/PriceListPage.vue')
 if (existsSync(statusTabs)) {
   assert.match(list, /PriceListStatusTabs/, 'status tabs must be wired into PriceListPage')
 } else {

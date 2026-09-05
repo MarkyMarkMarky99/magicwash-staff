@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import FormInput from '@/shared/components/FormInput.vue'
 import FormSwitch from '@/shared/components/FormSwitch.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
-import { serviceTypeOptions } from '@contracts/shared/service-type-labels'
+import { serviceTypeOptions } from '@/shared/utils/service-type-labels'
 import { usePriceListStore } from '../stores/price-list.store'
 import {
   createPriceListPayload,

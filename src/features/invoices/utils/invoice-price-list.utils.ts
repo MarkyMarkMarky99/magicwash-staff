@@ -7,7 +7,7 @@ import {
   type LineItemFormRow,
 } from '../types/invoice-create.types'
 import { priceListListResponseSchema } from '@contracts/price-list/price-list-api.schema'
-import { serviceTypePresentation } from '@contracts/shared/service-type-labels'
+import { serviceTypePresentation } from '@/shared/utils/service-type-labels'
 
 export const PRICE_LIST_RENDER_CAP = 2000
 
