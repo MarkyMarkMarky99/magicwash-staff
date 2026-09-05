@@ -288,7 +288,7 @@ onDeactivated(handleUnmount)
           v-if="panelVisible"
           class="base-overlay-panel relative z-10"
           :class="[
-            variant === 'sheet' ? 'base-overlay-sheet-panel flex max-h-[84vh] w-full flex-col overflow-hidden rounded-t-2xl bg-surface shadow-2xl' : 'base-overlay-full-panel flex h-full w-full flex-col overflow-hidden bg-surface',
+            variant === 'sheet' ? 'base-overlay-sheet-panel flex max-h-[84vh] w-full sm:max-w-[390px] flex-col overflow-hidden rounded-t-2xl bg-surface shadow-2xl' : 'base-overlay-full-panel flex h-full w-full sm:max-w-[390px] flex-col overflow-hidden bg-surface',
             { 'is-dragging': dragging },
           ]"
           :style="panelStyle"
@@ -345,19 +345,30 @@ dialog:not([open]) {
   transform: scale(0.98);
 }
 
-.base-overlay-sheet-enter-active,
-.base-overlay-sheet-leave-active {
-  transition: opacity 220ms ease, transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+/* A bottom sheet slides; it does not fade. It used to do both, and the two
+   cancelled out: cubic-bezier(0.2, 0.8, 0.2, 1) covers ~92% of the travel in
+   the first 90ms, which is exactly the window where the panel was still
+   transparent — so the slide happened while it was invisible and the sheet
+   read as popping into place. Opacity is gone from the panel (the backdrop
+   supplies the dimming) and the curve is a gentle decelerate over a longer
+   run, so the travel is actually visible.
+
+   Compounded with .base-overlay-sheet-panel on purpose: that class carries its
+   own `transition: transform` for the drag snap-back, and `transition` is a
+   shorthand, so at equal specificity the later rule would replace this one
+   wholesale. These selectors must stay more specific than it. */
+.base-overlay-sheet-panel.base-overlay-sheet-enter-active,
+.base-overlay-sheet-panel.base-overlay-sheet-leave-active {
+  transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .base-overlay-sheet-enter-from,
 .base-overlay-sheet-leave-to {
-  opacity: 0;
   transform: translateY(100%);
 }
 
 .base-overlay-sheet-panel {
-  transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .base-overlay-sheet-panel.is-dragging {

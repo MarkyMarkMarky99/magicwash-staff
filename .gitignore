@@ -50,3 +50,7 @@ dist-ssr
 
 # Grok sandbox worktrees live here; each is its own checkout, never content of this one
 .worktrees/
+
+# Playwright
+test-results/
+playwright-report/
