@@ -17,6 +17,11 @@ const CREATE_FIELDS = [
   'displayNameEn', 'serviceType', 'priceGroup', 'unit', 'price', 'creditEligible',
   'effectiveFrom', 'effectiveTo', 'active',
 ]
+const UPDATE_FIELDS = [
+  'category', 'subcategory', 'itemType', 'variant', 'displayNameTh', 'displayNameEn',
+  'serviceType', 'priceGroup', 'unit', 'price', 'creditEligible', 'effectiveFrom',
+  'effectiveTo', 'active',
+]
 const QUERY_FIELDS = [
   'keyword', 'itemCode', 'category', 'subcategory', 'itemType', 'serviceType', 'priceGroup',
   'page', 'perPage', 'sortBy', 'sortOrder',
@@ -29,7 +34,7 @@ assert.ok(updateSchema)
 assert.deepEqual(Object.keys(priceListApiContract.response), ['list', 'create', 'update'])
 assert.deepEqual(Object.keys(priceListListResponseSchema.shape), RESPONSE_FIELDS)
 assert.deepEqual(Object.keys(createSchema.shape), CREATE_FIELDS)
-assert.deepEqual(Object.keys(updateSchema.shape), CREATE_FIELDS)
+assert.deepEqual(Object.keys(updateSchema.shape), UPDATE_FIELDS)
 assert.deepEqual(Object.keys(priceListListQuerySchema.shape), QUERY_FIELDS)
 assert.deepEqual(priceListSortFieldSchema.options, [
   'itemCode', 'category', 'subcategory', 'itemType', 'displayNameTh', 'serviceType',
@@ -40,6 +45,8 @@ assert.deepEqual(priceListListQuerySchema.parse({}), {
   keyword: '', itemCode: null, category: null, subcategory: null, itemType: null,
   serviceType: null, priceGroup: null, page: 1, perPage: 20, sortBy: 'itemCode', sortOrder: 'asc',
 })
+assert.equal(priceListListQuerySchema.parse({ perPage: 1000 }).perPage, 1000)
+assert.throws(() => priceListListQuerySchema.parse({ perPage: 1001 }))
 assert.deepEqual(serviceTypeSchema.options, ['WSIR', 'IRON', 'DRCL', 'WASH'])
 
 const createPayload = {
@@ -49,6 +56,9 @@ const createPayload = {
   effectiveFrom: '2026-01-02', effectiveTo: null, active: true,
 }
 assert.deepEqual(createSchema.parse(createPayload), createPayload)
+const createWithoutItemCode = { ...createPayload }
+delete (createWithoutItemCode as Record<string, unknown>).itemCode
+assert.deepEqual(createSchema.parse(createWithoutItemCode), createWithoutItemCode)
 assert.deepEqual(updateSchema.parse({ price: 88, serviceType: 'IRON' }), { price: 88, serviceType: 'IRON' })
 
 for (const invalid of [
@@ -65,6 +75,7 @@ for (const invalid of [
 
 assert.throws(() => updateSchema.parse({ price: -1 }))
 assert.throws(() => updateSchema.parse({ id: 'a1b2c3d4' }))
+assert.throws(() => updateSchema.parse({ itemCode: 'ITM-0010' }))
 assert.throws(() => priceListListQuerySchema.parse({ serviceType: 'OTHER' }))
 
 const response = { id: 'a1b2c3d4', ...createPayload }

@@ -24,6 +24,17 @@ export async function listPriceList(
   return items
 }
 
+export async function listAllPriceList(): Promise<{
+  items: PriceListDto[]
+  truncated: boolean
+}> {
+  const { items } = await apiGetList<PriceListDto>(PRICE_LIST_ENDPOINT, {
+    query: { perPage: 1000 },
+    querySchema: priceListListQuerySchema,
+  })
+  return { items, truncated: items.length === 1000 }
+}
+
 export function createPriceList(payload: PriceListCreatePayload): Promise<PriceListDto> {
   return apiPost<PriceListDto>(PRICE_LIST_ENDPOINT, {
     data: payload,

@@ -170,7 +170,6 @@ function assertApiError(
 }
 
 const createPayload = {
-  itemCode: 'ITM-0013',
   category: 'bottoms',
   subcategory: 'trousers',
   itemType: 'wash',
@@ -181,6 +180,11 @@ const createPayload = {
   creditEligible: false,
   effectiveFrom: '2026-02-03',
   active: true,
+}
+
+const suppliedItemCodePayload = {
+  ...createPayload,
+  itemCode: 'ITM-0010',
 }
 
 let failWrites = false
@@ -267,6 +271,7 @@ await withMockSheets(async (calls) => {
 
   for (const body of [
     { active: false, id: 'changed-id' },
+    { active: false, itemCode: 'ITM-0010' },
     { active: false, itemCode: 'ITEM-9999' },
     { price: -1 },
   ]) {
@@ -285,7 +290,7 @@ await withMockSheets(async (calls) => {
   assert.equal(firstCreate.status, 201)
   const firstCreated = dataOf(firstCreate)
   assert.match(String(firstCreated.id), /^[a-z0-9]{8}$/)
-  assert.equal(firstCreated.itemCode, createPayload.itemCode)
+  assert.equal(firstCreated.itemCode, 'ITM-0013')
   assert.equal(firstCreated.variant, null)
   assert.equal(firstCreated.price, createPayload.price)
   assert.equal(firstCreated.effectiveFrom, '2026-02-03')
@@ -299,16 +304,26 @@ await withMockSheets(async (calls) => {
   const appendUrl = new URL(appendCall.url)
   assert.equal(appendUrl.searchParams.get('valueInputOption'), 'USER_ENTERED')
   const appendBody = JSON.parse(String(appendCall.init?.body)) as { values: SheetRow[] }
+  assert.equal(appendBody.values[0]![1], 'ITM-0013')
   assert.equal(appendBody.values[0]![13], '2026-02-03')
 
   const secondCreate = await priceListRoutes.collection.handleRequest(
-    request('POST', { ...createPayload, displayNameTh: 'กางเกงตัวที่สอง', priceGroup: 'DEFAULT2026' }),
+    request('POST', {
+      ...suppliedItemCodePayload,
+      displayNameTh: 'กางเกงตัวที่สอง',
+      priceGroup: 'DEFAULT2026',
+    }),
   )
   assert.equal(secondCreate.status, 201)
   const secondCreated = dataOf(secondCreate)
   assert.match(String(secondCreated.id), /^[a-z0-9]{8}$/)
   assert.notEqual(secondCreated.id, firstCreated.id)
-  assert.equal(secondCreated.itemCode, createPayload.itemCode)
+  assert.equal(secondCreated.itemCode, 'ITM-0010')
+  const appendCalls = calls.filter(
+    (call) => call.init?.method === 'POST' && apiPath(call.url).endsWith('/values/PriceList!A:A:append'),
+  )
+  const secondAppendBody = JSON.parse(String(appendCalls.at(-1)!.init?.body)) as { values: SheetRow[] }
+  assert.equal(secondAppendBody.values[0]![1], 'ITM-0010')
 
   const listAfterCreates = await priceListRoutes.collection.handleRequest(request('GET'))
   const listedAfterCreates = bodyOf(listAfterCreates).data as Array<Record<string, unknown>>

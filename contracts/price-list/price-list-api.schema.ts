@@ -26,7 +26,7 @@ export const priceListListQuerySchema = z.object({
   serviceType: serviceTypeSchema.nullable().optional().default(null),
   priceGroup: z.string().trim().min(1).nullable().optional().default(null),
   page: z.coerce.number().int().positive().default(API_PAGINATION_DEFAULTS.page),
-  perPage: z.coerce.number().int().positive().max(100).default(API_PAGINATION_DEFAULTS.perPage),
+  perPage: z.coerce.number().int().positive().max(1000).default(API_PAGINATION_DEFAULTS.perPage),
   sortBy: priceListSortFieldSchema.default('itemCode'),
   sortOrder: z.enum(['asc', 'desc']).default('asc'),
 })
@@ -68,9 +68,11 @@ const priceListBusinessFields = {
   active: z.boolean(),
 }
 
-export const priceListCreateSchema = z.object(priceListBusinessFields).strict()
+export const priceListCreateSchema = z.object(priceListBusinessFields).extend({
+  itemCode: priceListBusinessFields.itemCode.optional(),
+}).strict()
 
-export const priceListUpdateSchema = z.object(priceListBusinessFields).partial().strict()
+export const priceListUpdateSchema = z.object(priceListBusinessFields).omit({ itemCode: true }).partial().strict()
 
 export const priceListCreateResponseSchema = priceListListResponseSchema
 export const priceListUpdateResponseSchema = priceListListResponseSchema

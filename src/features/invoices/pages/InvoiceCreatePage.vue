@@ -36,7 +36,6 @@ import type { InvoicePriceListItemDto } from '../services/invoice-price-list.ser
 import {
   appendPickedLine,
   toLineItemFormRow,
-  type PriceListServiceKey,
 } from '../utils/invoice-price-list.utils'
 
 const router = useRouter()
@@ -126,12 +125,8 @@ watch(
   { immediate: true },
 )
 
-function handlePriceListSelect(payload: {
-  item: InvoicePriceListItemDto
-  serviceKey: PriceListServiceKey
-}) {
-  const line = toLineItemFormRow(payload.item, payload.serviceKey)
-  if (!line) return
+function handlePriceListSelect(item: InvoicePriceListItemDto) {
+  const line = toLineItemFormRow(item)
   items.value = appendPickedLine(items.value, line)
   closePriceListPicker()
 }

@@ -54,11 +54,13 @@ function handleKeydown(event: KeyboardEvent) {
           <template v-if="props.item.variant"> · {{ props.item.variant }}</template>
         </p>
 
-        <p class="font-body text-xs text-on-surface-variant truncate" aria-label="ราคาตามบริการ">
-          <span v-if="props.item.washDryIronPrice !== null">ซักอบรีด ฿{{ formatPrice(props.item.washDryIronPrice) }}</span>
-          <span v-if="props.item.ironOnlyPrice !== null"> · รีด ฿{{ formatPrice(props.item.ironOnlyPrice) }}</span>
-          <span v-if="props.item.dryCleanPrice !== null"> · ดรายคลีน ฿{{ formatPrice(props.item.dryCleanPrice) }}</span>
-          <span v-if="props.item.washDryIronPrice === null && props.item.ironOnlyPrice === null && props.item.dryCleanPrice === null">ยังไม่กำหนดราคา</span>
+        <p class="font-body text-xs text-on-surface-variant truncate">
+          {{ props.item.serviceType }} · {{ props.item.priceGroup }}
+          <template v-if="props.item.unit"> · {{ props.item.unit }}</template>
+        </p>
+
+        <p class="font-headline text-xl font-extrabold tabular-nums text-primary" aria-label="ราคา">
+          ฿{{ formatPrice(props.item.price) }}
         </p>
       </div>
     </div>

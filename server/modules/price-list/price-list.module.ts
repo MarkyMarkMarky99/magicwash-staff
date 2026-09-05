@@ -68,10 +68,12 @@ const priceListRepository: SheetRepositoryContract<PriceListDbRow> = {
   append: async (row) => {
     const existingRows = await getPriceListRepository().read()
     const id = nextPriceListId(existingRows)
+    const itemCode = row.item_code ?? nextPriceListItemCode(existingRows)
 
     return getPriceListRepository().append({
       ...withPriceListNullableDefaults(row),
       id,
+      item_code: itemCode,
     })
   },
   batchAppend: (rows) => getPriceListRepository().batchAppend(rows),
@@ -148,6 +150,27 @@ function nextPriceListId(rows: Array<Partial<PriceListDbRow>>): string {
 
 function createPriceListId(): string {
   return randomUUID().replace(/-/g, '').slice(0, 8)
+}
+
+function nextPriceListItemCode(rows: Array<Partial<PriceListDbRow>>): string {
+  let maximum = 0
+  for (const row of rows) {
+    if (typeof row.item_code !== 'string') {
+      continue
+    }
+
+    const match = /^ITM-(\d+)$/.exec(row.item_code)
+    if (match === null) {
+      continue
+    }
+
+    const suffix = Number(match[1])
+    if (Number.isSafeInteger(suffix)) {
+      maximum = Math.max(maximum, suffix)
+    }
+  }
+
+  return `ITM-${String(maximum + 1).padStart(4, '0')}`
 }
 
 function normalizePriceListDate(value: unknown): unknown {

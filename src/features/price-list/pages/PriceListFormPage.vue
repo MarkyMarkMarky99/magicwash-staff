@@ -5,7 +5,14 @@ import { useRoute, useRouter } from 'vue-router'
 import FormInput from '@/shared/components/FormInput.vue'
 import FormSwitch from '@/shared/components/FormSwitch.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
+import { serviceTypeSchema } from '@contracts/shared/service-type.schema'
 import { usePriceListStore } from '../stores/price-list.store'
+import {
+  createPriceListPayload,
+  updatePriceListPayload,
+  type PriceListCreateMode,
+  type PriceListFormState,
+} from '../utils/price-list-form-payload'
 
 defineOptions({ name: 'PriceListFormPage' })
 
@@ -14,22 +21,27 @@ const props = defineProps<{ id?: string }>()
 const route = useRoute()
 const router = useRouter()
 const priceListStore = usePriceListStore()
-const { items, error: storeError } = storeToRefs(priceListStore)
+const { items, error: storeError, truncated } = storeToRefs(priceListStore)
 
-const item = reactive({
+const item = reactive<PriceListFormState>({
+  itemCode: '',
   category: '',
   subcategory: '',
-  type: '',
+  itemType: '',
   variant: '',
-  name: '',
-  wash: '',
-  iron: '',
-  dry: '',
-  start: '',
-  end: '',
+  displayNameTh: '',
+  displayNameEn: '',
+  serviceType: 'WSIR',
+  priceGroup: 'DEFAULT',
+  unit: '',
+  price: '',
+  creditEligible: false,
+  effectiveFrom: '',
+  effectiveTo: '',
+  active: false,
 })
-const isActive = ref(false)
-const allowsCredit = ref(false)
+const createMode = ref<PriceListCreateMode>('new')
+const existingItemQuery = ref('')
 
 const formError = ref<string | null>(null)
 const initializing = ref(true)
@@ -47,6 +59,35 @@ const subcategories = computed(() =>
     ),
   ),
 )
+const canSelectExistingItems = computed(() => !truncated.value && !storeError.value && !initializing.value)
+const existingItems = computed(() => {
+  const query = existingItemQuery.value.trim().toLocaleLowerCase('th-TH')
+  if (!query) return items.value
+  return items.value.filter((candidate) =>
+    [candidate.itemCode, candidate.displayNameTh, candidate.displayNameEn]
+      .map((value) => String(value ?? '').toLocaleLowerCase('th-TH'))
+      .some((value) => value.includes(query)),
+  )
+})
+const serviceOptions = serviceTypeSchema.options.map((value) => ({
+  value,
+  label: { WSIR: 'ซัก อบ รีด', IRON: 'รีดอย่างเดียว', DRCL: 'ดรายคลีน', WASH: 'ซัก' }[value],
+}))
+const formValid = computed(() =>
+  Boolean(
+    item.category
+    && item.subcategory
+    && item.itemType
+    && item.displayNameTh
+    && item.serviceType
+    && item.priceGroup
+    && item.effectiveFrom
+    && String(item.price).trim() !== ''
+    && Number.isFinite(Number(item.price))
+    && Number(item.price) >= 0
+    && (isEdit.value || createMode.value === 'new' || item.itemCode),
+  ),
+)
 
 watch(
   () => item.category,
@@ -58,42 +99,37 @@ watch(
 )
 
 function fillForm(source: (typeof items.value)[number]) {
+  item.itemCode = source.itemCode
   item.category = source.category
   item.subcategory = source.subcategory
-  item.type = source.itemType
+  item.itemType = source.itemType
   item.variant = source.variant ?? ''
-  item.name = source.displayNameTh
-  item.wash = source.washDryIronPrice === null ? '' : String(source.washDryIronPrice)
-  item.iron = source.ironOnlyPrice === null ? '' : String(source.ironOnlyPrice)
-  item.dry = source.dryCleanPrice === null ? '' : String(source.dryCleanPrice)
-  allowsCredit.value = source.creditEligible
-  item.start = source.effectiveFrom
-  item.end = source.effectiveTo ?? ''
-  isActive.value = source.active
+  item.displayNameTh = source.displayNameTh
+  item.displayNameEn = source.displayNameEn ?? ''
+  item.serviceType = source.serviceType
+  item.priceGroup = source.priceGroup
+  item.unit = source.unit ?? ''
+  item.price = String(source.price)
+  item.creditEligible = source.creditEligible
+  item.effectiveFrom = source.effectiveFrom
+  item.effectiveTo = source.effectiveTo ?? ''
+  item.active = source.active
 }
 
-function nullablePrice(value: string): number | null {
-  if (value === '') return null
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed)) throw new Error('กรุณาระบุราคาเป็นตัวเลข')
-  return parsed
+function selectExistingItem(source: (typeof items.value)[number]) {
+  item.itemCode = source.itemCode
+  item.category = source.category
+  item.subcategory = source.subcategory
+  item.itemType = source.itemType
+  item.variant = source.variant ?? ''
+  item.displayNameTh = source.displayNameTh
+  item.displayNameEn = source.displayNameEn ?? ''
 }
 
-function createPayload() {
-  return {
-    category: item.category,
-    subcategory: item.subcategory,
-    itemType: item.type,
-    variant: item.variant === '' ? null : item.variant,
-    displayNameTh: item.name,
-    washDryIronPrice: nullablePrice(item.wash),
-    ironOnlyPrice: nullablePrice(item.iron),
-    dryCleanPrice: nullablePrice(item.dry),
-    creditEligible: allowsCredit.value,
-    effectiveFrom: item.start,
-    effectiveTo: item.end === '' ? null : item.end,
-    active: isActive.value,
-  }
+function setCreateMode(mode: PriceListCreateMode) {
+  if (isEdit.value || (mode === 'existing' && !canSelectExistingItems.value)) return
+  createMode.value = mode
+  if (mode === 'new') item.itemCode = ''
 }
 
 function returnToPriceList() {
@@ -104,7 +140,9 @@ async function submitForm() {
   formError.value = null
   submitting.value = true
   try {
-    const payload = createPayload()
+    const payload = isEdit.value
+      ? updatePriceListPayload(item)
+      : createPriceListPayload(item, createMode.value)
     if (isEdit.value && props.id) {
       await priceListStore.update(props.id, payload)
     } else {
@@ -144,7 +182,7 @@ onMounted(async () => {
     helper-text="ปรับข้อมูลที่หน้าเคาน์เตอร์ได้ทันที • รหัสรายการแก้ไขไม่ได้"
     submit-label="บันทึกราคา"
     :is-submitting="submitting"
-    :is-submit-disabled="initializing"
+    :is-submit-disabled="initializing || !formValid"
     :close-on-backdrop="false"
     @close="returnToPriceList"
     @submit="submitForm"
@@ -153,11 +191,67 @@ onMounted(async () => {
       <main>
         <div class="form-intro"><p>รายละเอียดรายการสำหรับหน้าเคาน์เตอร์</p><span class="stamp">พร้อมบันทึก</span></div>
         <div>
+        <fieldset v-if="!isEdit" class="fieldset mode-panel">
+          <div class="section-label">รูปแบบรายการ</div>
+          <div class="mode-grid">
+            <button
+              type="button"
+              class="mode-button"
+              :class="{ 'mode-button--selected': createMode === 'new' }"
+              :disabled="isEdit"
+              @click="setCreateMode('new')"
+            >
+              <strong>รายการใหม่</strong>
+              <span>ระบบจะกำหนดรหัสรายการให้อัตโนมัติ</span>
+            </button>
+            <button
+              type="button"
+              class="mode-button"
+              :class="{ 'mode-button--selected': createMode === 'existing' }"
+              :disabled="!canSelectExistingItems"
+              @click="setCreateMode('existing')"
+            >
+              <strong>เพิ่มราคาให้รายการเดิม</strong>
+              <span>ค้นหาและเลือกจากรายการที่มีอยู่</span>
+            </button>
+          </div>
+          <p v-if="truncated" class="form-error">รายการราคายังโหลดไม่ครบ จึงไม่สามารถเลือกรายการเดิมได้</p>
+          <div v-if="createMode === 'new'" class="assigned-code">รหัสรายการจะถูกกำหนดโดยเซิร์ฟเวอร์หลังบันทึก</div>
+          <div v-else class="existing-item-picker">
+            <FormInput
+              id="existing-item-search"
+              v-model="existingItemQuery"
+              class="field"
+              label="ค้นหารายการเดิมด้วยชื่อหรือรหัส"
+              placeholder="เช่น ปลอกผ้านวม หรือ ITM-0010"
+            />
+            <div class="existing-item-list">
+              <button
+                v-for="candidate in existingItems"
+                :key="candidate.id"
+                type="button"
+                class="existing-item"
+                :class="{ 'existing-item--selected': candidate.itemCode === item.itemCode }"
+                @click="selectExistingItem(candidate)"
+              >
+                <span class="min-w-0"><strong>{{ candidate.displayNameTh }}</strong><small>{{ candidate.itemCode }} · {{ candidate.category }}</small></span>
+                <span class="material-symbols-outlined" aria-hidden="true">check</span>
+              </button>
+              <p v-if="existingItems.length === 0" class="empty-selection">ไม่พบรายการเดิม</p>
+            </div>
+            <label for="selected-item-code">รหัสรายการที่เลือก</label>
+            <input id="selected-item-code" v-model="item.itemCode" class="control" readonly>
+          </div>
+        </fieldset>
+        <fieldset v-if="isEdit" class="fieldset">
+          <div class="section-label">รหัสรายการ</div>
+          <input id="item-code" v-model="item.itemCode" class="control field" readonly>
+        </fieldset>
         <fieldset class="fieldset">
           <div class="section-label">ช่วงเวลาราคา</div>
           <div class="grid-2 date-row">
-            <FormInput id="start" v-model="item.start" class="field" label="เริ่มใช้ราคา *" type="date" />
-            <FormInput id="end" v-model="item.end" class="field" label="สิ้นสุดราคา (ถ้ามี)" type="date" placeholder="เลือกวันที่" />
+            <FormInput id="effective-from" v-model="item.effectiveFrom" class="field" label="เริ่มใช้ราคา *" type="date" />
+            <FormInput id="effective-to" v-model="item.effectiveTo" class="field" label="สิ้นสุดราคา (ถ้ามี)" type="date" placeholder="เลือกวันที่" />
           </div>
         </fieldset>
         <fieldset class="fieldset">
@@ -167,27 +261,31 @@ onMounted(async () => {
             <div class="field"><label for="subcategory">หมวดหมู่ย่อย <span class="required">*</span></label><select id="subcategory" v-model="item.subcategory" class="control"><option value="" disabled>เลือกหมวดหมู่ย่อย</option><option v-for="subcategory in subcategories" :key="subcategory" :value="subcategory">{{ subcategory }}</option></select></div>
           </div>
           <div class="grid-2">
-            <FormInput id="type" v-model="item.type" class="field" label="ประเภทสินค้า *" />
+            <FormInput id="item-type" v-model="item.itemType" class="field" label="ประเภทสินค้า *" />
             <FormInput id="variant" v-model="item.variant" class="field" label="รูปแบบ" placeholder="เว้นว่างได้" />
           </div>
-          <FormInput id="name" v-model="item.name" class="field item-name" label="ชื่อแสดงภาษาไทย *" />
+          <FormInput id="display-name-th" v-model="item.displayNameTh" class="field" label="ชื่อแสดงภาษาไทย *" />
+          <FormInput id="display-name-en" v-model="item.displayNameEn" class="field item-name" label="ชื่อแสดงภาษาอังกฤษ" placeholder="เว้นว่างได้" />
         </fieldset>
         <section class="price-panel" aria-labelledby="price-heading">
-          <div class="price-title"><h2 id="price-heading">ราคาตามบริการ</h2><span>เว้นว่างได้ทุกช่อง</span></div>
+          <div class="price-title"><h2 id="price-heading">ราคาตามบริการ</h2><span>หนึ่งรายการต่อหนึ่งบริการ</span></div>
           <div class="price-grid">
-            <div class="price-field"><label for="wash">ซัก อบ รีด</label><div class="money"><input id="wash" v-model="item.wash" inputmode="decimal"><span>บาท</span></div></div>
-            <div class="price-field"><label for="iron">รีดอย่างเดียว</label><div class="money"><input id="iron" v-model="item.iron" inputmode="decimal"><span>บาท</span></div></div>
-            <div class="price-field"><label for="dry">ดรายคลีน</label><div class="money"><input id="dry" v-model="item.dry" inputmode="decimal"><span>บาท</span></div></div>
+            <div class="price-field"><label for="service-type">บริการ *</label><select id="service-type" v-model="item.serviceType" class="control"><option v-for="service in serviceOptions" :key="service.value" :value="service.value">{{ service.label }}</option></select></div>
+            <div class="price-field"><label for="price-group">กลุ่มราคา *</label><input id="price-group" v-model="item.priceGroup" class="control"></div>
+            <div class="price-field"><label for="price">ราคา *</label><div class="money"><input id="price" v-model="item.price" inputmode="decimal" type="number" min="0" step="any"><span>บาท</span></div></div>
+          </div>
+          <div class="grid-2 price-details">
+            <div class="price-field"><label for="unit">หน่วย</label><input id="unit" v-model="item.unit" class="control" placeholder="เช่น piece"></div>
           </div>
         </section>
         <section class="switches" aria-label="การตั้งค่า">
           <FormSwitch
-            v-model="isActive"
+            v-model="item.active"
             label="เปิดใช้งานรายการนี้"
             description="ปิดสวิตช์เมื่อเลิกรับรายการนี้ — ไม่มีการลบข้อมูล"
           />
           <FormSwitch
-            v-model="allowsCredit"
+            v-model="item.creditEligible"
             label="อนุญาตเครดิต"
             description="กำหนดว่ารายการนี้ใช้กับลูกค้าเครดิตได้หรือไม่"
           />
@@ -211,6 +309,23 @@ onMounted(async () => {
 .section-label::after { content:""; height:1px; flex:1; background:var(--line); }
 .grid-2 { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:13px; }
 .field { min-width:0; margin-bottom:15px; }
+.mode-panel { margin-bottom:22px; }
+.mode-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.mode-button { display:flex; min-height:78px; flex-direction:column; align-items:flex-start; gap:5px; padding:12px; border:1px solid #a9c9c3; border-radius:10px; background:#fff; color:var(--ink); text-align:left; cursor:pointer; }
+.mode-button span { color:var(--quiet); font-size:11px; line-height:1.35; }
+.mode-button--selected { border-color:var(--teal-2); background:#edf7f5; box-shadow:0 0 0 2px rgba(0,122,105,.12); }
+.mode-button:disabled { cursor:not-allowed; opacity:.5; }
+.assigned-code { margin:0 0 12px; color:var(--quiet); font-size:12px; }
+.existing-item-picker { margin-top:4px; }
+.existing-item-list { max-height:190px; margin:-5px 0 13px; overflow-y:auto; border:1px solid var(--line); border-radius:10px; background:#fff; }
+.existing-item { display:flex; width:100%; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-bottom:1px solid var(--line); color:var(--ink); text-align:left; }
+.existing-item:last-child { border-bottom:0; }
+.existing-item strong,.existing-item small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.existing-item small { margin-top:2px; color:var(--quiet); font-size:11px; }
+.existing-item .material-symbols-outlined { color:var(--teal-2); font-size:18px; opacity:0; }
+.existing-item--selected { background:#edf7f5; }
+.existing-item--selected .material-symbols-outlined { opacity:1; }
+.empty-selection { margin:0; padding:12px; color:var(--quiet); font-size:12px; }
 label { display:block; margin-bottom:6px; font-size:12px; font-weight:700; color:#234f49; }
 .required { color:var(--teal-2); }
 .control { display:block; width:100%; min-width:0; height:47px; padding:0 12px; color:var(--ink); border:1px solid #a9c9c3; border-radius:10px; outline:0; background:#fff; font-size:14px; box-shadow:0 1px 0 rgba(0,79,69,.02); }
@@ -224,6 +339,7 @@ select.control { padding-right:27px; background:#fff url("data:image/svg+xml,%3C
 .price-title h2 { margin:0; font:700 17px/1.2 "Noto Sans Thai",Manrope,sans-serif; letter-spacing:-.025em; }
 .price-title span { color:#b9d8d2; font-size:11px; }
 .price-grid { position:relative; z-index:1; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+.price-details { position:relative; z-index:1; margin-top:12px; }
 .price-field { min-width:0; }
 .price-field label { min-height:34px; margin:0 0 7px; color:#d8f2ed; font-size:11px; line-height:1.32; }
 .money { position:relative; }
@@ -233,6 +349,7 @@ select.control { padding-right:27px; background:#fff url("data:image/svg+xml,%3C
 .date-row { margin-bottom:10px; }
 .switches { margin:0 -20px 10px; padding:21px 20px 0; border-top:1px solid var(--line); background:#edf7f5; }
 .form-error { margin:12px 0 0; padding:10px 12px; border-radius:8px; background:color-mix(in srgb, var(--red) 12%, white); color:var(--red); font-size:12px; line-height:1.4; }
+@media (max-width:420px) { .mode-grid { grid-template-columns:1fr; } }
 @media (max-width:350px) { .price-panel,.switches { margin-left:-16px; margin-right:-16px; padding-left:16px; padding-right:16px; } .grid-2 { gap:10px; } .control { padding-left:9px; padding-right:9px; } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; } }
 </style>

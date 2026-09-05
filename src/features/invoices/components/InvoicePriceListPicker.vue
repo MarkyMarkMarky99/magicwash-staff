@@ -10,7 +10,6 @@ import {
   groupPriceListByCategory,
   iconForCategory,
   uniqueCategories,
-  type PriceListServiceKey,
 } from '../utils/invoice-price-list.utils'
 
 defineOptions({ name: 'InvoicePriceListPicker' })
@@ -28,7 +27,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
   retry: []
-  select: [payload: { item: InvoicePriceListItemDto; serviceKey: PriceListServiceKey }]
+  select: [item: InvoicePriceListItemDto]
 }>()
 
 const searchQuery = ref('')

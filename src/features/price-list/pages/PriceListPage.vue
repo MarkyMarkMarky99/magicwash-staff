@@ -7,6 +7,7 @@ import GenericTabs from '@/shared/components/GenericTabs.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import { usePriceListStore } from '../stores/price-list.store'
 import PriceListCard from '../components/PriceListCard.vue'
+import PriceListStatusTabs from '../components/PriceListStatusTabs.vue'
 import { usePriceListFilterRoute } from '../composables/usePriceListFilterRoute'
 
 defineOptions({ name: 'PriceListPage' })
@@ -22,6 +23,7 @@ const listLoading = computed(() => loading.value && !loaded.value)
 const listError = computed(() => (loaded.value ? null : error.value))
 
 const search = ref('')
+const statusFilter = ref<'all' | 'active' | 'inactive'>('all')
 const { filter, updateFilter } = usePriceListFilterRoute()
 
 const categoryTabs = computed(() => {
@@ -41,6 +43,8 @@ const filteredItems = computed(() => {
 
   return items.value.filter((item) => {
     if ((filter.value.category ?? 'all') !== 'all' && item.category !== filter.value.category) return false
+    if (statusFilter.value === 'active' && !item.active) return false
+    if (statusFilter.value === 'inactive' && item.active) return false
     if (!query) return true
 
     return [
@@ -50,6 +54,7 @@ const filteredItems = computed(() => {
       item.itemType,
       item.variant,
       item.displayNameTh,
+      item.displayNameEn,
     ]
       .map((value) => String(value ?? '').toLocaleLowerCase('th-TH'))
       .join(' ')
@@ -60,6 +65,12 @@ const filteredItems = computed(() => {
 function selectCategory(key: string) {
   if (categoryTabs.value.some((tab) => tab.key === key)) {
     updateFilter({ category: key === 'all' ? null : key })
+  }
+}
+
+function selectStatus(key: string) {
+  if (key === 'all' || key === 'active' || key === 'inactive') {
+    statusFilter.value = key
   }
 }
 
@@ -89,6 +100,7 @@ onMounted(() => {
     <template #filters>
       <div class="flex-none bg-primary text-on-primary w-full min-w-0">
       <GenericTabs :tabs="categoryTabs" :active-key="filter.category ?? 'all'" @select="selectCategory" />
+      <PriceListStatusTabs :active-status="statusFilter" @select="selectStatus" />
       </div>
     </template>
 
