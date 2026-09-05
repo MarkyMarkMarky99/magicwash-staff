@@ -131,8 +131,6 @@ Verify a direct edit like any other: run the affected test or build, and say wha
 
 ### Assistants
 
-- **backend-team** — the default for writing and editing code: implement a brief, apply a described
-  fix, build a feature, run a refactor, change multiple files or layers.
 - **grok-explorer** — codebase exploration: "where is X defined", "how does Y work", "find every
   usage of Z".
 - **grok-investigator** — deep research: root-cause bug investigation, or any question that needs a
@@ -194,24 +192,14 @@ A page on that list must not use `onActivated`/`onDeactivated`; those hooks neve
 Long sessions get expensive and `/compact` costs more than it saves. The fix is to make a clean
 `/clear` lose nothing.
 
-- **`NEXT-SESSION.md` at the repo root is the handoff doc.** It stays untracked. Update it **at
-  every commit** and whenever a significant decision is made or reversed — not only at the end,
-  because a session can be cut short.
-- Record the **decision and its reason**, not a diary. Anything recoverable from `git log`, a diff,
-  `docs/`, or this file does not belong there — reference it instead.
-- **When a commit closes a unit of work, say so and offer to stop.** Update the handoff first; the
-  user clears and reopens with "read `NEXT-SESSION.md`".
-
-## MEMORY.md
-
-`.user/memory/MEMORY.md` is the shared session-state file. Read it first each session; keep it
-under 150 lines.
-
-- **Where we are:** branch, current work, user dependencies, next actions, and resume files.
-- **Project rules:** one-line links to authoritative rule files only; do not duplicate their content.
-- Update it when state or a material decision changes. Record only facts that are expensive to
-  rediscover or that the user has had to repeat; delete disproven or stale entries.
-- Put any worker-specific context in that worker's brief.
+- **`.user/memory/MEMORY.md` is the one handoff note** — a live note of what is in flight, what
+  is next, and what is stuck. Not a document, not rules, not a diary. Read it first each session.
+  **Rules: `.claude/.rules/memory.md`.** Read that before writing to it.
+  The short version: 150 lines max, bullets not prose, every entry tied to a branch that still
+  exists, project rules as pointers only, update at every commit.
+- **When a commit closes a unit of work, say so and offer to stop.** Update the note first; the
+  user clears and reopens with "read `MEMORY.md`".
+- Put worker-specific context in that worker's brief, not here.
 
 ## Context economy
 
