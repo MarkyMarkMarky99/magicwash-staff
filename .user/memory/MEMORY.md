@@ -1,13 +1,11 @@
 # Project memory
 
-Live note — what is in flight, what is next, what is stuck.
-Rules: `.claude/.rules/memory.md`. Read it before writing here. Finished → delete the line.
+Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`, read before writing.
 
 ## Where we are — 2026-09-06
 
 - **Branches:** `main` (synced, pushed) · `feat/live-order-helper` (pushed, unmerged, kept on
-  purpose) · `feat/customer-detail-tabs` (**already in `main` — delete it, local and remote**).
-  Single worktree.
+  purpose). Nothing else exists. Single worktree.
 - `feat/live-order-helper` holds `getLiveOrderById()` plus a read-only parity script that
   samples 50 orders and checks `OrdersView` against live `OrderForm` + `OrderItemForms`.
   Nothing calls it yet.
@@ -19,7 +17,7 @@ Rules: `.claude/.rules/memory.md`. Read it before writing here. Finished → del
 
 ## List pages — shipped, needs a browser pass
 
-Merged and deployed 2026-09-06 (8 commits). Everything below passes build, `typecheck:api` and
+Merged and deployed 2026-09-06 (12 commits). Everything below passes build, `typecheck:api` and
 the dry-tests, but **nothing has been opened in a browser yet.** There is no frontend type-check,
 so a broken prop ships green. Check in this order, and only these:
 
@@ -32,8 +30,16 @@ so a broken prop ships green. Check in this order, and only these:
 4. `#/appointments` (4 lists on screen) and customer detail — must show **no** magnifier at all.
 5. `#/orders` — its hand-built hero is gone; heading is now the ListContainer's.
 6. Theme sweep: green ink instead of near-black, Noto Sans Thai everywhere.
+7. Order detail → scroll so the "เพิ่มรูป" button sits near the bottom edge, then open it. The
+   menu must flip **above** the trigger and show all three rows.
+8. Order create → customer picker: scroll the options, no scrollbar should appear.
 
 Not worth checking: the six ghost-button conversions are class-only.
+
+Scrollbars were swept app-wide the same day: every scroller in `src/` is accounted for and
+hidden. `.hide-scrollbar` was deleted — `.no-scrollbar` is the only name. `BaseDropdown` now
+flips above its trigger when there is under 160px below, because its `maxHeight` is a 96px
+**floor**, not a ceiling, and a clipped panel loses rows with no scroll and no hint.
 
 ## Price list — next
 
@@ -52,8 +58,6 @@ Reported, not fixed:
 - `InvoiceItems.service_type` is written `null` unconditionally — a line's service survives
   only inside the description string.
 - No `active` filter on the list query; the picker fetches everything and filters client-side.
-- **Trap:** clearing a range does not clear number formats. `price` landed where
-  `effective_from` used to sit and rendered as dates until the format was reset.
 
 ## Photos — decide before building
 
@@ -106,14 +110,14 @@ spreadsheets: tabs `LaundryPhotos` and `AfterPhoto`.
 
 - Add API authentication before launch.
 - Pass actor identity into repository writes for an audit trail.
-- Invoice `CANCELLED` vs `VOID` — decide the business distinction, then the contract. Cancel/void
-  UI deferred; see `docs/plans/invoice-contract-merge-and-status-update.md`.
+- Invoice `CANCELLED` vs `VOID` — decide the distinction, then the contract. UI deferred; see
+  `docs/plans/invoice-contract-merge-and-status-update.md`.
 - Nested invoice/items update blocked until delete or soft-delete exists.
 - Remove schema-file `z.infer` exports in one dedicated all-contract pass.
 - Consolidate datetime helpers separately — `SheetRepository` is shared by every module.
-- Stage 4 overlays: `OrderGalleryPage.vue`, `InvoiceProofLightbox.vue`, `NavSidebar.vue` are still
-  local-state. `OrderGalleryPage.vue` also mirrors `route.meta` into a local `ref` — soft conflict
-  with the no-mirror rule in `CLAUDE.md`. Review its nested `<button>` (~line 255) while there.
+- Stage 4 overlays still local-state: `OrderGalleryPage.vue`, `InvoiceProofLightbox.vue`,
+  `NavSidebar.vue`. The gallery also mirrors `route.meta` into a `ref` (against `CLAUDE.md`) and
+  has a nested `<button>` near line 255.
 - `customer-packages` frontend: its list chrome was brought onto the pattern 2026-09-06; the
   **create form** still diverges from `docs/design/patterns/forms.md`.
 - Docs still describe the old header search (`SEARCHABLE_ROUTES`, `meta.searchable`); both are
@@ -130,9 +134,8 @@ spreadsheets: tabs `LaundryPhotos` and `AfterPhoto`.
 
 - User runs `vercel dev` on 3001. Do not start a second server; Vite pins 3102.
 - Pushing `main` deploys production. Deliberate act.
-- `vercel dev` can leave a long-lived process whose frontend proxy breaks silently while `/api/*`
-  keeps working: `/` returns 500 `FUNCTION_INVOCATION_FAILED`, API routes still 200. Restart it —
-  it is not an app-code bug, do not chase it in source.
+- A long-lived `vercel dev` can break its frontend proxy silently: `/` returns 500
+  `FUNCTION_INVOCATION_FAILED` while `/api/*` still returns 200. Restart it, don't debug the app.
 
 ## Project rules — pointers only
 
@@ -142,6 +145,6 @@ spreadsheets: tabs `LaundryPhotos` and `AfterPhoto`.
 - Search and filters belong to `ListContainer` (`searchable` prop, `#search-actions` slot), not to
   the app header or `ListPageLayout`. A panel rendered into its default slot must go into the
   `#empty` and `#error` slots too, or it vanishes when the filter matches nothing.
-- Service-type Thai labels: `src/shared/utils/service-type-labels.ts` only. Four copies with two
-  wordings were merged 2026-09-06; `contracts/` is for API schemas and enums, not labels.
+- Service-type Thai labels: `src/shared/utils/service-type-labels.ts` only. `contracts/` is for
+  API schemas and enums, never labels.
 - `docs/frontend-layout-nav-refactor.md` — overlay/navigation rationale.
