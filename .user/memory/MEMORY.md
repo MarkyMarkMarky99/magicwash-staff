@@ -5,14 +5,9 @@ Rules: `.claude/.rules/memory.md`. Read it before writing here. Finished → del
 
 ## Where we are — 2026-09-06
 
-- **Branches:** `main` (price-list v2 merged, **ahead 4, not pushed**) · `feat/live-order-helper`
-  (pushed, unmerged, kept on purpose). Single worktree.
-- `feat/price-list-frontend-v2` was rebased onto `main` and fast-forwarded in. Delete the local
-  and remote branch once `main` is pushed.
-- `redesign/price-list` held only an uncommitted token/`BaseBadge` restyle of the OLD three-price
-  form. Discarded on the user's call; patch kept at
-  `%TEMP%\claude\C--MagicwashGemini-webapp-vueǚ85826-*\scratchpad\price-list-restyle-discarded.patch`.
-  Delete the branch too.
+- **Branches:** `main` (synced, pushed) · `feat/live-order-helper` (pushed, unmerged, kept on
+  purpose) · `feat/customer-detail-tabs` (**already in `main` — delete it, local and remote**).
+  Single worktree.
 - `feat/live-order-helper` holds `getLiveOrderById()` plus a read-only parity script that
   samples 50 orders and checks `OrdersView` against live `OrderForm` + `OrderItemForms`.
   Nothing calls it yet.
@@ -22,20 +17,35 @@ Rules: `.claude/.rules/memory.md`. Read it before writing here. Finished → del
 - **Never dispatch `backend-team` or any pipeline unless the user names it.** No default
   code-writing assistant.
 
+## List pages — shipped, needs a browser pass
+
+Merged and deployed 2026-09-06 (8 commits). Everything below passes build, `typecheck:api` and
+the dry-tests, but **nothing has been opened in a browser yet.** There is no frontend type-check,
+so a broken prop ships green. Check in this order, and only these:
+
+1. Search on `#/price-list` (client filter) and `#/invoices` (store fetch) — magnifier in the
+   list heading, input under it, typing filters, ✕ clears.
+2. Deep link `#/invoices?keyword=INV` — the box must open by itself with the word in it.
+3. `#/price-list`: open search → ⚙ at the right of that row → pick `ซักแห้ง` → type nonsense so
+   nothing matches. **The service buttons must still be there.** ListContainer renders one slot
+   at a time, so a panel placed only in the default slot disappears exactly when you need it.
+4. `#/appointments` (4 lists on screen) and customer detail — must show **no** magnifier at all.
+5. `#/orders` — its hand-built hero is gone; heading is now the ListContainer's.
+6. Theme sweep: green ink instead of near-black, Noto Sans Thai everywhere.
+
+Not worth checking: the six ghost-button conversions are class-only.
+
 ## Price list — next
 
-1. Push `main` (deploys production), then delete both dead branches.
-2. UX pass — scope not decided. Friction found while migrating:
-   - `ITM-0010` has two active WSIR rows, same name, same group, 120 vs 700. Price is the only
-     thing telling them apart, so it must read as the primary field on the card and in the picker.
-   - The form's two create modes (new item vs. another price option) look identical.
-   - The invoice picker downloads all 79 rows to show 23 — inactive filtered client-side.
-3. Fill real prices for the 33 rows at placeholder `price 0` (all `active: false`).
+1. Fill real prices for the 33 rows at placeholder `price 0` (all `active: false`).
+2. **Add-price-to-an-existing-item is still buried.** The `+` always opens "new item"; adding
+   another service to a row you can see costs a mode switch and a re-search. An action on the
+   card itself (BaseSwipeCard already supports one) would pass the `itemCode` straight through.
+   Designed, not built.
 
 Verified 2026-09-06, do not re-check: live sheet = G Drive registry = `PriceList.db-contract.ts`,
 16 columns `id … active`, enum `WSIR|IRON|DRCL|WASH`. `PRICE_LIST_SPREADSHEET_ID` is set in all
 three Vercel environments, and the sheet is shared with the staff-writer service account as Editor.
-Post-rebase: build, `typecheck:api`, and 18/18 price-list dry-tests pass.
 
 Reported, not fixed:
 
@@ -104,9 +114,10 @@ spreadsheets: tabs `LaundryPhotos` and `AfterPhoto`.
 - Stage 4 overlays: `OrderGalleryPage.vue`, `InvoiceProofLightbox.vue`, `NavSidebar.vue` are still
   local-state. `OrderGalleryPage.vue` also mirrors `route.meta` into a local `ref` — soft conflict
   with the no-mirror rule in `CLAUDE.md`. Review its nested `<button>` (~line 255) while there.
-- `customer-packages` frontend is off-pattern: list search/filter/accessibility/layout and the
-  create form diverge from `docs/design/patterns/list-pages.md` and `forms.md`.
-- Remove stale `SEARCHABLE_ROUTES` references in two old docs.
+- `customer-packages` frontend: its list chrome was brought onto the pattern 2026-09-06; the
+  **create form** still diverges from `docs/design/patterns/forms.md`.
+- Docs still describe the old header search (`SEARCHABLE_ROUTES`, `meta.searchable`); both are
+  deleted from the code. `docs/design/patterns/list-pages.md` needs the ListContainer search too.
 - Confirm `CUSTOMERS_SPREADSHEET_ID` is set in every Vercel environment.
 - Test the merged overlay sheet on a real phone: drag-to-close, scroll inside, Android Back,
   iOS edge-swipe.
@@ -128,4 +139,9 @@ spreadsheets: tabs `LaundryPhotos` and `AfterPhoto`.
 - `CLAUDE.md` — frontend architecture, navigation, testing, working rules.
 - `api/CLAUDE.md` — backend under `api/` and `server/`.
 - `docs/design/patterns/list-pages.md` — required pattern for root collection pages.
+- Search and filters belong to `ListContainer` (`searchable` prop, `#search-actions` slot), not to
+  the app header or `ListPageLayout`. A panel rendered into its default slot must go into the
+  `#empty` and `#error` slots too, or it vanishes when the filter matches nothing.
+- Service-type Thai labels: `src/shared/utils/service-type-labels.ts` only. Four copies with two
+  wordings were merged 2026-09-06; `contracts/` is for API schemas and enums, not labels.
 - `docs/frontend-layout-nav-refactor.md` — overlay/navigation rationale.
