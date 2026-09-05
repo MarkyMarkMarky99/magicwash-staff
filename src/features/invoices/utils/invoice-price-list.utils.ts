@@ -7,6 +7,7 @@ import {
   type LineItemFormRow,
 } from '../types/invoice-create.types'
 import { priceListListResponseSchema } from '@contracts/price-list/price-list-api.schema'
+import { serviceTypePresentation } from '@contracts/shared/service-type-labels'
 
 export const PRICE_LIST_RENDER_CAP = 2000
 
@@ -14,12 +15,10 @@ export type PriceListServiceType = InvoicePriceListItemDto['serviceType']
 
 export const PRICE_LIST_SERVICES = priceListListResponseSchema.shape.serviceType.options
 
-const SERVICE_PRESENTATION: Record<PriceListServiceType, { label: string; icon: string }> = {
-  WSIR: { label: 'ซัก อบ รีด', icon: 'local_laundry_service' },
-  IRON: { label: 'รีดอย่างเดียว', icon: 'iron' },
-  DRCL: { label: 'ดรายคลีน', icon: 'dry_cleaning' },
-  WASH: { label: 'ซัก', icon: 'water_drop' },
-}
+// Wording and icons are shared with price-list and orders — see
+// `contracts/shared/service-type-labels.ts`. Do not add a local copy back here.
+const SERVICE_PRESENTATION: Record<PriceListServiceType, { label: string; icon: string }> =
+  serviceTypePresentation
 
 export interface PriceListServiceOption {
   serviceType: PriceListServiceType

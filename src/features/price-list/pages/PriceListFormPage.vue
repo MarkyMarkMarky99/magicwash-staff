@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import FormInput from '@/shared/components/FormInput.vue'
 import FormSwitch from '@/shared/components/FormSwitch.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
-import { serviceTypeSchema } from '@contracts/shared/service-type.schema'
+import { serviceTypeOptions } from '@contracts/shared/service-type-labels'
 import { usePriceListStore } from '../stores/price-list.store'
 import {
   createPriceListPayload,
@@ -69,10 +69,7 @@ const existingItems = computed(() => {
       .some((value) => value.includes(query)),
   )
 })
-const serviceOptions = serviceTypeSchema.options.map((value) => ({
-  value,
-  label: { WSIR: 'ซัก อบ รีด', IRON: 'รีดอย่างเดียว', DRCL: 'ดรายคลีน', WASH: 'ซัก' }[value],
-}))
+const serviceOptions = serviceTypeOptions
 const formValid = computed(() =>
   Boolean(
     item.category

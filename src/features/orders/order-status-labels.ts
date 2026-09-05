@@ -9,14 +9,6 @@ export function getOrderStatusLabel(status: string | null | undefined): string |
   return orderStatusLabels[status as keyof typeof orderStatusLabels] ?? status
 }
 
-export const orderServiceTypeLabels = {
-  WSIR: 'ซักรีด',
-  IRON: 'รีด',
-  DRCL: 'ซักแห้ง',
-  WASH: 'ซัก',
-} as const
-
-export function getOrderServiceTypeLabel(serviceType: string | null | undefined): string | null {
-  if (!serviceType) return null
-  return orderServiceTypeLabels[serviceType as keyof typeof orderServiceTypeLabels] ?? serviceType
-}
+// Service-type wording is shared with price-list and invoices — see
+// `contracts/shared/service-type-labels.ts`. Do not add a local copy back here.
+export { serviceTypeLabel as getOrderServiceTypeLabel } from '@contracts/shared/service-type-labels'

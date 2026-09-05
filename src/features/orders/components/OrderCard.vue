@@ -1,4 +1,7 @@
 <script setup lang="ts">
+// Service-type wording comes from `contracts/shared/service-type-labels.ts` — one vocabulary
+// across price-list, invoices and orders. Do not add a local map back here.
+import { serviceTypeLabel } from '@contracts/shared/service-type-labels'
 import type { z } from 'zod'
 import type { workOrderListResponseSchema } from '@contracts/work-orders/work-order-api.schema'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
@@ -23,19 +26,6 @@ const emit = defineEmits<{
   viewInvoice: [invoiceNumber: string]
 }>()
 
-// English labels for the OrderForm sheet's service_type column, matching the card's existing
-// English STATUS_PRESENTATION labels. Not the Thai maps in order-status-labels.ts.
-const SERVICE_TYPE_LABELS: Record<string, string> = {
-  WASH: 'Wash',
-  WSIR: 'Wash & Iron',
-  IRON: 'Iron',
-  DRCL: 'Dry Clean',
-}
-
-function serviceTypeLabel(serviceType: string | null | undefined): string | null {
-  if (!serviceType) return null
-  return SERVICE_TYPE_LABELS[serviceType] ?? serviceType
-}
 
 function viewPhotos() {
   emit('viewPhotos', props.order.orderId)

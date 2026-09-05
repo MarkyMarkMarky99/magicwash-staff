@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { serviceTypeLabel } from '@contracts/shared/service-type-labels'
 import { ref, toRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { OrderListDto } from '../services/order.service'
@@ -194,7 +195,7 @@ function viewPhotos() {
                     <p class="truncate font-body text-sm font-medium leading-tight text-on-surface">
                       {{ item.description || '—' }}
                     </p>
-                    <p v-if="item.serviceType" class="mt-0.5 font-body text-[11px] text-on-surface-variant">{{ item.serviceType }}</p>
+                    <p v-if="item.serviceType" class="mt-0.5 font-body text-[11px] text-on-surface-variant">{{ serviceTypeLabel(item.serviceType) }}</p>
                   </div>
                   <span class="shrink-0 font-label text-[11px] font-semibold text-on-surface-variant">
                     {{ item.quantity ?? '-' }} pcs
