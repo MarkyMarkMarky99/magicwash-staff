@@ -5,8 +5,9 @@ Rules: `.claude/.rules/memory.md`. Read it before writing here. Finished → del
 
 ## Where we are — 2026-09-05
 
-- **Branches:** `main` (synced) · `feat/price-list-frontend-v2` (current, pushed, **ready to
-  merge**) · `feat/live-order-helper` (pushed, unmerged, kept on purpose). Single worktree.
+- **Branches:** `main` (synced) · `feat/price-list-frontend-v2` (current, pushed, **held open
+  for a UX pass — do not merge**) · `feat/live-order-helper` (pushed, unmerged, kept on
+  purpose). Single worktree.
 - `feat/live-order-helper` holds `getLiveOrderById()` plus a read-only parity script that
   samples 50 orders and checks `OrdersView` against live `OrderForm` + `OrderItemForms`.
   Nothing calls it yet.
@@ -18,8 +19,22 @@ Rules: `.claude/.rules/memory.md`. Read it before writing here. Finished → del
 
 ## Price list — do this first
 
-1. Merge `feat/price-list-frontend-v2` into `main`, delete the branch.
-2. Fill real prices for the 33 rows sitting at placeholder `price 0` (all `active: false`).
+**Do not merge yet.** The migration is functionally done and verified; a UX pass on the
+price-list screens comes first, scope not yet decided. The branch stays open until then.
+
+1. UX pass — decide the scope, then do it.
+2. Merge `feat/price-list-frontend-v2` into `main`, delete the branch.
+3. Fill real prices for the 33 rows sitting at placeholder `price 0` (all `active: false`).
+
+Known UX friction to weigh when scoping, found while migrating — not yet a decision:
+
+- `ITM-0010` shows two active WSIR rows, same name, same group, 120 vs 700. Price is the only
+  thing telling them apart, so it has to read as the primary field on the card and in the
+  invoice picker.
+- The form has two create modes (new item vs. another price option for an existing item) and
+  they currently look the same.
+- The invoice picker downloads all 79 rows to display 23, because inactive rows are filtered
+  client-side.
 
 Done, do not redo:
 
