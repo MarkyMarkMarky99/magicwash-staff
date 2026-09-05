@@ -21,11 +21,11 @@ function capture(imageType: OrderImageType, close: () => void) {
         :ref="setTrigger"
         v-bind="triggerAttrs"
         type="button"
-        class="relative flex h-[22px] items-center gap-1 whitespace-nowrap rounded-full bg-surface-container px-2.5 pr-1.5 font-label text-[9px] font-bold uppercase tracking-wider text-on-surface-variant transition-all after:absolute after:-inset-2 after:content-[''] hover:bg-surface-container-high active:scale-95 focus:outline-none"
+        class="relative flex h-[22px] items-center gap-1 whitespace-nowrap rounded-full bg-mint px-2.5 pr-1.5 font-label text-[9px] font-bold uppercase tracking-wider text-primary transition-all after:absolute after:-inset-2 after:content-[''] hover:bg-secondary-container active:scale-95 focus:outline-none"
         @click="toggle"
       >
         เพิ่มรูป
-        <span class="material-symbols-outlined text-[14px] leading-none transition-transform" :class="open ? 'rotate-180' : ''" aria-hidden="true">expand_more</span>
+        <span class="material-symbols-outlined text-[14px] leading-none transition-transform" :class="open ? 'rotate-45' : ''" aria-hidden="true">add</span>
       </button>
     </template>
 
