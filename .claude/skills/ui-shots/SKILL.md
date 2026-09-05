@@ -28,9 +28,16 @@ standalone mockups. Codex refuses to start otherwise.
 
 ## Environment facts to put in every brief
 
-- Playwright installs into the **scratchpad**, never the project: `npm install playwright --prefix
-  <scratchpad>`, `PLAYWRIGHT_BROWSERS_PATH` and `NODE_PATH` pointed there. The repo's
-  `package.json` and `package-lock.json` must be byte-identical afterwards.
+- Everything this skill writes goes under **one gitignored folder at the repo root, `./.playwright/`** —
+  inside the repo so the user can open it in the editor, never committed. Do not create any other
+  top-level folder, and do not use the scratchpad.
+  - `./.playwright/cache/` — the Playwright install, **persistent and reused**. Skip the install when
+    `./.playwright/cache/node_modules/playwright` already exists; otherwise
+    `npm install playwright --prefix ./.playwright/cache`. Point `NODE_PATH` and
+    `PLAYWRIGHT_BROWSERS_PATH` there. `--prefix` writes only inside that folder — the repo's own
+    `package.json` / `package-lock.json` must be byte-identical afterwards.
+    (Stale after a Chrome upgrade → delete `./.playwright/cache/` once and let it reinstall.)
+  - `./.playwright/shots/<yyyy-mm-dd>-<target>/` — the screenshots.
 - `channel: 'chrome'` uses the installed Chrome. Forbid a silent fallback to bundled Chromium — if
   it fails, report the error and stop.
 - Headed opens a **separate window**, not a tab in the user's Chrome. Say so, or the user thinks
@@ -48,8 +55,18 @@ standalone mockups. Codex refuses to start otherwise.
 
 - **Do not modify the page being photographed.** If it looks broken, photograph the breakage and
   report it. Fixing it destroys the evidence and mixes an unreviewed change into someone's diff.
+- **Never revert, restore, stash, or check out the working tree** to make `git status` clean. Someone
+  else may be editing this repo while you run; a blanket restore destroys their work. Leave files you
+  did not create exactly as you found them and report what `git status` shows.
+- Wait for animations to settle before shooting. A page mid-transition photographs faded or
+  half-positioned, and that is not what the design looks like.
 - Shoot each target at **390×844** and at **1280×800** unless told otherwise, and name files so the
   variant and viewport are readable from the filename alone.
+- **`fullPage: true` is not enough.** When the content sits in an inner scroll container — a dialog,
+  a sheet, a panel with its own scrollbar — `fullPage` captures only what fits the viewport and the
+  rest is silently missing. Detect it (`scrollHeight > clientHeight` on the scrolling element) and
+  shoot the container in overlapping scroll steps to the bottom, named `-part1`, `-part2`, …
+  Report the number of parts per target so a missing half is visible in the report.
 - Capture every state that was asked for — list them explicitly in the brief. An unlisted state
   will not be shot.
 - **Wait for content, do not wait for time.** Poll until real rows exist. Skeleton placeholders are

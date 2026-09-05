@@ -54,3 +54,8 @@ dist-ssr
 # Playwright
 test-results/
 playwright-report/
+
+# Playwright install cache + screenshot/run output for the browser skills (ui-shots,
+# frontend-test). Inside the repo so they are visible in the editor; never committed.
+# Delete .playwright/cache/ if Playwright goes stale after a Chrome upgrade.
+.playwright/
