@@ -1,9 +1,6 @@
 # Project memory
-
 Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`, read before writing.
-
 ## Where we are — 2026-09-06
-
 - **Branches:** `main` (synced, pushed) · `feat/live-order-helper` (pushed, unmerged, kept on
   purpose). Nothing else exists. Single worktree.
 - `feat/live-order-helper` holds `getLiveOrderById()` plus a read-only parity script that
@@ -14,13 +11,16 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
   source, producing guards that failed against correct code and guards that could not fail.
 - **Never dispatch `backend-team` or any pipeline unless the user names it.** No default
   code-writing assistant.
-
-## List pages — shipped, needs a browser pass
-
+## Active — feat/order-pricelist-picker
+- User authorized autonomous implementation and Terra staff browser acceptance; no deploy/push requested.
+- Resume plan/briefs: `.codex/tasks/order-pricelist-picker/`; UI ready; integration in progress, Terra browser review next.
+- Scope: active DEFAULT same-service pricelist selection -> quantity/note -> save; existing create/photo path.
+- Existing source has live work-orders create/detail and Firebase + order-images camera; older notes below need live verification.
+- Browser: CUA transport unavailable; Playwright installed Chrome works. Port 3000 is running; live data may take >10 seconds.
+## Main — list pages browser checks pending
 Merged and deployed 2026-09-06 (12 commits). Everything below passes build, `typecheck:api` and
 the dry-tests, but **nothing has been opened in a browser yet.** There is no frontend type-check,
 so a broken prop ships green. Check in this order, and only these:
-
 1. Search on `#/price-list` (client filter) and `#/invoices` (store fetch) — magnifier in the
    list heading, input under it, typing filters, ✕ clears.
 2. Deep link `#/invoices?keyword=INV` — the box must open by itself with the word in it.
@@ -33,7 +33,6 @@ so a broken prop ships green. Check in this order, and only these:
 7. Order detail → scroll so the "เพิ่มรูป" button sits near the bottom edge, then open it. The
    menu must flip **above** the trigger and show all three rows.
 8. Order create → customer picker: scroll the options, no scrollbar should appear.
-
 Not worth checking: the six ghost-button conversions are class-only.
 
 Scrollbars were swept app-wide the same day: every scroller in `src/` is accounted for and
