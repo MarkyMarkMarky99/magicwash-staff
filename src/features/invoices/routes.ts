@@ -5,7 +5,6 @@ export const invoiceRoutes: RouteRecordRaw[] = [
     path: '/invoices',
     name: 'invoice-list',
     component: () => import('./pages/InvoiceListPage.vue'),
-    meta: { searchable: true },
   },
   {
     path: '/invoices/create',

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 const props = defineProps({
   title: { type: String, required: true },
@@ -14,9 +14,48 @@ const props = defineProps({
   collapsible: { type: Boolean, default: false },
   skeletonRows: { type: Number, default: 0 },
   skeletonAvatarClass: { type: String, default: 'w-10 h-10' },
+  // Search is opt-in. Several screens render more than one ListContainer at once (the
+  // appointment schedule shows four, customer detail swaps three sections), and a magnifier
+  // on each of them would be nonsense -- only a page's main browse list asks for one.
+  searchable: { type: Boolean, default: false },
+  searchValue: { type: String, default: undefined },
+  searchPlaceholder: { type: String, default: 'ค้นหา…' },
+  searchDebounceMs: { type: Number, default: 300 },
 })
 
+const emit = defineEmits(['update:searchValue'])
+
 const collapsed = ref(false)
+const searchOpen = ref(Boolean(props.searchValue))
+const keywordInput = ref(props.searchValue ?? '')
+let debounceTimer
+
+watch(
+  () => props.searchValue,
+  (value) => {
+    const keyword = value ?? ''
+    if (keyword !== keywordInput.value) {
+      clearTimeout(debounceTimer)
+      keywordInput.value = keyword
+    }
+    // A keyword arriving from the URL (a deep link, a restored filter) has to reveal the box
+    // it came from, or the user sees a filtered list with no visible reason.
+    if (keyword) searchOpen.value = true
+  },
+)
+
+watch(keywordInput, (keyword) => {
+  clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => {
+    if (keyword !== (props.searchValue ?? '')) emit('update:searchValue', keyword)
+  }, props.searchDebounceMs)
+})
+
+onBeforeUnmount(() => clearTimeout(debounceTimer))
+
+function toggleSearch() {
+  searchOpen.value = !searchOpen.value
+}
 const headingId = computed(() =>
   `${props.title.toLowerCase().replace(/\s+/g, '-')}-heading`
 )
@@ -51,6 +90,18 @@ function toggleCollapsed() {
             {{ count }} {{ countLabel }}
           </span>
         </div>
+        <button
+          v-if="searchable"
+          type="button"
+          class="-my-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          :class="searchOpen || keywordInput ? 'bg-primary/10 text-primary' : 'text-primary hover:bg-primary/10 active:bg-primary/20'"
+          :aria-label="searchOpen ? 'ปิดการค้นหา' : 'ค้นหา'"
+          :aria-expanded="searchOpen"
+          @click.stop="toggleSearch"
+        >
+          <span class="material-symbols-outlined text-[16px]" aria-hidden="true">search</span>
+        </button>
+
         <slot name="actions" />
         <span
           v-if="collapsible"
@@ -59,6 +110,29 @@ function toggleCollapsed() {
           aria-hidden="true"
         >expand_more</span>
       </div>
+    </div>
+
+    <div
+      v-if="searchable && searchOpen"
+      class="flex items-center gap-2 border-b border-outline-variant/20 bg-surface-container px-4 py-2"
+    >
+      <span class="material-symbols-outlined shrink-0 text-[18px] text-on-surface-variant" aria-hidden="true">search</span>
+      <input
+        v-model="keywordInput"
+        type="text"
+        :placeholder="searchPlaceholder"
+        :aria-label="searchPlaceholder"
+        class="min-w-0 flex-1 bg-transparent font-body text-sm text-on-surface outline-none placeholder:text-on-surface-variant/60"
+      />
+      <button
+        v-if="keywordInput"
+        type="button"
+        class="material-symbols-outlined shrink-0 text-[18px] text-on-surface-variant transition-colors hover:text-on-surface"
+        aria-label="ล้างคำค้นหา"
+        @click="keywordInput = ''"
+      >close</button>
+      <!-- Filter triggers ride at the right edge of the search row, not in a strip of their own. -->
+      <slot name="search-actions" />
     </div>
 
     <template v-if="contentVisible">

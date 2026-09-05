@@ -1,29 +1,19 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
 import logoUrl from '../../assets/logo.png'
 import { useAppointmentStore } from '@/features/appointments/stores/appointment.store'
-import { useHeaderSearch } from '@/shared/composables/useHeaderSearch'
 import { useGoBack } from '@/shared/composables/use-go-back'
 import NavSidebar from './NavSidebar.vue'
 
 const router = useRouter()
 const route  = useRoute()
 const sidebarOpen = ref(false)
-const { searchOpen, toggleSearch } = useHeaderSearch()
 const { pendingCount } = storeToRefs(useAppointmentStore())
 const { goBack } = useGoBack()
 
-const canSearch = computed(() => route.meta.searchable === true)
 const canGoBack = computed(() => Boolean(route.meta.parent))
-
-watch(
-  () => route.path,
-  () => {
-    searchOpen.value = false
-  },
-)
 
 </script>
 
@@ -39,13 +29,6 @@ watch(
       <h1 class="text-lg font-headline font-bold tracking-tight">Magicwash Laundry</h1>
     </div>
     <div class="flex items-center gap-2">
-      <button
-        class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
-        :class="searchOpen && canSearch ? 'bg-white/20' : ''"
-        aria-label="Search"
-        @click="canSearch && toggleSearch()"
-      >search</button>
-
       <!-- Back button — shown on routes with a declared parent -->
       <button
         v-if="canGoBack"

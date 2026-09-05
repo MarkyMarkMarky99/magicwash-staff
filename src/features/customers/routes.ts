@@ -5,7 +5,6 @@ export const customerRoutes: RouteRecordRaw[] = [
     path: '/customers',
     name: 'customer-list',
     component: () => import('./pages/CustomerListPage.vue'),
-    meta: { searchable: true },
   },
   {
     path: '/customers/new',

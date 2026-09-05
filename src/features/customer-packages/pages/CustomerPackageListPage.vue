@@ -19,19 +19,17 @@ watch(filter, (value) => { void store.fetchCustomerPackages(value) }, { immediat
 </script>
 
 <template>
-  <ListPageLayout
-    :search-value="filter.keyword"
-    search-placeholder="Search customer or package"
-    @update:search-value="updateFilter({ keyword: $event })"
-  >
+  <ListPageLayout>
     <template #filters>
       <CustomerPackageFilterBar :filter="filter" @change="updateFilter" />
     </template>
 
-    <ListContainer title="Customer packages" icon="card_membership" :count="items.length" count-label="packages" :loading="loading" :error="error" :empty="items.length === 0" empty-text="No customer packages" :skeleton-rows="4">
-      <template #actions>
+    <ListContainer title="Customer packages" icon="card_membership" searchable :search-value="filter.keyword" search-placeholder="Search customer or package" @update:search-value="updateFilter({ keyword: $event })" :count="items.length" count-label="packages" :loading="loading" :error="error" :empty="items.length === 0" empty-text="No customer packages" :skeleton-rows="4">
+      <template #search-actions>
         <CustomerPackageExtraFilter v-model:open="extraFilterOpen" :filter="filter" :disabled="loading" />
+      </template>
 
+      <template #actions>
         <button
           type="button"
           class="-my-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10 active:bg-primary/20 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"

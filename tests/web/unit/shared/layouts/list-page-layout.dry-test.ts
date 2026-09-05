@@ -27,11 +27,17 @@ for (const path of listPages) {
 
 assert.doesNotMatch(source('shared/layouts/ListPageLayout.vue'), /from\s+['"][^'"]*features\//, 'ListPageLayout must not import from features')
 
+// Search is a ListContainer prop now, not a route flag and not a layout prop.
+for (const path of listPages) {
+  const page = source(path)
+  assert.doesNotMatch(page, /<ListPageLayout[^>]*search/s, `${path} must not pass search props to the layout`)
+}
+
 for (const [path, routeName] of [
   ['features/customer-packages/routes.ts', 'customer-package-list'],
   ['features/packages/routes.ts', 'package-list'],
 ] as const) {
-  assert.match(source(path), new RegExp(`name: '${routeName}'[\\s\\S]{0,200}meta: \\{ searchable: true \\}`), `${routeName} route must be searchable`)
+  assert.doesNotMatch(source(path), /searchable/, `${routeName} must not declare meta.searchable`)
 }
 
 console.log('list-page layout dry tests passed')

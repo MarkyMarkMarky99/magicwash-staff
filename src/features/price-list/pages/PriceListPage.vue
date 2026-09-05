@@ -93,12 +93,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <ListPageLayout
-    :embedded="props.embedded"
-    :search-value="search"
-    search-placeholder="ค้นหารหัส ชื่อ หรือหมวดหมู่"
-    @update:search-value="search = $event"
-  >
+  <ListPageLayout :embedded="props.embedded">
     <template #filters>
       <GenericTabs
         :tabs="categoryTabs"
@@ -111,19 +106,25 @@ onMounted(() => {
       title="รายการราคา"
       icon="sell"
       count-label="รายการ"
+      searchable
+      :search-value="search"
+      search-placeholder="ค้นหารหัส ชื่อ หรือหมวดหมู่"
+      @update:search-value="search = $event"
       :loading="listLoading"
       :skeleton-rows="4"
       :error="listError"
       :empty="filteredItems.length === 0"
       empty-text="ไม่พบรายการที่ตรงกับการค้นหา"
     >
-      <template #actions>
+      <template #search-actions>
         <PriceListServiceFilter
           v-model:open="serviceFilterOpen"
           :service-type="filter.serviceType"
           :disabled="listLoading"
         />
+      </template>
 
+      <template #actions>
         <button
           type="button"
           class="-my-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10 active:bg-primary/20 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"

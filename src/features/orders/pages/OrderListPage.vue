@@ -31,9 +31,9 @@ function viewInvoice(invoiceNumber: string) {
 </script>
 
 <template>
-  <ListPageLayout :search-value="keyword" search-placeholder="ค้นหาเลขออเดอร์หรือรหัสลูกค้า" @update:search-value="setKeyword($event)">
+  <ListPageLayout>
     <template #filters><GenericTabs :tabs="statusTabs" :active-key="status" @select="setStatus($event)" /></template>
-    <ListContainer title="รายการออเดอร์" icon="local_laundry_service" count-label="orders" :loading="listLoading" :error="listError" :empty="!listLoading && !listError && orders.length === 0" empty-text="ไม่พบออเดอร์ที่ตรงกับเงื่อนไข" :skeleton-rows="5">
+    <ListContainer title="รายการออเดอร์" icon="local_laundry_service" searchable :search-value="keyword" search-placeholder="ค้นหาเลขออเดอร์หรือรหัสลูกค้า" @update:search-value="setKeyword($event)" count-label="orders" :loading="listLoading" :error="listError" :empty="!listLoading && !listError && orders.length === 0" empty-text="ไม่พบออเดอร์ที่ตรงกับเงื่อนไข" :skeleton-rows="5">
       <template #actions>
         <button
           type="button"

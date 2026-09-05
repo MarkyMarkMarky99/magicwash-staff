@@ -59,11 +59,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <ListPageLayout
-    :search-value="filter.keyword"
-    search-placeholder="Search by index, name, phone, or address…"
-    @update:search-value="updateFilter({ keyword: $event })"
-  >
+  <ListPageLayout>
     <template #filters>
       <div class="flex-none bg-primary text-on-primary w-full min-w-0">
       <CustomerTypeTabs :active-type="activeType" :counts="typeCounts" @select="selectType" />
@@ -75,6 +71,10 @@ onMounted(() => {
       icon="group"
       :count="filteredCustomers.length"
       count-label="Customers"
+      searchable
+      :search-value="filter.keyword"
+      search-placeholder="Search customers"
+      @update:search-value="updateFilter({ keyword: $event })"
       :loading="loading"
       :error="error ?? undefined"
       :empty="filteredCustomers.length === 0"

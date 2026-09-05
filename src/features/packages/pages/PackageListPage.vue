@@ -39,12 +39,12 @@ onMounted(() => void packageStore.load())
 </script>
 
 <template>
-  <ListPageLayout v-model:search-value="keyword" search-placeholder="ค้นหารหัส ชื่อ หรือบริการ">
+  <ListPageLayout>
     <template #filters>
       <GenericTabs :tabs="statusOptions" :active-key="status" @select="selectStatus" />
     </template>
 
-      <ListContainer title="แพ็กเกจ" icon="inventory_2" :count="filteredPackages.length" count-label="รายการ" :loading="loading && !loaded" :error="loaded ? null : error" :empty="!loading && !error && filteredPackages.length === 0" empty-text="ไม่พบแพ็กเกจ" :skeleton-rows="4">
+      <ListContainer title="แพ็กเกจ" icon="inventory_2" searchable :search-value="keyword" search-placeholder="ค้นหาแพ็กเกจ" @update:search-value="keyword = $event" :count="filteredPackages.length" count-label="รายการ" :loading="loading && !loaded" :error="loaded ? null : error" :empty="!loading && !error && filteredPackages.length === 0" empty-text="ไม่พบแพ็กเกจ" :skeleton-rows="4">
         <template #actions>
           <button
             type="button"
