@@ -6,7 +6,7 @@ import CustomerPackagesVariantC from './variant-c/VariantC.vue'
 <template>
   <AppLayout>
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-surface text-on-surface">
-      <main class="min-h-0 flex-1 overflow-y-auto">
+      <main class="min-h-0 flex-1 overflow-y-auto no-scrollbar">
         <CustomerPackagesVariantC />
       </main>
     </div>

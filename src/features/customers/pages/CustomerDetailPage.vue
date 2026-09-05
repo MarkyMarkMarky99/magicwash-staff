@@ -160,7 +160,7 @@ watch([activeTab, () => props.customerId, openOrderId], ([tab, id, orderId]) => 
 <template>
   <AppLayout>
     <GenericTabs :tabs="tabs" :active-key="activeTab" @select="selectTab" />
-    <main class="flex-1 overflow-y-auto bg-surface pb-20">
+    <main class="flex-1 overflow-y-auto no-scrollbar bg-surface pb-20">
       <p v-if="customerLoading" class="px-4 py-6 text-sm text-on-surface-variant">
         Loading customer...
       </p>

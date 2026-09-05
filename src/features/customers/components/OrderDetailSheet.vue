@@ -160,7 +160,7 @@ function viewPhotos() {
           </button>
       </div>
 
-      <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+      <div class="min-h-0 flex-1 overflow-y-auto no-scrollbar px-4 py-4">
           <div v-if="order" class="space-y-4">
             <section v-if="order.items.length > 0" class="w-full overflow-hidden rounded-2xl">
               <div

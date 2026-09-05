@@ -10,7 +10,7 @@ onMounted(() => void appointmentStore.loadInitial())
 
 <template>
   <div
-    class="relative mx-auto flex h-full w-full flex-col overflow-y-auto bg-surface sm:max-w-[390px] sm:border-x sm:border-outline-variant/30 sm:shadow-2xl"
+    class="relative mx-auto flex h-full w-full flex-col overflow-hidden bg-surface sm:max-w-[390px] sm:border-x sm:border-outline-variant/30 sm:shadow-2xl"
   >
     <RouterView v-slot="{ Component }">
       <!-- Form pages must not be cached: their component-local refs would otherwise survive across subjects. `exclude` matches component names, so renaming one of these files silently removes it from this list. -->

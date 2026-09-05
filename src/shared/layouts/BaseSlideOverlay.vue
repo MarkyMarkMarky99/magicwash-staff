@@ -227,7 +227,7 @@ onDeactivated(handleUnmount)
             <span class="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
           </button>
 
-          <div class="min-h-0 flex-1 overflow-y-auto">
+          <div class="min-h-0 flex-1 overflow-y-auto no-scrollbar">
             <slot />
           </div>
         </div>
