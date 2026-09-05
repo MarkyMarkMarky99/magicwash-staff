@@ -68,6 +68,25 @@ test.describe('BaseOverlay', () => {
     // The backdrop itself must still cover the whole viewport.
     const dialogBox = await page.locator('dialog[open]').boundingBox()
     expect(dialogBox?.width).toBeCloseTo(viewport.width, 0)
+
+    // The <dialog> must not be scrollable. Chrome's UA stylesheet gives dialog
+    // `overflow: auto`, and the panel is translated a full height below the
+    // fold while entering — enough to raise a classic scrollbar. That scrollbar
+    // stole ~15px from the dialog's content box (so the panel stopped short of
+    // the right edge) and let the dialog scroll, which lifted the bottom-anchored
+    // panel off the bottom edge and dropped it back: the spring the user saw.
+    const dialogMetrics = await page.evaluate(`(function () {
+      var d = document.querySelector('dialog[open]')
+      return { clientWidth: d.clientWidth, offsetWidth: d.offsetWidth, scrollHeight: d.scrollHeight, clientHeight: d.clientHeight }
+    })()`)
+    const m = dialogMetrics as {
+      clientWidth: number
+      offsetWidth: number
+      scrollHeight: number
+      clientHeight: number
+    }
+    expect(m.offsetWidth - m.clientWidth).toBeLessThanOrEqual(1)
+    expect(m.scrollHeight).toBeLessThanOrEqual(m.clientHeight + 1)
   })
 
   test('sheet slides visibly rather than materialising in place', async ({ page, request }) => {

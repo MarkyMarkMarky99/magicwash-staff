@@ -273,7 +273,7 @@ onDeactivated(handleUnmount)
   <Teleport to="body">
     <dialog
       ref="dialogRef"
-      class="fixed inset-0 m-0 flex h-full max-h-none w-full max-w-none items-end justify-center border-0 bg-transparent p-0 text-on-surface backdrop:bg-black/40"
+      class="fixed inset-0 m-0 flex h-full max-h-none w-full max-w-none items-end justify-center overflow-hidden border-0 bg-transparent p-0 text-on-surface backdrop:bg-black/40"
       :aria-label="ariaLabel ?? 'Dialog'"
       @pointerdown="handleDialogPointerDown"
       @pointermove="handleDialogPointerMove"

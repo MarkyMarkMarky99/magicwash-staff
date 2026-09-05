@@ -113,9 +113,14 @@ test.describe('Suite A - read-only', () => {
   test('6. Invoices tab loads or shows a clean empty state', async ({ page }) => {
     await page.goto(`/#/customers/${CUSTOMER_A.id}/invoices`);
     await expect(tabButton(page, 'Invoices')).toHaveClass(/border-white/);
-    // CUSTOMER_A has 0 invoices per live /api/invoices?customerId= — valid
-    // empty state, not a failure.
-    await expect(page.getByText('No invoices')).toBeVisible({ timeout: 15_000 });
+    // Either outcome is a pass. This runs against live Sheets, so whether this
+    // customer has invoices changes over time — pinning it to the empty state
+    // made the test fail the moment one was issued. What matters is that the
+    // tab renders a list or an empty state, and never an error.
+    await expect(
+      page.getByText('No invoices').or(page.locator('article').filter({ hasText: /^INV|Issued/ }).first()),
+    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/Unable to load/i)).toHaveCount(0);
     await page.screenshot({ path: shot('03-invoices-tab-390.png') });
   });
 
@@ -271,7 +276,10 @@ test.describe('Desktop viewport comparison (1280x800), same 5 views', () => {
 
   test('Invoices tab at 1280x800', async ({ page }) => {
     await page.goto(`/#/customers/${CUSTOMER_A.id}/invoices`);
-    await expect(page.getByText('No invoices')).toBeVisible({ timeout: 15_000 });
+    // List or empty state — see the 390px counterpart; live data decides which.
+    await expect(
+      page.getByText('No invoices').or(page.locator('article').filter({ hasText: /^INV|Issued/ }).first()),
+    ).toBeVisible({ timeout: 15_000 });
     await page.screenshot({ path: shot('08-invoices-tab-1280.png') });
   });
 
