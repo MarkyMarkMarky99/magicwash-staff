@@ -12,7 +12,13 @@ const props = withDefaults(defineProps<{
 const open = ref(false)
 const triggerRef = ref<Element | null>(null)
 const panelRef = ref<HTMLElement | null>(null)
-const position = ref<{ right: string; top: string; maxHeight: string } | null>(null)
+type PanelPosition = { right: string; maxHeight: string; top?: string; bottom?: string }
+const position = ref<PanelPosition | null>(null)
+
+// A dropdown opened near the bottom of the viewport has to flip above its trigger. maxHeight
+// has a 96px floor, not a ceiling, and most callers clip rather than scroll their panel, so
+// anchoring downward into 20px of free room silently cut the last row off the menu.
+const MIN_PANEL_SPACE = 160
 const panelId = `base-dropdown-${useId()}`
 
 const triggerAttrs = computed(() => ({
@@ -28,11 +34,13 @@ function openPopover() {
   const rect = triggerRef.value?.getBoundingClientRect()
   if (!rect) return
 
-  position.value = {
-    right: `${Math.max(8, window.innerWidth - rect.right)}px`,
-    top: `${rect.bottom + 6}px`,
-    maxHeight: `${Math.max(96, window.innerHeight - rect.bottom - 16)}px`,
-  }
+  const right = `${Math.max(8, window.innerWidth - rect.right)}px`
+  const spaceBelow = window.innerHeight - rect.bottom - 16
+  const spaceAbove = rect.top - 16
+
+  position.value = spaceBelow < MIN_PANEL_SPACE && spaceAbove > spaceBelow
+    ? { right, bottom: `${window.innerHeight - rect.top + 6}px`, maxHeight: `${Math.max(96, spaceAbove)}px` }
+    : { right, top: `${rect.bottom + 6}px`, maxHeight: `${Math.max(96, spaceBelow)}px` }
   open.value = true
 }
 

@@ -13,7 +13,9 @@ function capture(imageType: OrderImageType, close: () => void) {
 </script>
 
 <template>
-  <BaseDropdown panel-class="w-48 overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface-container-lowest py-1 shadow-2xl">
+  <!-- overflow-y-auto, not overflow-hidden: BaseDropdown caps the panel height and floors it at
+       96px, so a clipped panel loses its last row when there is no room. -->
+  <BaseDropdown panel-class="w-48 overflow-y-auto no-scrollbar rounded-2xl border border-outline-variant/30 bg-surface-container-lowest py-1 shadow-2xl">
     <template #trigger="{ open, setTrigger, toggle, triggerAttrs }">
       <button
         :ref="setTrigger"
