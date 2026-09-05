@@ -14,7 +14,7 @@ export const invoiceStatusSchema = z.enum([
   'VOID',
 ])
 
-export const invoiceBillingTypeSchema = z.enum(['ORDER', 'CYCLE', 'PACKAGE'])
+export const invoiceBillingTypeSchema = z.enum(['ORDER', 'CYCLE'])
 
 /** ISO 8601 calendar date (YYYY-MM-DD), no time component. */
 const invoiceReadIsoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a YYYY-MM-DD date')
@@ -97,16 +97,23 @@ const invoiceCreateFieldsSchema = z
   })
   .strict()
 
-// Existing order callers remain valid without a billingType. Package purchases
-// have no source order and must never enter the OrderForm linkage stage.
+// billingType describes how many orders an invoice covers, and nothing else:
+// ORDER is one invoice for one order, CYCLE is one invoice for a billing
+// period. A package purchase is a CYCLE invoice whose period is the package's
+// own start and expiry dates — it has no source order, which is exactly what
+// keeps it out of the OrderForm linkage stage. Existing order callers stay
+// valid without passing a billingType.
 export const invoiceCreateSchema = z.union([
   invoiceCreateFieldsSchema.extend({
     billingType: z.literal('ORDER').optional(),
     sourceOrderId: z.string().trim().min(1),
   }),
   invoiceCreateFieldsSchema.extend({
-    billingType: z.literal('PACKAGE'),
+    billingType: z.literal('CYCLE'),
     sourceOrderId: z.null().optional(),
+    // Required by the schema registry: a CYCLE row must carry its period.
+    billingPeriodStart: isoDateSchema,
+    billingPeriodEnd: isoDateSchema,
   }),
 ])
 

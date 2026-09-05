@@ -2,8 +2,12 @@ import assert from 'node:assert/strict'
 import { invoiceCreateSchema } from '../../../../../contracts/invoices/invoice-api.schema.js'
 import { InvoiceService } from '../../../../../server/modules/invoices/invoice.service.js'
 
+// A package purchase is billed as a CYCLE invoice whose period is the
+// package's own start and expiry dates. There is no PACKAGE billing type:
+// billingType only says how many orders an invoice covers.
 const request = {
-  billingType: 'PACKAGE', invoiceNumber: 'INV-PACKAGE-TEST',
+  billingType: 'CYCLE', invoiceNumber: 'INV-PACKAGE-TEST',
+  billingPeriodStart: '2026-09-05', billingPeriodEnd: '2026-10-05',
   issuedDate: '2026-09-05', dueDate: '2026-09-08',
   customer: { customerCode: 'CUS-1', customerName: 'Customer' },
   adjustments: [], items: [{ description: 'Package', quantity: 1, unitPrice: 500, adjustments: [] }],
@@ -11,7 +15,13 @@ const request = {
 assert.equal(invoiceCreateSchema.safeParse(request).success, true)
 assert.equal(invoiceCreateSchema.safeParse({ ...request, sourceOrderId: 'ORD-1' }).success, false)
 assert.equal(invoiceCreateSchema.safeParse({ ...request, billingType: 'ORDER' }).success, false)
-assert.equal(invoiceCreateSchema.safeParse({ ...request, billingType: 'ORDER', sourceOrderId: 'ORD-1' }).success, true)
+// A CYCLE invoice without its period is rejected — the registry requires it.
+const { billingPeriodStart: _s, billingPeriodEnd: _e, ...noPeriod } = request
+assert.equal(invoiceCreateSchema.safeParse(noPeriod).success, false)
+// PACKAGE is not a billing type any more.
+assert.equal(invoiceCreateSchema.safeParse({ ...request, billingType: 'PACKAGE' }).success, false)
+const { billingPeriodStart: _s2, billingPeriodEnd: _e2, ...orderReq } = request
+assert.equal(invoiceCreateSchema.safeParse({ ...orderReq, billingType: 'ORDER', sourceOrderId: 'ORD-1' }).success, true)
 
 const calls: string[] = []
 const service = new InvoiceService({
@@ -19,7 +29,9 @@ const service = new InvoiceService({
     async read() { return [] },
     async append(row) {
       calls.push('invoice')
-      assert.equal(row.billing_type, 'PACKAGE')
+      assert.equal(row.billing_type, 'CYCLE')
+      assert.equal(row.billing_period_start, '2026-09-05')
+      assert.equal(row.billing_period_end, '2026-10-05')
       assert.equal(row.customer_id, 'CUS-1')
       return row
     },

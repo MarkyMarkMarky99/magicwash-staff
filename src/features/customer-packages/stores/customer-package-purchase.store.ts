@@ -42,9 +42,20 @@ export const useCustomerPackagePurchaseStore = defineStore('customer-package-pur
     const packageRequest = createCustomerPackageRequestSchema.parse({ ...draft, invoiceId: null })
     if (packageRequest.customerId !== customer.customerId || packageRequest.packageCode !== packageItem.packageCode
       || packageItem.deletedAt !== null) throw new Error('Select an active package for this customer.')
+    // The invoice is a CYCLE row and the registry requires a period on those,
+    // so the package's own dates are what fill it. The form already blocks
+    // submit without both, so reaching here empty means something upstream
+    // changed — fail loudly rather than mint an invoice with no period.
+    const billingPeriodStart = packageRequest.startDate
+    const billingPeriodEnd = packageRequest.expiryDate
+    if (!billingPeriodStart || !billingPeriodEnd) {
+      throw new Error('A package needs a start and expiry date before it can be invoiced.')
+    }
     const issuedDate = todaySheetDate()
     const invoiceRequest = invoiceCreateSchema.parse({
-      billingType: 'PACKAGE',
+      billingType: 'CYCLE',
+      billingPeriodStart,
+      billingPeriodEnd,
       invoiceNumber: `INV${issuedDate.replaceAll('-', '')}-${crypto.randomUUID()}`,
       issuedDate,
       // Match the existing invoice form's three-day payment term.

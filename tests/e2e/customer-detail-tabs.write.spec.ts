@@ -34,7 +34,7 @@ test.describe('Suite B - write flows (DO NOT RUN without explicit authorization)
       'explicit authorization to run.',
   );
 
-  test('Buy package: creates a customer package and a PACKAGE-type invoice', async ({ page }) => {
+  test('Buy package: creates a customer package and a CYCLE invoice for the package period', async ({ page }) => {
     await page.goto(`/#/customers/${CUSTOMER_A.id}/packages`);
     await page.getByRole('button', { name: 'Buy' }).click();
     await expect(page.getByText('Create customer package')).toBeVisible();

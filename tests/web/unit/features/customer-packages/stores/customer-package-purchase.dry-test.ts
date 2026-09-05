@@ -15,7 +15,13 @@ const catalog = packageResponseSchema.parse({
   price: 500, notes: null, createdAt: '', createdBy: 'admin', updatedAt: null,
   updatedBy: null, deletedAt: null, deletedBy: null,
 })
-const draft = createCustomerPackageRequestSchema.parse({ customerId: 'CUS-1', packageCode: 'PKG-1', createdBy: 'admin' })
+// The dates are not decoration: a package purchase is billed as a CYCLE
+// invoice, and the registry requires a CYCLE row to carry its period, so these
+// become the invoice's billing period.
+const draft = createCustomerPackageRequestSchema.parse({
+  customerId: 'CUS-1', packageCode: 'PKG-1', createdBy: 'admin',
+  startDate: '2026-09-05', expiryDate: '2026-10-05',
+})
 const invoiceCreated = { kind: 'created', invoiceNumber: 'INV-SERVER', itemCount: 1, itemsTotal: 500, invoiceTotal: 500 }
 const packageCreated = { kind: 'created', customerPackageId: 'CP-1', customerId: 'CUS-1', packageCode: 'PKG-1', openingCredit: 10, transactionId: 'TX-1', createdAt: '2026-09-05' }
 const originalFetch = globalThis.fetch
@@ -39,7 +45,10 @@ async function scenario(invoiceOutcome: unknown, packageOutcomes: unknown[]) {
 try {
   const success = await scenario(invoiceCreated, [packageCreated])
   assert.deepEqual(success.calls.map((call) => call.url), ['/api/invoices', '/api/customer-packages'])
-  assert.equal(success.calls[0].body.billingType, 'PACKAGE')
+  assert.equal(success.calls[0].body.billingType, 'CYCLE')
+  // The billing period is the purchased package's own validity window.
+  assert.equal(success.calls[0].body.billingPeriodStart, '2026-09-05')
+  assert.equal(success.calls[0].body.billingPeriodEnd, '2026-10-05')
   assert.equal('sourceOrderId' in success.calls[0].body, false)
   assert.equal(success.calls[1].body.invoiceId, 'INV-SERVER')
   await success.store.resume('CUS-1')
@@ -72,5 +81,21 @@ try {
   assert.equal(partial.calls.length, 2, 'Partial package persistence blocks retry even when final stage was rejected')
   console.log('Package purchase sequencing, invoice linkage, retry and partial-write checks passed')
 } finally {
+  globalThis.fetch = originalFetch
+}
+
+// A package with no validity window cannot be invoiced as a CYCLE row, so the
+// purchase is refused before anything is written rather than minting an
+// invoice with no period.
+{
+  setActivePinia(createPinia())
+  const store = useCustomerPackagePurchaseStore()
+  let called = 0
+  globalThis.fetch = async () => { called += 1; return new Response('{}') }
+  const undated = createCustomerPackageRequestSchema.parse({
+    customerId: 'CUS-1', packageCode: 'PKG-1', createdBy: 'admin',
+  })
+  await assert.rejects(() => store.start(customer, catalog, undated), /start and expiry date/)
+  assert.equal(called, 0)
   globalThis.fetch = originalFetch
 }

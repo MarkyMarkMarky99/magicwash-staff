@@ -444,6 +444,15 @@ export class InvoiceService {
       billing_type: request.billingType ?? 'ORDER',
       issued_date: request.issuedDate,
       due_date: request.dueDate,
+      // The registry requires a CYCLE row to carry its period, and the
+      // contract's CYCLE branch makes both dates mandatory, so they are
+      // present exactly when billingType is CYCLE.
+      ...(request.billingType === 'CYCLE'
+        ? {
+            billing_period_start: request.billingPeriodStart,
+            billing_period_end: request.billingPeriodEnd,
+          }
+        : {}),
       // Denormalized so GViz can filter without reaching into the JSON
       // snapshot — must equal customer.customer_code exactly.
       customer_id: request.customer.customerCode,
@@ -481,7 +490,11 @@ export class InvoiceService {
     //    invoice_write_failed, so the caller never offers a retry here: a
     //    retry would create a SECOND invoice for money that's already
     //    correctly billed. ──
-    if (request.billingType !== 'PACKAGE') {
+    // Keyed on whether there is a source order at all, not on the billing
+    // type. An invoice with no order to link to simply skips this stage —
+    // that is the whole condition, and it does not need a billing type
+    // invented for it.
+    if (request.sourceOrderId) {
       try {
         await this.orderFormRepository().update(request.sourceOrderId, {
           invoice_id: request.invoiceNumber,
