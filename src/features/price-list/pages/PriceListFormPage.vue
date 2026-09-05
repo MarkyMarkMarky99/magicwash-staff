@@ -295,14 +295,16 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.price-list-form { --ink:#073f38; --teal:#00564b; --teal-2:#007a69; --mint:#9df5df; --lime:#b2df26; --line:#cae0dc; --quiet:#5f7772; --red:#c94e3d; color:var(--ink); font-family:"Noto Sans Thai",system-ui,sans-serif; }
+/* The palette this form invented is now the app theme. The local names stay so the rules
+   below don't all have to change, but every value comes from the theme token. */
+.price-list-form { --ink:var(--color-on-surface); --teal:var(--color-primary); --teal-2:var(--color-secondary); --mint:var(--color-secondary-container); --lime:var(--color-lime); --line:var(--color-outline-variant); --quiet:var(--color-on-surface-variant); --red:var(--color-error); color:var(--ink); font-family:var(--font-body); }
 .price-list-form * { box-sizing:border-box; }
 .price-list-form button,.price-list-form input,.price-list-form select { font:inherit; }
 .form-intro { display:flex; align-items:center; justify-content:space-between; padding:0 1px 18px; }
 .form-intro p { margin:0; color:var(--quiet); font-size:12px; }
-.form-intro .stamp { color:var(--teal); font:700 10px "Noto Sans Thai",Manrope,sans-serif; letter-spacing:.1em; }
+.form-intro .stamp { color:var(--teal); font:700 10px var(--font-headline); letter-spacing:.1em; }
 .fieldset { margin:0; padding:0; border:0; }
-.section-label { display:flex; align-items:center; gap:10px; margin:0 0 12px; color:var(--teal); font:700 12px "Noto Sans Thai",Manrope,sans-serif; letter-spacing:.03em; }
+.section-label { display:flex; align-items:center; gap:10px; margin:0 0 12px; color:var(--teal); font:700 12px var(--font-headline); letter-spacing:.03em; }
 .section-label::after { content:""; height:1px; flex:1; background:var(--line); }
 .grid-2 { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:13px; }
 .field { min-width:0; margin-bottom:15px; }
@@ -333,14 +335,14 @@ select.control { padding-right:27px; background:#fff url("data:image/svg+xml,%3C
 .price-panel::before { content:""; position:absolute; left:-41px; top:31px; width:104px; height:104px; border:1px solid rgba(157,245,223,.25); border-radius:50%; }
 .price-panel::after { content:""; position:absolute; right:-32px; bottom:-47px; width:146px; height:146px; border:22px solid rgba(178,223,38,.22); border-radius:50%; }
 .price-title { position:relative; z-index:1; display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:15px; }
-.price-title h2 { margin:0; font:700 17px/1.2 "Noto Sans Thai",Manrope,sans-serif; letter-spacing:-.025em; }
+.price-title h2 { margin:0; font:700 17px/1.2 var(--font-headline); letter-spacing:-.025em; }
 .price-title span { color:#b9d8d2; font-size:11px; }
 .price-grid { position:relative; z-index:1; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
 .price-details { position:relative; z-index:1; margin-top:12px; }
 .price-field { min-width:0; }
 .price-field label { min-height:34px; margin:0 0 7px; color:#d8f2ed; font-size:11px; line-height:1.32; }
 .money { position:relative; }
-.money input { width:100%; height:49px; min-width:0; padding:0 28px 0 10px; color:#fff; border:1px solid rgba(157,245,223,.55); border-radius:8px; outline:0; background:rgba(255,255,255,.08); font:700 16px "Noto Sans Thai",Manrope,sans-serif; }
+.money input { width:100%; height:49px; min-width:0; padding:0 28px 0 10px; color:#fff; border:1px solid rgba(157,245,223,.55); border-radius:8px; outline:0; background:rgba(255,255,255,.08); font:700 16px var(--font-headline); }
 .money input:focus { border-color:var(--mint); box-shadow:0 0 0 3px rgba(157,245,223,.16); }
 .money span { position:absolute; right:9px; top:15px; color:var(--mint); font-size:10px; }
 .date-row { margin-bottom:10px; }

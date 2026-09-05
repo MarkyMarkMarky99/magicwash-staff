@@ -2,32 +2,32 @@
 
 @theme {
   /* ── Material Design 3 Color System ── */
-  --color-primary: #004f45;
+  --color-primary: #00564b;
   --color-on-primary: #ffffff;
-  --color-primary-container: #00695c;
+  --color-primary-container: #007a69;
   --color-on-primary-container: #94e5d5;
-  --color-secondary: #006b5f;
+  --color-secondary: #007a69;
   --color-on-secondary: #ffffff;
-  --color-secondary-container: #8df5e4;
+  --color-secondary-container: #9df5df;
   --color-on-secondary-container: #007165;
   --color-tertiary: #703321;
   --color-on-tertiary: #ffffff;
   --color-tertiary-container: #8d4a36;
   --color-on-tertiary-container: #ffcabb;
   --color-background: #f8fafa;
-  --color-on-background: #191c1d;
+  --color-on-background: #073f38;
   --color-surface: #f8fafa;
-  --color-on-surface: #191c1d;
+  --color-on-surface: #073f38;
   --color-surface-variant: #e1e3e3;
-  --color-on-surface-variant: #3e4946;
+  --color-on-surface-variant: #5f7772;
   --color-surface-container-lowest: #ffffff;
   --color-surface-container-low: #f2f4f4;
   --color-surface-container: #eceeee;
   --color-surface-container-high: #e6e8e8;
   --color-surface-container-highest: #e1e3e3;
-  --color-outline: #6e7976;
-  --color-outline-variant: #bec9c5;
-  --color-error: #ba1a1a;
+  --color-outline: #5f7772;
+  --color-outline-variant: #cae0dc;
+  --color-error: #c94e3d;
   --color-on-error: #ffffff;
   --color-error-container: #ffdad6;
   --color-on-error-container: #93000a;
@@ -44,10 +44,17 @@
   --color-info-container: #dbeafe;
   --color-on-info-container: #1e3a8a;
 
-  /* ── Typography ── */
-  --font-headline: "Manrope", sans-serif;
-  --font-body: "Inter", sans-serif;
-  --font-label: "Inter", sans-serif;
+  /* Accents carried over from the price-list form, which the app's tone now follows. */
+  --color-mint: #9df5df;
+  --color-lime: #b2df26;
+
+  /* ── Typography ──
+     Noto Sans Thai leads every stack: this app is Thai-first, and Manrope/Inter carry no Thai
+     glyphs, so Thai text was silently falling through to whatever the OS picked. Latin now
+     renders in Noto Sans Thai too, which is what the price-list form already looked like. */
+  --font-headline: "Noto Sans Thai", Manrope, sans-serif;
+  --font-body: "Noto Sans Thai", Inter, sans-serif;
+  --font-label: "Noto Sans Thai", Inter, sans-serif;
 
   /* ── Border Radius ── */
   --radius: 0.25rem;
@@ -61,7 +68,7 @@
 html, body {
   height: 100dvh;
   overflow: hidden;
-  font-family: 'Inter', sans-serif;
+  font-family: "Noto Sans Thai", Inter, sans-serif;
 }
 
 #app {
