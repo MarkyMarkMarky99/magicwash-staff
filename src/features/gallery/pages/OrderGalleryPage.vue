@@ -164,7 +164,7 @@ function handleCameraClose() {
     <div class="relative flex min-h-0 flex-1 flex-col overflow-hidden">
       <div class="flex-none border-b border-outline-variant/20 bg-primary">
         <div
-          class="flex items-center gap-1 overflow-x-auto px-4 pt-2"
+          class="flex items-center gap-1 overflow-x-auto no-scrollbar px-4 pt-2"
           role="tablist"
           aria-label="เลือกประเภทภาพ"
         >
@@ -359,6 +359,7 @@ function handleCameraClose() {
 
 <style scoped>
 .gallery-scroll {
+  -ms-overflow-style: none;
   scrollbar-width: none;
 }
 

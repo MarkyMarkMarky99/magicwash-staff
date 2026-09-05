@@ -95,11 +95,9 @@ html, body {
 .material-symbols-outlined.text-\[28px\] { font-size: 28px; }
 
 /* ── Scrollbar Hide ── */
-.hide-scrollbar::-webkit-scrollbar,
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
-.hide-scrollbar,
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;

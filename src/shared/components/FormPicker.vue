@@ -304,6 +304,14 @@ watch(filteredOptions, () => {
   max-height: 240px;
   margin-top: 8px;
   overflow-y: auto;
+  /* Hidden like every other scroller in the app (`no-scrollbar`, style.css). This one is
+     capped at 240px and the customer list runs well past it, so the bar was always showing. */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.picker__options::-webkit-scrollbar {
+  display: none;
 }
 
 .picker__option {
