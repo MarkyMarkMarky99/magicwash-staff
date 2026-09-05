@@ -35,38 +35,52 @@ function createComposableContext(query: Record<string, unknown> = {}) {
   }
 }
 
-test('defines the all-items filter as category null', () => {
-  assert.deepEqual(defaultPriceListFilter, { category: null })
+test('defines the all-items filter as every dimension null', () => {
+  assert.deepEqual(defaultPriceListFilter, { category: null, serviceType: null })
 })
 
 test('converts a category query to the corresponding filter', () => {
-  assert.deepEqual(filterFromQuery({ category: 'shirts' }), { category: 'shirts' })
+  assert.deepEqual(filterFromQuery({ category: 'shirts' }), { category: 'shirts', serviceType: null })
+})
+
+test('converts a serviceType query to the corresponding filter', () => {
+  assert.deepEqual(filterFromQuery({ serviceType: 'DRCL' }), { category: null, serviceType: 'DRCL' })
+  assert.deepEqual(
+    filterFromQuery({ category: 'shirts', serviceType: 'IRON' }),
+    { category: 'shirts', serviceType: 'IRON' },
+  )
 })
 
 test('converts a missing, null, or empty category query to the all-items filter', () => {
-  assert.deepEqual(filterFromQuery({}), { category: null })
-  assert.deepEqual(filterFromQuery({ category: null }), { category: null })
-  assert.deepEqual(filterFromQuery({ category: '' }), { category: null })
+  assert.deepEqual(filterFromQuery({}), { category: null, serviceType: null })
+  assert.deepEqual(filterFromQuery({ category: null }), { category: null, serviceType: null })
+  assert.deepEqual(filterFromQuery({ category: '' }), { category: null, serviceType: null })
+  assert.deepEqual(filterFromQuery({ serviceType: '' }), { category: null, serviceType: null })
 })
 
-test('writes a category query only for a truthy category', () => {
-  assert.deepEqual(filterToQuery({ category: 'shirts' }), { category: 'shirts' })
-  assert.deepEqual(filterToQuery({ category: null }), {})
-  assert.deepEqual(filterToQuery({ category: '' }), {})
+test('writes a query entry only for a truthy dimension', () => {
+  assert.deepEqual(filterToQuery({ category: 'shirts', serviceType: null }), { category: 'shirts' })
+  assert.deepEqual(filterToQuery({ category: null, serviceType: 'WASH' }), { serviceType: 'WASH' })
+  assert.deepEqual(
+    filterToQuery({ category: 'shirts', serviceType: 'WASH' }),
+    { category: 'shirts', serviceType: 'WASH' },
+  )
+  assert.deepEqual(filterToQuery({ category: null, serviceType: null }), {})
+  assert.deepEqual(filterToQuery({ category: '', serviceType: '' }), {})
 })
 
 test('derives its computed filter from the current route query', () => {
   const { route, composable } = createComposableContext({ category: 'shirts' })
 
-  assert.deepEqual(composable.filter.value, { category: 'shirts' })
+  assert.deepEqual(composable.filter.value, { category: 'shirts', serviceType: null })
 
-  route.query = { category: 'trousers' }
+  route.query = { category: 'trousers', serviceType: 'DRCL' }
 
-  assert.deepEqual(composable.filter.value, { category: 'trousers' })
+  assert.deepEqual(composable.filter.value, { category: 'trousers', serviceType: 'DRCL' })
 
   route.query = {}
 
-  assert.deepEqual(composable.filter.value, { category: null })
+  assert.deepEqual(composable.filter.value, { category: null, serviceType: null })
 })
 
 test('merges updates and replaces the price-list route, removing an all-items category', () => {
@@ -84,8 +98,14 @@ test('merges updates and replaces the price-list route, removing an all-items ca
     query: { category: 'blankets' },
   })
 
-  assert.equal(composable.updateFilter({ category: null }), undefined)
+  assert.equal(composable.updateFilter({ serviceType: 'IRON' }), undefined)
   assert.deepEqual(replaceCalls[2], {
+    name: 'price-list',
+    query: { category: 'shirts', serviceType: 'IRON' },
+  })
+
+  assert.equal(composable.updateFilter({ category: null }), undefined)
+  assert.deepEqual(replaceCalls[3], {
     name: 'price-list',
     query: {},
   })

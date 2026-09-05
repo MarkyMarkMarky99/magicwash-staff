@@ -7,7 +7,8 @@ import GenericTabs from '@/shared/components/GenericTabs.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import { usePriceListStore } from '../stores/price-list.store'
 import PriceListCard from '../components/PriceListCard.vue'
-import PriceListStatusTabs from '../components/PriceListStatusTabs.vue'
+import PriceListServiceFilter from '../components/PriceListServiceFilter.vue'
+import { serviceTypeOptions } from '@contracts/shared/service-type-labels'
 import { usePriceListFilterRoute } from '../composables/usePriceListFilterRoute'
 
 defineOptions({ name: 'PriceListPage' })
@@ -23,7 +24,7 @@ const listLoading = computed(() => loading.value && !loaded.value)
 const listError = computed(() => (loaded.value ? null : error.value))
 
 const search = ref('')
-const statusFilter = ref<'all' | 'active' | 'inactive'>('all')
+const serviceFilterOpen = ref(false)
 const { filter, updateFilter } = usePriceListFilterRoute()
 
 const categoryTabs = computed(() => {
@@ -43,8 +44,7 @@ const filteredItems = computed(() => {
 
   return items.value.filter((item) => {
     if ((filter.value.category ?? 'all') !== 'all' && item.category !== filter.value.category) return false
-    if (statusFilter.value === 'active' && !item.active) return false
-    if (statusFilter.value === 'inactive' && item.active) return false
+    if (filter.value.serviceType && item.serviceType !== filter.value.serviceType) return false
     if (!query) return true
 
     return [
@@ -62,16 +62,18 @@ const filteredItems = computed(() => {
   })
 })
 
+// Active rows first, then inactive. There is no status tab and no group heading: the list
+// always shows every row, and each card carries its own status dot.
+const activeItems = computed(() => filteredItems.value.filter((item) => item.active))
+const inactiveItems = computed(() => filteredItems.value.filter((item) => !item.active))
+
 function selectCategory(key: string) {
-  if (categoryTabs.value.some((tab) => tab.key === key)) {
-    updateFilter({ category: key === 'all' ? null : key })
-  }
+  if (!categoryTabs.value.some((tab) => tab.key === key)) return
+  updateFilter({ category: key === 'all' ? null : key })
 }
 
-function selectStatus(key: string) {
-  if (key === 'all' || key === 'active' || key === 'inactive') {
-    statusFilter.value = key
-  }
+function selectService(value: string | null) {
+  updateFilter({ serviceType: value })
 }
 
 function openCreate() {
@@ -98,10 +100,11 @@ onMounted(() => {
     @update:search-value="search = $event"
   >
     <template #filters>
-      <div class="flex-none bg-primary text-on-primary w-full min-w-0">
-      <GenericTabs :tabs="categoryTabs" :active-key="filter.category ?? 'all'" @select="selectCategory" />
-      <PriceListStatusTabs :active-status="statusFilter" @select="selectStatus" />
-      </div>
+      <GenericTabs
+        :tabs="categoryTabs"
+        :active-key="filter.category ?? 'all'"
+        @select="selectCategory"
+      />
     </template>
 
     <ListContainer
@@ -111,22 +114,62 @@ onMounted(() => {
       :loading="listLoading"
       :skeleton-rows="4"
       :error="listError"
-      :empty="filteredItems.length === 0"
+      :empty="filteredItems.length === 0 && !serviceFilterOpen"
       empty-text="ไม่พบรายการที่ตรงกับการค้นหา"
     >
       <template #actions>
+        <PriceListServiceFilter
+          v-model:open="serviceFilterOpen"
+          :service-type="filter.serviceType"
+          @select="selectService"
+        />
+
         <button
-          class="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-primary px-2.5 py-1 font-label text-[11px] font-bold text-on-primary shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-surface-container-high disabled:text-on-surface-variant disabled:shadow-none"
           type="button"
+          class="-my-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10 active:bg-primary/20 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          aria-label="เพิ่มรายการราคา"
           @click="openCreate"
         >
-          <span class="material-symbols-outlined text-[16px]" aria-hidden="true">add</span>
-          <span>เพิ่มรายการ</span>
+          <!-- new_label (a price tag with a plus), not a bare add: an icon-only button carries
+               its whole meaning in the glyph, and it pairs with the `sell` tag on the heading —
+               the same way the customer list uses person_add rather than add. -->
+          <span class="material-symbols-outlined text-[16px]" aria-hidden="true">new_label</span>
         </button>
       </template>
 
+      <div
+        v-if="serviceFilterOpen"
+        class="flex flex-wrap gap-2 bg-surface-container-lowest px-4 py-3"
+      >
+        <button
+          v-for="option in serviceTypeOptions"
+          :key="option.value"
+          type="button"
+          class="rounded-full px-3 py-1 font-label text-[11px] font-semibold transition-colors"
+          :class="filter.serviceType === option.value
+            ? 'bg-primary text-on-primary'
+            : 'bg-surface-container text-on-surface-variant hover:text-on-surface'"
+          :aria-pressed="filter.serviceType === option.value"
+          @click="selectService(filter.serviceType === option.value ? null : option.value)"
+        >{{ option.label }}</button>
+      </div>
+
+      <p
+        v-if="serviceFilterOpen && filteredItems.length === 0"
+        class="px-6 py-4 font-body text-sm italic text-on-surface-variant"
+      >
+        ไม่พบรายการที่ตรงกับการค้นหา
+      </p>
+
       <PriceListCard
-        v-for="item in filteredItems"
+        v-for="item in activeItems"
+        :key="item.id"
+        :item="item"
+        @edit="openEdit"
+      />
+
+      <PriceListCard
+        v-for="item in inactiveItems"
         :key="item.id"
         :item="item"
         @edit="openEdit"

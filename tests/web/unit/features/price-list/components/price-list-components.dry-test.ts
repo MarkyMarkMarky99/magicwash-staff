@@ -6,12 +6,17 @@ function source(path: string): string {
 }
 
 const card = source('features/price-list/components/PriceListCard.vue')
-assert.match(card, /itemCode/)
 assert.match(card, /serviceType/)
-assert.match(card, /priceGroup/)
 assert.match(card, /price/)
 assert.doesNotMatch(card, /washDryIronPrice|ironOnlyPrice|dryCleanPrice/)
-assert.match(card, /price[\s\S]{0,180}(?:text-(?:xl|2xl|3xl)|font-(?:bold|semibold))/i)
+assert.match(card, /font-extrabold[\s\S]{0,200}props\.item\.price/, 'price must be the prominent element on the card')
+
+// The card deliberately shows only name, service and price. itemCode, priceGroup, unit,
+// category and subcategory were removed in the 2026-09-06 redesign: priceGroup is DEFAULT
+// and unit is 'piece' on every single row, so printing them added no information at all.
+assert.doesNotMatch(card, /priceGroup/)
+assert.doesNotMatch(card, /unit/)
+assert.doesNotMatch(card, /subcategory/)
 
 const triad = new URL(
   '../../../../../../src/features/price-list/components/ServicePriceTriad.vue',

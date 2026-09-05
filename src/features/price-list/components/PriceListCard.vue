@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
-import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
+import { serviceTypeLabel } from '@contracts/shared/service-type-labels'
 import type { PriceListDto } from '../services/price-list.service'
 
 const props = defineProps<{
@@ -10,6 +11,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   edit: [id: string]
 }>()
+
+const serviceLabel = computed(() => serviceTypeLabel(props.item.serviceType) ?? '')
 
 function formatPrice(value: number): string {
   return new Intl.NumberFormat('th-TH').format(value)
@@ -30,39 +33,40 @@ function handleKeydown(event: KeyboardEvent) {
   <BaseSwipeCard
     role="button"
     tabindex="0"
-    :aria-label="`แก้ไขรายการราคา ${props.item.displayNameTh}`"
+    :aria-label="`แก้ไขรายการราคา ${props.item.displayNameTh} ${serviceLabel}`"
     @tap="openEdit"
     @keydown="handleKeydown"
   >
-    <div class="px-4 py-3 flex gap-3">
-      <CardLeadingIcon icon="local_laundry_service" label="Price list item" />
+    <div class="flex min-w-0 items-center gap-2 px-4 py-2.5">
+      <!-- Active state is a dot, not a filter tab and not a group divider: the list always shows
+           every row, so each row has to carry its own status. -->
+      <span
+        class="size-2 shrink-0 rounded-full"
+        :class="props.item.active ? 'bg-[#2e7d32]' : 'bg-error'"
+        :aria-label="props.item.active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'"
+        role="img"
+      />
 
-      <div class="flex-grow min-w-0 flex flex-col justify-center">
-        <div class="flex items-center gap-1.5 mb-0.5 min-w-0">
-          <h3 class="font-headline font-bold text-primary text-[14px] leading-tight truncate">
-            {{ props.item.displayNameTh }}
-          </h3>
-          <span
-            v-if="props.item.creditEligible"
-            class="font-label text-[9px] font-bold text-primary shrink-0"
-            aria-label="ใช้เครดิตได้"
-          >เครดิตได้</span>
-        </div>
+      <h3 class="min-w-0 flex-1 truncate font-headline text-[14px] font-bold leading-tight text-primary">
+        {{ props.item.displayNameTh }}
+      </h3>
 
-        <p class="font-body text-xs text-on-surface-variant truncate">
-          {{ props.item.itemCode }} · {{ props.item.category }} · {{ props.item.subcategory }}
-          <template v-if="props.item.variant"> · {{ props.item.variant }}</template>
-        </p>
+      <span
+        v-if="props.item.creditEligible"
+        class="shrink-0 font-label text-[9px] font-bold text-primary"
+        aria-label="ใช้เครดิตได้"
+      >เครดิตได้</span>
 
-        <p class="font-body text-xs text-on-surface-variant truncate">
-          {{ props.item.serviceType }} · {{ props.item.priceGroup }}
-          <template v-if="props.item.unit"> · {{ props.item.unit }}</template>
-        </p>
+      <span class="shrink-0 font-label text-[10px] font-semibold text-on-surface-variant">
+        {{ serviceLabel }}
+      </span>
 
-        <p class="font-headline text-xl font-extrabold tabular-nums text-primary" aria-label="ราคา">
-          ฿{{ formatPrice(props.item.price) }}
-        </p>
-      </div>
+      <span
+        class="w-[68px] shrink-0 text-right font-headline text-[15px] font-extrabold tabular-nums text-primary"
+        aria-label="ราคา"
+      >
+        ฿{{ formatPrice(props.item.price) }}
+      </span>
     </div>
   </BaseSwipeCard>
 </template>
