@@ -111,6 +111,7 @@ test.describe('BaseOverlay', () => {
             opacity: parseFloat(cs.opacity),
             translateY: m ? parseFloat(m[1].split(',')[5]) : 0,
             height: el.getBoundingClientRect().height,
+            dialogScrollTop: el.closest('dialog') ? el.closest('dialog').scrollTop : 0,
           });
         }
         if (performance.now() - start < 500) requestAnimationFrame(tick);
@@ -122,12 +123,22 @@ test.describe('BaseOverlay', () => {
     await expect(page.locator('dialog[open] .base-overlay-panel')).toBeVisible()
     await page.waitForTimeout(700)
 
-    type Sample = { property: string; opacity: number; translateY: number; height: number }
+    type Sample = { property: string; opacity: number; translateY: number; height: number; dialogScrollTop: number }
     const samples: Sample[] = await page.evaluate(`window.__overlaySamples || []`)
     expect(samples.length).toBeGreaterThan(5)
 
     const moving = samples.filter((s) => s.height > 0 && s.translateY > 0)
     expect(moving.length).toBeGreaterThan(3)
+
+    // The dialog must never scroll. Focusing the close button used to run while
+    // the panel was still a full height below the fold, so the browser scrolled
+    // the dialog to reveal it (measured at scrollTop 478) and then eased back to
+    // 0 — lifting the bottom-anchored panel off the bottom edge and dropping it
+    // back. `overflow: hidden` hides the scrollbar but does not stop
+    // programmatic scrolling; `focus({ preventScroll: true })` is what does.
+    for (const sample of samples) {
+      expect(sample.dialogScrollTop).toBe(0)
+    }
 
     // The panel must be opaque for the whole travel. It used to fade in at the
     // same time, and the fade covered exactly the frames where it was moving —

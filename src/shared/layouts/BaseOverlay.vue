@@ -97,7 +97,16 @@ function resetFocus() {
 }
 
 function focusCloseButton() {
-  if (dialogRef.value?.open) closeButtonRef.value?.focus()
+  if (!dialogRef.value?.open) return
+
+  // preventScroll is load-bearing. This runs while the panel is still
+  // translated a full height below the fold, so a scrolling focus makes the
+  // browser scroll the dialog to reveal the button — measured at
+  // dialog.scrollTop 478 — and then ease it back to 0. That lifted the
+  // bottom-anchored panel off the bottom edge and dropped it back: the sheet
+  // appeared to spring. `overflow: hidden` on the dialog only hides the
+  // scrollbar; the element still scrolls programmatically.
+  closeButtonRef.value?.focus({ preventScroll: true })
 }
 
 function resetDragState() {
@@ -359,7 +368,7 @@ dialog:not([open]) {
    wholesale. These selectors must stay more specific than it. */
 .base-overlay-sheet-panel.base-overlay-sheet-enter-active,
 .base-overlay-sheet-panel.base-overlay-sheet-leave-active {
-  transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform 380ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .base-overlay-sheet-enter-from,
@@ -368,7 +377,7 @@ dialog:not([open]) {
 }
 
 .base-overlay-sheet-panel {
-  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform 240ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .base-overlay-sheet-panel.is-dragging {
