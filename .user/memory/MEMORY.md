@@ -3,11 +3,16 @@
 Live note — what is in flight, what is next, what is stuck.
 Rules: `.claude/.rules/memory.md`. Read it before writing here. Finished → delete the line.
 
-## Where we are — 2026-09-05
+## Where we are — 2026-09-06
 
-- **Branches:** `main` (synced) · `feat/price-list-frontend-v2` (current, pushed, **held open
-  for a UX pass — do not merge**) · `feat/live-order-helper` (pushed, unmerged, kept on
-  purpose). Single worktree.
+- **Branches:** `main` (price-list v2 merged, **ahead 4, not pushed**) · `feat/live-order-helper`
+  (pushed, unmerged, kept on purpose). Single worktree.
+- `feat/price-list-frontend-v2` was rebased onto `main` and fast-forwarded in. Delete the local
+  and remote branch once `main` is pushed.
+- `redesign/price-list` held only an uncommitted token/`BaseBadge` restyle of the OLD three-price
+  form. Discarded on the user's call; patch kept at
+  `%TEMP%\claude\C--MagicwashGemini-webapp-vueǚ85826-*\scratchpad\price-list-restyle-discarded.patch`.
+  Delete the branch too.
 - `feat/live-order-helper` holds `getLiveOrderById()` plus a read-only parity script that
   samples 50 orders and checks `OrdersView` against live `OrderForm` + `OrderItemForms`.
   Nothing calls it yet.
@@ -17,39 +22,20 @@ Rules: `.claude/.rules/memory.md`. Read it before writing here. Finished → del
 - **Never dispatch `backend-team` or any pipeline unless the user names it.** No default
   code-writing assistant.
 
-## Price list — do this first
+## Price list — next
 
-**Do not merge yet.** The migration is functionally done and verified; a UX pass on the
-price-list screens comes first, scope not yet decided. The branch stays open until then.
+1. Push `main` (deploys production), then delete both dead branches.
+2. UX pass — scope not decided. Friction found while migrating:
+   - `ITM-0010` has two active WSIR rows, same name, same group, 120 vs 700. Price is the only
+     thing telling them apart, so it must read as the primary field on the card and in the picker.
+   - The form's two create modes (new item vs. another price option) look identical.
+   - The invoice picker downloads all 79 rows to show 23 — inactive filtered client-side.
+3. Fill real prices for the 33 rows at placeholder `price 0` (all `active: false`).
 
-1. UX pass — decide the scope, then do it.
-2. Merge `feat/price-list-frontend-v2` into `main`, delete the branch.
-3. Fill real prices for the 33 rows sitting at placeholder `price 0` (all `active: false`).
-
-Known UX friction to weigh when scoping, found while migrating — not yet a decision:
-
-- `ITM-0010` shows two active WSIR rows, same name, same group, 120 vs 700. Price is the only
-  thing telling them apart, so it has to read as the primary field on the card and in the
-  invoice picker.
-- The form has two create modes (new item vs. another price option for an existing item) and
-  they currently look the same.
-- The invoice picker downloads all 79 rows to display 23, because inactive rows are filtered
-  client-side.
-
-Done, do not redo:
-
-- v2 = 16 columns; the three price columns became `service_type` + `price_group` + `unit` +
-  `price`, plus `display_name_en`. A row is one item × one service × one price group, so
-  `item_code` is deliberately **not unique**.
-- Sheet + G Drive registry migrated, 78 → 79 rows. Backup tab `PriceList_backup_2026-09-04`.
-  `ITM-0086` dropped; `ITM-0087` merged into `ITM-0010` — now 4 rows, two active WSIR at 120
-  and 700, where price is the only thing telling them apart.
-- `itemCode` is minted server-side again when create omits it; update no longer accepts it.
-- Catalogue loads in ONE request (`perPage` cap 1000) — offset paging over the non-unique
-  `item_code` can silently drop rows. Do not reintroduce a page-walk here.
-- Verified: `typecheck:api` clean, server 84/84, web 33/34, build green, browser-tested by the
-  user. The red web test (`packages/pages/package-pages.dry-test.ts`) fails on `origin/main` too.
-- No delete endpoint, by instruction.
+Verified 2026-09-06, do not re-check: live sheet = G Drive registry = `PriceList.db-contract.ts`,
+16 columns `id … active`, enum `WSIR|IRON|DRCL|WASH`. `PRICE_LIST_SPREADSHEET_ID` is set in all
+three Vercel environments, and the sheet is shared with the staff-writer service account as Editor.
+Post-rebase: build, `typecheck:api`, and 18/18 price-list dry-tests pass.
 
 Reported, not fixed:
 
