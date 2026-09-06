@@ -11,7 +11,7 @@ Checklist:
 
 Outcome: create order -> add item opens active DEFAULT pricelist matching order service -> search/category -> select specific priced row -> quantity/notes -> save and see persisted item -> add another or use existing photo menu/camera.
 
-Boundaries: keep itemId null (it refers to separate OrderItems catalogue, not PriceList.id/itemCode). Preserve price as selected snapshot, do not invent totals. Backend retains service ownership. Keep API schemas/backend/shared unchanged. No cross-feature imports. Existing camera/order-image API/Firebase path is supported and must remain working. Never write G:\My Drive\Magicwash\Database\GoogleSheets\*.json.
+Boundaries: store the selected PriceList row id in itemId (item_code is not unique, so the row id is the reference). Preserve price as selected snapshot, do not invent totals. Backend retains service ownership. Keep API schemas/backend/shared unchanged. No cross-feature imports. Existing camera/order-image API/Firebase path is supported and must remain working. Never write G:\My Drive\Magicwash\Database\GoogleSheets\*.json.
 
 Existing examples: InvoicePriceListPicker.vue, invoice-price-list store/service/utils; shared FormPicker/BaseOverlay/FormOverlay. Read CLAUDE.md and list shared components before UI work.
 

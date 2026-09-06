@@ -82,9 +82,9 @@ const pass = text => { audit.checks.push(text); console.log('PASS '+text); save(
    assert.ok(r.ok(),JSON.stringify(body));
    audit.itemIds.push(body.data.orderItemId); save();
    const payload=r.request().postDataJSON();
-   assert.equal(payload.itemId,null); assert.equal(payload.price,200); assert.equal(payload.quantity,2); assert.equal(payload.orderId,audit.orderId);
+   assert.match(payload.itemId,/^[a-z0-9]{8}$/); assert.equal(payload.price,200); assert.equal(payload.quantity,2); assert.equal(payload.orderId,audit.orderId);
    await expect(page.locator('dialog[open]')).toHaveCount(0);
-   pass('Save failure preserves inputs; retry persists quantity 2 with unchanged price 200 and itemId null');
+   pass('Save failure preserves inputs; retry persists quantity 2 with unchanged price 200 and the PriceList row id in itemId');
   }else{await form().getByRole('button',{name:'Close',exact:true}).click();}
   if(audit.itemIds.length===1){
    await openPicker();

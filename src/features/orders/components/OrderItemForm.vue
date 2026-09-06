@@ -38,7 +38,7 @@ function submit() {
   const item = props.selectedItem
   if (!item || !canSubmit.value || props.isSubmitting) return
   const parsed = itemPayloadSchema.safeParse({
-    itemId: null,
+    itemId: item.id,
     description: item.displayNameTh,
     quantity: Number(form.quantity),
     price: item.price,
