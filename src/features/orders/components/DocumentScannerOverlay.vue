@@ -450,24 +450,33 @@ function drawLoupeCropOverlay(
   const previousCorner = extendToEdge(toLoupeSpace(points[(activeCorner + 3) % 4]))
   const nextCorner = extendToEdge(toLoupeSpace(points[(activeCorner + 1) % 4]))
 
-  // Same colour/weight as the main quad outline, scaled by LOUPE_ZOOM so the
-  // line reads at the same relative thickness once the content is zoomed in.
+  // Kept deliberately thin: this line exists to be aligned against the paper
+  // edge, and a thick one hides the very pixels the user is aiming at.
   context.strokeStyle = '#b2df26'
-  context.lineWidth = 2.5 * LOUPE_ZOOM
+  context.lineWidth = 2
   context.beginPath()
   context.moveTo(previousCorner.x, previousCorner.y)
   context.lineTo(center, center)
   context.lineTo(nextCorner.x, nextCorner.y)
   context.stroke()
 
-  // Centre marker: the exact point the handle resolves to.
-  context.fillStyle = '#9df5df'
-  context.strokeStyle = '#234f49'
-  context.lineWidth = 2
-  context.beginPath()
-  context.arc(center, center, 5, 0, Math.PI * 2)
-  context.fill()
-  context.stroke()
+  // Crosshair, not a filled dot: the gap at the centre leaves the exact point
+  // the handle resolves to visible instead of covering it.
+  const gap = 4
+  const arm = 12
+  const strokeCrosshair = (color: string, width: number): void => {
+    context.strokeStyle = color
+    context.lineWidth = width
+    context.beginPath()
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      context.moveTo(center + dx * gap, center + dy * gap)
+      context.lineTo(center + dx * arm, center + dy * arm)
+    }
+    context.stroke()
+  }
+  // Dark pass first so the crosshair stays legible on pale paper too.
+  strokeCrosshair('rgba(35, 79, 73, 0.85)', 3.5)
+  strokeCrosshair('#9df5df', 1.5)
 }
 
 function drawLoupe(): void {
@@ -762,7 +771,10 @@ onBeforeUnmount(() => {
         </button>
       </div>
 
-      <div ref="adjustSurfaceRef" class="relative mx-auto my-4 h-[min(48vh,440px)] w-full max-w-xl touch-none">
+      <!-- flex-1 + min-h-0: the surface takes every pixel the header, error line
+           and buttons do not. It used to be pinned to min(48vh,440px) to leave
+           room for the filter preview strip that no longer exists. -->
+      <div ref="adjustSurfaceRef" class="relative mx-auto my-3 min-h-0 w-full max-w-xl flex-1 touch-none">
         <canvas
           ref="adjustCanvasRef"
           class="absolute inset-0 h-full w-full touch-none"
@@ -805,8 +817,8 @@ onBeforeUnmount(() => {
         />
       </div>
 
-      <p v-if="errorMessage" class="mb-3 mt-3 text-center font-body text-sm text-mint">{{ errorMessage }}</p>
-      <div class="mt-auto flex gap-3 pt-3">
+      <p v-if="errorMessage" class="mb-2 text-center font-body text-sm text-mint">{{ errorMessage }}</p>
+      <div class="flex shrink-0 gap-3">
         <button
           class="flex-1 rounded-full border border-white/35 px-4 py-3 font-body text-sm font-medium text-white active:opacity-80 disabled:opacity-50"
           :disabled="isWarping"
