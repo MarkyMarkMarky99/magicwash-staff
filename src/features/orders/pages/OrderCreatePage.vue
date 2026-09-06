@@ -2,7 +2,7 @@
 import { serviceTypeOptions } from '@/shared/utils/service-type-labels'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { workOrderCreateSchema } from '@contracts/work-orders/work-order-api.schema'
 import FormInput from '@/shared/components/FormInput.vue'
 import FormOptionGrid from '@/shared/components/FormOptionGrid.vue'
@@ -14,6 +14,7 @@ import { useOrderStore } from '@/features/orders/stores/order.store'
 defineOptions({ name: 'OrderCreatePage' })
 
 const router = useRouter()
+const route = useRoute()
 const orderStore = useOrderStore()
 const { customers, customersLoading, customersError } = storeToRefs(orderStore)
 const submitted = ref(false)
@@ -32,8 +33,12 @@ const invalid = computed(() => !form.customerId || !form.receivedDate || !form.d
 const dateError = computed(() => submitted.value && (!form.receivedDate || !form.dueDate || datesOutOfOrder.value))
 
 function resetForm() { Object.assign(form, { customerId: '', receivedDate: '', dueDate: '', serviceType: '', quantity: '', note: '', orderName: '' }); submitted.value = false; formError.value = null }
-function close() { void router.replace({ name: 'order-list' }) }
+function close() {
+  if (submitting.value || route.name !== 'order-create') return
+  void router.replace({ name: 'order-list' })
+}
 async function submit() {
+  if (submitting.value) return
   submitted.value = true
   formError.value = null
   if (invalid.value) return
@@ -62,7 +67,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <FormOverlay open title="สร้างออเดอร์" eyebrow="New laundry intake" helper-text="บันทึกข้อมูลรับผ้าให้ครบก่อนเพิ่มรายการสินค้าและรูปภาพ" submit-label="ตรวจสอบข้อมูล" :is-submitting="submitting" @close="close" @submit="submit">
+  <FormOverlay open title="สร้างออเดอร์" eyebrow="New laundry intake" helper-text="บันทึกข้อมูลรับผ้าให้ครบก่อนเพิ่มรายการสินค้าและรูปภาพ" submit-label="สร้างออเดอร์" :is-submitting="submitting" @close="close" @submit="submit">
     <div class="space-y-5 pb-5"><div v-if="submitted && invalid" class="rounded-xl border border-error/20 bg-error-container/30 px-3 py-2 font-body text-sm text-on-error-container">กรุณาเลือกลูกค้า ระบุวันที่รับผ้า กำหนดส่ง และบริการ</div><div v-if="formError" class="rounded-xl border border-error/20 bg-error-container/30 px-3 py-2 font-body text-sm text-on-error-container">{{ formError }}</div><FormPicker id="order-customer" v-model="form.customerId" label="ลูกค้า *" :options="customerOptions" placeholder="เลือกลูกค้า" search-placeholder="ค้นหาลูกค้า" :loading="customersLoading" :error="customersError ?? ''" empty-text="ไม่พบลูกค้า"/><div class="grid grid-cols-2 gap-3"><FormInput id="order-received-date" v-model="form.receivedDate" label="วันที่รับผ้า *" type="date"/><FormInput id="order-due-date" v-model="form.dueDate" label="กำหนดส่ง *" type="date"/></div><p v-if="dateError" class="-mt-3 text-xs text-error">{{ datesOutOfOrder ? 'วันที่รับผ้าต้องไม่เกินกำหนดส่ง' : 'กรุณาระบุวันที่รับผ้าและกำหนดส่ง' }}</p><FormOptionGrid v-model="form.serviceType" label="บริการ *" :options="serviceOptions"/><section class="rounded-xl border border-outline-variant/25 bg-surface-container-low p-3"><p class="mb-3 font-label text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">รายละเอียดรับผ้า</p><FormInput id="order-quantity" v-model="form.quantity" label="จำนวน" type="number" min="0" placeholder="0"/><p v-if="submitted && quantityInvalid" class="mt-2 text-xs text-error">จำนวนต้องเป็นจำนวนเต็ม</p></section><FormInput id="order-name" v-model="form.orderName" label="ชื่อออเดอร์" placeholder="เช่น ผ้ารับวันที่ 30 ส.ค."/><FormTextarea id="order-note" v-model="form.note" label="หมายเหตุ" placeholder="ข้อสังเกตสำหรับทีมซักรีด"/></div>
   </FormOverlay>
 </template>

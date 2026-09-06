@@ -2,6 +2,7 @@
 import type { z } from 'zod'
 import type { priceListListResponseSchema } from '@contracts/price-list/price-list-api.schema'
 import { serviceTypePresentation } from '@/shared/utils/service-type-labels'
+import { formatOrderPrice } from '@/features/orders/utils/order-price-format'
 
 type PriceListItem = z.infer<typeof priceListListResponseSchema>
 
@@ -13,14 +14,6 @@ const emit = defineEmits<{
   select: [item: PriceListItem]
 }>()
 
-function formatBaht(price: number) {
-  return new Intl.NumberFormat('th-TH', {
-    style: 'currency',
-    currency: 'THB',
-    maximumFractionDigits: 0,
-  }).format(price)
-}
-
 function detailFor(item: PriceListItem) {
   return [item.subcategory, item.itemType, item.variant].filter(Boolean).join(' · ')
 }
@@ -30,7 +23,7 @@ function detailFor(item: PriceListItem) {
   <button
     type="button"
     class="block w-full text-left transition-colors hover:bg-primary/[0.04] active:bg-primary/[0.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-primary"
-    :aria-label="`เลือก ${props.item.displayNameTh} ราคา ${formatBaht(props.item.price)}`"
+    :aria-label="`เลือก ${props.item.displayNameTh} ${props.item.variant ?? ''} ราคา ${formatOrderPrice(props.item.price)}`"
     @click="emit('select', props.item)"
   >
     <article class="flex items-start gap-3 px-4 py-3.5">
@@ -49,7 +42,7 @@ function detailFor(item: PriceListItem) {
             </p>
           </div>
           <strong class="shrink-0 font-headline text-lg font-extrabold tabular-nums text-primary">
-            {{ formatBaht(props.item.price) }}
+            {{ formatOrderPrice(props.item.price) }}
           </strong>
         </div>
 

@@ -1,13 +1,13 @@
 # Order pricelist picker — staff workflow
 
-Branch: feat/order-pricelist-picker. User authorized implementation and Terra real user acceptance against localhost:3000, autonomous decisions while asleep.
+Branch: feat/order-pricelist-picker. Latest user instruction: no subagents; root completes implementation and browser acceptance personally. User authorized implementation and Terra real user acceptance against localhost:3000, autonomous decisions while asleep.
 
 Checklist:
 - [x] Discovery: existing order create/detail/photo, pricelist and relation pickers.
 - [x] Placement: frontend architect blueprint.
 - [x] UI: frontend designer; build and vue-tsc passed.
-- [ ] Data: frontend integrator.
-- [ ] Review: Terra frontend reviewer and real browser staff acceptance.
+- [ ] Data: root (took over interrupted integration).
+- [ ] Review: root real browser staff acceptance; Terra cancelled by latest user instruction.
 
 Outcome: create order -> add item opens active DEFAULT pricelist matching order service -> search/category -> select specific priced row -> quantity/notes -> save and see persisted item -> add another or use existing photo menu/camera.
 
@@ -20,4 +20,3 @@ Placement: new orders-local OrderPriceListPicker.vue and OrderPriceListItemRow.v
 Verification: npm run build; meaningful finite focused tests for eligibility/search/stale fetch/form payload where applicable; Terra Playwright Chrome real UI at localhost:3000 including mobile, browser Back, refresh/deep-link, cancel/reopen, search empty/retry, repeated addition, actual create/persist and camera flow. Clearly label test records. Avoid touching existing customer orders. Use synthetic camera media for automated photo test, never capture sleeping user's surroundings. Do not claim real hardware tested. No production deploy/push.
 
 Browser recovery: CUA Transport closed, but installed Playwright works with require('playwright'), chromium.launch({headless:true,channel:'chrome'}), via node shell (require_escalated). Live Sheets-backed requests can take >10 seconds. Port3000 is already running; do not start another server. Actual order detail successfully loaded /api/work-orders/5d977224 and /api/order-images.
-

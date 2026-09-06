@@ -17,7 +17,7 @@ const props = defineProps<{
   loading: boolean
   error: string | null
   truncated: boolean
-  serviceType: ServiceType
+  serviceType: ServiceType | null
   orderLabel?: string
 }>()
 
@@ -58,7 +58,7 @@ const filteredItems = computed(() => {
 })
 
 const showEmpty = computed(() => !props.loading && !props.error && filteredItems.value.length === 0)
-const servicePresentation = computed(() => serviceTypePresentation[props.serviceType])
+const servicePresentation = computed(() => props.serviceType ? serviceTypePresentation[props.serviceType] : null)
 
 watch(
   [() => props.open, () => props.serviceType, () => props.orderLabel],
@@ -81,17 +81,17 @@ function selectCategory(category: string | null) {
 <template>
   <BaseOverlay :open="props.open" variant="full" aria-label="เลือกรายการสินค้าจากรายการราคา" @close="emit('close')">
     <div class="flex min-h-full flex-col bg-surface text-on-surface">
-      <header class="sticky top-0 z-20 bg-primary text-on-primary shadow-md">
+      <header class="sticky top-0 z-10 bg-primary text-on-primary shadow-md">
         <div class="flex items-start justify-between gap-3 px-4 pb-3 pr-14 pt-4">
           <div class="min-w-0">
             <p class="font-label text-[10px] font-bold uppercase tracking-[0.14em] text-mint">เพิ่มรายการสินค้า</p>
-            <h1 class="mt-0.5 truncate font-headline text-lg font-bold leading-tight">เลือกรายการจากราคา</h1>
+            <h1 class="mt-0.5 truncate font-headline text-lg font-bold leading-tight">เลือกสินค้าจากรายการราคา</h1>
             <p class="mt-1 truncate font-body text-xs text-on-primary/80">
-              {{ props.orderLabel || 'ออเดอร์นี้' }} · {{ servicePresentation.icon ? servicePresentation.label : props.serviceType }}
+              {{ props.orderLabel || 'ออเดอร์นี้' }}<template v-if="servicePresentation"> · {{ servicePresentation.label }}</template>
             </p>
           </div>
           <span class="mt-1 inline-flex shrink-0 items-center gap-1 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 font-label text-[11px] font-bold">
-            <span class="material-symbols-outlined text-[15px] text-mint" aria-hidden="true">{{ servicePresentation.icon }}</span>
+            <span class="material-symbols-outlined text-[15px] text-mint" aria-hidden="true">{{ servicePresentation?.icon ?? 'checkroom' }}</span>
             {{ props.items.length }} รายการ
           </span>
         </div>
@@ -141,7 +141,7 @@ function selectCategory(category: string | null) {
 
       <div v-if="props.truncated && !props.loading && !props.error" class="flex items-start gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2.5 font-body text-xs leading-relaxed text-amber-900">
         <span class="material-symbols-outlined mt-0.5 text-[17px] text-amber-700" aria-hidden="true">info</span>
-        <p>แสดงรายการได้ไม่ครบ ลองพิมพ์คำค้นหาให้เจาะจงเพื่อหารายการที่ต้องการ</p>
+        <p>แสดงรายการได้ไม่ครบ การค้นหาครอบคลุมเฉพาะรายการที่โหลดมาแล้ว</p>
       </div>
 
       <div v-if="props.loading" class="space-y-1 p-4" aria-busy="true" aria-label="กำลังโหลดรายการราคา">
@@ -160,8 +160,8 @@ function selectCategory(category: string | null) {
 
       <section v-else-if="showEmpty" class="px-6 py-16 text-center">
         <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-container text-on-surface-variant"><span class="material-symbols-outlined text-[30px]" aria-hidden="true">search_off</span></div>
-        <h2 class="mt-4 font-headline text-base font-bold">ไม่พบรายการที่ค้นหา</h2>
-        <p class="mx-auto mt-2 max-w-xs font-body text-sm leading-relaxed text-on-surface-variant">ลองค้นหาด้วยชื่อสินค้า รหัส หรือเปลี่ยนหมวดหมู่</p>
+        <h2 class="mt-4 font-headline text-base font-bold">{{ props.items.length ? 'ไม่พบรายการที่ค้นหา' : 'ยังไม่มีสินค้าสำหรับบริการนี้' }}</h2>
+        <p class="mx-auto mt-2 max-w-xs font-body text-sm leading-relaxed text-on-surface-variant">{{ props.items.length ? 'ลองค้นหาด้วยชื่อสินค้า รหัส หรือเปลี่ยนหมวดหมู่' : 'รายการราคาที่ยังไม่เปิดใช้งานจะไม่แสดงให้เลือก' }}</p>
       </section>
 
       <div v-else class="divide-y divide-outline-variant/15">

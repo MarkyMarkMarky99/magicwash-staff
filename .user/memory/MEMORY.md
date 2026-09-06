@@ -12,8 +12,8 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 - **Never dispatch `backend-team` or any pipeline unless the user names it.** No default
   code-writing assistant.
 ## Active — feat/order-pricelist-picker
-- User authorized autonomous implementation and Terra staff browser acceptance; no deploy/push requested.
-- Resume plan/briefs: `.codex/tasks/order-pricelist-picker/`; UI ready; integration in progress, Terra browser review next.
+- User authorized autonomous implementation; latest instruction forbids subagents, root owns remaining work and browser UAT; no push.
+- Resume plan/briefs: `.codex/tasks/order-pricelist-picker/`; Root finished integration fixes; browser staff UAT in progress; no subagents.
 - Scope: active DEFAULT same-service pricelist selection -> quantity/note -> save; existing create/photo path.
 - Existing source has live work-orders create/detail and Firebase + order-images camera; older notes below need live verification.
 - Browser: CUA transport unavailable; Playwright installed Chrome works. Port 3000 is running; live data may take >10 seconds.
