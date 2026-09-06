@@ -8,6 +8,11 @@ import {
   getSheetDateCalendar,
   normalizeSheetDate,
 } from '@/shared/utils/sheet-date'
+import type { z } from 'zod'
+import type {
+  appointmentTimeSlotSchema,
+  createAppointmentRequestSchema,
+} from '@contracts/appointments/appointment-api.schema'
 import type { SelectedCustomer } from '@/shared/stores/selected-customer.store'
 import type { AppointmentDetailDto } from '../services/appointment.service'
 import AppointmentDatePicker from './AppointmentDatePicker.vue'
@@ -23,10 +28,14 @@ const props = withDefaults(defineProps<{
   deliveryOrderId: null,
 })
 
-const timeSlots = ['10:00-12:00', '13:00-15:00', '15:00-17:00', '18:00-20:00'] as const
+// The slot list is the contract's enum. `satisfies` keeps this local copy honest:
+// add or rename a slot in the contract and this line stops compiling.
+type TimeSlot = z.infer<typeof appointmentTimeSlotSchema>
+type AppointmentCreateRequest = z.infer<typeof createAppointmentRequestSchema>
+const timeSlots = ['10:00-12:00', '13:00-15:00', '15:00-17:00', '18:00-20:00'] as const satisfies readonly TimeSlot[]
 
 const selectedDate = ref('')
-const selectedTime = ref<string | null>(null)
+const selectedTime = ref<TimeSlot | null>(null)
 const notes = ref('')
 const today = getBangkokClock().date
 
@@ -55,28 +64,39 @@ const timeSlotOptions = computed(() => timeSlots.map((timeSlot) => ({
   disabled: isCreate.value && isSlotDisabled(timeSlot),
 })))
 
-const data = computed(() => {
-  if (isCreate.value) {
-    return {
-      customerId: props.customer?.customerId ?? '',
-      customerName: props.customer?.customerName ?? '',
-      customerCode: props.customer?.customerIndex ?? '',
-      phone: props.customer?.phone ?? '',
-      address: props.customer?.address ?? '',
-      location: props.customer?.location ?? '',
-      appointmentType: appointmentType.value,
-      appointmentDate: selectedDate.value,
-      timeSlot: selectedTime.value ?? '',
-      pickupOrderId: null,
-      deliveryOrderId: props.deliveryOrderId,
-      notes: notes.value || null,
-    }
-  }
+// Two payloads, not one union. A single `data` computed covering both modes
+// forced every field to widen (timeSlot to plain string, the customer fields to
+// possibly-empty strings), which is how an invalid slot could reach the API and
+// be rejected only by zod at submit. Each mode now returns either a complete,
+// contract-shaped payload or null; the null is what `isValid` already meant.
+const createData = computed((): Omit<AppointmentCreateRequest, 'createdBy'> | null => {
+  const customer = props.customer
+  if (!customer || !selectedDate.value || !selectedTime.value) return null
 
   return {
-    appointmentId: props.appointment?.appointmentId ?? '',
+    customerId: customer.customerId,
+    customerName: customer.customerName ?? '',
+    customerCode: customer.customerIndex ?? '',
+    phone: customer.phone ?? '',
+    address: customer.address ?? '',
+    location: customer.location ?? '',
+    appointmentType: appointmentType.value,
     appointmentDate: selectedDate.value,
-    timeSlot: selectedTime.value ?? '',
+    timeSlot: selectedTime.value,
+    pickupOrderId: null,
+    deliveryOrderId: props.deliveryOrderId,
+    notes: notes.value || null,
+  }
+})
+
+const rescheduleData = computed(() => {
+  const appointmentId = props.appointment?.appointmentId
+  if (!appointmentId || !selectedDate.value || !selectedTime.value) return null
+
+  return {
+    appointmentId,
+    appointmentDate: selectedDate.value,
+    timeSlot: selectedTime.value,
     notes: notes.value || null,
   }
 })
@@ -109,7 +129,7 @@ function smartDefaultDate() {
   return next
 }
 
-function firstAvailableSlot(date: string): string | null {
+function firstAvailableSlot(date: string): TimeSlot | null {
   if (date !== today) return null
   const now = getBangkokClock()
   return timeSlots.find((slot) => slotStartMinutes(slot) > now.minutes) ?? null
@@ -120,7 +140,7 @@ function slotStartMinutes(slot: string) {
   return hour * 60 + minute
 }
 
-function isSlotDisabled(slot: string) {
+function isSlotDisabled(slot: TimeSlot) {
   if (selectedDate.value !== today) return false
   return slotStartMinutes(slot) <= getBangkokClock().minutes
 }
@@ -138,7 +158,7 @@ watch(
   { immediate: true },
 )
 
-defineExpose({ data, isValid })
+defineExpose({ createData, rescheduleData, isValid })
 </script>
 
 <template>

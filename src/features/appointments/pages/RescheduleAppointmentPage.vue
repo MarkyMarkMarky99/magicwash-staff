@@ -44,24 +44,14 @@ async function loadAppointment() {
 }
 
 async function submit() {
-  if (!canConfirm.value || !form.value?.data || submitting.value) return
+  const data = form.value?.rescheduleData
+  if (!canConfirm.value || !data || submitting.value) return
 
   submitting.value = true
   error.value = null
   try {
-    const data = form.value.data
-    // AppointmentForm exposes one `data` computed covering both its create and
-    // reschedule shapes, and TS gives the create branch `appointmentId?: undefined`,
-    // so an `in` check cannot discriminate — test the value. canConfirm already
-    // guarantees it at runtime; this makes the guarantee visible to the compiler.
-    if (!data.appointmentId) return
     await appointmentStore.rescheduleAppointment(data.appointmentId, {
       appointmentDate: data.appointmentDate,
-      // KNOWN DEBT: form state is typed as loose strings/optionals while the API
-      // contract wants literal unions and required fields, so only zod catches a bad
-      // value, at submit time. Fix by typing the form state from the contract enums
-      // -- then this directive becomes an error and gets deleted.
-      // @ts-expect-error
       timeSlot: data.timeSlot,
       notes: data.notes,
     })

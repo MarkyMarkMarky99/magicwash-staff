@@ -88,12 +88,10 @@ reached production the same way.
 
 `npm run typecheck:api` still covers `api/` and `server/` separately. Both must pass.
 
-Known failure, do not add to it: `PriceListFormPage.vue` fails on the create payload.
-Two other form pages carry a `@ts-expect-error` with the same cause — form state is
-typed as loose strings and optionals while the API contract wants literal unions and
-required fields, so only zod catches a bad value, at submit time. The fix is to type
-the form state from the contract enums; the directives then become errors and get
-deleted. Fixing that is a task of its own, not something to paper over in passing.
+`src/` is clean: `typecheck:web` currently reports zero errors and there is not a
+single `@ts-expect-error`, `@ts-ignore` or `@ts-nocheck` in the frontend. Keep it that
+way — suppressing an error hides the bug rather than fixing it, and the three that
+were suppressed all turned out to be real.
 
 ## Testing
 

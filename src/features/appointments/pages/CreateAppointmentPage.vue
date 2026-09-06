@@ -28,17 +28,13 @@ onMounted(() => {
 })
 
 async function submit() {
-  if (!canConfirm.value || !form.value?.data || submitting.value) return
+  const data = form.value?.createData
+  if (!canConfirm.value || !data || submitting.value) return
 
   submitting.value = true
   error.value = null
   try {
-    // KNOWN DEBT: form state is typed as loose strings/optionals while the API
-    // contract wants literal unions and required fields, so only zod catches a bad
-    // value, at submit time. Fix by typing the form state from the contract enums
-    // -- then this directive becomes an error and gets deleted.
-    // @ts-expect-error
-    await appointmentStore.createNewAppointment(form.value.data)
+    await appointmentStore.createNewAppointment(data)
     router.back()
   } catch (reason) {
     error.value = appointmentWriteErrorMessage(reason, 'Failed to book. Please try again.')
