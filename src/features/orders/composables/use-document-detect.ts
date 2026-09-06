@@ -8,8 +8,7 @@ import {
 import type { Point, Quad } from '@/features/orders/utils/quad-projection'
 
 const DETECT_INTERVAL_MS = 100
-const DETECT_MAX_DIMENSION = 1000
-const DETECT_RETRY_INSET_RATIO = 0.05
+const ML_INPUT_SIZE = 224
 export const FRAME_EDGE_MARGIN_RATIO = 0.02
 export const MAX_QUAD_COVERAGE_RATIO = 0.85
 export const SMOOTHING_FACTOR = 0.35
@@ -25,15 +24,9 @@ export type TemporalQuadState = {
 type DetectionRegion = { x: number, y: number, width: number, height: number }
 
 const DETECTION_OPTIONS = {
-  detector: 'classical' as const,
+  detector: 'ml' as const,
   mode: 'detect' as const,
-  maxProcessingDimension: DETECT_MAX_DIMENSION,
-  minDocumentCoverageRatio: 0.12,
-  minDocumentSideRatio: 0.15,
-  minDocumentFillRatio: 0.2,
-  minRightAngleScore: 0.5,
-  minOppositeSideConsistency: 0.35,
-  maxDocumentAspectRatio: 2.5,
+  ml: { assetBaseUrl: '/scanic-ml/' },
 }
 
 export function quadCoverageRatio(quad: Quad, region: DetectionRegion): number {
@@ -126,8 +119,6 @@ export function useDocumentDetect(getVideo: () => HTMLVideoElement | null, activ
   let scannerPromise: Promise<ScannerInstance> | null = null
   let workCanvas: HTMLCanvasElement | null = null
   let workContext: CanvasRenderingContext2D | null = null
-  let retryCanvas: HTMLCanvasElement | null = null
-  let retryContext: CanvasRenderingContext2D | null = null
   let timer: ReturnType<typeof window.setTimeout> | null = null
   let runToken = 0
   let temporalState: TemporalQuadState = { quad: null, consecutiveJumps: 0, consecutiveMisses: 0 }
@@ -176,18 +167,25 @@ export function useDocumentDetect(getVideo: () => HTMLVideoElement | null, activ
         return
       }
 
-      const scale = fitScale(video.videoWidth, video.videoHeight, DETECT_MAX_DIMENSION)
-      const workWidth = Math.round(video.videoWidth * scale)
-      const workHeight = Math.round(video.videoHeight * scale)
+      // Letterbox the frame into a fixed 224x224 canvas: scanic stretches whatever it is
+      // given to 224x224 with no letterbox of its own, and an anisotropic squash turns a
+      // rotated document into a skewed parallelogram the model was never trained on.
+      const scale = fitScale(video.videoWidth, video.videoHeight, ML_INPUT_SIZE)
+      const drawWidth = Math.round(video.videoWidth * scale)
+      const drawHeight = Math.round(video.videoHeight * scale)
+      const offsetX = Math.round((ML_INPUT_SIZE - drawWidth) / 2)
+      const offsetY = Math.round((ML_INPUT_SIZE - drawHeight) / 2)
       if (!workCanvas) workCanvas = document.createElement('canvas')
       if (!workContext) workContext = workCanvas.getContext('2d', { willReadFrequently: true })
-      if (!workContext || !workWidth || !workHeight) throw new Error('CanvasContextUnavailable')
+      if (!workContext || !drawWidth || !drawHeight) throw new Error('CanvasContextUnavailable')
 
-      if (workCanvas.width !== workWidth || workCanvas.height !== workHeight) {
-        workCanvas.width = workWidth
-        workCanvas.height = workHeight
+      if (workCanvas.width !== ML_INPUT_SIZE || workCanvas.height !== ML_INPUT_SIZE) {
+        workCanvas.width = ML_INPUT_SIZE
+        workCanvas.height = ML_INPUT_SIZE
       }
-      workContext.drawImage(video, 0, 0, video.videoWidth, video.videoHeight, 0, 0, workWidth, workHeight)
+      workContext.fillStyle = 'black'
+      workContext.fillRect(0, 0, ML_INPUT_SIZE, ML_INPUT_SIZE)
+      workContext.drawImage(video, 0, 0, video.videoWidth, video.videoHeight, offsetX, offsetY, drawWidth, drawHeight)
 
       const activeScanner = await loadScanner()
       if (!isCurrent(token)) return
@@ -198,53 +196,25 @@ export function useDocumentDetect(getVideo: () => HTMLVideoElement | null, activ
 
       lastDetectMs.value = Math.round(performance.now() - detectStartedAt)
       detectError.value = ''
-      let detectedQuad = result.success && result.corners
-        ? orderQuad(scaleQuad(cornersToQuad(result.corners), 1 / scale))
+      // Corners come back in the 224x224 letterbox canvas's own coordinate space
+      // (scanic denormalizes by the canvas we passed in), so undo the letterbox
+      // offset first, then the uniform scale, to land back in video pixel space.
+      const letterboxed = result.success && result.corners ? cornersToQuad(result.corners) : null
+      let detectedQuad = letterboxed
+        ? orderQuad(scaleQuad(
+            letterboxed.map((point) => ({ x: point.x - offsetX, y: point.y - offsetY })) as Quad,
+            1 / scale,
+          ))
         : null
       const fullFrame = { x: 0, y: 0, width: video.videoWidth, height: video.videoHeight }
 
-      if (!detectedQuad || !isUsableDocumentQuad(detectedQuad, fullFrame)) {
-        detectionStatus.value = detectedQuad
-          ? `primary rejected · coverage ${quadCoverageRatio(detectedQuad, fullFrame).toFixed(2)}`
-          : 'primary miss · retrying inset'
-        const insetX = Math.max(1, Math.round(workWidth * DETECT_RETRY_INSET_RATIO))
-        const insetY = Math.max(1, Math.round(workHeight * DETECT_RETRY_INSET_RATIO))
-        const retryWidth = workWidth - insetX * 2
-        const retryHeight = workHeight - insetY * 2
-        if (!retryCanvas) retryCanvas = document.createElement('canvas')
-        if (!retryContext) retryContext = retryCanvas.getContext('2d', { willReadFrequently: true })
-        if (!retryContext || retryWidth <= 0 || retryHeight <= 0) throw new Error('RetryCanvasContextUnavailable')
-        if (retryCanvas.width !== retryWidth || retryCanvas.height !== retryHeight) {
-          retryCanvas.width = retryWidth
-          retryCanvas.height = retryHeight
-        }
-        retryContext.drawImage(workCanvas, insetX, insetY, retryWidth, retryHeight, 0, 0, retryWidth, retryHeight)
-
-        const retryResult = await activeScanner.scan(retryCanvas, DETECTION_OPTIONS)
-        if (!isCurrent(token)) return
-        detectedQuad = retryResult.success && retryResult.corners
-          ? orderQuad(scaleQuad(
-              cornersToQuad(retryResult.corners).map((point) => ({ x: point.x + insetX, y: point.y + insetY })) as Quad,
-              1 / scale,
-            ))
-          : null
-        const retryRegion = {
-          x: insetX / scale,
-          y: insetY / scale,
-          width: retryWidth / scale,
-          height: retryHeight / scale,
-        }
-        if (detectedQuad && !isUsableDocumentQuad(detectedQuad, retryRegion)) {
-          detectionStatus.value = `retry rejected · coverage ${quadCoverageRatio(detectedQuad, retryRegion).toFixed(2)}`
-          detectedQuad = null
-        } else if (detectedQuad) {
-          detectionStatus.value = `retry quad · coverage ${quadCoverageRatio(detectedQuad, retryRegion).toFixed(2)}`
-        } else {
-          detectionStatus.value = 'retry miss'
-        }
-        lastDetectMs.value = Math.round(performance.now() - detectStartedAt)
+      if (detectedQuad && !isUsableDocumentQuad(detectedQuad, fullFrame)) {
+        detectionStatus.value = `rejected · coverage ${quadCoverageRatio(detectedQuad, fullFrame).toFixed(2)}`
+        detectedQuad = null
       } else {
-        detectionStatus.value = `primary quad · coverage ${quadCoverageRatio(detectedQuad, fullFrame).toFixed(2)}`
+        detectionStatus.value = detectedQuad
+          ? `quad · coverage ${quadCoverageRatio(detectedQuad, fullFrame).toFixed(2)}`
+          : 'miss'
       }
       publishDetection(detectedQuad, Math.max(video.videoWidth, video.videoHeight))
     } catch (error) {
