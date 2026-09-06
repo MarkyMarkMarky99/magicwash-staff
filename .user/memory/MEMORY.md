@@ -24,9 +24,9 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 
 ## Dispatching codex — two traps that cost hours today
 
-- **Never `codex exec ... | tail -c N`.** `tail` waits for EOF; orphaned
-  `codex-computer-use.exe` children hold the pipe open forever, so the job looks stuck at
-  0 bytes long after it finished. Redirect: `codex exec ... > run.log 2>&1`.
+- **Dispatch as `run_in_background` AND redirect to a file:** `codex exec ... > run.log 2>&1`.
+  Piping through `tail` never reports finishing (orphaned `codex-computer-use.exe` children
+  hold the pipe open past EOF); detaching with `nohup &` kills the completion notification.
 - **Solo briefs must forbid subagents in the first lines.** A lone `codex exec` reads the
   delegation rules in `CLAUDE.md`, spawns its own subagent, and then hangs without returning.
 - To tell "stalled" from "finished but hung": read
