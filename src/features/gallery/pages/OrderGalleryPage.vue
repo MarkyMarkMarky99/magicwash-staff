@@ -6,6 +6,8 @@ import { getPhotos } from '@/api/photos'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import CameraOverlay from '@/shared/components/CameraOverlay.vue'
 import { currentActor } from '@/shared/config/actor'
+import { getWorkOrder } from '@/features/orders/services/work-order.service'
+import { reassignPhoto } from '@/features/gallery/services/laundry-photo.service'
 
 function parseKey(key) {
   const parts = String(key ?? '').split('-')
@@ -39,9 +41,15 @@ const photoTabs = [
 const { images, addFiles, remove, clearAll } = usePhotoUpload(type, orderId, orderitemId, createdBy, itemId)
 
 const showPicker = ref(false)
+const showReassignPicker = ref(false)
 const showCamera = ref(route.meta.openCamera === true)
 const albumInputRef = ref(null)
 const lightbox = ref(null)
+const reassigning = ref(false)
+const reassignError = ref(null)
+const orderItems = ref([])
+const orderItemsStatus = ref('idle')
+const orderItemsOrderId = ref(null)
 
 const IN_PROGRESS = new Set(['compressing', 'uploading', 'saving'])
 
@@ -65,6 +73,12 @@ async function loadFetchedPhotos(key) {
   fetchedPhotos.value = []
   fetchStatus.value = 'loading'
   lightbox.value = null
+  showReassignPicker.value = false
+  reassignError.value = null
+  orderItems.value = []
+  orderItemsStatus.value = 'idle'
+  orderItemsOrderId.value = null
+  reassigning.value = false
 
   try {
     const photos = await getPhotos(parsed.type, parsed.orderId, parsed.orderitemId)
@@ -112,9 +126,23 @@ watch(
 
 // Unified flat list used by the lightbox
 const allPhotos = computed(() => [
-  ...fetchedPhotos.value.map(p => ({ src: p.image_url, label: p.notes || null })),
-  ...images.value.map(p  => ({ src: p.previewUrl,  label: null })),
+  ...fetchedPhotos.value.map(p => ({
+    src: p.image_url,
+    label: p.notes || null,
+    id: p.id,
+    isSaved: true,
+  })),
+  ...images.value.map(p  => ({
+    src: p.previewUrl,
+    label: null,
+    id: null,
+    isSaved: false,
+  })),
 ])
+
+const currentPhoto = computed(() => (
+  lightbox.value === null ? null : allPhotos.value[lightbox.value] ?? null
+))
 
 const isEmpty = computed(
   () => fetchStatus.value === 'done' && fetchedPhotos.value.length === 0 && images.value.length === 0,
@@ -122,6 +150,74 @@ const isEmpty = computed(
 
 function openPicker() {
   showPicker.value = true
+}
+
+function openReassignPicker() {
+  if (!currentPhoto.value?.isSaved || !currentPhoto.value.id) return
+
+  reassignError.value = null
+  showReassignPicker.value = true
+  if (orderItemsStatus.value === 'idle') {
+    void loadOrderItems()
+  }
+}
+
+async function loadOrderItems() {
+  // A concurrent call is not a failure — the in-flight request still owns the status.
+  if (orderItemsStatus.value === 'loading') return
+
+  const requestedOrderId = orderId.value
+  if (!requestedOrderId) {
+    orderItemsStatus.value = 'error'
+    return
+  }
+
+  orderItemsStatus.value = 'loading'
+  orderItemsOrderId.value = requestedOrderId
+
+  try {
+    const order = await getWorkOrder(requestedOrderId)
+    if (requestedOrderId !== orderId.value) return
+    orderItems.value = order.items
+    orderItemsStatus.value = 'done'
+  } catch {
+    if (requestedOrderId !== orderId.value) return
+    orderItemsStatus.value = 'error'
+  }
+}
+
+function retryLoadOrderItems() {
+  orderItemsStatus.value = 'idle'
+  void loadOrderItems()
+}
+
+async function handleReassign(item) {
+  const photo = currentPhoto.value
+  if (
+    reassigning.value
+    || !photo?.isSaved
+    || !photo.id
+    || !item?.orderItemId
+    || item.orderItemId === orderitemId.value
+  ) return
+
+  reassigning.value = true
+  reassignError.value = null
+
+  try {
+    await reassignPhoto(type.value, photo.id, {
+      orderItemId: item.orderItemId,
+      updatedBy: createdBy.value,
+    })
+    fetchedPhotos.value = fetchedPhotos.value.filter(savedPhoto => savedPhoto.id !== photo.id)
+    showReassignPicker.value = false
+    lightbox.value = null
+  } catch (error) {
+    showReassignPicker.value = false
+    reassignError.value = error instanceof Error ? error.message : 'ย้ายรูปไม่สำเร็จ กรุณาลองอีกครั้ง'
+  } finally {
+    reassigning.value = false
+  }
 }
 
 function pickAlbum() {
@@ -326,7 +422,80 @@ function handleCameraClose() {
           <span class="material-symbols-outlined text-3xl">chevron_right</span>
         </button>
       </div>
+
+      <button
+        v-if="allPhotos[lightbox].isSaved"
+        type="button"
+        class="mt-4 flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm text-white"
+        :disabled="reassigning"
+        @click.stop="openReassignPicker"
+      >
+        <span class="material-symbols-outlined text-[18px]">swap_horiz</span>
+        ย้ายไปรายการอื่น
+      </button>
+
+      <p v-if="reassignError" role="alert" class="mt-3 max-w-sm text-center text-sm text-red-200">
+        {{ reassignError }}
+      </p>
     </div>
+
+    <!-- Destination picker sheet -->
+    <Transition name="sheet">
+      <div v-if="showReassignPicker" class="fixed inset-0 z-50 flex flex-col justify-end">
+        <div class="absolute inset-0 bg-black/40" @click="showReassignPicker = false" />
+        <div class="relative max-h-[75dvh] overflow-y-auto rounded-t-2xl bg-surface p-5 space-y-3">
+          <p class="text-center font-body text-on-surface-variant text-sm mb-1">เลือกรายการปลายทาง</p>
+
+          <div v-if="orderItemsStatus === 'loading'" class="flex items-center justify-center gap-2 py-6 text-on-surface-variant">
+            <span class="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
+            <span class="font-body text-sm">กำลังโหลดรายการ…</span>
+          </div>
+
+          <div v-else-if="orderItemsStatus === 'error'" class="space-y-3 py-3 text-center">
+            <p class="font-body text-sm text-error">โหลดรายการไม่สำเร็จ กรุณาลองอีกครั้ง</p>
+            <button
+              type="button"
+              class="w-full rounded-xl bg-surface-variant py-3 font-body text-sm font-medium text-on-surface-variant"
+              @click="retryLoadOrderItems"
+            >
+              ลองอีกครั้ง
+            </button>
+          </div>
+
+          <div v-else-if="orderItemsStatus === 'done' && orderItems.length === 0" class="py-3 text-center font-body text-sm text-on-surface-variant">
+            ไม่พบรายการในออเดอร์นี้
+          </div>
+
+          <template v-else-if="orderItemsStatus === 'done'">
+            <button
+              v-for="item in orderItems"
+              :key="item.orderItemId"
+              type="button"
+              :disabled="reassigning || item.orderItemId === orderitemId"
+              class="flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+              :class="item.orderItemId === orderitemId ? 'border-primary bg-primary/10' : 'border-outline-variant/30 bg-surface-variant hover:bg-surface-container'"
+              @click="handleReassign(item)"
+            >
+              <span class="min-w-0 font-body text-sm text-on-surface">
+                {{ item.description || 'ไม่ได้ระบุรายละเอียด' }}
+              </span>
+              <span v-if="item.orderItemId === orderitemId" class="shrink-0 font-body text-xs font-medium text-primary">
+                รายการปัจจุบัน
+              </span>
+            </button>
+          </template>
+
+          <button
+            type="button"
+            class="w-full py-2 font-body text-sm text-on-surface-variant"
+            :disabled="reassigning"
+            @click="showReassignPicker = false"
+          >
+            ยกเลิก
+          </button>
+        </div>
+      </div>
+    </Transition>
 
     <!-- Source picker sheet -->
     <Transition name="sheet">

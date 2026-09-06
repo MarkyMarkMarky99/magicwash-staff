@@ -5,6 +5,8 @@ audit_sources:
   - src/features/customers/routes.ts
   - src/features/customers/pages/CustomerListPage.vue
   - src/features/customers/services/customer.service.ts
+  - src/features/gallery/pages/OrderGalleryPage.vue
+  - src/features/gallery/services/laundry-photo.service.ts
 ---
 
 # Frontend Feature Structure
@@ -12,6 +14,10 @@ audit_sources:
 Business functionality is organized by feature.
 
 Each feature owns its UI, state, routing, API integration, and feature-specific logic.
+
+The gallery keeps its existing GViz read path and Apps Script upload path. Reassigning an already
+saved before or after photo is a separate feature service operation through the shared API client;
+the gallery loads the current order's destination items only when the reassignment picker opens.
 
 ## Structure
 
