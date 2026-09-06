@@ -20,6 +20,12 @@ const galleryKey = computed(() => parseKey(routeKey.value))
 const type = computed(() => galleryKey.value.type)
 const orderId = computed(() => galleryKey.value.orderId)
 const orderitemId = computed(() => galleryKey.value.orderitemId)
+const itemId = computed(() => {
+  const rawItemId = route.query.itemId
+  const value = Array.isArray(rawItemId) ? rawItemId[0] : rawItemId
+  const normalizedItemId = typeof value === 'string' ? value.trim() : ''
+  return normalizedItemId && normalizedItemId !== 'null' ? normalizedItemId : null
+})
 const createdBy = computed(() => (
   typeof route.query.by === 'string' ? route.query.by : ''
 ))
@@ -28,7 +34,7 @@ const photoTabs = [
   { key: 'AFT', label: 'รูปหลังซัก' },
 ]
 
-const { images, addFiles, remove, clearAll } = usePhotoUpload(type, orderId, orderitemId, createdBy)
+const { images, addFiles, remove, clearAll } = usePhotoUpload(type, orderId, orderitemId, createdBy, itemId)
 
 const showPicker = ref(false)
 const showCamera = ref(route.meta.openCamera === true)

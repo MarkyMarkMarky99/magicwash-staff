@@ -10,7 +10,7 @@ function genId() {
   return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 }
 
-export function usePhotoUpload(type, orderId, orderitemId, createdBy) {
+export function usePhotoUpload(type, orderId, orderitemId, createdBy, itemId) {
   const images = ref([])
 
   function updateItem(id, patch) {
@@ -24,6 +24,7 @@ export function usePhotoUpload(type, orderId, orderitemId, createdBy) {
       orderId: toValue(orderId),
       orderitemId: toValue(orderitemId),
       createdBy: toValue(createdBy),
+      itemId: toValue(itemId),
     }
     const id = genId()
     images.value.push({
@@ -50,6 +51,7 @@ export function usePhotoUpload(type, orderId, orderitemId, createdBy) {
         created_by: target.createdBy,
       }
       if (target.orderitemId) photoData.orderitem_id = target.orderitemId
+      if (target.itemId && target.itemId !== 'null') photoData.item_id = target.itemId
       await savePhoto(target.type, photoData)
       updateItem(id, { status: 'done' })
     } catch (err) {
