@@ -62,7 +62,7 @@ assert.equal(laundryPhotosDbContract.sheetName, 'LaundryPhotos')
 assert.equal(laundryPhotosDbContract.spreadsheetId, 'ORDERS_SPREADSHEET_ID')
 assert.deepEqual(laundryPhotosDbContract.writes, {
   append: false,
-  update: false,
+  update: true,
   delete: false,
 })
 assert.equal('audit' in laundryPhotosDbContract, false)

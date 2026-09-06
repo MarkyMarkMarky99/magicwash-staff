@@ -14,6 +14,7 @@ import { createCrudRoutes } from '../../shared/http/crud-routes.js'
 import { ApiError } from '../../shared/http/api-error.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import { BaseCrudService, mapDbRowToApi } from '../../shared/services/base-crud.service.js'
+import { projectResponse, requireSingleRow } from '../../shared/services/crud-helpers.js'
 
 type AfterPhotoDbRow = z.infer<typeof afterPhotoRowSchema>
 type OrderItemFormsDbRow = z.infer<typeof orderItemFormsRowSchema>
@@ -104,6 +105,14 @@ export class AfterPhotoService extends BaseCrudService<
     )
     const item = requireSingleRow(itemRows, data.orderItemId)
 
+    if (
+      typeof photo.order_id !== 'string' ||
+      photo.order_id.trim() === '' ||
+      typeof item.order_id !== 'string' ||
+      item.order_id.trim() === ''
+    ) {
+      throw ApiError.badRequest('Photo and order item must belong to an order')
+    }
     if (photo.order_id !== item.order_id) {
       throw ApiError.badRequest('Photo and order item belong to different orders')
     }
@@ -118,25 +127,6 @@ export class AfterPhotoService extends BaseCrudService<
     const apiRow = mapDbRowToApi(stored, afterPhotoMapper, {})
     return projectResponse<AfterPhotoUpdateResponse>(apiRow, afterPhotoUpdateResponseSchema)
   }
-}
-
-function requireSingleRow<T extends object>(rows: Array<Partial<T>>, id: string): Partial<T> {
-  if (rows.length === 0) {
-    throw ApiError.notFound(`Resource '${id}' not found`)
-  }
-  if (rows.length > 1) {
-    throw ApiError.conflict(`Resource '${id}' resolved to multiple rows`)
-  }
-  return rows[0]!
-}
-
-function projectResponse<TResponse extends object>(
-  row: Record<string, unknown>,
-  schema: { shape: Record<string, unknown> },
-): TResponse {
-  return Object.fromEntries(
-    Object.keys(schema.shape).map((key) => [key, row[key]]),
-  ) as TResponse
 }
 
 export const afterPhotoService = new AfterPhotoService()

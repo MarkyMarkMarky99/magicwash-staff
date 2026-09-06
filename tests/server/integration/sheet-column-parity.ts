@@ -8,6 +8,7 @@
 
 import { requireEnv } from '../../../server/shared/utils/env.js'
 import { appointmentsDbContract } from '../../../server/sheets/Appointments/Appointments.db-contract.js'
+import { afterPhotoDbContract } from '../../../server/sheets/AfterPhoto/AfterPhoto.db-contract.js'
 import { customersDbContract } from '../../../server/sheets/Customers/Customers.db-contract.js'
 import { invoiceItemsDbContract } from '../../../server/sheets/InvoiceItems/InvoiceItems.db-contract.js'
 import { invoicesDbContract } from '../../../server/sheets/Invoices/Invoices.db-contract.js'
@@ -52,6 +53,12 @@ interface GvizResponse {
 }
 
 const readableSheets: readonly ReadableSheet[] = [
+  {
+    name: 'AfterPhoto',
+    sheetName: afterPhotoDbContract.sheetName,
+    spreadsheetIdEnv: afterPhotoDbContract.spreadsheetId!,
+    rowSchema: afterPhotoDbContract.row,
+  },
   {
     name: 'CustomerPackages',
     sheetName: customerPackagesDbContract.sheetName,

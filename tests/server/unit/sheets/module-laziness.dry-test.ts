@@ -8,6 +8,7 @@ const relevantEnvironmentKeys = [
   'PRICE_LIST_SPREADSHEET_ID',
   'LAUNDRY_PACKAGES_SPREADSHEET_ID',
   'ISSUE_REPORTS_SPREADSHEET_ID',
+  'AFTER_PHOTOS_SPREADSHEET_ID',
 ]
 
 const modulePaths = [
@@ -23,6 +24,7 @@ const modulePaths = [
   '../../../../server/modules/price-list/price-list.module.js',
   '../../../../server/modules/issue-reports/issue-report.module.js',
   '../../../../server/modules/packages/package.module.js',
+  '../../../../server/modules/after-photos/after-photo.module.js',
 ]
 
 async function main(): Promise<void> {
@@ -49,7 +51,7 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log('12 module laziness checks passed')
+  console.log('13 module laziness checks passed')
 }
 
 main().catch((error) => {
