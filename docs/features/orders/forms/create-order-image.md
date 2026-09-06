@@ -50,8 +50,9 @@ Neither is decided here.
   path behind an orders module. The existing path does not target `OrderImages` at all:
   `src/composables/usePhotoUpload.js` uploads the binary to Firebase Storage via
   `src/api/storage.js`, then `src/api/photos.js` posts `{ resource: 'sheet', action: 'APPEND',
-  target: 'BeforePhoto' | 'AfterPhoto', data }` with a snake_case payload. `LaundryPhotos` is a
-  sheet that file *reads* from over GViz, not a write target.
+  target: 'BeforePhoto' | 'AfterPhoto', data }` with a snake_case payload. The backend's
+  `LaundryPhotos` and `after` modules separately expose GViz reads and update-only reassignment;
+  Apps Script remains the upload/create path.
 - **Capture code ownership.** Move the capture stack into `src/shared/` in a dedicated refactor pass
   that checks every existing call site, or duplicate it inside `src/features/orders/`. Importing it
   where it stands is a forbidden cross-feature import.

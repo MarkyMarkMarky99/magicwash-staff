@@ -3,6 +3,8 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 
 ## Where we are — 2026-09-07
 
+- **feature/laundry-photos-module:** LaundryPhotos/AfterPhoto backend implementation checkpointed; test-tree parity registration remains Clerk's work.
+
 - **Branches:** `main` (synced) · `feat/document-scanner-v2` (**works, unmerged**) ·
   `feat/document-scanner` (v1, failed, keep only until v2 merges — then delete) ·
   `feat/live-order-helper` (pushed, unmerged, **not finished** — kept on purpose).

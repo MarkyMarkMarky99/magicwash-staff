@@ -26,6 +26,8 @@
 | OrderForm | ORDERS_SPREADSHEET_ID | Order header | yes — `writes: { append: false, update: true, delete: false }` |
 | OrderItemForms | ORDERS_SPREADSHEET_ID | Order line items | no |
 | OrderImages | ORDERS_SPREADSHEET_ID | Order photos | no |
+| LaundryPhotos | ORDERS_SPREADSHEET_ID | Before photos | yes — update-only reassignment |
+| after | AFTER_PHOTOS_SPREADSHEET_ID | After photos | yes — update-only reassignment |
 | OrdersView | PORTAL_SPREADSHEET_ID | Read model behind GET /api/orders | yes — all writes false |
 
 - OrdersView is materialised by Apps Script from OrderForm and its item rows

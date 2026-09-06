@@ -83,6 +83,20 @@ implemented, on branch `feat/register-order-sheets`.
 | created_at | datetime/string | 3 | ISO with `Z` on newer rows; `dd/MM/yyyy HH:mm:ss` on older |
 | created_by | string | 17,365 | effectively unused |
 
+## LaundryPhotos and after
+
+The before-photo sheet is `LaundryPhotos` in `ORDERS_SPREADSHEET_ID`, 16 columns, A–P. The
+after-photo sheet is the lowercase `after` tab in the workbook identified by
+`AFTER_PHOTOS_SPREADSHEET_ID`, also 16 columns, A–P. Both are registered at
+`server/sheets/` with `writes: { append: false, update: true, delete: false }`: upload/create and
+removal remain outside this API.
+
+The backend modules expose `GET` collection/detail routes and `PATCH` reassignment routes. List
+queries require `orderId` and optionally accept `orderItemId`; reassignment validates the photo,
+the destination `OrderItemForms` row, and their order before writing only `orderitem_id`,
+`item_id`, and `updated_by`. It never rewrites `updated_at`, whose plain `DD/MM/YYYY` text must
+not be re-entered through the `USER_ENTERED` Sheets API path.
+
 ## OrdersView
 
 Read-only materialised view on PORTAL_SPREADSHEET_ID, 13 columns. Registered at

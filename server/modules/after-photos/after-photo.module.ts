@@ -108,8 +108,8 @@ export class AfterPhotoService extends BaseCrudService<
       throw ApiError.badRequest('Photo and order item belong to different orders')
     }
 
-    // Do not patch updated_at: the After sheet stores audit cells as strings and the Sheets API
-    // request is USER_ENTERED; this update only changes the reassignment fields and actor.
+    // Do not patch updated_at: the After sheet stores it as plain DD/MM/YYYY text, and the Sheets
+    // API request is USER_ENTERED; this update only changes the reassignment fields and actor.
     const stored = await this.photoRepository.update(safeId, {
       orderitem_id: data.orderItemId,
       item_id: item.item_id,
