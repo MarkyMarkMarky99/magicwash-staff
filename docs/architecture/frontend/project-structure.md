@@ -14,10 +14,17 @@ The frontend is a Vue 3 application organized around business features with shar
 
 The architecture separates route-level application concerns, business features, and reusable cross-feature code.
 
+## Technology
+
+- Vue 3 with TypeScript
+- Pinia for feature and application state
+- Vue Router for application routing
+- Vite for development and production builds
+
 ## Structure
 
 src/
-├── app/        # Application-level concerns
+├── app/        # Optional application-level pages and development tools
 ├── features/   # Business features
 ├── shared/     # Cross-feature reusable infrastructure
 ├── router/     # Application routing
@@ -30,7 +37,9 @@ shared/         # Runtime logic shared by frontend and backend
 
 ### Application Layer
 
-Owns application-level behavior such as bootstrap, routing, layouts, and global concerns.
+Application-level behavior is owned by the root entry points: `src/main.js` bootstraps the app,
+`src/App.vue` owns the root shell, and `src/router/index.js` owns routing. Use `src/app/` only for
+application-level pages or development tools when one is needed.
 
 ### Feature Layer
 
@@ -95,6 +104,9 @@ relative paths with explicit `.js` extensions, because `api/tsconfig.json` decla
 Adding an alias means editing both `vite.config.js` (build resolution) and
 `jsconfig.json` (editor and `tests/web/` resolution); changing only one leaves the other
 silently broken.
+
+Prefer an alias over a deep relative import. Use `import type` when an import is used only as a
+TypeScript type.
 
 ## Dependency Direction
 

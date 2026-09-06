@@ -9,7 +9,7 @@ audit_sources:
   - server/shared/repositories/google-auth.ts
   - server/shared/contracts/sheet-contract.ts
   - server/sheets/Customers/Customers.db-contract.ts
-  - api/CLAUDE.md
+  - docs/architecture/backend/operations.md
   - server/modules/invoices/invoice-view-sync-client.ts
 ---
 

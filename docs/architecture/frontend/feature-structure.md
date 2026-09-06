@@ -36,6 +36,19 @@ Page
 Page
 → Components
 
+Components receive props and emit user actions to their owning page or feature container; they do
+not call APIs directly. Pages coordinate loading, navigation, and calls to stores or services.
+
+Stores own reusable feature state and workflows. Services own HTTP/API communication. Do not add a
+second API call in a page when the feature already has a store or service responsible for that
+operation.
+
+The API contract is the frontend business-data boundary. New code consumes contract-derived
+camelCase DTOs directly; do not add frontend DTO copies or re-derive business facts the API owns,
+such as statuses, totals, or merged relations. UI-local form state and boundary payload
+normalization remain valid frontend responsibilities. Legacy service-wrapper types may remain until
+their owning feature is migrated; do not use them as a template for new code.
+
 Feature code may depend on `src/shared/`.
 
 Avoid direct dependencies between unrelated features.

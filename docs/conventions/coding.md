@@ -14,6 +14,13 @@ audit_sources:
 - Keep functions focused on one responsibility.
 - Use explicit, domain-accurate names.
 
+## TypeScript
+
+- Prefer explicit, strong types over `any`.
+- For new code, derive API DTO types from the shared contract schemas rather than copying response
+  types into the frontend. Existing legacy service-wrapper types are migrated only with their
+  owning feature.
+
 ## Validation
 
 - Validate untrusted input at public boundaries.

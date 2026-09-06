@@ -5,7 +5,7 @@ audit_sources:
   - server/sheets/Customers/Customers.db-contract.ts
   - server/sheets/Invoices/Invoices.db-contract.ts
   - server/sheets/PriceList/PriceList.db-contract.ts
-  - api/CLAUDE.md
+  - docs/architecture/backend/operations.md
 ---
 
 # DB Contracts

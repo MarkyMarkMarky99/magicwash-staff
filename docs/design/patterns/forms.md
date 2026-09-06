@@ -48,6 +48,8 @@ Reusable forms must not call APIs or stores directly.
 - Use `computed` for derived state.
 - Do not mutate store/API objects directly.
 - Map existing data into form state with `fillForm()` or `initializeForm()`.
+- Form pages are never cached. Add each form page's component name to the `KeepAlive` `exclude`
+  list in `src/App.vue`; uncached pages use `onMounted`, not `onActivated` or `onDeactivated`.
 
 ## Validation & Payload
 

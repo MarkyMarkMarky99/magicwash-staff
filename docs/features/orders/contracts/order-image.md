@@ -1,6 +1,6 @@
 # Order image — API contract
 
-Module `order-images` (Phase 4). Source: [`docs/plans/orders-backend.md`](../../../plans/orders-backend.md).
+Module `order-images`. Source: the orders API contract and the contract conventions.
 Sheet: `OrderImages` (read + append).
 
 The binary never reaches the API. The frontend uploads to Firebase Storage and this endpoint

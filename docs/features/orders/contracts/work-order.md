@@ -4,7 +4,7 @@ Module `work-orders`. Reads and writes `OrderForm` in the orders workbook
 (`ORDERS_SPREADSHEET_ID`), and joins `Customers` for the display name. Every route answers from the
 same live sheet, so list and detail never disagree.
 
-Source: [`docs/plans/orders-backend.md`](../../../plans/orders-backend.md), phases 2 and 3.
+Source: the orders API contract and the contract conventions.
 The id field is `orderId`, not `workOrderId`: `OrderForm.id` and `OrdersView.order_id` hold the same
 value for the same job (verified live, e.g. `117ac0a1`).
 

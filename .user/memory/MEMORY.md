@@ -1,7 +1,7 @@
 # Project memory
 Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`, read before writing.
 
-## Where we are — 2026-09-06
+## Where we are — 2026-09-07
 
 - **Branches:** `main` (synced) · `feat/document-scanner-v2` (**works, unmerged**) ·
   `feat/document-scanner` (v1, failed, keep only until v2 merges — then delete) ·
@@ -12,6 +12,9 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
   Nothing calls it yet.
 - **Never dispatch `backend-team` or any pipeline unless the user names it.** No default
   code-writing assistant. Pipeline is mason → clerk → sentinel.
+- `main`: documentation was consolidated. Root `CLAUDE.md` is the only index; backend rules live
+  under `docs/architecture/backend/`. Retired `api/CLAUDE.md`, `api/AGENTS.md`, completed plans,
+  handoff documents, and `docs/scripts/` are deleted.
 
 ## Document scanner — WORKS on device, next step is refactor
 
@@ -141,10 +144,8 @@ Reported, not fixed:
 ## Project rules — pointers only
 
 - `CLAUDE.md` — frontend architecture, navigation, testing, working rules.
-- `api/CLAUDE.md` — backend under `api/` and `server/`.
 - `docs/design/patterns/list-pages.md` — required pattern for root collection pages.
 - Search/filters belong to `ListContainer` (`searchable`, `#search-actions`), not the app
   header. A panel in the default slot must also go into `#empty` and `#error`.
 - Service-type Thai labels: `src/shared/utils/service-type-labels.ts` only. `contracts/` is for
   API schemas and enums, never labels.
-- `docs/frontend-layout-nav-refactor.md` — overlay/navigation rationale.

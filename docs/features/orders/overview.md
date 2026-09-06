@@ -108,9 +108,9 @@ Order UI today lives in `src/features/customers/`:
 
 ## Verification
 
-- `npm run build` is `vite build` — esbuild only, **no frontend type-check**. `typecheck:api` covers
-  the backend only.
-- This is why the shared-component rule is strict: a broken prop contract ships green.
+- `npm run typecheck:web` (`vue-tsc` over `src/`) is the frontend gate; `npm run build` is `vite
+  build` — esbuild only, and strips types without checking them. `typecheck:api` covers the backend.
+- `src/shared/components/` stays import-only regardless — see `docs/conventions/components.md`.
 
 ## SHARED GAPS
 

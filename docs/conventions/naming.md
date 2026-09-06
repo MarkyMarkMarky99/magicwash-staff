@@ -61,6 +61,10 @@ Feature route entry files use:
 
 - `routes.ts`
 
+Composables use a `use` prefix. Feature composables use `usePascalCase.ts`, for example
+`useOrderSheetRoute.ts`. Existing root and `src/shared/` composables retain their established
+casing; do not rename an existing file solely to normalize it.
+
 ## Sheet Files
 
 Files representing a physical Sheet preserve the Sheet name.

@@ -1,8 +1,7 @@
 # Order (display lane) — API contract
 
 Module `orders`. Reads `OrdersView` in the **portal workbook** (`PORTAL_SPREADSHEET_ID`), a sheet
-Apps Script materialises on an unmeasured interval. Read-only, browse-oriented, and **unchanged by
-the orders backend plan** — see [`docs/plans/orders-backend.md`](../../../plans/orders-backend.md).
+Apps Script materialises on an unmeasured interval. Read-only and browse-oriented.
 
 For the live staff endpoints (create an order, read it back immediately, add items or photos) see
 [`work-order.md`](./work-order.md), [`order-item.md`](./order-item.md) and
@@ -56,5 +55,5 @@ Notes
 - `src/features/invoices/services/invoice-create-context.service.ts:23`
 
 Eight more files import types from `@contracts/orders/order-api.schema` without calling the
-endpoint. The project has no frontend type-check, so a change to this contract's shape ships green
-and breaks on screen — that is why the plan leaves it alone.
+endpoint. A change to this contract's shape reaches all of them — that is why the plan leaves it
+alone. Run `npm run typecheck:web` if you touch it.

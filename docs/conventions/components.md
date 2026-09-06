@@ -23,6 +23,15 @@ src/
 - Must not contain domain-specific business logic.
 - Must not depend on `src/features/`, feature stores, or feature services.
 - Must not call APIs directly.
+- `src/shared/components/` is import-only. Do not add to or modify it outside a dedicated shared
+  component refactor; create a feature-local component when an existing shared component does not
+  fit.
+- List `src/shared/components/` from disk before building a feature-local replacement. Report the
+  missing shared capability as a shared gap rather than changing the shared component API.
+
+`AppHeader.vue` is a legacy exception: it reads the appointment store for the global pending count.
+Do not add similar feature dependencies to shared components; remove this exception only in a
+dedicated shared-component refactor.
 
 ### Feature Components
 

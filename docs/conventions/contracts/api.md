@@ -4,7 +4,7 @@ audit_sources:
   - contracts/customers/customer-api.schema.ts
   - contracts/shared/module-api-contract.ts
   - contracts/invoices/invoice-api.schema.ts
-  - api/CLAUDE.md
+  - docs/architecture/backend/operations.md
 ---
 
 # API Contracts

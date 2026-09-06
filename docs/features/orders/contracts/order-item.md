@@ -1,6 +1,6 @@
 # Order item — API contract
 
-Module `order-items` (Phase 1). Source: [`docs/plans/orders-backend.md`](../../../plans/orders-backend.md).
+Module `order-items`. Source: the orders API contract and the contract conventions.
 Sheet: `OrderItemForms` (read + append).
 
 ## `GET /api/order-items` — list

@@ -6,7 +6,7 @@ audit_sources:
   - server/modules/customers/customer.module.ts
   - server/modules/invoices/invoice.module.ts
   - server/modules/invoices/invoice.service.ts
-  - api/CLAUDE.md
+  - docs/architecture/backend/operations.md
   - server/modules/appointments/appointment.service.ts
   - server/modules/customer-packages/package-transaction.service.ts
   - server/modules/price-list/price-list.module.ts

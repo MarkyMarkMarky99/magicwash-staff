@@ -22,7 +22,7 @@ is UTC ISO. That is transport metadata, not business data, and is out of scope h
 `tests/server/unit/shared/repositories/sheet.repository.audit.dry-test.ts` asserts that
 `'2026-03-27T04:37:32+07:00'` is refused.
 
-The reason is recorded in `api/CLAUDE.md`: a timestamp written in any other form either stays text
+The reason is recorded in `docs/architecture/backend/operations.md`: a timestamp written in any other form either stays text
 or parses with day and month transposed. 373 cells had to be repaired once already.
 
 ## Write side
@@ -49,7 +49,7 @@ Two traps:
   a single-row spot check settles nothing.
 
 Therefore: **normalize on read**, back to the standard format, using the shared helpers in
-`shared/utils/` (see below). Do this in the module that reads the column. `api/CLAUDE.md`'s "GViz
+`shared/utils/` (see below). Do this in the module that reads the column. The backend operations
 date strings are returned raw; do not parse or format them in the backend" applies to the generic
 reader (`gviz-reader.ts`), which stays dumb — it does not exempt a module from emitting the
 standard format in its DTO.

@@ -60,7 +60,6 @@ This pattern is required for new or materially reworked list pages.
 
 ## References
 
-- `CLAUDE.md` for feature boundaries, shared-component restrictions, and route
-  history rules.
-- `docs/frontend-layout-nav-refactor.md` for the page/navigation taxonomy.
-- `docs/conventions/components.md` for component ownership.
+- `docs/architecture/frontend/feature-structure.md` for feature boundaries.
+- `docs/conventions/navigation.md` for route/overlay history rules.
+- `docs/conventions/components.md` for shared-component restrictions.
