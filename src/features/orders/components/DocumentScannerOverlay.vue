@@ -17,8 +17,6 @@ import type { Quad } from '@/features/orders/utils/quad-projection'
 const DOCUMENT_MAX_DIMENSION = 2400
 const DOCUMENT_JPEG_QUALITY = 0.88
 const WARP_TIMEOUT_MS = 12000
-const PREVIEW_TIMEOUT_MS = 6000
-const PREVIEW_MAX_DIMENSION = 800
 const REFOCUS_CONTINUOUS_DELAY_MS = 500
 const HOLD_RING_RADIUS = 43
 const HOLD_RING_CIRCUMFERENCE = 2 * Math.PI * HOLD_RING_RADIUS
@@ -44,7 +42,6 @@ const outlineCanvasRef = ref<HTMLCanvasElement | null>(null)
 const adjustSurfaceRef = ref<HTMLDivElement | null>(null)
 const adjustCanvasRef = ref<HTMLCanvasElement | null>(null)
 const loupeCanvasRef = ref<HTMLCanvasElement | null>(null)
-const filterPreviewCanvasRef = ref<HTMLCanvasElement | null>(null)
 
 // ---- the one state machine -------------------------------------------------
 // viewfinder -> capturing -> adjusting -> warping -> viewfinder, with two failure
@@ -59,9 +56,6 @@ const errorMessage = ref('')
 const flashActive = ref(false)
 const videoPlaying = ref(false)
 const autoCaptureEnabled = ref(true)
-const filterMode = ref<DocumentFilterMode>('enhance')
-const filterPreviewLoading = ref(false)
-const filterPreviewError = ref('')
 const capturedStill = ref<CapturedStill | null>(null)
 const adjustDisplayBox = ref({ width: 0, height: 0 })
 const videoDimensions = ref({ width: 0, height: 0 })
@@ -110,8 +104,6 @@ let refocusTimer: ReturnType<typeof window.setTimeout> | null = null
 let outlineFrame: number | null = null
 let outlineResizeObserver: ResizeObserver | null = null
 let adjustResizeObserver: ResizeObserver | null = null
-let previewToken = 0
-let previewBaseCanvas: HTMLCanvasElement | null = null
 let outlineDimensions = { width: 0, height: 0, dpr: 1 }
 let disposed = false
 
@@ -425,6 +417,59 @@ function showShutterFlash(): void {
   }, 140)
 }
 
+// The magnifier samples `still.source` (the captured canvas) directly with
+// drawImage, so its source rectangle is in image-pixel space — the same
+// space as cornerEditor.points (see initialQuadForStill, which maps the
+// detected quad into still-pixel coordinates once at capture time). The
+// active corner therefore sits at the exact centre of the sampled square by
+// construction (point.x/y is the centre of the source rect above).
+// box.scale (from contentBox) is display-px-per-image-px for the adjust
+// surface; multiplying by LOUPE_ZOOM gives image-px-to-loupe-px, which is
+// what drawLoupeCropOverlay uses to place the neighbouring corners.
+function drawLoupeCropOverlay(
+  context: CanvasRenderingContext2D,
+  imageToLoupeScale: number,
+  point: Point,
+  activeCorner: number,
+): void {
+  const points = cornerEditor.points.value
+  const center = LOUPE_SIZE / 2
+  const toLoupeSpace = (imagePoint: Point): Point => ({
+    x: center + (imagePoint.x - point.x) * imageToLoupeScale,
+    y: center + (imagePoint.y - point.y) * imageToLoupeScale,
+  })
+  const extendToEdge = (target: Point): Point => {
+    const dx = target.x - center
+    const dy = target.y - center
+    const length = Math.hypot(dx, dy)
+    if (length < 1e-6) return { x: center, y: center }
+    const factor = LOUPE_SIZE / length
+    return { x: center + dx * factor, y: center + dy * factor }
+  }
+
+  const previousCorner = extendToEdge(toLoupeSpace(points[(activeCorner + 3) % 4]))
+  const nextCorner = extendToEdge(toLoupeSpace(points[(activeCorner + 1) % 4]))
+
+  // Same colour/weight as the main quad outline, scaled by LOUPE_ZOOM so the
+  // line reads at the same relative thickness once the content is zoomed in.
+  context.strokeStyle = '#b2df26'
+  context.lineWidth = 2.5 * LOUPE_ZOOM
+  context.beginPath()
+  context.moveTo(previousCorner.x, previousCorner.y)
+  context.lineTo(center, center)
+  context.lineTo(nextCorner.x, nextCorner.y)
+  context.stroke()
+
+  // Centre marker: the exact point the handle resolves to.
+  context.fillStyle = '#9df5df'
+  context.strokeStyle = '#234f49'
+  context.lineWidth = 2
+  context.beginPath()
+  context.arc(center, center, 5, 0, Math.PI * 2)
+  context.fill()
+  context.stroke()
+}
+
 function drawLoupe(): void {
   const still = capturedStill.value
   const loupe = loupeCanvasRef.value
@@ -452,6 +497,7 @@ function drawLoupe(): void {
     point.x - sourceSize / 2, point.y - sourceSize / 2, sourceSize, sourceSize,
     0, 0, LOUPE_SIZE, LOUPE_SIZE,
   )
+  drawLoupeCropOverlay(context, LOUPE_ZOOM * box.scale, point, activeCorner)
   context.restore()
 }
 
@@ -494,73 +540,6 @@ function startAdjustSurface(): void {
 function stopAdjustSurface(): void {
   adjustResizeObserver?.disconnect()
   adjustResizeObserver = null
-  previewToken += 1
-  if (previewBaseCanvas) {
-    previewBaseCanvas.width = 0
-    previewBaseCanvas.height = 0
-    previewBaseCanvas = null
-  }
-}
-
-function renderFilterFromBase(): void {
-  const previewCanvas = filterPreviewCanvasRef.value
-  if (!previewCanvas || !previewBaseCanvas) return
-  previewCanvas.width = previewBaseCanvas.width
-  previewCanvas.height = previewBaseCanvas.height
-  const context = previewCanvas.getContext('2d')
-  if (!context) return
-  context.drawImage(previewBaseCanvas, 0, 0)
-  applyDocumentFilter(previewCanvas, filterMode.value)
-}
-
-// Re-extracts the warped preview at a small, fixed size whenever the corners
-// settle (drag ends) — bounded by PREVIEW_TIMEOUT_MS so a stalled scanic
-// import cannot leave the preview spinning forever. This is a preview-only
-// path: its failure never blocks the confirm action.
-async function updatePreviewBase(): Promise<void> {
-  const still = capturedStill.value
-  if (!still || !showAdjustUi.value) return
-
-  const token = ++previewToken
-  filterPreviewLoading.value = true
-  filterPreviewError.value = ''
-
-  const scale = Math.min(1, PREVIEW_MAX_DIMENSION / Math.max(still.width, still.height))
-  const sourceCanvas = document.createElement('canvas')
-  sourceCanvas.width = Math.max(1, Math.round(still.width * scale))
-  sourceCanvas.height = Math.max(1, Math.round(still.height * scale))
-  const sourceContext = sourceCanvas.getContext('2d')
-  if (!sourceContext) {
-    filterPreviewLoading.value = false
-    return
-  }
-  sourceContext.drawImage(still.source, 0, 0, sourceCanvas.width, sourceCanvas.height)
-  const scaledCorners = cornerEditor.points.value.map((point) => ({ x: point.x * scale, y: point.y * scale })) as Quad
-
-  try {
-    const { extractDocument } = await withTimeout(import('scanic'), PREVIEW_TIMEOUT_MS, 'PreviewImportTimeout')
-    const result = await withTimeout(
-      extractDocument(sourceCanvas, toScanicCorners(scaledCorners), { output: 'canvas' }),
-      PREVIEW_TIMEOUT_MS,
-      'PreviewExtractTimeout',
-    )
-    if (token !== previewToken) return
-    if (!result.success || !(result.output instanceof HTMLCanvasElement)) throw new Error('PreviewExtractFailed')
-
-    if (previewBaseCanvas) {
-      previewBaseCanvas.width = 0
-      previewBaseCanvas.height = 0
-    }
-    previewBaseCanvas = result.output
-    renderFilterFromBase()
-  } catch (error) {
-    if (token !== previewToken) return
-    filterPreviewError.value = errorDetails(error)
-  } finally {
-    sourceCanvas.width = 0
-    sourceCanvas.height = 0
-    if (token === previewToken) filterPreviewLoading.value = false
-  }
 }
 
 // ---- capture: viewfinder -> capturing -> adjusting -------------------------
@@ -626,7 +605,7 @@ function autoCapturePhoto(): void {
 
 // ---- warp: adjusting -> warping -> viewfinder / adjusting ------------------
 
-async function createWarpedDocumentFile(still: CapturedStill, corners: Quad, mode: DocumentFilterMode): Promise<File> {
+async function createWarpedDocumentFile(still: CapturedStill, corners: Quad): Promise<File> {
   const { extractDocument } = await import('scanic')
   const result = await extractDocument(still.source, toScanicCorners(corners), { output: 'canvas' })
   if (!result.success || !(result.output instanceof HTMLCanvasElement)) throw new Error('PerspectiveWarpFailed')
@@ -640,7 +619,9 @@ async function createWarpedDocumentFile(still: CapturedStill, corners: Quad, mod
   outputContext.drawImage(result.output, 0, 0, dimensions.width, dimensions.height)
   result.output.width = 0
   result.output.height = 0
-  applyDocumentFilter(outputCanvas, mode)
+  // The filter picker is gone; the document enhancement stays hard-coded as
+  // the (former) default so output is unchanged for everyone.
+  applyDocumentFilter(outputCanvas, 'enhance')
 
   const blob = await canvasToBlobPromise(outputCanvas, DOCUMENT_JPEG_QUALITY)
   outputCanvas.width = 0
@@ -658,7 +639,7 @@ async function useAdjustedDocument(): Promise<void> {
 
   try {
     const file = await withTimeout(
-      createWarpedDocumentFile(still, cornerEditor.points.value, filterMode.value),
+      createWarpedDocumentFile(still, cornerEditor.points.value),
       WARP_TIMEOUT_MS,
       'WarpTimeout',
     )
@@ -699,7 +680,6 @@ function teardownScanner(): void {
   scannerStage.value = 'viewfinder'
   cameraError.value = ''
   errorMessage.value = ''
-  filterPreviewError.value = ''
 }
 
 function closeScanner(): void {
@@ -716,21 +696,15 @@ watch(showAdjustUi, async (visible) => {
   }
   await nextTick()
   startAdjustSurface()
-  void updatePreviewBase()
 })
 
 watch(cornerEditor.points, () => {
   drawAdjustPreview()
 })
 
-watch(cornerEditor.activeCorner, async (activeCorner) => {
+watch(cornerEditor.activeCorner, async () => {
   await nextTick()
   drawLoupe()
-  if (activeCorner === null && showAdjustUi.value) void updatePreviewBase()
-})
-
-watch(filterMode, () => {
-  if (previewBaseCanvas) renderFilterFromBase()
 })
 
 // This component never navigates and never mirrors route state into a local
@@ -829,42 +803,6 @@ onBeforeUnmount(() => {
           :height="LOUPE_SIZE"
           aria-hidden="true"
         />
-      </div>
-
-      <div class="mx-auto w-full max-w-xl">
-        <div class="flex justify-center gap-2">
-          <button
-            class="rounded-full px-3 py-1.5 font-body text-xs transition-colors"
-            :class="filterMode === 'original' ? 'bg-mint text-primary' : 'bg-white/15 text-white/75'"
-            @click="filterMode = 'original'"
-          >
-            ต้นฉบับ
-          </button>
-          <button
-            class="rounded-full px-3 py-1.5 font-body text-xs transition-colors"
-            :class="filterMode === 'enhance' ? 'bg-lime text-primary' : 'bg-white/15 text-white/75'"
-            @click="filterMode = 'enhance'"
-          >
-            เอกสาร
-          </button>
-          <button
-            class="rounded-full px-3 py-1.5 font-body text-xs transition-colors"
-            :class="filterMode === 'bw' ? 'bg-lime text-primary' : 'bg-white/15 text-white/75'"
-            @click="filterMode = 'bw'"
-          >
-            ขาวดำ
-          </button>
-        </div>
-        <div class="mt-3 flex h-24 items-center justify-center rounded-xl bg-white/5 p-1">
-          <span v-if="filterPreviewLoading" class="font-body text-xs text-white/60">กำลังสร้างตัวอย่าง…</span>
-          <span v-else-if="filterPreviewError" class="font-body text-xs text-white/60">ดูตัวอย่างไม่ได้ · ยังกดใช้รูปนี้ได้ตามปกติ</span>
-          <canvas
-            ref="filterPreviewCanvasRef"
-            class="max-h-full max-w-full"
-            :class="{ hidden: filterPreviewLoading || filterPreviewError }"
-            aria-label="ตัวอย่างเอกสาร"
-          />
-        </div>
       </div>
 
       <p v-if="errorMessage" class="mb-3 mt-3 text-center font-body text-sm text-mint">{{ errorMessage }}</p>
