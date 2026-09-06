@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch, watchEffect } from 'vue'
-import { useDocumentScannerDebug } from '@/features/orders/composables/use-document-scanner-debug'
 import { useDocumentDetect } from '@/features/orders/composables/use-document-detect'
 import {
   initialQuadForStill,
@@ -67,21 +66,12 @@ const capturedStill = ref<CapturedStill | null>(null)
 const adjustDisplayBox = ref({ width: 0, height: 0 })
 const videoDimensions = ref({ width: 0, height: 0 })
 
-// debug-readout state (see use-document-scanner-debug.ts for the toggle)
-const liveResolution = ref('—')
-const lastCaptureDimensions = ref('—')
-const warpedOutputDimensions = ref('—')
-const focusState = ref('not configured')
-const focusCapabilities = ref('unknown')
-const lastErrorName = ref('')
-
-const showDebug = useDocumentScannerDebug()
 const isWarping = computed(() => scannerStage.value === 'warping')
 const showAdjustUi = computed(() => scannerStage.value === 'adjusting' || scannerStage.value === 'warping')
 const canCapture = computed(() => props.open && scannerStage.value === 'viewfinder')
 const detectionActive = computed(() => props.open && scannerStage.value === 'viewfinder' && videoPlaying.value)
 
-const { quad, lastDetectMs, detectError, scanicLoadState, detectionStatus } = useDocumentDetect(
+const { quad } = useDocumentDetect(
   () => videoRef.value,
   detectionActive,
 )
@@ -106,22 +96,11 @@ const loupeStyle = computed(() => {
 
 const {
   progress: holdProgress,
-  lastMovementRatio,
   reset: resetHoldStill,
 } = useHoldStillCapture(quad, detectionActive, autoCaptureEnabled, videoDimensions, autoCapturePhoto)
 
 const holdRingDashoffset = computed(() => HOLD_RING_CIRCUMFERENCE * (1 - holdProgress.value))
 const holdRingTransition = computed(() => (holdProgress.value === 0 ? 'none' : 'stroke-dashoffset 100ms linear'))
-
-const debugText = computed(() => [
-  `stage ${scannerStage.value} · open ${props.open}`,
-  `live ${liveResolution.value} · last capture ${lastCaptureDimensions.value} · warped ${warpedOutputDimensions.value}`,
-  `${quad.value ? 'quad found' : 'no quad'} · detect ${lastDetectMs.value === null ? '—' : `${lastDetectMs.value} ms`} · scanic ${scanicLoadState.value}${detectError.value ? ` · ${detectError.value}` : ''}`,
-  detectionStatus.value,
-  `hold ${holdProgress.value.toFixed(2)} · move ${lastMovementRatio.value.toFixed(4)}`,
-  `${focusState.value} · ${focusCapabilities.value}`,
-  `filter ${filterMode.value}${lastErrorName.value ? ` · error ${lastErrorName.value}` : ''}`,
-].join('\n'))
 
 // ---- non-reactive bookkeeping -----------------------------------------
 
@@ -189,18 +168,14 @@ function supportedModes(capabilities: MediaTrackCapabilities, name: 'focusMode' 
 async function applyAdvancedConstraints(track: MediaStreamTrack, constraints: Record<string, unknown>, label: string): Promise<boolean> {
   try {
     await track.applyConstraints({ advanced: [constraints] } as MediaTrackConstraints)
-    focusState.value = label
     return true
   } catch (error) {
-    focusState.value = `${label} failed · ${errorDetails(error)}`
     return false
   }
 }
 
 async function configureCameraTrack(track: MediaStreamTrack): Promise<void> {
   if (typeof track.getCapabilities !== 'function') {
-    focusState.value = 'capabilities unavailable'
-    focusCapabilities.value = 'unavailable'
     return
   }
 
@@ -208,27 +183,18 @@ async function configureCameraTrack(track: MediaStreamTrack): Promise<void> {
   try {
     capabilities = track.getCapabilities()
   } catch (error) {
-    focusState.value = `capabilities failed · ${errorDetails(error)}`
-    focusCapabilities.value = 'read failed'
     return
   }
 
   const focusModes = supportedModes(capabilities, 'focusMode')
   const exposureModes = supportedModes(capabilities, 'exposureMode')
   const whiteBalanceModes = supportedModes(capabilities, 'whiteBalanceMode')
-  focusCapabilities.value = [
-    `focus ${focusModes.join('/') || 'none'}`,
-    `exposure ${exposureModes.join('/') || 'none'}`,
-    `wb ${whiteBalanceModes.join('/') || 'none'}`,
-  ].join(' · ')
-
   const constraints: Record<string, unknown> = {}
   if (focusModes.includes('continuous')) constraints.focusMode = 'continuous'
   if (exposureModes.includes('continuous')) constraints.exposureMode = 'continuous'
   if (whiteBalanceModes.includes('continuous')) constraints.whiteBalanceMode = 'continuous'
 
   if (Object.keys(constraints).length === 0) {
-    focusState.value = 'autofocus unsupported'
     return
   }
   await applyAdvancedConstraints(track, constraints, 'focus continuous')
@@ -242,7 +208,6 @@ async function refocusCamera(): Promise<void> {
   try {
     focusModes = supportedModes(track.getCapabilities(), 'focusMode')
   } catch (error) {
-    focusState.value = `refocus unavailable · ${errorDetails(error)}`
     return
   }
 
@@ -268,11 +233,9 @@ function updateVideoDimensions(): void {
   const video = videoRef.value
   if (!video?.videoWidth || !video.videoHeight) {
     videoDimensions.value = { width: 0, height: 0 }
-    liveResolution.value = '—'
     return
   }
   videoDimensions.value = { width: video.videoWidth, height: video.videoHeight }
-  liveResolution.value = `${video.videoWidth} × ${video.videoHeight}`
 }
 
 function resizeOutline(): void {
@@ -371,7 +334,6 @@ function stopCameraStream(): void {
   isStarting.value = false
   flashActive.value = false
   videoDimensions.value = { width: 0, height: 0 }
-  liveResolution.value = '—'
 }
 
 async function startCamera(): Promise<void> {
@@ -637,10 +599,7 @@ function capturePhoto(): void {
 
     releaseCapturedStill()
     capturedStill.value = { source: canvas, width: stillWidth, height: stillHeight, initialQuad: initial.quad }
-    lastCaptureDimensions.value = `${stillWidth} × ${stillHeight}`
-    warpedOutputDimensions.value = '—'
     errorMessage.value = ''
-    lastErrorName.value = ''
 
     // capturing -> adjusting: the still is retained, so the camera and the
     // detection loop (which stops automatically as detectionActive becomes
@@ -652,7 +611,6 @@ function capturePhoto(): void {
     // this path (stopCameraStream() above only runs after success), so it is
     // still live; re-enable the shutter, reset hold-still progress, and show
     // the reason.
-    lastErrorName.value = errorName(error)
     releaseCapturedStill()
     resetHoldStill()
     scannerStage.value = 'viewfinder'
@@ -685,7 +643,6 @@ async function createWarpedDocumentFile(still: CapturedStill, corners: Quad, mod
   applyDocumentFilter(outputCanvas, mode)
 
   const blob = await canvasToBlobPromise(outputCanvas, DOCUMENT_JPEG_QUALITY)
-  warpedOutputDimensions.value = `${dimensions.width} × ${dimensions.height}`
   outputCanvas.width = 0
   outputCanvas.height = 0
   return new File([blob], `document_${Date.now()}.jpg`, { type: 'image/jpeg' })
@@ -713,7 +670,6 @@ async function useAdjustedDocument(): Promise<void> {
   } catch (error) {
     // warping -> adjusting (any failure): keep the still and the corners —
     // losing a document to a warp error is the worst outcome available.
-    lastErrorName.value = errorName(error)
     errorMessage.value = `ปรับเอกสารไม่สำเร็จ · ${errorDetails(error)}`
     scannerStage.value = 'adjusting'
   }
@@ -821,7 +777,6 @@ onBeforeUnmount(() => {
       <div class="flex items-start justify-between gap-3">
         <div class="min-w-0 flex-1">
           <p class="font-label text-[10px] font-bold uppercase tracking-[0.16em] text-mint">ปรับมุมเอกสาร</p>
-          <p v-if="showDebug" class="mt-1 whitespace-pre-wrap rounded-md bg-black/85 px-2 py-1.5 font-mono text-[10px] leading-4 text-white/90 shadow-lg">{{ debugText }}</p>
         </div>
         <button
           class="h-11 w-11 shrink-0 rounded-full bg-white/15 flex items-center justify-center active:opacity-80"
@@ -933,7 +888,6 @@ onBeforeUnmount(() => {
 
     <!-- viewfinder stage top bar -->
     <div v-if="!showAdjustUi" class="absolute inset-x-0 top-0 z-20 flex items-start justify-end gap-3 bg-gradient-to-b from-black/80 to-transparent px-4 pb-10 pt-[max(1rem,env(safe-area-inset-top))]">
-      <p v-if="showDebug" class="mr-auto min-w-0 flex-1 whitespace-pre-wrap rounded-md bg-black/85 px-2 py-1.5 font-mono text-[10px] leading-4 text-white/90 shadow-lg">{{ debugText }}</p>
       <div class="flex shrink-0 items-center gap-2">
         <div class="flex rounded-full bg-white/15 p-0.5 font-body text-[10px]">
           <button
@@ -965,8 +919,7 @@ onBeforeUnmount(() => {
 
     <p
       v-if="!showAdjustUi && errorMessage"
-      class="absolute left-4 right-4 z-30 rounded-lg border border-amber-300/50 bg-black/90 px-3 py-2 font-body text-xs leading-5 text-white shadow-xl"
-      :class="showDebug ? 'top-44' : 'top-28'"
+      class="absolute left-4 right-4 top-28 z-30 rounded-lg border border-amber-300/50 bg-black/90 px-3 py-2 font-body text-xs leading-5 text-white shadow-xl"
     >
       {{ errorMessage }}
     </p>
