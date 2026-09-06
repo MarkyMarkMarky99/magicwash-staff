@@ -15,6 +15,8 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 - `main`: documentation was consolidated. Root `CLAUDE.md` is the only index; backend rules live
   under `docs/architecture/backend/`. Retired `api/CLAUDE.md`, `api/AGENTS.md`, completed plans,
   handoff documents, and `docs/scripts/` are deleted and pushed in `e6058a6`.
+- Uncommitted: `.claude/skills/explore/SKILL.md` adds a read-only Claude Code discovery workflow
+  that dispatches independent Codex Explorers in parallel and synthesizes cited findings.
 
 ## Document scanner — WORKS on device, next step is refactor
 
