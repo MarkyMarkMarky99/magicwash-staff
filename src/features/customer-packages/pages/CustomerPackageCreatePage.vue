@@ -20,6 +20,7 @@ import {
 } from '@contracts/customer-packages/customer-package-api.schema'
 import { createCustomerPackage } from '../services/customer-package.service'
 import { canResumePackagePurchase, useCustomerPackagePurchaseStore } from '../stores/customer-package-purchase.store'
+import { currentActor } from '@/shared/config/actor'
 
 defineOptions({ name: 'CustomerPackageCreatePage' })
 
@@ -48,8 +49,6 @@ const expiryDate = ref(addSheetDateDays(startDate.value, 30))
 const serviceDay = ref<z.infer<typeof customerPackageServiceDaySchema> | ''>('')
 const timeSlot = ref<z.infer<typeof customerPackageTimeSlotSchema> | ''>('')
 const notes = ref('')
-// Temporary actor until authentication supplies staff metadata.
-const createdBy = 'admin'
 const submitting = ref(false)
 const result = ref<CreateCustomerPackageResponse | null>(null)
 const formError = ref<string | null>(null)
@@ -90,7 +89,7 @@ function createPayload() {
     serviceDay: serviceDay.value || null,
     timeSlot: timeSlot.value || null,
     notes: notes.value.trim() || null,
-    createdBy,
+    createdBy: currentActor(),
   }
 }
 

@@ -8,6 +8,7 @@ import FormSwitch from '@/shared/components/FormSwitch.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import type { PackageDto } from '../services/package.service'
 import { usePackageStore } from '../stores/package.store'
+import { currentActor } from '@/shared/config/actor'
 
 defineOptions({ name: 'PackageFormPage' })
 const props = defineProps<{ packageCode?: string }>()
@@ -17,11 +18,10 @@ const { items, error: storeError } = storeToRefs(packageStore)
 const isEdit = computed(() => Boolean(props.packageCode))
 const form = reactive({ packageCode: '', name: '', eligibleService: '', includedCredit: '', price: '', notes: '' })
 const isActive = ref(true)
-const actorInput = ref('')
 const formError = ref<string | null>(null)
 const initializing = ref(true)
 const submitting = ref(false)
-const valid = computed(() => (isEdit.value || form.packageCode.trim() !== '') && form.name.trim() !== '' && form.eligibleService.trim() !== '' && form.includedCredit !== '' && Number.isInteger(Number(form.includedCredit)) && Number(form.includedCredit) >= 0 && form.price !== '' && Number.isFinite(Number(form.price)) && Number(form.price) >= 0 && actorInput.value.trim() !== '')
+const valid = computed(() => (isEdit.value || form.packageCode.trim() !== '') && form.name.trim() !== '' && form.eligibleService.trim() !== '' && form.includedCredit !== '' && Number.isInteger(Number(form.includedCredit)) && Number(form.includedCredit) >= 0 && form.price !== '' && Number.isFinite(Number(form.price)) && Number(form.price) >= 0)
 
 function fillForm(source: PackageDto) {
   form.packageCode = source.packageCode
@@ -42,8 +42,8 @@ async function submitForm() {
   formError.value = null
   submitting.value = true
   try {
-    if (isEdit.value && props.packageCode) await packageStore.update(props.packageCode, { ...businessFields(), active: isActive.value, updatedBy: actorInput.value.trim() })
-    else await packageStore.create({ packageCode: form.packageCode.trim(), ...businessFields(), createdBy: actorInput.value.trim() })
+    if (isEdit.value && props.packageCode) await packageStore.update(props.packageCode, { ...businessFields(), active: isActive.value, updatedBy: currentActor() })
+    else await packageStore.create({ packageCode: form.packageCode.trim(), ...businessFields(), createdBy: currentActor() })
     await router.push('/packages')
   } catch (reason) {
     formError.value = reason instanceof Error ? reason.message : 'Unable to save package'
@@ -71,7 +71,6 @@ onMounted(async () => {
       <FormInput id="package-price" v-model="form.price" type="number" label="ราคา *" min="0" />
       <FormTextarea id="package-notes" v-model="form.notes" label="หมายเหตุ" />
       <FormSwitch v-if="isEdit" v-model="isActive" label="เปิดขายแพ็กเกจนี้" description="ปิดสวิตช์เพื่อเลิกขาย — ไม่มีการลบข้อมูล" />
-      <FormInput id="package-actor" v-model="actorInput" label="ผู้บันทึก *" />
       <p v-if="formError" class="rounded-xl bg-error-container/30 p-3 font-body text-sm text-on-error-container">{{ formError }}</p>
     </div>
   </FormOverlay>

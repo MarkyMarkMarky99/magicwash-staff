@@ -3,7 +3,6 @@ import { computed, ref, watch } from 'vue'
 import type { z } from 'zod'
 import type { customerPackageListResponseSchema } from '@contracts/customer-packages/customer-package-api.schema'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
-import FormInput from '@/shared/components/FormInput.vue'
 import FormLabel from '@/shared/components/FormLabel.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 
@@ -13,7 +12,6 @@ const props = defineProps<{
   open: boolean
   orderId: string
   packages: CustomerPackage[]
-  defaultStaff: string
   loading: boolean
   error: string | null
   submitting: boolean
@@ -21,23 +19,20 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{
   close: []
-  submit: [value: { customerPackageId: string; creditsUsed: number; notes: string; createdBy: string }]
+  submit: [value: { customerPackageId: string; creditsUsed: number; notes: string }]
 }>()
 const packageId = ref('')
 const creditsUsed = ref('')
 const notes = ref('')
-const createdBy = ref('')
 const submitDisabled = computed(() => props.loading || props.retryBlocked
   || !props.packages.some((item) => item.customerPackageId === packageId.value)
-  || !Number.isFinite(Number(creditsUsed.value)) || Number(creditsUsed.value) <= 0
-  || !createdBy.value.trim())
+  || !Number.isFinite(Number(creditsUsed.value)) || Number(creditsUsed.value) <= 0)
 
 watch(() => props.open, (open) => {
   if (!open) return
   packageId.value = props.packages.length === 1 ? props.packages[0].customerPackageId : ''
   creditsUsed.value = ''
   notes.value = ''
-  createdBy.value = props.defaultStaff
 }, { immediate: true })
 
 watch(() => props.packages, (items) => {
@@ -49,7 +44,7 @@ function submit() {
   if (submitDisabled.value || props.submitting) return
   emit('submit', {
     customerPackageId: packageId.value, creditsUsed: Number(creditsUsed.value),
-    notes: notes.value, createdBy: createdBy.value,
+    notes: notes.value,
   })
 }
 </script>
@@ -85,7 +80,6 @@ function submit() {
         <p class="mt-2 font-body text-xs text-on-surface-variant">Enter a positive amount to deduct from the package.</p>
       </section>
       <FormTextarea id="order-usage-notes" v-model="notes" label="Notes (optional)" />
-      <FormInput id="order-usage-staff" v-model="createdBy" label="Staff identity (required)" placeholder="Name or staff ID" autocomplete="name" />
       <p v-if="error" role="alert" class="rounded-xl bg-error-container px-4 py-3 font-body text-sm text-on-error-container">{{ error }}</p>
     </fieldset>
   </FormOverlay>

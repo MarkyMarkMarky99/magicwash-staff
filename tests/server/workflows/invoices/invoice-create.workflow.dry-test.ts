@@ -104,7 +104,7 @@ async function main(): Promise<void> {
   const invoiceCommand = persistedInvoiceCommand as Record<string, unknown>
   assert.equal(invoiceCommand.status, 'ISSUED')
   assert.equal(invoiceCommand.billing_type, 'ORDER')
-  assert.equal(invoiceCommand.created_by, 'staff')
+  assert.equal(invoiceCommand.created_by, 'admin')
   assert.equal(
     invoiceCommand.customer,
     JSON.stringify({ customer_code: 'CUS-0001', customer_name: 'Somchai' }),

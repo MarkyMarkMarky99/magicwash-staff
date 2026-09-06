@@ -16,7 +16,6 @@ const props = withDefaults(defineProps<{
   referenceSource: string
   referenceId: string
   notes: string
-  createdBy: string
   validationHint?: string | null
   isValidationInvalid?: boolean
   result?: string | null
@@ -40,7 +39,6 @@ const emit = defineEmits<{
   'update:referenceSource': [value: string]
   'update:referenceId': [value: string]
   'update:notes': [value: string]
-  'update:createdBy': [value: string]
 }>()
 
 function movementLabel(movementType: TransactionType): string {
@@ -53,7 +51,7 @@ function movementLabel(movementType: TransactionType): string {
     :open="open"
     eyebrow="Package activity"
     title="Add transaction"
-    helper-text="Record a credit movement with a clear staff trail."
+    helper-text="Record a credit movement against this package."
     submit-label="Save transaction"
     :is-submitting="isSubmitting"
     :is-submit-disabled="isSubmitDisabled"
@@ -98,10 +96,6 @@ function movementLabel(movementType: TransactionType): string {
         <FormInput id="customer-package-reference-source" :model-value="referenceSource" label="Reference source" placeholder="For example, service order" @update:model-value="emit('update:referenceSource', $event)" />
         <FormInput id="customer-package-reference-id" :model-value="referenceId" label="Reference ID" placeholder="Order or document number" @update:model-value="emit('update:referenceId', $event)" />
         <FormTextarea id="customer-package-transaction-notes" :model-value="notes" label="Notes" placeholder="Add context for this adjustment" @update:model-value="emit('update:notes', $event)" />
-      </section>
-
-      <section class="border-t border-outline-variant/25 pt-5">
-        <FormInput id="customer-package-transaction-created-by" :model-value="createdBy" label="Staff identity" placeholder="Name or staff ID" autocomplete="name" @update:model-value="emit('update:createdBy', $event)" />
       </section>
 
       <p v-if="result" class="rounded-xl px-4 py-3 font-body text-sm leading-5" :class="resultTone === 'error' ? 'bg-error-container text-on-error-container' : 'bg-secondary-container text-on-secondary-container'" role="status" aria-live="polite">{{ result }}</p>

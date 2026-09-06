@@ -149,7 +149,7 @@ async function withRoutedFetch<T>(
       assert.equal(call.body?.valueInputOption, 'USER_ENTERED')
       assert.deepEqual(call.body?.data, [
         { range: 'OrderForm!S2:S2', values: [['INV-0001']] },
-        { range: 'OrderForm!R2:R2', values: [['staff']] },
+        { range: 'OrderForm!R2:R2', values: [['admin']] },
         { range: 'OrderForm!Q2:Q2', values: [['2026-04-01 07:34:56']] },
       ])
       return response({ json: { spreadsheetId: 'orders-spreadsheet-id', responses: [{}, {}, {}] } })
@@ -306,7 +306,7 @@ async function main(): Promise<void> {
       'CUS-0001',
       JSON.stringify(expectedCustomer),
       '[]',
-      'staff',
+      'admin',
       '2026-04-01 07:34:56',
       '',
       '',
@@ -330,7 +330,7 @@ async function main(): Promise<void> {
     assert.equal(orderFormCall.body?.valueInputOption, 'USER_ENTERED')
     assert.deepEqual(orderFormCall.body?.data, [
       { range: 'OrderForm!S2:S2', values: [['INV-0001']] },
-      { range: 'OrderForm!R2:R2', values: [['staff']] },
+      { range: 'OrderForm!R2:R2', values: [['admin']] },
       { range: 'OrderForm!Q2:Q2', values: [['2026-04-01 07:34:56']] },
     ])
   })

@@ -102,7 +102,7 @@ async function main(): Promise<void> {
     assert.deepEqual(fakes.reads, [{ select: ['invoice_number', 'status'] }])
     assert.deepEqual(fakes.writes, [{
       invoiceNumber: 'INV-0001',
-      patch: { status: 'CANCELLED', updated_by: 'staff' },
+      patch: { status: 'CANCELLED', updated_by: 'admin' },
     }])
     assert.deepEqual(fakes.syncs, ['INV-0001'])
   }

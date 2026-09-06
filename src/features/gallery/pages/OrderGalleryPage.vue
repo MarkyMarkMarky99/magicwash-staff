@@ -5,6 +5,7 @@ import { usePhotoUpload } from '@/composables/usePhotoUpload'
 import { getPhotos } from '@/api/photos'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import CameraOverlay from '@/shared/components/CameraOverlay.vue'
+import { currentActor } from '@/shared/config/actor'
 
 function parseKey(key) {
   const parts = String(key ?? '').split('-')
@@ -26,9 +27,10 @@ const itemId = computed(() => {
   const normalizedItemId = typeof value === 'string' ? value.trim() : ''
   return normalizedItemId && normalizedItemId !== 'null' ? normalizedItemId : null
 })
-const createdBy = computed(() => (
-  typeof route.query.by === 'string' ? route.query.by : ''
-))
+const createdBy = computed(() => {
+  const raw = route.query.by
+  return currentActor(Array.isArray(raw) ? raw[0] : raw)
+})
 const photoTabs = [
   { key: 'BEF', label: 'รูปก่อนซัก' },
   { key: 'AFT', label: 'รูปหลังซัก' },

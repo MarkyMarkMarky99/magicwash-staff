@@ -94,7 +94,7 @@ function assertStatusPatch(
   updateCalls: Array<{ invoiceNumber: string; data: Record<string, unknown> }>,
   status: 'CANCELLED' | 'VOID',
 ): void {
-  assert.deepEqual(updateCalls, [{ invoiceNumber: 'INV-0001', data: { status, updated_by: 'staff' } }])
+  assert.deepEqual(updateCalls, [{ invoiceNumber: 'INV-0001', data: { status, updated_by: 'admin' } }])
   assert.equal('deleted_at' in updateCalls[0]!.data, false)
   assert.equal('deleted_by' in updateCalls[0]!.data, false)
 }

@@ -9,6 +9,7 @@ import FormOptionGrid from '@/shared/components/FormOptionGrid.vue'
 import FormPicker from '@/shared/components/FormPicker.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
+import { currentActor } from '@/shared/config/actor'
 import { useOrderStore } from '@/features/orders/stores/order.store'
 
 defineOptions({ name: 'OrderCreatePage' })
@@ -52,7 +53,7 @@ async function submit() {
       quantity: form.quantity === '' ? null : Number(form.quantity),
       note: form.note.trim() || null,
       orderName: form.orderName.trim() || null,
-      createdBy: 'admin',
+      createdBy: currentActor(),
       items: [],
     }))
     await router.replace({ name: 'order-detail', params: { orderId: created.orderId } })

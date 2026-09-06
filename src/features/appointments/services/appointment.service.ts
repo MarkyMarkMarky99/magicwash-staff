@@ -12,6 +12,7 @@ import {
 import { apiErrorResponseSchema } from '@contracts/shared/api.schema'
 import { apiGet, apiGetList, ApiError, type ListResult } from '@/shared/api/api-client'
 import { normalizeSheetDate } from '@/shared/utils/sheet-date'
+import { currentActor } from '@/shared/config/actor'
 
 const APPOINTMENTS_ENDPOINT = '/api/appointments'
 
@@ -49,9 +50,6 @@ export function appointmentWriteErrorMessage(reason: unknown, fallback: string):
   return reason instanceof Error && reason.message ? reason.message : fallback
 }
 
-/** Actor supplied at the appointment write boundary. */
-export const LEGACY_APPOINTMENT_ACTOR = 'admin'
-
 /** List appointments through the backend; filters are validated before the request. */
 export function listAppointments(query: AppointmentListQuery = {}): Promise<ListResult<AppointmentListDto>> {
   return apiGetList<AppointmentListDto>(APPOINTMENTS_ENDPOINT, {
@@ -79,7 +77,7 @@ export function createAppointment(
   data: Omit<AppointmentCreateRequest, 'createdBy'>,
 ): Promise<AppointmentCreateDto> {
   return appointmentWrite<AppointmentCreateDto>(APPOINTMENTS_ENDPOINT, 'POST', {
-    data: { ...data, createdBy: LEGACY_APPOINTMENT_ACTOR },
+    data: { ...data, createdBy: currentActor() },
     requestSchema: createAppointmentRequestSchema,
   })
 }
@@ -93,7 +91,7 @@ export function updateAppointment(
     `${APPOINTMENTS_ENDPOINT}/${encodeURIComponent(appointmentId)}`,
     'PATCH',
     {
-      data: { ...data, updatedBy: LEGACY_APPOINTMENT_ACTOR },
+      data: { ...data, updatedBy: currentActor() },
       requestSchema: updateAppointmentRequestSchema,
     },
   )

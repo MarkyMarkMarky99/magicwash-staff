@@ -3,8 +3,7 @@ import { ref } from 'vue'
 import { createOrderImage, listOrderImages, type OrderImageDto } from '@/features/orders/services/order-image.service'
 import { uploadOrderImage } from '@/features/orders/services/order-image-storage.service'
 import type { OrderImageType } from '@/features/orders/order-image-labels'
-
-const ORDER_IMAGE_CREATED_BY = 'admin'
+import { currentActor } from '@/shared/config/actor'
 
 function errorMessage(reason: unknown, fallback: string): string {
   return reason instanceof Error && reason.message ? reason.message : fallback
@@ -47,7 +46,7 @@ export const useOrderImageStore = defineStore('order-images', () => {
     uploadError.value = null
     try {
       const imagePath = await uploadOrderImage(input.orderId, input.file)
-      const created = await createOrderImage({ orderId: input.orderId, customerId: null, deliveryId: null, imageType: input.imageType, imagePath, notes: null, quantity, createdBy: ORDER_IMAGE_CREATED_BY })
+      const created = await createOrderImage({ orderId: input.orderId, customerId: null, deliveryId: null, imageType: input.imageType, imagePath, notes: null, quantity, createdBy: currentActor() })
       if (imagesOrderId.value === input.orderId) images.value = [...images.value, created]
     } catch (reason) {
       uploadError.value = errorMessage(reason, 'อัปโหลดรูปภาพไม่สำเร็จ')

@@ -9,6 +9,7 @@ import { customerPackageDetailResponseSchema, packageCreditMovementTypeSchema } 
 import { appendPackageTransaction, getCustomerPackageDetail } from '../services/customer-package.service'
 import CustomerPackageTransactionForm from '../components/CustomerPackageTransactionForm.vue'
 import { useCustomerPackageTransactionRoute } from '../composables/useCustomerPackageTransactionRoute'
+import { currentActor } from '@/shared/config/actor'
 
 type CustomerPackageDetail = z.infer<typeof customerPackageDetailResponseSchema>
 type TransactionType = z.infer<typeof packageCreditMovementTypeSchema>
@@ -26,7 +27,6 @@ const creditChange = ref('')
 const referenceSource = ref('')
 const referenceId = ref('')
 const transactionNotes = ref('')
-const createdBy = ref(readActor())
 let latestRequest = 0
 const { isOpen: transactionFormOpen, open: openTransactionRoute, close: closeTransactionRoute } = useCustomerPackageTransactionRoute()
 
@@ -50,11 +50,14 @@ const signInvalid = computed(() => {
     || (transactionType.value === 'USAGE' && value >= 0)
     || (transactionType.value === 'REFUND' && value <= 0)
 })
-const submitDisabled = computed(() => signInvalid.value || !createdBy.value.trim() || transactionRetryBlocked.value)
+const submitDisabled = computed(() => signInvalid.value || transactionRetryBlocked.value)
 
+// Read at submit time, never once at setup: this page is KeepAlive-cached, so a value
+// captured during the first visit would be reused for every later customer. A computed
+// would not help either -- window.location.hash is not reactive.
 function readActor(): string {
   const actor = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('by')
-  return actor?.trim() ?? ''
+  return currentActor(actor)
 }
 async function loadDetail() {
   const requestId = ++latestRequest
@@ -80,7 +83,7 @@ async function submitTransaction() {
   const result = await appendPackageTransaction({
     customerPackageId: customerPackage.value.customerPackageId, type: transactionType.value, creditChange: Number(creditChange.value),
     referenceSource: referenceSource.value.trim() || null, referenceId: referenceId.value.trim() || null,
-    notes: transactionNotes.value.trim() || null, createdBy: createdBy.value.trim(),
+    notes: transactionNotes.value.trim() || null, createdBy: readActor(),
   })
   submittingTransaction.value = false
   if (result.kind === 'created') {
@@ -135,7 +138,6 @@ watch(() => props.customerPackageId, () => { void loadDetail() }, { immediate: t
         :reference-source="referenceSource"
         :reference-id="referenceId"
         :notes="transactionNotes"
-        :created-by="createdBy"
         :validation-hint="signHint"
         :is-validation-invalid="signInvalid"
         :result="transactionResult"
@@ -149,7 +151,6 @@ watch(() => props.customerPackageId, () => { void loadDetail() }, { immediate: t
         @update:reference-source="referenceSource = $event"
         @update:reference-id="referenceId = $event"
         @update:notes="transactionNotes = $event"
-        @update:created-by="createdBy = $event"
       />
     </main>
   </AppLayout>

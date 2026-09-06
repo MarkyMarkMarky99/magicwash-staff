@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import CustomerCreateForm from '../components/CustomerCreateForm.vue'
 import type { CustomerCreateFormData } from '../components/CustomerCreateForm.vue'
+import { currentActor } from '@/shared/config/actor'
 
 defineOptions({ name: 'CustomerCreatePage' })
 
@@ -19,6 +20,7 @@ const customer = reactive<CustomerCreateFormData>({
   lineId: '',
   whatsapp: '',
   email: '',
+  updatedBy: currentActor(),
 })
 
 function returnToCustomerList() {

@@ -31,7 +31,7 @@ assert.match(createPage, /createCustomerPackage\(createPayload\(\)\)/, 'submissi
 assert.doesNotMatch(createPage, /createCustomerPackage\(\{/, 'submission must not inline the request payload')
 assert.match(
   createPage,
-  /function createPayload\(\) \{\s+return \{\s+customerId: customerId\.value\.trim\(\),\s+packageCode: packageCode\.value\.trim\(\),\s+invoiceId: invoiceId\.value\.trim\(\) \|\| null,\s+startDate: startDate\.value \|\| null,\s+expiryDate: expiryDate\.value \|\| null,\s+serviceDay: serviceDay\.value \|\| null,\s+timeSlot: timeSlot\.value \|\| null,\s+notes: notes\.value\.trim\(\) \|\| null,\s+createdBy: createdBy\.value\.trim\(\),\s+\}/,
+  /function createPayload\(\) \{\s+return \{\s+customerId: customerId\.value\.trim\(\),\s+packageCode: packageCode\.value\.trim\(\),\s+invoiceId: invoiceId\.value\.trim\(\) \|\| null,\s+startDate: startDate\.value \|\| null,\s+expiryDate: expiryDate\.value \|\| null,\s+serviceDay: serviceDay\.value \|\| null,\s+timeSlot: timeSlot\.value \|\| null,\s+notes: notes\.value\.trim\(\) \|\| null,\s+createdBy: currentActor\(\),\s+\}/,
   'createPayload must retain the ordered request keys and normalization expressions',
 )
 

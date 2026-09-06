@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import FormInput from '@/shared/components/FormInput.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
+import { currentActor } from '@/shared/config/actor'
 
 export type CustomerCreateFormData = {
   customerName: string
@@ -12,6 +13,7 @@ export type CustomerCreateFormData = {
   lineId: string
   whatsapp: string
   email: string
+  updatedBy: string
 }
 
 const props = defineProps<{
@@ -23,7 +25,7 @@ const emit = defineEmits<{
 }>()
 
 function updateField(field: keyof CustomerCreateFormData, value: string) {
-  emit('update:modelValue', { ...props.modelValue, [field]: value })
+  emit('update:modelValue', { ...props.modelValue, [field]: value, updatedBy: currentActor() })
 }
 </script>
 

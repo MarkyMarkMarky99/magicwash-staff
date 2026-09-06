@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { z } from 'zod'
+import { FALLBACK_ACTOR } from '../../shared/config/actor.js'
 import {
   invoiceApiContract,
   invoiceCreateSchema,
@@ -42,9 +43,6 @@ import { parseOrThrow } from '../../shared/http/validate.js'
 import { ApiError } from '../../shared/http/api-error.js'
 import type { ApiQueryParams } from '../../shared/http/api-handler.js'
 import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
-
-/** Fallback actor recorded in `created_by` when no staff identity is supplied. */
-export const INVOICE_CREATED_BY = 'staff'
 
 type InvoicesDbRow = z.infer<typeof invoicesRowSchema>
 type InvoiceItemsDbRow = z.infer<typeof invoiceItemsRowSchema>
@@ -272,7 +270,6 @@ export interface InvoiceServiceOptions {
   invoiceViewRepository?: InvoiceViewReader
   syncInvoiceView?: ViewSyncFn
   generateItemId?: () => string
-  createdBy?: string
 }
 
 /**
@@ -300,7 +297,6 @@ export class InvoiceService {
   private readonly invoiceViewRepository: () => InvoicesViewRepository
   private readonly syncInvoiceView: ViewSyncFn
   private readonly generateItemId: () => string
-  private readonly createdBy: string
   private readonly readService: BaseCrudService<
     InvoiceViewApiRow,
     InvoiceViewListQuery,
@@ -328,7 +324,6 @@ export class InvoiceService {
         : adaptInvoiceViewReader(invoiceViewRepository)
     this.syncInvoiceView = options.syncInvoiceView ?? defaultSyncInvoiceView
     this.generateItemId = options.generateItemId ?? defaultGenerateItemId
-    this.createdBy = options.createdBy ?? INVOICE_CREATED_BY
 
     this.readService = new BaseCrudService<
       InvoiceViewApiRow,
@@ -460,7 +455,7 @@ export class InvoiceService {
       // them before the row reaches the sheet repository.
       customer: JSON.stringify(customerSnapshot),
       adjustments: JSON.stringify(request.adjustments.map(toDbAdjustment)),
-      created_by: this.createdBy,
+      created_by: FALLBACK_ACTOR,
     }
 
     try {
@@ -498,7 +493,7 @@ export class InvoiceService {
       try {
         await this.orderFormRepository().update(request.sourceOrderId, {
           invoice_id: request.invoiceNumber,
-          updated_by: this.createdBy,
+          updated_by: FALLBACK_ACTOR,
         })
       } catch (error) {
         const failure = classifyWriteFailure(error)
@@ -589,7 +584,7 @@ export class InvoiceService {
       try {
         await this.invoiceRepository().update(invoiceNumber, {
           status: request.status,
-          updated_by: 'staff',
+          updated_by: FALLBACK_ACTOR,
         })
       } catch (error) {
         const failure = classifyWriteFailure(error)

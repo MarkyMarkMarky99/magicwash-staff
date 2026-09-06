@@ -25,6 +25,7 @@ import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { useOrderStore } from '@/features/orders/stores/order.store'
 import { useOrderPriceListStore } from '@/features/orders/stores/order-price-list.store'
 import type { OrderPriceListItemDto } from '@/features/orders/services/order-price-list.service'
+import { currentActor } from '@/shared/config/actor'
 
 const itemPayloadSchema = orderItemCreateSchema.omit({ orderId: true, createdBy: true })
 const route = useRoute()
@@ -131,7 +132,7 @@ async function addItem(payload: z.infer<typeof itemPayloadSchema>) {
   const flowSequence = itemFlowSequence
   savingItemOrderId.value = targetOrderId
   try {
-    await orderStore.addItem(orderItemCreateSchema.parse({ ...payload, orderId: targetOrderId, createdBy: 'admin' }))
+    await orderStore.addItem(orderItemCreateSchema.parse({ ...payload, orderId: targetOrderId, createdBy: currentActor() }))
     if (orderId.value !== targetOrderId) return
     await orderStore.loadDetail(targetOrderId)
     if (orderId.value === targetOrderId && flowSequence === itemFlowSequence) orderOverlay.close()

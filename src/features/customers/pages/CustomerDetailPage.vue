@@ -23,6 +23,7 @@ import { resolveCustomerTab } from '../utils/customer-tab'
 import CustomerPackageCreatePage from '@/features/customer-packages/pages/CustomerPackageCreatePage.vue'
 import { useCustomerPackageBuyRoute } from '../composables/useCustomerPackageBuyRoute'
 import { useCustomerPackagePurchaseStore } from '@/features/customer-packages/stores/customer-package-purchase.store'
+import { currentActor } from '@/shared/config/actor'
 
 const props = defineProps<{
   customerId: string
@@ -47,9 +48,9 @@ const blockedUsageOrders = ref(new Set<string>())
 const activePackages = computed(() => packagesStore.items.filter(
   (item) => item.status === 'ACTIVE' && item.customerId === props.customerId,
 ))
-const defaultStaff = computed(() => {
+const actor = computed(() => {
   const raw = route.query.by
-  return (Array.isArray(raw) ? raw[0] : raw)?.trim() ?? ''
+  return currentActor(Array.isArray(raw) ? raw[0] : raw)
 })
 const store = useCustomerOrderHistoryStore()
 const { customer, orders, customerLoading, customerError } = storeToRefs(store)
@@ -74,7 +75,7 @@ function usePackage() {
   openUsage()
 }
 
-async function submitUsage(value: { customerPackageId: string; creditsUsed: number; notes: string; createdBy: string }) {
+async function submitUsage(value: { customerPackageId: string; creditsUsed: number; notes: string }) {
   const order = selectedOrder.value
   if (!order || usageRetryBlocked.value || packagesStore.submittingUsage || packagesStore.loading) return
   const key = usageOrderKey.value
@@ -86,7 +87,7 @@ async function submitUsage(value: { customerPackageId: string; creditsUsed: numb
   const parsed = appendPackageTransactionRequestSchema.safeParse({
     customerPackageId: value.customerPackageId, type: 'USAGE', creditChange: -value.creditsUsed,
     referenceSource: 'ORDER', referenceId: order.orderId.trim(),
-    notes: value.notes.trim() || null, createdBy: value.createdBy.trim(),
+    notes: value.notes.trim() || null, createdBy: actor.value,
   })
   if (!parsed.success) {
     usageErrors.value[key] = parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join(', ')
@@ -197,7 +198,6 @@ watch([activeTab, () => props.customerId, openOrderId], ([tab, id, orderId]) => 
       :open="usageOpen"
       :order-id="selectedOrder.orderId"
       :packages="activePackages"
-      :default-staff="defaultStaff"
       :loading="packagesStore.loading"
       :error="usageError"
       :submitting="packagesStore.submittingUsage"
