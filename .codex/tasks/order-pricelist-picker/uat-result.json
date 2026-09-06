@@ -1,9 +1,0 @@
-{
-  "marker": "UAT-PRICELIST-20260906",
-  "checks": [],
-  "itemIds": [],
-  "status": "failed",
-  "failure": "TimeoutError: locator.fill: Timeout 45000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog', { name: 'เลือกรายการสินค้าจากรายการราคา' }).getByLabel('ค้นหารายการสินค้า', { exact: true })\u001b[22m\n",
-  "orderId": "246fde2b",
-  "customerId": "b1d4fc48"
-}

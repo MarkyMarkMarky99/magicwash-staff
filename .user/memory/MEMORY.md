@@ -14,7 +14,7 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
   code-writing assistant. Pipeline is mason → clerk → sentinel.
 - `main`: documentation was consolidated. Root `CLAUDE.md` is the only index; backend rules live
   under `docs/architecture/backend/`. Retired `api/CLAUDE.md`, `api/AGENTS.md`, completed plans,
-  handoff documents, and `docs/scripts/` are deleted.
+  handoff documents, and `docs/scripts/` are deleted and pushed in `e6058a6`.
 
 ## Document scanner — WORKS on device, next step is refactor
 
