@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { LaundryPhotoService } from '../../../../../server/modules/laundry-photos/laundry-photo.module.js'
 import { laundryPhotosRowSchema } from '../../../../../server/sheets/LaundryPhotos/LaundryPhotos.db-contract.js'
 import { orderItemFormsRowSchema } from '../../../../../server/sheets/OrderItemForms/OrderItemForms.db-contract.js'
+import type { ReadQueryDTO } from '../../../../../server/shared/dtos/read-query.dto.js'
 import type { SheetRepositoryContract } from '../../../../../server/shared/repositories/sheet-repository.contract.js'
 import { ApiError } from '../../../../../server/shared/http/api-error.js'
 
@@ -13,10 +14,12 @@ type ItemRow = z.infer<typeof orderItemFormsRowSchema>
 interface FakePhotoRepository extends SheetRepositoryContract<PhotoRow> {
   rows: Array<Partial<PhotoRow>>
   updateCalls: Array<{ id: string; patch: Partial<PhotoRow> }>
+  readIds: Array<string | undefined>
 }
 
 interface FakeItemRepository extends SheetRepositoryContract<ItemRow> {
   rows: Array<Partial<ItemRow>>
+  readIds: Array<string | undefined>
 }
 
 function makePhotoRow(overrides: Partial<PhotoRow> = {}): PhotoRow {
@@ -45,7 +48,9 @@ function makePhotoRepository(rows: Array<Partial<PhotoRow>>): FakePhotoRepositor
   const repository = {
     rows,
     updateCalls: [] as Array<{ id: string; patch: Partial<PhotoRow> }>,
-    async read() {
+    readIds: [] as Array<string | undefined>,
+    async read(query?: ReadQueryDTO<Partial<PhotoRow>>) {
+      repository.readIds.push(query?.id)
       return repository.rows
     },
     async append() {
@@ -68,7 +73,9 @@ function makePhotoRepository(rows: Array<Partial<PhotoRow>>): FakePhotoRepositor
 function makeItemRepository(rows: Array<Partial<ItemRow>>): FakeItemRepository {
   const repository = {
     rows,
-    async read() {
+    readIds: [] as Array<string | undefined>,
+    async read(query?: ReadQueryDTO<Partial<ItemRow>>) {
+      repository.readIds.push(query?.id)
       return repository.rows
     },
     async append() {
@@ -113,8 +120,11 @@ async function expectApiError(operation: () => Promise<unknown>, status: number)
 
 const destination = { id: 'destination-item', order_id: 'order-1', item_id: 'destination-catalog-item' }
 {
-  const { service, photos } = makeService([makePhotoRow()], [destination])
+  const { service, photos, items } = makeService([makePhotoRow()], [destination])
   await service.update('photo-1', { orderItemId: 'destination-item', updatedBy: 'staff-1' })
+  // The photo is looked up by the route id and the destination by the payload id — never swapped.
+  assert.deepEqual(photos.readIds, ['photo-1'])
+  assert.deepEqual(items.readIds, ['destination-item'])
   assert.equal(photos.updateCalls.length, 1)
   const update = photos.updateCalls[0]!
   assert.deepEqual(Object.keys(update.patch).sort(), ['item_id', 'orderitem_id', 'updated_by'])
@@ -159,6 +169,8 @@ for (const [photoOrderId, itemOrderId] of [
   ['', 'order-1'],
   ['order-1', ''],
   ['order-1', null],
+  ['', ''],
+  [null, null],
 ] as const) {
   const { service, photos } = makeService(
     [makePhotoRow({ order_id: photoOrderId })],

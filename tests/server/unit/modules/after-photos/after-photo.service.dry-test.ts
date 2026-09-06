@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { AfterPhotoService } from '../../../../../server/modules/after-photos/after-photo.module.js'
 import { afterPhotoRowSchema } from '../../../../../server/sheets/AfterPhoto/AfterPhoto.db-contract.js'
 import { orderItemFormsRowSchema } from '../../../../../server/sheets/OrderItemForms/OrderItemForms.db-contract.js'
+import type { ReadQueryDTO } from '../../../../../server/shared/dtos/read-query.dto.js'
 import type { SheetRepositoryContract } from '../../../../../server/shared/repositories/sheet-repository.contract.js'
 import { ApiError } from '../../../../../server/shared/http/api-error.js'
 
@@ -13,10 +14,12 @@ type ItemRow = z.infer<typeof orderItemFormsRowSchema>
 interface FakePhotoRepository extends SheetRepositoryContract<PhotoRow> {
   rows: Array<Partial<PhotoRow>>
   updateCalls: Array<{ id: string; patch: Partial<PhotoRow> }>
+  readIds: Array<string | undefined>
 }
 
 interface FakeItemRepository extends SheetRepositoryContract<ItemRow> {
   rows: Array<Partial<ItemRow>>
+  readIds: Array<string | undefined>
 }
 
 function makePhotoRow(overrides: Partial<PhotoRow> = {}): PhotoRow {
@@ -45,7 +48,9 @@ function makePhotoRepository(rows: Array<Partial<PhotoRow>>): FakePhotoRepositor
   const repository = {
     rows,
     updateCalls: [] as Array<{ id: string; patch: Partial<PhotoRow> }>,
-    async read() {
+    readIds: [] as Array<string | undefined>,
+    async read(query?: ReadQueryDTO<Partial<PhotoRow>>) {
+      repository.readIds.push(query?.id)
       return repository.rows
     },
     async append() {
@@ -68,7 +73,9 @@ function makePhotoRepository(rows: Array<Partial<PhotoRow>>): FakePhotoRepositor
 function makeItemRepository(rows: Array<Partial<ItemRow>>): FakeItemRepository {
   const repository = {
     rows,
-    async read() {
+    readIds: [] as Array<string | undefined>,
+    async read(query?: ReadQueryDTO<Partial<ItemRow>>) {
+      repository.readIds.push(query?.id)
       return repository.rows
     },
     async append() {
@@ -159,6 +166,8 @@ for (const [photoOrderId, itemOrderId] of [
   ['', 'order-1'],
   ['order-1', ''],
   ['order-1', null],
+  ['', ''],
+  [null, null],
 ] as const) {
   const { service, photos } = makeService(
     [makePhotoRow({ order_id: photoOrderId })],

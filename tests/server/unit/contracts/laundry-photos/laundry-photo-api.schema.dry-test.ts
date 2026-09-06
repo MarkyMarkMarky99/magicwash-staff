@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { ZodNever } from 'zod'
+import { ZodError, ZodNever } from 'zod'
 
 import {
   laundryPhotoApiContract,
@@ -26,7 +26,7 @@ for (const input of [
   { orderItemId: 'item-2', updatedBy: '' },
   { orderItemId: 'item-2', updatedBy: '   ' },
 ]) {
-  assert.throws(() => laundryPhotoUpdateSchema.parse(input), JSON.stringify(input))
+  assert.throws(() => laundryPhotoUpdateSchema.parse(input), ZodError, JSON.stringify(input))
 }
 
 assert.equal(laundryPhotoApiContract.request.create, laundryPhotoCreateSchema)
