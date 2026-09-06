@@ -145,8 +145,12 @@ function handleDragStart(event: PointerEvent) {
   dragOffset.value = 0
   dragging.value = true
   dragMoved = false
-  dragCaptureElement = event.currentTarget
-  event.currentTarget.setPointerCapture(event.pointerId)
+  // currentTarget is the element this handler is bound to, so it is an
+  // HTMLElement for the whole duration of the dispatch.
+  const target = event.currentTarget as HTMLElement | null
+  if (!target) return
+  dragCaptureElement = target
+  target.setPointerCapture(event.pointerId)
 }
 
 function handleDragMove(event: PointerEvent) {

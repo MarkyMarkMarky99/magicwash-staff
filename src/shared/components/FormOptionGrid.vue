@@ -1,7 +1,7 @@
 <script setup>
 defineProps({
   label:      { type: String, required: true },
-  modelValue: { type: String, default: '' },
+  modelValue: { type: /** @type {import('vue').PropType<string | null>} */ (String), default: '' },
   options:    { type: Array, required: true },
   variant:    { type: String, default: 'card' },
 })

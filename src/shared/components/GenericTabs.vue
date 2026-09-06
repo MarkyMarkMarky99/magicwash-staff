@@ -6,7 +6,7 @@ interface GenericTab {
 }
 
 defineProps<{
-  tabs: GenericTab[]
+  tabs: readonly GenericTab[]
   activeKey: string
 }>()
 

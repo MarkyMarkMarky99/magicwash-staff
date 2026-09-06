@@ -1,4 +1,9 @@
-import type { InvoiceAdjustmentCalculation } from '@contracts/invoices/invoice-api.schema'
+import type { z } from 'zod'
+import type { invoiceAdjustmentCalculationSchema } from '@contracts/invoices/invoice-api.schema'
+
+// Contract schema files export runtime schemas only, never inferred types, so
+// the alias is derived here beside its consumer.
+type InvoiceAdjustmentCalculation = z.infer<typeof invoiceAdjustmentCalculationSchema>
 
 /**
  * Form-local row shapes for the invoice-create page — string-backed so they

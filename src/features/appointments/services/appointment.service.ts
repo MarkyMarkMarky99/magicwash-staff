@@ -97,9 +97,9 @@ export function updateAppointment(
   )
 }
 
-interface AppointmentWriteOptions<TRequest extends z.ZodTypeAny> {
+interface AppointmentWriteOptions {
   data: unknown
-  requestSchema: TRequest
+  requestSchema: z.ZodTypeAny
 }
 
 /**
@@ -107,13 +107,10 @@ interface AppointmentWriteOptions<TRequest extends z.ZodTypeAny> {
  * API-provided certainty reaches the two write-facing pages without changing
  * the shared client behavior used by other features.
  */
-async function appointmentWrite<
-  TResponse,
-  TRequest extends z.ZodTypeAny,
->(
+async function appointmentWrite<TResponse>(
   path: string,
   method: 'POST' | 'PATCH',
-  options: AppointmentWriteOptions<TRequest>,
+  options: AppointmentWriteOptions,
 ): Promise<TResponse> {
   const validatedData = options.requestSchema.parse(options.data)
   const response = await fetch(path, {

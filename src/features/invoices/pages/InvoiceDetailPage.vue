@@ -63,7 +63,8 @@ function formatMoney(value: number | null) {
   return `${value < 0 ? '-' : ''}฿${amount}`
 }
 
-function formatAdjustment(adjustment: { calculation: string; value: number }) {
+function formatAdjustment(adjustment: { calculation: string | null, value: number | null }) {
+  if (adjustment.value === null) return '—'
   if (adjustment.calculation === 'PERCENT') return `${adjustment.value}%`
   return formatMoney(adjustment.value)
 }
@@ -189,7 +190,7 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
                   <div v-if="item.adjustments.length" class="mt-2 space-y-1 border-l-2 border-outline-variant/30 pl-3">
                     <div v-for="(adjustment, adjustmentIndex) in item.adjustments" :key="`${adjustment.label}-${adjustmentIndex}`" class="flex items-start justify-between gap-3">
                       <span class="font-body text-[11px] leading-relaxed text-on-surface-variant">{{ adjustment.label }}</span>
-                      <span class="shrink-0 font-body text-[11px]" :class="adjustment.value < 0 ? 'text-green-700' : 'text-on-surface-variant'">
+                      <span class="shrink-0 font-body text-[11px]" :class="(adjustment.value ?? 0) < 0 ? 'text-green-700' : 'text-on-surface-variant'">
                         {{ formatAdjustment(adjustment) }}
                       </span>
                     </div>
@@ -217,7 +218,7 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
                 <template v-if="invoice.adjustments.length">
                   <div v-for="(adjustment, index) in invoice.adjustments" :key="`${adjustment.label}-${index}`" class="flex items-center justify-between gap-3 py-0.5">
                     <span class="font-body text-[13px] leading-snug text-on-surface-variant">{{ adjustment.label }}</span>
-                    <span class="shrink-0 font-body text-[13px]" :class="adjustment.value < 0 ? 'text-green-700' : 'text-on-surface'">
+                    <span class="shrink-0 font-body text-[13px]" :class="(adjustment.value ?? 0) < 0 ? 'text-green-700' : 'text-on-surface'">
                       {{ formatAdjustment(adjustment) }}
                     </span>
                   </div>

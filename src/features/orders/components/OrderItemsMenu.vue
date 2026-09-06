@@ -8,7 +8,8 @@ const emit = defineEmits<{
 
 function select(action: 'addItem' | 'openAlbum', close: () => void): void {
   close()
-  emit(action)
+  if (action === 'addItem') emit('addItem')
+  else emit('openAlbum')
 }
 </script>
 

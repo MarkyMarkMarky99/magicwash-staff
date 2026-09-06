@@ -77,6 +77,24 @@ when you want client-side zod validation. Only camelCase API schemas/enums live 
 - Keep API logic inside services only.
 - Do not add frontend field mapping layers for API data.
 
+## Type checking
+
+**Every frontend change must pass `npm run typecheck:web`** (`vue-tsc` over `src/`,
+including `.vue` files). Run it before you report a change as done — `npm run build`
+is esbuild only and **strips types without checking them**, so a broken prop, a
+missing import or a null dereference builds green and ships. Two type errors lived
+in the document scanner for weeks for exactly this reason, and a boolean-prop bug
+reached production the same way.
+
+`npm run typecheck:api` still covers `api/` and `server/` separately. Both must pass.
+
+Known failure, do not add to it: `PriceListFormPage.vue` fails on the create payload.
+Two other form pages carry a `@ts-expect-error` with the same cause — form state is
+typed as loose strings and optionals while the API contract wants literal unions and
+required fields, so only zod catches a bad value, at submit time. The fix is to type
+the form state from the contract enums; the directives then become errors and get
+deleted. Fixing that is a task of its own, not something to paper over in passing.
+
 ## Testing
 
 No test runner is installed — tests are plain TypeScript files asserting via `node:assert/strict`.

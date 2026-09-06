@@ -16,7 +16,7 @@ const emit = defineEmits<{
   clearUploadError: []
 }>()
 
-function isDisplayableImagePath(imagePath: string | null): boolean {
+function isDisplayableImagePath(imagePath: string | null): imagePath is string {
   return typeof imagePath === 'string' && /^https?:\/\//i.test(imagePath)
 }
 </script>

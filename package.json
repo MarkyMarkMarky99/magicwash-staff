@@ -8,7 +8,8 @@
     "dev:api": "vercel dev --listen 3102",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck:api": "tsc -p api/tsconfig.json --noEmit"
+    "typecheck:api": "tsc -p api/tsconfig.json --noEmit",
+    "typecheck:web": "vue-tsc -p tsconfig.web.json --noEmit"
   },
   "dependencies": {
     "axios": "^1.14.0",
@@ -29,6 +30,7 @@
     "sass": "^1.98.0",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.3",
-    "vite": "^8.0.1"
+    "vite": "^8.0.1",
+    "vue-tsc": "^3.3.11"
   }
 }

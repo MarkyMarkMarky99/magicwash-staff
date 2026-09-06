@@ -10,7 +10,7 @@ import { useHoldStillCapture } from '@/features/orders/composables/use-hold-stil
 import { enhanceDocument } from '@/features/orders/utils/document-enhance'
 import type { DocumentFilterMode } from '@/features/orders/utils/document-enhance'
 import { contentBox, fitScale, projectQuad } from '@/features/orders/utils/quad-projection'
-import type { Quad } from '@/features/orders/utils/quad-projection'
+import type { Point, Quad } from '@/features/orders/utils/quad-projection'
 
 // ---- constants -------------------------------------------------------------
 

@@ -8,7 +8,10 @@ const props = defineProps({
   countLabel: { type: String, required: true },
   topDivider: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
-  error: { type: String, default: null },
+  // PropType cast: the default is null, so the prop genuinely accepts null and
+  // every caller passes a nullable store error. Without it Vue infers
+  // `string | undefined` and each call site is a type error.
+  error: { type: /** @type {import('vue').PropType<string | null>} */ (String), default: null },
   empty: { type: Boolean, default: false },
   emptyText: { type: String, default: 'No items' },
   collapsible: { type: Boolean, default: false },

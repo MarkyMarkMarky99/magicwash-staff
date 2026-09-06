@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
+import type { ComponentPublicInstance } from 'vue'
 
 const props = withDefaults(defineProps<{
   suspended?: boolean
@@ -10,7 +11,7 @@ const props = withDefaults(defineProps<{
 })
 
 const open = ref(false)
-const triggerRef = ref<Element | null>(null)
+const triggerRef = ref<HTMLElement | null>(null)
 const panelRef = ref<HTMLElement | null>(null)
 type PanelPosition = { right: string; maxHeight: string; top?: string; bottom?: string }
 const position = ref<PanelPosition | null>(null)
@@ -23,11 +24,14 @@ const panelId = `base-dropdown-${useId()}`
 
 const triggerAttrs = computed(() => ({
   'aria-controls': panelId,
-  'aria-expanded': String(open.value),
+  'aria-expanded': open.value,
 }))
 
-function setTrigger(element: Element | null) {
-  triggerRef.value = element
+// Matches Vue's VNodeRef callback signature: a template ref can hand back a
+// component instance, not just an element, so the wider parameter is required
+// for `:ref="setTrigger"` to type-check at every call site.
+function setTrigger(element: Element | ComponentPublicInstance | null) {
+  triggerRef.value = element instanceof HTMLElement ? element : null
 }
 
 function openPopover() {
