@@ -29,6 +29,46 @@ const DETECTION_OPTIONS = {
   ml: { assetBaseUrl: '/scanic-ml/' },
 }
 
+export type LetterboxLayout = {
+  scale: number,
+  drawWidth: number,
+  drawHeight: number,
+  offsetX: number,
+  offsetY: number,
+}
+
+/**
+ * Where to draw a video frame inside the square canvas the model expects, keeping the
+ * frame's aspect ratio and centring it between black bars. Deliberately unrounded:
+ * drawImage accepts fractional destination boxes, and rounding here would not be undone
+ * by unmapLetterboxedQuad's single scale factor, leaving the outline slightly offset.
+ */
+export function letterboxLayout(videoWidth: number, videoHeight: number, size: number): LetterboxLayout {
+  const scale = fitScale(videoWidth, videoHeight, size)
+  const drawWidth = videoWidth * scale
+  const drawHeight = videoHeight * scale
+  return {
+    scale,
+    drawWidth,
+    drawHeight,
+    offsetX: (size - drawWidth) / 2,
+    offsetY: (size - drawHeight) / 2,
+  }
+}
+
+/**
+ * Undo letterboxLayout. scanic denormalizes the model's corners by the dimensions of the
+ * canvas it was handed, so they arrive in the square canvas's own space — black bars
+ * included. Subtract the bars first, then the uniform scale, to land in video pixels.
+ * Getting this wrong misaligns the outline with no error anywhere, so it is tested.
+ */
+export function unmapLetterboxedQuad(quad: Quad, layout: LetterboxLayout): Quad {
+  return scaleQuad(
+    quad.map((point) => ({ x: point.x - layout.offsetX, y: point.y - layout.offsetY })) as Quad,
+    1 / layout.scale,
+  )
+}
+
 export function quadCoverageRatio(quad: Quad, region: DetectionRegion): number {
   if (!(region.width > 0) || !(region.height > 0)) return 0
   const twiceArea = quad.reduce((area, point, index) => {
@@ -170,14 +210,10 @@ export function useDocumentDetect(getVideo: () => HTMLVideoElement | null, activ
       // Letterbox the frame into a fixed 224x224 canvas: scanic stretches whatever it is
       // given to 224x224 with no letterbox of its own, and an anisotropic squash turns a
       // rotated document into a skewed parallelogram the model was never trained on.
-      const scale = fitScale(video.videoWidth, video.videoHeight, ML_INPUT_SIZE)
-      const drawWidth = Math.round(video.videoWidth * scale)
-      const drawHeight = Math.round(video.videoHeight * scale)
-      const offsetX = Math.round((ML_INPUT_SIZE - drawWidth) / 2)
-      const offsetY = Math.round((ML_INPUT_SIZE - drawHeight) / 2)
+      const layout = letterboxLayout(video.videoWidth, video.videoHeight, ML_INPUT_SIZE)
       if (!workCanvas) workCanvas = document.createElement('canvas')
       if (!workContext) workContext = workCanvas.getContext('2d', { willReadFrequently: true })
-      if (!workContext || !drawWidth || !drawHeight) throw new Error('CanvasContextUnavailable')
+      if (!workContext || !layout.drawWidth || !layout.drawHeight) throw new Error('CanvasContextUnavailable')
 
       if (workCanvas.width !== ML_INPUT_SIZE || workCanvas.height !== ML_INPUT_SIZE) {
         workCanvas.width = ML_INPUT_SIZE
@@ -185,7 +221,11 @@ export function useDocumentDetect(getVideo: () => HTMLVideoElement | null, activ
       }
       workContext.fillStyle = 'black'
       workContext.fillRect(0, 0, ML_INPUT_SIZE, ML_INPUT_SIZE)
-      workContext.drawImage(video, 0, 0, video.videoWidth, video.videoHeight, offsetX, offsetY, drawWidth, drawHeight)
+      workContext.drawImage(
+        video,
+        0, 0, video.videoWidth, video.videoHeight,
+        layout.offsetX, layout.offsetY, layout.drawWidth, layout.drawHeight,
+      )
 
       const activeScanner = await loadScanner()
       if (!isCurrent(token)) return
@@ -201,10 +241,7 @@ export function useDocumentDetect(getVideo: () => HTMLVideoElement | null, activ
       // offset first, then the uniform scale, to land back in video pixel space.
       const letterboxed = result.success && result.corners ? cornersToQuad(result.corners) : null
       let detectedQuad = letterboxed
-        ? orderQuad(scaleQuad(
-            letterboxed.map((point) => ({ x: point.x - offsetX, y: point.y - offsetY })) as Quad,
-            1 / scale,
-          ))
+        ? orderQuad(unmapLetterboxedQuad(letterboxed, layout))
         : null
       const fullFrame = { x: 0, y: 0, width: video.videoWidth, height: video.videoHeight }
 
