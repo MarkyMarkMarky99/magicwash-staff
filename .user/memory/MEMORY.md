@@ -3,35 +3,41 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 
 ## Where we are — 2026-09-06
 
-- **Branches:** `main` (synced, pushed) · `feat/live-order-helper` (pushed, unmerged, **not
-  finished** — kept on purpose). Nothing else exists. Single worktree.
+- **Branches:** `main` (synced) · `feat/document-scanner-v2` (**works, unmerged**) ·
+  `feat/document-scanner` (v1, failed, keep only until v2 merges — then delete) ·
+  `feat/live-order-helper` (pushed, unmerged, **not finished** — kept on purpose).
+  Single worktree.
 - `feat/live-order-helper` holds `getLiveOrderById()` plus a read-only parity script that
   samples 50 orders and checks `OrdersView` against live `OrderForm` + `OrderItemForms`.
   Nothing calls it yet.
 - **Never dispatch `backend-team` or any pipeline unless the user names it.** No default
   code-writing assistant. Pipeline is mason → clerk → sentinel.
 
-## Next up — document scanner for the DOCUMENT photo type
+## Document scanner — WORKS on device, next step is refactor
 
-- Order detail → "เพิ่มรูป" opens a type menu (weight / belonging / document). The DOCUMENT
-  capture should use **live document-edge detection** like a scanner app: outline the paper in
-  the viewfinder, then deskew/crop to it. **Not planned yet — the user plans it next.**
-- Groundwork gathered by grok: `.codex/tasks/document-scanner/gathered-context.md`.
-  Read that first; it has the capture chain, the camera component, the upload path, what
-  dependencies exist, and the constraints. Do not re-explore.
-- `CameraOverlay.vue` is in `src/shared/` → **import-only**. A scanner variant is almost
-  certainly a new component, not an edit to that one.
+- `feat/document-scanner-v2` @ `6b72ad9`. Staff-confirmed on Android: เพิ่มรูป → เอกสาร
+  detects the page, hold-still auto-fires, corners drag, warp + filters upload.
+- **Not merged. Not fully exercised** — only the shutter→adjust path was tried. Still
+  unchecked: focus quality, detection on real documents, filters, ถ่ายใหม่, Back,
+  WEIGHT/BELONGING regression.
+- **User's next move: refactor it.** "ทำงานถูกแล้วแต่ไม่ได้หมายความว่าทำงานได้ดี".
+  `DocumentScannerOverlay.vue` is ~980 lines and duplicates CameraOverlay's whole camera
+  lifecycle (shared components are import-only — see SHARED GAPS in the v2 commit body).
+- Spec that built it: `.codex/tasks/document-scanner/v2-brief.md`. Read it before changing
+  the state machine — every rule in it is a bug that already happened.
+- **Do not reintroduce `ImageCapture.takePhoto()`** — it never settles on the user's
+  Android. Video-frame capture only, and `capturePhoto()` stays synchronous.
+- v1 (`feat/document-scanner`) failed 4 times on-device; its pure modules were reused
+  unchanged, its component and route-stage plumbing were discarded.
 
-## Dispatching codex — two traps that cost hours today
+## Workers
 
-- **Dispatch as `run_in_background` AND redirect to a file:** `codex exec ... > run.log 2>&1`.
-  Piping through `tail` never reports finishing (orphaned `codex-computer-use.exe` children
-  hold the pipe open past EOF); detaching with `nohup &` kills the completion notification.
-- **Solo briefs must forbid subagents in the first lines.** A lone `codex exec` reads the
-  delegation rules in `CLAUDE.md`, spawns its own subagent, and then hangs without returning.
-- To tell "stalled" from "finished but hung": read
-  `~/.codex/sessions/<yyyy>/<mm>/<dd>/rollout-*.jsonl`, grep `task_complete`, read
-  `last_agent_message` — the real final report is there either way.
+- **Codex quota was exhausted 2026-09-06** (resets 00:17). When it is, dispatch a
+  general-purpose sonnet agent with the same brief — that is what finished the scanner.
+- Chrome **cannot be launched from a Claude session on this machine** (`0xC0000003`, real
+  Chrome and Playwright's chromium alike). Browser proof goes to the user's phone.
+- Solo codex briefs must forbid subagents in the first lines, redirect to a log file, and
+  never pipe through `tail`.
 
 ## Browser checks still pending on `main`
 
@@ -51,18 +57,12 @@ prop ships green.
 
 ## Photos — settled, do not re-litigate
 
-Two order-photo systems exist **on purpose** and must not be merged:
-
-- `OrderImages` — weight / belonging / document, order detail section, writes via `/api/order-images`.
-- `LaundryPhotos` + `AfterPhoto` — garment before/after, `/gallery/:key`, browser uploads to
-  Firebase then writes the URL through **Apps Script**, not this project's `api/`.
-  `LaundryPhotos.db-contract.ts` sets `writes.append: false`; there is no Vercel write route.
-
-An earlier note proposed merging the two sheets. That is rejected — different jobs.
-
-**Live bug, unfixed:** the gallery learns `created_by` only from `?by=`. Rows written without it
-are rejected by Apps Script with `Missing required field: created_by`. Frontend now falls back
-to `admin`, but the gateway is still the only validator and it fails silently in the UI.
+- `OrderImages` (weight/belonging/document, `/api/order-images`) and `LaundryPhotos` +
+  `AfterPhoto` (garment before/after, `/gallery/:key`, Apps Script) are **two systems on
+  purpose**. An earlier note proposed merging them; rejected.
+- **Live bug, unfixed:** the gallery learns `created_by` only from `?by=`. Rows without it
+  are rejected by Apps Script with `Missing required field: created_by`. The frontend
+  falls back to `admin`, but the gateway is the only validator and it fails silently.
 
 ## Price list — next
 
