@@ -267,7 +267,7 @@ export function useDocumentDetect(getVideo: () => HTMLVideoElement | null, activ
 
   function stop(): void {
     runToken += 1
-    window.clearTimeout(timer)
+    if (timer !== null) window.clearTimeout(timer)
     timer = null
     temporalState = { quad: null, consecutiveJumps: 0, consecutiveMisses: 0 }
     quad.value = null
@@ -279,7 +279,9 @@ export function useDocumentDetect(getVideo: () => HTMLVideoElement | null, activ
     void detect(token)
   }
 
-  watch(active, (isActive) => {
+  // Wrapped in a getter: `active` is a MaybeRefOrGetter, and watch() has no
+  // overload accepting a plain boolean. toValue normalises all three forms.
+  watch(() => toValue(active), (isActive) => {
     if (isActive) start()
     else stop()
   }, { immediate: true })
