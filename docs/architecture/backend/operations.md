@@ -56,6 +56,14 @@ Writes use Google Sheets API with `USER_ENTERED`; `valueInput` declarations guar
 intent and do not change the wire option. APPEND writes complete rows and UPDATE patches changed
 columns, then verifies row identity.
 
+A write response echoes the row as it was serialized for the wire, not as a read would return it.
+Unspecified columns come back as `''` where a GViz read of the same row yields `null`, so a create
+or update response can carry `''` for a field its API schema types as `boolean | null`. Write
+responses are not runtime-validated, so this passes through to the caller. Measured on
+`POST /api/laundry-photos` (2026-09-07): `checked` and `isActive` returned `''`, and the same row
+read back through `GET` returned `null`. Treat a write response as write confirmation plus the
+server-owned fields (id, audit timestamps); re-read when the caller needs read-shaped values.
+
 Write outcomes distinguish rejected from unknown persistence. Never auto-retry a write after a
 request was sent: a transport failure can follow a committed write and retry can duplicate data.
 Token acquisition may be retried. Unsupported delete must fail rather than report false success.

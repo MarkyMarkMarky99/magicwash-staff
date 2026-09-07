@@ -3,15 +3,19 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 
 ## Where we are — 2026-09-07
 
-- **feature/laundry-photos-module:** LaundryPhotos/AfterPhoto backend implementation checkpointed; test-tree parity registration remains Clerk's work.
+- **feature/laundry-photos-module:** LaundryPhotos POST append shipped (`cdab410`) — db-contract
+  `append: true` + `audit.onAppend: ['timestamp']`, strict create schema, 8-hex id in the repo
+  wrapper. Verified against the live sheet: column H stores correctly, no day/month swap.
+  Frontend still uploads via Apps Script; switching `usePhotoUpload.js:55` is the next step and
+  needs the local tile key split from the server-generated db id.
+- **AfterPhoto append not done.** Blocked on the user: share workbook `1_0gUApQ…` (tab `after`)
+  with the service account, and set `AFTER_PHOTOS_SPREADSHEET_ID` in Vercel Production + Preview.
+  Also unresolved: `src/api/photos.js` READ_SHEET.AFT says tab `AfterPhoto`, the db-contract says
+  `after` — check which tabs actually exist before trusting either.
 
-- **Branches:** `main` (synced) · `feat/document-scanner-v2` (**works, unmerged**) ·
-  `feat/document-scanner` (v1, failed, keep only until v2 merges — then delete) ·
-  `feat/live-order-helper` (pushed, unmerged, **not finished** — kept on purpose).
-  Single worktree.
-- `feat/live-order-helper` holds `getLiveOrderById()` plus a read-only parity script that
-  samples 50 orders and checks `OrdersView` against live `OrderForm` + `OrderItemForms`.
-  Nothing calls it yet.
+- **Branches:** `main` (synced) · `feature/laundry-photos-module` (in flight) ·
+  `feat/live-order-helper` (pushed, unmerged, **not finished** — kept on purpose). Single worktree.
+
 - **Never dispatch `backend-team` or any pipeline unless the user names it.** No default
   code-writing assistant. Pipeline is mason → clerk → sentinel.
 - `main`: documentation was consolidated. Root `CLAUDE.md` is the only index; backend rules live
@@ -20,23 +24,6 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 - Uncommitted: `.codex/skills/explore/SKILL.md` contains the Codex discovery workflow; the short
   `.claude/skills/explore/SKILL.md` wrapper invokes it with Luna, high reasoning effort, and a
   prompt example.
-
-## Document scanner — WORKS on device, next step is refactor
-
-- `feat/document-scanner-v2` @ `6b72ad9`. Staff-confirmed on Android: เพิ่มรูป → เอกสาร
-  detects the page, hold-still auto-fires, corners drag, warp + filters upload.
-- **Not merged. Not fully exercised** — only the shutter→adjust path was tried. Still
-  unchecked: focus quality, detection on real documents, filters, ถ่ายใหม่, Back,
-  WEIGHT/BELONGING regression.
-- **User's next move: refactor it.** "ทำงานถูกแล้วแต่ไม่ได้หมายความว่าทำงานได้ดี".
-  `DocumentScannerOverlay.vue` is ~980 lines and duplicates CameraOverlay's whole camera
-  lifecycle (shared components are import-only — see SHARED GAPS in the v2 commit body).
-- Spec that built it: `.codex/tasks/document-scanner/v2-brief.md`. Read it before changing
-  the state machine — every rule in it is a bug that already happened.
-- **Do not reintroduce `ImageCapture.takePhoto()`** — it never settles on the user's
-  Android. Video-frame capture only, and `capturePhoto()` stays synchronous.
-- v1 (`feat/document-scanner`) failed 4 times on-device; its pure modules were reused
-  unchanged, its component and route-stage plumbing were discarded.
 
 ## Workers
 
@@ -136,7 +123,8 @@ Reported, not fixed:
 
 - `Packages`: `ZZTEST01` · customer package `af9f0651` (พิมพ์นิดา)
 - `OrderForm`: `246fde2b`, `cc4d375e`, `f68ae08d` — all customer `b1d4fc48`, `order_name` `UAT-*`
-- `LaundryPhotos`: `QK0H9DT1` (`created_by: claude-uat`)
+- `LaundryPhotos`: `QK0H9DT1` (`created_by: claude-uat`) · `a260b2b1`, `1b7649ba`
+  (`order_id: CLAUDE-PROBE-ORDER`, from the 2026-09-07 live append probe)
 
 ## Environment
 
