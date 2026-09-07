@@ -8,9 +8,6 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
   **Browser-verified on preview 2026-09-08: a real photo saved to the sheet.** Unmerged.
 - Still on Apps Script/legacy in the gallery, on purpose: the image binary goes to Firebase and
   the photo list is read straight from GViz. Moving either is separate work.
-- **Frontend AFT read bug, unfixed:** `src/api/photos.js:17` reads tab `AfterPhoto`. The workbook
-  has exactly one tab, `after`. It works only because GViz silently falls back to the first tab —
-  proven 2026-09-07 (an invented tab name returns the same rows).
 - `src/composables/usePhotoUpload.js` now imports a gallery feature service. It is used only by
   `OrderGalleryPage.vue`; it belongs in `src/features/gallery/composables/`. Not moved — the
   placement of the whole legacy photo-capture set is an open decision (`overview.md:176`).
