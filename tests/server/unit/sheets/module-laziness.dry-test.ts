@@ -8,12 +8,14 @@ const relevantEnvironmentKeys = [
   'PRICE_LIST_SPREADSHEET_ID',
   'LAUNDRY_PACKAGES_SPREADSHEET_ID',
   'ISSUE_REPORTS_SPREADSHEET_ID',
+  'AFTER_PHOTOS_SPREADSHEET_ID',
 ]
 
 const modulePaths = [
   '../../../../server/modules/order-items/order-item.module.js',
   '../../../../server/modules/work-orders/work-order.module.js',
   '../../../../server/modules/order-images/order-image.module.js',
+  '../../../../server/modules/laundry-photos/laundry-photo.module.js',
   '../../../../server/modules/orders/order.module.js',
   '../../../../server/modules/customers/customer.module.js',
   '../../../../server/modules/appointments/appointment.module.js',
@@ -23,6 +25,7 @@ const modulePaths = [
   '../../../../server/modules/price-list/price-list.module.js',
   '../../../../server/modules/issue-reports/issue-report.module.js',
   '../../../../server/modules/packages/package.module.js',
+  '../../../../server/modules/after-photos/after-photo.module.js',
 ]
 
 async function main(): Promise<void> {
@@ -49,7 +52,7 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log('12 module laziness checks passed')
+  console.log('14 module laziness checks passed')
 }
 
 main().catch((error) => {

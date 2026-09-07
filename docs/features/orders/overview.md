@@ -26,6 +26,8 @@
 | OrderForm | ORDERS_SPREADSHEET_ID | Order header | yes — `writes: { append: false, update: true, delete: false }` |
 | OrderItemForms | ORDERS_SPREADSHEET_ID | Order line items | no |
 | OrderImages | ORDERS_SPREADSHEET_ID | Order photos | no |
+| LaundryPhotos | ORDERS_SPREADSHEET_ID | Before photos | yes — create and reassignment |
+| after | AFTER_PHOTOS_SPREADSHEET_ID | After photos | yes — create and reassignment |
 | OrdersView | PORTAL_SPREADSHEET_ID | Read model behind GET /api/orders | yes — all writes false |
 
 - OrdersView is materialised by Apps Script from OrderForm and its item rows
@@ -166,9 +168,9 @@ Verified inventory on 2026-08-30 —
 5. `OrderImages` has no HTTP surface, on the same terms as Blocker 4: sheet-layer registration with
    append is in progress on the same branch, with no contract, module, or route. The existing camera
    path does not write here — `src/composables/usePhotoUpload.js` uploads the binary to Firebase
-   Storage via `src/api/storage.js`, then `src/api/photos.js` posts an Apps Script `APPEND` with a
-   snake_case payload to `target: 'BeforePhoto'` or `'AfterPhoto'`. `LaundryPhotos` is a sheet that
-   file *reads* from over GViz.
+   Storage via `src/api/storage.js`, then posts the row to
+   `POST /api/laundry-photos` or `POST /api/after-photos`. `src/api/photos.js` is now the GViz
+   *read* for those two sheets only.
 6. Photo capture code is not shared. It lives in `src/features/gallery/`, `src/api/`,
    `src/composables/`, `src/utils/`. Using it from an orders feature is a cross-feature import,
    which the architecture rules forbid. Open decision: move it to `src/shared/` in a dedicated

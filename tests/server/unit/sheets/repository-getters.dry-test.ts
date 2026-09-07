@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 
 const environmentKeys = [
+  'AFTER_PHOTOS_SPREADSHEET_ID',
   'ORDERS_SPREADSHEET_ID',
   'PORTAL_SPREADSHEET_ID',
   'APPOINTMENTS_SPREADSHEET_ID',
@@ -16,6 +17,7 @@ for (const key of environmentKeys) {
 }
 
 const [
+  afterPhotoModule,
   orderFormModule,
   orderItemFormsModule,
   orderImagesModule,
@@ -34,6 +36,7 @@ const [
   packagesModule,
   issueReportsModule,
 ] = await Promise.all([
+  import('../../../../server/sheets/AfterPhoto/AfterPhoto.repository.js'),
   import('../../../../server/sheets/OrderForm/OrderForm.repository.js'),
   import('../../../../server/sheets/OrderItemForms/OrderItemForms.repository.js'),
   import('../../../../server/sheets/OrderImages/OrderImages.repository.js'),
@@ -61,6 +64,7 @@ process.env.INVOICES_SPREADSHEET_ID = 'invoices-spreadsheet-id'
 process.env.PRICE_LIST_SPREADSHEET_ID = 'price-list-spreadsheet-id'
 process.env.LAUNDRY_PACKAGES_SPREADSHEET_ID = 'laundry-packages-spreadsheet-id'
 process.env.ISSUE_REPORTS_SPREADSHEET_ID = 'issue-reports-spreadsheet-id'
+process.env.AFTER_PHOTOS_SPREADSHEET_ID = 'after-photos-spreadsheet-id'
 
 const getters = [
   ['OrderForm', orderFormModule.getOrderFormRepository],
@@ -80,6 +84,7 @@ const getters = [
   ['PackageTransactions', packageTransactionsModule.getPackageTransactionsRepository],
   ['Packages', packagesModule.getPackagesRepository],
   ['IssueReports', issueReportsModule.getIssueReportsRepository],
+  ['AfterPhoto', afterPhotoModule.getAfterPhotoRepository],
   ['OrderItemForms', orderItemFormsModule.getOrderItemFormsRepository],
   ['OrderImages', orderImagesModule.getOrderImagesRepository],
 ] as const

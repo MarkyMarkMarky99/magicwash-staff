@@ -3,6 +3,7 @@ import { readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 import { appointmentsDbContract } from '../../../../server/sheets/Appointments/Appointments.db-contract.js'
+import { afterPhotoDbContract } from '../../../../server/sheets/AfterPhoto/AfterPhoto.db-contract.js'
 import { customerPackageViewDbContract } from '../../../../server/sheets/CustomerPackageView/CustomerPackageView.db-contract.js'
 import { customersDbContract } from '../../../../server/sheets/Customers/Customers.db-contract.js'
 import { invoiceItemsDbContract } from '../../../../server/sheets/InvoiceItems/InvoiceItems.db-contract.js'
@@ -20,8 +21,9 @@ import { packageTransactionsDbContract } from '../../../../server/sheets/Package
 import { packagesDbContract } from '../../../../server/sheets/Packages/Packages.db-contract.js'
 import { issueReportsDbContract } from '../../../../server/sheets/IssueReports/IssueReports.db-contract.js'
 
-const expectedSheetCount = 17
+const expectedSheetCount = 18
 const expectedSheetDirectories = [
+  'AfterPhoto',
   'Appointments',
   'CustomerPackages',
   'CustomerPackageView',
@@ -42,6 +44,12 @@ const expectedSheetDirectories = [
 ] as const
 
 const bindings = [
+  {
+    name: 'AfterPhoto',
+    contract: afterPhotoDbContract,
+    expectedSpreadsheetId: 'AFTER_PHOTOS_SPREADSHEET_ID',
+    expectedSheetName: 'after',
+  },
   {
     name: 'IssueReports',
     contract: issueReportsDbContract,

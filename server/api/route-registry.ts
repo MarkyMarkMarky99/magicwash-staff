@@ -30,6 +30,10 @@ export const routeRegistry = {
     import('../modules/work-orders/work-order.module.js').then((module) => module.workOrderRoutes),
   'order-images': (): ReturnType<RouteLoader> =>
     import('../modules/order-images/order-image.module.js').then((module) => module.orderImageRoutes),
+  'laundry-photos': (): ReturnType<RouteLoader> =>
+    import('../modules/laundry-photos/laundry-photo.module.js').then((module) => module.laundryPhotoRoutes),
+  'after-photos': (): ReturnType<RouteLoader> =>
+    import('../modules/after-photos/after-photo.module.js').then((module) => module.afterPhotoRoutes),
 } satisfies Record<string, RouteLoader>
 
 export async function resolveRoute(moduleName: string): ReturnType<RouteLoader> {

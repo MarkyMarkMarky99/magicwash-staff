@@ -3,13 +3,18 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 
 ## Where we are — 2026-09-07
 
-- **Branches:** `main` (synced) · `feat/document-scanner-v2` (**works, unmerged**) ·
-  `feat/document-scanner` (v1, failed, keep only until v2 merges — then delete) ·
-  `feat/live-order-helper` (pushed, unmerged, **not finished** — kept on purpose).
-  Single worktree.
-- `feat/live-order-helper` holds `getLiveOrderById()` plus a read-only parity script that
-  samples 50 orders and checks `OrdersView` against live `OrderForm` + `OrderItemForms`.
-  Nothing calls it yet.
+- **feature/laundry-photos-module:** photo create is fully off Apps Script. Backend append
+  (`cdab410` BEF, `84ff00d` AFT), docs (`643e059`), frontend swap (`fa0be72`). Pushed.
+  **Browser-verified on preview 2026-09-08: a real photo saved to the sheet.** Unmerged.
+- Still on Apps Script/legacy in the gallery, on purpose: the image binary goes to Firebase and
+  the photo list is read straight from GViz. Moving either is separate work.
+- `src/composables/usePhotoUpload.js` now imports a gallery feature service. It is used only by
+  `OrderGalleryPage.vue`; it belongs in `src/features/gallery/composables/`. Not moved — the
+  placement of the whole legacy photo-capture set is an open decision (`overview.md:176`).
+
+- **Branches:** `main` (synced) · `feature/laundry-photos-module` (in flight) ·
+  `feat/live-order-helper` (pushed, unmerged, **not finished** — kept on purpose). Single worktree.
+
 - **Never dispatch `backend-team` or any pipeline unless the user names it.** No default
   code-writing assistant. Pipeline is mason → clerk → sentinel.
 - `main`: documentation was consolidated. Root `CLAUDE.md` is the only index; backend rules live
@@ -18,23 +23,6 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 - Uncommitted: `.codex/skills/explore/SKILL.md` contains the Codex discovery workflow; the short
   `.claude/skills/explore/SKILL.md` wrapper invokes it with Luna, high reasoning effort, and a
   prompt example.
-
-## Document scanner — WORKS on device, next step is refactor
-
-- `feat/document-scanner-v2` @ `6b72ad9`. Staff-confirmed on Android: เพิ่มรูป → เอกสาร
-  detects the page, hold-still auto-fires, corners drag, warp + filters upload.
-- **Not merged. Not fully exercised** — only the shutter→adjust path was tried. Still
-  unchecked: focus quality, detection on real documents, filters, ถ่ายใหม่, Back,
-  WEIGHT/BELONGING regression.
-- **User's next move: refactor it.** "ทำงานถูกแล้วแต่ไม่ได้หมายความว่าทำงานได้ดี".
-  `DocumentScannerOverlay.vue` is ~980 lines and duplicates CameraOverlay's whole camera
-  lifecycle (shared components are import-only — see SHARED GAPS in the v2 commit body).
-- Spec that built it: `.codex/tasks/document-scanner/v2-brief.md`. Read it before changing
-  the state machine — every rule in it is a bug that already happened.
-- **Do not reintroduce `ImageCapture.takePhoto()`** — it never settles on the user's
-  Android. Video-frame capture only, and `capturePhoto()` stays synchronous.
-- v1 (`feat/document-scanner`) failed 4 times on-device; its pure modules were reused
-  unchanged, its component and route-stage plumbing were discarded.
 
 ## Workers
 
@@ -134,7 +122,9 @@ Reported, not fixed:
 
 - `Packages`: `ZZTEST01` · customer package `af9f0651` (พิมพ์นิดา)
 - `OrderForm`: `246fde2b`, `cc4d375e`, `f68ae08d` — all customer `b1d4fc48`, `order_name` `UAT-*`
-- `LaundryPhotos`: `QK0H9DT1` (`created_by: claude-uat`)
+- `LaundryPhotos`: `QK0H9DT1` (`created_by: claude-uat`) · `a260b2b1`, `1b7649ba`
+  (`order_id: CLAUDE-PROBE-ORDER`, from the 2026-09-07 live append probe)
+- `AfterPhoto` tab `after`: `0aacd052` (`order_id: CLAUDE-PROBE-AFT`, same probe)
 
 ## Environment
 

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { appointmentsDbContract } from '../../../../server/sheets/Appointments/Appointments.db-contract.js'
+import { afterPhotoDbContract } from '../../../../server/sheets/AfterPhoto/AfterPhoto.db-contract.js'
 import { customersDbContract } from '../../../../server/sheets/Customers/Customers.db-contract.js'
 import { customerPackageViewDbContract } from '../../../../server/sheets/CustomerPackageView/CustomerPackageView.db-contract.js'
 import { invoicesDbContract } from '../../../../server/sheets/Invoices/Invoices.db-contract.js'
@@ -37,6 +38,16 @@ interface ColumnOrderTest {
 }
 
 const tests: ColumnOrderTest[] = [
+  {
+    name: 'AfterPhoto',
+    contract: afterPhotoDbContract,
+    expected: {
+      id: 'A', order_id: 'B', orderitem_id: 'C', item_id: 'D', image_path: 'E', image_url: 'F',
+      notes: 'G', created_at: 'H', created_by: 'I', updated_by: 'J', updated_at: 'K',
+      checked: 'L', is_active: 'M', file_id: 'N', deleted_at: 'O', deleted_by: 'P',
+    },
+    primaryKeyColumn: 'A',
+  },
   {
     name: 'IssueReports',
     contract: issueReportsDbContract,

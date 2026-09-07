@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import type { SheetContract } from '../../shared/contracts/sheet-contract.js'
 
-/** KEY ORDER = physical LaundryPhotos sheet column order. */
-export const laundryPhotosRowSchema = z
+/** KEY ORDER = physical after sheet column order. */
+export const afterPhotoRowSchema = z
   .object({
     id: z.string(),
     order_id: z.string().nullable(),
@@ -11,12 +11,12 @@ export const laundryPhotosRowSchema = z
     image_path: z.string().nullable(),
     image_url: z.string().nullable(),
     notes: z.string().nullable(),
-    timestamp: z.string().nullable(),
+    created_at: z.string().nullable(),
     created_by: z.string().nullable(),
     updated_by: z.string().nullable(),
     updated_at: z.string().nullable(),
-    checked: z.boolean().nullable(),
-    is_active: z.boolean().nullable(),
+    checked: z.string().nullable(),
+    is_active: z.string().nullable(),
     file_id: z.string().nullable(),
     deleted_at: z.string().nullable(),
     deleted_by: z.string().nullable(),
@@ -24,15 +24,14 @@ export const laundryPhotosRowSchema = z
   .strict()
 
 // Append and update are open for photo creation and reassignment; delete stays closed.
-// Measured 2026-09-07: `timestamp` and `deleted_at` are Sheets
-// datetime cells (`dd/MM/yyyy HH:mm:ss` and `yyyy-MM-dd hh:mm:ss` respectively), while
-// `updated_at` is plain text in DD/MM/YYYY. Future writes must never include `updated_at`, because
-// the USER_ENTERED Sheets path would reinterpret the day and month.
-export const laundryPhotosDbContract = {
-  row: laundryPhotosRowSchema,
+// Measured 2026-09-07: `created_at` is a Sheets datetime in
+// yyyy-MM-dd hh:mm:ss form; all remaining non-id columns read as strings, including checked,
+// is_active, updated_at, and the deletion fields.
+export const afterPhotoDbContract = {
+  row: afterPhotoRowSchema,
   primaryKey: 'id',
-  sheetName: 'LaundryPhotos',
-  spreadsheetId: 'ORDERS_SPREADSHEET_ID',
-  audit: { onAppend: ['timestamp'] },
+  sheetName: 'after',
+  spreadsheetId: 'AFTER_PHOTOS_SPREADSHEET_ID',
+  audit: { onAppend: ['created_at'] },
   writes: { append: true, update: true, delete: false },
 } satisfies SheetContract

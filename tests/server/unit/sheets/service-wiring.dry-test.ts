@@ -5,6 +5,7 @@ import { customerPackagesRowSchema } from '../../../../server/sheets/CustomerPac
 import { packageTransactionsRowSchema } from '../../../../server/sheets/PackageTransactions/PackageTransactions.db-contract.js'
 import { packagesRowSchema } from '../../../../server/sheets/Packages/Packages.db-contract.js'
 import { customersRowSchema } from '../../../../server/sheets/Customers/Customers.db-contract.js'
+import { afterPhotoRowSchema } from '../../../../server/sheets/AfterPhoto/AfterPhoto.db-contract.js'
 
 // ── Drives the REAL production wiring: the services exported by
 //    order.module.ts / appointment.module.ts, built on the real repository
@@ -21,6 +22,7 @@ process.env.PORTAL_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 process.env.APPOINTMENTS_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 process.env.LAUNDRY_PACKAGES_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 process.env.CUSTOMERS_SPREADSHEET_ID = 'characterization-customers-id'
+process.env.AFTER_PHOTOS_SPREADSHEET_ID = 'characterization-after-photos-id'
 const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
 process.env.GOOGLE_SERVICE_ACCOUNT_KEY = Buffer.from(JSON.stringify({
   client_email: 'service-wiring@example.test',
@@ -113,6 +115,36 @@ async function productionCustomerPackageService() {
   )
   return customerPackageReadService
 }
+
+/** The service the API actually serves `/api/after-photos` with. */
+async function productionAfterPhotoService() {
+  const { afterPhotoService } = await import(
+    '../../../../server/modules/after-photos/after-photo.module.js'
+  )
+  return afterPhotoService
+}
+
+test('AfterPhoto service wiring maps the physical after-sheet columns', async () => {
+  const body = sheetGvizBody(afterPhotoRowSchema, [
+    'after-1', 'order-1', 'order-item-1', 'catalog-item-1', null, null, null,
+    '2026-09-07 10:00:00', 'staff-1', 'staff-2', '07/09/2026', 'FALSE', 'TRUE', null, null, null,
+  ])
+
+  await withMockFetch(
+    async () => response(body),
+    async (calls) => {
+      const result = await (await productionAfterPhotoService()).list({
+        orderId: 'order-1',
+        page: 1,
+        perPage: 1,
+      })
+      assert.equal(calls.length, 1)
+      assert.equal(result.items[0]?.afterPhotoId, 'after-1')
+      assert.equal(result.items[0]?.orderId, 'order-1')
+      assert.equal(result.items[0]?.itemId, 'catalog-item-1')
+    },
+  )
+})
 
 test('OrdersView service wiring maps DB columns and decodes the declared JSON cell', async () => {
   const itemsJson = JSON.stringify([
