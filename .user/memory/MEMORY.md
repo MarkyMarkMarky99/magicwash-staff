@@ -3,15 +3,17 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 
 ## Where we are — 2026-09-07
 
-- **feature/laundry-photos-module:** LaundryPhotos POST append shipped (`cdab410`) — db-contract
-  `append: true` + `audit.onAppend: ['timestamp']`, strict create schema, 8-hex id in the repo
-  wrapper. Verified against the live sheet: column H stores correctly, no day/month swap.
-  Frontend still uploads via Apps Script; switching `usePhotoUpload.js:55` is the next step and
-  needs the local tile key split from the server-generated db id.
-- **AfterPhoto append shipped too** (`84ff00d`), same shape, `audit.onAppend: ['created_at']`.
-  Workbook is shared and the env var is set; verified with a live probe row.
-- **Frontend AFT read is wrong:** `src/api/photos.js:17` reads tab `AfterPhoto`. Probed
-  2026-09-07: workbook `MagicwashBeforeAfter` has exactly one tab, `after`. Unfixed.
+- **feature/laundry-photos-module:** photo create is fully off Apps Script. Backend append
+  (`cdab410` BEF, `84ff00d` AFT), docs (`643e059`), frontend swap (`fa0be72`). Pushed.
+  **Browser-verified on preview 2026-09-08: a real photo saved to the sheet.** Unmerged.
+- Still on Apps Script/legacy in the gallery, on purpose: the image binary goes to Firebase and
+  the photo list is read straight from GViz. Moving either is separate work.
+- **Frontend AFT read bug, unfixed:** `src/api/photos.js:17` reads tab `AfterPhoto`. The workbook
+  has exactly one tab, `after`. It works only because GViz silently falls back to the first tab —
+  proven 2026-09-07 (an invented tab name returns the same rows).
+- `src/composables/usePhotoUpload.js` now imports a gallery feature service. It is used only by
+  `OrderGalleryPage.vue`; it belongs in `src/features/gallery/composables/`. Not moved — the
+  placement of the whole legacy photo-capture set is an open decision (`overview.md:176`).
 
 - **Branches:** `main` (synced) · `feature/laundry-photos-module` (in flight) ·
   `feat/live-order-helper` (pushed, unmerged, **not finished** — kept on purpose). Single worktree.
