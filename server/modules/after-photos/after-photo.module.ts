@@ -15,6 +15,7 @@ import { ApiError } from '../../shared/http/api-error.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import { BaseCrudService, mapDbRowToApi } from '../../shared/services/base-crud.service.js'
 import { projectResponse, requireSingleRow } from '../../shared/services/crud-helpers.js'
+import { generateShortId } from '../../shared/utils/id.js'
 
 type AfterPhotoDbRow = z.infer<typeof afterPhotoRowSchema>
 type OrderItemFormsDbRow = z.infer<typeof orderItemFormsRowSchema>
@@ -40,9 +41,11 @@ export const afterPhotoFieldMap = {
 
 type AfterPhotoApiRow = ApiRowFromFieldMap<AfterPhotoDbRow, typeof afterPhotoFieldMap>
 type AfterPhotoListQuery = z.infer<typeof afterPhotoApiContract.query.list>
+type AfterPhotoCreate = z.infer<typeof afterPhotoApiContract.request.create>
 type AfterPhotoUpdate = z.infer<typeof afterPhotoApiContract.request.update>
 type AfterPhotoListResponse = z.infer<typeof afterPhotoApiContract.response.list>
 type AfterPhotoDetailResponse = z.infer<typeof afterPhotoApiContract.response.detail>
+type AfterPhotoCreateResponse = z.infer<typeof afterPhotoApiContract.response.create>
 type AfterPhotoUpdateResponse = z.infer<typeof afterPhotoApiContract.response.update>
 
 export interface AfterPhotoServiceOptions {
@@ -50,11 +53,23 @@ export interface AfterPhotoServiceOptions {
   orderItemFormsRepository?: () => SheetRepositoryContract<OrderItemFormsDbRow>
 }
 
+export function createAfterPhotoId(): string {
+  return generateShortId()
+}
+
+function prepareAfterPhotoAppendRow(row: Partial<AfterPhotoDbRow>): Partial<AfterPhotoDbRow> {
+  return {
+    ...row,
+    id: typeof row.id === 'string' && row.id.trim() !== '' ? row.id : createAfterPhotoId(),
+  }
+}
+
 export function createAfterPhotoRepository(): SheetRepositoryContract<AfterPhotoDbRow> {
   return {
     read: (query) => getAfterPhotoRepository().read(query),
-    append: (row) => getAfterPhotoRepository().append(row),
-    batchAppend: (rows) => getAfterPhotoRepository().batchAppend(rows),
+    append: (row) => getAfterPhotoRepository().append(prepareAfterPhotoAppendRow(row)),
+    batchAppend: (rows) =>
+      getAfterPhotoRepository().batchAppend(rows.map(prepareAfterPhotoAppendRow)),
     update: (keyValue, patch) => getAfterPhotoRepository().update(keyValue, patch),
     delete: (keyValue, deletedBy) => getAfterPhotoRepository().delete(keyValue, deletedBy),
   }
@@ -65,11 +80,11 @@ const afterPhotoMapper = new Mapper(afterPhotoFieldMap)
 export class AfterPhotoService extends BaseCrudService<
   AfterPhotoApiRow,
   AfterPhotoListQuery,
-  never,
+  AfterPhotoCreate,
   AfterPhotoUpdate,
   AfterPhotoListResponse,
   AfterPhotoDetailResponse,
-  never,
+  AfterPhotoCreateResponse,
   AfterPhotoUpdateResponse,
   AfterPhotoDbRow,
   typeof afterPhotoFieldMap

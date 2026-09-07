@@ -11,6 +11,7 @@ import { packageTransactionsDbContract } from '../../../../server/sheets/Package
 import { packagesDbContract } from '../../../../server/sheets/Packages/Packages.db-contract.js'
 import { issueReportsDbContract } from '../../../../server/sheets/IssueReports/IssueReports.db-contract.js'
 import { laundryPhotosDbContract } from '../../../../server/sheets/LaundryPhotos/LaundryPhotos.db-contract.js'
+import { afterPhotoDbContract } from '../../../../server/sheets/AfterPhoto/AfterPhoto.db-contract.js'
 
 const declaredAudits = [
   { name: 'IssueReports', contract: issueReportsDbContract, expected: { onAppend: ['CreatedAt'], onUpdate: ['UpdatedAt'] } },
@@ -53,6 +54,11 @@ const declaredAudits = [
     name: 'LaundryPhotos',
     contract: laundryPhotosDbContract,
     expected: { onAppend: ['timestamp'] },
+  },
+  {
+    name: 'AfterPhoto',
+    contract: afterPhotoDbContract,
+    expected: { onAppend: ['created_at'] },
   },
   {
     name: 'Customers',

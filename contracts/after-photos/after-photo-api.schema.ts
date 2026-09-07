@@ -33,7 +33,15 @@ export const afterPhotoResponseSchema = z.object({
   deletedBy: z.string().nullable(),
 })
 
-export const afterPhotoCreateSchema = z.never()
+export const afterPhotoCreateSchema = z
+  .object({
+    orderId: z.string().trim().min(1),
+    imageUrl: z.string().trim().min(1),
+    createdBy: z.string().trim().min(1),
+    orderItemId: z.string().trim().min(1).nullish(),
+    itemId: z.string().trim().min(1).nullish(),
+  })
+  .strict()
 
 export const afterPhotoUpdateSchema = z
   .object({
@@ -43,6 +51,7 @@ export const afterPhotoUpdateSchema = z
   .strict()
 
 export const afterPhotoDetailResponseSchema = afterPhotoResponseSchema
+export const afterPhotoCreateResponseSchema = afterPhotoResponseSchema
 export const afterPhotoUpdateResponseSchema = afterPhotoResponseSchema
 
 export const afterPhotoApiContract = {
@@ -51,6 +60,7 @@ export const afterPhotoApiContract = {
   response: {
     list: afterPhotoResponseSchema,
     detail: afterPhotoDetailResponseSchema,
+    create: afterPhotoCreateResponseSchema,
     update: afterPhotoUpdateResponseSchema,
   },
 } satisfies ModuleApiContract

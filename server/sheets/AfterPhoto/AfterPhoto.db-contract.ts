@@ -23,8 +23,8 @@ export const afterPhotoRowSchema = z
   })
   .strict()
 
-// Update is open for reassignment; append and delete stay closed because photo creation and
-// removal remain outside this API. Measured 2026-09-07: `created_at` is a Sheets datetime in
+// Append and update are open for photo creation and reassignment; delete stays closed.
+// Measured 2026-09-07: `created_at` is a Sheets datetime in
 // yyyy-MM-dd hh:mm:ss form; all remaining non-id columns read as strings, including checked,
 // is_active, updated_at, and the deletion fields.
 export const afterPhotoDbContract = {
@@ -32,5 +32,6 @@ export const afterPhotoDbContract = {
   primaryKey: 'id',
   sheetName: 'after',
   spreadsheetId: 'AFTER_PHOTOS_SPREADSHEET_ID',
-  writes: { append: false, update: true, delete: false },
+  audit: { onAppend: ['created_at'] },
+  writes: { append: true, update: true, delete: false },
 } satisfies SheetContract

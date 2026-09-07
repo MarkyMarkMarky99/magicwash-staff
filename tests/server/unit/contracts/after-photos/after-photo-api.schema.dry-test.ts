@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict'
-import { ZodError, ZodNever } from 'zod'
+import { ZodError } from 'zod'
 
 import {
   afterPhotoApiContract,
   afterPhotoCreateSchema,
+  afterPhotoCreateResponseSchema,
   afterPhotoListQuerySchema,
   afterPhotoUpdateSchema,
 } from '../../../../../contracts/after-photos/after-photo-api.schema.js'
@@ -30,8 +31,30 @@ for (const input of [
 }
 
 assert.equal(afterPhotoApiContract.request.create, afterPhotoCreateSchema)
-assert.ok(afterPhotoApiContract.request.create instanceof ZodNever)
-assert.equal('create' in afterPhotoApiContract.response, false)
+assert.deepEqual(afterPhotoCreateSchema.parse({
+  orderId: ' order-1 ', imageUrl: ' https://example.test/photo.jpg ', createdBy: ' staff-1 ',
+  orderItemId: ' item-1 ', itemId: ' catalog-1 ',
+}), {
+  orderId: 'order-1', imageUrl: 'https://example.test/photo.jpg', createdBy: 'staff-1',
+  orderItemId: 'item-1', itemId: 'catalog-1',
+})
+assert.deepEqual(afterPhotoCreateSchema.parse({
+  orderId: 'order-1', imageUrl: 'https://example.test/photo.jpg', createdBy: 'staff-1',
+  orderItemId: null, itemId: null,
+}), {
+  orderId: 'order-1', imageUrl: 'https://example.test/photo.jpg', createdBy: 'staff-1',
+  orderItemId: null, itemId: null,
+})
+for (const input of [
+  {},
+  { orderId: '', imageUrl: 'https://example.test/photo.jpg', createdBy: 'staff-1' },
+  { orderId: 'order-1', imageUrl: '', createdBy: 'staff-1' },
+  { orderId: 'order-1', imageUrl: 'https://example.test/photo.jpg', createdBy: '' },
+  { orderId: 'order-1', imageUrl: 'https://example.test/photo.jpg', createdBy: 'staff-1', isActive: true },
+]) {
+  assert.throws(() => afterPhotoCreateSchema.parse(input), ZodError, JSON.stringify(input))
+}
+assert.equal(afterPhotoApiContract.response.create, afterPhotoCreateResponseSchema)
 
 assert.throws(() => afterPhotoListQuerySchema.parse({}))
 assert.equal(afterPhotoListQuerySchema.parse({ orderId: 'order-1' }).orderItemId, undefined)
