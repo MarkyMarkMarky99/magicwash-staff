@@ -27,11 +27,15 @@ assert.ok(resolved.item)
 const service = module.laundryPhotoService as unknown as {
   list: (query: unknown) => Promise<unknown>
   getById: (id: string) => Promise<unknown>
+  create: (payload: unknown) => Promise<unknown>
   update: (id: string, payload: unknown) => Promise<unknown>
 }
-const originals = { list: service.list, getById: service.getById, update: service.update }
+const originals = {
+  list: service.list, getById: service.getById, create: service.create, update: service.update,
+}
 service.list = async () => ({ items: [], pagination: { page: 1, perPage: 1 } })
 service.getById = async () => ({ laundryPhotoId: 'photo-1' })
+service.create = async () => ({ laundryPhotoId: 'photo-1' })
 service.update = async () => ({ laundryPhotoId: 'photo-1' })
 
 const request = (method: string, body: unknown = undefined, params: Record<string, string> = {}) => ({
@@ -40,12 +44,11 @@ const request = (method: string, body: unknown = undefined, params: Record<strin
 
 try {
   assert.equal((await resolved.collection.handleRequest(request('GET'))).status, 200)
-  const collectionPost = await resolved.collection.handleRequest(request('POST'))
-  assert.equal(collectionPost.status, 405)
-  assert.equal(collectionPost.headers?.Allow, 'GET')
+  const collectionPost = await resolved.collection.handleRequest(request('POST', {}))
+  assert.equal(collectionPost.status, 201)
   const collectionDelete = await resolved.collection.handleRequest(request('DELETE'))
   assert.equal(collectionDelete.status, 405)
-  assert.equal(collectionDelete.headers?.Allow, 'GET')
+  assert.equal(collectionDelete.headers?.Allow, 'GET, POST')
 
   assert.equal((await resolved.item!.handleRequest(request('GET', undefined, { id: 'photo-1' }))).status, 200)
   assert.equal((await resolved.item!.handleRequest(request('PATCH', {}, { id: 'photo-1' }))).status, 200)
@@ -58,6 +61,7 @@ try {
 } finally {
   service.list = originals.list
   service.getById = originals.getById
+  service.create = originals.create
   service.update = originals.update
 }
 

@@ -33,7 +33,15 @@ export const laundryPhotoResponseSchema = z.object({
   deletedBy: z.string().nullable(),
 })
 
-export const laundryPhotoCreateSchema = z.never()
+export const laundryPhotoCreateSchema = z
+  .object({
+    orderId: z.string().trim().min(1),
+    imageUrl: z.string().trim().min(1),
+    createdBy: z.string().trim().min(1),
+    orderItemId: z.string().trim().min(1).nullish(),
+    itemId: z.string().trim().min(1).nullish(),
+  })
+  .strict()
 
 export const laundryPhotoUpdateSchema = z
   .object({
@@ -43,6 +51,7 @@ export const laundryPhotoUpdateSchema = z
   .strict()
 
 export const laundryPhotoDetailResponseSchema = laundryPhotoResponseSchema
+export const laundryPhotoCreateResponseSchema = laundryPhotoResponseSchema
 export const laundryPhotoUpdateResponseSchema = laundryPhotoResponseSchema
 
 export const laundryPhotoApiContract = {
@@ -51,6 +60,7 @@ export const laundryPhotoApiContract = {
   response: {
     list: laundryPhotoResponseSchema,
     detail: laundryPhotoDetailResponseSchema,
+    create: laundryPhotoCreateResponseSchema,
     update: laundryPhotoUpdateResponseSchema,
   },
 } satisfies ModuleApiContract

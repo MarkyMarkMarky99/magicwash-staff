@@ -23,8 +23,8 @@ export const laundryPhotosRowSchema = z
   })
   .strict()
 
-// Update is open for reassignment; append and delete stay closed because photo creation and
-// removal remain outside this API. Measured 2026-09-07: `timestamp` and `deleted_at` are Sheets
+// Append and update are open for photo creation and reassignment; delete stays closed.
+// Measured 2026-09-07: `timestamp` and `deleted_at` are Sheets
 // datetime cells (`dd/MM/yyyy HH:mm:ss` and `yyyy-MM-dd hh:mm:ss` respectively), while
 // `updated_at` is plain text in DD/MM/YYYY. Future writes must never include `updated_at`, because
 // the USER_ENTERED Sheets path would reinterpret the day and month.
@@ -33,5 +33,6 @@ export const laundryPhotosDbContract = {
   primaryKey: 'id',
   sheetName: 'LaundryPhotos',
   spreadsheetId: 'ORDERS_SPREADSHEET_ID',
-  writes: { append: false, update: true, delete: false },
+  audit: { onAppend: ['timestamp'] },
+  writes: { append: true, update: true, delete: false },
 } satisfies SheetContract

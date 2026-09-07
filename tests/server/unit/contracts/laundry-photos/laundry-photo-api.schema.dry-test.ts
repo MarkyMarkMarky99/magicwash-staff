@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict'
-import { ZodError, ZodNever } from 'zod'
+import { ZodError } from 'zod'
 
 import {
   laundryPhotoApiContract,
   laundryPhotoCreateSchema,
+  laundryPhotoCreateResponseSchema,
   laundryPhotoListQuerySchema,
   laundryPhotoUpdateSchema,
 } from '../../../../../contracts/laundry-photos/laundry-photo-api.schema.js'
@@ -29,9 +30,31 @@ for (const input of [
   assert.throws(() => laundryPhotoUpdateSchema.parse(input), ZodError, JSON.stringify(input))
 }
 
+assert.deepEqual(laundryPhotoCreateSchema.parse({
+  orderId: ' order-1 ', imageUrl: ' https://example.test/photo.jpg ', createdBy: ' staff-1 ',
+  orderItemId: ' item-1 ', itemId: ' catalog-1 ',
+}), {
+  orderId: 'order-1', imageUrl: 'https://example.test/photo.jpg', createdBy: 'staff-1',
+  orderItemId: 'item-1', itemId: 'catalog-1',
+})
+assert.deepEqual(laundryPhotoCreateSchema.parse({
+  orderId: 'order-1', imageUrl: 'https://example.test/photo.jpg', createdBy: 'staff-1',
+  orderItemId: null, itemId: null,
+}), {
+  orderId: 'order-1', imageUrl: 'https://example.test/photo.jpg', createdBy: 'staff-1',
+  orderItemId: null, itemId: null,
+})
+for (const input of [
+  {},
+  { orderId: '', imageUrl: 'https://example.test/photo.jpg', createdBy: 'staff-1' },
+  { orderId: 'order-1', imageUrl: '', createdBy: 'staff-1' },
+  { orderId: 'order-1', imageUrl: 'https://example.test/photo.jpg', createdBy: '' },
+  { orderId: 'order-1', imageUrl: 'https://example.test/photo.jpg', createdBy: 'staff-1', isActive: true },
+]) {
+  assert.throws(() => laundryPhotoCreateSchema.parse(input), ZodError, JSON.stringify(input))
+}
 assert.equal(laundryPhotoApiContract.request.create, laundryPhotoCreateSchema)
-assert.ok(laundryPhotoApiContract.request.create instanceof ZodNever)
-assert.equal('create' in laundryPhotoApiContract.response, false)
+assert.equal(laundryPhotoApiContract.response.create, laundryPhotoCreateResponseSchema)
 
 assert.throws(() => laundryPhotoListQuerySchema.parse({}))
 assert.equal(laundryPhotoListQuerySchema.parse({ orderId: 'order-1' }).orderItemId, undefined)

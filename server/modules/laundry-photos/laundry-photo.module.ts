@@ -15,6 +15,7 @@ import { ApiError } from '../../shared/http/api-error.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import { BaseCrudService, mapDbRowToApi } from '../../shared/services/base-crud.service.js'
 import { projectResponse, requireSingleRow } from '../../shared/services/crud-helpers.js'
+import { generateShortId } from '../../shared/utils/id.js'
 
 type LaundryPhotosDbRow = z.infer<typeof laundryPhotosRowSchema>
 type OrderItemFormsDbRow = z.infer<typeof orderItemFormsRowSchema>
@@ -40,9 +41,11 @@ export const laundryPhotoFieldMap = {
 
 type LaundryPhotoApiRow = ApiRowFromFieldMap<LaundryPhotosDbRow, typeof laundryPhotoFieldMap>
 type LaundryPhotoListQuery = z.infer<typeof laundryPhotoApiContract.query.list>
+type LaundryPhotoCreate = z.infer<typeof laundryPhotoApiContract.request.create>
 type LaundryPhotoUpdate = z.infer<typeof laundryPhotoApiContract.request.update>
 type LaundryPhotoListResponse = z.infer<typeof laundryPhotoApiContract.response.list>
 type LaundryPhotoDetailResponse = z.infer<typeof laundryPhotoApiContract.response.detail>
+type LaundryPhotoCreateResponse = z.infer<typeof laundryPhotoApiContract.response.create>
 type LaundryPhotoUpdateResponse = z.infer<typeof laundryPhotoApiContract.response.update>
 
 export interface LaundryPhotoServiceOptions {
@@ -50,11 +53,25 @@ export interface LaundryPhotoServiceOptions {
   orderItemFormsRepository?: () => SheetRepositoryContract<OrderItemFormsDbRow>
 }
 
+export function createLaundryPhotoId(): string {
+  return generateShortId()
+}
+
+function prepareLaundryPhotoAppendRow(
+  row: Partial<LaundryPhotosDbRow>,
+): Partial<LaundryPhotosDbRow> {
+  return {
+    ...row,
+    id: typeof row.id === 'string' && row.id.trim() !== '' ? row.id : createLaundryPhotoId(),
+  }
+}
+
 export function createLaundryPhotoRepository(): SheetRepositoryContract<LaundryPhotosDbRow> {
   return {
     read: (query) => getLaundryPhotosRepository().read(query),
-    append: (row) => getLaundryPhotosRepository().append(row),
-    batchAppend: (rows) => getLaundryPhotosRepository().batchAppend(rows),
+    append: (row) => getLaundryPhotosRepository().append(prepareLaundryPhotoAppendRow(row)),
+    batchAppend: (rows) =>
+      getLaundryPhotosRepository().batchAppend(rows.map(prepareLaundryPhotoAppendRow)),
     update: (keyValue, patch) => getLaundryPhotosRepository().update(keyValue, patch),
     delete: (keyValue, deletedBy) => getLaundryPhotosRepository().delete(keyValue, deletedBy),
   }
@@ -65,11 +82,11 @@ const laundryPhotoMapper = new Mapper(laundryPhotoFieldMap)
 export class LaundryPhotoService extends BaseCrudService<
   LaundryPhotoApiRow,
   LaundryPhotoListQuery,
-  never,
+  LaundryPhotoCreate,
   LaundryPhotoUpdate,
   LaundryPhotoListResponse,
   LaundryPhotoDetailResponse,
-  never,
+  LaundryPhotoCreateResponse,
   LaundryPhotoUpdateResponse,
   LaundryPhotosDbRow,
   typeof laundryPhotoFieldMap

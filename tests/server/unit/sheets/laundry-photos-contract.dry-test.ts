@@ -61,11 +61,11 @@ assert.equal(laundryPhotosDbContract.primaryKey, 'id')
 assert.equal(laundryPhotosDbContract.sheetName, 'LaundryPhotos')
 assert.equal(laundryPhotosDbContract.spreadsheetId, 'ORDERS_SPREADSHEET_ID')
 assert.deepEqual(laundryPhotosDbContract.writes, {
-  append: false,
+  append: true,
   update: true,
   delete: false,
 })
-assert.equal('audit' in laundryPhotosDbContract, false)
+assert.deepEqual(laundryPhotosDbContract.audit, { onAppend: ['timestamp'] })
 assert.equal('valueInput' in laundryPhotosDbContract, false)
 
 console.log('laundry-photos contract dry test passed')
