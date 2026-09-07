@@ -1,5 +1,5 @@
 ---
-last_audited: 2026-08-26
+last_audited: 2026-09-08
 audit_sources:
   - server/shared/repositories/sheet.repository.ts
   - server/shared/repositories/sheet-repository.contract.ts
@@ -8,6 +8,7 @@ audit_sources:
   - server/shared/repositories/sheets-api.client.ts
   - server/shared/repositories/google-auth.ts
   - server/shared/contracts/sheet-contract.ts
+  - server/shared/contracts/sheet-cell-type.ts
   - server/sheets/Customers/Customers.db-contract.ts
   - docs/architecture/backend/operations.md
   - server/modules/invoices/invoice-view-sync-client.ts
@@ -42,6 +43,10 @@ It reads unauthenticated from `https://docs.google.com/spreadsheets/d/{id}/gviz/
 Column letters come from `deriveGVizColumns(contract.row)` in `gviz-query.builder.ts`.
 
 The row schema's key order must match the physical column order of the sheet.
+
+Cell types for equality-filter literals come from the same row schema, via `deriveGVizCellTypes(contract.row)` reading markers set by `sheetDate()`/`sheetDateTime()` in `server/shared/contracts/sheet-cell-type.ts`.
+
+A native Sheets date or datetime cell only matches a typed literal (`date '...'`/`datetime '...'`); a quoted string silently matches zero rows with no error.
 
 ## Writes
 

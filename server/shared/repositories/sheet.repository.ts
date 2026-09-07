@@ -6,8 +6,10 @@ import type {
 } from '../dtos/read-query.dto.js'
 import type { SheetContract } from '../contracts/sheet-contract.js'
 import {
+  deriveGVizCellTypes,
   deriveGVizColumns,
   GVizQueryBuilder,
+  type GSheetCellTypeMap,
   type GSheetColumnMap,
 } from './utils/gviz-query.builder.js'
 import { fetchGVizRows } from './utils/gviz-reader.js'
@@ -88,6 +90,7 @@ export class SheetRepository<TDbRow extends object>
 {
   private readonly contract: SheetContract
   private readonly columns: GSheetColumnMap
+  private readonly cellTypes: GSheetCellTypeMap
   private readonly sheetsApiClient: SheetsApiClient | undefined
   private readonly sheetHeaderMapLoader: SheetHeaderMapLoader | undefined
   private readonly now: () => Date
@@ -96,6 +99,7 @@ export class SheetRepository<TDbRow extends object>
   constructor(input: SheetRepositoryOptions) {
     this.contract = input.contract
     this.columns = deriveGVizColumns(this.contract.row)
+    this.cellTypes = deriveGVizCellTypes(this.contract.row)
     this.now = input.now ?? (() => new Date())
     this.preserveNullValues = input.preserveNullValues ?? false
 
@@ -142,7 +146,7 @@ export class SheetRepository<TDbRow extends object>
       )
     }
 
-    const gvizQuery = GVizQueryBuilder.fromColumns(this.columns)
+    const gvizQuery = GVizQueryBuilder.fromColumns(this.columns, this.cellTypes)
       .fromQuery(this.normalizeReadQuery(query))
       .build()
 
@@ -355,7 +359,7 @@ export class SheetRepository<TDbRow extends object>
     }
 
     try {
-      const query = GVizQueryBuilder.fromColumns(this.columns)
+      const query = GVizQueryBuilder.fromColumns(this.columns, this.cellTypes)
         .where({ [this.contract.primaryKey]: primaryKeyValue })
         .build()
       if (typeof this.contract.spreadsheetId !== 'string') {

@@ -4,8 +4,17 @@ import type {
   ReadQuerySearch,
   ReadQuerySort,
 } from '../../dtos/read-query.dto.js'
+import { cellTypeOf } from '../../contracts/sheet-cell-type.js'
 
 export type GSheetColumnMap = Record<string, string>
+
+/**
+ * Per-column GViz literal type, derived from the row schema's cell-type
+ * markers (see `sheet-cell-type.ts`). Only columns explicitly marked
+ * `sheetDate()`/`sheetDateTime()` appear here; every other column is absent
+ * and keeps the default quoted-string literal.
+ */
+export type GSheetCellTypeMap = Partial<Record<string, 'date' | 'datetime'>>
 
 export interface GSheetRowSchema {
   shape: Record<string, unknown>
@@ -21,16 +30,38 @@ export function deriveGVizColumns(rowSchema: GSheetRowSchema): GSheetColumnMap {
   return columns
 }
 
+/**
+ * Derives which columns are native Sheets date/datetime cells from the same
+ * row schema `deriveGVizColumns` reads. Type is taken from the schema ONLY
+ * — never sniffed from a value's shape — so a plain string column holding
+ * an ISO-looking value is never misrendered as a typed literal.
+ */
+export function deriveGVizCellTypes(rowSchema: GSheetRowSchema): GSheetCellTypeMap {
+  const cellTypes: GSheetCellTypeMap = {}
+
+  for (const [field, fieldSchema] of Object.entries(rowSchema.shape)) {
+    const cellType = cellTypeOf(fieldSchema)
+    if (cellType) {
+      cellTypes[field] = cellType
+    }
+  }
+
+  return cellTypes
+}
+
 export class GVizQueryBuilder {
   private selectClause = 'select *'
   private whereParts: string[] = []
   private sortClause = ''
   private paginationClause = ''
 
-  constructor(private readonly columns: GSheetColumnMap) {}
+  constructor(
+    private readonly columns: GSheetColumnMap,
+    private readonly cellTypes: GSheetCellTypeMap = {},
+  ) {}
 
-  static fromColumns(columns: GSheetColumnMap): GVizQueryBuilder {
-    return new GVizQueryBuilder(columns)
+  static fromColumns(columns: GSheetColumnMap, cellTypes: GSheetCellTypeMap = {}): GVizQueryBuilder {
+    return new GVizQueryBuilder(columns, cellTypes)
   }
 
   fromQuery(query?: MappedReadQuery<Record<string, unknown>>): this {
@@ -62,9 +93,7 @@ export class GVizQueryBuilder {
         continue
       }
 
-      this.whereParts.push(
-        `${this.resolveColumn(field)} = '${this.sanitizeValue(String(value))}'`,
-      )
+      this.whereParts.push(`${this.resolveColumn(field)} = ${this.renderLiteral(field, value)}`)
     }
 
     return this
@@ -119,6 +148,26 @@ export class GVizQueryBuilder {
     }
 
     return column
+  }
+
+  /**
+   * Renders an equality-filter literal for `field`. A native Sheets date or
+   * datetime cell only matches a TYPED literal (`date '...'`/`datetime
+   * '...'`) — a quoted string compares against nothing and GViz silently
+   * returns zero rows. The type comes solely from `this.cellTypes`, which is
+   * derived from the row schema; it is never inferred from `value`'s shape.
+   */
+  private renderLiteral(field: string, value: unknown): string {
+    const sanitized = this.sanitizeValue(String(value))
+    const cellType = this.cellTypes[field]
+
+    if (cellType === 'date') {
+      return `date '${sanitized}'`
+    }
+    if (cellType === 'datetime') {
+      return `datetime '${sanitized}'`
+    }
+    return `'${sanitized}'`
   }
 
   private sanitizeValue(value: string): string {

@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { SheetContract } from '../../../../../server/shared/contracts/sheet-contract.js'
 import { ReadQueryDTO } from '../../../../../server/shared/dtos/read-query.dto.js'
 import { SheetRepository } from '../../../../../server/shared/repositories/sheet.repository.js'
+import { sheetDate } from '../../../../../server/shared/contracts/sheet-cell-type.js'
 
 process.env.TEST_SPREADSHEET_ID = 'spreadsheet-id'
 
@@ -16,6 +17,28 @@ type WidgetRow = z.infer<typeof widgetRowSchema>
 
 const widgetContract = {
   row: widgetRowSchema,
+  primaryKey: 'WidgetID',
+  sheetName: 'Widgets',
+  spreadsheetId: 'TEST_SPREADSHEET_ID',
+  writes: { append: true, update: true, delete: true },
+} satisfies SheetContract
+
+/**
+ * A contract whose row schema marks a native Sheets date cell. Guards the wiring
+ * between the row schema and the query the repository actually sends: without the
+ * cellTypes argument the query silently degrades to a quoted string, which matches
+ * zero rows against a real date cell and reports no error.
+ */
+const datedRowSchema = z.object({
+  WidgetID: z.string(),
+  DueDate: sheetDate(),
+  Label: z.string().nullable(),
+})
+
+type DatedRow = z.infer<typeof datedRowSchema>
+
+const datedContract = {
+  row: datedRowSchema,
   primaryKey: 'WidgetID',
   sheetName: 'Widgets',
   spreadsheetId: 'TEST_SPREADSHEET_ID',
@@ -103,6 +126,18 @@ async function run(): Promise<void> {
       assert.equal(typeof rows[0].NestedData, 'string')
       assert.equal('widgetId' in rows[0], false)
       assert.equal('nestedData' in rows[0], false)
+    },
+  )
+
+  await withMockFetch(
+    async () => gvizResponse(['A', 'B', 'C'], ['W-1', 'Date(2026,8,7)', 'Ready']),
+    async (calls) => {
+      const datedRepository = new SheetRepository<DatedRow>({ contract: datedContract })
+      await datedRepository.read(new ReadQueryDTO({ where: { DueDate: '2026-09-07' } }))
+
+      const tq = new URL(calls[0].url).searchParams.get('tq') ?? ''
+      assert.match(tq, /where B = date '2026-09-07'/)
+      assert.doesNotMatch(tq, /where B = '2026-09-07'/)
     },
   )
 

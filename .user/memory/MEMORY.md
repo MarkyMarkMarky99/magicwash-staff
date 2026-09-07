@@ -1,38 +1,37 @@
 # Project memory
 Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`, read before writing.
 
-## Where we are — 2026-09-07
+## Where we are — 2026-09-08
 
-- **Photo migration merged to main and deployed (`1627139`), branch deleted.** Photo rows are
-  created and reassigned through the API; Apps Script is gone from `src/`. Production smoke-tested:
-  `/api/laundry-photos` and `/api/after-photos` both 200.
-- Still legacy in the gallery, on purpose: the image binary goes to Firebase and the photo list is
-  read straight from GViz in the browser. **Next step of the migration is moving that read** —
-  `OrderGalleryPage.vue:84` → `apiGetList`, which also means renaming `image_url` → `imageUrl` in
-  the template, then deleting `src/api/photos.js`. ~1h, needs a browser check.
-- `src/composables/usePhotoUpload.js` imports a gallery feature service and is used only by
-  `OrderGalleryPage.vue`; it belongs in `src/features/gallery/composables/`. Not moved — placement
-  of the whole legacy photo-capture set is an open decision (`overview.md:176`).
+- Gallery still legacy on purpose: binary to Firebase, photo list read from GViz in the browser.
+  **Next migration step** — `OrderGalleryPage.vue:84` → `apiGetList`, rename `image_url` →
+  `imageUrl` in the template, delete `src/api/photos.js`. ~1h, needs a browser check.
+- `src/composables/usePhotoUpload.js` belongs in `src/features/gallery/composables/`. Not moved;
+  placement of the legacy photo-capture set is an open decision (`overview.md:176`).
 - Known gap, reported not fixed: GET responses pass GViz `Date(...)` through unnormalized on the
   photo modules (and OrderImages), against `docs/conventions/datetime.md`. Not on a live UI path
   while the gallery still reads GViz directly.
 
-- **Branches:** `main` (synced, deployed) · `feat/live-order-helper` (pushed, unmerged, **not
-  finished** — kept on purpose). Single worktree.
+- **Branches:** `main` (synced, deployed) · `fix/gviz-date-literal-filter` (2 commits, **unpushed**)
+  · `feat/live-order-helper` (pushed, unmerged, **not finished** — kept on purpose). Single worktree.
+
+### `fix/gviz-date-literal-filter` — in flight
+
+- Backend fix committed and verified live: GViz equality filters on native date cells now emit a
+  typed literal. `?appointmentDate=` works (was silently 0 rows). 97/97 dry tests, typecheck clean.
+- **Not pushed. Not merged.** Nothing deployed yet.
+- **Phase 2 committed, unverified in a browser.** `appointment.store.ts` now sends
+  `appointmentDate` and makes ONE request instead of five. Store test added (none existed).
+  **Open `#/appointments` on a phone before pushing** — Chrome will not launch from a session here.
+- Pre-existing web dry-test failures, NOT from this branch: `customer-package-create-page`,
+  `package-pages`. Both fail on `main` too.
 
 - **Never dispatch `backend-team` or any pipeline unless the user names it.** No default
   code-writing assistant. Pipeline is mason → clerk → sentinel.
-- `main`: documentation was consolidated. Root `CLAUDE.md` is the only index; backend rules live
-  under `docs/architecture/backend/`. Retired `api/CLAUDE.md`, `api/AGENTS.md`, completed plans,
-  handoff documents, and `docs/scripts/` are deleted and pushed in `e6058a6`.
-- Uncommitted: `.codex/skills/explore/SKILL.md` contains the Codex discovery workflow; the short
-  `.claude/skills/explore/SKILL.md` wrapper invokes it with Luna, high reasoning effort, and a
-  prompt example.
 
 ## Workers
 
-- **Codex quota was exhausted 2026-09-06** (resets 00:17). When it is, dispatch a
-  general-purpose sonnet agent with the same brief — that is what finished the scanner.
+- Codex quota runs out; when it does, dispatch a general-purpose sonnet agent with the same brief.
 - Chrome **cannot be launched from a Claude session on this machine** (`0xC0000003`, real
   Chrome and Playwright's chromium alike). Browser proof goes to the user's phone.
 - Solo codex briefs must forbid subagents in the first lines, redirect to a log file, and
@@ -40,14 +39,12 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 
 ## Browser checks still pending on `main`
 
-Nothing below has been opened in a browser; there is no frontend type-check, so a broken
-prop ships green.
+Nothing below has been opened in a browser. `typecheck:web` passes green on layout bugs.
 
 1. Search on `#/price-list` (client filter) and `#/invoices` (store fetch); `✕` clears.
 2. Deep link `#/invoices?keyword=INV` — the box must open by itself with the word in it.
-3. `#/price-list`: search → ⚙ → `ซักแห้ง` → type nonsense. **Service buttons must remain.**
-   `ListContainer` renders one slot at a time; a panel only in the default slot vanishes
-   exactly when the filter matches nothing.
+3. `#/price-list`: search → ⚙ → `ซักแห้ง` → type nonsense. **Service buttons must remain**
+   (default-slot panel vanishes exactly when the filter matches nothing).
 4. `#/appointments` and customer detail — must show **no** magnifier at all.
 5. Theme sweep: green ink instead of near-black, Noto Sans Thai everywhere.
 6. Order detail → scroll so a dropdown trigger sits near the bottom edge, then open it. The
@@ -59,16 +56,14 @@ prop ships green.
 - `OrderImages` (weight/belonging/document, `/api/order-images`) and `LaundryPhotos` +
   `AfterPhoto` (garment before/after, `/gallery/:key`, Apps Script) are **two systems on
   purpose**. An earlier note proposed merging them; rejected.
-- **Live bug, unfixed:** the gallery learns `created_by` only from `?by=`. Rows without it
-  are rejected by Apps Script with `Missing required field: created_by`. The frontend
-  falls back to `admin`, but the gateway is the only validator and it fails silently.
+- **Live bug, unfixed:** the gallery learns `created_by` only from `?by=`; frontend falls back to
+  `admin` and the only validator fails silently. Re-check — the Apps Script gateway is now gone.
 
 ## Price list — next
 
 1. Fill real prices for the 33 rows at placeholder `price 0` (all `active: false`).
-2. **Add-price-to-an-existing-item is still buried.** The `+` always opens "new item"; adding
-   another service to a visible row costs a mode switch and a re-search. An action on the card
-   itself (`BaseSwipeCard` supports one) would pass `itemCode` straight through. Designed, not built.
+2. **Add-price-to-an-existing-item is buried.** `+` always opens "new item". A card action
+   (`BaseSwipeCard` supports one) would pass `itemCode` through. Designed, not built.
 
 Verified 2026-09-06, do not re-check: live sheet = G Drive registry = `PriceList.db-contract.ts`,
 16 columns, enum `WSIR|IRON|DRCL|WASH`; `PRICE_LIST_SPREADSHEET_ID` set in all three Vercel
@@ -87,24 +82,35 @@ Reported, not fixed:
 - Absent on purpose: `OrderItems` catalogue, package-credit consumption, nested
   `invoice_item_id` writes, server-side binary upload, retiring the frontend fixtures.
 
+## Page-load latency — measured 2026-09-08, ranked
+
+One GViz read is ~2.1s whatever the row count. Cost = NUMBER of reads, not payload.
+
+1. `App.vue:8` runs `loadInitial()` on **every** page mount; appointments page-walks 5 sequential
+   reads = **10.7s**. Phase 2 above cuts it to 1. Biggest win in the app.
+2. `work-orders`: order read, then a full Customers-sheet read, sequential
+   (`work-order.service.ts:189`, `where: {}` when >1 customer).
+3. `invoices` + `dateFrom`/`dateTo` drops pagination, reads every matching row
+   (`invoice.service.ts:631`). Now properly fixable — the date filter works.
+4. No store cache on invoices / customer-packages / orders → refetch every visit.
+   customers + price-list cache (`loaded` flag) and are instant after first load.
+5. No HTTP cache headers on `/api/*`.
+
 ## Deferred by the user
 
-- **Pagination, app-wide.** Responses omit real `total`/`totalPages` while frontend types claim
-  otherwise. Invoices and customer-packages strand rows past 20. Two passes: make `okPaged` count
-  for real and drop invoices' fabricated total, then add pagers to those two modules.
-- **Live Orders sheet data is dirty.** Do not normalize it incidentally. `OrderItemForms` holds
-  1,074 phantom quantity-only rows; categorical columns mix spellings and languages;
-  `OrderImages.image_path` and timestamps mix formats.
+- **Pagination, app-wide.** Responses omit real `total`/`totalPages`; invoices and
+  customer-packages strand rows past 20. Fix `okPaged` first, then add the two pagers.
+- **Live Orders sheet data is dirty.** Do not normalize it incidentally: 1,074 phantom
+  `OrderItemForms` rows, mixed spellings/languages, mixed timestamp formats.
 - **`LaundryPhotos` row order is not chronological.** New rows land mid-sheet (~row 20,869), the
   physical last row is months old. Sort by timestamp; never trust the bottom of the sheet.
-- **Other modules still page-walk** with `order by <non-unique column>` + `limit/offset` and can
-  silently drop rows. Orders and OrderItems will actually hit it.
+- **Other modules still page-walk** (`order by <non-unique column>` + `limit/offset`, can drop
+  rows). Orders and OrderItems will hit it.
 
 ## Open items
 
-- **API authentication before launch.** Until then the actor is a fallback constant, defined once
-  per side: `src/shared/config/actor.ts` and `server/shared/config/actor.ts`. Auth work changes
-  those two files; `?by=` must keep overriding for AppSheet deep links.
+- **API authentication before launch.** Actor is a fallback constant in
+  `src/shared/config/actor.ts` + `server/shared/config/actor.ts`; `?by=` must keep overriding.
 - Issue reports still ask a human to type their name, on purpose — fold into the auth pass.
 - Invoice `CANCELLED` vs `VOID` — decide the distinction, then the contract. UI deferred; see
   `docs/plans/invoice-contract-merge-and-status-update.md`.
@@ -112,16 +118,13 @@ Reported, not fixed:
 - Remove schema-file `z.infer` exports in one dedicated all-contract pass.
 - Consolidate datetime helpers separately — `SheetRepository` is shared by every module.
 - Stage 4 overlays still local-state: `OrderGalleryPage.vue`, `InvoiceProofLightbox.vue`,
-  `NavSidebar.vue`. The gallery mirrors `route.meta` into a `ref`; nested `<button>` near :255.
+  `NavSidebar.vue`; nested `<button>` near :255.
 - `customer-packages` **create form** still diverges from `docs/design/patterns/forms.md`.
-- `customer-package-create-page.dry-test.ts:20` asserts `@close="returnToList"`; the page says
-  `@close="closeForm"`. Failing at HEAD, unrelated to any recent change — decide which is right.
-- Docs still describe the old header search (`SEARCHABLE_ROUTES`, `meta.searchable`); both are
-  deleted from the code. `docs/design/patterns/list-pages.md` needs the ListContainer search too.
+- Docs still describe the deleted header search (`SEARCHABLE_ROUTES`, `meta.searchable`);
+  `list-pages.md` needs the ListContainer search instead.
 - Confirm `CUSTOMERS_SPREADSHEET_ID` is set in every Vercel environment.
 - Test the merged overlay sheet on a real phone: drag-to-close, scroll, Back, edge-swipe.
-- Delete leftover `C:\MagicwashGemini\webapp-vue-frontend` — locked native bindings, ~34 MB,
-  from a removed worktree; needs a restart to release.
+- Delete leftover `C:\MagicwashGemini\webapp-vue-frontend` (~34 MB, dead worktree, needs a restart).
 
 ## Test data to remove by hand (`SheetRepository.delete()` throws)
 
@@ -133,17 +136,14 @@ Reported, not fixed:
 
 ## Environment
 
-- Dev server was on **3000** (`vercel dev` in front of Vite, which pins 3102). Do not start a
-  second one; check what is listening first.
+- Dev server on **3000** (`vercel dev` fronting Vite on 3102). Check what is listening first.
 - Pushing `main` deploys production. Deliberate act.
-- A long-lived `vercel dev` can break its frontend proxy silently: `/` returns 500
-  `FUNCTION_INVOCATION_FAILED` while `/api/*` still returns 200. Restart it, don't debug the app.
+- `/` returns 500 `FUNCTION_INVOCATION_FAILED` while `/api/*` stays 200 → an **orphaned Vite from an
+  earlier session still holds 3102**, so vercel dev proxies a child it does not own. Kill both PIDs
+  and restart. Do not debug the app; check process start times to spot it.
 
 ## Project rules — pointers only
 
 - `CLAUDE.md` — frontend architecture, navigation, testing, working rules.
-- `docs/design/patterns/list-pages.md` — required pattern for root collection pages.
-- Search/filters belong to `ListContainer` (`searchable`, `#search-actions`), not the app
-  header. A panel in the default slot must also go into `#empty` and `#error`.
-- Service-type Thai labels: `src/shared/utils/service-type-labels.ts` only. `contracts/` is for
-  API schemas and enums, never labels.
+- `docs/design/patterns/list-pages.md` — required pattern for root collection pages, incl. the
+  `ListContainer` search rules and the `#empty`/`#error` slot trap.

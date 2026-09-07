@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { SheetContract } from '../../shared/contracts/sheet-contract.js'
+import { sheetDate, sheetDateTime } from '../../shared/contracts/sheet-cell-type.js'
 
 const appointmentTypeSchema = z.enum(['PICKUP', 'DELIVERY', 'PICKUP_DELIVERY'])
 const appointmentTimeSlotSchema = z.enum(['10:00-12:00', '13:00-15:00', '15:00-17:00', '18:00-20:00'])
@@ -18,7 +19,7 @@ export const appointmentsRowSchema = z.object({
   AppointmentID: z.string(),
   CustomerID: z.string(),
   AppointmentType: appointmentTypeSchema,
-  AppointmentDate: z.string(),
+  AppointmentDate: sheetDate(),
   TimeSlot: appointmentTimeSlotSchema,
   Status: appointmentStatusSchema,
   // JSON customer snapshot string. The module transformer parses it later.
@@ -26,7 +27,7 @@ export const appointmentsRowSchema = z.object({
   PickupOrderID: z.string().nullable(),
   DeliveryOrderID: z.string().nullable(),
   Notes: z.string().nullable(),
-  CreatedAt: z.string(),
+  CreatedAt: sheetDateTime(),
   UpdatedAt: z.string().nullable(),
   CreatedBy: z.string().nullable(),
   UpdatedBy: z.string().nullable(),
