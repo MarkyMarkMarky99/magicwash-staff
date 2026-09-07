@@ -1,5 +1,5 @@
 ---
-last_audited: 2026-08-26
+last_audited: 2026-09-07
 audit_sources:
   - src/features/customers
   - src/features/customers/routes.ts
@@ -15,9 +15,11 @@ Business functionality is organized by feature.
 
 Each feature owns its UI, state, routing, API integration, and feature-specific logic.
 
-The gallery keeps its existing GViz read path and Apps Script upload path. Reassigning an already
-saved before or after photo is a separate feature service operation through the shared API client;
-the gallery loads the current order's destination items only when the reassignment picker opens.
+The gallery writes photo rows through the shared API client; Apps Script is no longer in its create
+path. Its image binary still goes to Firebase Storage, only the URL reaches the API, and the photo
+list is still read from GViz — moving either is separate work. Reassigning an already saved before
+or after photo is a separate feature service operation through the same client; the gallery loads
+the current order's destination items only when the reassignment picker opens.
 
 ## Structure
 

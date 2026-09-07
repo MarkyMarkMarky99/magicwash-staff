@@ -69,8 +69,9 @@ request was sent: a transport failure can follow a committed write and retry can
 Token acquisition may be retried. Unsupported delete must fail rather than report false success.
 
 All sheet row writes use the Google Sheets API; there is no SheetLib or Apps Script row-write
-fallback. `APPSCRIPT_INVOICE_VIEW_SYNC_URL` only recomputes `InvoicesView`. Browser photo upload is
-a separate direct Apps Script integration and must not be described as the backend row-write path.
+fallback. `APPSCRIPT_INVOICE_VIEW_SYNC_URL` only recomputes `InvoicesView`. Browser photo upload
+sends its image binary to Firebase Storage and then writes the row through this API like any other
+module; the binary itself never passes through the backend.
 
 ## Environment and external state
 
