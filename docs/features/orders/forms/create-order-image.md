@@ -46,13 +46,12 @@ Purpose:
 
 Neither is decided here.
 
-- **Write path.** Reuse the existing Apps Script `APPEND` gateway, or wait for a Sheets-API write
-  path behind an orders module. The existing path does not target `OrderImages` at all:
+- **Write path.** `OrderImages` still has no HTTP write surface, so this form has nowhere to post.
+  The existing capture path does not target `OrderImages` at all:
   `src/composables/usePhotoUpload.js` uploads the binary to Firebase Storage via
-  `src/api/storage.js`, then `src/api/photos.js` posts `{ resource: 'sheet', action: 'APPEND',
-  target: 'BeforePhoto' | 'AfterPhoto', data }` with a snake_case payload. The backend's
-  `LaundryPhotos` and `after` modules separately expose GViz reads and update-only reassignment;
-  Apps Script remains the upload/create path.
+  `src/api/storage.js`, then posts the row to `POST /api/laundry-photos` or
+  `POST /api/after-photos`. Those two modules are the shape to copy when `OrderImages` gets its own
+  module; the Apps Script gateway they used to write through is gone.
 - **Capture code ownership.** Move the capture stack into `src/shared/` in a dedicated refactor pass
   that checks every existing call site, or duplicate it inside `src/features/orders/`. Importing it
   where it stands is a forbidden cross-feature import.

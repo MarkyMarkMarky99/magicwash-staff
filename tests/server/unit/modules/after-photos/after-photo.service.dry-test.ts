@@ -120,8 +120,11 @@ async function expectApiError(operation: () => Promise<unknown>, status: number)
 
 const destination = { id: 'destination-item', order_id: 'order-1', item_id: 'destination-catalog-item' }
 {
-  const { service, photos } = makeService([makePhotoRow()], [destination])
+  const { service, photos, items } = makeService([makePhotoRow()], [destination])
   await service.update('after-1', { orderItemId: 'destination-item', updatedBy: 'staff-1' })
+  // The photo is looked up by the route id and the destination by the payload id — never swapped.
+  assert.deepEqual(photos.readIds, ['after-1'])
+  assert.deepEqual(items.readIds, ['destination-item'])
   assert.equal(photos.updateCalls.length, 1)
   const update = photos.updateCalls[0]!
   assert.deepEqual(Object.keys(update.patch).sort(), ['item_id', 'orderitem_id', 'updated_by'])

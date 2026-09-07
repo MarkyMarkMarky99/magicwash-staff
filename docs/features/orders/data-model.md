@@ -88,10 +88,13 @@ implemented, on branch `feat/register-order-sheets`.
 The before-photo sheet is `LaundryPhotos` in `ORDERS_SPREADSHEET_ID`, 16 columns, A–P. The
 after-photo sheet is the lowercase `after` tab in the workbook identified by
 `AFTER_PHOTOS_SPREADSHEET_ID`, also 16 columns, A–P. Both are registered at
-`server/sheets/` with `writes: { append: false, update: true, delete: false }`: upload/create and
-removal remain outside this API.
+`server/sheets/` with `writes: { append: true, update: true, delete: false }`: rows are created and
+reassigned through this API, and removal stays outside it.
 
-The backend modules expose `GET` collection/detail routes and `PATCH` reassignment routes. List
+The backend modules expose `GET` collection/detail routes, a `POST` create route, and `PATCH`
+reassignment routes. Create takes `orderId`, `imageUrl` and `createdBy`, with optional
+`orderItemId` and `itemId`; the row id and the created timestamp are server-owned. The image binary
+is not part of it — the browser uploads that to Firebase Storage and sends only its URL. List
 queries require `orderId` and optionally accept `orderItemId`; reassignment validates the photo,
 the destination `OrderItemForms` row, and their order before writing only `orderitem_id`,
 `item_id`, and `updated_by`. It never rewrites `updated_at`, whose plain `DD/MM/YYYY` text must
