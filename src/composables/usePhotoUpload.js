@@ -1,7 +1,7 @@
 import { ref, toValue } from 'vue'
 import { compressImage } from '../utils/imageCompression'
 import { uploadRaw } from '../api/storage'
-import { savePhoto } from '../api/photos'
+import { createPhoto } from '../features/gallery/services/laundry-photo.service'
 
 const MAX_FILES_PER_PICK = 10
 
@@ -45,14 +45,13 @@ export function usePhotoUpload(type, orderId, orderitemId, createdBy, itemId) {
       updateItem(id, { imageUrl, status: 'saving' })
 
       const photoData = {
-        id,
-        order_id: target.orderId,
-        image_url: imageUrl,
-        created_by: target.createdBy,
+        orderId: target.orderId,
+        imageUrl,
+        createdBy: target.createdBy,
       }
-      if (target.orderitemId) photoData.orderitem_id = target.orderitemId
-      if (target.itemId && target.itemId !== 'null') photoData.item_id = target.itemId
-      await savePhoto(target.type, photoData)
+      if (target.orderitemId) photoData.orderItemId = target.orderitemId
+      if (target.itemId && target.itemId !== 'null') photoData.itemId = target.itemId
+      await createPhoto(target.type, photoData)
       updateItem(id, { status: 'done' })
     } catch (err) {
       updateItem(id, { status: 'error', errorMsg: err?.message ?? 'เกิดข้อผิดพลาด' })
