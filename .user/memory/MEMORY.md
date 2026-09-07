@@ -3,17 +3,22 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 
 ## Where we are — 2026-09-07
 
-- **feature/laundry-photos-module:** photo create is fully off Apps Script. Backend append
-  (`cdab410` BEF, `84ff00d` AFT), docs (`643e059`), frontend swap (`fa0be72`). Pushed.
-  **Browser-verified on preview 2026-09-08: a real photo saved to the sheet.** Unmerged.
-- Still on Apps Script/legacy in the gallery, on purpose: the image binary goes to Firebase and
-  the photo list is read straight from GViz. Moving either is separate work.
-- `src/composables/usePhotoUpload.js` now imports a gallery feature service. It is used only by
-  `OrderGalleryPage.vue`; it belongs in `src/features/gallery/composables/`. Not moved — the
-  placement of the whole legacy photo-capture set is an open decision (`overview.md:176`).
+- **Photo migration merged to main and deployed (`1627139`), branch deleted.** Photo rows are
+  created and reassigned through the API; Apps Script is gone from `src/`. Production smoke-tested:
+  `/api/laundry-photos` and `/api/after-photos` both 200.
+- Still legacy in the gallery, on purpose: the image binary goes to Firebase and the photo list is
+  read straight from GViz in the browser. **Next step of the migration is moving that read** —
+  `OrderGalleryPage.vue:84` → `apiGetList`, which also means renaming `image_url` → `imageUrl` in
+  the template, then deleting `src/api/photos.js`. ~1h, needs a browser check.
+- `src/composables/usePhotoUpload.js` imports a gallery feature service and is used only by
+  `OrderGalleryPage.vue`; it belongs in `src/features/gallery/composables/`. Not moved — placement
+  of the whole legacy photo-capture set is an open decision (`overview.md:176`).
+- Known gap, reported not fixed: GET responses pass GViz `Date(...)` through unnormalized on the
+  photo modules (and OrderImages), against `docs/conventions/datetime.md`. Not on a live UI path
+  while the gallery still reads GViz directly.
 
-- **Branches:** `main` (synced) · `feature/laundry-photos-module` (in flight) ·
-  `feat/live-order-helper` (pushed, unmerged, **not finished** — kept on purpose). Single worktree.
+- **Branches:** `main` (synced, deployed) · `feat/live-order-helper` (pushed, unmerged, **not
+  finished** — kept on purpose). Single worktree.
 
 - **Never dispatch `backend-team` or any pipeline unless the user names it.** No default
   code-writing assistant. Pipeline is mason → clerk → sentinel.
