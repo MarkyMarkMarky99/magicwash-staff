@@ -8,10 +8,10 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
   wrapper. Verified against the live sheet: column H stores correctly, no day/month swap.
   Frontend still uploads via Apps Script; switching `usePhotoUpload.js:55` is the next step and
   needs the local tile key split from the server-generated db id.
-- **AfterPhoto append not done.** Blocked on the user: share workbook `1_0gUApQ…` (tab `after`)
-  with the service account, and set `AFTER_PHOTOS_SPREADSHEET_ID` in Vercel Production + Preview.
-  Also unresolved: `src/api/photos.js` READ_SHEET.AFT says tab `AfterPhoto`, the db-contract says
-  `after` — check which tabs actually exist before trusting either.
+- **AfterPhoto append shipped too** (`84ff00d`), same shape, `audit.onAppend: ['created_at']`.
+  Workbook is shared and the env var is set; verified with a live probe row.
+- **Frontend AFT read is wrong:** `src/api/photos.js:17` reads tab `AfterPhoto`. Probed
+  2026-09-07: workbook `MagicwashBeforeAfter` has exactly one tab, `after`. Unfixed.
 
 - **Branches:** `main` (synced) · `feature/laundry-photos-module` (in flight) ·
   `feat/live-order-helper` (pushed, unmerged, **not finished** — kept on purpose). Single worktree.
@@ -125,6 +125,7 @@ Reported, not fixed:
 - `OrderForm`: `246fde2b`, `cc4d375e`, `f68ae08d` — all customer `b1d4fc48`, `order_name` `UAT-*`
 - `LaundryPhotos`: `QK0H9DT1` (`created_by: claude-uat`) · `a260b2b1`, `1b7649ba`
   (`order_id: CLAUDE-PROBE-ORDER`, from the 2026-09-07 live append probe)
+- `AfterPhoto` tab `after`: `0aacd052` (`order_id: CLAUDE-PROBE-AFT`, same probe)
 
 ## Environment
 
