@@ -8,12 +8,11 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
   `imageUrl` in the template, delete `src/api/photos.js`. ~1h, needs a browser check.
 - `src/composables/usePhotoUpload.js` belongs in `src/features/gallery/composables/`; placement of
   the legacy photo-capture set is an open decision (`overview.md:176`).
-- Known gap, reported not fixed: GET responses pass GViz `Date(...)` through unnormalized on the
-  photo modules (and OrderImages), against `docs/conventions/datetime.md`. Not on a live UI path
-  while the gallery still reads GViz directly.
+- Known gap, not fixed: photo modules and OrderImages pass GViz `Date(...)` through unnormalized,
+  against `docs/conventions/datetime.md`. Not on a live UI path yet.
 
-- **Branches:** `main` · `feat/live-order-helper` (pushed, unmerged, **not finished** — kept on
-  purpose). Single worktree. Delete `fix/gviz-date-literal-filter` once main is pushed.
+- **Branches:** `main` (synced, deployed 2026-09-08 — date filter + one-request appointments live
+  and verified) · `feat/live-order-helper` (pushed, unmerged, **not finished**). Single worktree.
 - Pre-existing web dry-test failures, unrelated to any recent work: `customer-package-create-page`,
   `package-pages`. Both fail on an unmodified tree — decide which side is right.
 
