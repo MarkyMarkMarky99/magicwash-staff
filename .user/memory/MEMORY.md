@@ -20,9 +20,11 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 - Backend fix committed and verified live: GViz equality filters on native date cells now emit a
   typed literal. `?appointmentDate=` works (was silently 0 rows). 97/97 dry tests, typecheck clean.
 - **Not pushed. Not merged.** Nothing deployed yet.
-- **Phase 2 not started:** `appointment.store.ts:151` still page-walks the whole sheet. Patch is
-  written, typechecks, reverted out of the tree — reapply from
-  `<scratchpad>/phase2-store-single-request.diff` (54 lines). **Needs a browser check before push.**
+- **Phase 2 committed, unverified in a browser.** `appointment.store.ts` now sends
+  `appointmentDate` and makes ONE request instead of five. Store test added (none existed).
+  **Open `#/appointments` on a phone before pushing** — Chrome will not launch from a session here.
+- Pre-existing web dry-test failures, NOT from this branch: `customer-package-create-page`,
+  `package-pages`. Both fail on `main` too.
 
 - **Never dispatch `backend-team` or any pipeline unless the user names it.** No default
   code-writing assistant. Pipeline is mason → clerk → sentinel.
@@ -98,13 +100,12 @@ One GViz read is ~2.1s whatever the row count. Cost = NUMBER of reads, not paylo
 
 - **Pagination, app-wide.** Responses omit real `total`/`totalPages`; invoices and
   customer-packages strand rows past 20. Fix `okPaged` first, then add the two pagers.
-- **Live Orders sheet data is dirty.** Do not normalize it incidentally. `OrderItemForms` holds
-  1,074 phantom quantity-only rows; categorical columns mix spellings and languages;
-  `OrderImages.image_path` and timestamps mix formats.
+- **Live Orders sheet data is dirty.** Do not normalize it incidentally: 1,074 phantom
+  `OrderItemForms` rows, mixed spellings/languages, mixed timestamp formats.
 - **`LaundryPhotos` row order is not chronological.** New rows land mid-sheet (~row 20,869), the
   physical last row is months old. Sort by timestamp; never trust the bottom of the sheet.
-- **Other modules still page-walk** with `order by <non-unique column>` + `limit/offset` and can
-  silently drop rows. Orders and OrderItems will actually hit it.
+- **Other modules still page-walk** (`order by <non-unique column>` + `limit/offset`, can drop
+  rows). Orders and OrderItems will hit it.
 
 ## Open items
 
@@ -117,12 +118,10 @@ One GViz read is ~2.1s whatever the row count. Cost = NUMBER of reads, not paylo
 - Remove schema-file `z.infer` exports in one dedicated all-contract pass.
 - Consolidate datetime helpers separately — `SheetRepository` is shared by every module.
 - Stage 4 overlays still local-state: `OrderGalleryPage.vue`, `InvoiceProofLightbox.vue`,
-  `NavSidebar.vue`. The gallery mirrors `route.meta` into a `ref`; nested `<button>` near :255.
+  `NavSidebar.vue`; nested `<button>` near :255.
 - `customer-packages` **create form** still diverges from `docs/design/patterns/forms.md`.
-- `customer-package-create-page.dry-test.ts:20` asserts `@close="returnToList"`; the page says
-  `@close="closeForm"`. Failing at HEAD, unrelated to any recent change — decide which is right.
-- Docs still describe the old header search (`SEARCHABLE_ROUTES`, `meta.searchable`); both are
-  deleted from the code. `docs/design/patterns/list-pages.md` needs the ListContainer search too.
+- Docs still describe the deleted header search (`SEARCHABLE_ROUTES`, `meta.searchable`);
+  `list-pages.md` needs the ListContainer search instead.
 - Confirm `CUSTOMERS_SPREADSHEET_ID` is set in every Vercel environment.
 - Test the merged overlay sheet on a real phone: drag-to-close, scroll, Back, edge-swipe.
 - Delete leftover `C:\MagicwashGemini\webapp-vue-frontend` (~34 MB, dead worktree, needs a restart).

@@ -50,7 +50,7 @@ export const useAppointmentStore = defineStore('appointments', () => {
     error.value = null
 
     try {
-      // Read date-sorted records and filter normalized dates locally.
+      // The API filters by date; this only drops pending and orders by slot.
       const items = await listAppointmentsForDate(date)
       if (request !== dailyRequest) return
 
@@ -148,30 +148,18 @@ export const useAppointmentStore = defineStore('appointments', () => {
   }
 })
 
+/**
+ * One request: the API filters by date at the sheet, so the client neither pages
+ * nor date-filters. The rows still need normalizing because GViz returns a native
+ * date cell in its `Date(Y,M,D)` wire format.
+ */
 async function listAppointmentsForDate(date: string): Promise<AppointmentListDto[]> {
-  const matches: AppointmentListDto[] = []
-  let page = 1
+  const result = await listAppointments({
+    appointmentDate: date,
+    perPage: MAX_LIST_SIZE,
+  })
 
-  while (true) {
-    const result = await listAppointments({
-      page,
-      perPage: MAX_LIST_SIZE,
-      sortBy: 'appointmentDate',
-      sortOrder: 'asc',
-    })
-    const normalizedItems = normalizeAppointmentItems(result.items)
-
-    matches.push(...normalizedItems.filter((item) => item.appointmentDate === date))
-
-    const reachedEnd = result.items.length < MAX_LIST_SIZE
-    const passedDate = normalizedItems.some((item) => {
-      const itemDate = normalizeSheetDate(item.appointmentDate)
-      return itemDate !== null && itemDate > date
-    })
-    if (reachedEnd || passedDate) return matches
-
-    page += 1
-  }
+  return normalizeAppointmentItems(result.items)
 }
 
 function normalizeAppointmentItems(items: AppointmentListDto[]): AppointmentListDto[] {
