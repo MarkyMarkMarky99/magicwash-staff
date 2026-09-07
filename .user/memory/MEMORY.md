@@ -6,28 +6,18 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 - Gallery still legacy on purpose: binary to Firebase, photo list read from GViz in the browser.
   **Next migration step** — `OrderGalleryPage.vue:84` → `apiGetList`, rename `image_url` →
   `imageUrl` in the template, delete `src/api/photos.js`. ~1h, needs a browser check.
-- `src/composables/usePhotoUpload.js` belongs in `src/features/gallery/composables/`. Not moved;
-  placement of the legacy photo-capture set is an open decision (`overview.md:176`).
+- `src/composables/usePhotoUpload.js` belongs in `src/features/gallery/composables/`; placement of
+  the legacy photo-capture set is an open decision (`overview.md:176`).
 - Known gap, reported not fixed: GET responses pass GViz `Date(...)` through unnormalized on the
   photo modules (and OrderImages), against `docs/conventions/datetime.md`. Not on a live UI path
   while the gallery still reads GViz directly.
 
-- **Branches:** `main` (synced, deployed) · `fix/gviz-date-literal-filter` (2 commits, **unpushed**)
-  · `feat/live-order-helper` (pushed, unmerged, **not finished** — kept on purpose). Single worktree.
+- **Branches:** `main` · `feat/live-order-helper` (pushed, unmerged, **not finished** — kept on
+  purpose). Single worktree. Delete `fix/gviz-date-literal-filter` once main is pushed.
+- Pre-existing web dry-test failures, unrelated to any recent work: `customer-package-create-page`,
+  `package-pages`. Both fail on an unmodified tree — decide which side is right.
 
-### `fix/gviz-date-literal-filter` — in flight
-
-- Backend fix committed and verified live: GViz equality filters on native date cells now emit a
-  typed literal. `?appointmentDate=` works (was silently 0 rows). 97/97 dry tests, typecheck clean.
-- **Not pushed. Not merged.** Nothing deployed yet.
-- **Phase 2 committed, unverified in a browser.** `appointment.store.ts` now sends
-  `appointmentDate` and makes ONE request instead of five. Store test added (none existed).
-  **Open `#/appointments` on a phone before pushing** — Chrome will not launch from a session here.
-- Pre-existing web dry-test failures, NOT from this branch: `customer-package-create-page`,
-  `package-pages`. Both fail on `main` too.
-
-- **Never dispatch `backend-team` or any pipeline unless the user names it.** No default
-  code-writing assistant. Pipeline is mason → clerk → sentinel.
+- **Never dispatch `backend-team` or any pipeline unless the user names it.**
 
 ## Workers
 
@@ -43,12 +33,10 @@ Nothing below has been opened in a browser. `typecheck:web` passes green on layo
 
 1. Search on `#/price-list` (client filter) and `#/invoices` (store fetch); `✕` clears.
 2. Deep link `#/invoices?keyword=INV` — the box must open by itself with the word in it.
-3. `#/price-list`: search → ⚙ → `ซักแห้ง` → type nonsense. **Service buttons must remain**
-   (default-slot panel vanishes exactly when the filter matches nothing).
+3. `#/price-list`: search → ⚙ → `ซักแห้ง` → type nonsense. **Service buttons must remain.**
 4. `#/appointments` and customer detail — must show **no** magnifier at all.
-5. Theme sweep: green ink instead of near-black, Noto Sans Thai everywhere.
-6. Order detail → scroll so a dropdown trigger sits near the bottom edge, then open it. The
-   panel must flip **above** and show every row.
+5. Theme sweep: green ink, Noto Sans Thai everywhere.
+6. Order detail → open a dropdown near the bottom edge: it must flip **above**, all rows visible.
 7. Order create → customer picker: scroll the options, no scrollbar should appear.
 
 ## Photos — settled, do not re-litigate
@@ -82,19 +70,35 @@ Reported, not fixed:
 - Absent on purpose: `OrderItems` catalogue, package-credit consumption, nested
   `invoice_item_id` writes, server-side binary upload, retiring the frontend fixtures.
 
-## Page-load latency — measured 2026-09-08, ranked
+## Page-load latency — next, ranked
 
-One GViz read is ~2.1s whatever the row count. Cost = NUMBER of reads, not payload.
+Measured 2026-09-08. **Never optimise from local numbers**: `vercel dev` adds ~0.9s per request.
 
-1. `App.vue:8` runs `loadInitial()` on **every** page mount; appointments page-walks 5 sequential
-   reads = **10.7s**. Phase 2 above cuts it to 1. Biggest win in the app.
-2. `work-orders`: order read, then a full Customers-sheet read, sequential
-   (`work-order.service.ts:189`, `where: {}` when >1 customer).
-3. `invoices` + `dateFrom`/`dateTo` drops pagination, reads every matching row
-   (`invoice.service.ts:631`). Now properly fixable — the date filter works.
-4. No store cache on invoices / customer-packages / orders → refetch every visit.
-   customers + price-list cache (`loaded` flag) and are instant after first load.
-5. No HTTP cache headers on `/api/*`.
+| | one read |
+|---|---|
+| GViz direct | 0.49s |
+| **production warm** | **0.82s** |
+| production cold | 1.65s |
+| local `vercel dev` | 1.71s |
+
+Our own overhead in prod is ~0.33s, which is fine. The work left is **fewer reads**, not faster
+ones. Appointments' 5-read walk is already fixed and merged.
+
+1. **Cache invoices / customer-packages / orders stores.** They refetch on every visit; customers
+   and price-list already cache with a `loaded` flag — copy it. These are the pages that feel
+   slow. ~1-2h, biggest perceived win left.
+2. **`work-orders` fans out to a full Customers-sheet read**, awaited AFTER the order read
+   (`work-order.service.ts:189`, `where: {}` when >1 customer). Two sequential reads; the orders
+   page is the most expensive in the app. Parallelise or reuse the cached customer list. ~2h.
+3. **`invoices` + `dateFrom`/`dateTo` drops pagination** and reads every matching row
+   (`invoice.service.ts:631`). Needs `>=`/`<=` in `GVizQueryBuilder` — a feature, not a bug fix,
+   and only now possible because typed date literals work. ~3h.
+4. **`App.vue:8` prefetches appointments on every page mount**, including pages that never show
+   them. Scope it to the routes that need it plus the pending badge. ~1h.
+5. **No HTTP cache headers on `/api/*`** (`vercel.json` only covers `/scanic-ml/*`). Decide
+   staleness first; do not start here.
+
+Also unmeasured: whether prod cold starts are frequent enough to matter (1.65s vs 0.82s).
 
 ## Deferred by the user
 
@@ -129,10 +133,8 @@ One GViz read is ~2.1s whatever the row count. Cost = NUMBER of reads, not paylo
 ## Test data to remove by hand (`SheetRepository.delete()` throws)
 
 - `Packages`: `ZZTEST01` · customer package `af9f0651` (พิมพ์นิดา)
-- `OrderForm`: `246fde2b`, `cc4d375e`, `f68ae08d` — all customer `b1d4fc48`, `order_name` `UAT-*`
-- `LaundryPhotos`: `QK0H9DT1` (`created_by: claude-uat`) · `a260b2b1`, `1b7649ba`
-  (`order_id: CLAUDE-PROBE-ORDER`, from the 2026-09-07 live append probe)
-- `AfterPhoto` tab `after`: `0aacd052` (`order_id: CLAUDE-PROBE-AFT`, same probe)
+- `OrderForm`: `246fde2b`, `cc4d375e`, `f68ae08d` (customer `b1d4fc48`, `order_name` `UAT-*`)
+- `LaundryPhotos`: `QK0H9DT1`, `a260b2b1`, `1b7649ba` · `AfterPhoto` tab `after`: `0aacd052`
 
 ## Environment
 
