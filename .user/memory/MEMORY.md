@@ -12,10 +12,9 @@ Live note — what is in flight, next, stuck.
 
 ## Where we are — 2026-09-09
 
-- **Branch:** `refactor/reuse-list-container` — ListContainer adopted on the pending page and the
-  order-items sheet; `BaseSwipeCard` ghost-click fix (ISS-72adcdca) committed but **unverified on a
-  phone**. Do not merge or push until a real finger tap confirms it.
-- **Branch:** `feat/live-order-helper` — pushed, unmerged, not finished.
+- **Branch:** `feat/live-order-helper` — pushed, unmerged, not finished. Older than `main`.
+- **On `main`, merged but unverified on a phone:** `BaseSwipeCard` ghost-click fix (ISS-72adcdca).
+  Source-based dry test only; no device has confirmed it. Issue row is still `OPEN`.
 - **Open cache gap:** `onFresh` is unwired. `docs/plans/cache-gateway.md`.
 - Pre-existing web dry-test failures on an unmodified tree, unrelated to recent work:
   `customer-package-create-page`, `package-pages`.
@@ -28,9 +27,9 @@ Live note — what is in flight, next, stuck.
 
 ## Browser checks still pending on `main`
 
-0. **ISS-72adcdca on `refactor/reuse-list-container`:** cache-hit customer list, finger tap a row —
-   only customer detail may open, no order sheet. Then swipe a card and tap a panel button: it must
-   still fire. Desktop mouse and keyboard unchanged.
+0. **ISS-72adcdca:** cache-hit customer list, finger tap a row — only customer detail may open, no
+   order sheet. Then swipe a card and tap a panel button: it must still fire. Mouse and keyboard
+   unchanged. Close the issue row once it passes.
 1. Search on `#/price-list` (client filter) and `#/invoices` (store fetch); `✕` clears.
 2. Deep link `#/invoices?keyword=INV` — box must open by itself with the word in it.
 3. `#/price-list`: search → ⚙ → `ซักแห้ง` → type nonsense. **Service buttons must remain.**
