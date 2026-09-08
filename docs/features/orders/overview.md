@@ -168,7 +168,7 @@ Verified inventory on 2026-08-30 —
 5. `OrderImages` has no HTTP surface, on the same terms as Blocker 4: sheet-layer registration with
    append is in progress on the same branch, with no contract, module, or route. The existing camera
    path does not write here — `src/composables/usePhotoUpload.js` uploads the binary to Firebase
-   Storage via `src/api/storage.js`, then posts the row to
+   Storage via `src/shared/api/firebase-storage.ts`, then posts the row to
    `POST /api/laundry-photos` or `POST /api/after-photos`. `src/api/photos.js` is now the GViz
    *read* for those two sheets only.
 6. Photo capture code is not shared. It lives in `src/features/gallery/`, `src/api/`,

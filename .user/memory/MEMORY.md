@@ -29,6 +29,13 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
   be the first thing that can actually grow without bound — it needs TTL, a size cap and a
   write-invalidation rule from day one.
 
+- **Image uploads are now one module** — `src/shared/api/firebase-storage.ts`; `src/api/storage.js`
+  and `order-image-storage.service.ts` deleted. Measured state, the closed door on URL resizing, and
+  what is left (metadata backfill, scanner resolution, thumbnails) live in
+  `docs/plans/image-pipeline.md`.
+- **Cache gateway is designed, not built** — handoff for a fresh session is
+  `docs/plans/cache-gateway.md`. Read-only scope, explicit `invalidate()`, no changes to writes.
+
 - **Never dispatch `backend-team` or any pipeline unless the user names it.**
 
 ## Workers

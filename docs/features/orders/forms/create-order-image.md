@@ -49,7 +49,7 @@ Neither is decided here.
 - **Write path.** `OrderImages` still has no HTTP write surface, so this form has nowhere to post.
   The existing capture path does not target `OrderImages` at all:
   `src/composables/usePhotoUpload.js` uploads the binary to Firebase Storage via
-  `src/api/storage.js`, then posts the row to `POST /api/laundry-photos` or
+  `src/shared/api/firebase-storage.ts`, then posts the row to `POST /api/laundry-photos` or
   `POST /api/after-photos`. Those two modules are the shape to copy when `OrderImages` gets its own
   module; the Apps Script gateway they used to write through is gone.
 - **Capture code ownership.** Move the capture stack into `src/shared/` in a dedicated refactor pass
@@ -63,7 +63,7 @@ Reference implementation only; not the chosen design, and not importable from or
 - `src/shared/components/CameraOverlay.vue` — live `getUserMedia` capture
 - `src/features/gallery/pages/OrderGalleryPage.vue` — `input type=file`, `accept=image/*`, `multiple`
 - `src/composables/usePhotoUpload.js` — compress, upload, save; max 10 files per pick
-- `src/api/storage.js` — Firebase `uploadBytes` + `getDownloadURL`
+- `src/shared/api/firebase-storage.ts` — Firebase `uploadBytes` + `getDownloadURL`
 - `src/api/photos.js` — GViz read, Apps Script `APPEND` write, snake_case payload
 - `src/utils/imageCompression.js`
 - `src/firebase.js`

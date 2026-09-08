@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { createOrderImage, listOrderImages, type OrderImageDto } from '@/features/orders/services/order-image.service'
-import { uploadOrderImage } from '@/features/orders/services/order-image-storage.service'
+import { uploadToStorage } from '@/shared/api/firebase-storage'
 import type { OrderImageType } from '@/features/orders/order-image-labels'
 import { currentActor } from '@/shared/config/actor'
 
@@ -45,7 +45,7 @@ export const useOrderImageStore = defineStore('order-images', () => {
     uploadingCount.value += 1
     uploadError.value = null
     try {
-      const imagePath = await uploadOrderImage(input.orderId, input.file)
+      const imagePath = await uploadToStorage(input.file, `order-images/${input.orderId}`)
       const created = await createOrderImage({ orderId: input.orderId, customerId: null, deliveryId: null, imageType: input.imageType, imagePath, notes: null, quantity, createdBy: currentActor() })
       if (imagesOrderId.value === input.orderId) images.value = [...images.value, created]
     } catch (reason) {
