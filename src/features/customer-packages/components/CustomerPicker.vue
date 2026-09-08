@@ -19,7 +19,7 @@ const selectedCustomer = computed(() => props.customers.find((customer) => custo
 const filteredCustomers = computed(() => {
   const query = search.value.trim().toLocaleLowerCase('th-TH')
   if (!query) return props.customers
-  return props.customers.filter((customer) => [customer.customerName, customer.phone ?? '']
+  return props.customers.filter((customer) => [customer.customerName ?? '', customer.phone ?? '']
     .some((value) => value.toLocaleLowerCase('th-TH').includes(query)))
 })
 

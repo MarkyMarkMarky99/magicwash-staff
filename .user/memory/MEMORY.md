@@ -12,9 +12,22 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
   against `docs/conventions/datetime.md`. Not on a live UI path yet.
 
 - **Branches:** `main` (synced, deployed 2026-09-08 — date filter + one-request appointments live
-  and verified) · `feat/live-order-helper` (pushed, unmerged, **not finished**). Single worktree.
+  and verified) · `feat/live-order-helper` (pushed, unmerged, **not finished**) ·
+  `fix/customer-picker-filter` (shallowRef + null-name guard, browser-verified, unmerged).
+  Single worktree.
 - Pre-existing web dry-test failures, unrelated to any recent work: `customer-package-create-page`,
   `package-pages`. Both fail on an unmodified tree — decide which side is right.
+
+- **Disproven 2026-09-08 — do not act on the old note:** invoices / customer-packages / orders do
+  NOT refetch on revisit. `App.vue:17-21` keeps every route component except nine form pages, and
+  those pages fetch from `watch(..., {immediate:true})` with no `onActivated`, so returning with the
+  same query issues no request. The slowness is the FIRST load, not a repeat one. A per-store
+  `loaded` flag would have bought nothing.
+- **No frontend cache has a TTL or eviction anywhere**, but nothing accumulates either: all eleven
+  caching stores hold one slot and overwrite it (new customer replaces the old customer's arrays,
+  new date replaces `dailyItems`, new order replaces its images). A URL-keyed central gateway would
+  be the first thing that can actually grow without bound — it needs TTL, a size cap and a
+  write-invalidation rule from day one.
 
 - **Never dispatch `backend-team` or any pipeline unless the user names it.**
 
@@ -83,12 +96,16 @@ Measured 2026-09-08. **Never optimise from local numbers**: `vercel dev` adds ~0
 Our own overhead in prod is ~0.33s, which is fine. The work left is **fewer reads**, not faster
 ones. Appointments' 5-read walk is already fixed and merged.
 
-1. **Cache invoices / customer-packages / orders stores.** They refetch on every visit; customers
-   and price-list already cache with a `loaded` flag — copy it. These are the pages that feel
-   slow. ~1-2h, biggest perceived win left.
-2. **`work-orders` fans out to a full Customers-sheet read**, awaited AFTER the order read
-   (`work-order.service.ts:189`, `where: {}` when >1 customer). Two sequential reads; the orders
-   page is the most expensive in the app. Parallelise or reuse the cached customer list. ~2h.
+1. **`work-orders` reads the whole Customers sheet on every order-list load.**
+   `work-order.service.ts:101-107` awaits the order read, then `readCustomerNames`; `:195` uses
+   `where: {}` whenever the page holds >1 distinct customer, which a real list always does. The two
+   reads are genuinely dependent — `Promise.all` cannot fix the list; the second read has to get
+   cheaper or disappear. Three options: add `whereIn()` to `gviz-query.builder.ts` (`:85-98` only
+   emits `col = value`, no IN); or drop `customerName` from the list response and map it on the
+   client from the customer store; or cache customers server-side.
+2. **Order detail runs three sequential reads** (`work-order.service.ts:122-133`): order →
+   customer → order items. The items read needs only `id`, so it can run parallel with the order
+   read. ~20min, the cheapest real win left.
 3. **`invoices` + `dateFrom`/`dateTo` drops pagination** and reads every matching row
    (`invoice.service.ts:631`). Needs `>=`/`<=` in `GVizQueryBuilder` — a feature, not a bug fix,
    and only now possible because typed date literals work. ~3h.
@@ -103,6 +120,9 @@ Also unmeasured: whether prod cold starts are frequent enough to matter (1.65s v
 
 - **Pagination, app-wide.** Responses omit real `total`/`totalPages`; invoices and
   customer-packages strand rows past 20. Fix `okPaged` first, then add the two pagers.
+- **The Customers sheet has one all-null row** (1 of 466; every field `null`). It reaches the API
+  as a real row and shows up as a blank entry in every customer picker. Left alone deliberately —
+  decide between deleting the sheet row and filtering rows without a `customerId` in code.
 - **Live Orders sheet data is dirty.** Do not normalize it incidentally: 1,074 phantom
   `OrderItemForms` rows, mixed spellings/languages, mixed timestamp formats.
 - **`LaundryPhotos` row order is not chronological.** New rows land mid-sheet (~row 20,869), the
