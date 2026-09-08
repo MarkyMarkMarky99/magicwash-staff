@@ -58,6 +58,13 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 - **Never bind a search input with `v-model`.** It swallows keystrokes while an IME composition is
   open, so Thai typing on Android filters nothing until Enter. All five search inputs now use
   `:value` + `@input`. Only a real Android device reproduces it.
+- **Old photos still carry `Cache-Control: private, max-age=0`** and pay a ~0.36s revalidation round
+  trip on every repeat view. Only uploads made after 2026-09-08 get the immutable header. Fixing the
+  existing objects needs a one-off metadata backfill over bucket
+  `magicwashlaundry-a50ca.firebasestorage.app` — **blocked on credentials**: `GOOGLE_SERVICE_ACCOUNT_KEY`
+  is for Sheets only, and neither `server/` nor `api/` touches Storage at all. The script can be
+  written any time; it cannot be run until the user supplies bucket access. Detail:
+  `docs/plans/image-pipeline.md`.
 - **Image uploads are now one module** — `src/shared/api/firebase-storage.ts`; `src/api/storage.js`
   and `order-image-storage.service.ts` deleted. Measured state, the closed door on URL resizing, and
   what is left (metadata backfill, scanner resolution, thumbnails) live in
