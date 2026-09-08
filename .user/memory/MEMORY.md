@@ -3,8 +3,10 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 
 ## Queue — 2026-09-08, in order
 
-1. **Browser-check `feat/cache-persistence`** (below), then merge. It now carries BOTH the
-   localStorage layer and the first live TTLs, so this is the first check where behaviour changes.
+1. **Browser-check the 1-hour TTL on production** — merged 2026-09-09 WITHOUT a browser check, at
+   the user's call. `/api/customers` + `/api/price-list` now skip the request inside the window, so
+   a write path that forgot `invalidate()` shows stale data for up to an hour. Edit a price and it
+   must appear at once; reload a list and it must paint instantly. รีเฟรชข้อมูล is the escape hatch.
 2. **Wire `onFresh`** into the customer and price-list stores: on a stale hit the background refresh
    updates the cache but the current view keeps the old copy until the next read.
 3. **Backfill `Cache-Control` on existing photos.** Script writable now, **not runnable** until the
@@ -14,23 +16,22 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 
 ## Where we are — 2026-09-08
 
-- **Branches:** `main` (cache invalidation merged + deployed 2026-09-08, phone-verified) ·
-  `feat/cache-persistence` (below) · `feat/live-order-helper` (pushed, unmerged, **not finished**) ·
+- **Branches:** `main` (whole cache gateway merged + deployed; invalidation phone-verified
+  2026-09-08, TTLs NOT) · `feat/live-order-helper` (pushed, unmerged, **not finished**) ·
   `fix/customer-picker-filter` (shallowRef + null-name guard, browser-verified, unmerged).
-- **API read cache on `main` is inert** — every TTL 0, traffic unchanged, a cached copy just paints
-  first. `docs/plans/cache-gateway.md`. `/api/orders` is never invalidated on purpose: `OrdersView`
-  is a materialized view this project does not write; it belongs to `feat/live-order-helper`.
-- **`feat/cache-persistence` — localStorage layer + first TTLs, NOT browser-checked.** Only
-  `/api/customers` + `/api/price-list` persist (`persistent-cache.ts`, 2 MB cap, versioned keys,
-  namespaced clear) and those same two are now at **1 hour** — the cache stops being inert here.
-  On a phone: reload paints instantly; an edited price still appears at once; reporter name survives.
-- Pre-existing web dry-test failures on an unmodified tree: `customer-package-create-page`,
-  `package-pages`. Unrelated to recent work; decide which side is right.
+- **Cache gateway is complete and live.** `/api/customers` + `/api/price-list`: 1-hour TTL and the
+  only two persisted to localStorage (`persistent-cache.ts`, 2 MB cap, versioned keys, clear scoped
+  to its own namespace so the reporter name survives). Every other endpoint is still 0 hours —
+  cached but always revalidated. `docs/plans/cache-gateway.md`. `/api/orders` is never invalidated
+  on purpose: `OrdersView` is a materialized view this project does not write; it belongs to
+  `feat/live-order-helper`.
+- Pre-existing web dry-test failures on an unmodified tree, unrelated to recent work:
+  `customer-package-create-page`, `package-pages`.
 - Gallery still legacy on purpose (binary to Firebase, list read from GViz in the browser). **Next
   step** — `OrderGalleryPage.vue:84` → `apiGetList`, rename `image_url` → `imageUrl`, delete
   `src/api/photos.js`. ~1h, needs a browser check.
-- `src/composables/usePhotoUpload.js` belongs in `src/features/gallery/composables/`; placement of
-  the legacy photo-capture set is open (`overview.md:176`).
+- `src/composables/usePhotoUpload.js` belongs in `src/features/gallery/composables/`; the legacy
+  photo-capture set's placement is open (`overview.md:176`).
 - Known gap, not on a live UI path yet: photo modules and OrderImages pass GViz `Date(...)` through
   unnormalized, against `docs/conventions/datetime.md`.
 - **Old photos still carry `Cache-Control: private, max-age=0`** (~0.36s revalidation per repeat
@@ -113,8 +114,7 @@ left is **fewer reads**, not faster ones.
   customer-packages strand rows past 20. Fix `okPaged` first, then add the two pagers.
 - **Customers sheet has one all-null row** (1 of 466) — shows as a blank entry in every picker.
   Decide: delete the sheet row, or filter rows without a `customerId`.
-- **Live Orders sheet data is dirty** — do not normalize incidentally (1,074 phantom
-  `OrderItemForms` rows, mixed spellings, mixed timestamp formats).
+- **Live Orders sheet data is dirty** — do not normalize incidentally (1,074 phantom rows, mixed spellings and timestamp formats).
 - **`LaundryPhotos` row order is not chronological** — new rows land ~row 20,869. Sort by timestamp.
 - **Other modules still page-walk** (`order by <non-unique column>` + limit/offset, can drop rows).
 
