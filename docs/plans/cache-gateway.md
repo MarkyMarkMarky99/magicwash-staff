@@ -107,8 +107,15 @@ persisting them only churns the store.
 5. ~~A staff-facing refresh control that calls `invalidate()`.~~ Built as the bottom-pinned
    "รีเฟรชข้อมูล" action in `NavSidebar.vue`, plus an `invalidate()` call on all 14 write services.
 
-**Left to do: raise the first TTLs**, starting with `/api/price-list` and `/api/customers`. That is
-the only step that changes observable behaviour.
+6. ~~Raise the first TTLs.~~ `/api/customers` and `/api/price-list` sit at **1 hour**, not the 24
+   proposed above: the write path is only as good as its least-covered branch, and an hour bounds
+   how long a missed `invalidate()` — or an edit made on another device or straight in the sheet —
+   can stay invisible. This is the step that changes observable behaviour; everything before it was
+   inert.
+
+**Known gap, not a blocker:** no call site passes `onFresh` yet, so on a stale hit the background
+refresh updates the cache but the view that triggered it keeps showing the old copy until the next
+read. Wiring it into the customer and price-list stores is the natural follow-up.
 
 ### Three failure modes to handle
 

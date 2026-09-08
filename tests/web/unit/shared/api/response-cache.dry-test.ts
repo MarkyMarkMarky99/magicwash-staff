@@ -17,15 +17,22 @@ assert.deepEqual(hit.value, { items: [1, 2] }, 'value survives the round trip')
 assert.equal(readCache('/api/work-orders?page=2'), null, 'a different query is a different entry')
 
 // --- freshness follows the configured policy ----------------------------------------
-// Every endpoint sits at 0 hours while the cache is being introduced: still cached, but
-// never counted as fresh, so it is served immediately AND revalidated on every read.
-// That keeps network behaviour identical to before the cache existed.
+// An endpoint with no configured TTL sits at 0 hours: still cached, but never counted
+// as fresh, so it is served immediately AND revalidated on every read. That keeps its
+// network behaviour identical to before the cache existed.
 assert.equal(hit.fresh, false, 'a 0-hour endpoint is always stale')
 
+// The two near-static lists are the only endpoints with a real window. A fresh hit is
+// the one thing that actually removes a request, so it is asserted directly.
 writeCache('/api/customers', [{ customerId: 'CUS-1' }])
 const customers = readCache('/api/customers')
 assert.ok(customers, 'endpoints marked for persistence cache the same way')
-assert.equal(customers.fresh, false, 'no endpoint is exempt from revalidating yet')
+assert.equal(customers.fresh, true, 'a just-written entry is inside its one-hour window')
+assert.equal(
+  readCache('/api/customers?keyword=a'),
+  null,
+  'a TTL does not make an unwritten filter variant a hit',
+)
 
 // --- invalidate clears an endpoint and all of its filtered variants -------------------
 writeCache('/api/customers?keyword=a', [])

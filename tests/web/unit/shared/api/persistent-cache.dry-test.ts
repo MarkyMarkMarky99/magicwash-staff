@@ -107,15 +107,22 @@ const promoted = readCache<{ customerId: string }[]>('/api/customers')
 assert.ok(promoted, 'a memory miss falls through to storage')
 assert.deepEqual(promoted.value, [{ customerId: 'CUS-2' }], 'the stored value comes back intact')
 assert.equal(cacheStats().entries, 1, 'and is promoted into memory so the next read is local')
-// Freshness is judged from when the response arrived, not from when it was read back,
-// so a reload cannot make a stale entry look fresh once a TTL is finally raised. Today
-// every TTL is 0, which is why this is asserted on the timestamp rather than on `fresh`.
+// Freshness is judged from when the response arrived, not from when it was read back.
+// This is the whole point of the layer: a reload must not resurrect an expired entry as
+// a fresh one, which would hide an edit made on another device for a full hour.
 assert.equal(
   readPersisted('/api/customers')?.storedAt,
   writtenAt,
   'promotion does not re-date the stored entry',
 )
-assert.equal(promoted.fresh, false, 'and nothing is fresh while every configured TTL is 0')
+assert.equal(promoted.fresh, true, 'a copy stored moments ago survives the reload as fresh')
+
+// The same URL, stored two hours ago, is past the one-hour window it was written under.
+invalidate()
+writePersisted('/api/customers', [{ customerId: 'CUS-3' }], Date.now() - 2 * 60 * 60 * 1000)
+const expired = readCache<{ customerId: string }[]>('/api/customers')
+assert.ok(expired, 'an expired entry is still served, so the page never waits on the network')
+assert.equal(expired.fresh, false, 'but it is reported stale, so the caller revalidates')
 
 // --- invalidate clears both layers -----------------------------------------------------
 invalidate('/api/customers')

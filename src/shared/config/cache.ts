@@ -17,13 +17,21 @@ export const DEFAULT_CACHE_HOURS = 0
 /**
  * Per-endpoint freshness overrides, matched against the start of the request path.
  *
- * Deliberately empty. While the cache is being introduced, no endpoint may change
- * observable behaviour: every read still hits the network exactly as before, and
- * the only difference is that a cached copy is painted first. Real TTLs are set
- * once the cache has been proven correct in use, and every endpoint given a
- * non-zero value needs an `invalidate()` call on the writes that affect it first.
+ * An endpoint may only appear here once the writes that affect it call
+ * `invalidate()`, or staff see their own edit fail to appear. Both entries below
+ * are covered: every write service invalidates, and the nav sidebar has a refresh
+ * control for the case this cannot cover — a change made from another device or
+ * typed straight into the sheet, which this browser has no way to learn about.
+ *
+ * One hour, not the 24 the design first proposed: the write path is only as good
+ * as its least-covered branch, and an hour bounds how long a miss can be visible
+ * while still absorbing a whole shift's worth of repeat page loads. Raise it once
+ * the pair has been in real use.
  */
-const CACHE_HOURS: Record<string, number> = {}
+const CACHE_HOURS: Record<string, number> = {
+  '/api/customers': 1,
+  '/api/price-list': 1,
+}
 
 /**
  * Endpoints kept in `localStorage`, so a page reload paints from a stored copy

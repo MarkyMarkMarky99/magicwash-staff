@@ -3,9 +3,10 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 
 ## Queue — 2026-09-08, in order
 
-1. **Browser-check the localStorage layer** on `feat/cache-persistence` (below), then merge.
-2. **Raise the first TTLs** (`/api/price-list`, `/api/customers`) — the only step that changes
-   observable behaviour. Only after 1.
+1. **Browser-check `feat/cache-persistence`** (below), then merge. It now carries BOTH the
+   localStorage layer and the first live TTLs, so this is the first check where behaviour changes.
+2. **Wire `onFresh`** into the customer and price-list stores: on a stale hit the background refresh
+   updates the cache but the current view keeps the old copy until the next read.
 3. **Backfill `Cache-Control` on existing photos.** Script writable now, **not runnable** until the
    user supplies Firebase bucket credentials.
 4. **Decide the document scanner's 2400px / q0.88 output.** 3× the camera path's file size. Needs
@@ -16,18 +17,17 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 - **Branches:** `main` (cache invalidation merged + deployed 2026-09-08, phone-verified) ·
   `feat/cache-persistence` (below) · `feat/live-order-helper` (pushed, unmerged, **not finished**) ·
   `fix/customer-picker-filter` (shallowRef + null-name guard, browser-verified, unmerged).
-- **API read cache is inert on purpose** — every TTL is 0, so traffic is unchanged; a cached copy
-  only paints first. Writes call `invalidate()`, sidebar has "รีเฟรชข้อมูล". `docs/plans/cache-gateway.md`.
-  `/api/orders` is never invalidated on purpose — `OrdersView` is a materialized view this project
-  does not write; it belongs to `feat/live-order-helper`.
-- **`feat/cache-persistence` — localStorage layer built, NOT browser-checked.**
-  `src/shared/api/persistent-cache.ts`; only `/api/customers` + `/api/price-list` persist, 2 MB cap,
-  versioned keys, namespaced clear. Typecheck + 3 dry tests pass. On a phone: reload a customer list
-  and it should paint instantly; the issue-report reporter name must still survive รีเฟรชข้อมูล.
+- **API read cache on `main` is inert** — every TTL 0, traffic unchanged, a cached copy just paints
+  first. `docs/plans/cache-gateway.md`. `/api/orders` is never invalidated on purpose: `OrdersView`
+  is a materialized view this project does not write; it belongs to `feat/live-order-helper`.
+- **`feat/cache-persistence` — localStorage layer + first TTLs, NOT browser-checked.** Only
+  `/api/customers` + `/api/price-list` persist (`persistent-cache.ts`, 2 MB cap, versioned keys,
+  namespaced clear) and those same two are now at **1 hour** — the cache stops being inert here.
+  On a phone: reload paints instantly; an edited price still appears at once; reporter name survives.
 - Pre-existing web dry-test failures on an unmodified tree: `customer-package-create-page`,
   `package-pages`. Unrelated to recent work; decide which side is right.
-- Gallery still legacy on purpose: binary to Firebase, list read from GViz in the browser.
-  **Next step** — `OrderGalleryPage.vue:84` → `apiGetList`, rename `image_url` → `imageUrl`, delete
+- Gallery still legacy on purpose (binary to Firebase, list read from GViz in the browser). **Next
+  step** — `OrderGalleryPage.vue:84` → `apiGetList`, rename `image_url` → `imageUrl`, delete
   `src/api/photos.js`. ~1h, needs a browser check.
 - `src/composables/usePhotoUpload.js` belongs in `src/features/gallery/composables/`; placement of
   the legacy photo-capture set is open (`overview.md:176`).
@@ -63,8 +63,8 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 
 - `OrderImages` (`/api/order-images`) and `LaundryPhotos` + `AfterPhoto` (`/gallery/:key`) are **two
   systems on purpose**. An earlier merge proposal was rejected.
-- **Live bug, unfixed:** gallery learns `created_by` only from `?by=`; frontend falls back to
-  `admin`, the only validator fails silently. Re-check — the Apps Script gateway is now gone.
+- **Live bug, unfixed:** gallery learns `created_by` only from `?by=`, frontend falls back to
+  `admin`, the only validator fails silently. Re-check now the Apps Script gateway is gone.
 
 ## Price list — next
 
@@ -80,16 +80,16 @@ Reported, not fixed:
 ## Orders backend
 
 - Two lanes on purpose: `orders` reads browse-only `OrdersView`; `work-orders` / `order-items` /
-  `order-images` write live sheets in `ORDERS_SPREADSHEET_ID`. Never read one lane and write the
-  other. Design: `docs/plans/orders-backend.md`.
+  `order-images` write live sheets in `ORDERS_SPREADSHEET_ID`. Never read one and write the other.
+  `docs/plans/orders-backend.md`.
 - Absent on purpose: `OrderItems` catalogue, package-credit consumption, nested `invoice_item_id`
   writes, server-side binary upload, retiring the frontend fixtures.
 
 ## Page-load latency — next, ranked
 
-Measured 2026-09-08. **Never optimise from local numbers** (`vercel dev` adds ~0.9s/request):
-GViz direct 0.49s · **prod warm 0.82s** · prod cold 1.65s · local 1.71s. Our prod overhead ~0.33s is
-fine — the work left is **fewer reads**, not faster ones.
+Measured 2026-09-08. **Never optimise from local numbers** (`vercel dev` adds ~0.9s/request): GViz
+0.49s · **prod warm 0.82s** · prod cold 1.65s · local 1.71s. Our ~0.33s overhead is fine — the work
+left is **fewer reads**, not faster ones.
 
 1. **`work-orders` reads the whole Customers sheet on every order-list load**
    (`work-order.service.ts:101-107`, `:195` uses `where: {}` whenever the page holds >1 customer).
@@ -145,6 +145,6 @@ fine — the work left is **fewer reads**, not faster ones.
 ## Environment
 
 - Dev server on **3000** (`vercel dev` fronting Vite on 3102). Check what is listening first.
-- Pushing `main` deploys production. Deliberate act.
-- `/` returns 500 while `/api/*` stays 200 → an **orphaned Vite from an earlier session holds 3102**.
-  Kill both PIDs and restart; check process start times to spot it. Do not debug the app.
+- Pushing `main` deploys production. Deliberate act. Prod alias: `magicwash-staff.vercel.app`.
+- `/` 500 while `/api/*` stays 200 → an **orphaned Vite from an earlier session holds 3102**. Kill
+  both PIDs and restart; check process start times. Do not debug the app.
