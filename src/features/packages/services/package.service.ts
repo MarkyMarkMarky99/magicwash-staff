@@ -6,6 +6,7 @@ import {
   packageUpdateRequestSchema,
 } from '@contracts/packages/package-api.schema'
 import { apiGetList, apiPatch, apiPost } from '@/shared/api/api-client'
+import { invalidate } from '@/shared/api/response-cache'
 
 export type PackageDto = z.infer<typeof packageResponseSchema>
 export type PackageListQuery = z.infer<typeof packageListQuerySchema>
@@ -24,19 +25,27 @@ export async function listPackages(
   return items
 }
 
-export function createPackage(payload: PackageCreatePayload): Promise<PackageDto> {
-  return apiPost<PackageDto>(PACKAGES_ENDPOINT, {
+export async function createPackage(payload: PackageCreatePayload): Promise<PackageDto> {
+  const result = await apiPost<PackageDto>(PACKAGES_ENDPOINT, {
     data: payload,
     requestSchema: packageCreateRequestSchema,
   })
+  invalidate('/api/packages')
+  // Customer-package responses join the Packages sheet for name and price.
+  invalidate('/api/customer-packages')
+  return result
 }
 
-export function updatePackage(
+export async function updatePackage(
   packageCode: string,
   payload: PackageUpdatePayload,
 ): Promise<PackageDto> {
-  return apiPatch<PackageDto>(`${PACKAGES_ENDPOINT}/${encodeURIComponent(packageCode)}`, {
+  const result = await apiPatch<PackageDto>(`${PACKAGES_ENDPOINT}/${encodeURIComponent(packageCode)}`, {
     data: payload,
     requestSchema: packageUpdateRequestSchema,
   })
+  invalidate('/api/packages')
+  // Customer-package responses join the Packages sheet for name and price.
+  invalidate('/api/customer-packages')
+  return result
 }

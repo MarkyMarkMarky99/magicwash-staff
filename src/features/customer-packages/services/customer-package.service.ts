@@ -11,6 +11,7 @@ import {
   appendPackageTransactionResponseSchema,
 } from '@contracts/customer-packages/customer-package-api.schema'
 import { apiGet, apiGetList, ApiError } from '@/shared/api/api-client'
+import { invalidate } from '@/shared/api/response-cache'
 
 type CustomerPackageListItem = z.infer<typeof customerPackageListResponseSchema>
 type CustomerPackageDetail = z.infer<typeof customerPackageDetailResponseSchema>
@@ -138,6 +139,7 @@ export async function createCustomerPackage(request: CreateCustomerPackageReques
     if (!parsed.success) {
       return unknownCreateOutcome('The server response was not a recognized write outcome. This package may already have been created.')
     }
+    if (parsed.data.kind === 'created') invalidate('/api/customer-packages')
     return parsed.data
   } catch {
     return unknownCreateOutcome('Could not reach the server. This package may already have been created.')
@@ -172,6 +174,7 @@ export async function appendPackageTransaction(request: AppendPackageTransaction
     if (!parsed.success) {
       return unknownTransactionOutcome(request, 'The server response was not a recognized write outcome. This transaction may already have been saved.')
     }
+    if (parsed.data.kind === 'created') invalidate('/api/customer-packages')
     return parsed.data
   } catch {
     return unknownTransactionOutcome(request, 'Could not reach the server. This transaction may already have been saved.')

@@ -6,6 +6,7 @@ import {
   priceListUpdateSchema,
 } from '@contracts/price-list/price-list-api.schema'
 import { apiGetList, apiPatch, apiPost } from '@/shared/api/api-client'
+import { invalidate } from '@/shared/api/response-cache'
 
 export type PriceListDto = z.infer<typeof priceListListResponseSchema>
 export type PriceListListQuery = z.infer<typeof priceListListQuerySchema>
@@ -35,19 +36,23 @@ export async function listAllPriceList(): Promise<{
   return { items, truncated: items.length === 1000 }
 }
 
-export function createPriceList(payload: PriceListCreatePayload): Promise<PriceListDto> {
-  return apiPost<PriceListDto>(PRICE_LIST_ENDPOINT, {
+export async function createPriceList(payload: PriceListCreatePayload): Promise<PriceListDto> {
+  const result = await apiPost<PriceListDto>(PRICE_LIST_ENDPOINT, {
     data: payload,
     requestSchema: priceListCreateSchema,
   })
+  invalidate('/api/price-list')
+  return result
 }
 
-export function updatePriceList(
+export async function updatePriceList(
   id: string,
   payload: PriceListUpdatePayload,
 ): Promise<PriceListDto> {
-  return apiPatch<PriceListDto>(`${PRICE_LIST_ENDPOINT}/${encodeURIComponent(id)}`, {
+  const result = await apiPatch<PriceListDto>(`${PRICE_LIST_ENDPOINT}/${encodeURIComponent(id)}`, {
     data: payload,
     requestSchema: priceListUpdateSchema,
   })
+  invalidate('/api/price-list')
+  return result
 }

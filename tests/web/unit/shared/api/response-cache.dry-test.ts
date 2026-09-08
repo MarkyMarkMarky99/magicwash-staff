@@ -36,6 +36,19 @@ assert.equal(readCache('/api/customers?keyword=a'), null, 'invalidate clears que
 assert.equal(readCache('/api/customers/CUS-1'), null, 'invalidate clears nested paths')
 assert.ok(readCache('/api/work-orders?page=1'), 'invalidate leaves other endpoints alone')
 
+// Endpoint prefixes stop at query and path boundaries, never at a shared word prefix.
+writeCache('/api/packages', [])
+writeCache('/api/customer-packages', [])
+invalidate('/api/packages')
+assert.equal(readCache('/api/packages'), null, 'invalidate clears the requested endpoint')
+assert.ok(readCache('/api/customer-packages'), 'packages and customer packages are separate endpoints')
+
+writeCache('/api/order-items', [])
+writeCache('/api/order-images', [])
+invalidate('/api/order-items')
+assert.equal(readCache('/api/order-items'), null, 'invalidate clears the matching sibling endpoint')
+assert.ok(readCache('/api/order-images'), 'a prefix match does not leak across sibling endpoints')
+
 invalidate()
 assert.equal(cacheStats().entries, 0, 'invalidate() with no argument clears everything')
 assert.equal(cacheStats().bytes, 0, 'byte total resets with the entries')

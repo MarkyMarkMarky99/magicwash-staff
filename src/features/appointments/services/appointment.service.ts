@@ -11,6 +11,7 @@ import {
 } from '@contracts/appointments/appointment-api.schema'
 import { apiErrorResponseSchema } from '@contracts/shared/api.schema'
 import { apiGet, apiGetList, ApiError, type ListResult } from '@/shared/api/api-client'
+import { invalidate } from '@/shared/api/response-cache'
 import { normalizeSheetDate } from '@/shared/utils/sheet-date'
 import { currentActor } from '@/shared/config/actor'
 
@@ -73,21 +74,23 @@ function normalizeAppointmentDetail(appointment: AppointmentDetailDto): Appointm
 }
 
 /** Create an appointment through the backend's contract-validated API. */
-export function createAppointment(
+export async function createAppointment(
   data: Omit<AppointmentCreateRequest, 'createdBy'>,
 ): Promise<AppointmentCreateDto> {
-  return appointmentWrite<AppointmentCreateDto>(APPOINTMENTS_ENDPOINT, 'POST', {
+  const result = await appointmentWrite<AppointmentCreateDto>(APPOINTMENTS_ENDPOINT, 'POST', {
     data: { ...data, createdBy: currentActor() },
     requestSchema: createAppointmentRequestSchema,
   })
+  invalidate('/api/appointments')
+  return result
 }
 
 /** Update an appointment through the backend's contract-validated API. */
-export function updateAppointment(
+export async function updateAppointment(
   appointmentId: string,
   data: Omit<AppointmentUpdateRequest, 'updatedBy'>,
 ): Promise<AppointmentUpdateDto> {
-  return appointmentWrite<AppointmentUpdateDto>(
+  const result = await appointmentWrite<AppointmentUpdateDto>(
     `${APPOINTMENTS_ENDPOINT}/${encodeURIComponent(appointmentId)}`,
     'PATCH',
     {
@@ -95,6 +98,8 @@ export function updateAppointment(
       requestSchema: updateAppointmentRequestSchema,
     },
   )
+  invalidate('/api/appointments')
+  return result
 }
 
 interface AppointmentWriteOptions {

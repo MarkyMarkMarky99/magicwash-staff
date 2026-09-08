@@ -7,6 +7,7 @@ import {
 import type { InvoiceFilter } from '../types/invoice-filter.types'
 import type { InvoiceListItemDto, InvoiceListResponseDto } from '../types/invoices.types'
 import { apiGetList } from '@/shared/api/api-client'
+import { invalidate } from '@/shared/api/response-cache'
 import { synthesizeNetworkFailureOutcome } from '../utils/invoice-outcome.utils'
 
 const INVOICES_ENDPOINT = '/api/invoices'
@@ -67,6 +68,11 @@ export async function createInvoice(request: CreateInvoiceRequest): Promise<Crea
   const parsed = createInvoiceResponseSchema.safeParse(body)
   if (!parsed.success) {
     return synthesizeNetworkFailureOutcome('The server responded, but not with a recognized outcome. This may already have been saved.')
+  }
+  if (parsed.data.kind === 'created') {
+    invalidate('/api/invoices')
+    // Creating an invoice marks the source OrderForm row as invoiced.
+    invalidate('/api/work-orders')
   }
   return parsed.data
 }

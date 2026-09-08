@@ -7,6 +7,7 @@ import {
   workOrderListResponseSchema,
 } from '@contracts/work-orders/work-order-api.schema'
 import { apiGet, apiGetList, apiPost, type ListResult } from '@/shared/api/api-client'
+import { invalidate } from '@/shared/api/response-cache'
 
 const WORK_ORDERS_ENDPOINT = '/api/work-orders'
 
@@ -24,6 +25,8 @@ export function getWorkOrder(orderId: string): Promise<WorkOrderDetailDto> {
   return apiGet<WorkOrderDetailDto>(`${WORK_ORDERS_ENDPOINT}/${encodeURIComponent(orderId)}`)
 }
 
-export function createWorkOrder(payload: WorkOrderCreatePayload): Promise<WorkOrderCreateDto> {
-  return apiPost<WorkOrderCreateDto>(WORK_ORDERS_ENDPOINT, { data: payload, requestSchema: workOrderCreateSchema })
+export async function createWorkOrder(payload: WorkOrderCreatePayload): Promise<WorkOrderCreateDto> {
+  const result = await apiPost<WorkOrderCreateDto>(WORK_ORDERS_ENDPOINT, { data: payload, requestSchema: workOrderCreateSchema })
+  invalidate('/api/work-orders')
+  return result
 }

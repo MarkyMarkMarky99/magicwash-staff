@@ -1,5 +1,6 @@
 <script setup>
 import { useRouter, useRoute } from 'vue-router'
+import { invalidate } from '@/shared/api/response-cache'
 
 const props = defineProps({
   open: Boolean
@@ -12,6 +13,12 @@ const route = useRoute()
 function navigate(path) {
   router.push(path)
   emit('close')
+}
+
+/** Drop every cached response and reload; clearing alone does not refetch a rendered page. */
+function refresh() {
+  invalidate()
+  window.location.reload()
 }
 </script>
 
@@ -111,6 +118,17 @@ function navigate(path) {
           >
             <span class="material-symbols-outlined">bug_report</span>
             <span>แจ้งปัญหา</span>
+          </button>
+        </li>
+      </ul>
+      <ul class="mt-auto flex flex-col border-t border-outline-variant/20 py-2">
+        <li>
+          <button
+            class="w-full flex items-center gap-4 px-5 py-3 text-left hover:bg-black/5 transition-colors"
+            @click="refresh"
+          >
+            <span class="material-symbols-outlined">refresh</span>
+            <span>รีเฟรชข้อมูล</span>
           </button>
         </li>
       </ul>

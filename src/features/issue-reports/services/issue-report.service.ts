@@ -7,6 +7,7 @@ import {
   issueReportUpdateSchema,
 } from '@contracts/issue-reports/issue-report-api.schema'
 import { apiGet, apiGetList, apiPatch, apiPost } from '@/shared/api/api-client'
+import { invalidate } from '@/shared/api/response-cache'
 
 export type IssueReportDto = z.infer<typeof issueReportListResponseSchema>
 export type IssueReportListQuery = z.infer<typeof issueReportListQuerySchema>
@@ -30,19 +31,23 @@ export function getIssueReport(id: string): Promise<IssueReportDto> {
   return apiGet<IssueReportDto>(`${ISSUE_REPORTS_ENDPOINT}/${encodeURIComponent(id)}`)
 }
 
-export function createIssueReport(payload: IssueReportCreatePayload): Promise<IssueReportDto> {
-  return apiPost<IssueReportDto>(ISSUE_REPORTS_ENDPOINT, {
+export async function createIssueReport(payload: IssueReportCreatePayload): Promise<IssueReportDto> {
+  const result = await apiPost<IssueReportDto>(ISSUE_REPORTS_ENDPOINT, {
     data: payload,
     requestSchema: issueReportCreateSchema,
   })
+  invalidate('/api/issue-reports')
+  return result
 }
 
-export function updateIssueReport(
+export async function updateIssueReport(
   id: string,
   payload: IssueReportUpdatePayload,
 ): Promise<IssueReportDto> {
-  return apiPatch<IssueReportDto>(`${ISSUE_REPORTS_ENDPOINT}/${encodeURIComponent(id)}`, {
+  const result = await apiPatch<IssueReportDto>(`${ISSUE_REPORTS_ENDPOINT}/${encodeURIComponent(id)}`, {
     data: payload,
     requestSchema: issueReportUpdateSchema,
   })
+  invalidate('/api/issue-reports')
+  return result
 }
