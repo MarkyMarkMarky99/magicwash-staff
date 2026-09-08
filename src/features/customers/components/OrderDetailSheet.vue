@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { serviceTypeLabel } from '@/shared/utils/service-type-labels'
-import { ref, toRef, watch } from 'vue'
+import { toRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { OrderListDto } from '../services/order.service'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
 import { useDuplicateInvoiceWarning } from '@/shared/composables/use-duplicate-invoice-warning'
 import BaseOverlay from '@/shared/layouts/BaseOverlay.vue'
+import ListContainer from '@/shared/components/ListContainer.vue'
 
 const props = defineProps<{
   open: boolean
@@ -21,7 +22,6 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
-const itemsOpen = ref(true)
 const {
   warningInvoiceNumber,
   awaitingConfirmation,
@@ -30,13 +30,6 @@ const {
   cancelCreate,
   reset,
 } = useDuplicateInvoiceWarning(toRef(props, 'order'))
-
-watch(
-  () => props.order,
-  () => {
-    itemsOpen.value = true
-  },
-)
 
 watch(
   () => props.open,
@@ -163,29 +156,17 @@ function viewPhotos() {
 
       <div class="min-h-0 flex-1 overflow-y-auto no-scrollbar px-4 py-4">
           <div v-if="order" class="space-y-4">
-            <section v-if="order.items.length > 0" class="w-full overflow-hidden rounded-2xl">
-              <div
-                class="flex cursor-pointer select-none items-center justify-between bg-surface-container-low px-4 py-2 text-primary"
-                @click="itemsOpen = !itemsOpen"
-              >
-                <div class="flex items-center gap-2.5">
-                  <span class="material-symbols-outlined text-[16px] text-primary" aria-hidden="true">checkroom</span>
-                  <h2 class="font-headline text-[13px] font-bold tracking-tight">Items</h2>
-                </div>
-                <div class="flex items-center gap-2">
-                  <div class="flex h-[22px] items-center gap-1.5 rounded-full bg-surface-container px-2.5">
-                    <span class="font-label text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">
-                      {{ order.quantity ?? order.items.length }} pcs
-                    </span>
-                  </div>
-                  <span
-                    class="material-symbols-outlined text-[16px] text-primary transition-transform"
-                    :class="itemsOpen ? 'rotate-180' : ''"
-                    aria-hidden="true"
-                  >expand_more</span>
-                </div>
-              </div>
-              <ul v-if="itemsOpen" class="divide-y divide-outline-variant/10">
+            <ListContainer
+              v-if="order.items.length > 0"
+              :key="order.orderId"
+              class="overflow-hidden rounded-2xl"
+              title="Items"
+              icon="checkroom"
+              :count="order.quantity ?? order.items.length"
+              count-label="pcs"
+              collapsible
+            >
+              <ul class="divide-y divide-outline-variant/10">
                 <li
                   v-for="(item, index) in order.items"
                   :key="item.id || `${order.orderId}-${index}`"
@@ -202,7 +183,7 @@ function viewPhotos() {
                   </span>
                 </li>
               </ul>
-            </section>
+            </ListContainer>
 
             <div v-if="order.note" class="flex items-start gap-2 rounded-xl bg-surface-container-low px-3 py-2.5">
               <span class="material-symbols-outlined mt-0.5 shrink-0 text-[16px] leading-none text-on-surface-variant" aria-hidden="true">edit_note</span>
