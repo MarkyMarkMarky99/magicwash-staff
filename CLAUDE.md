@@ -42,5 +42,5 @@ The serverless backend lives in `api/` and `server/`.
 
 ## Operational rules
 
-- Session continuity is governed by `.claude/.rules/memory.md`. Before every commit, update
+- Session continuity is governed by `.claude/rules/memory.md`. Before every commit, update
   `.user/memory/MEMORY.md` in accordance with that rule.

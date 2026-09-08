@@ -4,7 +4,7 @@
 
 - **Live note, not a document.** What is being worked on, what is next, what is stuck.
 - Written for the next session opened with "read `MEMORY.md`" after a `/clear`.
-- **Not** project rules → those live in `CLAUDE.md` and `.claude/.rules/`.
+- **Not** project rules → those live in `CLAUDE.md` and `.claude/rules/`.
 - **Not** a design doc → those live in `docs/plans/`.
 - **Not** a changelog or diary → that is `git log`.
 
@@ -24,7 +24,7 @@
 
 ## What stays out
 
-- Anything recoverable from `git log`, a diff, `docs/`, `CLAUDE.md`, or `.claude/.rules/`.
+- Anything recoverable from `git log`, a diff, `docs/`, `CLAUDE.md`, or `.claude/rules/`.
   **Reference it, do not copy it.**
 - Finished work with nothing left to do.
 - Explanations of how the codebase works.

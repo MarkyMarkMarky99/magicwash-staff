@@ -27,12 +27,12 @@ dist-ssr
 .env*.local
 
 # Local agent configuration. Skills and rules travel with the repo — CLAUDE.md points at
-# `.claude/.rules/`, so a clone without it has a dangling reference. Everything else here
+# `.claude/rules/`, so a clone without it has a dangling reference. Everything else here
 # is machine-local. The directory is excluded as `.claude/*`, not `.claude/`, because git
 # does not descend into an excluded directory — a negation inside one never matches.
 .claude/*
 !.claude/skills/
-!.claude/.rules/
+!.claude/rules/
 
 # Nested git worktrees (e.g. for sandboxed agent runs)
 .worktrees/
