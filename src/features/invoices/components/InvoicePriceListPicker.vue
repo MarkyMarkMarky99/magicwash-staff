@@ -120,7 +120,7 @@ function selectCategory(category: string | null) {
           <div class="relative flex items-center">
             <span class="material-symbols-outlined pointer-events-none absolute left-3 text-[20px] text-on-surface-variant/50" aria-hidden="true">search</span>
             <input
-              v-model="searchQuery"
+              :value="searchQuery" @input="searchQuery = ($event.target as HTMLInputElement).value"
               type="text"
               placeholder="ค้นหารหัส ชื่อ หรือหมวดหมู่..."
               autocomplete="off"

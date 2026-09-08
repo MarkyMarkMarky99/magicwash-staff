@@ -101,7 +101,7 @@ function selectCategory(category: string | null) {
             <span class="sr-only">ค้นหารายการสินค้า</span>
             <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant/55" aria-hidden="true">search</span>
             <input
-              v-model="searchQuery"
+              :value="searchQuery" @input="searchQuery = ($event.target as HTMLInputElement).value"
               type="search"
               autocomplete="off"
               placeholder="ค้นหาชื่อ รหัส หรือประเภทผ้า"

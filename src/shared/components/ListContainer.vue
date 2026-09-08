@@ -121,7 +121,7 @@ function toggleCollapsed() {
     >
       <span class="material-symbols-outlined shrink-0 text-[18px] text-on-surface-variant" aria-hidden="true">search</span>
       <input
-        v-model="keywordInput"
+        :value="keywordInput" @input="keywordInput = $event.target.value"
         type="text"
         :placeholder="searchPlaceholder"
         :aria-label="searchPlaceholder"

@@ -29,6 +29,9 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
   be the first thing that can actually grow without bound — it needs TTL, a size cap and a
   write-invalidation rule from day one.
 
+- **Never bind a search input with `v-model`.** It swallows keystrokes while an IME composition is
+  open, so Thai typing on Android filters nothing until Enter. All five search inputs now use
+  `:value` + `@input`. Only a real Android device reproduces it.
 - **Image uploads are now one module** — `src/shared/api/firebase-storage.ts`; `src/api/storage.js`
   and `order-image-storage.service.ts` deleted. Measured state, the closed door on URL resizing, and
   what is left (metadata backfill, scanner resolution, thumbnails) live in
