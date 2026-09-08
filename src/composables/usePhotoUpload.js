@@ -1,6 +1,6 @@
 import { ref, toValue } from 'vue'
 import { compressImage } from '../utils/imageCompression'
-import { uploadRaw } from '../api/storage'
+import { uploadToStorage } from '@/shared/api/firebase-storage'
 import { createPhoto } from '../features/gallery/services/laundry-photo.service'
 
 const MAX_FILES_PER_PICK = 10
@@ -41,7 +41,7 @@ export function usePhotoUpload(type, orderId, orderitemId, createdBy, itemId) {
       const compressed = options.skipCompression ? file : await compressImage(file)
       updateItem(id, { compressedSize: compressed.size, status: 'uploading' })
 
-      const imageUrl = await uploadRaw(compressed)
+      const imageUrl = await uploadToStorage(compressed)
       updateItem(id, { imageUrl, status: 'saving' })
 
       const photoData = {

@@ -10,7 +10,7 @@ interface CreateCall {
 interface PhotoUploadDependencies {
   compressImage: (file: { size: number }) => Promise<{ size: number }>
   createPhoto: (type: string, payload: Record<string, unknown>) => Promise<unknown>
-  uploadRaw: (file: { size: number }) => Promise<string>
+  uploadToStorage: (file: { size: number }) => Promise<string>
   vue: { ref: typeof ref; toValue: typeof toValue }
 }
 
@@ -23,7 +23,7 @@ let saveError: Error | null = null
 testGlobal.__photoUploadTestDependencies = {
   vue: { ref, toValue },
   compressImage: async (file) => file,
-  uploadRaw: async () => 'https://storage.example/photo.jpg',
+  uploadToStorage: async () => 'https://storage.example/photo.jpg',
   createPhoto: async (type, payload) => {
     createCalls.push({ type, payload })
     if (saveError) throw saveError
@@ -36,7 +36,7 @@ let source = await readFile(sourceUrl, 'utf8')
 const replacements = [
   ["import { ref, toValue } from 'vue'", 'const { ref, toValue } = globalThis.__photoUploadTestDependencies.vue'],
   ["import { compressImage } from '../utils/imageCompression'", 'const { compressImage } = globalThis.__photoUploadTestDependencies'],
-  ["import { uploadRaw } from '../api/storage'", 'const { uploadRaw } = globalThis.__photoUploadTestDependencies'],
+  ["import { uploadToStorage } from '@/shared/api/firebase-storage'", 'const { uploadToStorage } = globalThis.__photoUploadTestDependencies'],
   ["import { createPhoto } from '../features/gallery/services/laundry-photo.service'", 'const { createPhoto } = globalThis.__photoUploadTestDependencies'],
 ] as const
 

@@ -191,7 +191,7 @@ watch(filteredOptions, () => {
       <div v-if="isOpen" class="picker__dropdown">
         <input
           ref="searchInput"
-          v-model="search"
+          :value="search" @input="search = $event.target.value"
           type="search"
           class="picker__search"
           :placeholder="searchPlaceholder"

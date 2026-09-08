@@ -19,7 +19,7 @@ const selectedCustomer = computed(() => props.customers.find((customer) => custo
 const filteredCustomers = computed(() => {
   const query = search.value.trim().toLocaleLowerCase('th-TH')
   if (!query) return props.customers
-  return props.customers.filter((customer) => [customer.customerName, customer.phone ?? '']
+  return props.customers.filter((customer) => [customer.customerName ?? '', customer.phone ?? '']
     .some((value) => value.toLocaleLowerCase('th-TH').includes(query)))
 })
 
@@ -47,7 +47,7 @@ onBeforeUnmount(() => clearTimeout(debounceTimer))
     <div class="min-h-full bg-surface p-4">
       <div class="mb-4 flex items-center justify-between"><h2 class="font-headline text-lg font-bold">เลือกลูกค้า</h2><button type="button" class="material-symbols-outlined" aria-label="ปิด" @click="closePicker">close</button></div>
       <label class="sr-only" for="customer-picker-search">ค้นหาลูกค้า</label>
-      <input id="customer-picker-search" v-model="searchInput" autofocus class="mb-3 w-full rounded-xl bg-surface-container px-3 py-3 font-body text-sm outline-none" placeholder="ค้นหาชื่อหรือเบอร์โทร">
+      <input id="customer-picker-search" :value="searchInput" @input="searchInput = ($event.target as HTMLInputElement).value" autofocus class="mb-3 w-full rounded-xl bg-surface-container px-3 py-3 font-body text-sm outline-none" placeholder="ค้นหาชื่อหรือเบอร์โทร">
       <p v-if="loading" class="font-body text-sm text-on-surface-variant">กำลังโหลดลูกค้า...</p>
       <p v-else-if="error" class="font-body text-sm text-error">{{ error }}</p>
       <p v-else-if="filteredCustomers.length === 0" class="font-body text-sm text-on-surface-variant">ไม่พบลูกค้า</p>
