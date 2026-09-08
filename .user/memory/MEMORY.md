@@ -1,6 +1,18 @@
 # Project memory
 Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`, read before writing.
 
+## Queue — 2026-09-08, in order
+
+1. **Verify `feat/cache-invalidation` on a phone** (3 checks, preview URL below). Blocked on the
+   user. Nothing else in the cache work should merge past it.
+2. **localStorage layer** for the response cache — step 4 of `docs/plans/cache-gateway.md`. Ready to
+   start; today a page reload empties the cache.
+3. **Raise the first TTLs** (`/api/price-list`, `/api/customers`). Only after 1 and 2.
+4. **Backfill `Cache-Control` on existing photos.** Script is writable now, **not runnable** until
+   the user supplies credentials for the Firebase bucket.
+5. **Decide the document scanner's 2400px / q0.88 output.** Three times the camera path's file size.
+   Needs the user's eyes on real scans; not a number to lower blindly.
+
 ## Where we are — 2026-09-08
 
 - Gallery still legacy on purpose: binary to Firebase, photo list read from GViz in the browser.
