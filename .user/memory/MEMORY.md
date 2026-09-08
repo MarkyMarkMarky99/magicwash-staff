@@ -29,6 +29,17 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
   be the first thing that can actually grow without bound — it needs TTL, a size cap and a
   write-invalidation rule from day one.
 
+- **`feat/cache-invalidation` — pushed, NOT merged, NOT opened in a browser yet.** Commit `c3b493e`.
+  All 14 write services call `invalidate()` on success; the nav sidebar has a bottom-pinned
+  "รีเฟรชข้อมูล" action that clears everything and reloads. `typecheck:web` and three dry tests pass.
+  **Three checks are outstanding on a real phone** — preview
+  `https://magicwash-staff-ogtyrmi0q-magicwashth-8243s-projects.vercel.app`:
+  1. the refresh button reloads and data still loads;
+  2. the issue-report reporter name in `localStorage` SURVIVES it (the button must never call
+     `localStorage.clear()`);
+  3. writing still works — 14 functions changed from `return apiPost(...)` to `await` then return,
+     so a slip breaks saving. Try a price edit, an appointment, and an order item.
+  Nothing observable changes until a TTL is raised, so the branch is safe to sit.
 - **API read cache — built, deliberately inert.** Merged to main 2026-09-08, verified on a real
   Android device (all lists and details load, switching customers keeps data separate, search and
   photo upload unaffected):
@@ -36,12 +47,14 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
   `invalidate()`), wired into `apiGet`/`apiGetList` with in-flight de-duplication. **Every TTL is 0
   on purpose** — same network traffic as before, the only change is that a cached copy paints
   first. Design and build order: `docs/plans/cache-gateway.md`.
-  Before ANY endpoint gets a non-zero TTL, these two must exist:
-  1. **`invalidate()` on every write.** Nothing calls it yet. Customers and price-list writes,
-     plus order / invoice / customer-package creates. The three services that call `fetch()`
-     directly can import it like anything else.
-  2. **A staff-facing refresh control** that calls `invalidate()` with no argument.
-  Also not built: the localStorage layer (step 4), so today a page reload empties the cache.
+  Both prerequisites for raising a TTL are now BUILT on `feat/cache-invalidation` (writes call
+  `invalidate()`, and the sidebar has a refresh control) but neither is browser-verified.
+  Still not built: the localStorage layer (step 4 of the plan doc), so a page reload empties the
+  cache and `PERSIST_ENDPOINTS` in `src/shared/config/cache.ts` is inert.
+  **Order of remaining work:** verify the branch on a phone → merge → step 4 → only then raise a
+  TTL, starting with `/api/price-list` and `/api/customers`.
+  `/api/orders` is deliberately never invalidated: it reads `OrdersView`, a materialized view this
+  project does not write, and that belongs to `feat/live-order-helper`.
 - **Never bind a search input with `v-model`.** It swallows keystrokes while an IME composition is
   open, so Thai typing on Android filters nothing until Enter. All five search inputs now use
   `:value` + `@input`. Only a real Android device reproduces it.
