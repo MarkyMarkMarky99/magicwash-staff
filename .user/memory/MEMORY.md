@@ -29,6 +29,17 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
   be the first thing that can actually grow without bound — it needs TTL, a size cap and a
   write-invalidation rule from day one.
 
+- **API read cache — built, deliberately inert.** `feat/api-response-cache`:
+  `src/shared/config/cache.ts` (policy), `src/shared/api/response-cache.ts` (RAM + LRU +
+  `invalidate()`), wired into `apiGet`/`apiGetList` with in-flight de-duplication. **Every TTL is 0
+  on purpose** — same network traffic as before, the only change is that a cached copy paints
+  first. Design and build order: `docs/plans/cache-gateway.md`.
+  Before ANY endpoint gets a non-zero TTL, these two must exist:
+  1. **`invalidate()` on every write.** Nothing calls it yet. Customers and price-list writes,
+     plus order / invoice / customer-package creates. The three services that call `fetch()`
+     directly can import it like anything else.
+  2. **A staff-facing refresh control** that calls `invalidate()` with no argument.
+  Also not built: the localStorage layer (step 4), so today a page reload empties the cache.
 - **Never bind a search input with `v-model`.** It swallows keystrokes while an IME composition is
   open, so Thai typing on Android filters nothing until Enter. All five search inputs now use
   `:value` + `@input`. Only a real Android device reproduces it.

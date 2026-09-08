@@ -1,0 +1,69 @@
+/**
+ * Cache policy for `/api/*` GET responses.
+ *
+ * Reads only. Writes are never cached, and nothing here observes them: a cached
+ * entry is dropped when someone calls `invalidate()` — a save handler, or a
+ * staff-facing refresh control. See `docs/plans/cache-gateway.md`.
+ */
+
+/**
+ * Hours a cached response counts as fresh.
+ *
+ * `0` does not mean "do not cache". It means the entry is always refetched, but
+ * the cached copy is still served first so the page never waits on the network.
+ */
+export const DEFAULT_CACHE_HOURS = 0
+
+/**
+ * Per-endpoint freshness overrides, matched against the start of the request path.
+ *
+ * Deliberately empty. While the cache is being introduced, no endpoint may change
+ * observable behaviour: every read still hits the network exactly as before, and
+ * the only difference is that a cached copy is painted first. Real TTLs are set
+ * once the cache has been proven correct in use, and every endpoint given a
+ * non-zero value needs an `invalidate()` call on the writes that affect it first.
+ */
+const CACHE_HOURS: Record<string, number> = {}
+
+/**
+ * Endpoints worth keeping across a page reload, once the localStorage layer
+ * exists. Inert today — nothing reads `persist` yet.
+ *
+ * Only near-static lists belong here: customers (140 KB) and the price list
+ * (30 KB) barely change, while invoices and orders change daily and are queried
+ * under many filter combinations.
+ */
+const PERSIST_ENDPOINTS: readonly string[] = ['/api/customers', '/api/price-list']
+
+/** Endpoints that must never be served from cache, not even stale. */
+const NEVER_CACHE: readonly string[] = []
+
+/** Ceiling across every cached entry; least-recently-used entries go first. */
+export const CACHE_MAX_BYTES = 4 * 1024 * 1024
+
+export interface CachePolicy {
+  /** Whether this path may be cached at all. */
+  cacheable: boolean
+  /** Hours the entry counts as fresh; 0 means always revalidate. */
+  hours: number
+  /** Whether the entry survives a page reload. */
+  persist: boolean
+}
+
+function matches(path: string, prefix: string): boolean {
+  return path === prefix || path.startsWith(`${prefix}/`) || path.startsWith(`${prefix}?`)
+}
+
+/** Resolve the policy for a request path (query string included or not). */
+export function cachePolicyFor(path: string): CachePolicy {
+  const pathname = path.split('?')[0] ?? path
+
+  if (NEVER_CACHE.some((prefix) => matches(pathname, prefix))) {
+    return { cacheable: false, hours: 0, persist: false }
+  }
+
+  const configured = Object.entries(CACHE_HOURS).find(([prefix]) => matches(pathname, prefix))
+  const persist = PERSIST_ENDPOINTS.some((prefix) => matches(pathname, prefix))
+
+  return { cacheable: true, hours: configured?.[1] ?? DEFAULT_CACHE_HOURS, persist }
+}

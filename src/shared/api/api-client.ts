@@ -1,5 +1,7 @@
 import type { z } from 'zod'
 import { apiErrorResponseSchema, type apiPaginationMetaSchema } from '@contracts/shared/api.schema'
+import { cachePolicyFor } from '@/shared/config/cache'
+import { readCache, writeCache } from '@/shared/api/response-cache'
 
 /**
  * The single HTTP boundary for the frontend. It builds the request URL,
@@ -34,11 +36,21 @@ export class ApiError extends Error {
   }
 }
 
-interface GetListOptions<TQuery extends z.ZodTypeAny> {
+interface GetListOptions<TQuery extends z.ZodTypeAny, TItem = unknown> {
   /** Raw filter/query object; validated and serialized into the query string. */
   query?: unknown
   /** Contract list-query schema — the request is validated against it. */
   querySchema: TQuery
+  /**
+   * Called when a stale cached response has been refreshed in the background.
+   * Pass it to swap the new data in; omit it to keep showing what was returned.
+   */
+  onFresh?: (result: ListResult<TItem>) => void
+}
+
+interface GetOptions<T> {
+  /** See {@link GetListOptions.onFresh}. */
+  onFresh?: (value: T) => void
 }
 
 /**
@@ -47,29 +59,75 @@ interface GetListOptions<TQuery extends z.ZodTypeAny> {
  */
 export async function apiGetList<TItem, TQuery extends z.ZodTypeAny = z.ZodTypeAny>(
   path: string,
-  options: GetListOptions<TQuery>,
+  options: GetListOptions<TQuery, TItem>,
 ): Promise<ListResult<TItem>> {
   const validatedQuery = options.querySchema.parse(options.query ?? {})
   const url = `${path}${buildQueryString(validatedQuery)}`
 
-  const response = await fetch(url)
-  if (!response.ok) throw await toApiError(response)
+  const unwrap = (body: { data: TItem[]; meta: { pagination: ApiPagination } }) => ({
+    items: body.data,
+    pagination: body.meta.pagination,
+  })
 
-  const body = (await response.json()) as {
-    data: TItem[]
-    meta: { pagination: ApiPagination }
-  }
-
-  return { items: body.data, pagination: body.meta.pagination }
+  return read(url, unwrap, options.onFresh)
 }
 
 /** GET a single-resource endpoint and unwrap the standard success envelope. */
-export async function apiGet<T>(path: string): Promise<T> {
-  const response = await fetch(path)
-  if (!response.ok) throw await toApiError(response)
+export async function apiGet<T>(path: string, options: GetOptions<T> = {}): Promise<T> {
+  return read(path, (body: { data: T }) => body.data, options.onFresh)
+}
 
-  const body = (await response.json()) as { data: T }
-  return body.data
+/**
+ * Serve a GET from cache when possible, otherwise from the network.
+ *
+ * A cached copy is returned immediately even when it is past its freshness
+ * window; the refresh then runs in the background and `onFresh` delivers the new
+ * value to a caller that wants to swap it in. Concurrent callers of the same URL
+ * share one request.
+ */
+async function read<TBody, TValue>(
+  url: string,
+  unwrap: (body: TBody) => TValue,
+  onFresh?: (value: TValue) => void,
+): Promise<TValue> {
+  if (!cachePolicyFor(url).cacheable) return fetchFresh(url, unwrap)
+
+  const hit = readCache<TValue>(url)
+  if (hit === null) return fetchFresh(url, unwrap)
+
+  if (!hit.fresh) {
+    // Background revalidation: the caller already has a value, so a failure here
+    // must not surface as an unhandled rejection or replace good data with an error.
+    void fetchFresh(url, unwrap)
+      .then((value) => onFresh?.(value))
+      .catch(() => undefined)
+  }
+
+  return hit.value
+}
+
+/** In-flight requests by URL, so parallel callers issue one network round trip. */
+const inFlight = new Map<string, Promise<unknown>>()
+
+async function fetchFresh<TBody, TValue>(
+  url: string,
+  unwrap: (body: TBody) => TValue,
+): Promise<TValue> {
+  const existing = inFlight.get(url)
+  if (existing !== undefined) return existing as Promise<TValue>
+
+  const request = (async () => {
+    const response = await fetch(url)
+    if (!response.ok) throw await toApiError(response)
+
+    const value = unwrap((await response.json()) as TBody)
+    writeCache(url, value)
+    return value
+  })()
+
+  const tracked = request.finally(() => inFlight.delete(url))
+  inFlight.set(url, tracked)
+  return tracked
 }
 
 interface WriteOptions<TRequest extends z.ZodTypeAny> {
