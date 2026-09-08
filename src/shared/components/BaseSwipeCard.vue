@@ -81,6 +81,17 @@ function onTouchMove(e) {
   setTranslate(startTranslate + dx)
 }
 function onTouchEnd(e) {
+  // A touch that ends on this card has already been interpreted as a tap or a
+  // swipe by the logic above. Left alone, the browser still fires its normal
+  // compatibility `click` afterwards at the same coordinates — and once the
+  // tap has navigated (e.g. to a page served instantly from cache), that
+  // click lands on whatever is now under the finger on the NEW page and
+  // activates it too. preventDefault() on touchend cancels that trailing
+  // click for this touch, so the gesture is consumed exactly once. Buttons
+  // in the swipe-revealed side panels are unaffected: they are separate
+  // elements outside this card, and a tap on them is its own touch
+  // interaction with its own touchstart/touchend, not this one.
+  if (e.cancelable) e.preventDefault()
   resolve(e.changedTouches[0].clientX - startX)
 }
 
