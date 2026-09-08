@@ -29,7 +29,9 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
   be the first thing that can actually grow without bound — it needs TTL, a size cap and a
   write-invalidation rule from day one.
 
-- **API read cache — built, deliberately inert.** `feat/api-response-cache`:
+- **API read cache — built, deliberately inert.** Merged to main 2026-09-08, verified on a real
+  Android device (all lists and details load, switching customers keeps data separate, search and
+  photo upload unaffected):
   `src/shared/config/cache.ts` (policy), `src/shared/api/response-cache.ts` (RAM + LRU +
   `invalidate()`), wired into `apiGet`/`apiGetList` with in-flight de-duplication. **Every TTL is 0
   on purpose** — same network traffic as before, the only change is that a cached copy paints
@@ -127,7 +129,10 @@ ones. Appointments' 5-read walk is already fixed and merged.
 2. **Order detail runs three sequential reads** (`work-order.service.ts:122-133`): order →
    customer → order items. The items read needs only `id`, so it can run parallel with the order
    read. ~20min, the cheapest real win left.
-3. **`invoices` + `dateFrom`/`dateTo` drops pagination** and reads every matching row
+3. **`listOrdersByCustomer` sends no `perPage`**, so the customer detail page pulls up to 500 rows
+   — measured 104 KB for a single customer (`src/features/customers/services/order.service.ts:11`,
+   `MAX_ORDERS_PER_PAGE` 500). Not urgent; it is one request, but a heavy one on mobile.
+4. **`invoices` + `dateFrom`/`dateTo` drops pagination** and reads every matching row
    (`invoice.service.ts:631`). Needs `>=`/`<=` in `GVizQueryBuilder` — a feature, not a bug fix,
    and only now possible because typed date literals work. ~3h.
 4. **`App.vue:8` prefetches appointments on every page mount**, including pages that never show
