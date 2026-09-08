@@ -1,4 +1,5 @@
 import { CACHE_MAX_BYTES, cachePolicyFor } from '@/shared/config/cache'
+import { clearPersisted, readPersisted, writePersisted } from '@/shared/api/persistent-cache'
 
 /**
  * In-memory store behind {@link apiGet} and {@link apiGetList}.
@@ -9,6 +10,11 @@ import { CACHE_MAX_BYTES, cachePolicyFor } from '@/shared/config/cache'
  * This is the first thing in the app that can grow without bound — the feature
  * stores each hold a single slot and overwrite it — hence the byte ceiling and
  * least-recently-used eviction below.
+ *
+ * Endpoints the policy marks `persist` are mirrored into `localStorage` by
+ * `persistent-cache.ts`, so they survive a reload. That layer is consulted only
+ * on an in-memory miss, and a hit from it is promoted back into memory keeping
+ * its original timestamp — a reload must not make a stale entry look fresh.
  */
 
 interface CacheEntry {
@@ -69,7 +75,7 @@ export interface CacheHit<T> {
  * in the background.
  */
 export function readCache<T>(url: string): CacheHit<T> | null {
-  const entry = entries.get(url)
+  const entry = entries.get(url) ?? promoteFromStorage(url)
   if (!entry) return null
 
   entry.lastUsed = ++useCounter
@@ -79,20 +85,53 @@ export function readCache<T>(url: string): CacheHit<T> | null {
   return { value: entry.value as T, fresh }
 }
 
+/**
+ * Move a stored response into the in-memory map on the first miss for this URL,
+ * so later reads in the same session skip `localStorage` and its JSON parse.
+ */
+function promoteFromStorage(url: string): CacheEntry | null {
+  const policy = cachePolicyFor(url)
+  if (!policy.cacheable || !policy.persist) return null
+
+  const stored = readPersisted(url)
+  if (stored === null) return null
+
+  return store(url, stored.value, stored.storedAt, false)
+}
+
 /** Store a response, evicting colder entries if it pushes past the ceiling. */
 export function writeCache(url: string, value: unknown): void {
-  if (!cachePolicyFor(url).cacheable) return
+  const policy = cachePolicyFor(url)
+  if (!policy.cacheable) return
 
+  store(url, value, Date.now(), policy.persist)
+}
+
+/**
+ * Put an entry in the map and account for its size.
+ *
+ * `storedAt` is a parameter rather than `Date.now()` so a promotion from storage
+ * keeps the moment the response actually arrived. `persist` is passed in rather
+ * than re-derived so a promotion does not immediately write back what it just
+ * read.
+ */
+function store(url: string, value: unknown, storedAt: number, persist: boolean): CacheEntry | null {
   const bytes = measure(value)
   // A single response larger than the whole budget is not worth evicting
   // everything else for.
-  if (bytes > CACHE_MAX_BYTES) return
+  if (bytes > CACHE_MAX_BYTES) return null
 
   drop(url)
-  entries.set(url, { value, bytes, storedAt: Date.now(), lastUsed: ++useCounter })
+  const entry: CacheEntry = { value, bytes, storedAt, lastUsed: ++useCounter }
+  entries.set(url, entry)
   totalBytes += bytes
 
+  if (persist) writePersisted(url, value, storedAt)
+
   evictDownTo(CACHE_MAX_BYTES)
+  // Eviction can drop the entry that was just written when it alone fills the
+  // budget; the caller gets what is actually held.
+  return entries.get(url) ?? null
 }
 
 /**
@@ -103,6 +142,8 @@ export function writeCache(url: string, value: unknown): void {
  * variant of it.
  */
 export function invalidate(path?: string): void {
+  clearPersisted(path)
+
   if (path === undefined) {
     entries.clear()
     totalBytes = 0

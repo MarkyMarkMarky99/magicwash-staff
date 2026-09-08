@@ -1,8 +1,9 @@
 # Handoff — central cache gateway for `/api/*` reads
 
-Status: **designed, not built.** Written 2026-09-08 at the end of an investigation session so the
-work can continue in a fresh conversation. Everything below is measured or read out of the code —
-no assumptions carried over.
+Status: **built.** Steps 1-5 below are all in `main` as of 2026-09-08 and the invalidation half is
+verified on a real phone. What is left is raising the first TTLs — until then the gateway is inert
+by design: the same requests go out, a cached copy just paints first. Everything below is measured
+or read out of the code — no assumptions carried over.
 
 ## Goal
 
@@ -95,13 +96,19 @@ persisting them only churns the store.
 
 ### Build order
 
-1. `src/shared/config/cache.ts` — the values above.
-2. In-memory layer: a `Map`, byte accounting, LRU eviction, and `invalidate(path)`.
-3. Wire into `apiGet` / `apiGetList`. Stop here and verify in a browser.
-4. `localStorage` layer for the listed endpoints.
-5. A staff-facing refresh control that calls `invalidate()`.
+1. ~~`src/shared/config/cache.ts` — the values above.~~ Built.
+2. ~~In-memory layer: a `Map`, byte accounting, LRU eviction, and `invalidate(path)`.~~ Built as
+   `src/shared/api/response-cache.ts`.
+3. ~~Wire into `apiGet` / `apiGetList`.~~ Built, with in-flight request de-duplication. Verified on
+   a real Android device.
+4. ~~`localStorage` layer for the listed endpoints.~~ Built as `src/shared/api/persistent-cache.ts`.
+   Consulted only on an in-memory miss; a hit is promoted into memory keeping its original
+   timestamp, so a reload cannot make a stale entry look fresh.
+5. ~~A staff-facing refresh control that calls `invalidate()`.~~ Built as the bottom-pinned
+   "รีเฟรชข้อมูล" action in `NavSidebar.vue`, plus an `invalidate()` call on all 14 write services.
 
-Steps 1-3 are useful on their own, roughly an hour. Steps 4-5 another hour.
+**Left to do: raise the first TTLs**, starting with `/api/price-list` and `/api/customers`. That is
+the only step that changes observable behaviour.
 
 ### Three failure modes to handle
 
@@ -114,9 +121,20 @@ Steps 1-3 are useful on their own, roughly an hour. Steps 4-5 another hour.
 
 ## Still undecided
 
-- Which endpoints, if any, belong in `NEVER_CACHE`.
-- Where the refresh control lives in the UI, and whether it clears one endpoint or everything.
-- Whether entries persisted to `localStorage` should also be capped separately from the 4 MB total.
+- Which endpoints, if any, belong in `NEVER_CACHE`. Still empty.
+- The first non-zero TTL values, and whether staff can tolerate them.
+
+Decided since:
+
+- **The refresh control clears everything**, from the bottom of the nav sidebar, and reloads the
+  page — clearing alone does not make an already rendered page refetch.
+- **The persisted half has its own 2 MB ceiling** (`PERSIST_MAX_BYTES`), separate from the 4 MB
+  in-memory one. `localStorage` holds ~5 MB for the whole origin and is shared with everything else
+  the app stores there, so the cache may not spend the whole quota. Persisted eviction is by stored
+  age, not last use: `localStorage` records no reads.
+- **Storage keys carry a version marker** (`mw-cache:<version>:<url>`) and every other version is
+  dropped at import, so a deploy that changes a response shape cannot hand returning staff data the
+  new code fails on. Bump `STORAGE_VERSION` in `persistent-cache.ts` when the stored shape changes.
 
 ## Files a new session should read first
 

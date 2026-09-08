@@ -3,9 +3,9 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 
 ## Queue — 2026-09-08, in order
 
-1. **localStorage layer** for the response cache — step 4 of `docs/plans/cache-gateway.md`. Ready to
-   start; today a page reload empties the cache and `PERSIST_ENDPOINTS` is inert.
-2. **Raise the first TTLs** (`/api/price-list`, `/api/customers`). Only after 1.
+1. **Browser-check the localStorage layer** on `feat/cache-persistence` (below), then merge.
+2. **Raise the first TTLs** (`/api/price-list`, `/api/customers`) — the only step that changes
+   observable behaviour. Only after 1.
 3. **Backfill `Cache-Control` on existing photos.** Script writable now, **not runnable** until the
    user supplies Firebase bucket credentials.
 4. **Decide the document scanner's 2400px / q0.88 output.** 3× the camera path's file size. Needs
@@ -13,14 +13,17 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
 
 ## Where we are — 2026-09-08
 
-- **Branches:** `main` (cache invalidation merged 2026-09-08, phone-verified: refresh button,
-  reporter name survives, writes still save) · `feat/live-order-helper` (pushed, unmerged, **not
-  finished**) · `fix/customer-picker-filter` (shallowRef + null-name guard, browser-verified,
-  unmerged). Single worktree.
+- **Branches:** `main` (cache invalidation merged + deployed 2026-09-08, phone-verified) ·
+  `feat/cache-persistence` (below) · `feat/live-order-helper` (pushed, unmerged, **not finished**) ·
+  `fix/customer-picker-filter` (shallowRef + null-name guard, browser-verified, unmerged).
 - **API read cache is inert on purpose** — every TTL is 0, so traffic is unchanged; a cached copy
   only paints first. Writes call `invalidate()`, sidebar has "รีเฟรชข้อมูล". `docs/plans/cache-gateway.md`.
   `/api/orders` is never invalidated on purpose — `OrdersView` is a materialized view this project
   does not write; it belongs to `feat/live-order-helper`.
+- **`feat/cache-persistence` — localStorage layer built, NOT browser-checked.**
+  `src/shared/api/persistent-cache.ts`; only `/api/customers` + `/api/price-list` persist, 2 MB cap,
+  versioned keys, namespaced clear. Typecheck + 3 dry tests pass. On a phone: reload a customer list
+  and it should paint instantly; the issue-report reporter name must still survive รีเฟรชข้อมูล.
 - Pre-existing web dry-test failures on an unmodified tree: `customer-package-create-page`,
   `package-pages`. Unrelated to recent work; decide which side is right.
 - Gallery still legacy on purpose: binary to Firebase, list read from GViz in the browser.
@@ -34,11 +37,8 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
   view); only uploads after 2026-09-08 get the immutable header. Backfill over bucket
   `magicwashlaundry-a50ca.firebasestorage.app` is blocked on credentials — `GOOGLE_SERVICE_ACCOUNT_KEY`
   is Sheets-only, nothing in `server/` or `api/` touches Storage. `docs/plans/image-pipeline.md`.
-- **Disproven 2026-09-08 — do not act on the old note:** invoices / customer-packages / orders do
-  NOT refetch on revisit (`App.vue:17-21` keeps every route component but nine form pages). The
-  slowness is the FIRST load. A per-store `loaded` flag buys nothing.
-- **Never bind a search input with `v-model`** — swallows keystrokes while a Thai IME composition is
-  open. All five use `:value` + `@input`. Only a real Android device reproduces it.
+- **Disproven, do not act on the old note:** list pages do NOT refetch on revisit; the slowness is
+  the FIRST load, and a per-store `loaded` flag buys nothing. `docs/plans/cache-gateway.md`.
 
 ## Workers
 
@@ -73,7 +73,6 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
    passing `itemCode` is designed, not built.
 
 Verified 2026-09-06, do not re-check: live sheet = G Drive registry = `PriceList.db-contract.ts`.
-
 Reported, not fixed:
 - `InvoiceItems.service_type` written `null` always — service survives only in the description.
 - No `active` filter on the price-list query; picker fetches everything, filters client-side.
