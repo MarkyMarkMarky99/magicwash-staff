@@ -1,36 +1,28 @@
 # Project memory
 Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`, read before writing.
 
-## Queue — 2026-09-08, in order
+## Queue — 2026-09-09, in order
 
-1. **Browser-check the 1-hour TTL on production** — merged 2026-09-09 WITHOUT a browser check, at
-   the user's call. `/api/customers` + `/api/price-list` now skip the request inside the window, so
-   a write path that forgot `invalidate()` shows stale data for up to an hour. Edit a price and it
-   must appear at once; reload a list and it must paint instantly. รีเฟรชข้อมูล is the escape hatch.
-2. **Wire `onFresh`** into the customer and price-list stores: on a stale hit the background refresh
-   updates the cache but the current view keeps the old copy until the next read.
-3. **Backfill `Cache-Control` on existing photos.** Script writable now, **not runnable** until the
+1. **Backfill `Cache-Control` on existing photos.** Script writable now, **not runnable** until the
    user supplies Firebase bucket credentials.
-4. **Decide the document scanner's 2400px / q0.88 output.** 3× the camera path's file size. Needs
+2. **Decide the document scanner's 2400px / q0.88 output.** 3× the camera path's file size. Needs
    the user's eyes on real scans; not a number to lower blindly.
+3. **Finish the gallery migration** — `OrderGalleryPage.vue:84` → `apiGetList`, rename `image_url` →
+   `imageUrl`, delete `src/api/photos.js`. ~1h, needs a browser check.
 
-## Where we are — 2026-09-08
+## Where we are — 2026-09-09
 
-- **Branches:** `main` (whole cache gateway merged + deployed; invalidation phone-verified
-  2026-09-08, TTLs NOT) · `feat/live-order-helper` (pushed, unmerged, **not finished**) ·
-  `fix/customer-picker-filter` (shallowRef + null-name guard, browser-verified, unmerged).
-- **Cache gateway is complete and live.** `/api/customers` + `/api/price-list`: 1-hour TTL and the
-  only two persisted to localStorage (`persistent-cache.ts`, 2 MB cap, versioned keys, clear scoped
-  to its own namespace so the reporter name survives). Every other endpoint is still 0 hours —
-  cached but always revalidated. `docs/plans/cache-gateway.md`. `/api/orders` is never invalidated
-  on purpose: `OrdersView` is a materialized view this project does not write; it belongs to
-  `feat/live-order-helper`.
+- **Branches:** `main` (cache gateway done, merged and deployed 2026-09-09) ·
+  `feat/live-order-helper` (pushed, unmerged, **not finished**) · `fix/customer-picker-filter`
+  (shallowRef + null-name guard, browser-verified, unmerged). Single worktree.
+- **Cache work is closed.** State, decisions and the one open gap (`onFresh` is unwired) are all in
+  `docs/plans/cache-gateway.md`. The only thing to know without opening it: `/api/customers` and
+  `/api/price-list` serve from cache for an hour, so a stale page there is the cache, not the sheet
+  — รีเฟรชข้อมูล in the nav sidebar clears it.
 - Pre-existing web dry-test failures on an unmodified tree, unrelated to recent work:
   `customer-package-create-page`, `package-pages`.
-- Gallery still legacy on purpose (binary to Firebase, list read from GViz in the browser). **Next
-  step** — `OrderGalleryPage.vue:84` → `apiGetList`, rename `image_url` → `imageUrl`, delete
-  `src/api/photos.js`. ~1h, needs a browser check.
-- `src/composables/usePhotoUpload.js` belongs in `src/features/gallery/composables/`; the legacy
+- Gallery still legacy on purpose: binary to Firebase, list read from GViz in the browser.
+  `src/composables/usePhotoUpload.js` belongs in `src/features/gallery/composables/`; the legacy
   photo-capture set's placement is open (`overview.md:176`).
 - Known gap, not on a live UI path yet: photo modules and OrderImages pass GViz `Date(...)` through
   unnormalized, against `docs/conventions/datetime.md`.
@@ -38,8 +30,6 @@ Live note — what is in flight, next, stuck. Rules: `.claude/.rules/memory.md`,
   view); only uploads after 2026-09-08 get the immutable header. Backfill over bucket
   `magicwashlaundry-a50ca.firebasestorage.app` is blocked on credentials — `GOOGLE_SERVICE_ACCOUNT_KEY`
   is Sheets-only, nothing in `server/` or `api/` touches Storage. `docs/plans/image-pipeline.md`.
-- **Disproven, do not act on the old note:** list pages do NOT refetch on revisit; the slowness is
-  the FIRST load, and a per-store `loaded` flag buys nothing. `docs/plans/cache-gateway.md`.
 
 ## Workers
 
@@ -114,7 +104,8 @@ left is **fewer reads**, not faster ones.
   customer-packages strand rows past 20. Fix `okPaged` first, then add the two pagers.
 - **Customers sheet has one all-null row** (1 of 466) — shows as a blank entry in every picker.
   Decide: delete the sheet row, or filter rows without a `customerId`.
-- **Live Orders sheet data is dirty** — do not normalize incidentally (1,074 phantom rows, mixed spellings and timestamp formats).
+- **Live Orders sheet data is dirty** — do not normalize incidentally (1,074 phantom rows, mixed
+  spellings and timestamp formats).
 - **`LaundryPhotos` row order is not chronological** — new rows land ~row 20,869. Sort by timestamp.
 - **Other modules still page-walk** (`order by <non-unique column>` + limit/offset, can drop rows).
 
@@ -133,7 +124,6 @@ left is **fewer reads**, not faster ones.
 - `customer-packages` **create form** diverges from `docs/design/patterns/forms.md`.
 - Docs still describe the deleted header search (`SEARCHABLE_ROUTES`, `meta.searchable`);
   `list-pages.md` needs the ListContainer search instead.
-- Confirm `CUSTOMERS_SPREADSHEET_ID` is set in every Vercel environment.
 - Delete leftover `C:\MagicwashGemini\webapp-vue-frontend` (~34 MB, dead worktree, needs a restart).
 
 ## Test data to remove by hand (`SheetRepository.delete()` throws)
