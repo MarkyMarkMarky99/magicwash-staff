@@ -33,8 +33,8 @@ Fix per page with a device check, not in one blind sweep. Re-find with:
   testing on a real iPhone. App width unified into `.app-column`; `overflow-x` pinned on the
   shared scroll regions; iOS date field sized with `appearance: none`; received-date defaults
   to `todaySheetDate()`.
-  User has confirmed on device: form no longer pans, date row fits, value vertically centred.
-  **Unconfirmed:** the FormPicker dropdown fix (commit `b623df7`) — awaiting their check.
+  All four confirmed by the user on a real iPhone: form no longer pans, date row fits, value
+  vertically centred, FormPicker dropdown stays put. Ready to merge once the e2e spec runs.
   **`tests/e2e/app-column-width.spec.ts` has never been run** — needs `vercel dev` on :3102.
   Run it before merging; it is the only guard against the 390px cap coming back.
   Not merged to main yet.
