@@ -202,15 +202,21 @@ Only after step 2 passes. By scaffold, each with its own device check.
    inside the form instead of opening an overlay. Re-check with a grep before starting; if nothing
    nests, the order below is free.
 2. `PickerOverlay` — build it, move its four consumers.
-3. `DetailOverlay` — build it, move `OrderDetailSheet`.
-4. `ConfirmOverlay` — build it, redesign `OrderImageWeightPrompt` onto it.
-5. Delete `BaseOverlay.vue`, `BaseFullOverlay.vue`, `BaseSlideOverlay.vue`. Keep `.app-column` —
+3. `FormOverlay` — re-base onto the frame. It keeps its header/body/footer and its single
+   `ScrollRegion`; it drops the three class hooks it passes to `BaseFullOverlay` in favour of
+   `panelClass`. Nothing else can delete `BaseFullOverlay` until this lands — it is its only
+   consumer.
+4. `DetailOverlay` — build it, move `OrderDetailSheet`.
+5. `ConfirmOverlay` — build it, redesign `OrderImageWeightPrompt` onto it.
+6. Delete `BaseOverlay.vue`, `BaseFullOverlay.vue`, `BaseSlideOverlay.vue`. Keep `.app-column` —
    `App.vue:13` still needs it; only the panels stop carrying it.
-6. Rewrite the two e2e specs that assert on the native element: `tests/e2e/base-overlay.spec.ts` and
+7. Rewrite the two e2e specs that assert on the native element: `tests/e2e/base-overlay.spec.ts` and
    `tests/e2e/app-column-width.spec.ts` both locate `dialog[open]` and its UA scroll behaviour.
    Neither survives the migration; both encode real regressions and must be re-expressed against the
    frame's panel, not deleted.
-7. Add the CI grep from **The rule this establishes**.
+8. Add the CI grep from **The rule this establishes**.
+9. Fix the invoice price-list picker's sticky header intercepting clicks on its own close button —
+   pre-existing, found during step 2's regression pass, deliberately left for the rewrite.
 
 ## Dependencies
 
