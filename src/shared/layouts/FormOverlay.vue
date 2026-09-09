@@ -80,8 +80,9 @@ function handleSubmit() {
       <span class="form-overlay-close__glyph" aria-hidden="true">×</span>
     </template>
 
+    <template #default="{ softKeyboardOpen }">
     <form class="form-overlay" @submit.prevent="handleSubmit">
-      <header class="form-overlay__header">
+      <header class="form-overlay__header" :class="{ 'form-overlay__header--compact': softKeyboardOpen }">
         <div class="form-overlay__brand-row">
           <div class="form-overlay__brand-mark">
             <img :src="brandLogo" alt="Magicwash Laundry" />
@@ -110,6 +111,7 @@ function handleSubmit() {
         </p>
       </footer>
     </form>
+    </template>
   </BaseOverlayFrame>
 </template>
 
@@ -127,9 +129,10 @@ function handleSubmit() {
 
 .form-overlay__header {
   position: relative;
-  height: 166px;
+  height: calc(166px + env(safe-area-inset-top));
+  transition: height 150ms ease;
   flex: 0 0 auto;
-  padding: 20px 20px 19px;
+  padding: calc(20px + env(safe-area-inset-top)) 20px 19px;
   color: white;
   background: #00564b;
   overflow: hidden;
@@ -156,6 +159,25 @@ function handleSubmit() {
   background: #b2df26;
   box-shadow: -22px -11px 0 rgba(178, 223, 38, 0.22);
   content: '';
+}
+
+.form-overlay__header--compact {
+  height: calc(56px + env(safe-area-inset-top));
+  padding-top: calc(8px + env(safe-area-inset-top));
+  padding-bottom: 8px;
+}
+
+.form-overlay__header--compact::before,
+.form-overlay__header--compact::after,
+.form-overlay__header--compact .form-overlay__brand-row,
+.form-overlay__header--compact .form-overlay__eyebrow,
+.form-overlay__header--compact .form-overlay__helper {
+  display: none;
+}
+
+.form-overlay__header--compact .form-overlay__title {
+  font-size: 17px;
+  line-height: 1.2;
 }
 
 .form-overlay__brand-row {

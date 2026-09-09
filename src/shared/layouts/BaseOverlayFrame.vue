@@ -126,6 +126,7 @@ const dragging = ref(false)
 const dragOffset = ref(0)
 const dragPointerId = ref<number | null>(null)
 const viewportHeight = ref<number | null>(null)
+const softKeyboardOpen = ref(false)
 const viewportOffsetTop = ref(0)
 const isTopmost = computed(() => overlayStack.at(-1)?.id === overlayId)
 const focusTrapEnabled = computed(() => visible.value && isTopmost.value)
@@ -191,10 +192,15 @@ let dragCaptureElement: HTMLElement | null = null
 
 useFocusTrap(panelRef, focusTrapEnabled)
 
+const SOFT_KEYBOARD_THRESHOLD = 150
+
 function updateVisualViewport() {
   const visualViewport = window.visualViewport
   viewportHeight.value = visualViewport?.height ?? null
   viewportOffsetTop.value = visualViewport?.offsetTop ?? 0
+  softKeyboardOpen.value = visualViewport
+    ? window.innerHeight - visualViewport.height > SOFT_KEYBOARD_THRESHOLD
+    : false
 }
 
 function lockPageScroll() {
@@ -424,7 +430,7 @@ onDeactivated(handleDeactivated)
           </button>
 
           <div class="flex min-h-0 min-w-0 flex-1 flex-col">
-            <slot />
+            <slot :soft-keyboard-open="softKeyboardOpen" />
           </div>
         </section>
       </Transition>

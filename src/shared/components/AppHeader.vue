@@ -20,7 +20,7 @@ const canGoBack = computed(() => Boolean(route.meta.parent))
 
 <template>
   <header
-    class="flex-none bg-primary text-on-primary px-4 py-3 flex items-center justify-between shadow-md w-full min-w-0"
+    class="flex-none bg-primary text-on-primary px-4 pb-3 flex items-center justify-between shadow-md w-full min-w-0 pt-[calc(0.75rem+env(safe-area-inset-top))]"
     :class="APP_Z_INDEX_CLASS.header"
   >
     <div class="flex items-center gap-2">
