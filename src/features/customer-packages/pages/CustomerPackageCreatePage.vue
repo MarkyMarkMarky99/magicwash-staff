@@ -4,12 +4,11 @@ import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import type { z } from 'zod'
 import FormInput from '@/shared/components/FormInput.vue'
-import FormLabel from '@/shared/components/FormLabel.vue'
 import FormOptionGrid from '@/shared/components/FormOptionGrid.vue'
+import FormPicker from '@/shared/components/FormPicker.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import { addSheetDateDays, todaySheetDate } from '@/shared/utils/sheet-date'
-import CustomerPicker from '../components/CustomerPicker.vue'
 import { useCustomerStore } from '@/features/customers/stores/customer.store'
 import type { CustomerDetailDto } from '@/features/customers/services/customer.service'
 import { usePackageStore } from '@/features/packages/stores/package.store'
@@ -54,6 +53,16 @@ const result = ref<CreateCustomerPackageResponse | null>(null)
 const formError = ref<string | null>(null)
 const serviceDays = customerPackageServiceDaySchema.options
 const timeSlots = customerPackageTimeSlotSchema.options
+const customerOptions = computed(() => customers.value.map((item) => ({
+  value: item.customerId,
+  label: item.customerName,
+  description: [item.customerIndex, item.phone, item.location].filter(Boolean).join(' • ') || undefined,
+})))
+const packageOptions = computed(() => activePackages.value.map((item) => ({
+  value: item.packageCode,
+  label: `${item.packageCode} — ${item.name}`,
+  description: `${item.includedCredit} เครดิต · ${item.price}`,
+})))
 const serviceDayOptions = serviceDays.map((day) => ({ value: day, label: day }))
 const timeSlotOptions = timeSlots.map((slot) => ({ value: slot, label: slot }))
 const valid = computed(() => Boolean(customerId.value.trim() && packageCode.value.trim()
@@ -185,15 +194,29 @@ async function submitForm() {
 
     <div v-else class="space-y-4 pb-5">
       <p v-if="autoInvoice" class="font-body text-sm font-semibold">{{ customer?.customerName || customerId }}</p>
-      <CustomerPicker v-else v-model="customerId" :customers="customers" :loading="customersLoading" :error="customersError" />
-      <div>
-        <FormLabel input-id="customer-package-code">แพ็กเกจ *</FormLabel>
-        <select id="customer-package-code" v-model="packageCode" class="w-full rounded-xl bg-surface-container px-3 py-2 font-body text-sm" :disabled="packagesLoading">
-          <option value="" disabled>เลือกแพ็กเกจ</option>
-          <option v-for="packageItem in activePackages" :key="packageItem.packageCode" :value="packageItem.packageCode">{{ packageItem.packageCode }} — {{ packageItem.name }} ({{ packageItem.includedCredit }} เครดิต)</option>
-        </select>
-        <p v-if="packagesError" class="mt-1 font-body text-xs text-error">{{ packagesError }}</p>
-      </div>
+      <FormPicker
+        v-else
+        id="customer-package-customer"
+        v-model="customerId"
+        label="ลูกค้า *"
+        :options="customerOptions"
+        placeholder="เลือกลูกค้า"
+        search-placeholder="ค้นหาลูกค้า"
+        :loading="customersLoading"
+        :error="customersError ?? ''"
+        empty-text="ไม่พบลูกค้า"
+      />
+      <FormPicker
+        id="customer-package-code"
+        v-model="packageCode"
+        label="แพ็กเกจ *"
+        :options="packageOptions"
+        placeholder="เลือกแพ็กเกจ"
+        search-placeholder="ค้นหาแพ็กเกจ"
+        :loading="packagesLoading"
+        :error="packagesError ?? ''"
+        empty-text="ไม่พบแพ็กเกจ"
+      />
       <FormInput v-if="!autoInvoice" id="customer-package-invoice" v-model="invoiceId" label="Invoice ID" />
       <p v-else class="font-body text-xs text-on-surface-variant">
         An invoice will be created automatically before the package is added.
