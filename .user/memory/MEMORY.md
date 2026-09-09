@@ -10,28 +10,28 @@ Live note — what is in flight, next, stuck.
 3. **Finish the gallery migration** — `OrderGalleryPage.vue:84` → `apiGetList`, rename `image_url` →
    `imageUrl`, delete `src/api/photos.js`. ~1h, needs a browser check.
 
-## Layout rebuild — two plans written 2026-09-09, neither started
+## Layout rebuild — branch `feat/scroll-region`, 3 commits, unmerged
 
-Both in `docs/plans/`, reviewed once by codex (gpt-6-astra) and corrected; do not re-review, PR next.
-
-- **`scroll-region.md`** — one `ScrollRegion` component owns every scrolling box. 29 regions total;
-  **16 unpinned**, not 15: the old class-only grep missed `PriceListFormPage:320`, declared in raw
-  CSS. Needs both greps, and the CI guard must match raw CSS too.
+- **`scroll-region.md` is DONE and browser-proven** (`1c9afc2`). `ScrollRegion` owns all 29 regions;
+  `npm run check:scroll-regions` fails on any axis declared elsewhere, class or raw CSS. Playwright
+  proof passed 9/10 — the one FAIL was the brief's own assertion counting a `<textarea>`'s UA
+  `overflow-y:auto` as a scroll region, not a defect. Not yet verified on a physical phone.
+- `dc02957` — customer-package create form uses `FormPicker` for both fields; `CustomerPicker.vue`
+  deleted. Next: **PR this branch**.
 - **`overlay-frame.md`** — `BaseOverlayFrame` replaces `BaseOverlay`/`BaseFullOverlay`/
   `BaseSlideOverlay` (850 lines, forked not shared; `BaseSlideOverlay` has 0 consumers ever).
   Teleports inside the app column, drops `<dialog>`. Four scaffolds above it: `FormOverlay`,
   `PickerOverlay`, `DetailOverlay`, `ConfirmOverlay`.
 
-Traps the review caught — all four are in the docs, listed here because they reverse earlier calls:
+Traps for the overlay work — in the doc, repeated here because they reverse earlier calls:
 
-1. **`FormOverlay` migrates before `PickerOverlay`.** `CustomerPackageCreatePage:150` opens
-   `FormOverlay` with `CustomerPicker` inside it at `:188`; a migrated picker inside a still-native
-   `<dialog>` is painted over and inert.
-2. **`.app-column` is NOT deletable** — `App.vue:13` uses it for the app's own width. Only panels
+1. **`.app-column` is NOT deletable** — `App.vue:13` uses it for the app's own width. Only panels
    stop carrying it.
-3. `tests/e2e/base-overlay.spec.ts` + `app-column-width.spec.ts` locate `dialog[open]`; both must be
+2. `tests/e2e/base-overlay.spec.ts` + `app-column-width.spec.ts` locate `dialog[open]`; both must be
    rewritten, not dropped — they encode the width bug fixed in `9229d20`.
-4. `#overlay-root` needs `z-[60]`: `AppHeader:21` and `NavSidebar:39` are `z-50`.
+3. `#overlay-root` needs `z-[60]`: `AppHeader:21` and `NavSidebar:39` are `z-50`.
+4. An overlay hosted by another must not be migrated after its guest. The only such case is gone
+   (`dc02957`) — re-grep before assuming an order.
 
 Open: iOS keyboard vs a `90vh` picker sheet (`vh` does not shrink) — pick `dvh` or `visualViewport`
 when building the frame.
