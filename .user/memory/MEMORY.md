@@ -10,38 +10,25 @@ Live note — what is in flight, next, stuck.
 3. **Finish the gallery migration** — `OrderGalleryPage.vue:84` → `apiGetList`, rename `image_url` →
    `imageUrl`, delete `src/api/photos.js`. ~1h, needs a browser check.
 
-## Layout rebuild — branch `feat/scroll-region`, 3 commits, unmerged
+## Layout rebuild — merged to main 2026-09-10
 
-- **`scroll-region.md` is DONE and browser-proven** (`1c9afc2`). `ScrollRegion` owns all 29 regions;
-  `npm run check:scroll-regions` fails on any axis declared elsewhere, class or raw CSS. Playwright
-  proof passed 9/10 — the one FAIL was the brief's own assertion counting a `<textarea>`'s UA
-  `overflow-y:auto` as a scroll region, not a defect. Not yet verified on a physical phone.
-- `dc02957` — customer-package create form uses `FormPicker` for both fields; `CustomerPicker.vue`
-  deleted.
-- **`feat/overlay-frame` is DONE** (`21b9af1`) — `overlay-frame.md` steps 1-3, net -673 lines. Five
-  scaffolds on `BaseOverlayFrame`: Form / Picker / Detail / Confirm / Lightbox. The three old bases
-  are deleted. Preview `/#/dev/overlay-frame`; guards `check:overlay-frame-imports` and
-  `check:scroll-regions`; e2e rewritten off `dialog[open]`; `frontend-review` APPROVED.
-- **Next: PR both branches, `feat/scroll-region` first.** Neither is device-verified.
-- **`overlay-frame.md`** — `BaseOverlayFrame` replaces `BaseOverlay`/`BaseFullOverlay`/
-  `BaseSlideOverlay` (850 lines, forked not shared; `BaseSlideOverlay` has 0 consumers ever).
-  Teleports inside the app column, drops `<dialog>`. Four scaffolds above it: `FormOverlay`,
-  `PickerOverlay`, `DetailOverlay`, `ConfirmOverlay`.
+`scroll-region.md` and `overlay-frame.md` are both complete; delete them from `docs/plans/` once
+nothing references them. Net effect: `ScrollRegion` owns all 29 scroll regions, `BaseOverlayFrame`
+plus five scaffolds replaced three duplicated overlay bases, and the app installs to the home screen.
 
-Traps for the overlay work — in the doc, repeated here because they reverse earlier calls:
+- Guards: `check:scroll-regions` and `check:overlay-frame-imports`, beside `typecheck:web`.
+- e2e: 22 passed after the migration; the two specs that asserted on `dialog[open]` were rewritten.
+- Device-verified on an iPhone: sideways drag gone, overscroll contained, form overlay, pickers,
+  order sheet, PWA standalone, and the keyboard header collapse.
 
-1. **`.app-column` is NOT deletable** — `App.vue:13` uses it for the app's own width. Only panels
-   stop carrying it.
-2. `tests/e2e/base-overlay.spec.ts` + `app-column-width.spec.ts` locate `dialog[open]`; both must be
-   rewritten, not dropped — they encode the width bug fixed in `9229d20`.
-3. `#overlay-root` needs `z-[60]`: `AppHeader:21` and `NavSidebar:39` are `z-50`.
-4. An overlay hosted by another must not be migrated after its guest. The only such case is gone
-   (`dc02957`) — re-grep before assuming an order.
-5. Debt from step 3, recorded in the plan: `LightboxOverlay` cancels the frame's centre padding with
-   five `!important` overrides because the frame has no full-bleed size. Add one, drop the overrides.
+**Debt, recorded in `overlay-frame.md`:** `LightboxOverlay` cancels the frame's centre padding with
+five `!important` overrides because the frame has no full-bleed size. Add one, drop the overrides.
 
-Open: iOS keyboard vs a `90vh` picker sheet (`vh` does not shrink) — pick `dvh` or `visualViewport`
-when building the frame.
+**iOS lesson worth keeping:** `window.innerHeight` is unusable as a reference on iOS Safari — it
+tracks the URL bar collapsing under a drag, swinging 272-695 in one session, while
+`visualViewport.height` held at 358 without moving. Detect the keyboard from editable focus plus a
+`visualViewport.height` baseline captured while nothing is focused. See
+`src/shared/layouts/use-soft-keyboard.ts`.
 
 ## Where we are — 2026-09-09
 
