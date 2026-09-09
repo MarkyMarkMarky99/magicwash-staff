@@ -225,6 +225,9 @@ function handleSubmit() {
   min-height: 0;
   flex: 1 1 auto;
   overflow-y: auto;
+  /* See BaseFullOverlay's scroll wrapper: an unset horizontal axis becomes `auto`
+     next to a scrolling vertical one. A form must never pan sideways. */
+  overflow-x: hidden;
   overscroll-behavior: contain;
   padding: 21px 20px 0;
   /* Every other scroll region in the app hides its scrollbar (`no-scrollbar` in style.css).
@@ -276,9 +279,8 @@ function handleSubmit() {
   background: linear-gradient(145deg, #dcecea 0, #f6faf9 58%, #dbeee9 100%);
 }
 
+/* Width comes from `app-column` on BaseFullOverlay's panel -- never restate it here. */
 :global(.form-overlay-panel) {
-  width: min(390px, 100%);
-  max-width: 390px;
   color: #073f38;
   background: #f7fbfa;
   box-shadow: 0 0 0 1px rgba(0, 79, 69, 0.05), 0 12px 44px rgba(0, 66, 59, 0.16);

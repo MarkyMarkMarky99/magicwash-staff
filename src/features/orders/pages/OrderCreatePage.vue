@@ -10,6 +10,7 @@ import FormPicker from '@/shared/components/FormPicker.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import { currentActor } from '@/shared/config/actor'
+import { todaySheetDate } from '@/shared/utils/sheet-date'
 import { useOrderStore } from '@/features/orders/stores/order.store'
 
 defineOptions({ name: 'OrderCreatePage' })
@@ -21,7 +22,10 @@ const { customers, customersLoading, customersError } = storeToRefs(orderStore)
 const submitted = ref(false)
 const submitting = ref(false)
 const formError = ref<string | null>(null)
-const form = reactive({ customerId: '', receivedDate: '', dueDate: '', serviceType: '', quantity: '', note: '', orderName: '' })
+// Intake is nearly always logged on the day the laundry arrives, so the received
+// date defaults to today in Bangkok; the due date stays for staff to choose.
+function blankForm() { return { customerId: '', receivedDate: todaySheetDate(), dueDate: '', serviceType: '', quantity: '', note: '', orderName: '' } }
+const form = reactive(blankForm())
 const serviceOptions = serviceTypeOptions
 const customerOptions = computed(() => customers.value.map((customer) => ({
   value: customer.customerId,
@@ -33,7 +37,7 @@ const quantityInvalid = computed(() => form.quantity !== '' && !/^\d+$/.test(for
 const invalid = computed(() => !form.customerId || !form.receivedDate || !form.dueDate || !form.serviceType || datesOutOfOrder.value || quantityInvalid.value)
 const dateError = computed(() => submitted.value && (!form.receivedDate || !form.dueDate || datesOutOfOrder.value))
 
-function resetForm() { Object.assign(form, { customerId: '', receivedDate: '', dueDate: '', serviceType: '', quantity: '', note: '', orderName: '' }); submitted.value = false; formError.value = null }
+function resetForm() { Object.assign(form, blankForm()); submitted.value = false; formError.value = null }
 function close() {
   if (submitting.value || route.name !== 'order-create') return
   void router.replace({ name: 'order-list' })

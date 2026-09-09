@@ -10,6 +10,23 @@ Live note — what is in flight, next, stuck.
 3. **Finish the gallery migration** — `OrderGalleryPage.vue:84` → `apiGetList`, rename `image_url` →
    `imageUrl`, delete `src/api/photos.js`. ~1h, needs a browser check.
 
+## Unpinned horizontal scroll axis — 15 sites left
+
+CSS resolves a `visible` axis to `auto` when the other axis scrolls, so every `overflow-y-auto`
+without `overflow-x` is a latent sideways-pan bug: one over-wide child and the region drags.
+Cost three round trips on iOS Safari already (form panel, form body, then FormPicker's list).
+Shared layer is now pinned; these feature-level ones are NOT, and none is known to pan today.
+Fix per page with a device check, not in one blind sweep. Re-find with:
+`grep -rno 'class="[^"]*overflow-y-auto[^"]*"' src/ --include=*.vue | grep -v overflow-x`
+
+- orders: `OrderDetailPage:184`, `OrderItemsMenu:17`, `OrderImageCaptureMenu:18`
+- invoices: `InvoiceCreatePage:363`, `InvoiceDetailPage:129`, `InvoicePaymentsMenu:78`
+- customers: `CustomerDetailPage:164`, `OrderDetailSheet:157`
+- appointments: `AppointmentSchedulePage:66`, `PendingAppointmentsPage:23`
+- gallery: `OrderGalleryPage:291`, `OrderGalleryPage:446`
+- other: `CustomerPackageDetailPage:129`, `CustomerPackagesPreviewPage:9`,
+  `IssueReportDetailPage:87`
+
 ## Where we are — 2026-09-09
 
 - **Branch:** `feat/live-order-helper` — pushed, unmerged, not finished. Older than `main`.

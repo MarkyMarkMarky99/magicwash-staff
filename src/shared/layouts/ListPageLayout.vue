@@ -20,7 +20,7 @@ const props = withDefaults(defineProps<{
       <slot name="filters" />
     </div>
 
-    <main class="min-h-0 flex-1 overflow-y-auto no-scrollbar w-full min-w-0 bg-surface pb-20">
+    <main class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden no-scrollbar w-full min-w-0 bg-surface pb-20">
       <slot />
     </main>
   </component>

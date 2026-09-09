@@ -300,6 +300,12 @@ watch(filteredOptions, () => {
 
 .picker__options {
   display: grid;
+  /* An implicit grid column sizes to max-content, so the widest customer description
+     stretched the list past the dropdown. Next to `overflow-y: auto` an unset
+     horizontal axis resolves to `auto`, so the list became a sideways scroller and
+     the rows slid out of view. Pin the track to the container and the axis shut. */
+  grid-template-columns: minmax(0, 1fr);
+  overflow-x: hidden;
   gap: 6px;
   max-height: 240px;
   margin-top: 8px;
@@ -357,6 +363,9 @@ watch(filteredOptions, () => {
 .picker__option-label,
 .picker__option-description {
   min-width: 0;
+  /* Addresses and phone strings have few break opportunities; without this a single
+     long one would push the row wider than its track again. */
+  overflow-wrap: anywhere;
 }
 
 .picker__option-description {

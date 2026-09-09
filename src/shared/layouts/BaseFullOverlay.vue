@@ -147,7 +147,7 @@ onDeactivated(handleUnmount)
       <Transition name="base-full-overlay" appear @after-leave="finishCloseTransition">
         <div
           v-if="panelVisible"
-          :class="['base-full-overlay-panel relative z-10 flex h-full w-full flex-col overflow-hidden bg-surface', panelClass]"
+          :class="['app-column base-full-overlay-panel relative z-10 flex h-full flex-col overflow-hidden bg-surface', panelClass]"
           @click.stop
         >
           <button
@@ -162,7 +162,11 @@ onDeactivated(handleUnmount)
             </slot>
           </button>
 
-          <div class="min-h-0 flex-1 overflow-y-auto no-scrollbar">
+          <!-- overflow-x is pinned, not left to default: CSS resolves a `visible` axis to
+               `auto` when the other axis scrolls, so `overflow-y-auto` alone silently makes
+               this a horizontal scroller too. One over-wide child then lets the whole form
+               be dragged sideways, taking absolutely-positioned dropdowns with it. -->
+          <div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
             <slot />
           </div>
         </div>
