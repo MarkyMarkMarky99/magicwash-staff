@@ -16,6 +16,12 @@ Live note — what is in flight, next, stuck.
   applied by `App.vue` + `BaseOverlay` + `BaseFullOverlay` panels. Committed, unpushed.
   **`tests/e2e/app-column-width.spec.ts` has never been run** — needs `vercel dev` on :3102.
   Run it before merging; it is the only guard against the 390px cap coming back.
+  Also on it: `overflow-x: hidden` pinned on both overlay scrollers (iOS Safari form panned
+  sideways, dragging FormPicker's absolute dropdown off-screen). Pushed for a Vercel preview.
+  **Unproven:** why the two-column date row overflows at all on iOS Safari — `overflow-x` only
+  stops the panning, the clipped date border may remain. Needs Safari Web Inspector:
+  `scrollWidth` vs `clientWidth` on `.form-overlay__body`. See `PriceListFormPage.vue:310`,
+  which already carries a hand-added `min-width: 0` for what looks like the same problem.
 - **Branch:** `feat/live-order-helper` — pushed, unmerged, not finished. Older than `main`.
 - **On `main`, merged but unverified on a phone:** `BaseSwipeCard` ghost-click fix (ISS-72adcdca).
   Source-based dry test only; no device has confirmed it. Issue row is still `OPEN`.
