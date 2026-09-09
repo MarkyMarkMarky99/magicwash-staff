@@ -18,10 +18,10 @@ Live note — what is in flight, next, stuck.
   Run it before merging; it is the only guard against the 390px cap coming back.
   Also on it: `overflow-x: hidden` pinned on both overlay scrollers (iOS Safari form panned
   sideways, dragging FormPicker's absolute dropdown off-screen). Pushed for a Vercel preview.
-  **Unproven:** why the two-column date row overflows at all on iOS Safari — `overflow-x` only
-  stops the panning, the clipped date border may remain. Needs Safari Web Inspector:
-  `scrollWidth` vs `clientWidth` on `.form-overlay__body`. See `PriceListFormPage.vue:310`,
-  which already carries a hand-added `min-width: 0` for what looks like the same problem.
+  Date row overflow traced to the iOS native date control's shadow-DOM minimum (~199pt each vs
+  390pt of panel); fixed with `appearance: none` + `::-webkit-date-and-time-value` in
+  `FormInput.vue`. Received-date now defaults to `todaySheetDate()`. **Awaiting the user's
+  check on the preview** — this was inferred from a screenshot, not measured in Safari.
 - **Branch:** `feat/live-order-helper` — pushed, unmerged, not finished. Older than `main`.
 - **On `main`, merged but unverified on a phone:** `BaseSwipeCard` ghost-click fix (ISS-72adcdca).
   Source-based dry test only; no device has confirmed it. Issue row is still `OPEN`.
