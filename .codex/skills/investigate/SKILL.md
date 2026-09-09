@@ -70,7 +70,7 @@ Choose the next safe, read-only observation, trace, or reproduction step for its
 
 When reproduction is safe and feasible, capture exact preconditions, input, command or interaction, and actual result. If the issue cannot be reproduced, say so and continue only with evidence whose limitation is clear.
 
-Use at most four evidence-gathering rounds. This is a safety cap, not a quota: stop as soon as the stopping condition is met. A round may gather only the independent observations needed to answer its stated question.
+Use at most five evidence-gathering rounds. This is a safety cap, not a quota: stop as soon as the stopping condition is met. A round may gather only the independent observations needed to answer its stated question.
 
 For each independent evidence group, update every hypothesis:
 
@@ -112,7 +112,7 @@ Do not exclude a hypothesis merely because its posterior is low. Exclude it only
 Stop collecting evidence when one of these occurs:
 
 1. one hypothesis reaches 80% or more;
-2. four evidence-gathering rounds complete; or
+2. five evidence-gathering rounds complete; or
 3. no further safe, independent, discriminating observation is available with the current access and artifacts.
 
 A hypothesis at or above 80% is a **leading lead**, not a verified root cause. It identifies the most valuable direction for a separate debugging or remediation task; it does not establish the complete causal chain and never authorizes a fix. Report it as `80% or more`, not with a more precise percentage. Round every other reported probability to the nearest 5%.
@@ -123,7 +123,8 @@ Return:
 2. **System model:** concise relevant flow with exact file references.
 3. **Ranked leads:** initial scored-and-shrunk priors with their `prior basis`, the hypothesis ledger, and current distribution; label any hypothesis at or above 80% as a leading lead.
 4. **Evidence and exclusions:** what each key observation establishes, which alternatives it weakens, and any direct contradiction that excludes a hypothesis.
-5. **Reproduction status and confidence limits.**
+5. **Reproduction status and confidence limits,** opening with the stopping
+   condition and rounds used — e.g. `Stopped by condition 3 after 3 of 5 rounds.`
 6. **Next best observation:** only when the investigation ended without a leading lead.
 
 ## Guardrails
@@ -134,3 +135,5 @@ Return:
 - If evidence conflicts, retain the conflict, lower confidence, and investigate the discrepancy.
 - Do not call any hypothesis a root cause, a diagnosis, or a fix target while this skill is active.
 - A request to investigate does not authorize debugging or remediation. A later task may use the evidence ledger, but must independently validate any proposed change.
+- Test each input of a suspect mechanism on its own. An input assumed correct is an
+  assumption, not evidence, and the most salient part must not stand in for the whole.
