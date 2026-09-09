@@ -193,12 +193,14 @@ confirm-before-delete, which the app has nowhere yet.
 
 Only after step 2 passes. By scaffold, each with its own device check.
 
-1. **`FormOverlay` first, not the pickers.** `CustomerPackageCreatePage:150` opens `FormOverlay`
-   and renders `CustomerPicker` inside it at `:188`. `FormOverlay` is a native `<dialog>` in the
-   browser's top layer; a migrated picker is a plain div in `#overlay-root`, which is not. Migrate
-   the picker first and the still-native form paints over it and marks it inert — the picker opens
-   and cannot be touched. Any overlay that can be opened *from inside* another must not be migrated
-   before its host.
+1. **Check for overlays opened from inside another overlay before choosing an order.** An overlay
+   that a still-native `<dialog>` hosts would be painted over and marked inert once it becomes a
+   plain div in `#overlay-root`, so a host must never be migrated after its guest.
+
+   The one case that existed — `CustomerPackageCreatePage` opening `CustomerPicker` inside
+   `FormOverlay` — is gone as of `dc02957`: both its fields are `FormPicker` now, which drops down
+   inside the form instead of opening an overlay. Re-check with a grep before starting; if nothing
+   nests, the order below is free.
 2. `PickerOverlay` — build it, move its four consumers.
 3. `DetailOverlay` — build it, move `OrderDetailSheet`.
 4. `ConfirmOverlay` — build it, redesign `OrderImageWeightPrompt` onto it.
