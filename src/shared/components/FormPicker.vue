@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue'
 import FormLabel from './FormLabel.vue'
+import ScrollRegion from './ScrollRegion.vue'
 
 const props = defineProps({
   id:                { type: String, required: true },
@@ -207,7 +208,7 @@ watch(filteredOptions, () => {
         <p v-else-if="!filteredOptions.length" class="picker__message">
           {{ emptyText }}
         </p>
-        <div v-else class="picker__options" role="listbox" :aria-labelledby="id">
+        <ScrollRegion v-else sizing="auto" class="picker__options" role="listbox" :aria-labelledby="id">
           <button
             v-for="(option, index) in filteredOptions"
             :key="option.value"
@@ -231,7 +232,7 @@ watch(filteredOptions, () => {
             <span class="picker__option-label">{{ option.label }}</span>
             <span v-if="option.description" class="picker__option-description">{{ option.description }}</span>
           </button>
-        </div>
+        </ScrollRegion>
       </div>
     </div>
   </section>
@@ -300,24 +301,10 @@ watch(filteredOptions, () => {
 
 .picker__options {
   display: grid;
-  /* An implicit grid column sizes to max-content, so the widest customer description
-     stretched the list past the dropdown. Next to `overflow-y: auto` an unset
-     horizontal axis resolves to `auto`, so the list became a sideways scroller and
-     the rows slid out of view. Pin the track to the container and the axis shut. */
   grid-template-columns: minmax(0, 1fr);
-  overflow-x: hidden;
   gap: 6px;
   max-height: 240px;
   margin-top: 8px;
-  overflow-y: auto;
-  /* Hidden like every other scroller in the app (`no-scrollbar`, style.css). This one is
-     capped at 240px and the customer list runs well past it, so the bar was always showing. */
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.picker__options::-webkit-scrollbar {
-  display: none;
 }
 
 .picker__option {

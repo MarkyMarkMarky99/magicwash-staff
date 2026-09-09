@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { getSheetDateCalendar, todaySheetDate } from '@/shared/utils/sheet-date'
 import { addSheetDateDays } from '@/shared/utils/sheet-date'
+import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 
 const props = defineProps<{
   year: number
@@ -15,7 +16,7 @@ const emit = defineEmits<{
   nextMonth: []
 }>()
 
-const stripRef = ref<HTMLElement | null>(null)
+const stripRef = ref<InstanceType<typeof ScrollRegion> | null>(null)
 const today = todaySheetDate()
 const monthNames = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -44,7 +45,7 @@ const dates = computed(() => {
 
 async function scrollToSelected() {
   await nextTick()
-  stripRef.value?.querySelector('[data-selected="true"]')?.scrollIntoView({
+  stripRef.value?.el?.querySelector('[data-selected="true"]')?.scrollIntoView({
     behavior: 'smooth',
     block: 'nearest',
     inline: 'center',
@@ -70,7 +71,7 @@ onMounted(scrollToSelected)
       </button>
     </div>
 
-    <div ref="stripRef" class="flex items-center gap-2 px-4 overflow-x-auto no-scrollbar pt-0.5">
+    <ScrollRegion ref="stripRef" axis="x" sizing="auto" class="flex items-center gap-2 px-4 pt-0.5">
       <button
         v-for="date in dates"
         :key="date.value"
@@ -87,6 +88,6 @@ onMounted(scrollToSelected)
           {{ date.day }}
         </span>
       </button>
-    </div>
+    </ScrollRegion>
   </div>
 </template>

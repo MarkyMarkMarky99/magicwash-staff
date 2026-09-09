@@ -7,6 +7,7 @@ import { formatSheetDate } from '@/shared/utils/sheet-date'
 import { useDuplicateInvoiceWarning } from '@/shared/composables/use-duplicate-invoice-warning'
 import BaseOverlay from '@/shared/layouts/BaseOverlay.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
+import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 
 const props = defineProps<{
   open: boolean
@@ -154,7 +155,7 @@ function viewPhotos() {
           </button>
       </div>
 
-      <div class="min-h-0 flex-1 overflow-y-auto no-scrollbar px-4 py-4">
+      <ScrollRegion class="px-4 py-4">
           <div v-if="order" class="space-y-4">
             <ListContainer
               v-if="order.items.length > 0"
@@ -190,7 +191,7 @@ function viewPhotos() {
               <p class="font-body text-sm leading-relaxed text-on-surface-variant">{{ order.note }}</p>
             </div>
           </div>
-      </div>
+      </ScrollRegion>
     </div>
   </BaseOverlay>
 </template>

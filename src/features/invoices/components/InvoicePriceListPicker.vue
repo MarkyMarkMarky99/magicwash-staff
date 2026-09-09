@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import BaseOverlay from '@/shared/layouts/BaseOverlay.vue'
+import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import type { InvoicePriceListItemDto } from '../services/invoice-price-list.service'
 import InvoicePriceListItemRow from './InvoicePriceListItemRow.vue'
 import {
@@ -138,7 +139,7 @@ function selectCategory(category: string | null) {
           </div>
         </div>
 
-        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar border-t border-white/10 px-3 pb-2.5 pt-2">
+        <ScrollRegion axis="x" sizing="auto" class="flex items-center gap-1.5 border-t border-white/10 px-3 pb-2.5 pt-2">
           <button
             type="button"
             class="flex shrink-0 items-center gap-1 rounded-full px-3 py-1 font-label text-xs font-medium whitespace-nowrap transition-all"
@@ -162,7 +163,7 @@ function selectCategory(category: string | null) {
             <span class="material-symbols-outlined text-[14px]" aria-hidden="true">{{ iconForCategory(category) }}</span>
             <span>{{ category }}</span>
           </button>
-        </div>
+        </ScrollRegion>
       </div>
 
       <div

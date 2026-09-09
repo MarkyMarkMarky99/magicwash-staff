@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppLayout from '@/shared/layouts/AppLayout.vue'
+import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 
 // Search moved into ListContainer, where the magnifier now sits in the list heading and the
 // input drops in under it. This layout owns page chrome only: the filter strip and the scroll
@@ -20,8 +21,8 @@ const props = withDefaults(defineProps<{
       <slot name="filters" />
     </div>
 
-    <main class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden no-scrollbar w-full min-w-0 bg-surface pb-20">
+    <ScrollRegion as="main" class="w-full min-w-0 bg-surface pb-20">
       <slot />
-    </main>
+    </ScrollRegion>
   </component>
 </template>

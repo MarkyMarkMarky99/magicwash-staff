@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import FormInput from '@/shared/components/FormInput.vue'
+import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import FormSwitch from '@/shared/components/FormSwitch.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import { serviceTypeOptions } from '@/shared/utils/service-type-labels'
@@ -223,7 +224,7 @@ onMounted(async () => {
               label="ค้นหารายการเดิมด้วยชื่อหรือรหัส"
               placeholder="เช่น ปลอกผ้านวม หรือ ITM-0010"
             />
-            <div class="existing-item-list">
+            <ScrollRegion sizing="auto" class="existing-item-list">
               <button
                 v-for="candidate in existingItems"
                 :key="candidate.id"
@@ -236,7 +237,7 @@ onMounted(async () => {
                 <span class="material-symbols-outlined" aria-hidden="true">check</span>
               </button>
               <p v-if="existingItems.length === 0" class="empty-selection">ไม่พบรายการเดิม</p>
-            </div>
+            </ScrollRegion>
             <label for="selected-item-code">รหัสรายการที่เลือก</label>
             <input id="selected-item-code" v-model="item.itemCode" class="control" readonly>
           </div>
@@ -317,8 +318,7 @@ onMounted(async () => {
 .mode-button:disabled { cursor:not-allowed; opacity:.5; }
 .assigned-code { margin:0 0 12px; color:var(--quiet); font-size:12px; }
 .existing-item-picker { margin-top:4px; }
-.existing-item-list { max-height:190px; margin:-5px 0 13px; overflow-y:auto; border:1px solid var(--line); border-radius:10px; background:#fff; -ms-overflow-style:none; scrollbar-width:none; }
-.existing-item-list::-webkit-scrollbar { display:none; }
+.existing-item-list { max-height:190px; margin:-5px 0 13px; border:1px solid var(--line); border-radius:10px; background:#fff; }
 .existing-item { display:flex; width:100%; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-bottom:1px solid var(--line); color:var(--ink); text-align:left; }
 .existing-item:last-child { border-bottom:0; }
 .existing-item strong,.existing-item small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

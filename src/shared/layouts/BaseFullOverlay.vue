@@ -162,13 +162,7 @@ onDeactivated(handleUnmount)
             </slot>
           </button>
 
-          <!-- overflow-x is pinned, not left to default: CSS resolves a `visible` axis to
-               `auto` when the other axis scrolls, so `overflow-y-auto` alone silently makes
-               this a horizontal scroller too. One over-wide child then lets the whole form
-               be dragged sideways, taking absolutely-positioned dropdowns with it. -->
-          <div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
-            <slot />
-          </div>
+          <slot />
         </div>
       </Transition>
     </dialog>

@@ -75,7 +75,7 @@ function statusLabel(status: InvoiceDetailDto['payments'][number]['status']) {
 <template>
   <BaseDropdown
     :suspended="props.suspended"
-    panel-class="w-64 overflow-y-auto rounded-2xl border border-outline-variant/30 bg-surface-container-lowest py-1 shadow-2xl no-scrollbar"
+    panel-class="w-64 rounded-2xl border border-outline-variant/30 bg-surface-container-lowest py-1 shadow-2xl"
   >
     <template #trigger="{ open, setTrigger, toggle, triggerAttrs }">
       <button

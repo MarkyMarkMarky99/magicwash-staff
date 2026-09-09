@@ -3,6 +3,7 @@ import { onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
+import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import { useAppointmentStore } from '../stores/appointment.store'
 import AppointmentCard from '../components/AppointmentCard.vue'
@@ -20,7 +21,7 @@ function openReschedule(appointmentId: string) {
 
 <template>
   <AppLayout>
-    <main class="flex-1 overflow-y-auto no-scrollbar pb-6 w-full bg-surface min-w-0">
+    <ScrollRegion as="main" class="pb-6 w-full bg-surface min-w-0">
       <ListContainer
         title="Pending Requests"
         icon="pending_actions"
@@ -57,6 +58,6 @@ function openReschedule(appointmentId: string) {
           @reschedule="openReschedule"
         />
       </ListContainer>
-    </main>
+    </ScrollRegion>
   </AppLayout>
 </template>

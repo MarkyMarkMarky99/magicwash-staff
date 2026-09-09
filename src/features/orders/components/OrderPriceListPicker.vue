@@ -4,6 +4,7 @@ import type { z } from 'zod'
 import type { priceListListResponseSchema } from '@contracts/price-list/price-list-api.schema'
 import { serviceTypeLabel, serviceTypePresentation } from '@/shared/utils/service-type-labels'
 import BaseOverlay from '@/shared/layouts/BaseOverlay.vue'
+import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import OrderPriceListItemRow from './OrderPriceListItemRow.vue'
 
 type PriceListItem = z.infer<typeof priceListListResponseSchema>
@@ -119,7 +120,7 @@ function selectCategory(category: string | null) {
           </label>
         </div>
 
-        <nav class="flex gap-1.5 overflow-x-auto border-t border-white/10 px-3 py-2.5 no-scrollbar" aria-label="กรองตามหมวดหมู่">
+        <ScrollRegion as="nav" axis="x" sizing="auto" class="flex gap-1.5 border-t border-white/10 px-3 py-2.5" aria-label="กรองตามหมวดหมู่">
           <button
             type="button"
             class="shrink-0 rounded-full px-3 py-1.5 font-label text-xs font-semibold transition-colors"
@@ -136,7 +137,7 @@ function selectCategory(category: string | null) {
             :aria-pressed="selectedCategory === category"
             @click="selectCategory(category)"
           >{{ category }}</button>
-        </nav>
+        </ScrollRegion>
       </header>
 
       <div v-if="props.truncated && !props.loading && !props.error" class="flex items-start gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2.5 font-body text-xs leading-relaxed text-amber-900">

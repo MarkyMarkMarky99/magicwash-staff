@@ -5,6 +5,7 @@ import {
   getSheetDateCalendar,
   todaySheetDate,
 } from '@/shared/utils/sheet-date'
+import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 
 const props = withDefaults(defineProps<{
   selectedDate: string
@@ -42,7 +43,7 @@ const dates = computed(() => {
       <h2 class="font-headline font-bold text-xs text-primary">{{ title }}</h2>
       <span class="text-xs text-on-surface-variant">Next 14 days</span>
     </div>
-    <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+    <ScrollRegion axis="x" sizing="auto" class="flex gap-2 pb-1">
       <button
         v-for="date in dates"
         :key="date.value"
@@ -60,7 +61,7 @@ const dates = computed(() => {
         <span class="block font-label text-[9px] uppercase tracking-wide">{{ date.weekday }}</span>
         <span class="block font-headline font-bold text-lg leading-tight">{{ date.day }}</span>
       </button>
-    </div>
+    </ScrollRegion>
   </section>
 </template>
 

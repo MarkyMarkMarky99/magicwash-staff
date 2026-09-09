@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
+import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import FormInput from '@/shared/components/FormInput.vue'
 import FormOptionGrid from '@/shared/components/FormOptionGrid.vue'
 import { ApiError } from '@/shared/api/api-client'
@@ -84,7 +85,7 @@ watch(() => props.id, () => void loadDetail(), { immediate: true })
     <main v-else-if="notFound" class="flex min-h-0 flex-1 items-center justify-center" role="status">
       <p class="text-sm text-on-surface-variant">ไม่พบรายการ</p>
     </main>
-    <main v-else-if="report" class="min-h-0 flex-1 overflow-y-auto no-scrollbar px-4 py-5">
+    <ScrollRegion v-else-if="report" as="main" class="px-4 py-5">
       <div class="space-y-5">
         <section class="rounded-xl bg-surface-container-low p-4">
           <div class="flex items-start justify-between gap-3">
@@ -118,6 +119,6 @@ watch(() => props.id, () => void loadDetail(), { immediate: true })
           <FormOptionGrid :model-value="report.status" label="เปลี่ยนสถานะ" :options="statusOptions" variant="compact" @update:model-value="changeStatus" />
         </section>
       </div>
-    </main>
+    </ScrollRegion>
   </AppLayout>
 </template>

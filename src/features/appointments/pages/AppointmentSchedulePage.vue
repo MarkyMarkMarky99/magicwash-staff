@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
+import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import { useAppointmentStore } from '../stores/appointment.store'
 import { appointmentDateFromString, toAppointmentDate } from '../utils/appointment-date'
@@ -63,7 +64,7 @@ function openReschedule(appointmentId: string) {
       <AppointmentDateTabs :year="navYear" :month="navMonth" :selected-date="selectedDate" @date-select="selectDate" @prev-month="previousMonth" @next-month="nextMonth" />
     </div>
 
-    <main class="flex-1 overflow-y-auto no-scrollbar pb-20 w-full bg-surface min-w-0">
+    <ScrollRegion as="main" class="pb-20 w-full bg-surface min-w-0">
       <ListContainer
         v-for="(slot, index) in slots"
         :key="slot.value"
@@ -88,6 +89,6 @@ function openReschedule(appointmentId: string) {
           @reschedule="openReschedule"
         />
       </ListContainer>
-    </main>
+    </ScrollRegion>
   </AppLayout>
 </template>

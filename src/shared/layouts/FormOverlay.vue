@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import BaseFullOverlay from '@/shared/layouts/BaseFullOverlay.vue'
 import brandLogo from '@/assets/logo.png'
 
@@ -88,9 +89,9 @@ function handleSubmit() {
         <p v-if="helperText" class="form-overlay__helper"><b aria-hidden="true">•</b>{{ helperText }}</p>
       </header>
 
-      <div class="form-overlay__body">
+      <ScrollRegion class="form-overlay__body">
         <slot />
-      </div>
+      </ScrollRegion>
 
       <footer class="form-overlay__footer">
         <button
@@ -222,22 +223,7 @@ function handleSubmit() {
 }
 
 .form-overlay__body {
-  min-height: 0;
-  flex: 1 1 auto;
-  overflow-y: auto;
-  /* See BaseFullOverlay's scroll wrapper: an unset horizontal axis becomes `auto`
-     next to a scrolling vertical one. A form must never pan sideways. */
-  overflow-x: hidden;
-  overscroll-behavior: contain;
   padding: 21px 20px 0;
-  /* Every other scroll region in the app hides its scrollbar (`no-scrollbar` in style.css).
-     This one did not, so a full-height form painted a native bar down the sheet's edge. */
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.form-overlay__body::-webkit-scrollbar {
-  display: none;
 }
 
 .form-overlay__footer {

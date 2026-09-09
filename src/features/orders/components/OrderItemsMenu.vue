@@ -14,7 +14,7 @@ function select(action: 'addItem' | 'openAlbum', close: () => void): void {
 </script>
 
 <template>
-  <BaseDropdown panel-class="w-52 overflow-y-auto no-scrollbar rounded-2xl border border-outline-variant/30 bg-surface-container-lowest py-1 shadow-2xl">
+  <BaseDropdown panel-class="w-52 rounded-2xl border border-outline-variant/30 bg-surface-container-lowest py-1 shadow-2xl">
     <template #trigger="{ open, setTrigger, toggle, triggerAttrs }">
       <button
         :ref="setTrigger"

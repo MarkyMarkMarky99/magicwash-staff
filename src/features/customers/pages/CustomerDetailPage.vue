@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { appendPackageTransactionRequestSchema } from '@contracts/customer-packages/customer-package-api.schema'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
+import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.store'
 import { useDeliveryBookingIntentStore } from '@/shared/stores/delivery-booking-intent.store'
 import { useInvoiceCreateIntentStore } from '@/shared/stores/invoice-create-intent.store'
@@ -161,7 +162,7 @@ watch([activeTab, () => props.customerId, openOrderId], ([tab, id, orderId]) => 
 <template>
   <AppLayout>
     <GenericTabs :tabs="tabs" :active-key="activeTab" @select="selectTab" />
-    <main class="flex-1 overflow-y-auto no-scrollbar bg-surface pb-20">
+    <ScrollRegion as="main" class="bg-surface pb-20">
       <p v-if="customerLoading" class="px-4 py-6 text-sm text-on-surface-variant">
         Loading customer...
       </p>
@@ -173,7 +174,7 @@ watch([activeTab, () => props.customerId, openOrderId], ([tab, id, orderId]) => 
       <OrderList v-if="activeTab === 'orders'" @select-order="openOrder" />
       <CustomerPackagesSection v-else-if="activeTab === 'packages'" :customer-id="customerId" @buy="openBuyPackage" />
       <CustomerInvoicesSection v-else :customer-id="customerId" />
-    </main>
+    </ScrollRegion>
 
     <CustomerPackageCreatePage
       v-if="activeTab === 'packages' && buyPackageOpen"

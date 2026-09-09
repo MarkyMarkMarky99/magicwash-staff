@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import ScrollRegion from '@/shared/components/ScrollRegion.vue'
+
 interface GenericTab {
   key: string
   label: string
@@ -17,7 +19,7 @@ const emit = defineEmits<{
 
 <template>
   <div class="flex items-center bg-primary w-full overflow-hidden">
-    <div class="flex items-center gap-1 px-4 pt-2 pb-0 overflow-x-auto no-scrollbar w-full">
+    <ScrollRegion axis="x" sizing="auto" class="flex items-center gap-1 px-4 pt-2 pb-0 w-full">
       <button
         v-for="tab in tabs"
         :key="tab.key"
@@ -35,6 +37,6 @@ const emit = defineEmits<{
           {{ tab.count }}
         </span>
       </button>
-    </div>
+    </ScrollRegion>
   </div>
 </template>

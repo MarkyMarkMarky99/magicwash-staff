@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
 import type { ComponentPublicInstance } from 'vue'
+import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 
 const props = withDefaults(defineProps<{
   suspended?: boolean
@@ -12,7 +13,7 @@ const props = withDefaults(defineProps<{
 
 const open = ref(false)
 const triggerRef = ref<HTMLElement | null>(null)
-const panelRef = ref<HTMLElement | null>(null)
+const panelRef = ref<InstanceType<typeof ScrollRegion> | null>(null)
 type PanelPosition = { right: string; maxHeight: string; top?: string; bottom?: string }
 const position = ref<PanelPosition | null>(null)
 
@@ -68,7 +69,7 @@ function dismiss() {
 
 function onPointerDown(event: PointerEvent) {
   const target = event.target as Node
-  if (panelRef.value?.contains(target) || triggerRef.value?.contains(target)) return
+  if (panelRef.value?.el?.contains(target) || triggerRef.value?.contains(target)) return
   close()
 }
 
@@ -105,15 +106,16 @@ onBeforeUnmount(() => close())
   />
 
   <Teleport to="body">
-    <div
+    <ScrollRegion
       v-if="open && position"
       :id="panelId"
       ref="panelRef"
+      sizing="auto"
       class="fixed z-[60]"
       :class="panelClass"
       :style="position"
     >
       <slot :close="close" />
-    </div>
+    </ScrollRegion>
   </Teleport>
 </template>

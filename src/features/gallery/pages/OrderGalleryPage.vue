@@ -5,6 +5,7 @@ import { usePhotoUpload } from '@/composables/usePhotoUpload'
 import { getPhotos } from '@/api/photos'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import CameraOverlay from '@/shared/components/CameraOverlay.vue'
+import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import { currentActor } from '@/shared/config/actor'
 import { getWorkOrder } from '@/features/orders/services/work-order.service'
 import { reassignPhoto } from '@/features/gallery/services/laundry-photo.service'
@@ -267,8 +268,10 @@ function handleCameraClose() {
   <AppLayout>
     <div class="relative flex min-h-0 flex-1 flex-col overflow-hidden">
       <div class="flex-none border-b border-outline-variant/20 bg-primary">
-        <div
-          class="flex items-center gap-1 overflow-x-auto no-scrollbar px-4 pt-2"
+        <ScrollRegion
+          axis="x"
+          sizing="auto"
+          class="flex items-center gap-1 px-4 pt-2"
           role="tablist"
           aria-label="เลือกประเภทภาพ"
         >
@@ -284,11 +287,11 @@ function handleCameraClose() {
           >
             {{ tab.label }}
           </button>
-        </div>
+        </ScrollRegion>
       </div>
 
       <!-- Body -->
-      <div class="gallery-scroll flex-1 overflow-y-auto">
+      <ScrollRegion as="main">
         <div class="flex min-h-full flex-col py-1">
 
         <!-- Loading -->
@@ -370,7 +373,7 @@ function handleCameraClose() {
         </template>
 
         </div>
-      </div>
+      </ScrollRegion>
 
       <!-- Floating add button -->
       <div class="absolute bottom-6 right-4">
@@ -443,7 +446,7 @@ function handleCameraClose() {
     <Transition name="sheet">
       <div v-if="showReassignPicker" class="fixed inset-0 z-50 flex flex-col justify-end">
         <div class="absolute inset-0 bg-black/40" @click="showReassignPicker = false" />
-        <div class="relative max-h-[75dvh] overflow-y-auto rounded-t-2xl bg-surface p-5 space-y-3">
+        <ScrollRegion sizing="auto" class="relative max-h-[75dvh] rounded-t-2xl bg-surface p-5 space-y-3">
           <p class="text-center font-body text-on-surface-variant text-sm mb-1">เลือกรายการปลายทาง</p>
 
           <div v-if="orderItemsStatus === 'loading'" class="flex items-center justify-center gap-2 py-6 text-on-surface-variant">
@@ -493,7 +496,7 @@ function handleCameraClose() {
           >
             ยกเลิก
           </button>
-        </div>
+        </ScrollRegion>
       </div>
     </Transition>
 
@@ -535,15 +538,6 @@ function handleCameraClose() {
 </template>
 
 <style scoped>
-.gallery-scroll {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.gallery-scroll::-webkit-scrollbar {
-  display: none;
-}
-
 .sheet-enter-active, .sheet-leave-active { transition: opacity 0.2s ease; }
 .sheet-enter-active .relative, .sheet-leave-active .relative { transition: transform 0.25s ease; }
 .sheet-enter-from, .sheet-leave-to { opacity: 0; }

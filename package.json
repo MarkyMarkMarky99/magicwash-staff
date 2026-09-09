@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck:api": "tsc -p api/tsconfig.json --noEmit",
-    "typecheck:web": "vue-tsc -p tsconfig.web.json --noEmit"
+    "typecheck:web": "vue-tsc -p tsconfig.web.json --noEmit",
+    "check:scroll-regions": "node scripts/check-scroll-regions.mjs"
   },
   "dependencies": {
     "axios": "^1.14.0",

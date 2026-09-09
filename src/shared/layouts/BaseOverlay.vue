@@ -29,6 +29,7 @@ function releasePageScrollLock() {
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onDeactivated, onMounted, ref, watch } from 'vue'
+import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 
 type OverlayVariant = 'full' | 'sheet'
 
@@ -325,9 +326,9 @@ onDeactivated(handleUnmount)
             <span class="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
           </button>
 
-          <div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
+          <ScrollRegion>
             <slot />
-          </div>
+          </ScrollRegion>
         </div>
       </Transition>
     </dialog>

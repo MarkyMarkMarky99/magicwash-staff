@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
+import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import InvoiceCustomerCard from '../components/InvoiceCustomerCard.vue'
 import InvoicePaymentsMenu from '../components/InvoicePaymentsMenu.vue'
 import InvoiceProofLightbox from '../components/InvoiceProofLightbox.vue'
@@ -126,7 +127,7 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
       </main>
 
       <template v-else>
-        <main class="flex-1 overflow-y-auto no-scrollbar">
+        <ScrollRegion as="main">
           <div class="space-y-5 px-4 pb-8 pt-4">
             <section class="flex items-start justify-between gap-4">
               <div class="min-w-0 flex-1">
@@ -246,7 +247,7 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
               </div>
             </InvoiceSectionCard>
           </div>
-        </main>
+        </ScrollRegion>
 
         <footer v-if="isReadOnlyFooterVisible" class="z-40 flex-none border-t border-outline-variant/20 bg-surface px-4 pb-4 pt-3">
           <div class="flex h-14 w-full items-center justify-between gap-3 rounded-2xl bg-primary px-4 text-left text-on-primary shadow-md">
