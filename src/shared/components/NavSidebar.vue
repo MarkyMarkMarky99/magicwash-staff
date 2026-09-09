@@ -1,6 +1,7 @@
 <script setup>
 import { useRouter, useRoute } from 'vue-router'
 import { invalidate } from '@/shared/api/response-cache'
+import { APP_Z_INDEX_CLASS } from '@/shared/layouts/z-index'
 
 const props = defineProps({
   open: Boolean
@@ -27,7 +28,8 @@ function refresh() {
   <Transition name="backdrop">
     <div
       v-if="open"
-      class="fixed inset-0 bg-black/40 z-40"
+      class="fixed inset-0 bg-black/40"
+      :class="APP_Z_INDEX_CLASS.navigationScrim"
       @click="emit('close')"
     />
   </Transition>
@@ -36,7 +38,8 @@ function refresh() {
   <Transition name="slide">
     <nav
       v-if="open"
-      class="fixed top-0 left-0 h-full w-[75%] max-w-sm bg-surface text-on-surface z-50 flex flex-col shadow-2xl"
+      class="fixed top-0 left-0 h-full w-[75%] max-w-sm bg-surface text-on-surface flex flex-col shadow-2xl"
+      :class="APP_Z_INDEX_CLASS.navigation"
     >
       <!-- Header -->
       <div class="bg-primary text-on-primary flex items-center justify-between px-4 py-3">

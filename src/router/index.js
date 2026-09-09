@@ -34,6 +34,12 @@ if (import.meta.env.DEV) {
     name: 'form-overlay-preview',
     component: () => import('@/app/dev/FormOverlayPreviewPage.vue'),
   })
+
+  routes.push({
+    path: '/dev/overlay-frame',
+    name: 'overlay-frame-preview',
+    component: () => import('@/app/dev/OverlayFramePreviewPage.vue'),
+  })
 }
 
 export default createRouter({

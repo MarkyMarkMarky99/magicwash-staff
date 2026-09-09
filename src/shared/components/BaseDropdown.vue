@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
 import type { ComponentPublicInstance } from 'vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
+import { APP_Z_INDEX_CLASS } from '@/shared/layouts/z-index'
 
 const props = withDefaults(defineProps<{
   suspended?: boolean
@@ -111,8 +112,8 @@ onBeforeUnmount(() => close())
       :id="panelId"
       ref="panelRef"
       sizing="auto"
-      class="fixed z-[60]"
-      :class="panelClass"
+      class="fixed"
+      :class="[APP_Z_INDEX_CLASS.dropdown, panelClass]"
       :style="position"
     >
       <slot :close="close" />

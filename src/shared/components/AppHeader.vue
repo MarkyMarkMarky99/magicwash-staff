@@ -5,6 +5,7 @@ import { useRouter, useRoute } from 'vue-router'
 import logoUrl from '../../assets/logo.png'
 import { useAppointmentStore } from '@/features/appointments/stores/appointment.store'
 import { useGoBack } from '@/shared/composables/use-go-back'
+import { APP_Z_INDEX_CLASS } from '@/shared/layouts/z-index'
 import NavSidebar from './NavSidebar.vue'
 
 const router = useRouter()
@@ -18,7 +19,10 @@ const canGoBack = computed(() => Boolean(route.meta.parent))
 </script>
 
 <template>
-  <header class="flex-none bg-primary text-on-primary px-4 py-3 flex items-center justify-between shadow-md z-50 w-full min-w-0">
+  <header
+    class="flex-none bg-primary text-on-primary px-4 py-3 flex items-center justify-between shadow-md w-full min-w-0"
+    :class="APP_Z_INDEX_CLASS.header"
+  >
     <div class="flex items-center gap-2">
       <button
         class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
