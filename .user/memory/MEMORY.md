@@ -10,18 +10,34 @@ Live note — what is in flight, next, stuck.
 3. **Finish the gallery migration** — `OrderGalleryPage.vue:84` → `apiGetList`, rename `image_url` →
    `imageUrl`, delete `src/api/photos.js`. ~1h, needs a browser check.
 
+## Unpinned horizontal scroll axis — 15 sites left
+
+CSS resolves a `visible` axis to `auto` when the other axis scrolls, so every `overflow-y-auto`
+without `overflow-x` is a latent sideways-pan bug: one over-wide child and the region drags.
+Cost three round trips on iOS Safari already (form panel, form body, then FormPicker's list).
+Shared layer is now pinned; these feature-level ones are NOT, and none is known to pan today.
+Fix per page with a device check, not in one blind sweep. Re-find with:
+`grep -rno 'class="[^"]*overflow-y-auto[^"]*"' src/ --include=*.vue | grep -v overflow-x`
+
+- orders: `OrderDetailPage:184`, `OrderItemsMenu:17`, `OrderImageCaptureMenu:18`
+- invoices: `InvoiceCreatePage:363`, `InvoiceDetailPage:129`, `InvoicePaymentsMenu:78`
+- customers: `CustomerDetailPage:164`, `OrderDetailSheet:157`
+- appointments: `AppointmentSchedulePage:66`, `PendingAppointmentsPage:23`
+- gallery: `OrderGalleryPage:291`, `OrderGalleryPage:446`
+- other: `CustomerPackageDetailPage:129`, `CustomerPackagesPreviewPage:9`,
+  `IssueReportDetailPage:87`
+
 ## Where we are — 2026-09-09
 
-- **Branch:** `fix/app-column-width` — app width unified into `.app-column` (`src/style.css`),
-  applied by `App.vue` + `BaseOverlay` + `BaseFullOverlay` panels. Committed, unpushed.
+- **Branch:** `fix/app-column-width` — pushed, 4 commits, live on a Vercel preview the user is
+  testing on a real iPhone. App width unified into `.app-column`; `overflow-x` pinned on the
+  shared scroll regions; iOS date field sized with `appearance: none`; received-date defaults
+  to `todaySheetDate()`.
+  User has confirmed on device: form no longer pans, date row fits, value vertically centred.
+  **Unconfirmed:** the FormPicker dropdown fix (commit `b623df7`) — awaiting their check.
   **`tests/e2e/app-column-width.spec.ts` has never been run** — needs `vercel dev` on :3102.
   Run it before merging; it is the only guard against the 390px cap coming back.
-  Also on it: `overflow-x: hidden` pinned on both overlay scrollers (iOS Safari form panned
-  sideways, dragging FormPicker's absolute dropdown off-screen). Pushed for a Vercel preview.
-  Date row overflow traced to the iOS native date control's shadow-DOM minimum (~199pt each vs
-  390pt of panel); fixed with `appearance: none` + `::-webkit-date-and-time-value` in
-  `FormInput.vue`. Received-date now defaults to `todaySheetDate()`. **Awaiting the user's
-  check on the preview** — this was inferred from a screenshot, not measured in Safari.
+  Not merged to main yet.
 - **Branch:** `feat/live-order-helper` — pushed, unmerged, not finished. Older than `main`.
 - **On `main`, merged but unverified on a phone:** `BaseSwipeCard` ghost-click fix (ISS-72adcdca).
   Source-based dry test only; no device has confirmed it. Issue row is still `OPEN`.
