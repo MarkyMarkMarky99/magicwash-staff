@@ -30,9 +30,10 @@ tracks the URL bar collapsing under a drag, swinging 272-695 in one session, whi
 `visualViewport.height` baseline captured while nothing is focused. See
 `src/shared/layouts/use-soft-keyboard.ts`.
 
-## Where we are — 2026-09-09
+## Where we are — 2026-09-10
 
-- **Branch:** `feat/live-order-helper` — pushed, unmerged, not finished. Older than `main`.
+- **Branch:** `feat/live-order-helper` — pushed, unmerged, not finished, and now far behind `main`.
+  Diff it against `origin/main` before assuming any of it is still wanted.
 - **On `main`, merged but unverified on a phone:** `BaseSwipeCard` ghost-click fix (ISS-72adcdca).
   Source-based dry test only; no device has confirmed it. Issue row is still `OPEN`.
 - **Open cache gap:** `onFresh` is unwired. `docs/plans/cache-gateway.md`.
@@ -55,9 +56,8 @@ tracks the URL bar collapsing under a drag, swinging 272-695 in one session, whi
 3. `#/price-list`: search → ⚙ → `ซักแห้ง` → type nonsense. **Service buttons must remain.**
 4. `#/appointments` and customer detail — must show **no** magnifier at all.
 5. Theme sweep: green ink, Noto Sans Thai everywhere.
-6. Order detail → dropdown near the bottom edge must flip **above**, all rows visible.
-7. Order create → customer picker: scroll options, no scrollbar should appear; merged overlay
-   sheet: drag-to-close, scroll, Back, edge-swipe.
+6. Order detail → dropdown near the bottom edge must flip **above**, all rows visible. Its panel is
+   a `ScrollRegion` now, so recheck after the overlay migration.
 
 ## Photos
 
