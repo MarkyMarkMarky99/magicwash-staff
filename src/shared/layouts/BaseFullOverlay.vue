@@ -147,7 +147,7 @@ onDeactivated(handleUnmount)
       <Transition name="base-full-overlay" appear @after-leave="finishCloseTransition">
         <div
           v-if="panelVisible"
-          :class="['base-full-overlay-panel relative z-10 flex h-full w-full flex-col overflow-hidden bg-surface', panelClass]"
+          :class="['app-column base-full-overlay-panel relative z-10 flex h-full flex-col overflow-hidden bg-surface', panelClass]"
           @click.stop
         >
           <button

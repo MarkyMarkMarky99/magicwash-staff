@@ -29,6 +29,20 @@ Navigation away from an open route-owned overlay also uses `router.replace`.
 
 Filter query state is replace-only; it is not an overlay-dismiss pattern.
 
+## Overlay width
+
+Overlays `Teleport` to `body`, so they sit outside the app shell in `src/App.vue` and inherit none
+of its width. The app column is defined once, as `.app-column` in `src/style.css`: full-bleed below
+`sm`, `var(--container-app)` centred at `sm` and up.
+
+Any teleported panel that should read as part of the app carries `app-column`. Never restate the
+number or the breakpoint at the call site — restating it once already shipped a form overlay capped
+at 390px on 430px phones while the page behind it was full width. `BaseOverlay` and `BaseFullOverlay`
+apply `app-column` to their panels, so an overlay built on either is correct by default.
+
+Full-bleed overlays are the deliberate exception: `CameraOverlay` and `DocumentScannerOverlay` are
+`fixed inset-0` and own their own chrome, including safe-area insets.
+
 ## Verification
 
 For a navigation or overlay change, verify the affected flow both from in-app navigation and after
@@ -41,3 +55,5 @@ them.
 
 - `src/features/customers/composables/useOrderSheetRoute.ts` — query-parameter overlay template
 - `src/features/gallery/routes.ts` — CameraOverlay path/route-metadata exception
+- `src/style.css` — `--container-app` and `.app-column`, the single definition of the app width
+- `tests/e2e/app-column-width.spec.ts` — regression cover at 430px and 1280px

@@ -62,6 +62,9 @@
   --radius-lg: 0.5rem;
   --radius-xl: 1.5rem;
   --radius-full: 9999px;
+
+  /* ── Layout ── */
+  --container-app: 390px;
 }
 
 /* ── Base Layout ── */
@@ -73,6 +76,21 @@ html, body {
 
 #app {
   height: 100%;
+}
+
+/* The app column: full-bleed on a phone, a fixed centred column from `sm` up.
+   Overlays `Teleport` to `body`, so they sit outside App.vue and do not inherit
+   this width -- every teleported panel must carry `app-column` itself. Defined
+   once here so the number and the breakpoint cannot drift apart again. */
+.app-column {
+  width: 100%;
+  margin-inline: auto;
+}
+
+@media (min-width: 640px) {
+  .app-column {
+    max-width: var(--container-app);
+  }
 }
 
 /* ── Material Symbols ── */

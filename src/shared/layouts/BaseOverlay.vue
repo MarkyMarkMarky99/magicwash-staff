@@ -297,7 +297,7 @@ onDeactivated(handleUnmount)
           v-if="panelVisible"
           class="base-overlay-panel relative z-10"
           :class="[
-            variant === 'sheet' ? 'base-overlay-sheet-panel flex max-h-[84vh] w-full sm:max-w-[390px] flex-col overflow-hidden rounded-t-2xl bg-surface shadow-2xl' : 'base-overlay-full-panel flex h-full w-full sm:max-w-[390px] flex-col overflow-hidden bg-surface',
+            variant === 'sheet' ? 'app-column base-overlay-sheet-panel flex max-h-[84vh] flex-col overflow-hidden rounded-t-2xl bg-surface shadow-2xl' : 'app-column base-overlay-full-panel flex h-full flex-col overflow-hidden bg-surface',
             { 'is-dragging': dragging },
           ]"
           :style="panelStyle"
