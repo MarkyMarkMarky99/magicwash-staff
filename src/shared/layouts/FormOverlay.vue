@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import BaseOverlayFrame from '@/shared/layouts/BaseOverlayFrame.vue'
 import brandLogo from '@/assets/logo.png'
+import { useSoftKeyboard } from '@/shared/layouts/use-soft-keyboard'
 
 const props = defineProps({
     open: {
@@ -53,6 +54,7 @@ const emit = defineEmits<{
   submit: []
 }>()
 
+const softKeyboardOpen = useSoftKeyboard()
 const accessibleOverlayLabel = computed(() => props.ariaLabel ?? props.title)
 const submitDisabled = computed(() => props.isSubmitting || props.isSubmitDisabled)
 
@@ -73,7 +75,7 @@ function handleSubmit() {
     close-button
     :ariaLabel="accessibleOverlayLabel"
     :close-on-backdrop="closeOnBackdrop"
-    panel-class="form-overlay-panel"
+    :panel-class="softKeyboardOpen ? 'form-overlay-panel form-overlay-panel--compact' : 'form-overlay-panel'"
     @close="emit('close')"
   >
     <template #close-button>
@@ -81,7 +83,7 @@ function handleSubmit() {
     </template>
 
     <form class="form-overlay" @submit.prevent="handleSubmit">
-      <header class="form-overlay__header">
+      <header class="form-overlay__header" :class="{ 'form-overlay__header--compact': softKeyboardOpen }">
         <div class="form-overlay__brand-row">
           <div class="form-overlay__brand-mark">
             <img :src="brandLogo" alt="Magicwash Laundry" />
@@ -128,6 +130,7 @@ function handleSubmit() {
 .form-overlay__header {
   position: relative;
   height: calc(166px + env(safe-area-inset-top));
+  transition: height 150ms ease;
   flex: 0 0 auto;
   padding: calc(20px + env(safe-area-inset-top)) 20px 19px;
   color: white;
@@ -156,6 +159,27 @@ function handleSubmit() {
   background: #b2df26;
   box-shadow: -22px -11px 0 rgba(178, 223, 38, 0.22);
   content: '';
+}
+
+.form-overlay__header--compact {
+  display: flex;
+  height: calc(56px + env(safe-area-inset-top));
+  align-items: center;
+  padding-top: calc(8px + env(safe-area-inset-top));
+  padding-bottom: 8px;
+}
+
+.form-overlay__header--compact::before,
+.form-overlay__header--compact::after,
+.form-overlay__header--compact .form-overlay__brand-row,
+.form-overlay__header--compact .form-overlay__eyebrow,
+.form-overlay__header--compact .form-overlay__helper {
+  display: none;
+}
+
+.form-overlay__header--compact .form-overlay__title {
+  font-size: 17px;
+  line-height: 1.2;
 }
 
 .form-overlay__brand-row {
@@ -273,8 +297,12 @@ function handleSubmit() {
   box-shadow: 0 0 0 1px rgba(0, 79, 69, 0.05), 0 12px 44px rgba(0, 66, 59, 0.16);
 }
 
+:global(.form-overlay-panel.form-overlay-panel--compact) {
+  --form-overlay-close-top: calc(11px + env(safe-area-inset-top));
+}
+
 :global(.form-overlay-panel > button[aria-label="Close"]) {
-  top: 20px;
+  top: var(--form-overlay-close-top, 20px);
   right: 20px;
   width: 34px;
   height: 34px;
