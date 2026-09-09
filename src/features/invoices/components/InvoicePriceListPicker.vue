@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import BaseOverlay from '@/shared/layouts/BaseOverlay.vue'
+import { computed, ref, watch } from 'vue'
+import PickerOverlay from '@/shared/layouts/PickerOverlay.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import type { InvoicePriceListItemDto } from '../services/invoice-price-list.service'
 import InvoicePriceListItemRow from './InvoicePriceListItemRow.vue'
@@ -33,9 +33,6 @@ const emit = defineEmits<{
 
 const searchQuery = ref('')
 const selectedCategory = ref<string | null>(null)
-const headerRef = ref<HTMLElement | null>(null)
-const headerHeight = ref(0)
-let headerObserver: ResizeObserver | null = null
 
 const categories = computed(() => uniqueCategories(props.items))
 
@@ -65,25 +62,6 @@ watch(
   },
 )
 
-watch(headerRef, (el) => {
-  headerObserver?.disconnect()
-  headerObserver = null
-  if (!el || typeof ResizeObserver === 'undefined') {
-    headerHeight.value = el?.offsetHeight ?? 0
-    return
-  }
-  headerObserver = new ResizeObserver(() => {
-    headerHeight.value = el.offsetHeight
-  })
-  headerObserver.observe(el)
-  headerHeight.value = el.offsetHeight
-})
-
-onBeforeUnmount(() => {
-  headerObserver?.disconnect()
-  headerObserver = null
-})
-
 function clearSearch() {
   searchQuery.value = ''
 }
@@ -94,14 +72,13 @@ function selectCategory(category: string | null) {
 </script>
 
 <template>
-  <BaseOverlay
+  <PickerOverlay
     :open="open"
-    variant="full"
-    aria-label="เลือกจากรายการราคา"
+    ariaLabel="เลือกจากรายการราคา"
     @close="emit('close')"
   >
-    <div class="flex min-h-full flex-col bg-surface text-on-surface">
-      <div ref="headerRef" class="sticky top-0 z-20 bg-primary text-on-primary shadow-md">
+    <template #header>
+      <div class="relative z-10 bg-primary text-on-primary shadow-md">
         <div class="flex items-center justify-between gap-2 px-4 pb-2 pr-14 pt-3">
           <div class="min-w-0">
             <h1 class="truncate font-headline text-base font-bold leading-tight">
@@ -165,6 +142,7 @@ function selectCategory(category: string | null) {
           </button>
         </ScrollRegion>
       </div>
+    </template>
 
       <div
         v-if="showLimitBanner && !loading && !error"
@@ -218,8 +196,7 @@ function selectCategory(category: string | null) {
       <div v-else class="divide-y divide-outline-variant/10">
         <section v-for="group in rendered.groups" :key="group.category">
           <div
-            class="sticky z-10 flex items-center justify-between border-y border-outline-variant/20 bg-surface-container-low/95 px-4 py-2 backdrop-blur-sm"
-            :style="{ top: `${headerHeight}px` }"
+            class="sticky top-0 z-10 flex items-center justify-between border-y border-outline-variant/20 bg-surface-container-low/95 px-4 py-2 backdrop-blur-sm"
           >
             <div class="flex items-center gap-2">
               <span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">{{ iconForCategory(group.category) }}</span>
@@ -237,21 +214,8 @@ function selectCategory(category: string | null) {
           />
         </section>
       </div>
-    </div>
-  </BaseOverlay>
+  </PickerOverlay>
 </template>
-
-<style>
-/* BaseOverlay teleports its <dialog>, so parent scoped :deep() cannot reach the
-   built-in close button. Scope the restyle to this overlay's aria-label. */
-dialog[aria-label="เลือกจากรายการราคา"] > .base-overlay-panel > button[aria-label="Close"] {
-  color: #ffffff;
-}
-dialog[aria-label="เลือกจากรายการราคา"] > .base-overlay-panel > button[aria-label="Close"]:hover,
-dialog[aria-label="เลือกจากรายการราคา"] > .base-overlay-panel > button[aria-label="Close"]:focus-visible {
-  background-color: rgb(255 255 255 / 0.12);
-}
-</style>
 
 <style scoped>
 /* Google Fonts sets 24px on .material-symbols-outlined; only some sizes are

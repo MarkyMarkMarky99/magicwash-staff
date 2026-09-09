@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { usePhotoUpload } from '@/composables/usePhotoUpload'
 import { getPhotos } from '@/api/photos'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
+import PickerOverlay from '@/shared/layouts/PickerOverlay.vue'
+import LightboxOverlay from '@/shared/layouts/LightboxOverlay.vue'
 import CameraOverlay from '@/shared/components/CameraOverlay.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import { currentActor } from '@/shared/config/actor'
@@ -42,7 +44,6 @@ const photoTabs = [
 const { images, addFiles, remove, clearAll } = usePhotoUpload(type, orderId, orderitemId, createdBy, itemId)
 
 const showPicker = ref(false)
-const showReassignPicker = ref(false)
 const showCamera = ref(route.meta.openCamera === true)
 const albumInputRef = ref(null)
 const lightbox = ref(null)
@@ -51,6 +52,7 @@ const reassignError = ref(null)
 const orderItems = ref([])
 const orderItemsStatus = ref('idle')
 const orderItemsOrderId = ref(null)
+let reassignRouteEntry = false
 
 const IN_PROGRESS = new Set(['compressing', 'uploading', 'saving'])
 
@@ -74,7 +76,6 @@ async function loadFetchedPhotos(key) {
   fetchedPhotos.value = []
   fetchStatus.value = 'loading'
   lightbox.value = null
-  showReassignPicker.value = false
   reassignError.value = null
   orderItems.value = []
   orderItemsStatus.value = 'idle'
@@ -144,6 +145,32 @@ const allPhotos = computed(() => [
 const currentPhoto = computed(() => (
   lightbox.value === null ? null : allPhotos.value[lightbox.value] ?? null
 ))
+const reassignPhotoId = computed(() => {
+  const value = Array.isArray(route.query.reassignPhoto)
+    ? route.query.reassignPhoto[0]
+    : route.query.reassignPhoto
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+})
+const reassignPhotoIndex = computed(() => (
+  reassignPhotoId.value
+    ? allPhotos.value.findIndex(photo => photo.isSaved && photo.id === reassignPhotoId.value)
+    : -1
+))
+const showReassignPicker = computed(() => reassignPhotoIndex.value >= 0)
+const reassignPhotoTarget = computed(() => (
+  reassignPhotoIndex.value >= 0 ? allPhotos.value[reassignPhotoIndex.value] : null
+))
+
+watch([reassignPhotoId, reassignPhotoIndex], ([photoId, photoIndex]) => {
+  if (!photoId) {
+    reassignRouteEntry = false
+    return
+  }
+  if (photoIndex >= 0) {
+    lightbox.value = photoIndex
+    if (orderItemsStatus.value === 'idle') void loadOrderItems()
+  }
+})
 
 const isEmpty = computed(
   () => fetchStatus.value === 'done' && fetchedPhotos.value.length === 0 && images.value.length === 0,
@@ -157,10 +184,25 @@ function openReassignPicker() {
   if (!currentPhoto.value?.isSaved || !currentPhoto.value.id) return
 
   reassignError.value = null
-  showReassignPicker.value = true
+  reassignRouteEntry = true
+  void router.push({ query: { ...route.query, reassignPhoto: currentPhoto.value.id } })
   if (orderItemsStatus.value === 'idle') {
     void loadOrderItems()
   }
+}
+
+function closeReassignPicker() {
+  if (!reassignPhotoId.value) return
+
+  if (reassignRouteEntry) {
+    reassignRouteEntry = false
+    router.back()
+    return
+  }
+
+  const query = { ...route.query }
+  delete query.reassignPhoto
+  void router.replace({ query })
 }
 
 async function loadOrderItems() {
@@ -193,7 +235,7 @@ function retryLoadOrderItems() {
 }
 
 async function handleReassign(item) {
-  const photo = currentPhoto.value
+  const photo = reassignPhotoTarget.value
   if (
     reassigning.value
     || !photo?.isSaved
@@ -211,10 +253,10 @@ async function handleReassign(item) {
       updatedBy: createdBy.value,
     })
     fetchedPhotos.value = fetchedPhotos.value.filter(savedPhoto => savedPhoto.id !== photo.id)
-    showReassignPicker.value = false
+    closeReassignPicker()
     lightbox.value = null
   } catch (error) {
-    showReassignPicker.value = false
+    closeReassignPicker()
     reassignError.value = error instanceof Error ? error.message : 'ย้ายรูปไม่สำเร็จ กรุณาลองอีกครั้ง'
   } finally {
     reassigning.value = false
@@ -385,28 +427,23 @@ function handleCameraClose() {
         </button>
       </div>
 
-    <!-- Lightbox -->
-    <div
-      v-if="lightbox !== null && allPhotos[lightbox]"
-      class="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-4"
-      @click="lightbox = null"
+    <LightboxOverlay
+      :open="lightbox !== null && Boolean(allPhotos[lightbox])"
+      ariaLabel="ดูรูปภาพ"
+      @close="lightbox = null"
     >
-      <button class="absolute top-4 right-4 text-white" @click="lightbox = null">
-        <span class="material-symbols-outlined text-3xl">close</span>
-      </button>
-
-      <img
+      <img v-if="lightbox !== null && allPhotos[lightbox]"
         :src="allPhotos[lightbox].src"
         :alt="allPhotos[lightbox].label || `รูปที่ ${lightbox + 1}`"
         class="max-w-full max-h-[80dvh] rounded-2xl object-contain"
         @click.stop
       />
 
-      <p v-if="allPhotos[lightbox].label" class="mt-3 text-white/80 font-body text-sm text-center">
+      <p v-if="lightbox !== null && allPhotos[lightbox]?.label" class="mt-3 text-white/80 font-body text-sm text-center">
         {{ allPhotos[lightbox].label }}
       </p>
 
-      <div class="flex gap-6 mt-4">
+      <div v-if="lightbox !== null" class="flex gap-6 mt-4">
         <button
           :disabled="lightbox === 0"
           @click.stop="lightbox--"
@@ -427,7 +464,7 @@ function handleCameraClose() {
       </div>
 
       <button
-        v-if="allPhotos[lightbox].isSaved"
+        v-if="lightbox !== null && allPhotos[lightbox]?.isSaved"
         type="button"
         class="mt-4 flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm text-white"
         :disabled="reassigning"
@@ -440,15 +477,17 @@ function handleCameraClose() {
       <p v-if="reassignError" role="alert" class="mt-3 max-w-sm text-center text-sm text-red-200">
         {{ reassignError }}
       </p>
-    </div>
+    </LightboxOverlay>
 
-    <!-- Destination picker sheet -->
-    <Transition name="sheet">
-      <div v-if="showReassignPicker" class="fixed inset-0 z-50 flex flex-col justify-end">
-        <div class="absolute inset-0 bg-black/40" @click="showReassignPicker = false" />
-        <ScrollRegion sizing="auto" class="relative max-h-[75dvh] rounded-t-2xl bg-surface p-5 space-y-3">
-          <p class="text-center font-body text-on-surface-variant text-sm mb-1">เลือกรายการปลายทาง</p>
-
+    <PickerOverlay
+      :open="showReassignPicker"
+      ariaLabel="เลือกรายการปลายทาง"
+      @close="closeReassignPicker"
+    >
+      <template #header>
+        <p class="px-5 pb-0 pt-5 text-center font-body text-sm text-on-surface-variant">เลือกรายการปลายทาง</p>
+      </template>
+      <div class="space-y-3 px-5 pb-5 pt-3">
           <div v-if="orderItemsStatus === 'loading'" class="flex items-center justify-center gap-2 py-6 text-on-surface-variant">
             <span class="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
             <span class="font-body text-sm">กำลังโหลดรายการ…</span>
@@ -492,13 +531,12 @@ function handleCameraClose() {
             type="button"
             class="w-full py-2 font-body text-sm text-on-surface-variant"
             :disabled="reassigning"
-            @click="showReassignPicker = false"
+            @click="closeReassignPicker"
           >
             ยกเลิก
           </button>
-        </ScrollRegion>
       </div>
-    </Transition>
+    </PickerOverlay>
 
     <!-- Source picker sheet -->
     <Transition name="sheet">

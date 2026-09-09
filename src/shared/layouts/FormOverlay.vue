@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
-import BaseFullOverlay from '@/shared/layouts/BaseFullOverlay.vue'
+import BaseOverlayFrame from '@/shared/layouts/BaseOverlayFrame.vue'
 import brandLogo from '@/assets/logo.png'
 
 const props = defineProps({
@@ -64,13 +64,16 @@ function handleSubmit() {
 </script>
 
 <template>
-  <BaseFullOverlay
+  <BaseOverlayFrame
     :open="open"
-    :aria-label="accessibleOverlayLabel"
+    placement="bottom"
+    size="full"
+    backdrop="translucent"
+    :draggable="false"
+    close-button
+    :ariaLabel="accessibleOverlayLabel"
     :close-on-backdrop="closeOnBackdrop"
-    dialog-class="form-overlay-dialog"
     panel-class="form-overlay-panel"
-    close-button-class="form-overlay-close"
     @close="emit('close')"
   >
     <template #close-button>
@@ -107,7 +110,7 @@ function handleSubmit() {
         </p>
       </footer>
     </form>
-  </BaseFullOverlay>
+  </BaseOverlayFrame>
 </template>
 
 <style scoped>
@@ -260,19 +263,17 @@ function handleSubmit() {
   outline-offset: 2px;
 }
 
-/* These classes are opt-in hooks passed to BaseFullOverlay, so other overlays retain their defaults. */
-:global(.form-overlay-dialog::backdrop) {
+:global(#overlay-root > div:has(> .form-overlay-panel) > [data-overlay-backdrop]) {
   background: linear-gradient(145deg, #dcecea 0, #f6faf9 58%, #dbeee9 100%);
 }
 
-/* Width comes from `app-column` on BaseFullOverlay's panel -- never restate it here. */
 :global(.form-overlay-panel) {
   color: #073f38;
   background: #f7fbfa;
   box-shadow: 0 0 0 1px rgba(0, 79, 69, 0.05), 0 12px 44px rgba(0, 66, 59, 0.16);
 }
 
-:global(.form-overlay-close) {
+:global(.form-overlay-panel > button[aria-label="Close"]) {
   top: 20px;
   right: 20px;
   width: 34px;
@@ -285,11 +286,11 @@ function handleSubmit() {
   transition: none;
 }
 
-:global(.form-overlay-close:hover) {
+:global(.form-overlay-panel > button[aria-label="Close"]:hover) {
   background: transparent;
 }
 
-:global(.form-overlay-close:focus-visible) {
+:global(.form-overlay-panel > button[aria-label="Close"]:focus-visible) {
   outline: 3px solid #eab308;
   outline-offset: 2px;
 }

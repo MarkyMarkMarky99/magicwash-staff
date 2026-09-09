@@ -1,117 +1,94 @@
 import { expect, test, type APIRequestContext } from '@playwright/test'
 
-/**
- * Regression cover for two BaseOverlay defects, both invisible to the build
- * (there is no frontend type-check) and to the unit dry-tests.
- *
- * 1. The <dialog> is `fixed inset-0`, i.e. viewport-sized, while the app lives
- *    in a centred `sm:max-w-[390px]` column (src/App.vue). The panel used to be
- *    `w-full`, so at desktop widths an open overlay spanned the whole screen
- *    while the rest of the app stayed narrow.
- * 2. `.base-overlay-sheet-panel` carries its own `transition: transform` for the
- *    drag snap-back. `transition` is a shorthand and that rule sits after the
- *    enter/leave rule at equal specificity, so it replaced it wholesale —
- *    opacity was never transitioned and the sheet popped in at full opacity
- *    while it slid.
- *
- * Both assertions read computed style / geometry rather than pixels, so they do
- * not depend on which customer the data happens to give us.
- */
-
 const APP_COLUMN_MAX = 390
 
 async function findCustomerWithOrders(request: APIRequestContext): Promise<string> {
-  const res = await request.get('/api/customers?perPage=40')
-  expect(res.ok()).toBeTruthy()
-  const body = await res.json()
+  const response = await request.get('/api/customers?perPage=40')
+  expect(response.ok()).toBeTruthy()
+  const body = await response.json()
   const customers = body.customers ?? body.items ?? body.data ?? []
 
   for (const customer of customers) {
     const id = customer.customerId ?? customer.id
     if (!id) continue
-    const orders = await request.get(`/api/orders?customerId=${id}&perPage=5`)
-    const parsed = await orders.json()
-    const rows = parsed.orders ?? parsed.items ?? parsed.data ?? []
-    if (rows.length > 0) return id
+    const ordersResponse = await request.get(`/api/orders?customerId=${id}&perPage=5`)
+    const ordersBody = await ordersResponse.json()
+    const orders = ordersBody.orders ?? ordersBody.items ?? ordersBody.data ?? []
+    if (orders.length > 0) return id
   }
 
   throw new Error('no customer with orders available to open the order sheet')
 }
 
-test.describe('BaseOverlay', () => {
-  test('sheet panel stays inside the app column and matches its position', async ({
+async function openOrderSheet(page: import('@playwright/test').Page, request: APIRequestContext) {
+  const customerId = await findCustomerWithOrders(request)
+  await page.goto(`/#/customers/${customerId}/orders`)
+  await page.waitForLoadState('networkidle')
+  await page.locator('article[role="button"], [role="button"]').first().click()
+  const panel = page.locator('[data-overlay-panel][aria-label="Order details"]')
+  await expect(panel).toBeVisible()
+  return panel
+}
+
+test.describe('overlay frame', () => {
+  test('sheet panel and backdrop stay inside the app column without frame scrolling', async ({
     page,
     request,
   }) => {
-    const customerId = await findCustomerWithOrders(request)
-
-    await page.goto(`/#/customers/${customerId}/orders`)
-    await page.waitForLoadState('networkidle')
-    await page.locator('article[role="button"], [role="button"]').first().click()
-
-    const panel = page.locator('dialog[open] .base-overlay-panel')
-    await expect(panel).toBeVisible()
+    const panel = await openOrderSheet(page, request)
     await page.waitForTimeout(400)
 
     const panelBox = await panel.boundingBox()
     const columnBox = await page.locator('#app > div').first().boundingBox()
+    const frame = page.locator('[data-overlay-frame]')
+    const frameBox = await frame.boundingBox()
+    const backdropBox = await page.locator('[data-overlay-backdrop]').boundingBox()
     const viewport = page.viewportSize()
-    if (!panelBox || !columnBox || !viewport) throw new Error('missing layout geometry')
+    if (!panelBox || !columnBox || !frameBox || !backdropBox || !viewport) {
+      throw new Error('missing layout geometry')
+    }
 
-    // Never wider than the column cap, and never wider than the viewport on phones.
     expect(panelBox.width).toBeLessThanOrEqual(Math.min(APP_COLUMN_MAX, viewport.width) + 1)
-
-    // Aligned with the app column rather than the viewport.
     expect(Math.abs(panelBox.x - columnBox.x)).toBeLessThanOrEqual(1)
     expect(Math.abs(panelBox.width - columnBox.width)).toBeLessThanOrEqual(1)
+    expect(Math.abs(frameBox.x - columnBox.x)).toBeLessThanOrEqual(1)
+    expect(Math.abs(frameBox.width - columnBox.width)).toBeLessThanOrEqual(1)
+    expect(Math.abs(backdropBox.x - columnBox.x)).toBeLessThanOrEqual(1)
+    expect(Math.abs(backdropBox.width - columnBox.width)).toBeLessThanOrEqual(1)
 
-    // The backdrop itself must still cover the whole viewport.
-    const dialogBox = await page.locator('dialog[open]').boundingBox()
-    expect(dialogBox?.width).toBeCloseTo(viewport.width, 0)
-
-    // The <dialog> must not be scrollable. Chrome's UA stylesheet gives dialog
-    // `overflow: auto`, and the panel is translated a full height below the
-    // fold while entering — enough to raise a classic scrollbar. That scrollbar
-    // stole ~15px from the dialog's content box (so the panel stopped short of
-    // the right edge) and let the dialog scroll, which lifted the bottom-anchored
-    // panel off the bottom edge and dropped it back: the spring the user saw.
-    const dialogMetrics = await page.evaluate(`(function () {
-      var d = document.querySelector('dialog[open]')
-      return { clientWidth: d.clientWidth, offsetWidth: d.offsetWidth, scrollHeight: d.scrollHeight, clientHeight: d.clientHeight }
-    })()`)
-    const m = dialogMetrics as {
-      clientWidth: number
-      offsetWidth: number
-      scrollHeight: number
-      clientHeight: number
-    }
-    expect(m.offsetWidth - m.clientWidth).toBeLessThanOrEqual(1)
-    expect(m.scrollHeight).toBeLessThanOrEqual(m.clientHeight + 1)
+    const frameMetrics = await frame.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      offsetWidth: (element as HTMLElement).offsetWidth,
+      scrollHeight: element.scrollHeight,
+      clientHeight: element.clientHeight,
+      scrollTop: element.scrollTop,
+      overflow: getComputedStyle(element).overflow,
+    }))
+    expect(frameMetrics.offsetWidth - frameMetrics.clientWidth).toBeLessThanOrEqual(1)
+    expect(frameMetrics.scrollHeight).toBeLessThanOrEqual(frameMetrics.clientHeight + 1)
+    expect(frameMetrics.scrollTop).toBe(0)
+    expect(frameMetrics.overflow).toBe('hidden')
   })
 
-  test('sheet slides visibly rather than materialising in place', async ({ page, request }) => {
+  test('sheet slides visibly without moving its frame', async ({ page, request }) => {
     const customerId = await findCustomerWithOrders(request)
-
     await page.goto(`/#/customers/${customerId}/orders`)
     await page.waitForLoadState('networkidle')
 
-    // Sample computed style every frame across the enter transition. Passing the
-    // probe as a string avoids esbuild's __name helper, which is not defined in
-    // the page context.
     await page.evaluate(`
       window.__overlaySamples = [];
       var start = performance.now();
       var tick = function () {
-        var el = document.querySelector('dialog[open] .base-overlay-panel');
-        if (el) {
-          var cs = getComputedStyle(el);
-          var m = cs.transform.match(/matrix\\(([^)]+)\\)/);
+        var panel = document.querySelector('[data-overlay-panel][aria-label="Order details"]');
+        if (panel) {
+          var style = getComputedStyle(panel);
+          var matrix = style.transform.match(/matrix\\(([^)]+)\\)/);
+          var frame = panel.closest('[data-overlay-frame]');
           window.__overlaySamples.push({
-            property: cs.transitionProperty,
-            opacity: parseFloat(cs.opacity),
-            translateY: m ? parseFloat(m[1].split(',')[5]) : 0,
-            height: el.getBoundingClientRect().height,
-            dialogScrollTop: el.closest('dialog') ? el.closest('dialog').scrollTop : 0,
+            opacity: parseFloat(style.opacity),
+            translateY: matrix ? parseFloat(matrix[1].split(',')[5]) : 0,
+            height: panel.getBoundingClientRect().height,
+            frameScrollTop: frame ? frame.scrollTop : -1,
           });
         }
         if (performance.now() - start < 500) requestAnimationFrame(tick);
@@ -120,38 +97,20 @@ test.describe('BaseOverlay', () => {
     `)
 
     await page.locator('article[role="button"], [role="button"]').first().click()
-    await expect(page.locator('dialog[open] .base-overlay-panel')).toBeVisible()
+    await expect(page.locator('[data-overlay-panel][aria-label="Order details"]')).toBeVisible()
     await page.waitForTimeout(700)
 
-    type Sample = { property: string; opacity: number; translateY: number; height: number; dialogScrollTop: number }
+    type Sample = { opacity: number; translateY: number; height: number; frameScrollTop: number }
     const samples: Sample[] = await page.evaluate(`window.__overlaySamples || []`)
     expect(samples.length).toBeGreaterThan(5)
-
-    const moving = samples.filter((s) => s.height > 0 && s.translateY > 0)
+    const moving = samples.filter((sample) => sample.height > 0 && sample.translateY > 0)
     expect(moving.length).toBeGreaterThan(3)
-
-    // The dialog must never scroll. Focusing the close button used to run while
-    // the panel was still a full height below the fold, so the browser scrolled
-    // the dialog to reveal it (measured at scrollTop 478) and then eased back to
-    // 0 — lifting the bottom-anchored panel off the bottom edge and dropping it
-    // back. `overflow: hidden` hides the scrollbar but does not stop
-    // programmatic scrolling; `focus({ preventScroll: true })` is what does.
-    for (const sample of samples) {
-      expect(sample.dialogScrollTop).toBe(0)
-    }
-
-    // The panel must be opaque for the whole travel. It used to fade in at the
-    // same time, and the fade covered exactly the frames where it was moving —
-    // so the slide happened while it was invisible and the sheet looked like it
-    // popped into place.
-    for (const sample of moving) {
-      expect(sample.opacity).toBeGreaterThan(0.95)
-    }
-
-    // The travel must be visible over several frames, not a single jump: at
-    // least a few samples land in the middle half of the distance.
+    for (const sample of samples) expect(sample.frameScrollTop).toBe(0)
+    for (const sample of moving) expect(sample.opacity).toBeGreaterThan(0.95)
     const height = moving[0].height
-    const midTravel = moving.filter((s) => s.translateY > height * 0.15 && s.translateY < height * 0.85)
+    const midTravel = moving.filter((sample) => (
+      sample.translateY > height * 0.15 && sample.translateY < height * 0.85
+    ))
     expect(midTravel.length).toBeGreaterThan(1)
   })
 })

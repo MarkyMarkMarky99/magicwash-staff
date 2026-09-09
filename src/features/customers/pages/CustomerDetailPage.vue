@@ -185,7 +185,7 @@ watch([activeTab, () => props.customerId, openOrderId], ([tab, id, orderId]) => 
     />
     <OrderDetailSheet
       v-if="activeTab === 'orders'"
-      :open="sheetOpen"
+      :open="sheetOpen && !usageOpen"
       :order="selectedOrder"
       :can-use-package="!packagesStore.loading && activePackages.length > 0"
       @close="closeSheet"

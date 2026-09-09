@@ -138,8 +138,8 @@ const frameClass = computed(() => ({
   'items-center justify-center p-4': props.placement === 'center',
 }))
 const panelPlacementClass = computed(() => ({
-  'w-full flex-col rounded-t-2xl': props.placement === 'bottom',
-  'w-full flex-col': props.placement === 'top',
+  'w-full flex-col rounded-t-2xl': props.placement === 'bottom' && props.size !== 'full',
+  'w-full flex-col': (props.placement === 'bottom' && props.size === 'full') || props.placement === 'top',
   'h-full flex-row': props.placement === 'left' || props.placement === 'right',
   'w-full flex-col rounded-2xl': props.placement === 'center',
   'base-overlay-frame-panel--dragging': dragging.value,
@@ -363,6 +363,7 @@ onDeactivated(handleDeactivated)
       class="pointer-events-none absolute inset-x-0 bottom-0 top-0 flex overflow-hidden text-on-surface"
       :class="frameClass"
       :style="frameStyle"
+      data-overlay-frame
     >
       <Transition name="base-overlay-frame-backdrop" appear>
         <div

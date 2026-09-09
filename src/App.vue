@@ -15,7 +15,7 @@ onMounted(() => void appointmentStore.loadInitial())
   >
     <div
       id="overlay-root"
-      :class="['pointer-events-none absolute inset-0', APP_Z_INDEX_CLASS.overlay]"
+      :class="['pointer-events-none absolute inset-0 sm:-inset-px', APP_Z_INDEX_CLASS.overlay]"
     />
 
     <RouterView v-slot="{ Component }">

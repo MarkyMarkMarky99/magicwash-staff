@@ -170,17 +170,10 @@ test.describe('Suite A - read-only', () => {
     await orderRow.waitFor({ timeout: 15_000 });
     await orderRow.click();
     await expect(page).toHaveURL(/\?order=[^&]+$/, { timeout: 10_000 });
-    // Sheet has a 200-220ms slide-in transition (BaseOverlay.vue); wait for
-    // it to settle so the screenshot isn't a mid-animation frame.
     await page.getByText(/^Order$/, { exact: true }).waitFor({ timeout: 5_000 });
     await page.waitForTimeout(400);
     await page.screenshot({ path: shot('04-order-sheet-390.png') });
 
-    // The sheet is a native <dialog>.showModal(); by native modal semantics
-    // this makes everything outside it (including the tab bar) inert. A real
-    // tap on "Packages" cannot reach the button while the sheet is open —
-    // verify that empirically rather than assuming the plan's wording that
-    // "switching tabs closes the sheet" is reachable by tapping the tab bar.
     const packagesTab = tabButton(page, 'Packages');
     let tabClickBlocked = false;
     try {

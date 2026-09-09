@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import type { z } from 'zod'
 import type { priceListListResponseSchema } from '@contracts/price-list/price-list-api.schema'
 import { serviceTypeLabel, serviceTypePresentation } from '@/shared/utils/service-type-labels'
-import BaseOverlay from '@/shared/layouts/BaseOverlay.vue'
+import PickerOverlay from '@/shared/layouts/PickerOverlay.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import OrderPriceListItemRow from './OrderPriceListItemRow.vue'
 
@@ -80,9 +80,9 @@ function selectCategory(category: string | null) {
 </script>
 
 <template>
-  <BaseOverlay :open="props.open" variant="full" aria-label="เลือกรายการสินค้าจากรายการราคา" @close="emit('close')">
-    <div class="flex min-h-full flex-col bg-surface text-on-surface">
-      <header class="sticky top-0 z-10 bg-primary text-on-primary shadow-md">
+  <PickerOverlay :open="props.open" ariaLabel="เลือกรายการสินค้าจากรายการราคา" @close="emit('close')">
+    <template #header>
+      <header class="relative z-10 bg-primary text-on-primary shadow-md">
         <div class="flex items-start justify-between gap-3 px-4 pb-3 pr-14 pt-4">
           <div class="min-w-0">
             <p class="font-label text-[10px] font-bold uppercase tracking-[0.14em] text-mint">เพิ่มรายการสินค้า</p>
@@ -139,6 +139,7 @@ function selectCategory(category: string | null) {
           >{{ category }}</button>
         </ScrollRegion>
       </header>
+    </template>
 
       <div v-if="props.truncated && !props.loading && !props.error" class="flex items-start gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2.5 font-body text-xs leading-relaxed text-amber-900">
         <span class="material-symbols-outlined mt-0.5 text-[17px] text-amber-700" aria-hidden="true">info</span>
@@ -168,17 +169,5 @@ function selectCategory(category: string | null) {
       <div v-else class="divide-y divide-outline-variant/15">
         <OrderPriceListItemRow v-for="item in filteredItems" :key="item.id" :item="item" @select="emit('select', $event)" />
       </div>
-    </div>
-  </BaseOverlay>
+  </PickerOverlay>
 </template>
-
-<style>
-dialog[aria-label="เลือกรายการสินค้าจากรายการราคา"] > .base-overlay-panel > button[aria-label="Close"] {
-  color: #ffffff;
-}
-
-dialog[aria-label="เลือกรายการสินค้าจากรายการราคา"] > .base-overlay-panel > button[aria-label="Close"]:hover,
-dialog[aria-label="เลือกรายการสินค้าจากรายการราคา"] > .base-overlay-panel > button[aria-label="Close"]:focus-visible {
-  background-color: rgb(255 255 255 / 0.12);
-}
-</style>

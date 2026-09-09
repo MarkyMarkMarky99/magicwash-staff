@@ -5,9 +5,8 @@ import { useRouter } from 'vue-router'
 import type { OrderListDto } from '../services/order.service'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
 import { useDuplicateInvoiceWarning } from '@/shared/composables/use-duplicate-invoice-warning'
-import BaseOverlay from '@/shared/layouts/BaseOverlay.vue'
+import DetailOverlay from '@/shared/layouts/DetailOverlay.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
-import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 
 const props = defineProps<{
   open: boolean
@@ -59,8 +58,8 @@ function viewPhotos() {
 </script>
 
 <template>
-  <BaseOverlay :open="open" variant="sheet" aria-label="Order details" @close="handleClose">
-    <div class="flex min-h-full flex-col">
+  <DetailOverlay :open="open" ariaLabel="Order details" @close="handleClose">
+    <template #header>
       <div
         class="flex flex-none items-center justify-between gap-3 border-b border-outline-variant/20 px-4 pb-2 pr-14 pt-0.5"
       >
@@ -70,8 +69,6 @@ function viewPhotos() {
         </div>
       </div>
 
-      <!-- Dates + primary action: pinned below the header, above the scroll area,
-           so "view photos" never requires scrolling to reach. -->
       <div v-if="order" class="flex-none space-y-3 px-4 pb-2 pt-3">
           <div class="flex items-stretch gap-2">
             <div class="flex-1 rounded-xl bg-surface-container-low px-3 py-2.5">
@@ -154,8 +151,9 @@ function viewPhotos() {
             Use package credit
           </button>
       </div>
+    </template>
 
-      <ScrollRegion class="px-4 py-4">
+      <div class="px-4 py-4">
           <div v-if="order" class="space-y-4">
             <ListContainer
               v-if="order.items.length > 0"
@@ -191,7 +189,6 @@ function viewPhotos() {
               <p class="font-body text-sm leading-relaxed text-on-surface-variant">{{ order.note }}</p>
             </div>
           </div>
-      </ScrollRegion>
-    </div>
-  </BaseOverlay>
+      </div>
+  </DetailOverlay>
 </template>

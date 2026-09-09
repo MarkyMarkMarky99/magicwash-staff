@@ -228,6 +228,18 @@ scroll. Scaffolds need it at step 3 — if it is not ready by then, each scaffol
 inline with a `TODO` naming that document. A scaffold, never the frame, is where that placeholder
 may sit.
 
+## Debt left behind by step 3
+
+- **`LightboxOverlay` fights the frame instead of using it.** The gallery's full-screen photo viewer
+  needed a full-bleed panel — no padding, no rounding, edge to edge — and the frame has no shape for
+  that, so the scaffold overrides five properties with `!important`, including
+  `!h-[calc(100%+2rem)]` to cancel the padding `placement: center` adds. Give the frame a real
+  full-bleed size and delete the overrides. It was migrated because the reassign picker opens from a
+  button inside it, and leaving the host as a raw viewport-wide `fixed` div while the guest moved
+  into the 390px column would have put a column-width sheet on a screen-width backdrop.
+- The dev preview at `src/app/dev/` is an allowed exception in the import guard. It is the only place
+  outside `shared/layouts/` permitted to import the frame.
+
 ## Open questions
 
 1. Whether `size` should later accept snap points. "No" for this plan. Revisit only when a screen

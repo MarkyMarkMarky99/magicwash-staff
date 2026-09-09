@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "typecheck:api": "tsc -p api/tsconfig.json --noEmit",
     "typecheck:web": "vue-tsc -p tsconfig.web.json --noEmit",
-    "check:scroll-regions": "node scripts/check-scroll-regions.mjs"
+    "check:scroll-regions": "node scripts/check-scroll-regions.mjs",
+    "check:overlay-frame-imports": "node scripts/check-overlay-frame-imports.mjs"
   },
   "dependencies": {
     "axios": "^1.14.0",
