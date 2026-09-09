@@ -29,15 +29,6 @@ Fix per page with a device check, not in one blind sweep. Re-find with:
 
 ## Where we are — 2026-09-09
 
-- **Branch:** `fix/app-column-width` — pushed, 4 commits, live on a Vercel preview the user is
-  testing on a real iPhone. App width unified into `.app-column`; `overflow-x` pinned on the
-  shared scroll regions; iOS date field sized with `appearance: none`; received-date defaults
-  to `todaySheetDate()`.
-  All four confirmed by the user on a real iPhone: form no longer pans, date row fits, value
-  vertically centred, FormPicker dropdown stays put. Ready to merge once the e2e spec runs.
-  **`tests/e2e/app-column-width.spec.ts` has never been run** — needs `vercel dev` on :3102.
-  Run it before merging; it is the only guard against the 390px cap coming back.
-  Not merged to main yet.
 - **Branch:** `feat/live-order-helper` — pushed, unmerged, not finished. Older than `main`.
 - **On `main`, merged but unverified on a phone:** `BaseSwipeCard` ghost-click fix (ISS-72adcdca).
   Source-based dry test only; no device has confirmed it. Issue row is still `OPEN`.
