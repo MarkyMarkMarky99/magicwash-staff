@@ -18,12 +18,11 @@ Live note — what is in flight, next, stuck.
   `overflow-y:auto` as a scroll region, not a defect. Not yet verified on a physical phone.
 - `dc02957` — customer-package create form uses `FormPicker` for both fields; `CustomerPicker.vue`
   deleted.
-- **`feat/overlay-frame`** (cut from the above, `cf25ca0`): `overlay-frame.md` **steps 1-2 done**.
-  `BaseOverlayFrame` + `#overlay-root` inside the app column + `use-focus-trap` + `z-index.ts`
-  (now the single source, read by App/AppHeader/NavSidebar/BaseDropdown). Preview at
-  `/#/dev/overlay-frame`, 72 combinations verified, `frontend-review` APPROVED, old overlays
-  untouched and regression-checked. **Step 3 — scaffolds and migration — not started.**
-- Next: PR both branches; neither is device-verified.
+- **`feat/overlay-frame` is DONE** (`21b9af1`) — `overlay-frame.md` steps 1-3, net -673 lines. Five
+  scaffolds on `BaseOverlayFrame`: Form / Picker / Detail / Confirm / Lightbox. The three old bases
+  are deleted. Preview `/#/dev/overlay-frame`; guards `check:overlay-frame-imports` and
+  `check:scroll-regions`; e2e rewritten off `dialog[open]`; `frontend-review` APPROVED.
+- **Next: PR both branches, `feat/scroll-region` first.** Neither is device-verified.
 - **`overlay-frame.md`** — `BaseOverlayFrame` replaces `BaseOverlay`/`BaseFullOverlay`/
   `BaseSlideOverlay` (850 lines, forked not shared; `BaseSlideOverlay` has 0 consumers ever).
   Teleports inside the app column, drops `<dialog>`. Four scaffolds above it: `FormOverlay`,
@@ -38,8 +37,8 @@ Traps for the overlay work — in the doc, repeated here because they reverse ea
 3. `#overlay-root` needs `z-[60]`: `AppHeader:21` and `NavSidebar:39` are `z-50`.
 4. An overlay hosted by another must not be migrated after its guest. The only such case is gone
    (`dc02957`) — re-grep before assuming an order.
-5. Step 3 must also fix: the invoice price-list picker's sticky header intercepts clicks on its own
-   close button (ESC still works). Pre-existing, left alone as out of scope.
+5. Debt from step 3, recorded in the plan: `LightboxOverlay` cancels the frame's centre padding with
+   five `!important` overrides because the frame has no full-bleed size. Add one, drop the overrides.
 
 Open: iOS keyboard vs a `90vh` picker sheet (`vh` does not shrink) — pick `dvh` or `visualViewport`
 when building the frame.
