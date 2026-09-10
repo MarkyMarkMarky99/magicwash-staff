@@ -1,37 +1,47 @@
 # Project memory
 Live note — what is in flight, next, stuck.
 
+## Branch `perf/app-fetch-cache` — 2026-09-11
+
+Uncommitted. `typecheck:api`+`typecheck:web` and the work-order/order-item dry tests pass.
+**No browser check yet.**
+
+- Order detail reads parallelized (`work-order.service.ts:122`).
+- Detail header seeded from the loaded list row (`order.store.ts:49`); full-page skeleton now only
+  when the list never loaded that order. New `tests/web/unit/features/orders/stores/order.store.dry-test.ts`.
+- Untracked, user has not read them: `docs/architecture/frontend/app-boot.md`,
+  `docs/conventions/data-fetching.md` — drafts from the 2026-09-11 session.
+- Remove the session transcript `2026-09-11-003747-*.txt` from the repo root before committing.
+
+### Tomorrow morning, in order
+
+1. Browser check the two changes: list → order must paint the header before the item list, and
+   adding an item must not flash the list back to empty. Then commit.
+2. **Gallery reads have no cache at all.** `src/api/photos.js:26` goes through raw JSONP
+   (`src/utils/gviz.js:33`), never `apiGet`, and `tqx=reqId:N` makes every URL unique so the browser
+   cannot cache it either. Cheap fix: `OrderGalleryPage.vue:112` `onDeactivated` wipes
+   `requestedKey` and forces a refetch although KeepAlive still holds the photos; `:76` blanks them
+   before the await. Real fix: move the read behind `apiGet` — do it as part of the gallery
+   migration below.
+3. **Gallery migration** — `OrderGalleryPage.vue:84` → `apiGetList`, `image_url` → `imageUrl`,
+   delete `src/api/photos.js`. ~1h, needs a browser check.
+4. Then the structural pass: `onFresh` (23 call sites), app-wide cache policy.
+
+- **Decided against 2026-09-11:** lazy-loading the gallery route to drop Firebase from boot. Staff
+  open the gallery on nearly every order, so it buys nothing. Do not re-propose.
+
 ## Queue — 2026-09-09, in order
 
 1. **Backfill `Cache-Control` on existing photos.** Script writable now, **not runnable** until the
    user supplies Firebase bucket credentials.
 2. **Decide the document scanner's 2400px / q0.88 output.** 3× the camera path's file size. Needs
    the user's eyes on real scans; not a number to lower blindly.
-3. **Un-eager Firebase.** `src/features/gallery/routes.ts:2` imports `OrderGalleryPage`
-   statically, so every cold start downloads the Firebase SDK even for staff who never open the
-   gallery. Make it `() => import(...)` like every other route. No branch yet.
-4. **Finish the gallery migration** — `OrderGalleryPage.vue:84` → `apiGetList`, rename `image_url` →
-   `imageUrl`, delete `src/api/photos.js`. ~1h, needs a browser check.
 
-## Layout rebuild — merged to main 2026-09-10
+## Layout rebuild — merged and device-verified 2026-09-10
 
-`scroll-region.md` and `overlay-frame.md` are both complete; delete them from `docs/plans/` once
-nothing references them. Net effect: `ScrollRegion` owns all 29 scroll regions, `BaseOverlayFrame`
-plus five scaffolds replaced three duplicated overlay bases, and the app installs to the home screen.
-
-- Guards: `check:scroll-regions` and `check:overlay-frame-imports`, beside `typecheck:web`.
-- e2e: 22 passed after the migration; the two specs that asserted on `dialog[open]` were rewritten.
-- Device-verified on an iPhone: sideways drag gone, overscroll contained, form overlay, pickers,
-  order sheet, PWA standalone, and the keyboard header collapse.
-
-**Debt, recorded in `overlay-frame.md`:** `LightboxOverlay` cancels the frame's centre padding with
-five `!important` overrides because the frame has no full-bleed size. Add one, drop the overrides.
-
-**iOS lesson worth keeping:** `window.innerHeight` is unusable as a reference on iOS Safari — it
-tracks the URL bar collapsing under a drag, swinging 272-695 in one session, while
-`visualViewport.height` held at 358 without moving. Detect the keyboard from editable focus plus a
-`visualViewport.height` baseline captured while nothing is focused. See
-`src/shared/layouts/use-soft-keyboard.ts`.
+- Delete `scroll-region.md` and `overlay-frame.md` from `docs/plans/` once nothing references them.
+- **Debt, in `overlay-frame.md`:** give `BaseOverlayFrame` a full-bleed size, then drop
+  `LightboxOverlay`'s five `!important` padding overrides.
 
 ## Where we are — 2026-09-10
 
@@ -87,15 +97,13 @@ reads; local measurements include `vercel dev` overhead (~0.9s/request).
    Genuinely dependent reads — `Promise.all` cannot fix it. Options: add `whereIn()` to
    `gviz-query.builder.ts` (`:85-98` emits only `col = value`); drop `customerName` and map it
    client-side; cache customers server-side.
-2. **Order detail runs three sequential reads** (`:122-133`). The items read needs only `id`, so it
-   can run parallel with the order read. ~20min, cheapest real win left.
-3. **`listOrdersByCustomer` sends no `perPage`** — up to 500 rows, 104 KB measured for one customer
+2. **`listOrdersByCustomer` sends no `perPage`** — up to 500 rows, 104 KB measured for one customer
    (`src/features/customers/services/order.service.ts:11`).
-4. **`invoices` + `dateFrom`/`dateTo` drops pagination** (`invoice.service.ts:631`). Needs `>=`/`<=`
+3. **`invoices` + `dateFrom`/`dateTo` drops pagination** (`invoice.service.ts:631`). Needs `>=`/`<=`
    in `GVizQueryBuilder`. ~3h.
-5. **`App.vue:8` prefetches appointments on every page mount.** Scope to routes that need it plus
+4. **`App.vue:8` prefetches appointments on every page mount.** Scope to routes that need it plus
    the pending badge. ~1h.
-6. **No HTTP cache headers on `/api/*`** (`vercel.json` covers only `/scanic-ml/*`). Decide
+5. **No HTTP cache headers on `/api/*`** (`vercel.json` covers only `/scanic-ml/*`). Decide
    staleness first.
 
 ## Deferred by the user

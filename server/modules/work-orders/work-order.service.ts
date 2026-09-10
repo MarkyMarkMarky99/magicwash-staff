@@ -120,9 +120,19 @@ export class WorkOrderService extends BaseCrudService<
   }
 
   override async getById(id: string): Promise<WorkOrderDetailResponse> {
-    const row = await super.getById(id)
+    // The header row and the items are independent sheet reads - items key off the id from the
+    // URL, not off anything the header returns - so they run together instead of in sequence.
+    // Only the customer-name lookup genuinely depends on the header. allSettled rather than all
+    // so a header failure still wins the error, exactly as it did when the reads were sequential.
+    const [rowResult, itemsResult] = await Promise.allSettled([
+      super.getById(id),
+      this.orderItemPort.listByOrderId(id),
+    ])
+    if (rowResult.status === 'rejected') throw rowResult.reason
+    if (itemsResult.status === 'rejected') throw itemsResult.reason
+    const row = rowResult.value
+    const items = itemsResult.value
     const namesById = await this.readCustomerNames([row.customerId])
-    const items = await this.orderItemPort.listByOrderId(id)
     const customerId = normalizeCustomerId(row.customerId)
 
     return {

@@ -46,8 +46,30 @@ export const useOrderStore = defineStore('orders', () => {
     }
   }
 
+  // Every field the detail header renders already arrived with the list row; only `items` and the
+  // seven unrendered extras are detail-only. Seeding from the list lets the page paint the header
+  // immediately instead of holding a full-page skeleton for the whole round trip. Seeding is
+  // skipped when `currentOrder` already holds this same order, so a post-write refresh keeps the
+  // real items instead of flashing back to an empty seed.
+  function seedDetail(orderId: string): WorkOrderDetailDto | null {
+    const listed = orders.value.find((order) => order.orderId === orderId)
+    if (!listed) return null
+    return {
+      ...listed,
+      createdAt: null,
+      createdBy: null,
+      orderName: null,
+      orderDescription: null,
+      formImage: null,
+      hangersImage: null,
+      bagsImage: null,
+      items: [],
+    }
+  }
+
   async function loadDetail(orderId: string) {
     const requestSequence = ++detailRequestSequence
+    if (currentOrder.value?.orderId !== orderId) currentOrder.value = seedDetail(orderId)
     detailLoading.value = true
     detailError.value = null
     try {
