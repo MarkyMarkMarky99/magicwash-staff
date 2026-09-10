@@ -25,5 +25,15 @@ assert.doesNotMatch(createPage, /serviceKey|PriceListServiceKey/)
 const editor = source('features/invoices/components/InvoiceLineItemsEditor.vue')
 assert.match(editor, /pickFromPriceList/)
 assert.doesNotMatch(editor, /InvoicePriceListPicker/)
+assert.match(editor, /itemQuantityStep\(line\.unit\)/)
+assert.match(editor, /isWeightUnit\(line\.unit\)/)
+assert.doesNotMatch(editor, /line\.quantity[\s\S]{0,120}step="any"/)
+
+assert.match(createPage, /isValidItemQuantity\(item\.quantity, item\.unit\)/)
+assert.match(createPage, /const unit = item\.unit\?\.trim\(\) \|\| 'piece'/)
+
+const contextService = source('features/invoices/services/invoice-create-context.service.ts')
+assert.match(contextService, /\/api\/work-orders\//)
+assert.doesNotMatch(contextService, /\/api\/orders/)
 
 console.log('invoice-price-list-components.dry-test: OK')

@@ -16,7 +16,7 @@ const {
 
 const RESPONSE_FIELDS = [
   'orderItemId', 'orderId', 'itemId', 'description', 'quantity', 'price',
-  'creditsUsed', 'serviceType', 'specialInstructions', 'createdAt', 'createdBy',
+  'creditsUsed', 'serviceType', 'unit', 'specialInstructions', 'createdAt', 'createdBy',
 ] as const
 
 assert.deepEqual(orderServiceTypeSchema.options, ['WSIR', 'IRON', 'DRCL', 'WASH'])
@@ -88,7 +88,7 @@ for (const input of [
 
 const dto = {
   orderItemId: 'ITEM-1', orderId: null, itemId: null, description: 'ผ้าห่ม legacy', quantity: null,
-  price: 0, creditsUsed: null, serviceType: 'legacy-service',
+  price: 0, creditsUsed: null, serviceType: 'legacy-service', unit: null,
   specialInstructions: null, createdAt: null, createdBy: 'staff-1',
 }
 assert.deepEqual(orderItemResponseSchema.parse(dto), dto)

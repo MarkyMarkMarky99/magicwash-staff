@@ -68,7 +68,7 @@ onMounted(async () => {
       <FormInput id="package-name" v-model="form.name" label="ชื่อแพ็กเกจ *" />
       <FormInput id="package-eligible-service" v-model="form.eligibleService" label="บริการที่ใช้ได้ *" />
       <FormInput id="package-included-credit" v-model="form.includedCredit" type="number" label="จำนวนเครดิต *" min="0" />
-      <FormInput id="package-price" v-model="form.price" type="number" label="ราคา *" min="0" />
+      <FormInput id="package-price" v-model="form.price" type="number" label="ราคา *" min="0" step="any" inputmode="decimal" />
       <FormTextarea id="package-notes" v-model="form.notes" label="หมายเหตุ" />
       <FormSwitch v-if="isEdit" v-model="isActive" label="เปิดขายแพ็กเกจนี้" description="ปิดสวิตช์เพื่อเลิกขาย — ไม่มีการลบข้อมูล" />
       <p v-if="formError" class="rounded-xl bg-error-container/30 p-3 font-body text-sm text-on-error-container">{{ formError }}</p>

@@ -7,7 +7,6 @@ import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.store'
 import { useDeliveryBookingIntentStore } from '@/shared/stores/delivery-booking-intent.store'
-import { useInvoiceCreateIntentStore } from '@/shared/stores/invoice-create-intent.store'
 import { useCustomerOrderHistoryStore } from '../stores/customer-order-history.store'
 import { useOrderSheetRoute } from '@/features/customers/composables/useOrderSheetRoute'
 import OrderDetailSheet from '../components/OrderDetailSheet.vue'
@@ -138,7 +137,6 @@ function createInvoice() {
   const customerId = customer.value.customerId.trim()
   if (!orderId || !customerId || order.customerId.trim() !== customerId) return
   useSelectedCustomerStore().select(customer.value)
-  useInvoiceCreateIntentStore().set(order)
   router.replace({
     name: 'invoice-create',
     query: { customerId, orderId },

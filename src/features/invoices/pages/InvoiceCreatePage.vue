@@ -10,7 +10,6 @@ import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import type { CreateInvoiceRequest, CreateInvoiceResponse } from '@contracts/invoices/invoice-api.schema'
 import { computeInvoiceLine, computeInvoiceTotal, roundMoney } from '@shared/utils/invoice-calculator'
-import { useInvoiceCreateIntentStore, type InvoiceCreateIntentOrder } from '@/shared/stores/invoice-create-intent.store'
 import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.store'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
@@ -28,14 +27,16 @@ import InvoiceLineItemsEditor from '../components/InvoiceLineItemsEditor.vue'
 import InvoiceAdjustmentsEditor from '../components/InvoiceAdjustmentsEditor.vue'
 import InvoiceTotalsPreview from '../components/InvoiceTotalsPreview.vue'
 import InvoicePriceListPicker from '../components/InvoicePriceListPicker.vue'
-import { loadInvoiceCreateContext } from '../services/invoice-create-context.service'
+import { loadInvoiceCreateContext, type InvoiceCreateOrder } from '../services/invoice-create-context.service'
 import { addSheetDateDays, sheetDateDaysBetween, todaySheetDate } from '@/shared/utils/sheet-date'
 import { useDuplicateInvoiceWarning } from '@/shared/composables/use-duplicate-invoice-warning'
 import { useInvoiceItemPickerRoute } from '../composables/useInvoiceItemPickerRoute'
 import { useInvoicePriceListStore } from '../stores/invoice-price-list.store'
 import type { InvoicePriceListItemDto } from '../services/invoice-price-list.service'
+import { isValidItemQuantity } from '@shared/utils/item-quantity'
 import {
   appendPickedLine,
+  invoiceUnitOptionFor,
   toLineItemFormRow,
 } from '../utils/invoice-price-list.utils'
 
@@ -43,9 +44,8 @@ const router = useRouter()
 const route = useRoute()
 
 // ── Order/customer context ───────────────────────────────────────────────────
-const order = ref<InvoiceCreateIntentOrder | null>(null)
+const order = ref<InvoiceCreateOrder | null>(null)
 const selectedCustomerStore = useSelectedCustomerStore()
-const invoiceCreateIntentStore = useInvoiceCreateIntentStore()
 const { customer } = storeToRefs(selectedCustomerStore)
 const contextLoading = ref(false)
 const contextError = ref<string | null>(null)
@@ -187,7 +187,7 @@ const isValid = computed(() => {
   return items.value.every((item) =>
     item.description.trim().length > 0
     && item.unit.trim().length > 0
-    && Number(item.quantity) > 0
+    && isValidItemQuantity(item.quantity, item.unit)
     && item.unitPrice.trim() !== ''
     && Number.isFinite(Number(item.unitPrice)),
   )
@@ -223,7 +223,7 @@ const requestPayload = computed<CreateInvoiceRequest | null>(() => {
 const submitting = ref(false)
 const result = ref<CreateInvoiceResponse | null>(null)
 
-function initializeForm(currentOrder: InvoiceCreateIntentOrder) {
+function initializeForm(currentOrder: InvoiceCreateOrder) {
   order.value = currentOrder
   invoiceNumber.value = generateSuggestedInvoiceNumber()
   issuedDate.value = todayIso()
@@ -233,15 +233,18 @@ function initializeForm(currentOrder: InvoiceCreateIntentOrder) {
   submitting.value = false
 
   items.value = currentOrder.items.length > 0
-    ? currentOrder.items.map((item) => ({
-      key: crypto.randomUUID(),
-      description: item.description ?? '',
-      unit: 'piece',
-      unitOption: 'piece',
-      quantity: item.quantity != null ? String(item.quantity) : '1',
-      unitPrice: '',
-      adjustments: [],
-    }))
+    ? currentOrder.items.map((item) => {
+      const unit = item.unit?.trim() || 'piece'
+      return {
+        key: crypto.randomUUID(),
+        description: item.description ?? '',
+        unit,
+        unitOption: invoiceUnitOptionFor(unit),
+        quantity: item.quantity != null ? String(item.quantity) : '1',
+        unitPrice: '',
+        adjustments: [],
+      }
+    })
     : [createSyntheticPlaceholderLine()]
 }
 
@@ -263,18 +266,6 @@ async function syncCreateContext() {
     return
   }
 
-  const stagedOrder = invoiceCreateIntentStore.order
-  const stagedCustomer = selectedCustomerStore.customer
-  if (
-    stagedOrder?.orderId.trim() === orderId
-    && stagedOrder.customerId.trim() === customerId
-    && stagedCustomer?.customerId.trim() === customerId
-  ) {
-    contextLoading.value = false
-    initializeForm(stagedOrder)
-    return
-  }
-
   contextLoading.value = true
   order.value = null
   items.value = []
@@ -284,7 +275,6 @@ async function syncCreateContext() {
     if (requestId !== contextRequestId) return
 
     selectedCustomerStore.select(context.customer)
-    invoiceCreateIntentStore.set(context.order)
     initializeForm(context.order)
   } catch {
     if (requestId !== contextRequestId) return

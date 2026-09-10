@@ -21,7 +21,7 @@ Purpose:
 | image file | camera / `input type="file" accept="image/*"` | Binary; uploaded first, never sent in the row payload |
 | image_type | FormOptionGrid | Free string in the data, no enum defined and none proposed. 13 distinct live values — see Known data debt in `data-model.md`. The option set the form offers is unresolved. |
 | notes | FormTextarea | Optional text; blank on 16,680 of 17,376 live rows |
-| quantity | FormInput | Decimal weight in kg (e.g. `20.5`, `8.7`), not a count. Blank on 13,258 of 17,376 rows. What it means for an `image_type` other than `WEIGHT` is undocumented and unresolved. |
+| quantity | FormInput | Decimal weight in kg (e.g. `20.5`, `8.7`), limited to one decimal place and not a count. Blank on 13,258 of 17,376 rows. What it means for an `image_type` other than `WEIGHT` is undocumented and unresolved. |
 
 ## Not user-supplied fields
 

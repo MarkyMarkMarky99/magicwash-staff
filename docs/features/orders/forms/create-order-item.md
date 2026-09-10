@@ -19,7 +19,7 @@ Purpose:
 | Field | Required | Component | Validation |
 |---|---|---|---|
 | description | no | FormInput | Optional text (Thai) |
-| quantity | yes | FormInput | Numeric; decimal allowed |
+| quantity | yes | FormInput | Unit `kg`: positive with at most one decimal place. Other units: positive integer |
 | price | no | FormInput | Empty or numeric; decimal allowed |
 | service_type | no | FormOptionGrid | Empty or one of `WSIR`, `IRON`, `DRCL`, `WASH` |
 | special_instructions | no | FormTextarea | Optional text |

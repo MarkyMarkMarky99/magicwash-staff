@@ -1,13 +1,10 @@
 import type { z } from 'zod'
 import { customerDetailResponseSchema } from '@contracts/customers/customer-api.schema'
-import {
-  orderListQuerySchema,
-  orderListResponseSchema,
-} from '@contracts/orders/order-api.schema'
-import { apiGet, apiGetList } from '@/shared/api/api-client'
+import { workOrderDetailResponseSchema } from '@contracts/work-orders/work-order-api.schema'
+import { apiGet } from '@/shared/api/api-client'
 
 export type InvoiceCreateCustomer = z.infer<typeof customerDetailResponseSchema>
-export type InvoiceCreateOrder = z.infer<typeof orderListResponseSchema>
+export type InvoiceCreateOrder = z.infer<typeof workOrderDetailResponseSchema>
 
 export interface InvoiceCreateContext {
   customer: InvoiceCreateCustomer
@@ -18,16 +15,12 @@ export async function loadInvoiceCreateContext(
   customerId: string,
   orderId: string,
 ): Promise<InvoiceCreateContext> {
-  const [customer, orderResult] = await Promise.all([
+  const [customer, order] = await Promise.all([
     apiGet<InvoiceCreateCustomer>(`/api/customers/${encodeURIComponent(customerId)}`),
-    apiGetList<InvoiceCreateOrder>('/api/orders', {
-      query: { customerId },
-      querySchema: orderListQuerySchema,
-    }),
+    apiGet<InvoiceCreateOrder>(`/api/work-orders/${encodeURIComponent(orderId)}`),
   ])
 
-  const order = orderResult.items.find((item) => item.orderId.trim() === orderId)
-  if (!order) {
+  if (order.customerId.trim() !== customerId) {
     throw new Error(`Order ${orderId} was not found for customer ${customerId}`)
   }
 

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { API_PAGINATION_DEFAULTS } from '../shared/api.schema.js'
 import type { ModuleApiContract } from '../shared/module-api-contract.js'
+import { isValidOrderImageWeight } from '../../shared/utils/item-quantity.js'
 
 export const orderImageTypeSchema = z.enum(['WEIGHT', 'BELONGING', 'DOCUMENT'])
 
@@ -45,6 +46,25 @@ export const orderImageCreateSchema = z.object({
   notes: z.string().trim().min(1).nullable().default(null),
   quantity: z.number().nonnegative().nullable().default(null),
   createdBy: z.string().trim().min(1),
+}).superRefine((image, context) => {
+  if (image.imageType === 'WEIGHT') {
+    if (image.quantity === null || !isValidOrderImageWeight(image.quantity)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'WEIGHT quantity must be greater than 0, at most 200, and use at most one decimal place',
+        path: ['quantity'],
+      })
+    }
+    return
+  }
+
+  if (image.quantity !== null) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'quantity is only allowed for WEIGHT images',
+      path: ['quantity'],
+    })
+  }
 })
 
 export const orderImageUpdateSchema = z.never()

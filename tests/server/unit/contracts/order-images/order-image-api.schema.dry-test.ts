@@ -62,13 +62,20 @@ for (const input of [
   assert.throws(() => orderImageListQuerySchema.parse(input), JSON.stringify(input))
 }
 
-const minimalCreate = { orderId: 'ORD-1', imageType: 'WEIGHT', imagePath: 'https://firebasestorage.example/x.jpg', createdBy: 'staff-1' }
+const minimalCreate = {
+  orderId: 'ORD-1',
+  imageType: 'WEIGHT',
+  imagePath: 'https://firebasestorage.example/x.jpg',
+  quantity: 20.5,
+  createdBy: 'staff-1',
+}
 assert.deepEqual(orderImageCreateSchema.parse(minimalCreate), {
   orderId: 'ORD-1', customerId: null, deliveryId: null, imageType: 'WEIGHT',
-  imagePath: 'https://firebasestorage.example/x.jpg', notes: null, quantity: null, createdBy: 'staff-1',
+  imagePath: 'https://firebasestorage.example/x.jpg', notes: null, quantity: 20.5, createdBy: 'staff-1',
 })
 for (const imageType of ['WEIGHT', 'BELONGING', 'DOCUMENT'] as const) {
-  assert.equal(orderImageCreateSchema.parse({ ...minimalCreate, imageType }).imageType, imageType)
+  const quantity = imageType === 'WEIGHT' ? 20.5 : null
+  assert.equal(orderImageCreateSchema.parse({ ...minimalCreate, imageType, quantity }).imageType, imageType)
 }
 assert.equal(
   orderImageCreateSchema.parse({ ...minimalCreate, deliveryId: '  DEL-1  ' }).deliveryId,
@@ -87,7 +94,10 @@ for (const imageType of ['BAG', 'FORM', 'PICKUP', 'HANGERS', 'DELIVERED', 'UNREC
   )
 }
 assert.throws(() => orderImageCreateSchema.parse({ ...minimalCreate, imageType: 'bag' }))
-assert.throws(() => orderImageCreateSchema.parse({ ...minimalCreate, quantity: -0.01 }))
+for (const quantity of [null, 0, -0.01, 20.55, 200.1]) {
+  assert.throws(() => orderImageCreateSchema.parse({ ...minimalCreate, quantity }))
+}
+assert.throws(() => orderImageCreateSchema.parse({ ...minimalCreate, imageType: 'BELONGING', quantity: 1 }))
 
 const dto = {
   orderImageId: 'IMAGE-1', orderId: 'ORD-1', customerId: null, deliveryId: 'DEL-1', imageType: 'legacy spelling',

@@ -7,7 +7,8 @@ An overlay on the order detail screen, opened by `?item=new`. Not a page.
 ## Fields
 
 - **รายละเอียดสินค้า** — `description`, optional. Text input.
-- **จำนวน** — `quantity`, required. Number, must be greater than 0.
+- **จำนวน** — `quantity`, required. Items whose selected price-list unit is `kg` accept positive
+  values with at most one decimal place. Every other unit accepts positive whole numbers only.
 - **ราคา** — `price`, optional. Number.
 - **คำแนะนำเพิ่มเติม** — `specialInstructions`, optional. Textarea.
 
