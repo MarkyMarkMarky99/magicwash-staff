@@ -11,17 +11,27 @@ Reviewed by grok-explorer, all gates green, **still not checked in a real browse
   read both failing) now surfaces the items error, not the customer error.
 - Session transcript `2026-09-11-003747-*.txt` sits untracked in the repo root; delete it.
 
-## Gallery is the next latency win — nothing there is cached
+## Branch `feat/gallery-backend-reads` — pushed, NOT merged
 
-- `src/api/photos.js:26` reads through raw JSONP (`src/utils/gviz.js:33`), never `apiGet`, and
-  `tqx=reqId:N` makes every URL unique so the browser cannot cache it either.
-- Cheap fix: `OrderGalleryPage.vue:112` `onDeactivated` wipes `requestedKey` and forces a refetch
-  although KeepAlive still holds the photos; `:76` blanks them before the await.
-- Real fix, do it as the migration: `OrderGalleryPage.vue:84` -> `apiGetList`, `image_url` ->
-  `imageUrl`, delete `src/api/photos.js`. ~1h, needs a browser check.
+Waiting on the user's review. Merge decision is theirs; everything else is done.
+
+- Gallery photo reads moved off browser GViz onto `/api/laundry-photos` + `/api/after-photos`.
+  `src/api/photos.js` and `src/utils/gviz.js` deleted.
+- First `onFresh` call site in the app. Cache policy already made these endpoints cacheable at
+  `hours: 0`, so a repeat visit paints from cache and the refresh swaps in.
+- Browser-verified by codex against live data; screenshots in the temp folder
+  `gallery-backend-read-proof-20260911`.
+- **Known limit, accepted:** `perPage` caps at 500, so an album with more than 500 photos would
+  truncate. Legacy GViz had no cap. Largest album seen is 8.
+- Docs now stale on the gallery read path, deliberately not edited (the task forbade it):
+  `feature-structure.md`, `data-fetching.md`, `docs/features/orders/overview.md`,
+  `docs/features/orders/forms/create-order-image.md`.
+- Still open from the earlier finding, NOT addressed here: `OrderGalleryPage.vue` `onDeactivated`
+  wipes `requestedKey` and forces a refetch on re-entry, and `loadFetchedPhotos` blanks the list
+  before awaiting. Cheap now that the cache answers, but still a needless round trip.
+- After this: the structural pass — `onFresh` at the remaining call sites, app-wide cache policy.
 - **Decided against 2026-09-11:** lazy-loading the gallery route to drop Firebase from boot. Staff
-  open the gallery on nearly every order, so it buys nothing. Do not re-propose.
-- After that, the structural pass: `onFresh` (23 call sites), app-wide cache policy.
+  open the gallery on nearly every order. Do not re-propose.
 
 ## Queue — 2026-09-09, in order
 
