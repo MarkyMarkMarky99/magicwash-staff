@@ -11,9 +11,13 @@ defineProps({
   autocomplete: { type: String, default: undefined },
   min:          { type: String, default: undefined },
   max:          { type: String, default: undefined },
+  step:         { type: String, default: undefined },
+  inputmode:    { type: String, default: undefined },
+  ariaDescribedby: { type: String, default: undefined },
+  ariaInvalid:  { type: [Boolean, String], default: undefined },
 })
 
-defineEmits(['update:modelValue'])
+defineEmits(['update:modelValue', 'invalid'])
 </script>
 
 <template>
@@ -31,9 +35,14 @@ defineEmits(['update:modelValue'])
         :autocomplete="autocomplete"
         :min="min"
         :max="max"
+        :step="step"
+        :inputmode="inputmode"
+        :aria-describedby="ariaDescribedby"
+        :aria-invalid="ariaInvalid"
         class="form-input"
         :class="{ 'form-input--with-icon': icon }"
         @input="$emit('update:modelValue', $event.target.value)"
+        @invalid="$emit('invalid', $event)"
       >
 
       <span

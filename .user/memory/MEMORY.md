@@ -32,6 +32,11 @@ tracks the URL bar collapsing under a drag, swinging 272-695 in one session, whi
 
 ## Where we are — 2026-09-10
 
+- **Branch:** `fix/decimal-weight-quantities` — committed, PR open, awaiting review + merge.
+  Decimal quantities end to end: `shared/utils/item-quantity.ts` is the single rule (`kg` → one
+  decimal, every other unit → whole number), enforced in the two API contracts, the order-item
+  service, and the three forms. Not yet verified on a real phone — the weight prompt opening
+  the camera with `20.5` is the check that matters.
 - **Branch:** `feat/live-order-helper` — pushed, unmerged, not finished, and now far behind `main`.
   Diff it against `origin/main` before assuming any of it is still wanted.
 - **On `main`, merged but unverified on a phone:** `BaseSwipeCard` ghost-click fix (ISS-72adcdca).

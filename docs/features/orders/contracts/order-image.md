@@ -46,7 +46,8 @@ Request
 - `imagePath` — string, required, must start with `http://` or `https://` → otherwise 422
 - `deliveryId` — string, optional, nullable, default `null`
 - `notes` — string, nullable, default `null`
-- `quantity` — number ≥ 0, nullable, default `null`
+- `quantity` — required for `WEIGHT`: greater than 0, at most 200 kg, and at most one decimal
+  place. It must be `null` for `BELONGING` and `DOCUMENT`.
 - `createdBy` — string, required
 - not accepted: `orderImageId`, `createdAt`
 

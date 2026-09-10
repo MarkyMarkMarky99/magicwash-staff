@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { API_PAGINATION_DEFAULTS } from '../shared/api.schema.js'
 import type { ModuleApiContract } from '../shared/module-api-contract.js'
+import { isValidItemQuantity } from '../../shared/utils/item-quantity.js'
 
 /** Invoices API contract for invoice reads, creation, and status-only updates. */
 
@@ -83,6 +84,10 @@ export const invoiceLineInputSchema = z
     adjustments: z.array(invoiceAdjustmentInputSchema).default([]),
   })
   .strict()
+  .refine((line) => isValidItemQuantity(line.quantity, line.unit), {
+    message: 'kg quantity must use at most one decimal place; other units require a whole number',
+    path: ['quantity'],
+  })
 
 export type InvoiceLineInput = z.infer<typeof invoiceLineInputSchema>
 

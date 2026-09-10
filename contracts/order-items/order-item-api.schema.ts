@@ -25,6 +25,7 @@ export const orderItemResponseSchema = z.object({
   price: z.number().nullable(),
   creditsUsed: z.number().nullable(),
   serviceType: z.string().nullable(),
+  unit: z.string().nullable(),
   specialInstructions: z.string().nullable(),
   createdAt: z.string().nullable(),
   createdBy: z.string().nullable(),

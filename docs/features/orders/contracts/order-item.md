@@ -22,6 +22,7 @@ Response `200 { data: OrderItemResponse[], meta.pagination: { page, perPage } }`
 - `price` — number | null
 - `creditsUsed` — number | null
 - `serviceType` — string | null (server-derived, never client-supplied; free string on read, Thai legacy values returned verbatim)
+- `unit` — string | null (derived from the linked Price List item; it is not stored on `OrderItemForms`)
 - `specialInstructions` — string | null
 - `createdAt` — string | null
 - `createdBy` — string | null
@@ -50,7 +51,8 @@ Request
 - `orderId` — string, required
 - `itemId` — string, optional, nullable, default `null` (link to the `OrderItems` catalogue row)
 - `description` — string, nullable, default `null`
-- `quantity` — number > 0, required
+- `quantity` — number > 0, required; linked Price List unit `kg` permits at most one decimal
+  place, while every other or unknown unit requires a whole number
 - `price` — number ≥ 0, nullable, default `null`
 - `specialInstructions` — string, nullable, default `null`
 - `createdBy` — string, required
@@ -64,6 +66,8 @@ Behaviour
 - `serviceType` is filled by the service layer from the parent order's `OrderForm.service_type`;
   the client cannot set it, and one order carries exactly one service type
 - an `orderId` that resolves to no `OrderForm` row → 404; the lookup doubles as `orderId` validation
+- an `itemId` that resolves to no Price List row → 404
+- quantity precision is validated against the linked Price List unit before append
 - `createdAt` is stamped by `audit.onAppend`
 - a duplicate generated id surfaces as 500 (`DuplicatePrimaryKeyError`)
 

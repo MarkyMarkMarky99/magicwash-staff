@@ -14,10 +14,19 @@ const rawWeight = ref('')
 const weightError = ref<string | null>(null)
 const suppressClose = ref(false)
 
+function showWeightError(): void {
+  weightError.value = `ใส่น้ำหนักมากกว่า 0 ไม่เกิน ${MAX_ORDER_IMAGE_WEIGHT_KG} กก. และมีทศนิยมไม่เกิน 1 ตำแหน่ง`
+}
+
+function handleInvalid(event: Event): void {
+  event.preventDefault()
+  showWeightError()
+}
+
 function submit(): void {
   const weight = parseOrderImageWeight(rawWeight.value)
   if (weight === null) {
-    weightError.value = `ใส่น้ำหนักเป็นตัวเลขมากกว่า 0 และไม่เกิน ${MAX_ORDER_IMAGE_WEIGHT_KG} กก.`
+    showWeightError()
     return
   }
   weightError.value = null
@@ -53,8 +62,8 @@ watch(() => props.open, (isOpen) => {
     @confirm="submit"
   >
       <div class="pt-2">
-        <FormInput id="order-image-weight" v-model="rawWeight" label="น้ำหนัก (กก.)" type="number" placeholder="เช่น 20.5" min="0" max="200" />
+        <FormInput id="order-image-weight" v-model="rawWeight" label="น้ำหนัก (กก.)" type="number" placeholder="เช่น 20.5" min="0.1" max="200" step="0.1" inputmode="decimal" :aria-describedby="weightError ? 'order-image-weight-error' : undefined" :aria-invalid="Boolean(weightError)" @invalid="handleInvalid" />
       </div>
-      <p v-if="weightError" class="mt-2 font-body text-sm text-error">{{ weightError }}</p>
+      <p v-if="weightError" id="order-image-weight-error" class="mt-2 font-body text-sm text-error">{{ weightError }}</p>
   </ConfirmOverlay>
 </template>

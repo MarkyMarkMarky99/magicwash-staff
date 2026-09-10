@@ -2,6 +2,7 @@ import { computed, watch } from 'vue'
 import type { LocationQuery, LocationQueryRaw } from 'vue-router'
 import { useRoute, useRouter } from 'vue-router'
 import type { OrderImageType } from '@/features/orders/order-image-labels'
+import { isValidOrderImageWeight, MAX_ORDER_IMAGE_WEIGHT_KG } from '@shared/utils/item-quantity'
 
 export type OrderOverlay = 'item' | 'photo-weight' | 'photo-belonging' | 'photo-document'
 
@@ -13,7 +14,7 @@ const OVERLAY_QUERY_KEY = 'orderAction'
 const LEGACY_ITEM_QUERY_KEY = 'item'
 const LEGACY_CAPTURE_QUERY_KEY = 'capture'
 const WEIGHT_QUERY_KEY = 'weight'
-export const MAX_ORDER_IMAGE_WEIGHT_KG = 200
+export { MAX_ORDER_IMAGE_WEIGHT_KG }
 
 function readFirstQueryValue(value: unknown): string | null {
   const firstValue = Array.isArray(value) ? value[0] : value
@@ -41,12 +42,9 @@ export function buildOrderOverlayQuery(query: LocationQuery, overlay: OrderOverl
 
 export function parseOrderImageWeight(raw: string): number | null {
   const trimmed = raw.trim()
-  if (trimmed === '') return null
+  if (!isValidOrderImageWeight(trimmed)) return null
   const parsed = Number(trimmed)
-  if (!Number.isFinite(parsed)) return null
-  if (parsed <= 0) return null
-  if (parsed > MAX_ORDER_IMAGE_WEIGHT_KG) return null
-  return Math.round(parsed * 100) / 100
+  return Math.round(parsed * 10) / 10
 }
 
 export function readOrderImageWeight(query: LocationQuery): number | null {

@@ -59,6 +59,19 @@ test('invoiceStatusUpdateSchema accepts only the two invalidation statuses and n
   }
 })
 
+test('invoice item quantity precision follows its unit', () => {
+  const line = {
+    description: 'Laundry',
+    unitPrice: 60,
+    adjustments: [],
+  }
+
+  assert.equal(invoiceApi.invoiceLineInputSchema.safeParse({ ...line, unit: 'kg', quantity: 1.5 }).success, true)
+  assert.equal(invoiceApi.invoiceLineInputSchema.safeParse({ ...line, unit: 'kg', quantity: 1.25 }).success, false)
+  assert.equal(invoiceApi.invoiceLineInputSchema.safeParse({ ...line, unit: 'piece', quantity: 2 }).success, true)
+  assert.equal(invoiceApi.invoiceLineInputSchema.safeParse({ ...line, unit: 'piece', quantity: 1.5 }).success, false)
+})
+
 test('createInvoiceResponseSchema remains the standalone six-kind union', () => {
   const kinds = [
     { kind: 'created', invoiceNumber: 'INV-0001', itemCount: 1, itemsTotal: 100, invoiceTotal: 100 },

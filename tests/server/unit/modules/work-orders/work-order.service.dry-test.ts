@@ -180,6 +180,7 @@ const embeddedItems: OrderItemResponse[] = [
     price: 25,
     creditsUsed: null,
     serviceType: 'WSIR',
+    unit: 'piece',
     specialInstructions: null,
     createdAt: '2026-08-30 10:00:00',
     createdBy: 'staff-1',

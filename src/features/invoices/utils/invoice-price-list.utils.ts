@@ -151,15 +151,19 @@ export function toLineItemFormRow(
   const line = createEmptyLineItemRow()
   line.description = `${item.displayNameTh} (${serviceLabel(item.serviceType)} / ${item.serviceType})`
   const unit = item.unit ?? ''
-  const unitOption: InvoiceUnitOption = invoiceUnitOptions.some((option) => option === unit)
-    ? unit as InvoiceUnitOption
-    : 'custom'
+  const unitOption = invoiceUnitOptionFor(unit)
   line.unit = unit
   line.unitOption = unitOption
   line.quantity = '1'
   line.unitPrice = String(item.price)
   line.adjustments = []
   return line
+}
+
+export function invoiceUnitOptionFor(unit: string): InvoiceUnitOption {
+  return invoiceUnitOptions.some((option) => option === unit)
+    ? unit as InvoiceUnitOption
+    : 'custom'
 }
 
 /**

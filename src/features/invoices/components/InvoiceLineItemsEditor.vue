@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import FormLabel from '@/shared/components/FormLabel.vue'
-/** Presentation only — props in, events out. */
 import { ref } from 'vue'
+import FormLabel from '@/shared/components/FormLabel.vue'
+import { isValidItemQuantity, isWeightUnit, itemQuantityStep } from '@shared/utils/item-quantity'
+/** Presentation only — props in, events out. */
 import {
   createEmptyAdjustmentRow,
   invoiceUnitOptions,
@@ -150,11 +151,17 @@ function removeLine(index: number) {
                 :id="`invoice-line-${line.key}-quantity`"
                 :value="line.quantity"
                 type="number"
-                step="any"
+                :step="itemQuantityStep(line.unit)"
+                :inputmode="isWeightUnit(line.unit) ? 'decimal' : 'numeric'"
+                :aria-describedby="`invoice-line-${line.key}-quantity-help`"
+                :aria-invalid="line.quantity !== '' && !isValidItemQuantity(line.quantity, line.unit)"
                 min="0"
                 class="invoice-line-control"
                 @input="updateLine(index, { quantity: ($event.target as HTMLInputElement).value })"
               >
+              <p :id="`invoice-line-${line.key}-quantity-help`" class="mt-1 font-body text-[10px] text-on-surface-variant">
+                {{ isWeightUnit(line.unit) ? 'กิโลกรัม: ทศนิยมได้ 1 ตำแหน่ง' : 'หน่วยนี้ใช้จำนวนเต็ม' }}
+              </p>
             </div>
 
             <div>

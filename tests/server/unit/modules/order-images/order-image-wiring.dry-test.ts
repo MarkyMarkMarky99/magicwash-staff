@@ -232,7 +232,7 @@ await service.create({
   imageType: 'WEIGHT',
   imagePath: 'https://storage.example/weight.jpg',
   notes: null,
-  quantity: 2.75,
+  quantity: 2.5,
   createdBy: 'staff-1',
 })
 const withDelivery = repository.appendRows[0]!

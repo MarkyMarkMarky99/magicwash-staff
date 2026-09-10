@@ -8,6 +8,7 @@ import {
   formatEffectiveRange,
   groupPriceListByCategory,
   iconForCategory,
+  invoiceUnitOptionFor,
   isUnusedPlaceholderLine,
   toLineItemFormRow,
   uniqueCategories,
@@ -51,6 +52,8 @@ assert.ok(customUnit)
 assert.equal(customUnit.unitOption, 'custom')
 assert.equal(customUnit.unit, 'bag')
 assert.equal(customUnit.unitPrice, '125')
+assert.equal(invoiceUnitOptionFor('kg'), 'kg')
+assert.equal(invoiceUnitOptionFor('bag'), 'custom')
 
 const sameItemDifferentPrices = [
   item({ id: 'a', price: 120 }),
