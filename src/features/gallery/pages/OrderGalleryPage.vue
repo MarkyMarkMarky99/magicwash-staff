@@ -2,7 +2,6 @@
 import { ref, computed, onActivated, onBeforeUnmount, onDeactivated, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePhotoUpload } from '@/composables/usePhotoUpload'
-import { getPhotos } from '@/api/photos'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import PickerOverlay from '@/shared/layouts/PickerOverlay.vue'
 import LightboxOverlay from '@/shared/layouts/LightboxOverlay.vue'
@@ -10,7 +9,7 @@ import CameraOverlay from '@/shared/components/CameraOverlay.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import { currentActor } from '@/shared/config/actor'
 import { getWorkOrder } from '@/features/orders/services/work-order.service'
-import { reassignPhoto } from '@/features/gallery/services/laundry-photo.service'
+import { listGalleryPhotos, reassignPhoto } from '@/features/gallery/services/laundry-photo.service'
 
 function parseKey(key) {
   const parts = String(key ?? '').split('-')
@@ -56,8 +55,7 @@ let reassignRouteEntry = false
 
 const IN_PROGRESS = new Set(['compressing', 'uploading', 'saving'])
 
-// --- Fetch existing photos from GViz ---
-const fetchedPhotos = ref([])  // [{ id, image_url, notes }]
+const fetchedPhotos = ref([])
 const fetchStatus = ref('loading')
 let fetchSequence = 0
 let requestedKey = ''
@@ -83,7 +81,15 @@ async function loadFetchedPhotos(key) {
   reassigning.value = false
 
   try {
-    const photos = await getPhotos(parsed.type, parsed.orderId, parsed.orderitemId)
+    const photos = await listGalleryPhotos(
+      parsed.type,
+      parsed.orderId,
+      parsed.orderitemId,
+      (freshPhotos) => {
+        if (sequence !== fetchSequence) return
+        fetchedPhotos.value = freshPhotos
+      },
+    )
     if (sequence !== fetchSequence) return
     fetchedPhotos.value = photos
     fetchStatus.value = 'done'
@@ -129,7 +135,7 @@ watch(
 // Unified flat list used by the lightbox
 const allPhotos = computed(() => [
   ...fetchedPhotos.value.map(p => ({
-    src: p.image_url,
+    src: p.imageUrl,
     label: p.notes || null,
     id: p.id,
     isSaved: true,
@@ -366,7 +372,7 @@ function handleCameraClose() {
               class="aspect-square overflow-hidden rounded-[3px] bg-surface-variant focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <img
-                :src="photo.image_url"
+                :src="photo.imageUrl"
                 :alt="photo.notes || `รูปที่ ${i + 1}`"
                 class="w-full h-full object-cover"
               />
