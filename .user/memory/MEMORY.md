@@ -7,7 +7,10 @@ Live note — what is in flight, next, stuck.
    user supplies Firebase bucket credentials.
 2. **Decide the document scanner's 2400px / q0.88 output.** 3× the camera path's file size. Needs
    the user's eyes on real scans; not a number to lower blindly.
-3. **Finish the gallery migration** — `OrderGalleryPage.vue:84` → `apiGetList`, rename `image_url` →
+3. **Un-eager Firebase.** `src/features/gallery/routes.ts:2` imports `OrderGalleryPage`
+   statically, so every cold start downloads the Firebase SDK even for staff who never open the
+   gallery. Make it `() => import(...)` like every other route. No branch yet.
+4. **Finish the gallery migration** — `OrderGalleryPage.vue:84` → `apiGetList`, rename `image_url` →
    `imageUrl`, delete `src/api/photos.js`. ~1h, needs a browser check.
 
 ## Layout rebuild — merged to main 2026-09-10
@@ -32,11 +35,6 @@ tracks the URL bar collapsing under a drag, swinging 272-695 in one session, whi
 
 ## Where we are — 2026-09-10
 
-- **Branch:** `fix/decimal-weight-quantities` — committed, PR open, awaiting review + merge.
-  Decimal quantities end to end: `shared/utils/item-quantity.ts` is the single rule (`kg` → one
-  decimal, every other unit → whole number), enforced in the two API contracts, the order-item
-  service, and the three forms. Not yet verified on a real phone — the weight prompt opening
-  the camera with `20.5` is the check that matters.
 - **Branch:** `feat/live-order-helper` — pushed, unmerged, not finished, and now far behind `main`.
   Diff it against `origin/main` before assuming any of it is still wanted.
 - **On `main`, merged but unverified on a phone:** `BaseSwipeCard` ghost-click fix (ISS-72adcdca).
