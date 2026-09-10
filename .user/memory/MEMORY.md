@@ -35,6 +35,8 @@ tracks the URL bar collapsing under a drag, swinging 272-695 in one session, whi
 
 ## Where we are — 2026-09-10
 
+- **Branch:** `fix/order-detail-image-lightbox` — Order Detail image lightbox implemented and
+  tested; awaiting user validation on its Vercel preview.
 - **Branch:** `feat/live-order-helper` — pushed, unmerged, not finished, and now far behind `main`.
   Diff it against `origin/main` before assuming any of it is still wanted.
 - **On `main`, merged but unverified on a phone:** `BaseSwipeCard` ghost-click fix (ISS-72adcdca).
