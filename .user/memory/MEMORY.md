@@ -1,34 +1,27 @@
 # Project memory
 Live note — what is in flight, next, stuck.
 
-## Branch `perf/app-fetch-cache` — 2026-09-11
+## Merged to main 2026-09-11 — order detail latency
 
-Uncommitted. `typecheck:api`+`typecheck:web` and the work-order/order-item dry tests pass.
-**No browser check yet.**
+Reviewed by grok-explorer, all gates green, **still not checked in a real browser.**
 
-- Order detail reads parallelized (`work-order.service.ts:122`).
-- Detail header seeded from the loaded list row (`order.store.ts:49`); full-page skeleton now only
-  when the list never loaded that order. New `tests/web/unit/features/orders/stores/order.store.dry-test.ts`.
-- Untracked, user has not read them: `docs/architecture/frontend/app-boot.md`,
-  `docs/conventions/data-fetching.md` — drafts from the 2026-09-11 session.
-- Remove the session transcript `2026-09-11-003747-*.txt` from the repo root before committing.
+- First browser pass tomorrow: list -> order must paint the header before the item list, and adding
+  an item must not flash the list back to empty. `main` @ `ccf187a`.
+- Behaviour change worth knowing: order detail `getById` double fault (items read *and* customer
+  read both failing) now surfaces the items error, not the customer error.
+- Session transcript `2026-09-11-003747-*.txt` sits untracked in the repo root; delete it.
 
-### Tomorrow morning, in order
+## Gallery is the next latency win — nothing there is cached
 
-1. Browser check the two changes: list → order must paint the header before the item list, and
-   adding an item must not flash the list back to empty. Then commit.
-2. **Gallery reads have no cache at all.** `src/api/photos.js:26` goes through raw JSONP
-   (`src/utils/gviz.js:33`), never `apiGet`, and `tqx=reqId:N` makes every URL unique so the browser
-   cannot cache it either. Cheap fix: `OrderGalleryPage.vue:112` `onDeactivated` wipes
-   `requestedKey` and forces a refetch although KeepAlive still holds the photos; `:76` blanks them
-   before the await. Real fix: move the read behind `apiGet` — do it as part of the gallery
-   migration below.
-3. **Gallery migration** — `OrderGalleryPage.vue:84` → `apiGetList`, `image_url` → `imageUrl`,
-   delete `src/api/photos.js`. ~1h, needs a browser check.
-4. Then the structural pass: `onFresh` (23 call sites), app-wide cache policy.
-
+- `src/api/photos.js:26` reads through raw JSONP (`src/utils/gviz.js:33`), never `apiGet`, and
+  `tqx=reqId:N` makes every URL unique so the browser cannot cache it either.
+- Cheap fix: `OrderGalleryPage.vue:112` `onDeactivated` wipes `requestedKey` and forces a refetch
+  although KeepAlive still holds the photos; `:76` blanks them before the await.
+- Real fix, do it as the migration: `OrderGalleryPage.vue:84` -> `apiGetList`, `image_url` ->
+  `imageUrl`, delete `src/api/photos.js`. ~1h, needs a browser check.
 - **Decided against 2026-09-11:** lazy-loading the gallery route to drop Firebase from boot. Staff
   open the gallery on nearly every order, so it buys nothing. Do not re-propose.
+- After that, the structural pass: `onFresh` (23 call sites), app-wide cache policy.
 
 ## Queue — 2026-09-09, in order
 
