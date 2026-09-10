@@ -1,5 +1,7 @@
 # Handoff — central cache gateway for `/api/*` reads
 
+The live rules now live in `docs/conventions/data-fetching.md`. This file is build history.
+
 Status: **built.** Steps 1-5 below are all in `main` as of 2026-09-08 and the invalidation half is
 verified on a real phone. What is left is raising the first TTLs — until then the gateway is inert
 by design: the same requests go out, a cached copy just paints first. Everything below is measured
