@@ -1,6 +1,9 @@
 # Project memory
 Live note — what is in flight, next, stuck.
 
+**Start here after a `/clear`:** `.user/memory/HANDOFF-2026-09-12.md` — what shipped, what is
+blocked and why, and how to reach the full session transcript with grok-explorer.
+
 ## Gallery reads on the API — merged 2026-09-12 (`4cd603b`)
 
 Order detail latency is browser-confirmed by the user and closed.
@@ -17,20 +20,12 @@ Order detail latency is browser-confirmed by the user and closed.
 
 ## Comment cleanup — merged 2026-09-12 (`2e7de90`)
 
-277 comment lines deleted, zero added, plus two test assertions that checked for a comment rather
-than a behaviour.
-
-- **140 decisions remain in `.user/memory/doc-comment-docs-work.md`, with the 13 defects the
-  deleted comments exposed.** Read it there; do not copy it here.
-- **Verify every row before acting.** Two were already wrong, one of which would have deleted a
-  useful comment.
-- Order: UNVERIFIED 13 first, then re-review the 49 KEEPs (both audits were far too generous),
-  then MOVE 23, then ALREADY-DOCUMENTED 58.
-- **Blocked:** 58 of those point at `data-fetching.md` or at `cache-gateway.md`, which is build
+- **140 decisions and 13 uncovered defects: `.user/memory/doc-comment-docs-work.md`.** Verify every
+  row before acting; two were already wrong.
+- **Blocked:** 58 deletions point at `data-fetching.md` or at `cache-gateway.md`, which is build
   history, not a rule. The user reads `data-fetching.md` and decides where the cache rules live
-  before any of them is deleted.
-- Still untouched: ten section banners in `OrderGalleryPage.vue`, and the JSDoc above
-  `unknownCreateOutcome`.
+  first. Order after that: UNVERIFIED 13, re-review the 49 KEEPs, MOVE 23, ALREADY-DOCUMENTED 58.
+- Untouched: ten banners in `OrderGalleryPage.vue`, the JSDoc above `unknownCreateOutcome`.
 
 ## GViz read normalization — DEFERRED, do not start
 
