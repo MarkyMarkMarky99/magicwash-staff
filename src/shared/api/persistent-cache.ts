@@ -1,19 +1,6 @@
 import { PERSIST_MAX_BYTES } from '@/shared/config/cache'
 
 /**
- * `localStorage` half of the response cache, behind {@link readCache}.
- *
- * Only endpoints the policy marks `persist` reach this layer, and only so a page
- * reload paints from a stored copy instead of an empty screen. The in-memory map
- * stays the fast path; this is consulted once per URL, on the first miss.
- *
- * Every call is wrapped in `try`/`catch` on purpose. `localStorage` throws rather
- * than returning empty in private browsing and under a full quota, and a cache is
- * never worth failing a read over: on any error the caller carries on with the
- * in-memory layer alone.
- */
-
-/**
  * Bump when the stored shape changes. Entries written under any other version are
  * deleted on startup, so a deploy that changes what `apiGet` returns can never
  * hand returning staff a response the new code cannot read.
@@ -24,7 +11,6 @@ const NAMESPACE = 'mw-cache'
 const PREFIX = `${NAMESPACE}:${STORAGE_VERSION}:`
 
 interface StoredEntry {
-  /** The unwrapped response value, exactly as the in-memory layer holds it. */
   v: unknown
   /** Epoch ms the response was received, so freshness survives the reload. */
   t: number
@@ -65,8 +51,6 @@ function purgeOtherVersions(): void {
       if (!key.startsWith(PREFIX)) store.removeItem(key)
     }
   } catch {
-    // Nothing to recover: the stale entries stay, and a shape mismatch is caught
-    // by the parse guard in readPersisted below.
   }
 }
 
@@ -198,12 +182,9 @@ export function clearPersisted(path?: string): void {
       if (keyPath === pathname || keyPath.startsWith(`${pathname}/`)) store.removeItem(key)
     }
   } catch {
-    // A cache that cannot be cleared is still only a cache; the memory layer was
-    // already cleared by the caller, so the next read revalidates regardless.
   }
 }
 
-/** Persisted footprint, for tests and diagnostics. */
 export function persistedStats(): { entries: number; bytes: number } {
   const store = storage()
   if (store === null) return { entries: 0, bytes: 0 }

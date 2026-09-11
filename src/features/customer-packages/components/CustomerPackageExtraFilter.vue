@@ -18,8 +18,6 @@ const hasExtraFilter = computed(() => Boolean(props.filter.customerId || props.f
 </script>
 
 <template>
-  <!-- The trigger sits in the ListContainer header next to the create button, the same place the
-       price-list keeps its filter, so extra filters never cost a strip of their own. -->
   <button
     type="button"
     class="-my-0.5 inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-full px-2 transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"

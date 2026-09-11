@@ -13,7 +13,6 @@ export class InvalidInvoiceNumberError extends Error {
   }
 }
 
-/** Validates the route input before it reaches the detail lookup. */
 export function normalizeInvoiceNumber(input: unknown): string {
   const parsed = invoiceNumberSchema.safeParse(input)
   if (!parsed.success) throw new InvalidInvoiceNumberError()

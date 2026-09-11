@@ -24,7 +24,6 @@ function refresh() {
 </script>
 
 <template>
-  <!-- Backdrop -->
   <Transition name="backdrop">
     <div
       v-if="open"
@@ -34,14 +33,12 @@ function refresh() {
     />
   </Transition>
 
-  <!-- Sidebar panel -->
   <Transition name="slide">
     <nav
       v-if="open"
       class="fixed top-0 left-0 h-full w-[75%] max-w-sm bg-surface text-on-surface flex flex-col shadow-2xl"
       :class="APP_Z_INDEX_CLASS.navigation"
     >
-      <!-- Header -->
       <div class="bg-primary text-on-primary flex items-center justify-between px-4 py-3">
         <span class="text-lg font-headline font-bold tracking-tight">Menu</span>
         <button
@@ -51,7 +48,6 @@ function refresh() {
         >close</button>
       </div>
 
-      <!-- Nav items -->
       <ul class="flex flex-col py-2">
         <li>
           <button

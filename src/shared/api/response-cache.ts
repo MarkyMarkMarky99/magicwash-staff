@@ -35,7 +35,6 @@ const entries = new Map<string, CacheEntry>()
 let totalBytes = 0
 let useCounter = 0
 
-/** Approximate an entry's footprint. Exact enough to enforce a ceiling. */
 function measure(value: unknown): number {
   try {
     return JSON.stringify(value)?.length ?? 0
@@ -51,7 +50,6 @@ function drop(key: string): void {
   entries.delete(key)
 }
 
-/** Evict least-recently-used entries until the total fits under the ceiling. */
 function evictDownTo(limit: number): void {
   if (totalBytes <= limit) return
 
@@ -99,7 +97,6 @@ function promoteFromStorage(url: string): CacheEntry | null {
   return store(url, stored.value, stored.storedAt, false)
 }
 
-/** Store a response, evicting colder entries if it pushes past the ceiling. */
 export function writeCache(url: string, value: unknown): void {
   const policy = cachePolicyFor(url)
   if (!policy.cacheable) return
@@ -129,8 +126,6 @@ function store(url: string, value: unknown, storedAt: number, persist: boolean):
   if (persist) writePersisted(url, value, storedAt)
 
   evictDownTo(CACHE_MAX_BYTES)
-  // Eviction can drop the entry that was just written when it alone fills the
-  // budget; the caller gets what is actually held.
   return entries.get(url) ?? null
 }
 
@@ -157,7 +152,6 @@ export function invalidate(path?: string): void {
   }
 }
 
-/** Current footprint, for tests and diagnostics. */
 export function cacheStats(): { entries: number; bytes: number } {
   return { entries: entries.size, bytes: totalBytes }
 }

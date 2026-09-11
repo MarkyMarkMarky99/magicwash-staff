@@ -138,10 +138,6 @@ async function submitForm() {
   formError.value = null
   submitting.value = true
   try {
-    // Build each payload inside its own branch. Hoisting it into a ternary made
-    // `payload` the union of the create and update shapes -- update's fields are
-    // all optional -- so create() received a type that need not carry price or
-    // serviceType. isEdit is Boolean(props.id), so the branches are unchanged.
     if (props.id) {
       await priceListStore.update(props.id, updatePriceListPayload(item))
     } else {
@@ -297,8 +293,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-/* The palette this form invented is now the app theme. The local names stay so the rules
-   below don't all have to change, but every value comes from the theme token. */
 .price-list-form { --ink:var(--color-on-surface); --teal:var(--color-primary); --teal-2:var(--color-secondary); --mint:var(--color-secondary-container); --lime:var(--color-lime); --line:var(--color-outline-variant); --quiet:var(--color-on-surface-variant); --red:var(--color-error); color:var(--ink); font-family:var(--font-body); }
 .price-list-form * { box-sizing:border-box; }
 .price-list-form button,.price-list-form input,.price-list-form select { font:inherit; }

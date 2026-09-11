@@ -12,7 +12,6 @@ import type { DocumentFilterMode } from '@/features/orders/utils/document-enhanc
 import { contentBox, fitScale, projectQuad } from '@/features/orders/utils/quad-projection'
 import type { Point, Quad } from '@/features/orders/utils/quad-projection'
 
-// ---- constants -------------------------------------------------------------
 
 const DOCUMENT_MAX_DIMENSION = 2400
 const DOCUMENT_JPEG_QUALITY = 0.88
@@ -35,7 +34,6 @@ type CapturedStill = {
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits<{ close: [], capture: [file: File] }>()
 
-// ---- refs --------------------------------------------------------------
 
 const videoRef = ref<HTMLVideoElement | null>(null)
 const outlineCanvasRef = ref<HTMLCanvasElement | null>(null)
@@ -96,7 +94,6 @@ const {
 const holdRingDashoffset = computed(() => HOLD_RING_CIRCUMFERENCE * (1 - holdProgress.value))
 const holdRingTransition = computed(() => (holdProgress.value === 0 ? 'none' : 'stroke-dashoffset 100ms linear'))
 
-// ---- non-reactive bookkeeping -----------------------------------------
 
 let cameraStartToken = 0
 let flashTimer: ReturnType<typeof window.setTimeout> | null = null
@@ -107,7 +104,6 @@ let adjustResizeObserver: ResizeObserver | null = null
 let outlineDimensions = { width: 0, height: 0, dpr: 1 }
 let disposed = false
 
-// ---- helpers ------------------------------------------------------------
 
 function errorName(error: unknown): string {
   return error instanceof Error && error.name ? error.name : 'UnknownError'
@@ -219,8 +215,6 @@ async function refocusCamera(): Promise<void> {
   }
 }
 
-// ---- viewfinder outline drawing (rendering loop, not the detection loop) --
-
 function updateVideoDimensions(): void {
   const video = videoRef.value
   if (!video?.videoWidth || !video.videoHeight) {
@@ -312,7 +306,6 @@ function handleVideoMetadata(): void {
   resizeOutline()
 }
 
-// ---- camera lifecycle -----------------------------------------------------
 
 function stopCameraStream(): void {
   cameraStartToken += 1
@@ -397,8 +390,6 @@ watchEffect(() => {
     void startCamera()
   }
 })
-
-// ---- still retention, corner editor, filter preview ------------------------
 
 function releaseCapturedStill(): void {
   const still = capturedStill.value
@@ -551,10 +542,6 @@ function stopAdjustSurface(): void {
   adjustResizeObserver = null
 }
 
-// ---- capture: viewfinder -> capturing -> adjusting -------------------------
-// Every step here is synchronous canvas drawing wrapped in try/catch — there
-// is no await on this path, so nothing between the shutter and 'adjusting'
-// can hang. See the report for the full trace.
 function capturePhoto(): void {
   if (!canCapture.value) return
   const video = videoRef.value
@@ -566,8 +553,6 @@ function capturePhoto(): void {
   const capturedVideoDimensions = { width: video.videoWidth, height: video.videoHeight }
   const detectedQuadAtCapture = quad.value ? (quad.value.map((point) => ({ ...point })) as Quad) : null
 
-  // viewfinder -> capturing: disable the shutter (canCapture depends on the
-  // stage), keep the stream running.
   scannerStage.value = 'capturing'
   showShutterFlash()
 
@@ -589,9 +574,6 @@ function capturePhoto(): void {
     capturedStill.value = { source: canvas, width: stillWidth, height: stillHeight, initialQuad: initial.quad }
     errorMessage.value = ''
 
-    // capturing -> adjusting: the still is retained, so the camera and the
-    // detection loop (which stops automatically as detectionActive becomes
-    // false) can both be stopped now.
     stopCameraStream()
     scannerStage.value = 'adjusting'
   } catch (error) {
@@ -611,8 +593,6 @@ function autoCapturePhoto(): void {
   navigator.vibrate?.(30)
   capturePhoto()
 }
-
-// ---- warp: adjusting -> warping -> viewfinder / adjusting ------------------
 
 async function createWarpedDocumentFile(still: CapturedStill, corners: Quad): Promise<File> {
   const { extractDocument } = await import('scanic')
@@ -642,7 +622,6 @@ async function useAdjustedDocument(): Promise<void> {
   const still = capturedStill.value
   if (!still || scannerStage.value !== 'adjusting') return
 
-  // adjusting -> warping: disable the buttons (isWarping gates them).
   scannerStage.value = 'warping'
   errorMessage.value = ''
 
@@ -652,8 +631,6 @@ async function useAdjustedDocument(): Promise<void> {
       WARP_TIMEOUT_MS,
       'WarpTimeout',
     )
-    // warping -> viewfinder (success): emit, release the still, restart the
-    // camera and detection (via the invariant effect above).
     emit('capture', file)
     releaseCapturedStill()
     scannerStage.value = 'viewfinder'
@@ -667,20 +644,12 @@ async function useAdjustedDocument(): Promise<void> {
 
 function retakeDocument(): void {
   if (scannerStage.value === 'warping') return
-  // adjusting -> viewfinder: release the still; the camera/detection restart
-  // via the invariant effect once the stage flips.
   releaseCapturedStill()
   errorMessage.value = ''
   scannerStage.value = 'viewfinder'
 }
 
-// ---- close / teardown -------------------------------------------------
 
-// Single teardown: cancels timers and run tokens, stops the detection loop
-// (a side effect of the stage/stream reset below flipping detectionActive to
-// false), releases the still, stops and drops every media track, resets the
-// stage, clears errors. Called from the close button, props.open going
-// false, and unmount — nowhere else duplicates any piece of this.
 function teardownScanner(): void {
   stopAdjustSurface()
   releaseCapturedStill()
@@ -696,7 +665,6 @@ function closeScanner(): void {
   emit('close')
 }
 
-// ---- watchers -----------------------------------------------------------
 
 watch(showAdjustUi, async (visible) => {
   if (!visible) {
@@ -755,7 +723,6 @@ onBeforeUnmount(() => {
       :class="flashActive ? 'opacity-75' : 'opacity-0'"
     />
 
-    <!-- adjust / warp stage -->
     <div v-if="showAdjustUi" class="absolute inset-0 z-10 flex flex-col bg-black px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
       <div class="flex items-start justify-between gap-3">
         <div class="min-w-0 flex-1">
@@ -836,7 +803,6 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- viewfinder stage top bar -->
     <div v-if="!showAdjustUi" class="absolute inset-x-0 top-0 z-20 flex items-start justify-end gap-3 bg-gradient-to-b from-black/80 to-transparent px-4 pb-10 pt-[max(1rem,env(safe-area-inset-top))]">
       <div class="flex shrink-0 items-center gap-2">
         <div class="flex rounded-full bg-white/15 p-0.5 font-body text-[10px]">

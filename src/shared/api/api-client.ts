@@ -24,7 +24,6 @@ export interface ListResult<TItem> {
   pagination: ApiPagination
 }
 
-/** Thrown for any non-2xx response; carries the backend error code when present. */
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -49,7 +48,6 @@ interface GetListOptions<TQuery extends z.ZodTypeAny, TItem = unknown> {
 }
 
 interface GetOptions<T> {
-  /** See {@link GetListOptions.onFresh}. */
   onFresh?: (value: T) => void
 }
 
@@ -72,7 +70,6 @@ export async function apiGetList<TItem, TQuery extends z.ZodTypeAny = z.ZodTypeA
   return read(url, unwrap, options.onFresh)
 }
 
-/** GET a single-resource endpoint and unwrap the standard success envelope. */
 export async function apiGet<T>(path: string, options: GetOptions<T> = {}): Promise<T> {
   return read(path, (body: { data: T }) => body.data, options.onFresh)
 }
@@ -133,11 +130,9 @@ async function fetchFresh<TBody, TValue>(
 interface WriteOptions<TRequest extends z.ZodTypeAny> {
   /** Raw request body; validated against the shared API contract before sending. */
   data: unknown
-  /** Contract request schema for this operation. */
   requestSchema: TRequest
 }
 
-/** POST a resource and unwrap the standard success envelope. */
 export async function apiPost<TResponse, TRequest extends z.ZodTypeAny = z.ZodTypeAny>(
   path: string,
   options: WriteOptions<TRequest>,
@@ -145,7 +140,6 @@ export async function apiPost<TResponse, TRequest extends z.ZodTypeAny = z.ZodTy
   return apiWrite<TResponse, TRequest>(path, 'POST', options)
 }
 
-/** PATCH a resource and unwrap the standard success envelope. */
 export async function apiPatch<TResponse, TRequest extends z.ZodTypeAny = z.ZodTypeAny>(
   path: string,
   options: WriteOptions<TRequest>,

@@ -15,8 +15,6 @@ export type PriceListServiceType = InvoicePriceListItemDto['serviceType']
 
 export const PRICE_LIST_SERVICES = priceListListResponseSchema.shape.serviceType.options
 
-// Wording and icons are shared with price-list and orders — see
-// `contracts/shared/service-type-labels.ts`. Do not add a local copy back here.
 const SERVICE_PRESENTATION: Record<PriceListServiceType, { label: string; icon: string }> =
   serviceTypePresentation
 
@@ -31,10 +29,6 @@ export interface PriceListCategoryGroup {
   items: InvoicePriceListItemDto[]
 }
 
-/**
- * `0` is a valid price. Never use truthiness (`if (price)`, `price || fallback`)
- * — a free item would silently vanish.
- */
 export function servicePresentation(serviceType: PriceListServiceType): PriceListServiceOption {
   return { serviceType, ...SERVICE_PRESENTATION[serviceType] }
 }
@@ -47,10 +41,6 @@ export function serviceIcon(serviceType: PriceListServiceType): string {
   return SERVICE_PRESENTATION[serviceType].icon
 }
 
-/**
- * Icons are hinted from the category *string*, not a hardcoded catalog of
- * known category names — whatever categories the API returns get an icon.
- */
 const CATEGORY_ICON_HINTS: ReadonlyArray<{ pattern: RegExp; icon: string }> = [
   { pattern: /bed|pillow|duvet|sheet|blanket|linen|quilt/i, icon: 'bed' },
   { pattern: /suit|formal|gown|tuxedo|jacket|blazer/i, icon: 'dry_cleaning' },
@@ -166,12 +156,6 @@ export function invoiceUnitOptionFor(unit: string): InvoiceUnitOption {
     : 'custom'
 }
 
-/**
- * True only for the still-untouched blank row *we* seeded because the order
- * had zero items. Provenance is the `syntheticPlaceholder` marker — field
- * values alone cannot distinguish that row from an order-seeded line whose
- * description/quantity were null.
- */
 export function isUnusedPlaceholderLine(row: LineItemFormRow): boolean {
   return (
     row.syntheticPlaceholder === true

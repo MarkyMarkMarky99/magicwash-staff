@@ -61,8 +61,6 @@ export function initialQuadForStill(
 ): InitialQuadResult {
   if (!detectedQuad) return { quad: defaultInsetQuad(still), diagnostic: 'no quad' }
 
-  // The still is always drawn directly from the video frame (no ImageCapture path),
-  // so its aspect ratio always matches the video's — the mismatch branch is dead.
   const scale = still.width / video.width
   return {
     quad: detectedQuad.map((point) => clampPoint({ x: point.x * scale, y: point.y * scale }, still)) as Quad,

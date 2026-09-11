@@ -110,7 +110,6 @@ export async function getCustomerPackageDetail(id: string): Promise<CustomerPack
  * no generic network member, so `opening_transaction_write_failed` is used with
  * an explicit unknown package id and unknown certainty to prevent an unsafe retry.
  */
-// Unknown network write outcome: retain the contract's non-retryable failure kind.
 function unknownCreateOutcome(message: string): CreateCustomerPackageResponse {
   return {
     kind: 'opening_transaction_write_failed',
@@ -121,8 +120,6 @@ function unknownCreateOutcome(message: string): CreateCustomerPackageResponse {
 }
 
 export async function createCustomerPackage(request: CreateCustomerPackageRequest): Promise<CreateCustomerPackageResponse> {
-  // The parsed union covers: 'created', 'validation_error', 'catalog_read_failed',
-  // 'opening_transaction_write_failed', and 'package_write_failed'.
   try {
     const response = await fetch('/api/customer-packages', {
       method: 'POST',
@@ -156,8 +153,6 @@ function unknownTransactionOutcome(request: AppendPackageTransactionRequest, mes
 }
 
 export async function appendPackageTransaction(request: AppendPackageTransactionRequest): Promise<AppendPackageTransactionResponse> {
-  // The parsed union covers: 'created', 'validation_error', 'package_not_found',
-  // 'package_lookup_failed', and 'transaction_write_failed'.
   try {
     const response = await fetch('/api/package-transactions', {
       method: 'POST',

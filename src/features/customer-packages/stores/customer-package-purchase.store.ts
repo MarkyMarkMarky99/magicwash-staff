@@ -58,7 +58,6 @@ export const useCustomerPackagePurchaseStore = defineStore('customer-package-pur
       billingPeriodEnd,
       invoiceNumber: `INV${issuedDate.replaceAll('-', '')}-${crypto.randomUUID()}`,
       issuedDate,
-      // Match the existing invoice form's three-day payment term.
       dueDate: addSheetDateDays(issuedDate, 3),
       customer: {
         customerCode: customer.customerId, customerName: customer.customerName,

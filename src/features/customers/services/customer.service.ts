@@ -16,7 +16,6 @@ export type CustomerDetailDto = z.infer<typeof customerDetailResponseSchema>
 
 const CUSTOMERS_ENDPOINT = '/api/customers'
 
-/** Fetch the customer list. */
 export async function listCustomers(
   query: Partial<CustomerListQuery> = {},
 ): Promise<CustomerListDto[]> {
@@ -27,7 +26,6 @@ export async function listCustomers(
   return items
 }
 
-/** Fetch one customer for direct order-history URLs. */
 export async function getCustomerById(customerId: string): Promise<CustomerDetailDto> {
   return apiGet<CustomerDetailDto>(`/api/customers/${encodeURIComponent(customerId)}`)
 }

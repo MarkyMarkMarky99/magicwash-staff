@@ -14,7 +14,6 @@ export type PaymentSummaryStatusDto = 'UNPAID' | 'PARTIALLY_PAID' | 'PAID'
 
 export type InvoiceStatusDto = z.infer<typeof invoiceStatusSchema>
 
-/** Read-contract projection used by the invoice list and table. */
 export type InvoiceListItemDto = z.infer<typeof invoiceListResponseSchema>
 
 export interface InvoiceItemResponseDto {

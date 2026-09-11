@@ -10,8 +10,6 @@ import type { AdjustmentFormRow } from '../types/invoice-create.types'
 const props = defineProps<{
   modelValue: AdjustmentFormRow[]
   label: string
-  /** Denser row layout for per-line use, where several of these sit inside
-   *  an already-busy line-item card. */
   compact?: boolean
 }>()
 

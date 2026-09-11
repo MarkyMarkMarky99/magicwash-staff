@@ -56,12 +56,6 @@ export function letterboxLayout(videoWidth: number, videoHeight: number, size: n
   }
 }
 
-/**
- * Undo letterboxLayout. scanic denormalizes the model's corners by the dimensions of the
- * canvas it was handed, so they arrive in the square canvas's own space — black bars
- * included. Subtract the bars first, then the uniform scale, to land in video pixels.
- * Getting this wrong misaligns the outline with no error anywhere, so it is tested.
- */
 export function unmapLetterboxedQuad(quad: Quad, layout: LetterboxLayout): Quad {
   return scaleQuad(
     quad.map((point) => ({ x: point.x - layout.offsetX, y: point.y - layout.offsetY })) as Quad,
@@ -207,9 +201,6 @@ export function useDocumentDetect(getVideo: () => HTMLVideoElement | null, activ
         return
       }
 
-      // Letterbox the frame into a fixed 224x224 canvas: scanic stretches whatever it is
-      // given to 224x224 with no letterbox of its own, and an anisotropic squash turns a
-      // rotated document into a skewed parallelogram the model was never trained on.
       const layout = letterboxLayout(video.videoWidth, video.videoHeight, ML_INPUT_SIZE)
       if (!workCanvas) workCanvas = document.createElement('canvas')
       if (!workContext) workContext = workCanvas.getContext('2d', { willReadFrequently: true })
@@ -236,9 +227,6 @@ export function useDocumentDetect(getVideo: () => HTMLVideoElement | null, activ
 
       lastDetectMs.value = Math.round(performance.now() - detectStartedAt)
       detectError.value = ''
-      // Corners come back in the 224x224 letterbox canvas's own coordinate space
-      // (scanic denormalizes by the canvas we passed in), so undo the letterbox
-      // offset first, then the uniform scale, to land back in video pixel space.
       const letterboxed = result.success && result.corners ? cornersToQuad(result.corners) : null
       let detectedQuad = letterboxed
         ? orderQuad(unmapLetterboxedQuad(letterboxed, layout))
@@ -279,8 +267,6 @@ export function useDocumentDetect(getVideo: () => HTMLVideoElement | null, activ
     void detect(token)
   }
 
-  // Wrapped in a getter: `active` is a MaybeRefOrGetter, and watch() has no
-  // overload accepting a plain boolean. toValue normalises all three forms.
   watch(() => toValue(active), (isActive) => {
     if (isActive) start()
     else stop()

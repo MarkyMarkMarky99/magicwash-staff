@@ -80,14 +80,6 @@ export function encodeCanvasToJpeg(canvas, quality = 0.82) {
   })
 }
 
-/**
- * Compress a File/Blob to stay under maxBytes while preserving maximum quality.
- * Converts to JPEG. Returns the original file unchanged if already within limit.
- *
- * @param {File} file
- * @param {number} maxBytes — default 200 KB
- * @returns {Promise<File>}
- */
 export async function compressImage(file, maxBytes = MAX_SIZE_BYTES) {
   if (file.size <= maxBytes) return file
 

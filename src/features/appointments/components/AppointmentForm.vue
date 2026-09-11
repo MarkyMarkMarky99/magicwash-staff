@@ -28,8 +28,6 @@ const props = withDefaults(defineProps<{
   deliveryOrderId: null,
 })
 
-// The slot list is the contract's enum. `satisfies` keeps this local copy honest:
-// add or rename a slot in the contract and this line stops compiling.
 type TimeSlot = z.infer<typeof appointmentTimeSlotSchema>
 type AppointmentCreateRequest = z.infer<typeof createAppointmentRequestSchema>
 const timeSlots = ['10:00-12:00', '13:00-15:00', '15:00-17:00', '18:00-20:00'] as const satisfies readonly TimeSlot[]
@@ -64,11 +62,6 @@ const timeSlotOptions = computed(() => timeSlots.map((timeSlot) => ({
   disabled: isCreate.value && isSlotDisabled(timeSlot),
 })))
 
-// Two payloads, not one union. A single `data` computed covering both modes
-// forced every field to widen (timeSlot to plain string, the customer fields to
-// possibly-empty strings), which is how an invalid slot could reach the API and
-// be rejected only by zod at submit. Each mode now returns either a complete,
-// contract-shaped payload or null; the null is what `isValid` already meant.
 const createData = computed((): Omit<AppointmentCreateRequest, 'createdBy'> | null => {
   const customer = props.customer
   if (!customer || !selectedDate.value || !selectedTime.value) return null

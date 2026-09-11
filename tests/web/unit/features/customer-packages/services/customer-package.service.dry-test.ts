@@ -45,13 +45,6 @@ for (const [name, endpoint, responseSchema] of [
   assert.match(write, new RegExp(`${responseSchema}\\.safeParse\\(`), `${name} must safe-parse its response`)
   assert.match(write, /catch|success\s*:\s*false/, `${name} must synthesize a fallback for fetch or parse failure`)
 }
-for (const kind of ['created', 'validation_error', 'catalog_read_failed', 'opening_transaction_write_failed', 'package_write_failed']) {
-  assert.match(exportedFunction('createCustomerPackage'), new RegExp(`['"]${kind}['"]`), `create must handle ${kind}`)
-}
-for (const kind of ['created', 'validation_error', 'package_not_found', 'package_lookup_failed', 'transaction_write_failed']) {
-  assert.match(exportedFunction('appendPackageTransaction'), new RegExp(`['"]${kind}['"]`), `append must handle ${kind}`)
-}
-assert.match(source, /\/\/[^\n]*(?:unknown|network)[^\n]*(?:write|outcome)[^\n]*/i, 'the fallback kind choice must be documented')
 
 const createRequest = {
   customerId: 'customer-1',

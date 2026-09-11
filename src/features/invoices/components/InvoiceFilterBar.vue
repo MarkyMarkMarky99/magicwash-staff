@@ -9,8 +9,6 @@ interface FilterTab {
   count?: number
 }
 
-// Status tabs only. The date filter lives in the ListContainer search row now -- see
-// InvoiceDateFilter / InvoiceDatePanel -- so this no longer needs the old global search flag.
 defineProps<{
   filter: InvoiceFilter
   tabs: FilterTab[]

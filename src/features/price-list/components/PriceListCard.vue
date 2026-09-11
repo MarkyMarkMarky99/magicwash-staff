@@ -38,8 +38,6 @@ function handleKeydown(event: KeyboardEvent) {
     @keydown="handleKeydown"
   >
     <div class="flex min-w-0 items-center gap-2 px-4 py-2.5">
-      <!-- Active state is a dot, not a filter tab and not a group divider: the list always shows
-           every row, so each row has to carry its own status. -->
       <span
         class="size-2 shrink-0 rounded-full"
         :class="props.item.active ? 'bg-[#2e7d32]' : 'bg-error'"
