@@ -1,14 +1,6 @@
 # Project memory
 Live note — what is in flight, next, stuck.
 
-## Branch `claude/issue-page-image-firebase-fk5gef` — in flight
-
-- Issue report form uploads a screenshot to Firebase now (`use-screenshot-upload.ts`), replacing the
-  paste-a-link field. Compresses on every pick, unlike the two older paths.
-- **Confirmed working by the user on the Vercel preview for `1fd4e62`.** The compressed-size readout
-  was cut afterwards at their request; the sizes stay on the composable, unread by any UI.
-- Boot budget re-measured: same bytes, 8 entry chunks not 7 — Firebase split out of `index`.
-
 ## Merged to main 2026-09-11 — order detail latency
 
 Reviewed by grok-explorer, all gates green, **still not checked in a real browser.**
@@ -122,6 +114,13 @@ reads; local measurements include `vercel dev` overhead (~0.9s/request).
 
 ## Open items
 
+- **Issue screenshot upload, raised in review of #17, none blocking:** hidden file input is
+  `display:none` so its `FormLabel` names nothing to a screen reader (use `sr-only`); upload-busy
+  overlay has no `aria-live`; a failed upload still lets ส่ง through with no image and the Thai copy
+  does not say so; raw English Firebase errors reach staff. Abandoned picks orphan Storage objects —
+  inherent to uploading before submit, no cheap client-side fix.
+- **`naming.md` says `usePascalCase.ts` for composables; the codebase is kebab-case** (9 of 19 in
+  `src/`). Fix the doc, not the files.
 - **API authentication before launch.** Actor is a fallback constant in `src/shared/config/actor.ts`
   + `server/shared/config/actor.ts`; `?by=` must keep overriding. Issue reports asking a human to
   type their name folds into this pass.
