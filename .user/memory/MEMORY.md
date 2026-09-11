@@ -1,29 +1,41 @@
 # Project memory
 Live note — what is in flight, next, stuck.
 
-## Merged to main 2026-09-11 — order detail latency
+## Gallery reads on the API — merged to main 2026-09-12
 
-Browser-confirmed by the user 2026-09-12: order detail is visibly faster. This item is closed.
+`4cd603b`. Order detail latency work is browser-confirmed by the user and closed.
 
+- **Known limit, accepted:** photo `perPage` caps at 500, so an album over 500 truncates. Largest
+  album seen is 8.
+- Not addressed: `OrderGalleryPage.vue` `onDeactivated` wipes `requestedKey` and forces a refetch
+  on re-entry; `loadFetchedPhotos` blanks the list before awaiting. The cache answers it now, but
+  the round trip is still needless.
+- Ten section-banner comments in `OrderGalleryPage.vue` were skipped during the comment cleanup to
+  avoid a conflict with this branch. That branch is gone now, so they can be done.
+- Stale on the gallery read path, still not corrected: `feature-structure.md`, `data-fetching.md`,
+  `docs/features/orders/overview.md`, `docs/features/orders/forms/create-order-image.md`.
 - Behaviour change worth knowing: order detail `getById` double fault (items read *and* customer
   read both failing) now surfaces the items error, not the customer error.
 - Session transcript `2026-09-11-003747-*.txt` sits untracked in the repo root; delete it.
-
-## Branch `feat/gallery-backend-reads` — pushed, NOT merged
-
-Browser-verified by codex against live data. Merge decision is the user's; nothing else is pending.
-
-- **Known limit, accepted:** `perPage` caps at 500, so an album over 500 photos truncates. Legacy
-  GViz had no cap. Largest seen is 8.
-- Stale on the gallery read path, deliberately not edited (the task forbade touching docs):
-  `feature-structure.md`, `data-fetching.md`, `docs/features/orders/overview.md`,
-  `docs/features/orders/forms/create-order-image.md`.
-- Not addressed there: `OrderGalleryPage.vue` `onDeactivated` wipes `requestedKey` and forces a
-  refetch on re-entry; `loadFetchedPhotos` blanks the list before awaiting. Cache answers it now,
-  but the round trip is still needless.
 - Then: `onFresh` at the remaining call sites, app-wide cache policy.
 - **Decided against 2026-09-11:** lazy-loading the gallery route to drop Firebase from boot. Staff
   open the gallery on nearly every order. Do not re-propose.
+
+## Branch `chore/remove-stale-code-comments` — in flight, not merged
+
+Six commits. 271 comment lines deleted across the frontend, zero lines added.
+
+- **Red test, decision pending:** `customer-package.service.dry-test.ts:48-53` asserts
+  `createCustomerPackage` contains a string literal per response kind. Five of those literals only
+  existed inside a deleted comment — the function parses the union through its schema and never
+  names a kind. Lines 155-166 of the same file already test every kind behaviourally, so the loop
+  is redundant as well as comment-dependent. Options put to the user: delete the two loops, rewrite
+  them against the contract schema, or restore the comment.
+- `.user/memory/doc-comment-docs-work.md` holds the remaining 140 decisions. Do not act on a row
+  without checking it — one row was already wrong.
+- Blocked on the user reading `data-fetching.md`: 58 deletions justified by pointing at it or at
+  `cache-gateway.md`, which is build history, not a rule.
+- `app-boot.md` is edited on this branch and on main; expect a conflict on merge.
 
 ## GViz read normalization — DEFERRED, do not start
 
