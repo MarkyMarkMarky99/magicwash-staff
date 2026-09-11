@@ -9,8 +9,8 @@ Live note — what is in flight, next, stuck.
 - Not addressed: `OrderGalleryPage.vue` `onDeactivated` wipes `requestedKey` and forces a refetch
   on re-entry; `loadFetchedPhotos` blanks the list before awaiting. The cache answers it now, but
   the round trip is still needless.
-- Ten section-banner comments in `OrderGalleryPage.vue` were skipped during the comment cleanup to
-  avoid a conflict with this branch. That branch is gone now, so they can be done.
+- Ten section-banner comments in `OrderGalleryPage.vue` were skipped to avoid a conflict with this
+  branch; it is gone now, so they can be done.
 - Stale on the gallery read path, still not corrected: `feature-structure.md`, `data-fetching.md`,
   `docs/features/orders/overview.md`, `docs/features/orders/forms/create-order-image.md`.
 - Session transcript `2026-09-11-003747-*.txt` sits untracked in the repo root; delete it.
@@ -23,11 +23,10 @@ Live note — what is in flight, next, stuck.
 Six commits. 271 comment lines deleted across the frontend, zero lines added.
 
 - **Red test, decision pending:** `customer-package.service.dry-test.ts:48-53` asserts
-  `createCustomerPackage` contains a string literal per response kind. Five of those literals only
-  existed inside a deleted comment — the function parses the union through its schema and never
-  names a kind. Lines 155-166 of the same file already test every kind behaviourally, so the loop
-  is redundant as well as comment-dependent. Options put to the user: delete the two loops, rewrite
-  them against the contract schema, or restore the comment.
+  `createCustomerPackage` holds a literal per response kind. Five existed only inside a deleted
+  comment — the function parses the union by schema and names no kind — and `:155-166` already
+  tests every kind behaviourally. Delete the loops, retarget them at the contract schema, or
+  restore the comment.
 - `.user/memory/doc-comment-docs-work.md` holds the remaining 140 decisions. Do not act on a row
   without checking it — one row was already wrong.
 - Blocked on the user reading `data-fetching.md`: 58 deletions justified by pointing at it or at
@@ -102,22 +101,17 @@ Reported, not fixed:
 
 ## Page-load latency — next, ranked
 
-Measured 2026-09-08: GViz 0.49s · prod warm 0.82s · prod cold 1.65s · local 1.71s. Prioritize fewer
-reads; local measurements include `vercel dev` overhead (~0.9s/request).
+Measured 2026-09-08: GViz 0.49s · prod warm 0.82s · prod cold 1.65s. Fewer reads beats smaller ones.
 
-1. **`work-orders` reads the whole Customers sheet on every order-list load**
-   (`work-order.service.ts:101-107`, `:195` uses `where: {}` whenever the page holds >1 customer).
-   Genuinely dependent reads — `Promise.all` cannot fix it. Options: add `whereIn()` to
-   `gviz-query.builder.ts` (`:85-98` emits only `col = value`); drop `customerName` and map it
-   client-side; cache customers server-side.
-2. **`listOrdersByCustomer` sends no `perPage`** — up to 500 rows, 104 KB measured for one customer
-   (`src/features/customers/services/order.service.ts:11`).
-3. **`invoices` + `dateFrom`/`dateTo` drops pagination** (`invoice.service.ts:631`). Needs `>=`/`<=`
+1. **`work-orders` reads the whole Customers sheet per order-list load** (`work-order.service.ts:195`
+   uses `where: {}` above one customer). Dependent reads, so `Promise.all` cannot help. Add
+   `whereIn()` to `gviz-query.builder.ts`, or drop `customerName` and map it client-side.
+2. **`listOrdersByCustomer` sends no `perPage`** — 104 KB measured for one customer
+   (`customers/services/order.service.ts:11`).
+3. **`invoices` + `dateFrom`/`dateTo` drops pagination** (`invoice.service.ts:631`); needs `>=`/`<=`
    in `GVizQueryBuilder`. ~3h.
-4. **`App.vue:8` prefetches appointments on every page mount.** Scope to routes that need it plus
-   the pending badge. ~1h.
-5. **No HTTP cache headers on `/api/*`** (`vercel.json` covers only `/scanic-ml/*`). Decide
-   staleness first.
+4. **`App.vue:8` prefetches appointments on every page mount.** ~1h.
+5. **No HTTP cache headers on `/api/*`**; decide staleness first.
 
 ## Deferred by the user
 
