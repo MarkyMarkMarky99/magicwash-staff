@@ -12,10 +12,6 @@ import { synthesizeNetworkFailureOutcome } from '../utils/invoice-outcome.utils'
 
 const INVOICES_ENDPOINT = '/api/invoices'
 
-/**
- * The backend returns page-only pagination metadata, so `items.length` is the
- * display count for the current page rather than a dataset total.
- */
 export async function getInvoices(filter: InvoiceFilter): Promise<InvoiceListResponseDto> {
   const { items, pagination } = await apiGetList<InvoiceListItemDto>(INVOICES_ENDPOINT, {
     query: filter,

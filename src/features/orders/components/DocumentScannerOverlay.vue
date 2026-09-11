@@ -215,8 +215,6 @@ async function refocusCamera(): Promise<void> {
   }
 }
 
-// ---- viewfinder outline drawing (rendering loop, not the detection loop) --
-
 function updateVideoDimensions(): void {
   const video = videoRef.value
   if (!video?.videoWidth || !video.videoHeight) {
@@ -555,8 +553,6 @@ function capturePhoto(): void {
   const capturedVideoDimensions = { width: video.videoWidth, height: video.videoHeight }
   const detectedQuadAtCapture = quad.value ? (quad.value.map((point) => ({ ...point })) as Quad) : null
 
-  // viewfinder -> capturing: disable the shutter (canCapture depends on the
-  // stage), keep the stream running.
   scannerStage.value = 'capturing'
   showShutterFlash()
 
@@ -578,9 +574,6 @@ function capturePhoto(): void {
     capturedStill.value = { source: canvas, width: stillWidth, height: stillHeight, initialQuad: initial.quad }
     errorMessage.value = ''
 
-    // capturing -> adjusting: the still is retained, so the camera and the
-    // detection loop (which stops automatically as detectionActive becomes
-    // false) can both be stopped now.
     stopCameraStream()
     scannerStage.value = 'adjusting'
   } catch (error) {
@@ -600,8 +593,6 @@ function autoCapturePhoto(): void {
   navigator.vibrate?.(30)
   capturePhoto()
 }
-
-// ---- warp: adjusting -> warping -> viewfinder / adjusting ------------------
 
 async function createWarpedDocumentFile(still: CapturedStill, corners: Quad): Promise<File> {
   const { extractDocument } = await import('scanic')
@@ -631,7 +622,6 @@ async function useAdjustedDocument(): Promise<void> {
   const still = capturedStill.value
   if (!still || scannerStage.value !== 'adjusting') return
 
-  // adjusting -> warping: disable the buttons (isWarping gates them).
   scannerStage.value = 'warping'
   errorMessage.value = ''
 
@@ -641,8 +631,6 @@ async function useAdjustedDocument(): Promise<void> {
       WARP_TIMEOUT_MS,
       'WarpTimeout',
     )
-    // warping -> viewfinder (success): emit, release the still, restart the
-    // camera and detection (via the invariant effect above).
     emit('capture', file)
     releaseCapturedStill()
     scannerStage.value = 'viewfinder'
@@ -656,8 +644,6 @@ async function useAdjustedDocument(): Promise<void> {
 
 function retakeDocument(): void {
   if (scannerStage.value === 'warping') return
-  // adjusting -> viewfinder: release the still; the camera/detection restart
-  // via the invariant effect once the stage flips.
   releaseCapturedStill()
   errorMessage.value = ''
   scannerStage.value = 'viewfinder'

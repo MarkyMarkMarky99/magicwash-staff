@@ -59,13 +59,6 @@ function addDays(iso: string, days: number): string {
   return addSheetDateDays(iso, days)
 }
 
-/**
- * Pre-fills the invoice number field with INV + 2-digit year + 2-digit month
- * + 8 random digits, e.g. INV260729XXXXXXXX. This is a starting suggestion,
- * not an assignment — the field stays a plain editable text input and staff
- * may overwrite it entirely. The server treats whatever string ends up here
- * as opaque and stores it verbatim; nothing downstream depends on this format.
- */
 function generateSuggestedInvoiceNumber(): string {
   const now = new Date()
   const yy = String(now.getFullYear()).slice(-2)
@@ -83,10 +76,6 @@ const dueDate = ref(addDays(issuedDate.value, 3))
 const items = ref<LineItemFormRow[]>([])
 const invoiceAdjustments = ref<AdjustmentFormRow[]>([])
 
-// ── Due date must always be after issued date; default is issued + 3 days.
-//    Staff may shorten it, but never to or below the issued date. Changing
-//    the issued date re-defaults the due date whenever the old one is no
-//    longer valid against the new issued date. ──
 const minDueDate = computed(() => addDays(issuedDate.value, 1))
 
 watch(issuedDate, (newIssuedDate, oldIssuedDate) => {
@@ -94,7 +83,6 @@ watch(issuedDate, (newIssuedDate, oldIssuedDate) => {
     dueDate.value = addDays(newIssuedDate, 3)
     return
   }
-  // Still valid against the new issued date — preserve the staff's chosen gap.
   const gapDays = sheetDateDaysBetween(dueDate.value, oldIssuedDate) ?? 3
   dueDate.value = addDays(newIssuedDate, gapDays)
 })
@@ -134,7 +122,6 @@ function addInvoiceAdjustment() {
   invoiceAdjustments.value = [...invoiceAdjustments.value, createEmptyAdjustmentRow()]
 }
 
-// ── Derived: adjustments parsed to real numbers, dropping empty/zero rows ──
 function toRealAdjustments(rows: AdjustmentFormRow[]) {
   return rows
     .map((row) => ({
@@ -175,8 +162,6 @@ const invoiceTotal = computed(() =>
   ),
 )
 
-// ── Validity: every line needs a description, unit, positive quantity, and a
-//    unit price the staff has actually typed (order items carry no price). ──
 const isValid = computed(() => {
   if (!order.value || !customer.value) return false
   if (!invoiceNumber.value.trim() || !issuedDate.value || !dueDate.value) return false
@@ -385,7 +370,6 @@ async function copyLiffUrl(invoiceNumber: string) {
       </div>
     </div>
 
-    <!-- No route ids: someone navigated here directly rather than from an order. -->
     <div v-else-if="!order || !customer" class="flex flex-col items-center gap-3 px-6 py-16 text-center">
       <span class="material-symbols-outlined text-[40px] text-on-surface-variant/50" aria-hidden="true">receipt_long</span>
       <h1 class="font-headline text-base font-bold text-on-surface">No order selected</h1>
@@ -457,10 +441,6 @@ async function copyLiffUrl(invoiceNumber: string) {
         </button>
       </section>
 
-      <!-- The condition here IS `canRetry` (canRetryInvoiceOutcome), not a
-           re-typed copy of its rule — this is the exact function the footnote
-           below and the frontend Layer 5 test both exercise, so the tested
-           thing is the real thing driving whether "Try again" renders at all. -->
       <section
         v-else-if="result.kind === 'items_write_failed' && canRetry"
         class="space-y-3 rounded-2xl border border-error/30 bg-error-container/20 p-5"

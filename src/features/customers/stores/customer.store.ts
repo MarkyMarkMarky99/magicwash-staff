@@ -27,7 +27,6 @@ export const useCustomerStore = defineStore('customers', () => {
     }
   }
 
-  /** Drop the cache so the next `loadCustomers` refetches. */
   function invalidate() {
     loaded.value = false
   }

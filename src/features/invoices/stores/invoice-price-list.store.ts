@@ -27,7 +27,6 @@ export const useInvoicePriceListStore = defineStore('invoice-price-list', () => 
       const result = await fetchAllInvoicePriceListItems()
       if (id !== requestId) return
 
-      // Strict equality: only `active === true` rows belong in the picker.
       items.value = result.items.filter((item) => item.active === true)
       truncated.value = result.truncated
     } catch (reason) {

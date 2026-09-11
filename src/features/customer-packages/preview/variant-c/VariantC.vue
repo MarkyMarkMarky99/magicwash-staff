@@ -66,7 +66,6 @@ function formatCreditChange(value: number) {
 @media (min-width: 760px) { .customer-card { padding: 24px; }.quick-grid { grid-template-columns: repeat(4, 1fr); }.quick-item { padding: 13px; } }
 @media (max-width: 420px) { .page-bar,.customer-card,.balance-card,.quick-grid,.references-section,.page-actions { margin-right: 12px; margin-left: 12px; }.customer-card,.balance-card,.activity-section,.references-section { padding: 16px; }.customer-head h1 { font-size: 18px; }.status { padding-right: 7px; padding-left: 7px; font-size: 10px; }.balance-number { font-size: 38px; }.quick-item { padding: 11px 10px; }.quick-item strong { font-size: 11px; }.timeline time { font-size: 9px; }.page-actions { grid-template-columns: 1fr; }}
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
-/* Material Symbols keep icons consistent with the host app's icon font. */
 .package-page :deep(.material-symbols-outlined) { font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal; font-size: 20px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; font-feature-settings: 'liga'; }
 .package-page .doc-icon { font-size: 0; }
 .package-page .doc-icon::before { content: 'description'; font: 18px/1 'Material Symbols Rounded'; }

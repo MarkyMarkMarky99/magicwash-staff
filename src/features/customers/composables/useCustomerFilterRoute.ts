@@ -52,7 +52,6 @@ export function filterToQuery(filter: CustomerFilter): LocationQueryRaw {
   return query
 }
 
-/** Query values can be `string`, `string[]`, `null`, or missing — normalize to a plain string. */
 function readString(value: unknown): string {
   const raw = Array.isArray(value) ? value[0] : value
   return raw === undefined || raw === null ? '' : String(raw)

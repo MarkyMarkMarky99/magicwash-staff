@@ -31,7 +31,6 @@ export async function createPackage(payload: PackageCreatePayload): Promise<Pack
     requestSchema: packageCreateRequestSchema,
   })
   invalidate('/api/packages')
-  // Customer-package responses join the Packages sheet for name and price.
   invalidate('/api/customer-packages')
   return result
 }
@@ -45,7 +44,6 @@ export async function updatePackage(
     requestSchema: packageUpdateRequestSchema,
   })
   invalidate('/api/packages')
-  // Customer-package responses join the Packages sheet for name and price.
   invalidate('/api/customer-packages')
   return result
 }

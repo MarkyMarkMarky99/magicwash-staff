@@ -1,23 +1,7 @@
 import type { z } from 'zod'
 import type { invoiceAdjustmentCalculationSchema } from '@contracts/invoices/invoice-api.schema'
 
-// Contract schema files export runtime schemas only, never inferred types, so
-// the alias is derived here beside its consumer.
 type InvoiceAdjustmentCalculation = z.infer<typeof invoiceAdjustmentCalculationSchema>
-
-/**
- * Form-local row shapes for the invoice-create page — string-backed so they
- * bind cleanly to text/number `<input>` elements while the staff member is
- * still typing (an empty unit-price field, a half-typed "-1" adjustment
- * value). These are converted to the real `CreateInvoiceRequest` shape (see
- * `invoice-api.schema.ts`) only at submit time, in `InvoiceCreatePage.vue`.
- *
- * Deliberately NOT reusing `src/features/invoices/types/invoices.types.ts` —
- * that file's `status` field uses `UNPAID`/`PAID`/etc, values the real
- * `Invoice.status` column rejects outright (see `.claude/agents/invoice-builder.md`).
- * It backs the separate, pre-existing invoice list/detail feature; nothing
- * here imports it.
- */
 
 export interface AdjustmentFormRow {
   /** Local key for `v-for` / row identity — never sent to the server. */
@@ -30,8 +14,6 @@ export interface AdjustmentFormRow {
   refCode: string
 }
 
-/** Units offered by the invoice form. `custom` keeps the select explicit while
- * the entered label remains in `LineItemFormRow.unit` for the request payload. */
 export const invoiceUnitOptions = ['kg', 'piece', 'pair', 'package', 'set', 'load', 'custom'] as const
 export type InvoiceUnitOption = (typeof invoiceUnitOptions)[number]
 

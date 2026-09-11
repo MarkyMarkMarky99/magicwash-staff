@@ -20,8 +20,6 @@ const activeLabel = computed(
 </script>
 
 <template>
-  <!-- The trigger lives in the ListContainer header next to the create button, so the service
-       filter costs no extra strip above the list. The panel drops in below the header. -->
   <button
     type="button"
     class="-my-0.5 inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-full px-2 transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"

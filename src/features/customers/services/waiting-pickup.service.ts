@@ -10,7 +10,6 @@ export type AppointmentListDto = z.infer<typeof appointmentListResponseSchema>
 
 const APPOINTMENTS_ENDPOINT = '/api/appointments'
 
-/** Fetch raw customer appointments; filtering stays in the store because the contract has no deletedAt or date-range query. */
 export async function listAppointmentsByCustomer(customerId: string): Promise<AppointmentListDto[]> {
   const { items } = await apiGetList<AppointmentListDto>(APPOINTMENTS_ENDPOINT, {
     query: { customerId, perPage: MAX_APPOINTMENTS_PER_PAGE },

@@ -11,15 +11,9 @@ const PRICE_LIST_ENDPOINT = '/api/price-list'
 
 export interface InvoicePriceListFetchResult {
   items: InvoicePriceListItemDto[]
-  /** True when the response filled the request cap. */
   truncated: boolean
 }
 
-/**
- * Fetch the bounded price-list catalogue up front. Filtering by `active` is the
- * caller's job — this returns the raw rows.
- *
- */
 export async function fetchAllInvoicePriceListItems(): Promise<InvoicePriceListFetchResult> {
   const { items } = await apiGetList<InvoicePriceListItemDto>(PRICE_LIST_ENDPOINT, {
     query: {

@@ -51,7 +51,6 @@ export function appointmentWriteErrorMessage(reason: unknown, fallback: string):
   return reason instanceof Error && reason.message ? reason.message : fallback
 }
 
-/** List appointments through the backend; filters are validated before the request. */
 export function listAppointments(query: AppointmentListQuery = {}): Promise<ListResult<AppointmentListDto>> {
   return apiGetList<AppointmentListDto>(APPOINTMENTS_ENDPOINT, {
     query,
@@ -59,7 +58,6 @@ export function listAppointments(query: AppointmentListQuery = {}): Promise<List
   })
 }
 
-/** Load a single appointment for a direct, bookmarkable reschedule route. */
 export function getAppointment(appointmentId: string): Promise<AppointmentDetailDto> {
   return apiGet<AppointmentDetailDto>(
     `${APPOINTMENTS_ENDPOINT}/${encodeURIComponent(appointmentId)}`,
@@ -73,7 +71,6 @@ function normalizeAppointmentDetail(appointment: AppointmentDetailDto): Appointm
     : appointment
 }
 
-/** Create an appointment through the backend's contract-validated API. */
 export async function createAppointment(
   data: Omit<AppointmentCreateRequest, 'createdBy'>,
 ): Promise<AppointmentCreateDto> {
@@ -85,7 +82,6 @@ export async function createAppointment(
   return result
 }
 
-/** Update an appointment through the backend's contract-validated API. */
 export async function updateAppointment(
   appointmentId: string,
   data: Omit<AppointmentUpdateRequest, 'updatedBy'>,
@@ -150,7 +146,6 @@ async function toAppointmentWriteError(response: Response): Promise<ApiError> {
       return new ApiError(parsed.data.error.message, response.status, parsed.data.error.code)
     }
   } catch {
-    // Body was not JSON / not an error envelope — fall through to a generic message.
   }
 
   return new ApiError(`Request failed: ${response.status}`, response.status)

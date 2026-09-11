@@ -62,8 +62,6 @@ const filteredItems = computed(() => {
   })
 })
 
-// Active rows first, then inactive. There is no status tab and no group heading: the list
-// always shows every row, and each card carries its own status dot.
 const activeItems = computed(() => filteredItems.value.filter((item) => item.active))
 const inactiveItems = computed(() => filteredItems.value.filter((item) => !item.active))
 
@@ -131,9 +129,6 @@ onMounted(() => {
           aria-label="เพิ่มรายการราคา"
           @click="openCreate"
         >
-          <!-- new_label (a price tag with a plus), not a bare add: an icon-only button carries
-               its whole meaning in the glyph, and it pairs with the `sell` tag on the heading —
-               the same way the customer list uses person_add rather than add. -->
           <span class="material-symbols-outlined text-[16px]" aria-hidden="true">new_label</span>
         </button>
       </template>

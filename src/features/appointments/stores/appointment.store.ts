@@ -50,7 +50,6 @@ export const useAppointmentStore = defineStore('appointments', () => {
     error.value = null
 
     try {
-      // The API filters by date; this only drops pending and orders by slot.
       const items = await listAppointmentsForDate(date)
       if (request !== dailyRequest) return
 

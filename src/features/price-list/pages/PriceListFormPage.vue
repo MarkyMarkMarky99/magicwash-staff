@@ -138,10 +138,6 @@ async function submitForm() {
   formError.value = null
   submitting.value = true
   try {
-    // Build each payload inside its own branch. Hoisting it into a ternary made
-    // `payload` the union of the create and update shapes -- update's fields are
-    // all optional -- so create() received a type that need not carry price or
-    // serviceType. isEdit is Boolean(props.id), so the branches are unchanged.
     if (props.id) {
       await priceListStore.update(props.id, updatePriceListPayload(item))
     } else {
