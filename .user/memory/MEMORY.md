@@ -26,8 +26,8 @@ Order detail latency is browser-confirmed by the user and closed.
   `cache-gateway.md`. Neither is an authority now that the drafts moved to `agent-docs/`, so those
   rows are undecidable until a real cache convention is written. Do not touch them.
 - Also deferred: MOVE 23 (doc writing), UNVERIFIED 13 and the 13 defects (investigation).
-- In scope right now, pure deletion only: ten banners in `OrderGalleryPage.vue`, the JSDoc above
-  `unknownCreateOutcome`, and a re-review of the 49 KEEPs.
+- **Round 2 done 2026-09-12:** gallery template banners, the `unknownCreateOutcome` JSDoc and every
+  KEEP row are cleared. What remains in that file is the three deferred groups above.
 
 ## GViz read normalization — DEFERRED, do not start
 
