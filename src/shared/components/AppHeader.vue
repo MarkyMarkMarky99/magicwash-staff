@@ -33,7 +33,6 @@ const canGoBack = computed(() => Boolean(route.meta.parent))
       <h1 class="text-lg font-headline font-bold tracking-tight">Magicwash Laundry</h1>
     </div>
     <div class="flex items-center gap-2">
-      <!-- Back button — shown on routes with a declared parent -->
       <button
         v-if="canGoBack"
         class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
@@ -41,7 +40,6 @@ const canGoBack = computed(() => Boolean(route.meta.parent))
         @click="goBack"
       >arrow_back</button>
 
-      <!-- Action buttons — shown on main pages -->
       <template v-else-if="route.name === 'appointment-schedule'">
         <button
           class="relative hover:bg-white/10 rounded-full transition-colors p-1 flex items-center justify-center"

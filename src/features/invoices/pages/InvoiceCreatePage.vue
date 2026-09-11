@@ -43,7 +43,6 @@ import {
 const router = useRouter()
 const route = useRoute()
 
-// ── Order/customer context ───────────────────────────────────────────────────
 const order = ref<InvoiceCreateOrder | null>(null)
 const selectedCustomerStore = useSelectedCustomerStore()
 const { customer } = storeToRefs(selectedCustomerStore)
@@ -78,7 +77,6 @@ function generateSuggestedInvoiceNumber(): string {
   return `INV${yy}${mm}${digits}`
 }
 
-// ── Form state ───────────────────────────────────────────────────────────────
 const invoiceNumber = ref(generateSuggestedInvoiceNumber())
 const issuedDate = ref(todayIso())
 const dueDate = ref(addDays(issuedDate.value, 3))
@@ -193,7 +191,6 @@ const isValid = computed(() => {
   )
 })
 
-// ── Build the exact request the service sends ─────────────────────────────
 const requestPayload = computed<CreateInvoiceRequest | null>(() => {
   if (!order.value || !customer.value) return null
 
@@ -219,7 +216,6 @@ const requestPayload = computed<CreateInvoiceRequest | null>(() => {
   }
 })
 
-// ── Submit ───────────────────────────────────────────────────────────────────
 const submitting = ref(false)
 const result = ref<CreateInvoiceResponse | null>(null)
 
@@ -335,7 +331,6 @@ function goToInvoiceList() {
   router.push({ name: 'invoice-list' })
 }
 
-// ── Post-create: LIFF link staff can hand straight to the customer ─────────
 const copied = ref(false)
 
 function liffUrl(invoiceNumber: string): string {
@@ -589,7 +584,6 @@ async function copyLiffUrl(invoiceNumber: string) {
 
     </div>
 
-    <!-- The form itself. -->
     <form v-else class="space-y-5 px-4 py-5" @submit.prevent="handleSubmit">
       <header class="space-y-1 border-b border-outline-variant/40 pb-3 text-center">
         <p class="font-headline text-xl font-bold tracking-tight text-on-surface">#{{ invoiceNumber }}</p>

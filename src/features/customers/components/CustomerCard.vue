@@ -53,7 +53,6 @@ function openOrderHistory() {
 
 <template>
   <BaseSwipeCard ref="baseRef" @tap="openOrderHistory" @swipe-right="onSwipeRight">
-    <!-- Left panel: action buttons -->
     <template #left-panel>
       <div class="absolute inset-0 bg-primary flex items-center justify-end text-on-primary">
         <div class="flex items-center justify-evenly" style="width: var(--snap-left)">
@@ -84,13 +83,10 @@ function openOrderHistory() {
       </div>
     </template>
 
-    <!-- Card content -->
     <div class="px-4 py-3 flex gap-3">
       <CardLeadingIcon icon="person" label="Customer" />
 
-      <!-- Info -->
       <div class="flex-grow min-w-0 flex flex-col justify-center">
-        <!-- Row 1: name + type badge -->
         <div class="flex items-center gap-1.5 mb-0.5 min-w-0">
           <h3 class="font-headline font-bold text-primary text-[14px] leading-tight truncate">
             {{ customer.customerName || '—' }}{{ customer.customerIndex ? ` (${customer.customerIndex})` : '' }}
@@ -104,13 +100,11 @@ function openOrderHistory() {
           />
         </div>
 
-        <!-- Row 2: phone -->
         <div v-if="customer.phone" class="flex items-center gap-1 min-w-0">
           <span class="material-symbols-outlined text-[14px] text-on-surface-variant shrink-0">phone</span>
           <p class="font-body text-xs text-on-surface-variant truncate">{{ customer.phone }}</p>
         </div>
 
-        <!-- Row 3: address -->
         <div v-if="customer.address" class="flex items-center gap-1 min-w-0">
           <span class="material-symbols-outlined text-[14px] text-on-surface-variant shrink-0">location_on</span>
           <p class="font-body text-xs text-on-surface-variant truncate">{{ customer.address }}</p>

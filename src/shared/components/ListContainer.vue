@@ -134,7 +134,6 @@ function toggleCollapsed() {
         aria-label="ล้างคำค้นหา"
         @click="keywordInput = ''"
       >close</button>
-      <!-- Filter triggers ride at the right edge of the search row, not in a strip of their own. -->
       <slot name="search-actions" />
     </div>
 

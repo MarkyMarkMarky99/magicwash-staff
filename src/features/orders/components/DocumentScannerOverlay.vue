@@ -12,7 +12,6 @@ import type { DocumentFilterMode } from '@/features/orders/utils/document-enhanc
 import { contentBox, fitScale, projectQuad } from '@/features/orders/utils/quad-projection'
 import type { Point, Quad } from '@/features/orders/utils/quad-projection'
 
-// ---- constants -------------------------------------------------------------
 
 const DOCUMENT_MAX_DIMENSION = 2400
 const DOCUMENT_JPEG_QUALITY = 0.88
@@ -35,7 +34,6 @@ type CapturedStill = {
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits<{ close: [], capture: [file: File] }>()
 
-// ---- refs --------------------------------------------------------------
 
 const videoRef = ref<HTMLVideoElement | null>(null)
 const outlineCanvasRef = ref<HTMLCanvasElement | null>(null)
@@ -96,7 +94,6 @@ const {
 const holdRingDashoffset = computed(() => HOLD_RING_CIRCUMFERENCE * (1 - holdProgress.value))
 const holdRingTransition = computed(() => (holdProgress.value === 0 ? 'none' : 'stroke-dashoffset 100ms linear'))
 
-// ---- non-reactive bookkeeping -----------------------------------------
 
 let cameraStartToken = 0
 let flashTimer: ReturnType<typeof window.setTimeout> | null = null
@@ -107,7 +104,6 @@ let adjustResizeObserver: ResizeObserver | null = null
 let outlineDimensions = { width: 0, height: 0, dpr: 1 }
 let disposed = false
 
-// ---- helpers ------------------------------------------------------------
 
 function errorName(error: unknown): string {
   return error instanceof Error && error.name ? error.name : 'UnknownError'
@@ -312,7 +308,6 @@ function handleVideoMetadata(): void {
   resizeOutline()
 }
 
-// ---- camera lifecycle -----------------------------------------------------
 
 function stopCameraStream(): void {
   cameraStartToken += 1
@@ -549,10 +544,6 @@ function stopAdjustSurface(): void {
   adjustResizeObserver = null
 }
 
-// ---- capture: viewfinder -> capturing -> adjusting -------------------------
-// Every step here is synchronous canvas drawing wrapped in try/catch — there
-// is no await on this path, so nothing between the shutter and 'adjusting'
-// can hang. See the report for the full trace.
 function capturePhoto(): void {
   if (!canCapture.value) return
   const video = videoRef.value
@@ -672,7 +663,6 @@ function retakeDocument(): void {
   scannerStage.value = 'viewfinder'
 }
 
-// ---- close / teardown -------------------------------------------------
 
 function teardownScanner(): void {
   stopAdjustSurface()
@@ -689,7 +679,6 @@ function closeScanner(): void {
   emit('close')
 }
 
-// ---- watchers -----------------------------------------------------------
 
 watch(showAdjustUi, async (visible) => {
   if (!visible) {
@@ -748,7 +737,6 @@ onBeforeUnmount(() => {
       :class="flashActive ? 'opacity-75' : 'opacity-0'"
     />
 
-    <!-- adjust / warp stage -->
     <div v-if="showAdjustUi" class="absolute inset-0 z-10 flex flex-col bg-black px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
       <div class="flex items-start justify-between gap-3">
         <div class="min-w-0 flex-1">
@@ -829,7 +817,6 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- viewfinder stage top bar -->
     <div v-if="!showAdjustUi" class="absolute inset-x-0 top-0 z-20 flex items-start justify-end gap-3 bg-gradient-to-b from-black/80 to-transparent px-4 pb-10 pt-[max(1rem,env(safe-area-inset-top))]">
       <div class="flex shrink-0 items-center gap-2">
         <div class="flex rounded-full bg-white/15 p-0.5 font-body text-[10px]">

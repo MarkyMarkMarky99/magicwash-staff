@@ -23,7 +23,6 @@ onUnmounted(() => {
   document.removeEventListener('mouseup',   onMouseUp)
 })
 
-// ── Outside-click to close left snap ──
 watch(snapped, (val) => {
   if (val !== 'left') return
   const onOutside = (e) => {
@@ -35,7 +34,6 @@ watch(snapped, (val) => {
   document.addEventListener('pointerdown', onOutside, true)
 })
 
-// ── Gesture helpers ──
 function getTranslate() {
   if (!cardRef.value) return 0
   return new DOMMatrix(window.getComputedStyle(cardRef.value).transform).m41
@@ -66,7 +64,6 @@ function resolve(dx) {
   if (startSnapped === 'none' && Math.max(maxMovement, Math.abs(dx)) <= TAP_THRESHOLD) emit('tap')
 }
 
-// ── Touch events ──
 function onTouchStart(e) {
   if (props.disabled) return
   startX         = e.touches[0].clientX
@@ -95,7 +92,6 @@ function onTouchEnd(e) {
   resolve(e.changedTouches[0].clientX - startX)
 }
 
-// ── Mouse events (desktop) ──
 let onMouseMove = null
 let onMouseUp   = null
 
@@ -119,7 +115,6 @@ function onMouseDown(e) {
   document.addEventListener('mouseup',   onMouseUp)
 }
 
-// ── Expose snapCard so parent can reset snap after async work ──
 defineExpose({ snapCard })
 </script>
 
@@ -127,17 +122,14 @@ defineExpose({ snapCard })
   <div ref="wrapRef" class="relative bg-surface-container-lowest">
     <div class="relative overflow-hidden">
 
-      <!-- Swipe-right panel -->
       <div class="absolute inset-0 flex items-center px-5">
         <slot name="right-panel" :snapped="snapped" />
       </div>
 
-      <!-- Swipe-left panel -->
       <div class="absolute inset-0 flex items-center justify-end px-5">
         <slot name="left-panel" :snapped="snapped" />
       </div>
 
-      <!-- Card surface -->
       <div
         ref="cardRef"
         :class="[
