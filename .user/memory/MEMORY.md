@@ -5,8 +5,7 @@ Live note — what is in flight, next, stuck.
 
 `4cd603b`. Order detail latency work is browser-confirmed by the user and closed.
 
-- **Known limit, accepted:** photo `perPage` caps at 500, so an album over 500 truncates. Largest
-  album seen is 8.
+- **Known limit, accepted:** photo `perPage` caps at 500; largest album seen is 8.
 - Not addressed: `OrderGalleryPage.vue` `onDeactivated` wipes `requestedKey` and forces a refetch
   on re-entry; `loadFetchedPhotos` blanks the list before awaiting. The cache answers it now, but
   the round trip is still needless.
@@ -14,8 +13,6 @@ Live note — what is in flight, next, stuck.
   avoid a conflict with this branch. That branch is gone now, so they can be done.
 - Stale on the gallery read path, still not corrected: `feature-structure.md`, `data-fetching.md`,
   `docs/features/orders/overview.md`, `docs/features/orders/forms/create-order-image.md`.
-- Behaviour change worth knowing: order detail `getById` double fault (items read *and* customer
-  read both failing) now surfaces the items error, not the customer error.
 - Session transcript `2026-09-11-003747-*.txt` sits untracked in the repo root; delete it.
 - Then: `onFresh` at the remaining call sites, app-wide cache policy.
 - **Decided against 2026-09-11:** lazy-loading the gallery route to drop Firebase from boot. Staff
@@ -60,14 +57,11 @@ Six commits. 271 comment lines deleted across the frontend, zero lines added.
    of it, as `use-screenshot-upload.ts` and `usePhotoUpload.js:41` already do. Settle item 2 first:
    scanner output is what this bites, and ≤200 KB may be too aggressive for scans.
 
-## Layout rebuild — merged and device-verified 2026-09-10
-
-- Delete `scroll-region.md` and `overlay-frame.md` from `docs/plans/` once nothing references them.
-- **Debt, in `overlay-frame.md`:** give `BaseOverlayFrame` a full-bleed size, then drop
-  `LightboxOverlay`'s five `!important` padding overrides.
-
 ## Where we are — 2026-09-10
 
+- Delete `scroll-region.md` and `overlay-frame.md` from `docs/plans/` once nothing references them;
+  the debt they record is `BaseOverlayFrame` needing a full-bleed size so `LightboxOverlay` can drop
+  five `!important` padding overrides.
 - **On `main`, merged but unverified on a phone:** `BaseSwipeCard` ghost-click fix (ISS-72adcdca).
   Source-based dry test only; no device has confirmed it. Issue row is still `OPEN`.
 - **Open cache gap:** `onFresh` is unwired. `docs/plans/cache-gateway.md`.
@@ -84,15 +78,12 @@ Six commits. 271 comment lines deleted across the frontend, zero lines added.
 ## Browser checks still pending on `main`
 
 0. **ISS-72adcdca:** cache-hit customer list, finger tap a row — only customer detail may open, no
-   order sheet. Then swipe a card and tap a panel button: it must still fire. Mouse and keyboard
-   unchanged. Close the issue row once it passes.
-1. Search on `#/price-list` (client filter) and `#/invoices` (store fetch); `✕` clears.
-2. Deep link `#/invoices?keyword=INV` — box must open by itself with the word in it.
-3. `#/price-list`: search → ⚙ → `ซักแห้ง` → type nonsense. **Service buttons must remain.**
-4. `#/appointments` and customer detail — must show **no** magnifier at all.
-5. Theme sweep: green ink, Noto Sans Thai everywhere.
-6. Order detail → dropdown near the bottom edge must flip **above**, all rows visible. Its panel is
-   a `ScrollRegion` now, so recheck after the overlay migration.
+   order sheet; a swiped card's panel button must still fire. Close the issue row once it passes.
+1. ListContainer search: `#/price-list` and `#/invoices` filter and `✕` clears; deep link
+   `#/invoices?keyword=INV` opens the box; `#/price-list` service buttons survive a nonsense query;
+   `#/appointments` and customer detail show no magnifier at all.
+2. Theme sweep: green ink, Noto Sans Thai everywhere.
+3. Order detail → dropdown near the bottom edge must flip **above**, all rows visible.
 
 ## Photos
 
