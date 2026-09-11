@@ -18,9 +18,6 @@ const panelRef = ref<InstanceType<typeof ScrollRegion> | null>(null)
 type PanelPosition = { right: string; maxHeight: string; top?: string; bottom?: string }
 const position = ref<PanelPosition | null>(null)
 
-// A dropdown opened near the bottom of the viewport has to flip above its trigger. maxHeight
-// has a 96px floor, not a ceiling, and most callers clip rather than scroll their panel, so
-// anchoring downward into 20px of free room silently cut the last row off the menu.
 const MIN_PANEL_SPACE = 160
 const panelId = `base-dropdown-${useId()}`
 

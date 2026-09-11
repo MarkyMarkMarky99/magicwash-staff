@@ -53,7 +53,6 @@ function snapCard(direction) {
 function resolve(dx) {
   if (props.disabled) return
 
-  // If already snapped — any further swipe just closes
   if (snapped.value !== 'none') { snapCard('none'); return }
 
   const direction = dx > props.threshold ? 'right' : dx < -props.threshold ? 'left' : 'none'

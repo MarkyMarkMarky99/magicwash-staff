@@ -11,7 +11,6 @@ const NAMESPACE = 'mw-cache'
 const PREFIX = `${NAMESPACE}:${STORAGE_VERSION}:`
 
 interface StoredEntry {
-  /** The unwrapped response value, exactly as the in-memory layer holds it. */
   v: unknown
   /** Epoch ms the response was received, so freshness survives the reload. */
   t: number
@@ -52,8 +51,6 @@ function purgeOtherVersions(): void {
       if (!key.startsWith(PREFIX)) store.removeItem(key)
     }
   } catch {
-    // Nothing to recover: the stale entries stay, and a shape mismatch is caught
-    // by the parse guard in readPersisted below.
   }
 }
 
@@ -185,12 +182,9 @@ export function clearPersisted(path?: string): void {
       if (keyPath === pathname || keyPath.startsWith(`${pathname}/`)) store.removeItem(key)
     }
   } catch {
-    // A cache that cannot be cleared is still only a cache; the memory layer was
-    // already cleared by the caller, so the next read revalidates regardless.
   }
 }
 
-/** Persisted footprint, for tests and diagnostics. */
 export function persistedStats(): { entries: number; bytes: number } {
   const store = storage()
   if (store === null) return { entries: 0, bytes: 0 }

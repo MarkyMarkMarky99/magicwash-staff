@@ -60,7 +60,6 @@ export const CACHE_MAX_BYTES = 4 * 1024 * 1024
 export const PERSIST_MAX_BYTES = 2 * 1024 * 1024
 
 export interface CachePolicy {
-  /** Whether this path may be cached at all. */
   cacheable: boolean
   /** Hours the entry counts as fresh; 0 means always revalidate. */
   hours: number
@@ -72,7 +71,6 @@ function matches(path: string, prefix: string): boolean {
   return path === prefix || path.startsWith(`${prefix}/`) || path.startsWith(`${prefix}?`)
 }
 
-/** Resolve the policy for a request path (query string included or not). */
 export function cachePolicyFor(path: string): CachePolicy {
   const pathname = path.split('?')[0] ?? path
 
