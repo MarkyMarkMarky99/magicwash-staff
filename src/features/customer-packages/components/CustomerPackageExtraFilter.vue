@@ -5,8 +5,7 @@ import type { CustomerPackageFilter } from '../composables/useCustomerPackageFil
 const props = defineProps<{
   filter: CustomerPackageFilter
   open: boolean
-  // ListContainer renders none of the panel's slots while loading, so opening it would flip
-  // aria-expanded on nothing.
+  // Disable this trigger while ListContainer suppresses its panel slots during loading.
   disabled?: boolean
 }>()
 

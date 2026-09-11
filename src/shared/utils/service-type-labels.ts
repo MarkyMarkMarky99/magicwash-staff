@@ -22,7 +22,6 @@ export const serviceTypePresentation: Record<ServiceType, { label: string; icon:
   WASH: { label: 'ซัก', icon: 'water_drop' },
 }
 
-/** Unknown codes fall back to the raw code — reads are not validated against dirty cells. */
 export function serviceTypeLabel(serviceType: string | null | undefined): string | null {
   if (!serviceType) return null
   return serviceTypePresentation[serviceType as ServiceType]?.label ?? serviceType

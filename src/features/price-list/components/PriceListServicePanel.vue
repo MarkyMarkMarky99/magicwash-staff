@@ -11,9 +11,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <!-- Rendered into ListContainer's default, empty AND error slots. ListContainer shows only one
-       of them at a time, so a panel placed in just the default slot vanishes the moment the list
-       is empty or the load fails — leaving a ?serviceType= in the URL with no way to clear it. -->
+  <!-- Rendered into ListContainer's default, empty and error slots so ?serviceType= stays clearable. -->
   <div class="flex flex-wrap gap-2 bg-surface-container-lowest px-4 py-3">
     <button
       v-for="option in serviceTypeOptions"

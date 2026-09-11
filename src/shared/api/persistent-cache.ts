@@ -16,10 +16,7 @@ interface StoredEntry {
   t: number
 }
 
-/**
- * `localStorage` is absent in Node (the dry tests) and can throw on access alone
- * when site data is blocked, so it is never touched directly.
- */
+// localStorage is absent in Node and can throw on access alone when site data is blocked.
 function storage(): Storage | null {
   try {
     return typeof localStorage === 'undefined' ? null : localStorage
@@ -62,7 +59,6 @@ export interface PersistedEntry {
   storedAt: number
 }
 
-/** Read one stored response, or `null` when nothing usable is there. */
 export function readPersisted(url: string): PersistedEntry | null {
   const store = storage()
   if (store === null) return null
@@ -79,8 +75,6 @@ export function readPersisted(url: string): PersistedEntry | null {
 
     return { value: parsed.v, storedAt: parsed.t }
   } catch {
-    // Corrupt JSON, or a quota error on the read path in some browsers. Either
-    // way the entry is unusable; leave it to the next write or version purge.
     return null
   }
 }
@@ -142,7 +136,7 @@ function evictPersistedDownTo(limit: number, excludeUrl: string): void {
         try {
           storedAt = (JSON.parse(raw) as StoredEntry).t ?? 0
         } catch {
-          // Unparseable entries sort first and are evicted first.
+          // Unparseable entries keep storedAt 0 and are evicted first.
         }
         return { key, bytes: raw.length, storedAt }
       })
@@ -156,7 +150,7 @@ function evictPersistedDownTo(limit: number, excludeUrl: string): void {
       total -= entry.bytes
     }
   } catch {
-    // Leave the store as it is; the write below will hit quota and retry.
+    // Leave the store as it is; the write path hits quota and retries.
   }
 }
 

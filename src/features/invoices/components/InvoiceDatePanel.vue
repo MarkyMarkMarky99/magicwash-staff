@@ -59,9 +59,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <!-- Rendered into ListContainer's default, empty AND error slots: only one of them shows at a
-       time, so a panel placed in just the default slot disappears the moment the date filter
-       matches nothing, leaving no way to widen it again. -->
+  <!-- Rendered into ListContainer's default, empty and error slots so the filter stays clearable. -->
   <div class="grid gap-3 bg-surface-container-lowest px-4 py-3 md:grid-cols-2">
     <FormInput
       id="invoice-date-from"

@@ -338,33 +338,27 @@ function handleCameraClose() {
         </ScrollRegion>
       </div>
 
-      <!-- Body -->
       <ScrollRegion as="main">
         <div class="flex min-h-full flex-col py-1">
 
-        <!-- Loading -->
         <div v-if="fetchStatus === 'loading'" class="flex-1 flex flex-col items-center justify-center gap-3">
           <span class="material-symbols-outlined text-primary text-5xl animate-pulse">local_laundry_service</span>
           <p class="font-body text-on-surface-variant text-sm">กำลังโหลดรูปภาพ…</p>
         </div>
 
-        <!-- Error -->
         <div v-else-if="fetchStatus === 'error'" class="flex-1 flex flex-col items-center justify-center gap-3">
           <span class="material-symbols-outlined text-error text-5xl">error_outline</span>
           <p class="font-body text-on-surface-variant text-sm">โหลดรูปภาพไม่สำเร็จ กรุณาลองใหม่อีกครั้ง</p>
         </div>
 
         <template v-else>
-          <!-- Empty state -->
           <div v-if="isEmpty" class="flex-1 flex flex-col items-center justify-center gap-3">
             <span class="material-symbols-outlined text-on-surface-variant text-5xl">image_not_supported</span>
             <p class="font-body text-on-surface-variant text-sm">ยังไม่มีรูปภาพ</p>
           </div>
 
-          <!-- Photo grid -->
           <div v-else class="grid grid-cols-3 gap-[2px]">
 
-            <!-- Remote photos (already saved) -->
             <button
               v-for="(photo, i) in fetchedPhotos"
               :key="photo.id"
@@ -378,14 +372,12 @@ function handleCameraClose() {
               />
             </button>
 
-            <!-- Local upload queue -->
             <button
               v-for="(img, i) in images"
               :key="img.id"
               @click="lightbox = fetchedPhotos.length + i"
               class="relative aspect-square overflow-hidden rounded-[3px] bg-surface-variant focus:outline-none focus:ring-2 focus:ring-primary"
             >
-              <!-- Error state -->
               <div
                 v-if="img.status === 'error'"
                 class="w-full h-full bg-surface-variant flex items-center justify-center"
@@ -393,7 +385,6 @@ function handleCameraClose() {
                 <span class="material-symbols-outlined text-on-surface-variant text-[22px]">close</span>
               </div>
 
-              <!-- Image + optional in-progress overlay -->
               <template v-else>
                 <img
                   :src="img.previewUrl"
@@ -408,7 +399,6 @@ function handleCameraClose() {
                 </div>
               </template>
 
-              <!-- Remove button -->
               <button
                 @click.stop="remove(img.id)"
                 class="absolute top-1 right-1 bg-black/50 text-white rounded-full w-6 h-6 flex items-center justify-center"
@@ -423,7 +413,6 @@ function handleCameraClose() {
         </div>
       </ScrollRegion>
 
-      <!-- Floating add button -->
       <div class="absolute bottom-6 right-4">
         <button
           @click="openPicker"
@@ -544,7 +533,6 @@ function handleCameraClose() {
       </div>
     </PickerOverlay>
 
-    <!-- Source picker sheet -->
     <Transition name="sheet">
       <div v-if="showPicker" class="fixed inset-0 z-50 flex flex-col justify-end">
         <div class="absolute inset-0 bg-black/40" @click="showPicker = false" />
@@ -569,7 +557,6 @@ function handleCameraClose() {
       </div>
     </Transition>
 
-    <!-- Hidden inputs -->
     <input ref="albumInputRef" type="file" accept="image/*" multiple class="hidden" @change="handleFiles" />
 
       <CameraOverlay

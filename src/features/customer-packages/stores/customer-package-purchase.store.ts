@@ -33,8 +33,7 @@ export function canResumePackagePurchase(attempt: PurchaseAttempt): boolean {
 }
 
 export const useCustomerPackagePurchaseStore = defineStore('customer-package-purchase', () => {
-  // Keep partial/unknown outcomes when the overlay is dismissed and reopened.
-  // A retry resumes the saved request; it never mints another invoice number.
+  // Preserve each attempt so resume reuses the same invoice request.
   const attempts = ref<Record<string, PurchaseAttempt>>({})
 
   async function start(customer: CustomerDetailDto, packageItem: PackageDto, draft: PackageRequest) {

@@ -72,12 +72,8 @@ defineEmits(['update:modelValue', 'invalid'])
   transition: border-color 150ms, box-shadow 150ms;
 }
 
-/* iOS Safari sizes a native date control from its shadow DOM, and `min-width: 0`
-   on the input cannot shrink that: two date fields in a two-column row measured
-   ~199pt each against 390pt of panel, so the row overflowed and the second field's
-   border was clipped. `appearance: none` drops the intrinsic minimum. It also drops
-   the native vertical centring, hence the explicit line-height -- 45px is the 47px
-   control minus its two 1px borders. */
+/* appearance: none drops iOS Safari's intrinsic date-control width and its native vertical
+   centring; 45px is the 47px control minus its two 1px borders. */
 .form-input[type='date'] {
   appearance: none;
   -webkit-appearance: none;

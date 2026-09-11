@@ -350,8 +350,7 @@ watch(filteredOptions, () => {
 .picker__option-label,
 .picker__option-description {
   min-width: 0;
-  /* Addresses and phone strings have few break opportunities; without this a single
-     long one would push the row wider than its track again. */
+  /* Addresses and phone strings have few break opportunities. */
   overflow-wrap: anywhere;
 }
 

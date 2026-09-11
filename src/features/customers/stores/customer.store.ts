@@ -4,8 +4,7 @@ import { listCustomers, type CustomerListDto } from '../services/customer.servic
 
 /** Caches the full customer list; active filters remain in the URL query. */
 export const useCustomerStore = defineStore('customers', () => {
-  // shallowRef: the list is replaced whole, never patched per item, so deep
-  // reactivity would only cost one proxy per customer for nothing.
+  // The list is replaced wholesale, so shallowRef avoids per-customer proxies.
   const customers = shallowRef<CustomerListDto[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)

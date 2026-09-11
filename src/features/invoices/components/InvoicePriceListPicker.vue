@@ -218,8 +218,7 @@ function selectCategory(category: string | null) {
 </template>
 
 <style scoped>
-/* Google Fonts sets 24px on .material-symbols-outlined; only some sizes are
-   pre-declared in src/style.css. Local extras for this picker. */
+/* src/style.css pre-declares only some sizes; these are local extras for this picker. */
 .material-symbols-outlined.picker-icon-lg {
   font-size: 32px;
 }
