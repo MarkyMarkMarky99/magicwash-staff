@@ -1,27 +1,49 @@
 # Project memory
 Live note — what is in flight, next, stuck.
 
-## Merged to main 2026-09-11 — order detail latency
+## Gallery reads on the API — merged to main 2026-09-12
 
-Reviewed by grok-explorer, all gates green, **still not checked in a real browser.**
+`4cd603b`. Order detail latency work is browser-confirmed by the user and closed.
 
-- First browser pass tomorrow: list -> order must paint the header before the item list, and adding
-  an item must not flash the list back to empty. `main` @ `ccf187a`.
-- Behaviour change worth knowing: order detail `getById` double fault (items read *and* customer
-  read both failing) now surfaces the items error, not the customer error.
+- **Known limit, accepted:** photo `perPage` caps at 500; largest album seen is 8.
+- Not addressed: `OrderGalleryPage.vue` `onDeactivated` wipes `requestedKey` and forces a refetch
+  on re-entry; `loadFetchedPhotos` blanks the list before awaiting. The cache answers it now, but
+  the round trip is still needless.
+- Ten section-banner comments in `OrderGalleryPage.vue` were skipped to avoid a conflict with this
+  branch; it is gone now, so they can be done.
+- Stale on the gallery read path, still not corrected: `feature-structure.md`, `data-fetching.md`,
+  `docs/features/orders/overview.md`, `docs/features/orders/forms/create-order-image.md`.
 - Session transcript `2026-09-11-003747-*.txt` sits untracked in the repo root; delete it.
-
-## Gallery is the next latency win — nothing there is cached
-
-- `src/api/photos.js:26` reads through raw JSONP (`src/utils/gviz.js:33`), never `apiGet`, and
-  `tqx=reqId:N` makes every URL unique so the browser cannot cache it either.
-- Cheap fix: `OrderGalleryPage.vue:112` `onDeactivated` wipes `requestedKey` and forces a refetch
-  although KeepAlive still holds the photos; `:76` blanks them before the await.
-- Real fix, do it as the migration: `OrderGalleryPage.vue:84` -> `apiGetList`, `image_url` ->
-  `imageUrl`, delete `src/api/photos.js`. ~1h, needs a browser check.
+- Then: `onFresh` at the remaining call sites, app-wide cache policy.
 - **Decided against 2026-09-11:** lazy-loading the gallery route to drop Firebase from boot. Staff
-  open the gallery on nearly every order, so it buys nothing. Do not re-propose.
-- After that, the structural pass: `onFresh` (23 call sites), app-wide cache policy.
+  open the gallery on nearly every order. Do not re-propose.
+
+## Branch `chore/remove-stale-code-comments` — in flight, not merged
+
+Six commits. 271 comment lines deleted across the frontend, zero lines added.
+
+- **Red test, decision pending:** `customer-package.service.dry-test.ts:48-53` asserts
+  `createCustomerPackage` holds a literal per response kind. Five existed only inside a deleted
+  comment — the function parses the union by schema and names no kind — and `:155-166` already
+  tests every kind behaviourally. Delete the loops, retarget them at the contract schema, or
+  restore the comment.
+- `.user/memory/doc-comment-docs-work.md` holds the remaining 140 decisions. Do not act on a row
+  without checking it — one row was already wrong.
+- Blocked on the user reading `data-fetching.md`: 58 deletions justified by pointing at it or at
+  `cache-gateway.md`, which is build history, not a rule.
+- `app-boot.md` is edited on this branch and on main; expect a conflict on merge.
+
+## GViz read normalization — DEFERRED, do not start
+
+> "ผมยังไม่อยากแก้ไขโครงสร้างระดับนั้นเพราะมันจะส่งผลกระทบต่อทุกจุดแล้วเราก็ไม่รู้ว่าทุกจุดที่เรียกใช้สะอาดแค่ไหน
+> ผมกังวลว่ามันจะส่งผลกระทบต่อหลายคอลัมน์เดิมที่แสดงผลอยู่ตอนนี้ อ่านแนวคิดของคุณผมคิดว่ามันถูกต้องนะแต่ยังไม่ใช่ตอนนี้"
+> — 2026-09-11
+
+- Full proposal and traps: `.user/memory/gviz-read-normalization.md`. Direction agreed, timing not.
+- Do not re-propose it as a next step, and do not delete the frontend compensating code as
+  "redundant" — some of it is the only thing stopping a runtime throw.
+- Separable and still worth doing alone: the invoice `dateFrom`/`dateTo` filter compares
+  `Date(...)` against ISO lexicographically (`invoice.service.ts:631`).
 
 ## Two docs are unreviewed drafts
 
@@ -39,22 +61,22 @@ Reviewed by grok-explorer, all gates green, **still not checked in a real browse
    user supplies Firebase bucket credentials.
 2. **Decide the document scanner's 2400px / q0.88 output.** 3× the camera path's file size. Needs
    the user's eyes on real scans; not a number to lower blindly.
-
-## Layout rebuild — merged and device-verified 2026-09-10
-
-- Delete `scroll-region.md` and `overlay-frame.md` from `docs/plans/` once nothing references them.
-- **Debt, in `overlay-frame.md`:** give `BaseOverlayFrame` a full-bleed size, then drop
-  `LightboxOverlay`'s five `!important` padding overrides.
+3. **Add compression to the order image upload.** `order-image.store.ts:48` calls `uploadToStorage`
+   with no `compressImage` — the only upload path with no size ceiling. Put `compressImage` in front
+   of it, as `use-screenshot-upload.ts` and `usePhotoUpload.js:41` already do. Settle item 2 first:
+   scanner output is what this bites, and ≤200 KB may be too aggressive for scans.
 
 ## Where we are — 2026-09-10
 
-- **Branch:** `feat/live-order-helper` — pushed, unmerged, not finished, and now far behind `main`.
-  Diff it against `origin/main` before assuming any of it is still wanted.
+- Delete `scroll-region.md` and `overlay-frame.md` from `docs/plans/` once nothing references them;
+  the debt they record is `BaseOverlayFrame` needing a full-bleed size so `LightboxOverlay` can drop
+  five `!important` padding overrides.
 - **On `main`, merged but unverified on a phone:** `BaseSwipeCard` ghost-click fix (ISS-72adcdca).
   Source-based dry test only; no device has confirmed it. Issue row is still `OPEN`.
 - **Open cache gap:** `onFresh` is unwired. `docs/plans/cache-gateway.md`.
-- Pre-existing web dry-test failures on an unmodified tree, unrelated to recent work:
-  `customer-package-create-page`, `package-pages`.
+- Pre-existing web dry-test failures on an unmodified tree, unrelated to recent work — 6, re-checked
+  2026-09-11: `package-pages`, `invoice-price-list-service`, `order-price-list.store`,
+  `customer-package-create-page`, `price-list.store`, `price-list-service`.
 - Gallery: move `src/composables/usePhotoUpload.js` to `src/features/gallery/composables/`; decide
   legacy photo-capture placement (`overview.md:176`).
 - Known gap, not on a live UI path yet: photo modules and OrderImages pass GViz `Date(...)` through
@@ -65,15 +87,12 @@ Reviewed by grok-explorer, all gates green, **still not checked in a real browse
 ## Browser checks still pending on `main`
 
 0. **ISS-72adcdca:** cache-hit customer list, finger tap a row — only customer detail may open, no
-   order sheet. Then swipe a card and tap a panel button: it must still fire. Mouse and keyboard
-   unchanged. Close the issue row once it passes.
-1. Search on `#/price-list` (client filter) and `#/invoices` (store fetch); `✕` clears.
-2. Deep link `#/invoices?keyword=INV` — box must open by itself with the word in it.
-3. `#/price-list`: search → ⚙ → `ซักแห้ง` → type nonsense. **Service buttons must remain.**
-4. `#/appointments` and customer detail — must show **no** magnifier at all.
-5. Theme sweep: green ink, Noto Sans Thai everywhere.
-6. Order detail → dropdown near the bottom edge must flip **above**, all rows visible. Its panel is
-   a `ScrollRegion` now, so recheck after the overlay migration.
+   order sheet; a swiped card's panel button must still fire. Close the issue row once it passes.
+1. ListContainer search: `#/price-list` and `#/invoices` filter and `✕` clears; deep link
+   `#/invoices?keyword=INV` opens the box; `#/price-list` service buttons survive a nonsense query;
+   `#/appointments` and customer detail show no magnifier at all.
+2. Theme sweep: green ink, Noto Sans Thai everywhere.
+3. Order detail → dropdown near the bottom edge must flip **above**, all rows visible.
 
 ## Photos
 
@@ -92,22 +111,17 @@ Reported, not fixed:
 
 ## Page-load latency — next, ranked
 
-Measured 2026-09-08: GViz 0.49s · prod warm 0.82s · prod cold 1.65s · local 1.71s. Prioritize fewer
-reads; local measurements include `vercel dev` overhead (~0.9s/request).
+Measured 2026-09-08: GViz 0.49s · prod warm 0.82s · prod cold 1.65s. Fewer reads beats smaller ones.
 
-1. **`work-orders` reads the whole Customers sheet on every order-list load**
-   (`work-order.service.ts:101-107`, `:195` uses `where: {}` whenever the page holds >1 customer).
-   Genuinely dependent reads — `Promise.all` cannot fix it. Options: add `whereIn()` to
-   `gviz-query.builder.ts` (`:85-98` emits only `col = value`); drop `customerName` and map it
-   client-side; cache customers server-side.
-2. **`listOrdersByCustomer` sends no `perPage`** — up to 500 rows, 104 KB measured for one customer
-   (`src/features/customers/services/order.service.ts:11`).
-3. **`invoices` + `dateFrom`/`dateTo` drops pagination** (`invoice.service.ts:631`). Needs `>=`/`<=`
+1. **`work-orders` reads the whole Customers sheet per order-list load** (`work-order.service.ts:195`
+   uses `where: {}` above one customer). Dependent reads, so `Promise.all` cannot help. Add
+   `whereIn()` to `gviz-query.builder.ts`, or drop `customerName` and map it client-side.
+2. **`listOrdersByCustomer` sends no `perPage`** — 104 KB measured for one customer
+   (`customers/services/order.service.ts:11`).
+3. **`invoices` + `dateFrom`/`dateTo` drops pagination** (`invoice.service.ts:631`); needs `>=`/`<=`
    in `GVizQueryBuilder`. ~3h.
-4. **`App.vue:8` prefetches appointments on every page mount.** Scope to routes that need it plus
-   the pending badge. ~1h.
-5. **No HTTP cache headers on `/api/*`** (`vercel.json` covers only `/scanic-ml/*`). Decide
-   staleness first.
+4. **`App.vue:8` prefetches appointments on every page mount.** ~1h.
+5. **No HTTP cache headers on `/api/*`**; decide staleness first.
 
 ## Deferred by the user
 
@@ -122,6 +136,13 @@ reads; local measurements include `vercel dev` overhead (~0.9s/request).
 
 ## Open items
 
+- **Issue screenshot upload, raised in review of #17, none blocking:** hidden file input is
+  `display:none` so its `FormLabel` names nothing to a screen reader (use `sr-only`); upload-busy
+  overlay has no `aria-live`; a failed upload still lets ส่ง through with no image and the Thai copy
+  does not say so; raw English Firebase errors reach staff. Abandoned picks orphan Storage objects —
+  inherent to uploading before submit, no cheap client-side fix.
+- **`naming.md` says `usePascalCase.ts` for composables; the codebase is kebab-case** (9 of 19 in
+  `src/`). Fix the doc, not the files.
 - **API authentication before launch.** Actor is a fallback constant in `src/shared/config/actor.ts`
   + `server/shared/config/actor.ts`; `?by=` must keep overriding. Issue reports asking a human to
   type their name folds into this pass.
