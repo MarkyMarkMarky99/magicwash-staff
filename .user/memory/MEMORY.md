@@ -3,8 +3,10 @@ Live note — what is in flight, next, stuck.
 
 ## Merged to main 2026-09-11 — order detail latency
 
-- `main` @ `ccf187a`, deployed. **Never opened in a browser.** First pass: list -> order must paint
-  the header before the item list, and adding an item must not flash the list back to empty.
+Browser-confirmed by the user 2026-09-12: order detail is visibly faster. This item is closed.
+
+- Behaviour change worth knowing: order detail `getById` double fault (items read *and* customer
+  read both failing) now surfaces the items error, not the customer error.
 - Session transcript `2026-09-11-003747-*.txt` sits untracked in the repo root; delete it.
 
 ## Branch `feat/gallery-backend-reads` — pushed, NOT merged
@@ -41,6 +43,10 @@ Browser-verified by codex against live data. Merge decision is the user's; nothi
    user supplies Firebase bucket credentials.
 2. **Decide the document scanner's 2400px / q0.88 output.** 3× the camera path's file size. Needs
    the user's eyes on real scans; not a number to lower blindly.
+3. **Add compression to the order image upload.** `order-image.store.ts:48` calls `uploadToStorage`
+   with no `compressImage` — the only upload path with no size ceiling. Put `compressImage` in front
+   of it, as `use-screenshot-upload.ts` and `usePhotoUpload.js:41` already do. Settle item 2 first:
+   scanner output is what this bites, and ≤200 KB may be too aggressive for scans.
 
 ## Layout rebuild — merged and device-verified 2026-09-10
 
@@ -50,13 +56,12 @@ Browser-verified by codex against live data. Merge decision is the user's; nothi
 
 ## Where we are — 2026-09-10
 
-- **Branch:** `feat/live-order-helper` — pushed, unmerged, not finished, and now far behind `main`.
-  Diff it against `origin/main` before assuming any of it is still wanted.
 - **On `main`, merged but unverified on a phone:** `BaseSwipeCard` ghost-click fix (ISS-72adcdca).
   Source-based dry test only; no device has confirmed it. Issue row is still `OPEN`.
 - **Open cache gap:** `onFresh` is unwired. `docs/plans/cache-gateway.md`.
-- Pre-existing web dry-test failures on an unmodified tree, unrelated to recent work:
-  `customer-package-create-page`, `package-pages`.
+- Pre-existing web dry-test failures on an unmodified tree, unrelated to recent work — 6, re-checked
+  2026-09-11: `package-pages`, `invoice-price-list-service`, `order-price-list.store`,
+  `customer-package-create-page`, `price-list.store`, `price-list-service`.
 - Gallery: move `src/composables/usePhotoUpload.js` to `src/features/gallery/composables/`; decide
   legacy photo-capture placement (`overview.md:176`).
 - Known gap, not on a live UI path yet: photo modules and OrderImages pass GViz `Date(...)` through
@@ -124,6 +129,13 @@ reads; local measurements include `vercel dev` overhead (~0.9s/request).
 
 ## Open items
 
+- **Issue screenshot upload, raised in review of #17, none blocking:** hidden file input is
+  `display:none` so its `FormLabel` names nothing to a screen reader (use `sr-only`); upload-busy
+  overlay has no `aria-live`; a failed upload still lets ส่ง through with no image and the Thai copy
+  does not say so; raw English Firebase errors reach staff. Abandoned picks orphan Storage objects —
+  inherent to uploading before submit, no cheap client-side fix.
+- **`naming.md` says `usePascalCase.ts` for composables; the codebase is kebab-case** (9 of 19 in
+  `src/`). Fix the doc, not the files.
 - **API authentication before launch.** Actor is a fallback constant in `src/shared/config/actor.ts`
   + `server/shared/config/actor.ts`; `?by=` must keep overriding. Issue reports asking a human to
   type their name folds into this pass.
