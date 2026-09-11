@@ -1,5 +1,5 @@
 ---
-last_audited: 2026-09-10
+last_audited: 2026-09-11
 audit_sources:
   - src/main.js
   - src/App.vue
@@ -16,7 +16,9 @@ What may run before the first route renders.
 
 ## Budget
 
-- Eager JS at boot: **277 KB across 7 chunks** (measured 2026-09-10, `npx vite build`).
+- Eager JS at boot: **277 KB across 8 chunks** (measured 2026-09-11, `npx vite build`). The byte
+  count is unchanged from the 7-chunk measurement of 2026-09-10; Firebase merely split out of the
+  entry chunk once a second lazy route started importing it.
 - Treat that as a ceiling, not a target. A change that raises it needs a reason in the PR.
 - Verify: `npx vite build`, then read the `assets/*.js` set in `dist/index.html`.
 
@@ -30,8 +32,9 @@ What may run before the first route renders.
 ## Third-party SDKs
 
 - Do not initialise an SDK at module scope unless every route needs it.
-- `src/firebase.js:4-14` calls `initializeApp()` and `getStorage()` on import. It is reached only
-  through the gallery page above; fixing the import fixes this too.
+- `src/firebase.js:4-14` calls `initializeApp()` and `getStorage()` on import. The issue report form
+  reaches it too, but lazily; the gallery's static import above is the only reason it runs at boot,
+  so fixing that import fixes this too.
 
 ## Network at boot
 

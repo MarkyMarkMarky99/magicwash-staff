@@ -1,6 +1,14 @@
 # Project memory
 Live note — what is in flight, next, stuck.
 
+## Branch `claude/issue-page-image-firebase-fk5gef` — in flight
+
+- Issue report form uploads a screenshot to Firebase now (`use-screenshot-upload.ts`), replacing the
+  paste-a-link field. Compresses on every pick, unlike the two older paths.
+- **Confirmed working by the user on the Vercel preview for `1fd4e62`.** The compressed-size readout
+  was cut afterwards at their request; the sizes stay on the composable, unread by any UI.
+- Boot budget re-measured: same bytes, 8 entry chunks not 7 — Firebase split out of `index`.
+
 ## Merged to main 2026-09-11 — order detail latency
 
 Reviewed by grok-explorer, all gates green, **still not checked in a real browser.**
@@ -9,7 +17,6 @@ Reviewed by grok-explorer, all gates green, **still not checked in a real browse
   an item must not flash the list back to empty. `main` @ `ccf187a`.
 - Behaviour change worth knowing: order detail `getById` double fault (items read *and* customer
   read both failing) now surfaces the items error, not the customer error.
-- Session transcript `2026-09-11-003747-*.txt` sits untracked in the repo root; delete it.
 
 ## Gallery is the next latency win — nothing there is cached
 
@@ -29,6 +36,10 @@ Reviewed by grok-explorer, all gates green, **still not checked in a real browse
    user supplies Firebase bucket credentials.
 2. **Decide the document scanner's 2400px / q0.88 output.** 3× the camera path's file size. Needs
    the user's eyes on real scans; not a number to lower blindly.
+3. **Add compression to the order image upload.** `order-image.store.ts:48` calls `uploadToStorage`
+   with no `compressImage` — the only upload path with no size ceiling. Put `compressImage` in front
+   of it, as `use-screenshot-upload.ts` and `usePhotoUpload.js:41` already do. Settle item 2 first:
+   scanner output is what this bites, and ≤200 KB may be too aggressive for scans.
 
 ## Layout rebuild — merged and device-verified 2026-09-10
 
@@ -38,13 +49,12 @@ Reviewed by grok-explorer, all gates green, **still not checked in a real browse
 
 ## Where we are — 2026-09-10
 
-- **Branch:** `feat/live-order-helper` — pushed, unmerged, not finished, and now far behind `main`.
-  Diff it against `origin/main` before assuming any of it is still wanted.
 - **On `main`, merged but unverified on a phone:** `BaseSwipeCard` ghost-click fix (ISS-72adcdca).
   Source-based dry test only; no device has confirmed it. Issue row is still `OPEN`.
 - **Open cache gap:** `onFresh` is unwired. `docs/plans/cache-gateway.md`.
-- Pre-existing web dry-test failures on an unmodified tree, unrelated to recent work:
-  `customer-package-create-page`, `package-pages`.
+- Pre-existing web dry-test failures on an unmodified tree, unrelated to recent work — 6, re-checked
+  2026-09-11: `package-pages`, `invoice-price-list-service`, `order-price-list.store`,
+  `customer-package-create-page`, `price-list.store`, `price-list-service`.
 - Gallery: move `src/composables/usePhotoUpload.js` to `src/features/gallery/composables/`; decide
   legacy photo-capture placement (`overview.md:176`).
 - Known gap, not on a live UI path yet: photo modules and OrderImages pass GViz `Date(...)` through
