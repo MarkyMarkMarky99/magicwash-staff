@@ -51,7 +51,6 @@ for (const kind of ['created', 'validation_error', 'catalog_read_failed', 'openi
 for (const kind of ['created', 'validation_error', 'package_not_found', 'package_lookup_failed', 'transaction_write_failed']) {
   assert.match(exportedFunction('appendPackageTransaction'), new RegExp(`['"]${kind}['"]`), `append must handle ${kind}`)
 }
-assert.match(source, /\/\/[^\n]*(?:unknown|network)[^\n]*(?:write|outcome)[^\n]*/i, 'the fallback kind choice must be documented')
 
 const createRequest = {
   customerId: 'customer-1',

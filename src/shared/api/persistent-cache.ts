@@ -1,19 +1,6 @@
 import { PERSIST_MAX_BYTES } from '@/shared/config/cache'
 
 /**
- * `localStorage` half of the response cache, behind {@link readCache}.
- *
- * Only endpoints the policy marks `persist` reach this layer, and only so a page
- * reload paints from a stored copy instead of an empty screen. The in-memory map
- * stays the fast path; this is consulted once per URL, on the first miss.
- *
- * Every call is wrapped in `try`/`catch` on purpose. `localStorage` throws rather
- * than returning empty in private browsing and under a full quota, and a cache is
- * never worth failing a read over: on any error the caller carries on with the
- * in-memory layer alone.
- */
-
-/**
  * Bump when the stored shape changes. Entries written under any other version are
  * deleted on startup, so a deploy that changes what `apiGet` returns can never
  * hand returning staff a response the new code cannot read.

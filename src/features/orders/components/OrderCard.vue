@@ -1,6 +1,4 @@
 <script setup lang="ts">
-// Service-type wording comes from `contracts/shared/service-type-labels.ts` — one vocabulary
-// across price-list, invoices and orders. Do not add a local map back here.
 import { serviceTypeLabel } from '@/shared/utils/service-type-labels'
 import type { z } from 'zod'
 import type { workOrderListResponseSchema } from '@contracts/work-orders/work-order-api.schema'

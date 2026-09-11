@@ -31,10 +31,6 @@ export interface PriceListCategoryGroup {
   items: InvoicePriceListItemDto[]
 }
 
-/**
- * `0` is a valid price. Never use truthiness (`if (price)`, `price || fallback`)
- * — a free item would silently vanish.
- */
 export function servicePresentation(serviceType: PriceListServiceType): PriceListServiceOption {
   return { serviceType, ...SERVICE_PRESENTATION[serviceType] }
 }

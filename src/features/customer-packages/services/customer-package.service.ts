@@ -110,7 +110,6 @@ export async function getCustomerPackageDetail(id: string): Promise<CustomerPack
  * no generic network member, so `opening_transaction_write_failed` is used with
  * an explicit unknown package id and unknown certainty to prevent an unsafe retry.
  */
-// Unknown network write outcome: retain the contract's non-retryable failure kind.
 function unknownCreateOutcome(message: string): CreateCustomerPackageResponse {
   return {
     kind: 'opening_transaction_write_failed',

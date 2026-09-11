@@ -398,8 +398,6 @@ watchEffect(() => {
   }
 })
 
-// ---- still retention, corner editor, filter preview ------------------------
-
 function releaseCapturedStill(): void {
   const still = capturedStill.value
   if (!still) return
@@ -676,11 +674,6 @@ function retakeDocument(): void {
 
 // ---- close / teardown -------------------------------------------------
 
-// Single teardown: cancels timers and run tokens, stops the detection loop
-// (a side effect of the stage/stream reset below flipping detectionActive to
-// false), releases the still, stops and drops every media track, resets the
-// stage, clears errors. Called from the close button, props.open going
-// false, and unmount — nowhere else duplicates any piece of this.
 function teardownScanner(): void {
   stopAdjustSurface()
   releaseCapturedStill()

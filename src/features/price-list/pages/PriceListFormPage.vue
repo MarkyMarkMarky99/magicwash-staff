@@ -297,8 +297,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-/* The palette this form invented is now the app theme. The local names stay so the rules
-   below don't all have to change, but every value comes from the theme token. */
 .price-list-form { --ink:var(--color-on-surface); --teal:var(--color-primary); --teal-2:var(--color-secondary); --mint:var(--color-secondary-container); --lime:var(--color-lime); --line:var(--color-outline-variant); --quiet:var(--color-on-surface-variant); --red:var(--color-error); color:var(--ink); font-family:var(--font-body); }
 .price-list-form * { box-sizing:border-box; }
 .price-list-form button,.price-list-form input,.price-list-form select { font:inherit; }

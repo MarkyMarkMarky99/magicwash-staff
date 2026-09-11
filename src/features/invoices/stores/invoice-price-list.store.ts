@@ -9,12 +9,6 @@ function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback
 }
 
-/**
- * Invoice-create picker's own price-list store. Lives in the invoices feature
- * (no cross-feature import from `src/features/price-list/`) because this
- * overlay must re-fetch every open and walk every page — the browsing page
- * caches a single page.
- */
 export const useInvoicePriceListStore = defineStore('invoice-price-list', () => {
   const items = ref<InvoicePriceListItemDto[]>([])
   const loading = ref(false)
