@@ -51,6 +51,5 @@ Live note for the next session. Branch: `main`.
   - Browser-check ListContainer search, theme consistency, and the order-detail dropdown at the bottom edge.
   - Re-run and triage the pre-existing web dry-test failures: `package-pages`, `invoice-price-list-service`, `order-price-list.store`, `customer-package-create-page`, `price-list.store`, and `price-list-service`.
   - Give `BaseOverlayFrame` a full-bleed size so `LightboxOverlay` can drop its five `!important` padding overrides; then delete `docs/plans/scroll-region.md` and `docs/plans/overlay-frame.md` when unreferenced.
-  - Delete the untracked `2026-09-12-014025-grok-explorer-2026-09-11-003747-httploca.txt` transcript in the repository root.
   - Remove the old `C:\MagicwashGemini\webapp-vue-frontend` worktree after restart.
   - Delete sheet test data: `Packages` `ZZTEST01` / `af9f0651`; `OrderForm` `246fde2b`, `cc4d375e`, `f68ae08d`; `LaundryPhotos` `QK0H9DT1`, `a260b2b1`, `1b7649ba`; `AfterPhoto` `0aacd052`.
