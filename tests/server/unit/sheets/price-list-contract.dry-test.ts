@@ -15,7 +15,7 @@ assert.deepEqual(priceListDbContract.writes, {
 })
 
 const physicalColumns = Object.keys(priceListRowSchema.shape)
-assert.equal(physicalColumns.length, 16)
+assert.equal(physicalColumns.length, 17)
 assert.equal(physicalColumns[0], 'id')
 assert.equal(physicalColumns[4], 'itemtype')
 
@@ -36,6 +36,7 @@ const validPriceListRow = {
   effective_from: 'Date(2026,0,1)',
   effective_to: null,
   active: false,
+  image_url: null,
 }
 
 assert.deepEqual(priceListRowSchema.parse(validPriceListRow), validPriceListRow)

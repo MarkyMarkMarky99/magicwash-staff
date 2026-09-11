@@ -34,6 +34,7 @@ const SHEET_HEADERS = [
   'effective_from',
   'effective_to',
   'active',
+  'image_url',
 ]
 
 const sheetRows: SheetRow[] = [
@@ -54,6 +55,7 @@ const sheetRows: SheetRow[] = [
     'Date(2026,0,1)',
     null,
     true,
+    null,
   ],
 ]
 
@@ -220,7 +222,7 @@ async function withMockSheets(run: (calls: FetchCall[]) => Promise<void>): Promi
       sheetRows.push([...body.values[0]!])
       return jsonResponse({
         spreadsheetId: process.env.PRICE_LIST_SPREADSHEET_ID,
-        updates: { updatedRows: 1, updatedRange: 'PriceList!A2:P2', updatedData: { values: body.values } },
+        updates: { updatedRows: 1, updatedRange: 'PriceList!A2:Q2', updatedData: { values: body.values } },
       })
     }
     if (init?.method === 'POST' && path.endsWith('/values:batchUpdate')) {
@@ -231,8 +233,8 @@ async function withMockSheets(run: (calls: FetchCall[]) => Promise<void>): Promi
         responses: Array.isArray(body.data) ? body.data.map(() => ({})) : [],
       })
     }
-    if (init?.method === 'GET' && /\/values\/PriceList!A\d+:P\d+$/.test(path)) {
-      const rowNumber = Number(/PriceList!A(\d+):P\d+$/.exec(path)![1]) - 2
+    if (init?.method === 'GET' && /\/values\/PriceList!A\d+:Q\d+$/.test(path)) {
+      const rowNumber = Number(/PriceList!A(\d+):Q\d+$/.exec(path)![1]) - 2
       return jsonResponse({ values: [sheetRows[rowNumber]] })
     }
 

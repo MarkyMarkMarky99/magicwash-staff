@@ -20,6 +20,7 @@ export const priceListRowSchema = z.object({
   effective_from: z.string(),
   effective_to: z.string().nullable(),
   active: z.boolean(),
+  image_url: z.string().min(1).nullable(),
 })
 
 export const priceListDbContract = {
