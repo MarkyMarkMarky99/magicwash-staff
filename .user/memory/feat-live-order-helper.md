@@ -2,7 +2,7 @@
 
 ## Status
 
-- Local and `origin` branch at `5f12905`; based on merge-base `9688feb` and 165 commits behind current `main`.
+- Local and `origin` branch at `5f12905`, merge-base `9688feb`. Long stale; run `git rev-list --left-right --count main...feat/live-order-helper` for the current gap.
 - Contains three commits not in `main`: `62edfc4`, `c10ae4d`, and `5f12905`.
 
 ## What the branch adds

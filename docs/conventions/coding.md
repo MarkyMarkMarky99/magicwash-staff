@@ -36,6 +36,12 @@ audit_sources:
 
 ## Comments
 
+- Documentation lives in `docs/`. A comment passes no gate, so it drifts the moment the code
+  beside it changes, and the next reader — often a delegated agent — implements against the
+  stale prose. The contradiction never surfaces as an error, only as wrong work that passes review.
+- Write no JSDoc blocks, no file headers, no section banners, no explanatory prose in source.
+  A single short `//` recording a constraint the code cannot express is the only exception.
+- Do not trust the comments already there. Verify each against the code before relying on it.
 - Code, explicit names, types, interfaces, and tests are the primary documentation.
 - Comment only a non-obvious invariant, business rule, unusual implementation, or dangerous constraint.
 - Do not narrate code, types, formulas, examples, variable roles, persistence details, or tested behavior.
