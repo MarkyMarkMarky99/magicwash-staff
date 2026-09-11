@@ -1,37 +1,36 @@
 # Project memory
 Live note — what is in flight, next, stuck.
 
-## Gallery reads on the API — merged to main 2026-09-12
+## Gallery reads on the API — merged 2026-09-12 (`4cd603b`)
 
-`4cd603b`. Order detail latency work is browser-confirmed by the user and closed.
+Order detail latency is browser-confirmed by the user and closed.
 
-- **Known limit, accepted:** photo `perPage` caps at 500; largest album seen is 8.
-- Not addressed: `OrderGalleryPage.vue` `onDeactivated` wipes `requestedKey` and forces a refetch
-  on re-entry; `loadFetchedPhotos` blanks the list before awaiting. The cache answers it now, but
-  the round trip is still needless.
-- Ten section-banner comments in `OrderGalleryPage.vue` were skipped to avoid a conflict with this
-  branch; it is gone now, so they can be done.
-- Stale on the gallery read path, still not corrected: `feature-structure.md`, `data-fetching.md`,
+- **Accepted limit:** photo `perPage` caps at 500; largest album seen is 8.
+- Not addressed: `OrderGalleryPage.vue` `onDeactivated` wipes `requestedKey`, forcing a refetch on
+  re-entry, and `loadFetchedPhotos` blanks the list before awaiting. Cache answers it; still waste.
+- Stale on the gallery read path: `feature-structure.md`, `data-fetching.md`,
   `docs/features/orders/overview.md`, `docs/features/orders/forms/create-order-image.md`.
 - Session transcript `2026-09-11-003747-*.txt` sits untracked in the repo root; delete it.
 - Then: `onFresh` at the remaining call sites, app-wide cache policy.
 - **Decided against 2026-09-11:** lazy-loading the gallery route to drop Firebase from boot. Staff
   open the gallery on nearly every order. Do not re-propose.
 
-## Branch `chore/remove-stale-code-comments` — in flight, not merged
+## Comment cleanup — merged 2026-09-12 (`2e7de90`)
 
-Six commits. 271 comment lines deleted across the frontend, zero lines added.
+277 comment lines deleted, zero added, plus two test assertions that checked for a comment rather
+than a behaviour.
 
-- **Red test, decision pending:** `customer-package.service.dry-test.ts:48-53` asserts
-  `createCustomerPackage` holds a literal per response kind. Five existed only inside a deleted
-  comment — the function parses the union by schema and names no kind — and `:155-166` already
-  tests every kind behaviourally. Delete the loops, retarget them at the contract schema, or
-  restore the comment.
-- `.user/memory/doc-comment-docs-work.md` holds the remaining 140 decisions. Do not act on a row
-  without checking it — one row was already wrong.
-- Blocked on the user reading `data-fetching.md`: 58 deletions justified by pointing at it or at
-  `cache-gateway.md`, which is build history, not a rule.
-- `app-boot.md` is edited on this branch and on main; expect a conflict on merge.
+- **140 decisions remain in `.user/memory/doc-comment-docs-work.md`, with the 13 defects the
+  deleted comments exposed.** Read it there; do not copy it here.
+- **Verify every row before acting.** Two were already wrong, one of which would have deleted a
+  useful comment.
+- Order: UNVERIFIED 13 first, then re-review the 49 KEEPs (both audits were far too generous),
+  then MOVE 23, then ALREADY-DOCUMENTED 58.
+- **Blocked:** 58 of those point at `data-fetching.md` or at `cache-gateway.md`, which is build
+  history, not a rule. The user reads `data-fetching.md` and decides where the cache rules live
+  before any of them is deleted.
+- Still untouched: ten section banners in `OrderGalleryPage.vue`, and the JSDoc above
+  `unknownCreateOutcome`.
 
 ## GViz read normalization — DEFERRED, do not start
 
@@ -127,28 +126,26 @@ Measured 2026-09-08: GViz 0.49s · prod warm 0.82s · prod cold 1.65s. Fewer rea
 
 - **Pagination, app-wide.** Responses omit real `total`/`totalPages`; invoices and
   customer-packages strand rows past 20. Fix `okPaged` first, then add the two pagers.
-- **Customers sheet has one all-null row** (1 of 466) — shows as a blank entry in every picker.
-  Decide: delete the sheet row, or filter rows without a `customerId`.
-- **Live Orders sheet data is dirty** — 1,074 phantom rows plus mixed spellings and timestamp formats;
-  a cleanup decision is deferred.
+- **Customers sheet has one all-null row** (1 of 466), blank in every picker: delete it, or filter
+  rows with no `customerId`.
+- **Live Orders sheet data is dirty** — 1,074 phantom rows, mixed spellings and timestamp formats.
 - **`LaundryPhotos` row order is not chronological** — new rows land ~row 20,869. Sort by timestamp.
 - **Other modules still page-walk** (`order by <non-unique column>` + limit/offset, can drop rows).
 
 ## Open items
 
-- **Issue screenshot upload, raised in review of #17, none blocking:** hidden file input is
-  `display:none` so its `FormLabel` names nothing to a screen reader (use `sr-only`); upload-busy
-  overlay has no `aria-live`; a failed upload still lets ส่ง through with no image and the Thai copy
-  does not say so; raw English Firebase errors reach staff. Abandoned picks orphan Storage objects —
-  inherent to uploading before submit, no cheap client-side fix.
+- **Issue screenshot upload, from the #17 review, none blocking:** hidden file input needs
+  `sr-only` not `display:none`; busy overlay needs `aria-live`; a failed upload still lets ส่ง
+  through silently; raw English Firebase errors reach staff. Abandoned picks orphan Storage
+  objects — inherent, no cheap fix.
 - **`naming.md` says `usePascalCase.ts` for composables; the codebase is kebab-case** (9 of 19 in
   `src/`). Fix the doc, not the files.
 - **API authentication before launch.** Actor is a fallback constant in `src/shared/config/actor.ts`
   + `server/shared/config/actor.ts`; `?by=` must keep overriding. Issue reports asking a human to
   type their name folds into this pass.
-- Invoice `CANCELLED` vs `VOID` — decide, then the contract. See
-  `docs/plans/invoice-contract-merge-and-status-update.md`. Nested invoice/items update blocked
-  until delete or soft-delete exists.
+- Invoice `CANCELLED` vs `VOID` — decide, then the contract
+  (`docs/plans/invoice-contract-merge-and-status-update.md`). Nested invoice/items update is
+  blocked until delete or soft-delete exists.
 - Remove schema-file `z.infer` exports in one dedicated all-contract pass.
 - Consolidate datetime helpers separately — `SheetRepository` is shared by every module.
 - Stage 4 overlays still local-state: `OrderGalleryPage.vue`, `InvoiceProofLightbox.vue`,
