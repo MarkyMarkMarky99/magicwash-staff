@@ -21,6 +21,9 @@ const loading = ref(false)
 const loadError = ref<string | null>(null)
 const notFound = ref(false)
 const actionError = ref<string | null>(null)
+// Rows created before the upload field existed hold a pasted link, which may point at a page
+// rather than an image. Those must fall back to the link text instead of a broken thumbnail.
+const screenshotUnrenderable = ref(false)
 const actorReady = computed(() => actor.value.trim().length > 0)
 const statusOptions = computed(() => ISSUE_REPORT_STATUS_OPTIONS.map((option) => ({ ...option, disabled: !actorReady.value })))
 let latestLoad = 0
@@ -32,6 +35,7 @@ async function loadDetail() {
   loadError.value = null
   notFound.value = false
   actionError.value = null
+  screenshotUnrenderable.value = false
   report.value = null
 
   try {
@@ -102,9 +106,17 @@ watch(() => props.id, () => void loadDetail(), { immediate: true })
             <div>
               <dt class="font-semibold text-on-surface-variant">ภาพหน้าจอ</dt>
               <dd>
-                <a v-if="report.screenshotUrl" :href="report.screenshotUrl" target="_blank" rel="noopener noreferrer">
-                  <img :src="report.screenshotUrl" alt="ภาพหน้าจอที่แนบ" class="mt-1 max-h-64 w-full rounded-xl border border-outline-variant/40 bg-surface-variant object-contain" />
-                </a>
+                <template v-if="report.screenshotUrl">
+                  <a v-if="screenshotUnrenderable" :href="report.screenshotUrl" class="break-all text-primary underline" target="_blank" rel="noopener noreferrer">{{ report.screenshotUrl }}</a>
+                  <a v-else :href="report.screenshotUrl" target="_blank" rel="noopener noreferrer">
+                    <img
+                      :src="report.screenshotUrl"
+                      alt="ภาพหน้าจอที่แนบ"
+                      class="mt-1 max-h-64 w-full rounded-xl border border-outline-variant/40 bg-surface-variant object-contain"
+                      @error="screenshotUnrenderable = true"
+                    />
+                  </a>
+                </template>
                 <template v-else>—</template>
               </dd>
             </div>
