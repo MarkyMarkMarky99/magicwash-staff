@@ -9,6 +9,11 @@ audit_sources:
   - src/features/customers/pages/CustomerDetailPage.vue
 ---
 
+> **DRAFT — not reviewed.** Written by an agent session on 2026-09-11 and merged in `d9e34bc`
+> without the repository owner reading it. At least one statement in it has already been found
+> wrong. Verify anything here against the source before relying on it, and do not cite this
+> document as the authority for deleting a source comment until it has been reviewed.
+
 # Data Fetching and Cache
 
 How reads reach the API, how they are cached, and how a page reports loading.

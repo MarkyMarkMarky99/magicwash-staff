@@ -23,6 +23,16 @@ Reviewed by grok-explorer, all gates green, **still not checked in a real browse
   open the gallery on nearly every order, so it buys nothing. Do not re-propose.
 - After that, the structural pass: `onFresh` (23 call sites), app-wide cache policy.
 
+## Two docs are unreviewed drafts
+
+- `docs/architecture/frontend/app-boot.md` and `docs/conventions/data-fetching.md` were written by
+  an agent session and merged in `d9e34bc` without the owner reading them. Both now carry a DRAFT
+  banner saying so.
+- One statement in `app-boot.md` was already wrong (it claimed the appointment query schema accepts
+  `dateFrom`/`dateTo`; it has no date-range field). Corrected 2026-09-12.
+- **Never cite either as the authority for deleting a source comment** until they are reviewed.
+  `.user/memory/doc-comment-docs-work.md` has 30 pending deletions blocked on exactly this.
+
 ## Queue — 2026-09-09, in order
 
 1. **Backfill `Cache-Control` on existing photos.** Script writable now, **not runnable** until the

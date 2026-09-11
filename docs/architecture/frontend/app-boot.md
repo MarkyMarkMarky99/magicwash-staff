@@ -10,6 +10,11 @@ audit_sources:
   - src/shared/api/persistent-cache.ts
 ---
 
+> **DRAFT — not reviewed.** Written by an agent session on 2026-09-11 and merged in `d9e34bc`
+> without the repository owner reading it. At least one statement in it has already been found
+> wrong. Verify anything here against the source before relying on it, and do not cite this
+> document as the authority for deleting a source comment until it has been reviewed.
+
 # Application Boot
 
 What may run before the first route renders.
@@ -44,7 +49,8 @@ A request may fire at boot only if it meets all three:
 - Current boot requests: `src/App.vue:8-9` fires two appointment reads on mount.
 - `?appointmentDate=<today>&perPage=100` is bounded.
 - `?status=PENDING&perPage=100` is **not** date-bounded and silently truncates past 100 rows.
-  `appointment-api.schema.ts:88-102` already accepts `dateFrom` / `dateTo`.
+  `appointment-api.schema.ts:88-102` has no date-range field: adding `dateFrom` / `dateTo` to
+  the query schema is part of the fix, not something already available.
 - `appointment.store.ts:73` checks `pendingLoaded` only, so a second call can start mid-flight.
 
 ## Module-scope side effects
