@@ -100,9 +100,11 @@ watch(() => props.id, () => void loadDetail(), { immediate: true })
             <div><dt class="font-semibold text-on-surface-variant">รายละเอียด</dt><dd class="whitespace-pre-wrap">{{ report.description }}</dd></div>
             <div><dt class="font-semibold text-on-surface-variant">สถานะ</dt><dd>{{ report.status }}</dd></div>
             <div>
-              <dt class="font-semibold text-on-surface-variant">ลิงก์ภาพหน้าจอ</dt>
+              <dt class="font-semibold text-on-surface-variant">ภาพหน้าจอ</dt>
               <dd>
-                <a v-if="report.screenshotUrl" :href="report.screenshotUrl" class="break-all text-primary underline" target="_blank" rel="noopener noreferrer">{{ report.screenshotUrl }}</a>
+                <a v-if="report.screenshotUrl" :href="report.screenshotUrl" target="_blank" rel="noopener noreferrer">
+                  <img :src="report.screenshotUrl" alt="ภาพหน้าจอที่แนบ" class="mt-1 max-h-64 w-full rounded-xl border border-outline-variant/40 bg-surface-variant object-contain" />
+                </a>
                 <template v-else>—</template>
               </dd>
             </div>

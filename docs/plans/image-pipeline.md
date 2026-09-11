@@ -4,13 +4,18 @@ Written 2026-09-08. Numbers here are measured against the live bucket, not estim
 
 ## How uploads work now
 
-One module does every upload: `src/shared/api/firebase-storage.ts`. Both photo systems call
+One module does every upload: `src/shared/api/firebase-storage.ts`. Every caller calls
 `uploadToStorage(file, folder)`; the folder is the only thing that differs.
 
 | Caller | Route | Folder | Sheet written |
 |---|---|---|---|
 | `src/composables/usePhotoUpload.js` → `OrderGalleryPage.vue` | `/gallery/:key` | `images/` | `LaundryPhotos` / `AfterPhoto` |
 | `src/features/orders/stores/order-image.store.ts` → `OrderDetailPage.vue` | `/orders/:orderId` | `order-images/<orderId>/` | `OrderImages` |
+| `src/features/issue-reports/composables/use-screenshot-upload.ts` → `IssueReportFormPage.vue` | `/issue-reports/new` | `issue-reports/` | `IssueReports.ScreenshotUrl` |
+
+The screenshot upload is the odd one out: it writes no photo row. `ScreenshotUrl` is a single
+column on the issue report itself, so the composable holds the URL until the form is submitted and
+one screenshot replaces another rather than appending.
 
 The two **sheets** are separate on purpose; the **upload** never needed to be. Before this change
 the same nine lines existed twice, in `src/api/storage.js` and
@@ -26,6 +31,12 @@ No path lets a user pick an arbitrary file; every image is JPEG-encoded in the b
 | `CameraOverlay.vue:192-198` (`encodeCanvasToJpeg`) | 0.82 | 1280 px | ~213 KB |
 | `DocumentScannerOverlay.vue:635-638` | 0.88 | 2400 px | ~700 KB |
 | `usePhotoUpload.js:41` (`compressImage`, gallery album picks only) | binary search | 1920 px | ≤200 KB by construction |
+| `use-screenshot-upload.ts` (`compressImage`, every pick) | binary search | 1920 px | ≤200 KB by construction |
+
+**`order-image.store.ts` never calls `compressImage`.** It uploads whatever `CameraOverlay` or
+`DocumentScannerOverlay` hands it, so its files carry no size ceiling — the ~700 KB scans above are
+that path. Putting `compressImage` in front of its `uploadToStorage` is open work; see
+`.user/memory/MEMORY.md`.
 
 Sample of four real objects: 703 KB, 672 KB, 213 KB, 214 KB — average **450 KB**. Two further
 objects measured 759 bytes at 2×2 pixels; those belong to the UAT test orders `246fde2b` and
