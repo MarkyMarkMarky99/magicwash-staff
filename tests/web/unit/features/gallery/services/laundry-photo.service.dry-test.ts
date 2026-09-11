@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 
-import { createPhoto, reassignPhoto } from '@/features/gallery/services/laundry-photo.service'
+import {
+  createPhoto,
+  listGalleryPhotos,
+  reassignPhoto,
+} from '@/features/gallery/services/laundry-photo.service'
 
 interface Call {
   body: string
@@ -87,5 +91,65 @@ await withMockFetch(async (calls) => {
   )
   assert.equal(calls.length, 4, 'invalid payloads must be rejected before a request')
 })
+
+const originalFetch = globalThis.fetch
+const listCalls: URL[] = []
+globalThis.fetch = (async (input: URL | string) => {
+  const url = new URL(String(input), 'http://localhost')
+  listCalls.push(url)
+  const data = url.pathname === '/api/laundry-photos'
+    ? [
+        { laundryPhotoId: 'before-1', imageUrl: 'https://example.com/before.jpg', notes: 'before' },
+        { laundryPhotoId: 'before-missing', imageUrl: null, notes: null },
+      ]
+    : [
+        { afterPhotoId: 'after-1', imageUrl: 'https://example.com/after.jpg', notes: null },
+      ]
+  return new Response(JSON.stringify({
+    success: true,
+    data,
+    meta: { pagination: { page: 1, perPage: 500 } },
+  }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}) as typeof fetch
+
+try {
+  const beforePhotos = await listGalleryPhotos('BEF', 'order-before')
+  const afterPhotos = await listGalleryPhotos('AFT', 'order-after', 'item-after')
+
+  assert.equal(listCalls.length, 2)
+  assert.equal(listCalls[0]!.pathname, '/api/laundry-photos')
+  assert.equal(listCalls[0]!.searchParams.get('orderId'), 'order-before')
+  assert.equal(listCalls[0]!.searchParams.has('orderItemId'), false)
+  assert.equal(listCalls[0]!.searchParams.get('page'), '1')
+  assert.equal(listCalls[0]!.searchParams.get('perPage'), '500')
+  assert.equal(listCalls[0]!.searchParams.get('sortBy'), 'createdAt')
+  assert.equal(listCalls[0]!.searchParams.get('sortOrder'), 'asc')
+  assert.equal(listCalls[1]!.pathname, '/api/after-photos')
+  assert.equal(listCalls[1]!.searchParams.get('orderId'), 'order-after')
+  assert.equal(listCalls[1]!.searchParams.get('orderItemId'), 'item-after')
+  assert.equal(listCalls[1]!.searchParams.get('page'), '1')
+  assert.equal(listCalls[1]!.searchParams.get('perPage'), '500')
+  assert.equal(listCalls[1]!.searchParams.get('sortBy'), 'createdAt')
+  assert.equal(listCalls[1]!.searchParams.get('sortOrder'), 'asc')
+  assert.deepEqual(beforePhotos, [
+    { id: 'before-1', imageUrl: 'https://example.com/before.jpg', notes: 'before' },
+  ])
+  assert.deepEqual(afterPhotos, [
+    { id: 'after-1', imageUrl: 'https://example.com/after.jpg', notes: null },
+  ])
+
+  let freshBeforePhotos: Awaited<ReturnType<typeof listGalleryPhotos>> | null = null
+  await listGalleryPhotos('BEF', 'order-before', null, (photos) => {
+    freshBeforePhotos = photos
+  })
+  await new Promise(resolve => setTimeout(resolve, 0))
+  assert.deepEqual(freshBeforePhotos, beforePhotos)
+  assert.equal(listCalls.length, 3)
+} finally {
+  globalThis.fetch = originalFetch
+}
 
 console.log('laundry-photo.service.dry-test: OK')
