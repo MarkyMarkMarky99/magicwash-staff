@@ -16,8 +16,6 @@ const { customers, loading, error } = storeToRefs(customerStore)
 
 const { filter, updateFilter } = useCustomerFilterRoute()
 
-// Type-tab counts: a trivial count over the full list (every customer is loaded),
-// so each tab shows the true total per type, independent of the active search.
 const typeCounts = computed<Record<string, number>>(() => {
   const counts: Record<string, number> = { all: customers.value.length }
   for (const type of customerTypeSchema.options) {
@@ -26,7 +24,6 @@ const typeCounts = computed<Record<string, number>>(() => {
   return counts
 })
 
-// Search + type filter applied to the in-memory list — no re-fetch.
 const filteredCustomers = computed(() => {
   let list = customers.value
 

@@ -37,12 +37,7 @@ export type LetterboxLayout = {
   offsetY: number,
 }
 
-/**
- * Where to draw a video frame inside the square canvas the model expects, keeping the
- * frame's aspect ratio and centring it between black bars. Deliberately unrounded:
- * drawImage accepts fractional destination boxes, and rounding here would not be undone
- * by unmapLetterboxedQuad's single scale factor, leaving the outline slightly offset.
- */
+// Preserve fractional letterbox offsets so unmapping stays aligned with the outline.
 export function letterboxLayout(videoWidth: number, videoHeight: number, size: number): LetterboxLayout {
   const scale = fitScale(videoWidth, videoHeight, size)
   const drawWidth = videoWidth * scale

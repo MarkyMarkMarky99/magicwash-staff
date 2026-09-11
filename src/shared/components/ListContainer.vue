@@ -8,9 +8,7 @@ const props = defineProps({
   countLabel: { type: String, required: true },
   topDivider: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
-  // PropType cast: the default is null, so the prop genuinely accepts null and
-  // every caller passes a nullable store error. Without it Vue infers
-  // `string | undefined` and each call site is a type error.
+  // Without the PropType cast Vue infers string | undefined and every nullable caller fails.
   error: { type: /** @type {import('vue').PropType<string | null>} */ (String), default: null },
   empty: { type: Boolean, default: false },
   emptyText: { type: String, default: 'No items' },
@@ -41,8 +39,6 @@ watch(
       clearTimeout(debounceTimer)
       keywordInput.value = keyword
     }
-    // A keyword arriving from the URL (a deep link, a restored filter) has to reveal the box
-    // it came from, or the user sees a filtered list with no visible reason.
     if (keyword) searchOpen.value = true
   },
 )

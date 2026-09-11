@@ -5,8 +5,7 @@ import type { InvoiceFilter } from '../types/invoice-filter.types'
 const props = defineProps<{
   filter: InvoiceFilter
   open: boolean
-  // ListContainer renders none of the panel's slots while loading, so opening it would flip
-  // aria-expanded on nothing.
+  // Keep this control disabled while ListContainer suppresses its panel slots during loading.
   disabled?: boolean
 }>()
 

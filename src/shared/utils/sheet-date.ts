@@ -130,7 +130,7 @@ export function getBangkokClock(now: Date = new Date()): BangkokClock {
   }
 }
 
-/** Add calendar days to an ISO civil date without applying a timezone offset. */
+// Keep ISO civil-date arithmetic independent of timezone offsets.
 export function addSheetDateDays(value: string, days: number): string {
   const parsed = parseIsoDate(value)
   if (!parsed || !Number.isInteger(days)) return value
@@ -139,7 +139,7 @@ export function addSheetDateDays(value: string, days: number): string {
   return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}-${String(next.getUTCDate()).padStart(2, '0')}`
 }
 
-/** Return calendar fields for a civil date using Sunday=0 weekday numbering. */
+// Calendar weekday numbering uses Sunday=0.
 export function getSheetDateCalendar(value: unknown): SheetDateCalendar | null {
   const normalized = normalizeSheetDate(value)
   const parsed = normalized ? parseIsoDate(normalized) : null

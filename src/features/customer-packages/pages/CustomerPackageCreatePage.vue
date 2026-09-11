@@ -23,8 +23,7 @@ import { currentActor } from '@/shared/config/actor'
 
 defineOptions({ name: 'CustomerPackageCreatePage' })
 
-// Supplying customerId mounts this form over the customer's page. Its owner
-// controls the query entry and dismissal; the standalone route remains usable.
+// With customerId, the parent owns overlay navigation; otherwise this page is standalone.
 const props = defineProps<{ customerId?: string; customer?: CustomerDetailDto | null }>()
 const emit = defineEmits<{ close: []; created: [] }>()
 

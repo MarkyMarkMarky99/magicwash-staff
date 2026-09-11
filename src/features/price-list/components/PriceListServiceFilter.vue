@@ -5,8 +5,7 @@ import { serviceTypeOptions } from '@/shared/utils/service-type-labels'
 const props = defineProps<{
   serviceType: string | null
   open: boolean
-  // While the list is loading, ListContainer renders none of the slots the panel lives in, so
-  // opening it would flip aria-expanded on nothing.
+  // Disable while loading because ListContainer hides the panel content.
   disabled?: boolean
 }>()
 

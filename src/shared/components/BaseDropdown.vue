@@ -26,9 +26,6 @@ const triggerAttrs = computed(() => ({
   'aria-expanded': open.value,
 }))
 
-// Matches Vue's VNodeRef callback signature: a template ref can hand back a
-// component instance, not just an element, so the wider parameter is required
-// for `:ref="setTrigger"` to type-check at every call site.
 function setTrigger(element: Element | ComponentPublicInstance | null) {
   triggerRef.value = element instanceof HTMLElement ? element : null
 }

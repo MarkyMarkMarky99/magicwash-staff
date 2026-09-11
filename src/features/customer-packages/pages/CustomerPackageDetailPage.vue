@@ -53,9 +53,7 @@ const signInvalid = computed(() => {
 })
 const submitDisabled = computed(() => signInvalid.value || transactionRetryBlocked.value)
 
-// Read at submit time, never once at setup: this page is KeepAlive-cached, so a value
-// captured during the first visit would be reused for every later customer. A computed
-// would not help either -- window.location.hash is not reactive.
+// Read at submit time because KeepAlive cannot make window.location.hash reactive.
 function readActor(): string {
   const actor = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('by')
   return currentActor(actor)

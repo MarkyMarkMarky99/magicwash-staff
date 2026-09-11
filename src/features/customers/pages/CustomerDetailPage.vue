@@ -97,7 +97,7 @@ async function submitUsage(value: { customerPackageId: string; creditsUsed: numb
   const result = await packagesStore.recordUsage(parsed.data)
   if (!result) return
   if (result.kind === 'created') {
-    // Prevent a second submit while the balance is being refreshed.
+    // Block repeat submission until the refreshed package balance arrives.
     blockedUsageOrders.value.add(key)
     await packagesStore.load(props.customerId, true)
     if (usageOrderKey.value === key && activeTab.value === 'orders' && usageOpen.value) closeUsage()

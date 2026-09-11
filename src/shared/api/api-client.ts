@@ -36,7 +36,6 @@ export class ApiError extends Error {
 }
 
 interface GetListOptions<TQuery extends z.ZodTypeAny, TItem = unknown> {
-  /** Raw filter/query object; validated and serialized into the query string. */
   query?: unknown
   /** Contract list-query schema — the request is validated against it. */
   querySchema: TQuery
@@ -51,10 +50,6 @@ interface GetOptions<T> {
   onFresh?: (value: T) => void
 }
 
-/**
- * GET a paginated list endpoint. The caller fixes the item type via the generic
- * (`apiGetList<CustomerListDto>(…)`); the data is returned untouched.
- */
 export async function apiGetList<TItem, TQuery extends z.ZodTypeAny = z.ZodTypeAny>(
   path: string,
   options: GetListOptions<TQuery, TItem>,
@@ -93,8 +88,6 @@ async function read<TBody, TValue>(
   if (hit === null) return fetchFresh(url, unwrap)
 
   if (!hit.fresh) {
-    // Background revalidation: the caller already has a value, so a failure here
-    // must not surface as an unhandled rejection or replace good data with an error.
     void fetchFresh(url, unwrap)
       .then((value) => onFresh?.(value))
       .catch(() => undefined)
@@ -164,7 +157,6 @@ async function apiWrite<TResponse, TRequest extends z.ZodTypeAny>(
   return body.data
 }
 
-/** Serialize a validated query object, skipping null/undefined and empty strings. */
 function buildQueryString(query: unknown): string {
   if (!query || typeof query !== 'object') return ''
 
@@ -178,7 +170,6 @@ function buildQueryString(query: unknown): string {
   return qs ? `?${qs}` : ''
 }
 
-/** Read the standard error envelope to surface its message, degrading gracefully. */
 async function toApiError(response: Response): Promise<ApiError> {
   try {
     const parsed = apiErrorResponseSchema.safeParse(await response.json())
@@ -186,7 +177,7 @@ async function toApiError(response: Response): Promise<ApiError> {
       return new ApiError(parsed.data.error.message, response.status, parsed.data.error.code)
     }
   } catch {
-    // Body was not JSON / not an error envelope — fall through to a generic message.
+    // Body was not JSON or not an error envelope.
   }
   return new ApiError(`Request failed: ${response.status}`, response.status)
 }

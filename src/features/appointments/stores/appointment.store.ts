@@ -15,11 +15,7 @@ type AppointmentItem = AppointmentListDto | AppointmentCreateDto | AppointmentUp
 
 const MAX_LIST_SIZE = 100
 
-/**
- * Shared appointment read model for schedule and pending views. Every mutation
- * uses the persisted write response, rather than reading GViz immediately after
- * a write (the sheet's read path can lag behind it).
- */
+// Reconcile views from write responses because GViz reads may lag.
 export const useAppointmentStore = defineStore('appointments', () => {
   const selectedDate = ref(toAppointmentDate(new Date()))
   const dailyItems = ref<AppointmentListDto[]>([])
@@ -53,7 +49,6 @@ export const useAppointmentStore = defineStore('appointments', () => {
       const items = await listAppointmentsForDate(date)
       if (request !== dailyRequest) return
 
-      // Pending work belongs exclusively to the pending queue.
       dailyItems.value = items
         .filter((item) => item.status !== 'PENDING')
         .sort((left, right) => left.timeSlot.localeCompare(right.timeSlot))

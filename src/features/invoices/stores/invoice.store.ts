@@ -11,7 +11,7 @@ export const useInvoiceStore = defineStore('invoices', () => {
   const perPage = ref(20)
   const loading = ref(false)
   const error = ref<string | null>(null)
-  // Prevent an older response from overwriting a newer request.
+  // Ignore stale responses from superseded requests.
   let latestRequest = 0
 
   async function fetchInvoices(filter: InvoiceFilter) {

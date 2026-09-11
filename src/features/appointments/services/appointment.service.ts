@@ -103,11 +103,7 @@ interface AppointmentWriteOptions {
   requestSchema: z.ZodTypeAny
 }
 
-/**
- * Appointment writes read the existing error envelope's details field so the
- * API-provided certainty reaches the two write-facing pages without changing
- * the shared client behavior used by other features.
- */
+// Preserve appointment certainty because the shared client exposes only generic ApiError.
 async function appointmentWrite<TResponse>(
   path: string,
   method: 'POST' | 'PATCH',

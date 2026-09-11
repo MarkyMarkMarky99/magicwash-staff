@@ -2,9 +2,7 @@
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 
-// Search moved into ListContainer, where the magnifier now sits in the list heading and the
-// input drops in under it. This layout owns page chrome only: the filter strip and the scroll
-// region. Do not put a page-wide search bar back here.
+// Search belongs to ListContainer; this layout owns the filter strip and scroll region only.
 const props = withDefaults(defineProps<{
   embedded?: boolean
 }>(), {

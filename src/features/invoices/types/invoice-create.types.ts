@@ -25,12 +25,7 @@ export interface LineItemFormRow {
   quantity: string
   unitPrice: string
   adjustments: AdjustmentFormRow[]
-  /**
-   * Form-local only — never submitted. Set only on the blank row seeded when
-   * the source order had zero items, so a picker tap can replace it without
-   * confusing it for an order-seeded line that happens to look blank
-   * (`description`/`quantity` are nullable on the order contract).
-   */
+  // Form-local marker for the blank row seeded when the order had zero items.
   syntheticPlaceholder?: true
 }
 

@@ -377,10 +377,7 @@ async function startCamera(): Promise<void> {
   }
 }
 
-// The invariant effect below is the only thing that restarts the camera. It
-// covers every path back to 'viewfinder', including ones not foreseen here.
-// Guarded by cameraError so a failing getUserMedia cannot loop — the retry
-// button only clears cameraError and lets this fire again.
+// Only the viewfinder effect restarts the camera; cameraError prevents retry loops.
 function retryCamera(): void {
   cameraError.value = ''
 }
@@ -408,15 +405,7 @@ function showShutterFlash(): void {
   }, 140)
 }
 
-// The magnifier samples `still.source` (the captured canvas) directly with
-// drawImage, so its source rectangle is in image-pixel space — the same
-// space as cornerEditor.points (see initialQuadForStill, which maps the
-// detected quad into still-pixel coordinates once at capture time). The
-// active corner therefore sits at the exact centre of the sampled square by
-// construction (point.x/y is the centre of the source rect above).
-// box.scale (from contentBox) is display-px-per-image-px for the adjust
-// surface; multiplying by LOUPE_ZOOM gives image-px-to-loupe-px, which is
-// what drawLoupeCropOverlay uses to place the neighbouring corners.
+// Loupe sampling uses image pixels; box.scale converts them to loupe pixels.
 function drawLoupeCropOverlay(
   context: CanvasRenderingContext2D,
   imageToLoupeScale: number,
@@ -441,8 +430,7 @@ function drawLoupeCropOverlay(
   const previousCorner = extendToEdge(toLoupeSpace(points[(activeCorner + 3) % 4]))
   const nextCorner = extendToEdge(toLoupeSpace(points[(activeCorner + 1) % 4]))
 
-  // Kept deliberately thin: this line exists to be aligned against the paper
-  // edge, and a thick one hides the very pixels the user is aiming at.
+  // Keep the alignment guide thin so it does not obscure the paper edge.
   context.strokeStyle = '#b2df26'
   context.lineWidth = 2
   context.beginPath()
@@ -451,8 +439,7 @@ function drawLoupeCropOverlay(
   context.lineTo(nextCorner.x, nextCorner.y)
   context.stroke()
 
-  // Crosshair, not a filled dot: the gap at the centre leaves the exact point
-  // the handle resolves to visible instead of covering it.
+  // Leave a centre gap so the crosshair does not cover the active point.
   const gap = 4
   const arm = 12
   const strokeCrosshair = (color: string, width: number): void => {
@@ -465,7 +452,7 @@ function drawLoupeCropOverlay(
     }
     context.stroke()
   }
-  // Dark pass first so the crosshair stays legible on pale paper too.
+  // Draw the dark pass first to keep the crosshair legible on pale paper.
   strokeCrosshair('rgba(35, 79, 73, 0.85)', 3.5)
   strokeCrosshair('#9df5df', 1.5)
 }
@@ -577,10 +564,7 @@ function capturePhoto(): void {
     stopCameraStream()
     scannerStage.value = 'adjusting'
   } catch (error) {
-    // capturing -> viewfinder (any failure): the stream was never stopped on
-    // this path (stopCameraStream() above only runs after success), so it is
-    // still live; re-enable the shutter, reset hold-still progress, and show
-    // the reason.
+    // On capture failure, keep the stream live and return to viewfinder.
     releaseCapturedStill()
     resetHoldStill()
     scannerStage.value = 'viewfinder'
@@ -635,8 +619,7 @@ async function useAdjustedDocument(): Promise<void> {
     releaseCapturedStill()
     scannerStage.value = 'viewfinder'
   } catch (error) {
-    // warping -> adjusting (any failure): keep the still and the corners —
-    // losing a document to a warp error is the worst outcome available.
+    // Preserve the captured still and corners after a warp failure so the user can retry.
     errorMessage.value = `ปรับเอกสารไม่สำเร็จ · ${errorDetails(error)}`
     scannerStage.value = 'adjusting'
   }

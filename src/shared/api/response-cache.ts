@@ -21,11 +21,7 @@ interface CacheEntry {
   value: unknown
   bytes: number
   storedAt: number
-  /**
-   * Monotonic use counter, not a timestamp: several reads and writes land inside
-   * the same millisecond, which would leave `Date.now()` tied and make eviction
-   * fall back to insertion order.
-   */
+  // Keep LRU order deterministic within the same millisecond.
   lastUsed: number
 }
 
@@ -104,18 +100,9 @@ export function writeCache(url: string, value: unknown): void {
   store(url, value, Date.now(), policy.persist)
 }
 
-/**
- * Put an entry in the map and account for its size.
- *
- * `storedAt` is a parameter rather than `Date.now()` so a promotion from storage
- * keeps the moment the response actually arrived. `persist` is passed in rather
- * than re-derived so a promotion does not immediately write back what it just
- * read.
- */
+// Preserve age without rewriting entries promoted from storage.
 function store(url: string, value: unknown, storedAt: number, persist: boolean): CacheEntry | null {
   const bytes = measure(value)
-  // A single response larger than the whole budget is not worth evicting
-  // everything else for.
   if (bytes > CACHE_MAX_BYTES) return null
 
   drop(url)
