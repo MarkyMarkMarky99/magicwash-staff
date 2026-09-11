@@ -5,8 +5,8 @@ Live note — what is in flight, next, stuck.
 
 - Issue report form uploads a screenshot to Firebase now (`use-screenshot-upload.ts`), replacing the
   paste-a-link field. Compresses on every pick, unlike the two older paths.
-- **Not opened in a browser yet.** `#/issue-reports/new` → attach → submit → detail must render the
-  image, and a second pick must replace the first without the stale upload winning.
+- **Confirmed working by the user on the Vercel preview for `1fd4e62`.** The compressed-size readout
+  was cut afterwards at their request; the sizes stay on the composable, unread by any UI.
 - Boot budget re-measured: same bytes, 8 entry chunks not 7 — Firebase split out of `index`.
 
 ## Merged to main 2026-09-11 — order detail latency

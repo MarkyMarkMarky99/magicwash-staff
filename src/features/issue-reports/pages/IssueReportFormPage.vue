@@ -23,10 +23,6 @@ const submitting = ref(false)
 const formError = ref<string | null>(null)
 const canSubmit = computed(() => !submitting.value && !isBusy.value && report.title.trim() && report.description.trim() && actor.value.trim())
 
-function formatSize(bytes: number): string {
-  return `${Math.max(1, Math.round(bytes / 1024))} KB`
-}
-
 function createPayload() {
   return {
     title: report.title.trim(),
@@ -97,9 +93,6 @@ onBeforeUnmount(clear)
 
           <p v-if="screenshot.status === 'error'" class="rounded-lg bg-error-container px-3 py-2 text-sm text-on-error-container" role="alert">
             {{ screenshot.errorMessage }}
-          </p>
-          <p v-else-if="screenshot.status === 'done' && screenshot.compressedSize !== null" class="text-xs text-on-surface-variant">
-            บีบอัด {{ formatSize(screenshot.originalSize) }} → {{ formatSize(screenshot.compressedSize) }}
           </p>
 
           <div class="flex gap-2">
