@@ -3,35 +3,37 @@ Live note — what is in flight, next, stuck.
 
 ## Merged to main 2026-09-11 — order detail latency
 
-Reviewed by grok-explorer, all gates green, **still not checked in a real browser.**
-
-- First browser pass tomorrow: list -> order must paint the header before the item list, and adding
-  an item must not flash the list back to empty. `main` @ `ccf187a`.
-- Behaviour change worth knowing: order detail `getById` double fault (items read *and* customer
-  read both failing) now surfaces the items error, not the customer error.
+- `main` @ `ccf187a`, deployed. **Never opened in a browser.** First pass: list -> order must paint
+  the header before the item list, and adding an item must not flash the list back to empty.
 - Session transcript `2026-09-11-003747-*.txt` sits untracked in the repo root; delete it.
 
 ## Branch `feat/gallery-backend-reads` — pushed, NOT merged
 
-Waiting on the user's review. Merge decision is theirs; everything else is done.
+Browser-verified by codex against live data. Merge decision is the user's; nothing else is pending.
 
-- Gallery photo reads moved off browser GViz onto `/api/laundry-photos` + `/api/after-photos`.
-  `src/api/photos.js` and `src/utils/gviz.js` deleted.
-- First `onFresh` call site in the app. Cache policy already made these endpoints cacheable at
-  `hours: 0`, so a repeat visit paints from cache and the refresh swaps in.
-- Browser-verified by codex against live data; screenshots in the temp folder
-  `gallery-backend-read-proof-20260911`.
-- **Known limit, accepted:** `perPage` caps at 500, so an album with more than 500 photos would
-  truncate. Legacy GViz had no cap. Largest album seen is 8.
-- Docs now stale on the gallery read path, deliberately not edited (the task forbade it):
+- **Known limit, accepted:** `perPage` caps at 500, so an album over 500 photos truncates. Legacy
+  GViz had no cap. Largest seen is 8.
+- Stale on the gallery read path, deliberately not edited (the task forbade touching docs):
   `feature-structure.md`, `data-fetching.md`, `docs/features/orders/overview.md`,
   `docs/features/orders/forms/create-order-image.md`.
-- Still open from the earlier finding, NOT addressed here: `OrderGalleryPage.vue` `onDeactivated`
-  wipes `requestedKey` and forces a refetch on re-entry, and `loadFetchedPhotos` blanks the list
-  before awaiting. Cheap now that the cache answers, but still a needless round trip.
-- After this: the structural pass — `onFresh` at the remaining call sites, app-wide cache policy.
+- Not addressed there: `OrderGalleryPage.vue` `onDeactivated` wipes `requestedKey` and forces a
+  refetch on re-entry; `loadFetchedPhotos` blanks the list before awaiting. Cache answers it now,
+  but the round trip is still needless.
+- Then: `onFresh` at the remaining call sites, app-wide cache policy.
 - **Decided against 2026-09-11:** lazy-loading the gallery route to drop Firebase from boot. Staff
   open the gallery on nearly every order. Do not re-propose.
+
+## GViz read normalization — DEFERRED, do not start
+
+> "ผมยังไม่อยากแก้ไขโครงสร้างระดับนั้นเพราะมันจะส่งผลกระทบต่อทุกจุดแล้วเราก็ไม่รู้ว่าทุกจุดที่เรียกใช้สะอาดแค่ไหน
+> ผมกังวลว่ามันจะส่งผลกระทบต่อหลายคอลัมน์เดิมที่แสดงผลอยู่ตอนนี้ อ่านแนวคิดของคุณผมคิดว่ามันถูกต้องนะแต่ยังไม่ใช่ตอนนี้"
+> — 2026-09-11
+
+- Full proposal and traps: `.user/memory/gviz-read-normalization.md`. Direction agreed, timing not.
+- Do not re-propose it as a next step, and do not delete the frontend compensating code as
+  "redundant" — some of it is the only thing stopping a runtime throw.
+- Separable and still worth doing alone: the invoice `dateFrom`/`dateTo` filter compares
+  `Date(...)` against ISO lexicographically (`invoice.service.ts:631`).
 
 ## Queue — 2026-09-09, in order
 
