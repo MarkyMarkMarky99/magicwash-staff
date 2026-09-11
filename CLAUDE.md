@@ -10,7 +10,6 @@ implemented behavior, correct the canonical document rather than adding a compet
 
 - [Project structure, technology, path aliases, and dependency direction](docs/architecture/frontend/project-structure.md)
 - [Feature structure, data flow, state/API ownership, and shared-code placement](docs/architecture/frontend/feature-structure.md)
-- [Application boot: what may load and fetch before the first route](docs/architecture/frontend/app-boot.md)
 
 ## Conventions
 
@@ -20,7 +19,6 @@ implemented behavior, correct the canonical document rather than adding a compet
 - [Contracts and the API/DB boundary](docs/conventions/contracts/README.md)
 - [API contract schemas](docs/conventions/contracts/api.md)
 - [Datetime and cross-runtime code](docs/conventions/datetime.md)
-- [Data fetching, cache policy, and loading state](docs/conventions/data-fetching.md)
 
 ## UI patterns
 

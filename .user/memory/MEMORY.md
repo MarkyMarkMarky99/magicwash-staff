@@ -22,10 +22,12 @@ Order detail latency is browser-confirmed by the user and closed.
 
 - **140 decisions and 13 uncovered defects: `.user/memory/doc-comment-docs-work.md`.** Verify every
   row before acting; two were already wrong.
-- **Blocked:** 58 deletions point at `data-fetching.md` or at `cache-gateway.md`, which is build
-  history, not a rule. The user reads `data-fetching.md` and decides where the cache rules live
-  first. Order after that: UNVERIFIED 13, re-review the 49 KEEPs, MOVE 23, ALREADY-DOCUMENTED 58.
-- Untouched: ten banners in `OrderGalleryPage.vue`, the JSDoc above `unknownCreateOutcome`.
+- **Deferred, not blocked:** 58 ALREADY-DOCUMENTED deletions cite `data-fetching.md` or
+  `cache-gateway.md`. Neither is an authority now that the drafts moved to `agent-docs/`, so those
+  rows are undecidable until a real cache convention is written. Do not touch them.
+- Also deferred: MOVE 23 (doc writing), UNVERIFIED 13 and the 13 defects (investigation).
+- In scope right now, pure deletion only: ten banners in `OrderGalleryPage.vue`, the JSDoc above
+  `unknownCreateOutcome`, and a re-review of the 49 KEEPs.
 
 ## GViz read normalization — DEFERRED, do not start
 
@@ -39,15 +41,17 @@ Order detail latency is browser-confirmed by the user and closed.
 - Separable and still worth doing alone: the invoice `dateFrom`/`dateTo` filter compares
   `Date(...)` against ISO lexicographically (`invoice.service.ts:631`).
 
-## Two docs are unreviewed drafts
+## Two unfinished drafts — moved out of `docs/` 2026-09-12
 
-- `docs/architecture/frontend/app-boot.md` and `docs/conventions/data-fetching.md` were written by
-  an agent session and merged in `d9e34bc` without the owner reading them. Both now carry a DRAFT
-  banner saying so.
+- `app-boot.md` and `data-fetching.md` now live under `agent-docs/`, not `docs/`. They were written
+  by an agent session, merged in `d9e34bc` without the owner reading them, and are unfinished work
+  that is **not scheduled on any current branch**.
+- `agent-docs/` is not canonical. Nothing there may be cited as the authority for deleting a source
+  comment or for any rule.
 - One statement in `app-boot.md` was already wrong (it claimed the appointment query schema accepts
   `dateFrom`/`dateTo`; it has no date-range field). Corrected 2026-09-12.
-- **Never cite either as the authority for deleting a source comment** until they are reviewed.
-  `.user/memory/doc-comment-docs-work.md` has 30 pending deletions blocked on exactly this.
+- `CLAUDE.md` no longer indexes either; `docs/plans/cache-gateway.md` no longer claims the live
+  cache rules exist. There is no canonical cache convention yet.
 
 ## Queue — 2026-09-09, in order
 
