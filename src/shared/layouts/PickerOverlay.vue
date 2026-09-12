@@ -7,9 +7,13 @@ withDefaults(defineProps<{
   ariaLabel: string
   closeOnBackdrop?: boolean
   panelClass?: string
+  size?: '90dvh' | 'full'
+  draggable?: boolean
 }>(), {
   closeOnBackdrop: true,
   panelClass: '',
+  size: '90dvh',
+  draggable: true,
 })
 
 const emit = defineEmits<{
@@ -21,9 +25,9 @@ const emit = defineEmits<{
   <BaseOverlayFrame
     :open="open"
     placement="bottom"
-    size="90dvh"
+    :size="size"
     backdrop="translucent"
-    draggable
+    :draggable="draggable"
     close-button
     :panel-class="`picker-overlay-panel ${panelClass}`"
     :ariaLabel="ariaLabel"

@@ -4,9 +4,12 @@ Live note for the next session. Branch: `feat/price-list-image-url`.
 
 ## Branches in flight
 
-- **`feat/price-list-image-url`** — backend and three frontend item rows carry `imageUrl`; production deployment is pending. Details: `.user/memory/feat-price-list-image-url.md`.
+- **`feat/price-list-image-url`** — image-enabled price list and shared Order/Invoice picker are in progress; production deployment is pending. Details: `.user/memory/feat-price-list-image-url.md`.
 - **`codex/price-list-photo-release`** — integrates current main with the price-list image changes; preview deployment awaits approval. Details: `.user/memory/codex-price-list-photo-release.md`.
+- **`design/item-illustrations`** — design worktree at the price-list backend commit. Details: `.user/memory/design-item-illustrations.md`.
+- **`design/item-photos`** — design worktree at the price-list backend commit. Details: `.user/memory/design-item-photos.md`.
 - **`feat/live-order-helper`** — a read-only `getLiveOrderById` helper plus an OrdersView parity script, with no production caller and long stale against `main`. Status, contents and integration notes: `.user/memory/feat-live-order-helper.md`.
+- **`fix/customer-package-card-design`** — customer-package detail card design branch. Details: `.user/memory/fix-customer-package-card-design.md`.
 
 ## Pending work
 
