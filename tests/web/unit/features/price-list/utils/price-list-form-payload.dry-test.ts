@@ -13,7 +13,6 @@ const form = {
   displayNameTh: 'หมอนหนุน',
   displayNameEn: '',
   serviceType: 'WSIR' as const,
-  priceGroup: 'DEFAULT',
   unit: '',
   price: '0',
   creditEligible: false,
@@ -30,7 +29,6 @@ const expectedFields = {
   displayNameTh: 'หมอนหนุน',
   displayNameEn: null,
   serviceType: 'WSIR',
-  priceGroup: 'DEFAULT',
   unit: null,
   price: 0,
   creditEligible: false,
@@ -39,15 +37,16 @@ const expectedFields = {
   active: true,
 }
 
-assert.deepEqual(createPriceListPayload({ ...form, itemCode: '' }, 'new'), expectedFields)
+assert.deepEqual(createPriceListPayload({ ...form, itemCode: '' }, 'new'), { ...expectedFields, priceGroup: 'DEFAULT' })
 assert.equal('itemCode' in createPriceListPayload({ ...form, itemCode: '' }, 'new'), false)
 
 assert.deepEqual(
   createPriceListPayload(form, 'existing'),
-  { itemCode: 'ITM-0010', ...expectedFields },
+  { itemCode: 'ITM-0010', ...expectedFields, priceGroup: 'DEFAULT' },
 )
 
 assert.deepEqual(updatePriceListPayload(form), expectedFields)
+assert.equal('priceGroup' in updatePriceListPayload(form), false, 'editing must preserve an existing non-DEFAULT group')
 assert.equal('itemCode' in updatePriceListPayload(form), false)
 
 console.log('price-list-form-payload.dry-test: OK')

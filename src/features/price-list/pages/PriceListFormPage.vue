@@ -33,7 +33,6 @@ const item = reactive<PriceListFormState>({
   displayNameTh: '',
   displayNameEn: '',
   serviceType: 'WSIR',
-  priceGroup: 'DEFAULT',
   unit: '',
   price: '',
   creditEligible: false,
@@ -78,7 +77,6 @@ const formValid = computed(() =>
     && item.itemType
     && item.displayNameTh
     && item.serviceType
-    && item.priceGroup
     && item.effectiveFrom
     && String(item.price).trim() !== ''
     && Number.isFinite(Number(item.price))
@@ -105,7 +103,6 @@ function fillForm(source: (typeof items.value)[number]) {
   item.displayNameTh = source.displayNameTh
   item.displayNameEn = source.displayNameEn ?? ''
   item.serviceType = source.serviceType
-  item.priceGroup = source.priceGroup
   item.unit = source.unit ?? ''
   item.price = String(source.price)
   item.creditEligible = source.creditEligible
@@ -263,14 +260,11 @@ onMounted(async () => {
           <FormInput id="display-name-en" v-model="item.displayNameEn" class="field item-name" label="ชื่อแสดงภาษาอังกฤษ" placeholder="เว้นว่างได้" />
         </fieldset>
         <section class="price-panel" aria-labelledby="price-heading">
-          <div class="price-title"><h2 id="price-heading">ราคาตามบริการ</h2><span>หนึ่งรายการต่อหนึ่งบริการ</span></div>
+          <div class="price-title"><h2 id="price-heading">ราคาตามบริการ</h2><span>กำหนดราคาและหน่วยคิดราคาสำหรับบริการนี้</span></div>
           <div class="price-grid">
-            <div class="price-field"><label for="service-type">บริการ *</label><select id="service-type" v-model="item.serviceType" class="control"><option v-for="service in serviceOptions" :key="service.value" :value="service.value">{{ service.label }}</option></select></div>
-            <div class="price-field"><label for="price-group">กลุ่มราคา *</label><input id="price-group" v-model="item.priceGroup" class="control"></div>
-            <div class="price-field"><label for="price">ราคา *</label><div class="money"><input id="price" v-model="item.price" inputmode="decimal" type="number" min="0" step="any"><span>บาท</span></div></div>
-          </div>
-          <div class="grid-2 price-details">
-            <div class="price-field"><label for="unit">หน่วย</label><input id="unit" v-model="item.unit" class="control" placeholder="เช่น piece"></div>
+            <div class="price-field price-field--service"><label for="service-type">บริการ *</label><select id="service-type" v-model="item.serviceType" class="control"><option v-for="service in serviceOptions" :key="service.value" :value="service.value">{{ service.label }}</option></select></div>
+            <div class="price-field"><label for="price">ราคา *</label><div class="money"><input id="price" v-model="item.price" class="control" inputmode="decimal" type="number" min="0" step="any"><span>บาท</span></div></div>
+            <div class="price-field"><label for="unit">หน่วยคิดราคา</label><input id="unit" v-model="item.unit" class="control" placeholder="เช่น piece, kg"></div>
           </div>
         </section>
         <section class="switches" aria-label="การตั้งค่า">
@@ -327,24 +321,23 @@ label { display:block; margin-bottom:6px; font-size:12px; font-weight:700; color
 .control:focus { border-color:var(--teal-2); box-shadow:0 0 0 3px rgba(0,122,105,.14); }
 select.control { padding-right:27px; background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%2300564b' stroke-width='1.7' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 11px center; appearance:none; }
 .item-name { margin-bottom:23px; }
-.price-panel { position:relative; margin:2px -20px 0; padding:21px 20px 20px; background:var(--ink); color:white; overflow:hidden; }
-.price-panel::before { content:""; position:absolute; left:-41px; top:31px; width:104px; height:104px; border:1px solid rgba(157,245,223,.25); border-radius:50%; }
-.price-panel::after { content:""; position:absolute; right:-32px; bottom:-47px; width:146px; height:146px; border:22px solid rgba(178,223,38,.22); border-radius:50%; }
-.price-title { position:relative; z-index:1; display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:15px; }
-.price-title h2 { margin:0; font:700 17px/1.2 var(--font-headline); letter-spacing:-.025em; }
-.price-title span { color:#b9d8d2; font-size:11px; }
-.price-grid { position:relative; z-index:1; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
-.price-details { position:relative; z-index:1; margin-top:12px; }
+.price-panel { margin:2px 0 22px; padding:18px; border:1px solid var(--teal); border-radius:16px; background:var(--ink); }
+.price-title { margin-bottom:17px; }
+.price-title h2 { margin:0; color:#fff; font:700 17px/1.2 var(--font-headline); letter-spacing:-.025em; }
+.price-title span { display:block; margin-top:5px; color:#c6e2dc; font-size:12px; line-height:1.4; }
+.price-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 12px; }
 .price-field { min-width:0; }
-.price-field label { min-height:34px; margin:0 0 7px; color:#d8f2ed; font-size:11px; line-height:1.32; }
+.price-field--service { grid-column:1 / -1; }
+.price-field label { margin:0 0 7px; color:#d8f2ed; font-size:12px; line-height:1.32; }
 .money { position:relative; }
-.money input { width:100%; height:49px; min-width:0; padding:0 28px 0 10px; color:#fff; border:1px solid rgba(157,245,223,.55); border-radius:8px; outline:0; background:rgba(255,255,255,.08); font:700 16px var(--font-headline); }
-.money input:focus { border-color:var(--mint); box-shadow:0 0 0 3px rgba(157,245,223,.16); }
-.money span { position:absolute; right:9px; top:15px; color:var(--mint); font-size:10px; }
+.money input { padding-right:46px; appearance:textfield; }
+.money input::-webkit-inner-spin-button,
+.money input::-webkit-outer-spin-button { margin:0; appearance:none; }
+.money span { position:absolute; right:12px; top:50%; transform:translateY(-50%); color:var(--quiet); font-size:12px; pointer-events:none; }
 .date-row { margin-bottom:10px; }
 .switches { margin:0 -20px 10px; padding:21px 20px 0; border-top:1px solid var(--line); background:#edf7f5; }
 .form-error { margin:12px 0 0; padding:10px 12px; border-radius:8px; background:color-mix(in srgb, var(--red) 12%, white); color:var(--red); font-size:12px; line-height:1.4; }
 @media (max-width:420px) { .mode-grid { grid-template-columns:1fr; } }
-@media (max-width:350px) { .price-panel,.switches { margin-left:-16px; margin-right:-16px; padding-left:16px; padding-right:16px; } .grid-2 { gap:10px; } .control { padding-left:9px; padding-right:9px; } }
+@media (max-width:350px) { .price-panel { padding:16px; } .price-grid { grid-template-columns:1fr; } .switches { margin-left:-16px; margin-right:-16px; padding-left:16px; padding-right:16px; } .grid-2 { gap:10px; } .control { padding-left:9px; padding-right:9px; } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; } }
 </style>
