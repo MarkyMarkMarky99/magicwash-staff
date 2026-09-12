@@ -23,41 +23,43 @@ function detailFor(item: PriceListItem) {
 <template>
   <button
     type="button"
-    class="block w-full text-left transition-colors hover:bg-primary/[0.04] active:bg-primary/[0.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-primary"
+    class="group block min-w-0 overflow-hidden rounded-2xl border border-outline-variant/35 bg-surface text-left shadow-sm transition hover:border-primary/35 hover:shadow-md active:bg-primary/[0.04] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
     :aria-label="`เลือก ${props.item.displayNameTh} ${props.item.variant ?? ''} ราคา ${formatOrderPrice(props.item.price)}`"
     @click="emit('select', props.item)"
   >
-    <article class="flex items-start gap-3 px-4 py-3.5">
-      <ImageOrIcon :image-url="props.item.imageUrl" icon="checkroom" class="mt-0.5 h-11 w-11 rounded-2xl" />
-
-      <div class="min-w-0 flex-1">
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <h3 class="truncate font-headline text-[15px] font-bold leading-snug text-on-surface">
-              {{ props.item.displayNameTh }}
-            </h3>
-            <p v-if="detailFor(props.item)" class="mt-0.5 truncate font-body text-xs text-on-surface-variant">
-              {{ detailFor(props.item) }}
-            </p>
-          </div>
-          <strong class="shrink-0 font-headline text-lg font-extrabold tabular-nums text-primary">
-            {{ formatOrderPrice(props.item.price) }}
-          </strong>
-        </div>
-
-        <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 font-label text-[11px] font-semibold text-on-surface-variant">
-          <span class="rounded-md border border-outline-variant/45 bg-surface-container-low px-1.5 py-0.5 tracking-wide">
-            {{ props.item.itemCode }}
-          </span>
-          <span class="inline-flex items-center gap-1">
-            <span class="material-symbols-outlined text-[14px] text-primary" aria-hidden="true">{{ serviceTypePresentation[props.item.serviceType].icon }}</span>
-            {{ serviceTypePresentation[props.item.serviceType].label }}
-          </span>
-          <span v-if="props.item.unit" class="text-on-surface-variant/80">ต่อ {{ props.item.unit }}</span>
-        </div>
+    <article>
+      <div class="relative">
+        <ImageOrIcon
+          :image-url="props.item.imageUrl"
+          icon="checkroom"
+          fit="contain"
+          class="aspect-[4/3] w-full rounded-none border-0 bg-surface-container-low"
+        />
+        <span class="absolute right-2 top-2 rounded-md bg-surface/90 px-1.5 py-0.5 font-label text-[10px] font-semibold text-on-surface-variant shadow-sm">{{ props.item.itemCode }}</span>
       </div>
 
-      <span class="material-symbols-outlined mt-3 shrink-0 text-[18px] text-on-surface-variant/45" aria-hidden="true">chevron_right</span>
+      <div class="space-y-2 p-3">
+        <div class="min-w-0">
+          <h3 class="line-clamp-2 min-h-10 font-headline text-sm font-bold leading-5 text-on-surface">
+            {{ props.item.displayNameTh }}
+          </h3>
+          <p class="mt-0.5 truncate font-body text-[11px] text-on-surface-variant">
+            {{ detailFor(props.item) || props.item.itemCode }}
+          </p>
+        </div>
+
+        <div class="flex items-end justify-between gap-2">
+          <strong class="font-headline text-lg font-extrabold tabular-nums text-primary">
+            {{ formatOrderPrice(props.item.price) }}
+          </strong>
+          <span v-if="props.item.unit" class="mb-0.5 shrink-0 font-label text-[10px] font-semibold text-on-surface-variant">ต่อ {{ props.item.unit }}</span>
+        </div>
+
+        <div class="flex min-w-0 items-center gap-1.5 font-label text-[10px] font-semibold text-primary">
+          <span class="material-symbols-outlined text-[14px]" aria-hidden="true">{{ serviceTypePresentation[props.item.serviceType].icon }}</span>
+          <span class="truncate">{{ serviceTypePresentation[props.item.serviceType].label }}</span>
+        </div>
+      </div>
     </article>
   </button>
 </template>

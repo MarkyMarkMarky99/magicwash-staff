@@ -11,6 +11,7 @@ Add a photo per price-list item so staff pick by sight in the price table and bo
 - `PriceList.db-contract.ts`, `price-list-api.schema.ts`, `price-list.module.ts` carry the field.
 - 7 backend dry tests re-fixtured from 16 to 17 columns; all pass, plus 3 regression tests.
 - The price-list card and both pickers display `imageUrl` with an icon fallback.
+- Both pickers use two-column product cards with larger, uncropped photos; tested on the local order page.
 - 41 photos were uploaded to Firebase Storage; 80 of 81 sheet rows have URLs.
 - The browser cache version was bumped so old rows without `imageUrl` expire on deploy.
 

@@ -4,6 +4,7 @@ import { ref, watch } from 'vue'
 const props = defineProps<{
   imageUrl: string | null
   icon: string
+  fit?: 'cover' | 'contain'
 }>()
 
 const imageFailed = ref(false)
@@ -19,7 +20,8 @@ watch(() => props.imageUrl, () => {
       v-if="props.imageUrl && !imageFailed"
       :src="props.imageUrl"
       alt=""
-      class="h-full w-full object-cover"
+      class="h-full w-full"
+      :class="props.fit === 'contain' ? 'object-contain' : 'object-cover'"
       loading="lazy"
       @error="imageFailed = true"
     >

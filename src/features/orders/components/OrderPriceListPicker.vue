@@ -146,10 +146,10 @@ function selectCategory(category: string | null) {
         <p>แสดงรายการได้ไม่ครบ การค้นหาครอบคลุมเฉพาะรายการที่โหลดมาแล้ว</p>
       </div>
 
-      <div v-if="props.loading" class="space-y-1 p-4" aria-busy="true" aria-label="กำลังโหลดรายการราคา">
-        <div v-for="index in 6" :key="index" class="flex gap-3 border-b border-outline-variant/10 py-3.5">
-          <div class="h-11 w-11 shrink-0 animate-pulse rounded-2xl bg-surface-container" />
-          <div class="flex-1 space-y-2"><div class="h-4 w-3/4 animate-pulse rounded bg-surface-container" /><div class="h-3 w-1/2 animate-pulse rounded bg-surface-container" /><div class="h-3 w-2/5 animate-pulse rounded bg-surface-container" /></div>
+      <div v-if="props.loading" class="grid grid-cols-2 gap-3 p-4" aria-busy="true" aria-label="กำลังโหลดรายการราคา">
+        <div v-for="index in 6" :key="index" class="overflow-hidden rounded-2xl border border-outline-variant/20 bg-surface">
+          <div class="aspect-[4/3] animate-pulse bg-surface-container" />
+          <div class="space-y-2 p-3"><div class="h-4 w-4/5 animate-pulse rounded bg-surface-container" /><div class="h-3 w-3/5 animate-pulse rounded bg-surface-container" /><div class="h-5 w-2/5 animate-pulse rounded bg-surface-container" /></div>
         </div>
       </div>
 
@@ -166,7 +166,7 @@ function selectCategory(category: string | null) {
         <p class="mx-auto mt-2 max-w-xs font-body text-sm leading-relaxed text-on-surface-variant">{{ props.items.length ? 'ลองค้นหาด้วยชื่อสินค้า รหัส หรือเปลี่ยนหมวดหมู่' : 'รายการราคาที่ยังไม่เปิดใช้งานจะไม่แสดงให้เลือก' }}</p>
       </section>
 
-      <div v-else class="divide-y divide-outline-variant/15">
+      <div v-else class="grid grid-cols-2 gap-3 p-4">
         <OrderPriceListItemRow v-for="item in filteredItems" :key="item.id" :item="item" @select="emit('select', $event)" />
       </div>
   </PickerOverlay>
