@@ -3,6 +3,7 @@ import type { z } from 'zod'
 import type { priceListListResponseSchema } from '@contracts/price-list/price-list-api.schema'
 import { serviceTypePresentation } from '@/shared/utils/service-type-labels'
 import { formatOrderPrice } from '@/features/orders/utils/order-price-format'
+import ImageOrIcon from '@/shared/components/ImageOrIcon.vue'
 
 type PriceListItem = z.infer<typeof priceListListResponseSchema>
 
@@ -27,9 +28,7 @@ function detailFor(item: PriceListItem) {
     @click="emit('select', props.item)"
   >
     <article class="flex items-start gap-3 px-4 py-3.5">
-      <div class="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary" aria-hidden="true">
-        <span class="material-symbols-outlined text-[22px]">checkroom</span>
-      </div>
+      <ImageOrIcon :image-url="props.item.imageUrl" icon="checkroom" class="mt-0.5 h-11 w-11 rounded-2xl" />
 
       <div class="min-w-0 flex-1">
         <div class="flex items-start justify-between gap-3">

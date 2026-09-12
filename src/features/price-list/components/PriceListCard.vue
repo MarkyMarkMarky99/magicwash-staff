@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
 import { serviceTypeLabel } from '@/shared/utils/service-type-labels'
 import type { PriceListDto } from '../services/price-list.service'
+import ImageOrIcon from '@/shared/components/ImageOrIcon.vue'
 
 const props = defineProps<{
   item: PriceListDto
@@ -44,6 +45,8 @@ function handleKeydown(event: KeyboardEvent) {
         :aria-label="props.item.active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'"
         role="img"
       />
+
+      <ImageOrIcon :image-url="props.item.imageUrl" icon="checkroom" class="h-10 w-10 rounded-lg" />
 
       <h3 class="min-w-0 flex-1 truncate font-headline text-[14px] font-bold leading-tight text-primary">
         {{ props.item.displayNameTh }}

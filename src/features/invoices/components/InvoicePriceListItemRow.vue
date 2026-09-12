@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { InvoicePriceListItemDto } from '../services/invoice-price-list.service'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
+import ImageOrIcon from '@/shared/components/ImageOrIcon.vue'
 import {
   formatBaht,
   formatEffectiveRange,
@@ -26,12 +27,11 @@ const emit = defineEmits<{
   >
     <article class="flex flex-col gap-2 px-4 py-3">
       <div class="flex items-start gap-3">
-        <div
-          class="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-outline-variant/10 bg-primary/10 text-primary"
-          aria-hidden="true"
-        >
-          <span class="material-symbols-outlined text-[22px]">{{ iconForCategory(item.category) }}</span>
-        </div>
+        <ImageOrIcon
+          :image-url="item.imageUrl"
+          :icon="iconForCategory(item.category)"
+          class="mt-0.5 h-11 w-11 rounded-full"
+        />
 
         <div class="min-w-0 flex-1 space-y-1">
           <h3 class="truncate font-headline text-[15px] font-bold leading-snug text-on-surface">
