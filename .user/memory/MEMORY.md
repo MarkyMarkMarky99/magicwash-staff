@@ -31,6 +31,7 @@ Live note for the next session. Branch: `feat/price-list-image-url`.
   - App-wide GViz read normalization is deferred by the user; do not start or re-propose it. See `.user/memory/gviz-read-normalization.md`.
 
 - **Prices, invoices, and sheet data**
+  - Defer mixed-service orders to a separate branch after the price-list photo release; see `.user/memory/mixed-service-orders.md`.
   - Fill real prices for the 33 inactive price-list rows with `price: 0`.
   - Add a `BaseSwipeCard` action to add a price to an existing item.
   - Fix the price-list query missing an `active` filter and invoice items always writing `service_type` as `null`.
