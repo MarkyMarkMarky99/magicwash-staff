@@ -29,7 +29,10 @@ assert.doesNotMatch(fixture, /customer_name|remaining_credit|credit_change|creat
 assert.equal(CUSTOMER_PACKAGES[0].customerPackageId, 'CP-20260801-0001', 'validated preview fixture must expose API DTO fields')
 
 const variant = readSource('../../../../../src/features/customer-packages/preview/variant-c/VariantC.vue')
-assert.match(variant, /sourcePackage\.totalCredit/, 'preview must display the API total')
+const summaryCard = readSource('../../../../../src/features/customer-packages/components/CustomerPackageSummaryCard.vue')
+assert.match(variant, /CustomerPackageSummaryCard/, 'preview must delegate package presentation to the shared card')
+assert.match(variant, /:customer-package="sourcePackage"/, 'preview must provide its API-shaped fixture to the shared card')
+assert.match(summaryCard, /customerPackage\.totalCredit/, 'shared card must display the API total')
 assert.doesNotMatch(variant, /\.reduce\(/, 'preview must not re-derive package totals')
 assert.doesNotMatch(variant, /customerPackage\s*:/, 'preview must not build a frontend view model')
 

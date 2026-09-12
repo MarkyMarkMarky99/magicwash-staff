@@ -2,7 +2,8 @@
 import { computed, ref } from 'vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
-import { formatSheetDate, formatSheetDateTime } from '@/shared/utils/sheet-date'
+import { formatSheetDateTime } from '@/shared/utils/sheet-date'
+import CustomerPackageSummaryCard from '../../components/CustomerPackageSummaryCard.vue'
 import { CUSTOMER_PACKAGES } from '../customer-packages.fixture'
 
 const sourcePackage = CUSTOMER_PACKAGES[0]
@@ -34,17 +35,7 @@ function formatCreditChange(value: number) {
       </div>
     </div>
 
-    <section class="mx-4 rounded-2xl bg-primary p-4 text-on-primary shadow-md">
-      <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4">
-        <p class="min-w-0 truncate font-label text-[10px] font-bold uppercase tracking-[0.18em] text-on-primary/70">Package detail</p>
-        <p class="shrink-0 text-right font-label text-[10px] font-bold uppercase tracking-[0.18em] text-on-primary/70">Credits remaining</p>
-        <h3 class="mt-1 min-w-0 truncate self-center font-headline text-xl font-extrabold leading-tight tracking-tight">{{ sourcePackage.packageName }}</h3>
-        <p class="mt-1 shrink-0 self-center text-right font-headline text-4xl font-extrabold leading-none text-secondary-container">{{ sourcePackage.remainingCredit }}</p>
-        <p class="mt-1 min-w-0 truncate font-body text-xs capitalize leading-tight text-on-primary/75">{{ sourcePackage.packageCode }} · {{ sourcePackage.packageEligibleService }}</p>
-        <p class="mt-1 shrink-0 text-right font-body text-xs leading-tight text-on-primary/75">of {{ sourcePackage.totalCredit }} included</p>
-      </div>
-      <div class="mt-5 grid grid-cols-2 gap-3 border-t border-on-primary/20 pt-3"><div><p class="font-label text-[9px] uppercase tracking-wide text-on-primary/65">Valid until</p><p class="mt-0.5 font-headline text-[12px] font-bold">{{ formatSheetDate(sourcePackage.expiryDate ?? '') }}</p></div><div><p class="font-label text-[9px] uppercase tracking-wide text-on-primary/65">Pickup window</p><p class="mt-0.5 truncate font-headline text-[12px] font-bold">{{ sourcePackage.serviceDay || 'Flexible' }} · {{ sourcePackage.timeSlot || 'By appointment' }}</p></div></div>
-    </section>
+    <CustomerPackageSummaryCard :customer-package="sourcePackage" />
 
     <ListContainer class="mt-3" title="Recent activity" icon="history" :count="sourcePackage.transactions.length" count-label="events" top-divider>
       <template #actions><button class="text-button" type="button" @click="showAllTransactions = !showAllTransactions">{{ showAllTransactions ? 'Show less' : 'View all' }}</button></template>

@@ -2,6 +2,8 @@
 
 Live note for the next session. Branch: `main`.
 
+- Next: push `main` after repository-remote approval; direct Vercel CLI deployments are blocked by team access for the commit author.
+
 ## Branches in flight
 
 - **`feat/live-order-helper`** — a read-only `getLiveOrderById` helper plus an OrdersView parity script, with no production caller and long stale against `main`. Status, contents and integration notes: `.user/memory/feat-live-order-helper.md`.
