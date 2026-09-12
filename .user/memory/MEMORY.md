@@ -5,6 +5,7 @@ Live note for the next session. Branch: `feat/price-list-image-url`.
 ## Branches in flight
 
 - **`feat/price-list-image-url`** — backend and three frontend item rows carry `imageUrl`; production deployment is pending. Details: `.user/memory/feat-price-list-image-url.md`.
+- **`codex/price-list-photo-release`** — integrates current main with the price-list image changes; preview deployment awaits approval. Details: `.user/memory/codex-price-list-photo-release.md`.
 - **`feat/live-order-helper`** — a read-only `getLiveOrderById` helper plus an OrdersView parity script, with no production caller and long stale against `main`. Status, contents and integration notes: `.user/memory/feat-live-order-helper.md`.
 
 ## Pending work
