@@ -1,70 +1,81 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import ImageContentCard from '@/shared/components/ImageContentCard.vue'
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
-import { serviceTypeLabel } from '@/shared/utils/service-type-labels'
 import type { PriceListDto } from '../services/price-list.service'
 
 const props = defineProps<{
-  item: PriceListDto
+  itemCode: string
+  items: PriceListDto[]
 }>()
 
 const emit = defineEmits<{
-  edit: [id: string]
+  open: [itemCode: string]
 }>()
 
-const serviceLabel = computed(() => serviceTypeLabel(props.item.serviceType) ?? '')
+const item = computed(() => props.items[0])
+const imageUrl = computed(() => props.items.find((entry) => entry.imageUrl)?.imageUrl ?? null)
+const priceLabel = computed(() => {
+  const prices = props.items.map((entry) => entry.price)
+  const lowest = Math.min(...prices)
+  const highest = Math.max(...prices)
+  return lowest === highest
+    ? `฿${formatPrice(lowest)}`
+    : `฿${formatPrice(lowest)}–${formatPrice(highest)}`
+})
+const baseCard = ref<InstanceType<typeof BaseSwipeCard> | null>(null)
 
-function formatPrice(value: number): string {
-  return new Intl.NumberFormat('th-TH').format(value)
+function showEditAction(): void {
+  baseCard.value?.snapCard('left')
 }
 
-function openEdit() {
-  emit('edit', props.item.id)
-}
-
-function handleKeydown(event: KeyboardEvent) {
-  if (event.key !== 'Enter' && event.key !== ' ') return
+function handleKeydown(event: KeyboardEvent): void {
+  if (event.target !== event.currentTarget) return
   event.preventDefault()
-  openEdit()
+  if (props.items.length > 1) emit('open', props.itemCode)
+  else showEditAction()
+}
+
+function formatPrice(price: number): string {
+  return new Intl.NumberFormat('th-TH').format(price)
 }
 </script>
 
 <template>
   <BaseSwipeCard
+    v-if="item"
+    ref="baseCard"
+    :style="{ '--snap-left': '6rem' }"
+    class="min-w-0 overflow-hidden rounded-2xl"
     role="button"
     tabindex="0"
-    :aria-label="`แก้ไขรายการราคา ${props.item.displayNameTh} ${serviceLabel}`"
-    @tap="openEdit"
-    @keydown="handleKeydown"
+    :aria-label="props.items.length > 1
+      ? `ดูตัวเลือกราคา ${item.displayNameTh} รหัส ${props.itemCode} ${props.items.length} ราคา ${priceLabel} แตะเพื่อดูราคา หรือปัดซ้ายเพื่อแก้ไข`
+      : `ราคา ${item.displayNameTh} รหัส ${props.itemCode} ${priceLabel} ปัดซ้ายหรือกด Enter เพื่อแสดงปุ่มแก้ไข`"
+    @tap="props.items.length > 1 && emit('open', props.itemCode)"
+    @swipe-right="baseCard?.snapCard('none')"
+    @keydown.enter="handleKeydown"
+    @keydown.space="handleKeydown"
   >
-    <div class="flex min-w-0 items-center gap-2 px-4 py-2.5">
-      <span
-        class="size-2 shrink-0 rounded-full"
-        :class="props.item.active ? 'bg-[#2e7d32]' : 'bg-error'"
-        :aria-label="props.item.active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'"
-        role="img"
-      />
+    <template #left-panel="{ snapped }">
+      <div class="absolute inset-0 flex items-center justify-end bg-primary/80 pr-4 text-on-primary">
+        <button type="button" class="flex min-h-11 items-center gap-1 font-label text-xs font-bold focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-white" :class="snapped === 'left' ? '' : 'pointer-events-none'" :tabindex="snapped === 'left' ? 0 : -1" :aria-hidden="snapped !== 'left'" :aria-label="`แก้ไขราคา ${item.displayNameTh}`" @click="emit('open', props.itemCode)">
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">edit</span>แก้ไข
+        </button>
+      </div>
+    </template>
 
-      <h3 class="min-w-0 flex-1 truncate font-headline text-[14px] font-bold leading-tight text-primary">
-        {{ props.item.displayNameTh }}
-      </h3>
-
-      <span
-        v-if="props.item.creditEligible"
-        class="shrink-0 font-label text-[9px] font-bold text-primary"
-        aria-label="ใช้เครดิตได้"
-      >เครดิตได้</span>
-
-      <span class="shrink-0 font-label text-[10px] font-semibold text-on-surface-variant">
-        {{ serviceLabel }}
-      </span>
-
-      <span
-        class="min-w-[68px] shrink-0 whitespace-nowrap text-right font-headline text-[15px] font-extrabold tabular-nums text-primary"
-        aria-label="ราคา"
-      >
-        ฿{{ formatPrice(props.item.price) }}
-      </span>
-    </div>
+    <ImageContentCard :image-url="imageUrl" :title="item.displayNameTh" icon="checkroom">
+      <template #badge>
+        <span class="price-on-image font-headline text-[14px] font-extrabold tabular-nums text-primary">{{ priceLabel }}</span>
+      </template>
+      <span class="block truncate font-body text-[11px] text-on-surface-variant">{{ props.itemCode }}</span>
+    </ImageContentCard>
   </BaseSwipeCard>
 </template>
+
+<style scoped>
+.price-on-image {
+  text-shadow: 0 0 2px #fff, 0 0 6px rgba(255, 255, 255, 0.95);
+}
+</style>

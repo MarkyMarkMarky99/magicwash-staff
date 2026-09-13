@@ -1,10 +1,16 @@
 # Project memory
 
-Live note for the next session. Branch: `main`.
+Live note for the next session. Branch: `codex/price-list-item-code-groups`.
 
 ## Branches in flight
 
+- **`codex/price-list-item-code-groups`** — combined frontend review is pending before release. Details: `.user/memory/codex-price-list-item-code-groups.md`.
+- **`feat/price-list-image-url`** — image-enabled picker and price form updates are ready locally; production deployment is pending. Details: `.user/memory/feat-price-list-image-url.md`.
+- **`codex/price-list-photo-release`** — integrates current main with the price-list image changes; preview deployment awaits approval. Details: `.user/memory/codex-price-list-photo-release.md`.
+- **`design/item-illustrations`** — design worktree at the price-list backend commit. Details: `.user/memory/design-item-illustrations.md`.
+- **`design/item-photos`** — design worktree at the price-list backend commit. Details: `.user/memory/design-item-photos.md`.
 - **`feat/live-order-helper`** — a read-only `getLiveOrderById` helper plus an OrdersView parity script, with no production caller and long stale against `main`. Status, contents and integration notes: `.user/memory/feat-live-order-helper.md`.
+- **`fix/customer-package-card-design`** — customer-package detail card design branch. Details: `.user/memory/fix-customer-package-card-design.md`.
 
 ## Pending work
 
@@ -26,6 +32,7 @@ Live note for the next session. Branch: `main`.
   - App-wide GViz read normalization is deferred by the user; do not start or re-propose it. See `.user/memory/gviz-read-normalization.md`.
 
 - **Prices, invoices, and sheet data**
+  - Defer mixed-service orders to a separate branch after the price-list photo release; see `.user/memory/mixed-service-orders.md`.
   - Fill real prices for the 33 inactive price-list rows with `price: 0`.
   - Add a `BaseSwipeCard` action to add a price to an existing item.
   - Fix the price-list query missing an `active` filter and invoice items always writing `service_type` as `null`.

@@ -48,6 +48,7 @@ export const priceListListResponseSchema = z.object({
   effectiveFrom: isoDateSchema,
   effectiveTo: isoDateSchema.nullable(),
   active: z.boolean(),
+  imageUrl: z.string().nullable(),
 })
 
 const priceListBusinessFields = {
@@ -66,6 +67,7 @@ const priceListBusinessFields = {
   effectiveFrom: isoDateSchema,
   effectiveTo: isoDateSchema.nullable().optional(),
   active: z.boolean(),
+  imageUrl: z.string().trim().min(1).nullable().optional(),
 }
 
 export const priceListCreateSchema = z.object(priceListBusinessFields).extend({

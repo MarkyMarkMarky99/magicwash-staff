@@ -26,7 +26,7 @@ import { canRetryInvoiceOutcome, synthesizeNetworkFailureOutcome } from '../util
 import InvoiceLineItemsEditor from '../components/InvoiceLineItemsEditor.vue'
 import InvoiceAdjustmentsEditor from '../components/InvoiceAdjustmentsEditor.vue'
 import InvoiceTotalsPreview from '../components/InvoiceTotalsPreview.vue'
-import InvoicePriceListPicker from '../components/InvoicePriceListPicker.vue'
+import PriceListItemPicker from '@/features/price-list/components/PriceListItemPicker.vue'
 import { loadInvoiceCreateContext, type InvoiceCreateOrder } from '../services/invoice-create-context.service'
 import { addSheetDateDays, sheetDateDaysBetween, todaySheetDate } from '@/shared/utils/sheet-date'
 import { useDuplicateInvoiceWarning } from '@/shared/composables/use-duplicate-invoice-warning'
@@ -613,10 +613,9 @@ async function copyLiffUrl(invoiceNumber: string) {
     </form>
   </ScrollRegion>
 
-  <InvoicePriceListPicker
+  <PriceListItemPicker
     :open="priceListPickerOpen"
-    :invoice-number="invoiceNumber"
-    :line-item-count="items.length"
+    :detail="`ใบแจ้งหนี้ #${invoiceNumber || '—'} · ${items.length} รายการ`"
     :items="priceListItems"
     :loading="priceListLoading"
     :error="priceListError"

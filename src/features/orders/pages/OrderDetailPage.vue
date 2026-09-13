@@ -12,7 +12,7 @@ import ListContainer from '@/shared/components/ListContainer.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import { formatSheetDate, normalizeSheetDate, sheetDateDaysBetween, todaySheetDate } from '@/shared/utils/sheet-date'
 import OrderItemForm from '@/features/orders/components/OrderItemForm.vue'
-import OrderPriceListPicker from '@/features/orders/components/OrderPriceListPicker.vue'
+import PriceListItemPicker from '@/features/price-list/components/PriceListItemPicker.vue'
 import OrderItemRow from '@/features/orders/components/OrderItemRow.vue'
 import OrderItemsMenu from '@/features/orders/components/OrderItemsMenu.vue'
 import CameraOverlay from '@/shared/components/CameraOverlay.vue'
@@ -203,15 +203,14 @@ function clearItemError() {
       @click.stop
     >
   </LightboxOverlay>
-  <OrderPriceListPicker
+  <PriceListItemPicker
     v-if="selectedPriceListItem === null"
     :open="isPriceListPickerOpen"
+    :detail="`${orderId} · ${pickerServiceType ? serviceTypeLabel(pickerServiceType) : '—'}`"
     :items="orderPriceListStore.items"
     :loading="detailLoading || orderPriceListStore.loading"
     :error="pickerError"
     :truncated="orderPriceListStore.truncated"
-    :service-type="pickerServiceType"
-    :order-label="orderId"
     @close="closePriceListPicker"
     @retry="retryPriceList"
     @select="selectPriceListItem"

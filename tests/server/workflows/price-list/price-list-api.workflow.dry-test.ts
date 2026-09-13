@@ -63,7 +63,7 @@ function request(options: RequestOptions = {}): Record<string, unknown> {
 }
 
 function gvizBody(rows: unknown[] = []): string {
-  const columns = Array.from({ length: 16 }, (_, index) => ({
+  const columns = Array.from({ length: 17 }, (_, index) => ({
     id: String.fromCharCode(65 + index),
   }))
 
@@ -140,6 +140,7 @@ const representativeRow = [
   'Date(2026,0,1)',
   null,
   false,
+  null,
 ]
 
 const expectedItem = {
@@ -159,6 +160,7 @@ const expectedItem = {
   effectiveFrom: '2026-01-01',
   effectiveTo: null,
   active: false,
+  imageUrl: null,
 }
 
 const previousSpreadsheetId = process.env.PRICE_LIST_SPREADSHEET_ID
@@ -284,6 +286,7 @@ try {
             'Date(2025,11,31)',
             'Date(2026,11,31)',
             false,
+            null,
           ],
         ]),
       ),
@@ -310,6 +313,7 @@ try {
           effectiveFrom: '2025-12-31',
           effectiveTo: '2026-12-31',
           active: false,
+          imageUrl: null,
         },
       ])
       assert.equal(

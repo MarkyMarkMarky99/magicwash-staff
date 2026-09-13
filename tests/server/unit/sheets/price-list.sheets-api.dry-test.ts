@@ -28,6 +28,7 @@ const existingRow = [
   '2026-01-01',
   null,
   true,
+  null,
 ]
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -103,13 +104,14 @@ await withMockSheets(
           '2026-02-03',
           '',
           true,
+          '',
         ],
       ])
       return jsonResponse({
         spreadsheetId: process.env.PRICE_LIST_SPREADSHEET_ID,
         updates: {
           updatedRows: 1,
-          updatedRange: 'PriceList!A2:P2',
+          updatedRange: 'PriceList!A2:Q2',
           updatedData: { values: body.values },
         },
       })
@@ -161,8 +163,8 @@ await withMockSheets(
       })
       return jsonResponse({ responses: [{}, {}, {}] })
     }
-    if (call.init?.method === 'GET' && path.endsWith('/values/PriceList!A2:P2')) {
-      return jsonResponse({ values: [[...existingRow.slice(0, 13), '2026-04-05', '', false]] })
+    if (call.init?.method === 'GET' && path.endsWith('/values/PriceList!A2:Q2')) {
+      return jsonResponse({ values: [[...existingRow.slice(0, 13), '2026-04-05', '', false, null]] })
     }
     throw new Error(`Unexpected update request: ${call.init?.method} ${path}`)
   },

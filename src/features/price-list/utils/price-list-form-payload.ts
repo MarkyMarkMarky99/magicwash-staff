@@ -12,7 +12,6 @@ export type PriceListFormState = {
   displayNameTh: string
   displayNameEn: string
   serviceType: PriceListCreatePayload['serviceType']
-  priceGroup: string
   unit: string
   price: string | number
   creditEligible: boolean
@@ -40,7 +39,7 @@ function requiredPrice(value: string | number): number {
   return parsed
 }
 
-type PriceListFields = Omit<PriceListCreatePayload, 'itemCode'>
+type PriceListFields = Omit<PriceListCreatePayload, 'itemCode' | 'priceGroup'>
 
 function priceListFields(form: PriceListFormState): PriceListFields {
   return {
@@ -51,7 +50,6 @@ function priceListFields(form: PriceListFormState): PriceListFields {
     displayNameTh: form.displayNameTh,
     displayNameEn: optionalText(form.displayNameEn),
     serviceType: form.serviceType,
-    priceGroup: form.priceGroup,
     unit: optionalText(form.unit),
     price: requiredPrice(form.price),
     creditEligible: form.creditEligible,
@@ -66,11 +64,11 @@ export function createPriceListPayload(
   mode: PriceListCreateMode,
 ): PriceListCreatePayload {
   const fields = priceListFields(form)
-  if (mode === 'new') return fields
+  if (mode === 'new') return { ...fields, priceGroup: 'DEFAULT' }
 
   const itemCode = form.itemCode.trim()
   if (itemCode === '') throw new Error('กรุณาเลือกรายการเดิม')
-  return { ...fields, itemCode }
+  return { ...fields, itemCode, priceGroup: 'DEFAULT' }
 }
 
 export function updatePriceListPayload(form: PriceListFormState): PriceListUpdatePayload {

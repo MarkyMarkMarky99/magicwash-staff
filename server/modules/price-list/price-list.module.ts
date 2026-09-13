@@ -32,6 +32,7 @@ export const priceListFieldMap = {
   effective_from: 'effectiveFrom',
   effective_to: 'effectiveTo',
   active: 'active',
+  image_url: 'imageUrl',
 } as const satisfies Record<keyof PriceListDbRow & string, string>
 
 export const searchFields = [
@@ -97,6 +98,7 @@ const PRICE_LIST_NULLABLE_COLUMNS = [
   'display_name_en',
   'unit',
   'effective_to',
+  'image_url',
 ] as const
 
 function createPriceListTransformer(): RepositoryTransformer {

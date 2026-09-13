@@ -5,7 +5,7 @@ import { PERSIST_MAX_BYTES } from '@/shared/config/cache'
  * deleted on startup, so a deploy that changes what `apiGet` returns can never
  * hand returning staff a response the new code cannot read.
  */
-const STORAGE_VERSION = 1
+const STORAGE_VERSION = 2
 
 const NAMESPACE = 'mw-cache'
 const PREFIX = `${NAMESPACE}:${STORAGE_VERSION}:`

@@ -10,17 +10,17 @@ import {
 const RESPONSE_FIELDS = [
   'id', 'itemCode', 'category', 'subcategory', 'itemType', 'variant', 'displayNameTh',
   'displayNameEn', 'serviceType', 'priceGroup', 'unit', 'price', 'creditEligible',
-  'effectiveFrom', 'effectiveTo', 'active',
+  'effectiveFrom', 'effectiveTo', 'active', 'imageUrl',
 ]
 const CREATE_FIELDS = [
   'itemCode', 'category', 'subcategory', 'itemType', 'variant', 'displayNameTh',
   'displayNameEn', 'serviceType', 'priceGroup', 'unit', 'price', 'creditEligible',
-  'effectiveFrom', 'effectiveTo', 'active',
+  'effectiveFrom', 'effectiveTo', 'active', 'imageUrl',
 ]
 const UPDATE_FIELDS = [
   'category', 'subcategory', 'itemType', 'variant', 'displayNameTh', 'displayNameEn',
   'serviceType', 'priceGroup', 'unit', 'price', 'creditEligible', 'effectiveFrom',
-  'effectiveTo', 'active',
+  'effectiveTo', 'active', 'imageUrl',
 ]
 const QUERY_FIELDS = [
   'keyword', 'itemCode', 'category', 'subcategory', 'itemType', 'serviceType', 'priceGroup',
@@ -53,7 +53,7 @@ const createPayload = {
   itemCode: 'ITM-0001', category: 'tops', subcategory: 'shirt', itemType: 'shirt',
   variant: null, displayNameTh: 'เสื้อเชิ้ต', displayNameEn: null, serviceType: 'WSIR',
   priceGroup: 'DEFAULT', unit: null, price: 0, creditEligible: false,
-  effectiveFrom: '2026-01-02', effectiveTo: null, active: true,
+  effectiveFrom: '2026-01-02', effectiveTo: null, active: true, imageUrl: null,
 }
 assert.deepEqual(createSchema.parse(createPayload), createPayload)
 const createWithoutItemCode = { ...createPayload }

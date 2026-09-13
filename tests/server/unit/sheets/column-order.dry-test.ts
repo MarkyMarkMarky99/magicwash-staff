@@ -362,6 +362,7 @@ const tests: ColumnOrderTest[] = [
       effective_from: 'N',
       effective_to: 'O',
       active: 'P',
+      image_url: 'Q',
     },
     primaryKeyColumn: 'A',
   },

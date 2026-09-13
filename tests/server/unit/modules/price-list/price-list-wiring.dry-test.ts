@@ -25,7 +25,7 @@ function response(text: string): Response {
 }
 
 function gvizBody(values: unknown[] = []): string {
-  const columns = Array.from({ length: 16 }, (_, index) => ({
+  const columns = Array.from({ length: 17 }, (_, index) => ({
     id: String.fromCharCode(65 + index),
   }))
 
@@ -114,6 +114,7 @@ test('list maps the physical itemtype column to itemType and preserves null, fal
     'Date(2026,0,1)',
     null,
     false,
+    null,
   ]
 
   await withMockFetch(
@@ -139,6 +140,7 @@ test('list maps the physical itemtype column to itemType and preserves null, fal
           effectiveFrom: '2026-01-01',
           effectiveTo: null,
           active: false,
+          imageUrl: null,
         },
       ])
       assert.deepEqual(result.pagination, { page: 1, perPage: 20 })
@@ -159,6 +161,7 @@ test('list maps the physical itemtype column to itemType and preserves null, fal
         'effectiveFrom',
         'effectiveTo',
         'active',
+        'imageUrl',
       ])
       assert.equal(calls.length, 1)
     },
@@ -208,6 +211,7 @@ test('dirty legacy string cells remain readable without changing the declared re
     'Date(2025,11,31)',
     'Date(2026,11,31)',
     false,
+    null,
   ]
 
   await withMockFetch(
