@@ -27,6 +27,7 @@ implemented behavior, correct the canonical document rather than adding a compet
 - [Navigation and route-owned overlays](docs/conventions/navigation.md)
 - [Price list item images](docs/design/price-list-images.md)
 - [Price list form](docs/design/price-list-form.md)
+- [Price list browse](docs/design/price-list-browse.md)
 - [Price list picker flow](docs/design/price-list-picker.md)
 
 ## Verification

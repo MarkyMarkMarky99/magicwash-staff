@@ -1,73 +1,38 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
-import { serviceTypeLabel } from '@/shared/utils/service-type-labels'
-import type { PriceListDto } from '../services/price-list.service'
 import ImageOrIcon from '@/shared/components/ImageOrIcon.vue'
+import type { PriceListDto } from '../services/price-list.service'
 
 const props = defineProps<{
-  item: PriceListDto
+  itemCode: string
+  items: PriceListDto[]
 }>()
 
 const emit = defineEmits<{
-  edit: [id: string]
+  open: [itemCode: string]
 }>()
 
-const serviceLabel = computed(() => serviceTypeLabel(props.item.serviceType) ?? '')
-
-function formatPrice(value: number): string {
-  return new Intl.NumberFormat('th-TH').format(value)
-}
-
-function openEdit() {
-  emit('edit', props.item.id)
-}
-
-function handleKeydown(event: KeyboardEvent) {
-  if (event.key !== 'Enter' && event.key !== ' ') return
-  event.preventDefault()
-  openEdit()
-}
+const item = computed(() => props.items.find((entry) => entry.active) ?? props.items[0])
+const activeCount = computed(() => props.items.filter((entry) => entry.active).length)
 </script>
 
 <template>
-  <BaseSwipeCard
-    role="button"
-    tabindex="0"
-    :aria-label="`แก้ไขรายการราคา ${props.item.displayNameTh} ${serviceLabel}`"
-    @tap="openEdit"
-    @keydown="handleKeydown"
+  <button
+    v-if="item"
+    type="button"
+    class="flex w-full min-w-0 items-center gap-3 bg-surface-container-lowest px-4 py-3 text-left transition-colors hover:bg-surface-container-low focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
+    :aria-label="`ดูตัวเลือกราคา ${item.displayNameTh} รหัส ${props.itemCode} ${props.items.length} ราคา`"
+    @click="emit('open', props.itemCode)"
   >
-    <div class="flex min-w-0 items-center gap-2 px-4 py-2.5">
-      <span
-        class="size-2 shrink-0 rounded-full"
-        :class="props.item.active ? 'bg-[#2e7d32]' : 'bg-error'"
-        :aria-label="props.item.active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'"
-        role="img"
-      />
-
-      <ImageOrIcon :image-url="props.item.imageUrl" icon="checkroom" class="h-10 w-10 rounded-lg" />
-
-      <h3 class="min-w-0 flex-1 truncate font-headline text-[14px] font-bold leading-tight text-primary">
-        {{ props.item.displayNameTh }}
-      </h3>
-
-      <span
-        v-if="props.item.creditEligible"
-        class="shrink-0 font-label text-[9px] font-bold text-primary"
-        aria-label="ใช้เครดิตได้"
-      >เครดิตได้</span>
-
-      <span class="shrink-0 font-label text-[10px] font-semibold text-on-surface-variant">
-        {{ serviceLabel }}
-      </span>
-
-      <span
-        class="min-w-[68px] shrink-0 whitespace-nowrap text-right font-headline text-[15px] font-extrabold tabular-nums text-primary"
-        aria-label="ราคา"
-      >
-        ฿{{ formatPrice(props.item.price) }}
-      </span>
-    </div>
-  </BaseSwipeCard>
+    <ImageOrIcon :image-url="props.items.find((entry) => entry.imageUrl)?.imageUrl ?? null" icon="checkroom" class="h-12 w-12 shrink-0 rounded-lg" />
+    <span class="min-w-0 flex-1">
+      <strong class="block truncate font-headline text-sm text-primary">{{ item.displayNameTh }}</strong>
+      <span class="block truncate font-body text-xs text-on-surface-variant">{{ props.itemCode }} · {{ item.variant || item.itemType }}</span>
+    </span>
+    <span class="shrink-0 text-right">
+      <span class="block font-label text-xs font-bold text-primary">{{ props.items.length }} ราคา</span>
+      <span class="block font-body text-[11px] text-on-surface-variant">{{ activeCount }} ใช้งาน</span>
+    </span>
+    <span class="material-symbols-outlined shrink-0 text-[18px] text-on-surface-variant" aria-hidden="true">chevron_right</span>
+  </button>
 </template>
