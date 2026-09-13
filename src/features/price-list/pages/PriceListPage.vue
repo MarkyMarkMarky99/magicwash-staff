@@ -224,7 +224,8 @@ async function openEdit(id: string) {
   await router.push({ name: 'price-list-edit', params: { id } })
 }
 
-watch(() => route.query.category, (category) => {
+watch(() => [route.name, route.query.category] as const, ([name, category]) => {
+  if (name !== 'price-list') return
   if (typeof category === 'string' && category.trim()) return
   void router.replace({ name: 'price-list', query: { ...route.query, category: 'CLOTHING' } })
 }, { immediate: true })

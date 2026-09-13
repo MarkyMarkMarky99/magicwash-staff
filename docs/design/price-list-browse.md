@@ -4,10 +4,12 @@ The staff price-list page shows one entry per `itemCode` with at least one activ
 codes with only one active price row. Inactive rows never appear in browse cards or their price sheet.
 The category tabs use names from the loaded rows. ALL comes first, followed by CLOTHING, BEDDING,
 HOUSEHOLD, OTHERS when present, then any other categories. Opening a URL without a category replaces
-it with `category=CLOTHING`; choosing ALL stores `category=ALL`. A horizontal row of image tiles
-shows ALL and the distinct subcategories among active rows in the selected category. Each tile uses
-an image from those rows, an uppercase label, and the original value as its filter key. The
-row is hidden for category ALL or when the selected category has no subcategories.
+it with `category=CLOTHING`; choosing ALL stores `category=ALL`. The default category redirect runs
+only while the price-list route is active, so sidebar navigation to a route without a category is not
+intercepted. A horizontal row of image tiles shows ALL and the distinct subcategories among active
+rows in the selected category. Each tile uses an image from those rows, an uppercase label, and the
+original value as its filter key. The row is hidden for category ALL or when the selected category
+has no subcategories.
 Changing category resets subcategory to ALL. Search, category, subcategory, and service filters
 include a code when any of its active price rows matches. Tab counts count active item codes from
 the full loaded collection, independently of search and service filters. Categories with no active
