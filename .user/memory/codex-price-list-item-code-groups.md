@@ -7,8 +7,8 @@
 ## Status
 
 - Based on `feat/price-list-image-url`, so it includes its photo, picker, and form work.
-- Single-price cards open edit directly; multi-price choices open the selected row by ID.
-- The browse change is reviewed and verified locally.
+- Main-list cards reveal Edit on a left swipe; single-price Edit opens its row directly.
+- Multi-price cards still open the choice sheet; combined frontend review is pending.
 
 ## Pending
 
