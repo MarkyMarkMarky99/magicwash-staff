@@ -7,9 +7,11 @@ withDefaults(defineProps<{
   ariaLabel: string
   closeOnBackdrop?: boolean
   panelClass?: string
+  size?: '84dvh' | 'auto'
 }>(), {
   closeOnBackdrop: true,
   panelClass: '',
+  size: '84dvh',
 })
 
 const emit = defineEmits<{
@@ -21,7 +23,7 @@ const emit = defineEmits<{
   <BaseOverlayFrame
     :open="open"
     placement="bottom"
-    size="84dvh"
+    :size="size"
     backdrop="translucent"
     draggable
     close-button
@@ -30,11 +32,11 @@ const emit = defineEmits<{
     :close-on-backdrop="closeOnBackdrop"
     @close="emit('close')"
   >
-    <div class="flex min-h-0 flex-1 flex-col">
+    <div class="flex min-h-0 flex-col" :class="size === 'auto' ? 'flex-none' : 'flex-1'">
       <div class="flex-none">
         <slot name="header" />
       </div>
-      <ScrollRegion>
+      <ScrollRegion :sizing="size === 'auto' ? 'auto' : 'fill'" :class="size === 'auto' ? 'max-h-[60dvh]' : ''">
         <slot />
       </ScrollRegion>
     </div>

@@ -13,11 +13,10 @@ assert.doesNotMatch(card, /washDryIronPrice|ironOnlyPrice|dryCleanPrice/)
 
 const optionsSheet = source('features/price-list/components/PriceListOptionsSheet.vue')
 assert.match(optionsSheet, /DetailOverlay/)
-assert.match(optionsSheet, /BaseSwipeCard/)
-assert.match(optionsSheet, /#left-panel/)
-assert.match(optionsSheet, /emit\('edit', option\.id\)/)
+assert.match(optionsSheet, /size="auto"/)
+assert.match(optionsSheet, /emit\('select', option\.id\)/)
 assert.match(optionsSheet, /serviceTypeLabel\(option\.serviceType\)/)
-assert.match(optionsSheet, /option\.effectiveFrom/)
+assert.match(optionsSheet, /needsDisambiguation\(option\)/)
 assert.match(optionsSheet, /option\.active/)
 
 const triad = new URL(
@@ -31,6 +30,7 @@ assert.match(list, /PriceListServiceFilter/)
 assert.match(list, /PriceListServicePanel/)
 assert.match(list, /itemGroups/)
 assert.match(list, /PriceListOptionsSheet/)
+assert.match(list, /group\.items\.length === 1/)
 assert.match(list, /#empty[\s\S]{0,400}PriceListServicePanel/)
 assert.match(list, /#error[\s\S]{0,400}PriceListServicePanel/)
 

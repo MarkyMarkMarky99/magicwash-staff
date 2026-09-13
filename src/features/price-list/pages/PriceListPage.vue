@@ -66,6 +66,15 @@ const itemGroups = computed(() => {
 
 const selectedGroup = computed(() => itemGroups.value.find((group) => group.itemCode === selectedCode.value) ?? null)
 
+watch([selectedCode, selectedGroup, loaded], ([code, group, isLoaded]) => {
+  if (!code || !isLoaded) return
+  if (!group) {
+    closeOptions()
+    return
+  }
+  if (group.items.length === 1) void openEdit(group.items[0]!.id)
+}, { immediate: true })
+
 const categoryTabs = computed(() => {
   const counts = new Map<string, number>()
   for (const group of itemGroups.value) {
@@ -127,6 +136,12 @@ function openCreate() {
 }
 
 function openOptions(itemCode: string) {
+  const group = itemGroups.value.find((entry) => entry.itemCode === itemCode)
+  if (!group) return
+  if (group.items.length === 1) {
+    void openEdit(group.items[0]!.id)
+    return
+  }
   if (selectedCode.value === itemCode) return
   sheetPushedByPage = true
   void router.push({ name: 'price-list', query: { ...route.query, itemCode } })
@@ -242,13 +257,11 @@ onMounted(() => {
     </ListContainer>
   </ListPageLayout>
   <PriceListOptionsSheet
-    :open="selectedCode !== null"
+    :open="(selectedGroup?.items.length ?? 0) > 1"
     :item-code="selectedCode"
     :items="selectedGroup?.items ?? []"
     :service-type="filter.serviceType"
-    :loading="listLoading"
-    :error="listError"
     @close="closeOptions"
-    @edit="openEdit"
+    @select="openEdit"
   />
 </template>
