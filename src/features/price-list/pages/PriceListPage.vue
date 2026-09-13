@@ -5,6 +5,8 @@ import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import GenericTabs from '@/shared/components/GenericTabs.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
+import ScrollRegion from '@/shared/components/ScrollRegion.vue'
+import ImageOrIcon from '@/shared/components/ImageOrIcon.vue'
 import { usePriceListStore } from '../stores/price-list.store'
 import PriceListCard from '../components/PriceListCard.vue'
 import PriceListOptionsSheet from '../components/PriceListOptionsSheet.vue'
@@ -29,6 +31,7 @@ const listError = computed(() => (loaded.value ? null : error.value))
 const search = ref('')
 const serviceFilterOpen = ref(false)
 const { filter, updateFilter } = usePriceListFilterRoute()
+const categoryOrder = ['CLOTHING', 'BEDDING', 'HOUSEHOLD', 'OTHERS']
 const selectedCode = computed(() => {
   const raw = route.query.itemCode
   const value = Array.isArray(raw) ? raw[0] : raw
@@ -57,6 +60,7 @@ watch(selectedCode, (code) => {
 const itemGroups = computed(() => {
   const groups = new Map<string, typeof items.value>()
   for (const item of items.value) {
+    if (!item.active) continue
     const group = groups.get(item.itemCode)
     if (group) group.push(item)
     else groups.set(item.itemCode, [item])
@@ -77,15 +81,55 @@ watch([selectedCode, selectedGroup, loaded], ([code, group, isLoaded]) => {
 
 const categoryTabs = computed(() => {
   const counts = new Map<string, number>()
+  for (const item of items.value) counts.set(item.category.toUpperCase(), 0)
   for (const group of itemGroups.value) {
-    for (const category of new Set(group.items.map((item) => item.category))) {
+    for (const category of new Set(group.items.map((item) => item.category.toUpperCase()))) {
       counts.set(category, (counts.get(category) ?? 0) + 1)
     }
   }
 
   return [
-    { key: 'all', label: 'ทั้งหมด', count: itemGroups.value.length },
-    ...Array.from(counts, ([category, count]) => ({ key: category, label: category, count })),
+    { key: 'ALL', label: 'ALL', count: itemGroups.value.length },
+    ...Array.from(counts.keys())
+      .sort((a, b) => {
+        const aOrder = categoryOrder.indexOf(a)
+        const bOrder = categoryOrder.indexOf(b)
+        if (aOrder !== bOrder) return (aOrder < 0 ? Infinity : aOrder) - (bOrder < 0 ? Infinity : bOrder)
+        return a.localeCompare(b, 'th-TH')
+      })
+      .map((category) => ({ key: category, label: category, count: counts.get(category)! })),
+  ]
+})
+
+const subcategoryTabs = computed(() => {
+  if (filter.value.category === 'ALL') return []
+
+  const counts = new Map<string, number>()
+  const images = new Map<string, string>()
+  let categoryCount = 0
+  for (const group of itemGroups.value) {
+    const categoryItems = group.items.filter((item) => item.category.toUpperCase() === filter.value.category)
+    if (categoryItems.length) categoryCount++
+    for (const item of categoryItems) {
+      if (item.subcategory?.trim() && item.imageUrl && !images.has(item.subcategory)) {
+        images.set(item.subcategory, item.imageUrl)
+      }
+    }
+    const subcategories = new Set(categoryItems
+      .map((item) => item.subcategory)
+      .filter((value): value is string => !!value?.trim()))
+    for (const subcategory of subcategories) {
+      counts.set(subcategory, (counts.get(subcategory) ?? 0) + 1)
+    }
+  }
+
+  if (!counts.size) return []
+  return [
+    { key: 'ALL', label: 'ALL', count: categoryCount, imageUrl: null },
+    ...Array.from(counts, ([subcategory, count]) => ({
+      key: subcategory, label: subcategory.toUpperCase(), count,
+      imageUrl: images.get(subcategory) ?? null,
+    })),
   ]
 })
 
@@ -93,7 +137,8 @@ const filteredGroups = computed(() => {
   const query = search.value.trim().toLocaleLowerCase('th-TH')
 
   function matches(item: PriceListDto): boolean {
-    if ((filter.value.category ?? 'all') !== 'all' && item.category !== filter.value.category) return false
+    if (filter.value.category !== 'ALL' && item.category.toUpperCase() !== filter.value.category) return false
+    if (filter.value.category !== 'ALL' && filter.value.subcategory && item.subcategory !== filter.value.subcategory) return false
     if (filter.value.serviceType && item.serviceType !== filter.value.serviceType) return false
     if (!query) return true
 
@@ -116,12 +161,23 @@ const filteredGroups = computed(() => {
     .filter((group) => group.matchingItems.length > 0)
 })
 
-const activeGroups = computed(() => filteredGroups.value.filter((group) => group.matchingItems.some((item) => item.active)))
-const inactiveGroups = computed(() => filteredGroups.value.filter((group) => group.matchingItems.every((item) => !item.active)))
+const emptyMessage = computed(() => {
+  if (!itemGroups.value.length) return 'ยังไม่มีรายการราคาที่เปิดใช้งาน'
+  if (filter.value.category !== 'ALL' && !itemGroups.value.some((group) =>
+    group.items.some((item) => item.category.toUpperCase() === filter.value.category))) {
+    return 'ยังไม่มีรายการที่เปิดใช้งานในหมวดนี้'
+  }
+  return 'ไม่พบรายการที่ตรงกับการค้นหาหรือตัวกรอง'
+})
 
 function selectCategory(key: string) {
   if (!categoryTabs.value.some((tab) => tab.key === key)) return
-  updateFilter({ category: key === 'all' ? null : key })
+  updateFilter({ category: key, subcategory: null })
+}
+
+function selectSubcategory(key: string) {
+  if (!subcategoryTabs.value.some((tab) => tab.key === key)) return
+  updateFilter({ subcategory: key === 'ALL' ? null : key })
 }
 
 function selectService(value: string | null) {
@@ -129,9 +185,10 @@ function selectService(value: string | null) {
 }
 
 function openCreate() {
+  const category = items.value.find((item) => item.category.toUpperCase() === filter.value.category)?.category
   void router.push({
     name: 'price-list-create',
-    query: filter.value.category ? { category: filter.value.category } : {},
+    query: category ? { category } : {},
   })
 }
 
@@ -167,6 +224,11 @@ async function openEdit(id: string) {
   await router.push({ name: 'price-list-edit', params: { id } })
 }
 
+watch(() => route.query.category, (category) => {
+  if (typeof category === 'string' && category.trim()) return
+  void router.replace({ name: 'price-list', query: { ...route.query, category: 'CLOTHING' } })
+}, { immediate: true })
+
 onMounted(() => {
   void priceListStore.load()
 })
@@ -177,9 +239,32 @@ onMounted(() => {
     <template #filters>
       <GenericTabs
         :tabs="categoryTabs"
-        :active-key="filter.category ?? 'all'"
+        :active-key="filter.category"
         @select="selectCategory"
       />
+      <section v-if="subcategoryTabs.length" class="border-b border-outline-variant/20 bg-surface py-3" aria-label="กรองตามหมวดหมู่ย่อย">
+        <p class="mb-2 px-4 font-label text-[11px] font-bold text-on-surface-variant">หมวดหมู่ย่อย</p>
+        <ScrollRegion axis="x" sizing="auto" class="w-full px-4">
+          <div class="flex w-max gap-2.5 pb-1">
+            <button
+              v-for="tab in subcategoryTabs"
+              :key="tab.key"
+              type="button"
+              class="flex w-[88px] shrink-0 flex-col items-center gap-1.5 rounded-xl border p-2 text-center transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              :class="tab.key === (filter.subcategory ?? 'ALL') ? 'border-primary bg-primary text-on-primary' : 'border-outline-variant/30 bg-surface-container-low text-on-surface'"
+              :aria-pressed="tab.key === (filter.subcategory ?? 'ALL')"
+              :aria-label="`${tab.label} ${tab.count} รายการ`"
+              @click="selectSubcategory(tab.key)"
+            >
+              <span v-if="tab.key === 'ALL'" class="flex h-12 w-12 items-center justify-center rounded-lg bg-surface text-primary">
+                <span class="material-symbols-outlined text-[27px]" aria-hidden="true">apps</span>
+              </span>
+              <ImageOrIcon v-else :image-url="tab.imageUrl" icon="category" fit="contain" class="h-12 w-12 rounded-lg bg-surface" />
+              <span class="w-full truncate font-label text-[10px] font-bold leading-3.5">{{ tab.label }}</span>
+            </button>
+          </div>
+        </ScrollRegion>
+      </section>
     </template>
 
     <ListContainer
@@ -194,7 +279,7 @@ onMounted(() => {
       :skeleton-rows="4"
       :error="listError"
       :empty="filteredGroups.length === 0"
-      empty-text="ไม่พบรายการที่ตรงกับการค้นหา"
+      :empty-text="emptyMessage"
     >
       <template #search-actions>
         <PriceListServiceFilter
@@ -215,6 +300,15 @@ onMounted(() => {
         </button>
       </template>
 
+      <template #loading>
+        <div class="grid grid-cols-2 gap-3 p-4" aria-busy="true" aria-label="กำลังโหลดรายการราคา">
+          <div v-for="n in 4" :key="n" class="overflow-hidden rounded-2xl bg-surface-container-low">
+            <div class="aspect-[4/3] animate-pulse bg-surface-container" />
+            <div class="m-3 h-5 animate-pulse rounded bg-surface-container" />
+          </div>
+        </div>
+      </template>
+
       <PriceListServicePanel
         v-if="serviceFilterOpen"
         :service-type="filter.serviceType"
@@ -227,7 +321,7 @@ onMounted(() => {
           :service-type="filter.serviceType"
           @select="selectService"
         />
-        <p class="px-6 py-4 font-body text-sm italic text-on-surface-variant">ไม่พบรายการที่ตรงกับการค้นหา</p>
+        <p class="px-6 py-4 font-body text-sm italic text-on-surface-variant">{{ emptyMessage }}</p>
       </template>
 
       <template #error>
@@ -239,21 +333,15 @@ onMounted(() => {
         <p class="px-6 py-4 font-body text-sm text-error">{{ listError }}</p>
       </template>
 
-      <PriceListCard
-        v-for="group in activeGroups"
-        :key="group.itemCode"
-        :item-code="group.itemCode"
-        :items="group.items"
-        @open="openOptions"
-      />
-
-      <PriceListCard
-        v-for="group in inactiveGroups"
-        :key="group.itemCode"
-        :item-code="group.itemCode"
-        :items="group.items"
-        @open="openOptions"
-      />
+      <div class="grid grid-cols-2 gap-3 bg-surface p-4">
+        <PriceListCard
+          v-for="group in filteredGroups"
+          :key="group.itemCode"
+          :item-code="group.itemCode"
+          :items="group.items"
+          @open="openOptions"
+        />
+      </div>
     </ListContainer>
   </ListPageLayout>
   <PriceListOptionsSheet

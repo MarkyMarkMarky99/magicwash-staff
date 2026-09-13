@@ -6,6 +6,7 @@ import PickerOverlay from '@/shared/layouts/PickerOverlay.vue'
 import DetailOverlay from '@/shared/layouts/DetailOverlay.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import ImageOrIcon from '@/shared/components/ImageOrIcon.vue'
+import ImageContentCard from '@/shared/components/ImageContentCard.vue'
 import { serviceTypeLabel } from '@/shared/utils/service-type-labels'
 import { groupItemTypes, groupVariants } from '../utils/price-list-picker-groups'
 
@@ -165,16 +166,15 @@ function formatPrice(price: number): string {
             <h2 class="mb-3 font-headline text-sm font-bold text-on-surface">{{ section.name }}</h2>
             <div class="grid grid-cols-2 gap-3">
               <button v-for="group in section.groups" :key="group.key" type="button"
-                class="min-w-0 overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface text-left shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                class="min-w-0 rounded-2xl text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
                 :aria-label="`เลือก ${group.itemType} ${group.subcategory}`" @click="openType(group)">
-                <ImageOrIcon :image-url="imageFor(group.items)" icon="checkroom" fit="contain"
-                  class="aspect-[4/3] w-full rounded-none border-0 bg-surface-container-low" />
-                <div class="p-3">
-                  <h3 class="line-clamp-2 min-h-10 font-headline text-sm font-bold leading-5">{{ group.itemType }}</h3>
-                  <p class="truncate text-[11px] text-on-surface-variant">{{ group.subcategory }}</p>
-                  <p class="truncate text-[11px] text-on-surface-variant">เช่น {{ group.items[0]?.displayNameTh }}</p>
-                  <p class="mt-2 text-xs font-semibold text-primary">{{ variantCount(group.items) }} รุ่น · {{ group.items.length }} ราคา</p>
-                </div>
+                <ImageContentCard :image-url="imageFor(group.items)" :title="group.itemType" icon="checkroom" class="h-full">
+                  <span class="block truncate text-[11px] text-on-surface-variant">{{ group.subcategory }}</span>
+                  <span class="block truncate text-[11px] text-on-surface-variant">เช่น {{ group.items[0]?.displayNameTh }}</span>
+                  <template #footer>
+                    <span class="block text-xs font-semibold text-primary">{{ variantCount(group.items) }} รุ่น · {{ group.items.length }} ราคา</span>
+                  </template>
+                </ImageContentCard>
               </button>
             </div>
           </section>

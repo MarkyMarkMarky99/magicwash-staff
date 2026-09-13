@@ -3,12 +3,14 @@ import { useRoute, useRouter } from 'vue-router'
 import type { LocationQuery, LocationQueryRaw } from 'vue-router'
 
 export interface PriceListFilter {
-  category: string | null
+  category: string
+  subcategory: string | null
   serviceType: string | null
 }
 
 export const defaultPriceListFilter: PriceListFilter = {
-  category: null,
+  category: 'CLOTHING',
+  subcategory: null,
   serviceType: null,
 }
 
@@ -30,7 +32,8 @@ export function usePriceListFilterRoute() {
 
 export function filterFromQuery(query: LocationQuery): PriceListFilter {
   return {
-    category: readString(query.category) || null,
+    category: readString(query.category).trim().toUpperCase() || defaultPriceListFilter.category,
+    subcategory: readString(query.subcategory) || null,
     serviceType: readString(query.serviceType) || null,
   }
 }
@@ -38,7 +41,8 @@ export function filterFromQuery(query: LocationQuery): PriceListFilter {
 export function filterToQuery(filter: PriceListFilter): LocationQueryRaw {
   const query: LocationQueryRaw = {}
 
-  if (filter.category) query.category = filter.category
+  query.category = filter.category
+  if (filter.subcategory) query.subcategory = filter.subcategory
   if (filter.serviceType) query.serviceType = filter.serviceType
 
   return query

@@ -39,86 +39,85 @@ function createComposableContext(query: Record<string, unknown> = {}) {
   }
 }
 
-test('defines the all-items filter as every dimension null', () => {
-  assert.deepEqual(defaultPriceListFilter, { category: null, serviceType: null })
+test('defaults to clothing with all subcategories and services', () => {
+  assert.deepEqual(defaultPriceListFilter, { category: 'CLOTHING', subcategory: null, serviceType: null })
 })
 
 test('converts a category query to the corresponding filter', () => {
-  assert.deepEqual(filterFromQuery({ category: 'shirts' }), { category: 'shirts', serviceType: null })
+  assert.deepEqual(filterFromQuery({ category: 'CLOTHING' }), { category: 'CLOTHING', subcategory: null, serviceType: null })
+  assert.deepEqual(filterFromQuery({ category: 'Clothing' }), { category: 'CLOTHING', subcategory: null, serviceType: null })
+  assert.deepEqual(filterFromQuery({ category: 'ALL' }), { category: 'ALL', subcategory: null, serviceType: null })
 })
 
-test('converts a serviceType query to the corresponding filter', () => {
-  assert.deepEqual(filterFromQuery({ serviceType: 'DRCL' }), { category: null, serviceType: 'DRCL' })
+test('converts subcategory and serviceType queries to the corresponding filter', () => {
+  assert.deepEqual(filterFromQuery({ serviceType: 'DRCL' }), { category: 'CLOTHING', subcategory: null, serviceType: 'DRCL' })
   assert.deepEqual(
-    filterFromQuery({ category: 'shirts', serviceType: 'IRON' }),
-    { category: 'shirts', serviceType: 'IRON' },
+    filterFromQuery({ category: 'CLOTHING', subcategory: 'Shirts', serviceType: 'IRON' }),
+    { category: 'CLOTHING', subcategory: 'Shirts', serviceType: 'IRON' },
   )
 })
 
-test('converts a missing, null, or empty category query to the all-items filter', () => {
-  assert.deepEqual(filterFromQuery({}), { category: null, serviceType: null })
-  assert.deepEqual(filterFromQuery({ category: null }), { category: null, serviceType: null })
-  assert.deepEqual(filterFromQuery({ category: '' }), { category: null, serviceType: null })
-  assert.deepEqual(filterFromQuery({ serviceType: '' }), { category: null, serviceType: null })
+test('converts a missing, null, or empty category query to clothing', () => {
+  assert.deepEqual(filterFromQuery({}), defaultPriceListFilter)
+  assert.deepEqual(filterFromQuery({ category: null }), defaultPriceListFilter)
+  assert.deepEqual(filterFromQuery({ category: '' }), defaultPriceListFilter)
+  assert.deepEqual(filterFromQuery({ serviceType: '', subcategory: '' }), defaultPriceListFilter)
 })
 
-test('writes a query entry only for a truthy dimension', () => {
-  assert.deepEqual(filterToQuery({ category: 'shirts', serviceType: null }), { category: 'shirts' })
-  assert.deepEqual(filterToQuery({ category: null, serviceType: 'WASH' }), { serviceType: 'WASH' })
+test('writes an explicit category and only selected optional dimensions', () => {
+  assert.deepEqual(filterToQuery({ category: 'CLOTHING', subcategory: null, serviceType: null }), { category: 'CLOTHING' })
+  assert.deepEqual(filterToQuery({ category: 'ALL', subcategory: null, serviceType: 'WASH' }), { category: 'ALL', serviceType: 'WASH' })
   assert.deepEqual(
-    filterToQuery({ category: 'shirts', serviceType: 'WASH' }),
-    { category: 'shirts', serviceType: 'WASH' },
+    filterToQuery({ category: 'CLOTHING', subcategory: 'Shirts', serviceType: 'WASH' }),
+    { category: 'CLOTHING', subcategory: 'Shirts', serviceType: 'WASH' },
   )
-  assert.deepEqual(filterToQuery({ category: null, serviceType: null }), {})
-  assert.deepEqual(filterToQuery({ category: '', serviceType: '' }), {})
 })
 
 test('derives its computed filter from the current route query', () => {
   const { route, composable } = createComposableContext({ category: 'shirts' })
 
-  assert.deepEqual(composable.filter.value, { category: 'shirts', serviceType: null })
+  assert.deepEqual(composable.filter.value, { category: 'SHIRTS', subcategory: null, serviceType: null })
 
-  route.query = { category: 'trousers', serviceType: 'DRCL' }
+  route.query = { category: 'trousers', subcategory: 'Pants', serviceType: 'DRCL' }
 
-  assert.deepEqual(composable.filter.value, { category: 'trousers', serviceType: 'DRCL' })
+  assert.deepEqual(composable.filter.value, { category: 'TROUSERS', subcategory: 'Pants', serviceType: 'DRCL' })
 
   route.query = {}
 
-  assert.deepEqual(composable.filter.value, { category: null, serviceType: null })
+  assert.deepEqual(composable.filter.value, defaultPriceListFilter)
 })
 
-test('merges updates across both dimensions and drops the emptied ones', () => {
+test('merges updates across all dimensions and clears subcategory on category change', () => {
   const { replaceCalls, composable } = createComposableContext({ category: 'shirts' })
 
   assert.equal(composable.updateFilter({}), undefined)
   assert.deepEqual(replaceCalls[0], {
     name: 'price-list',
-    query: { category: 'shirts' },
+    query: { category: 'SHIRTS' },
   })
 
-  assert.equal(composable.updateFilter({ category: 'blankets' }), undefined)
+  assert.equal(composable.updateFilter({ subcategory: 'Shirts' }), undefined)
   assert.deepEqual(replaceCalls[1], {
     name: 'price-list',
-    query: { category: 'blankets' },
+    query: { category: 'SHIRTS', subcategory: 'Shirts' },
   })
 
-  // The second dimension must survive an update that names only the first one.
   assert.equal(composable.updateFilter({ serviceType: 'IRON' }), undefined)
   assert.deepEqual(replaceCalls[2], {
     name: 'price-list',
-    query: { category: 'blankets', serviceType: 'IRON' },
+    query: { category: 'SHIRTS', subcategory: 'Shirts', serviceType: 'IRON' },
   })
 
-  assert.equal(composable.updateFilter({ category: null }), undefined)
+  assert.equal(composable.updateFilter({ category: 'BEDDING', subcategory: null }), undefined)
   assert.deepEqual(replaceCalls[3], {
     name: 'price-list',
-    query: { serviceType: 'IRON' },
+    query: { category: 'BEDDING', serviceType: 'IRON' },
   })
 
-  assert.equal(composable.updateFilter({ serviceType: null }), undefined)
+  assert.equal(composable.updateFilter({ category: 'ALL', serviceType: null }), undefined)
   assert.deepEqual(replaceCalls[4], {
     name: 'price-list',
-    query: {},
+    query: { category: 'ALL' },
   })
 })
 

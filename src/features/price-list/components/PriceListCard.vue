@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import ImageOrIcon from '@/shared/components/ImageOrIcon.vue'
+import ImageContentCard from '@/shared/components/ImageContentCard.vue'
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
 import type { PriceListDto } from '../services/price-list.service'
 
@@ -13,8 +13,16 @@ const emit = defineEmits<{
   open: [itemCode: string]
 }>()
 
-const item = computed(() => props.items.find((entry) => entry.active) ?? props.items[0])
-const activeCount = computed(() => props.items.filter((entry) => entry.active).length)
+const item = computed(() => props.items[0])
+const imageUrl = computed(() => props.items.find((entry) => entry.imageUrl)?.imageUrl ?? null)
+const priceLabel = computed(() => {
+  const prices = props.items.map((entry) => entry.price)
+  const lowest = Math.min(...prices)
+  const highest = Math.max(...prices)
+  return lowest === highest
+    ? `฿${formatPrice(lowest)}`
+    : `฿${formatPrice(lowest)}–${formatPrice(highest)}`
+})
 const baseCard = ref<InstanceType<typeof BaseSwipeCard> | null>(null)
 
 function showEditAction(): void {
@@ -38,11 +46,12 @@ function formatPrice(price: number): string {
     v-if="item"
     ref="baseCard"
     :style="{ '--snap-left': '6rem' }"
+    class="min-w-0 overflow-hidden rounded-2xl"
     role="button"
     tabindex="0"
     :aria-label="props.items.length > 1
-      ? `ดูตัวเลือกราคา ${item.displayNameTh} รหัส ${props.itemCode} ${props.items.length} ราคา แตะเพื่อดูราคา หรือปัดซ้ายเพื่อแก้ไข`
-      : `ราคา ${item.displayNameTh} รหัส ${props.itemCode} ปัดซ้ายหรือกด Enter เพื่อแสดงปุ่มแก้ไข`"
+      ? `ดูตัวเลือกราคา ${item.displayNameTh} รหัส ${props.itemCode} ${props.items.length} ราคา ${priceLabel} แตะเพื่อดูราคา หรือปัดซ้ายเพื่อแก้ไข`
+      : `ราคา ${item.displayNameTh} รหัส ${props.itemCode} ${priceLabel} ปัดซ้ายหรือกด Enter เพื่อแสดงปุ่มแก้ไข`"
     @tap="props.items.length > 1 && emit('open', props.itemCode)"
     @swipe-right="baseCard?.snapCard('none')"
     @keydown.enter="handleKeydown"
@@ -56,16 +65,17 @@ function formatPrice(price: number): string {
       </div>
     </template>
 
-    <div class="flex min-w-0 items-center gap-3 px-4 py-3 text-left">
-      <ImageOrIcon :image-url="props.items.find((entry) => entry.imageUrl)?.imageUrl ?? null" icon="checkroom" class="h-12 w-12 shrink-0 rounded-lg" />
-      <span class="min-w-0 flex-1">
-        <strong class="block truncate font-headline text-sm text-primary">{{ item.displayNameTh }}</strong>
-        <span class="block truncate font-body text-xs text-on-surface-variant">{{ props.itemCode }} · {{ item.variant || item.itemType }}</span>
-      </span>
-      <span class="shrink-0 text-right">
-        <span class="block font-headline text-sm font-bold text-primary">{{ props.items.length > 1 ? `${props.items.length} ราคา` : `฿${formatPrice(item.price)}` }}</span>
-        <span class="block font-body text-[11px] text-on-surface-variant">{{ props.items.length > 1 ? `${activeCount} ใช้งาน` : item.active ? 'เปิดใช้งาน' : 'ปิดใช้งาน' }}</span>
-      </span>
-    </div>
+    <ImageContentCard :image-url="imageUrl" :title="item.displayNameTh" icon="checkroom">
+      <template #badge>
+        <span class="price-on-image font-headline text-[14px] font-extrabold tabular-nums text-primary">{{ priceLabel }}</span>
+      </template>
+      <span class="block truncate font-body text-[11px] text-on-surface-variant">{{ props.itemCode }}</span>
+    </ImageContentCard>
   </BaseSwipeCard>
 </template>
+
+<style scoped>
+.price-on-image {
+  text-shadow: 0 0 2px #fff, 0 0 6px rgba(255, 255, 255, 0.95);
+}
+</style>
