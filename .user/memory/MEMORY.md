@@ -4,7 +4,6 @@ Live note for the next session. Branch: `main`.
 
 ## Branches in flight
 
-- **`codex/price-list-item-code-groups`** — merged into main; its source worktree remains available. Details: `.user/memory/codex-price-list-item-code-groups.md`.
 - **`feat/price-list-image-url`** — image-enabled picker and price form updates are ready locally; production deployment is pending. Details: `.user/memory/feat-price-list-image-url.md`.
 - **`codex/price-list-photo-release`** — integrates current main with the price-list image changes; preview deployment awaits approval. Details: `.user/memory/codex-price-list-photo-release.md`.
 - **`design/item-illustrations`** — design worktree at the price-list backend commit. Details: `.user/memory/design-item-illustrations.md`.
