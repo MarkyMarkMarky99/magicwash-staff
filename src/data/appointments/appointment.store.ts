@@ -8,8 +8,7 @@ import {
   type AppointmentListDto,
   type AppointmentUpdateDto,
 } from '@/data/appointments/appointment.service'
-import { normalizeSheetDate } from '@/shared/utils/sheet-date'
-import { toAppointmentDate } from '../utils/appointment-date'
+import { normalizeSheetDate, todaySheetDate } from '@/shared/utils/sheet-date'
 
 type AppointmentItem = AppointmentListDto | AppointmentCreateDto | AppointmentUpdateDto
 
@@ -17,7 +16,7 @@ const MAX_LIST_SIZE = 100
 
 // Reconcile views from write responses because GViz reads may lag.
 export const useAppointmentStore = defineStore('appointments', () => {
-  const selectedDate = ref(toAppointmentDate(new Date()))
+  const selectedDate = ref(todaySheetDate())
   const dailyItems = ref<AppointmentListDto[]>([])
   const pendingItems = ref<AppointmentListDto[]>([])
   const dailyLoading = ref(false)

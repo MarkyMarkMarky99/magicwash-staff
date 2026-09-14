@@ -7,10 +7,14 @@ export type OrderListQuery = z.infer<typeof orderListQuerySchema>
 
 const ORDERS_ENDPOINT = '/api/orders'
 
-export async function listOrdersByCustomer(customerId: string): Promise<OrderListDto[]> {
+export async function listOrdersByCustomer(
+  customerId: string,
+  onFresh?: (items: OrderListDto[]) => void,
+): Promise<OrderListDto[]> {
   const { items } = await apiGetList<OrderListDto>(ORDERS_ENDPOINT, {
     query: { customerId },
     querySchema: orderListQuerySchema,
+    onFresh: (result) => onFresh?.(result.items),
   })
   return items
 }

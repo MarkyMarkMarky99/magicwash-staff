@@ -8,11 +8,11 @@ import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import OrderCard from '@/features/orders/components/OrderCard.vue'
 import { useOrderListFilterRoute } from '@/features/orders/composables/use-order-list-filter-route'
 import { orderStatusLabels } from '@/features/orders/order-status-labels'
-import { useOrderStore } from '@/features/orders/stores/order.store'
+import { useWorkOrderStore } from '@/data/work-orders/work-order.store'
 import { getInvoiceTarget, isInvoiceActionAvailable } from '@/features/orders/utils/order-invoice-target'
 
 const router = useRouter()
-const orderStore = useOrderStore()
+const orderStore = useWorkOrderStore()
 const { orders, listLoading, listError } = storeToRefs(orderStore)
 const { keyword, status, page, setKeyword, setStatus, setPage } = useOrderListFilterRoute()
 const statusTabs = [

@@ -1,4 +1,4 @@
-import type { InvoicePriceListItemDto } from '@/data/price-list/invoice-price-list.service'
+import type { PriceListDto } from '@/data/price-list/price-list.service'
 import {
   createEmptyLineItemRow,
   invoiceUnitOptions,
@@ -7,8 +7,12 @@ import {
 } from '../types/invoice-create.types'
 import { serviceTypePresentation } from '@/shared/utils/service-type-labels'
 
+export function filterInvoicePriceListItems(items: PriceListDto[]): PriceListDto[] {
+  return items.filter((item) => item.active === true && item.priceGroup === 'DEFAULT')
+}
+
 export function toLineItemFormRow(
-  item: InvoicePriceListItemDto,
+  item: PriceListDto,
 ): LineItemFormRow {
   const line = createEmptyLineItemRow()
   const serviceLabel = serviceTypePresentation[item.serviceType].label

@@ -1,17 +1,16 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { storeToRefs } from 'pinia'
+import { computed, inject, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import logoUrl from '../../assets/logo.png'
-import { useAppointmentStore } from '@/features/appointments/stores/appointment.store'
+import { appointmentPendingCountKey } from '@/shared/appointment-pending-count'
 import { useGoBack } from '@/shared/composables/use-go-back'
 import { APP_Z_INDEX_CLASS } from '@/shared/layouts/z-index'
 import NavSidebar from './NavSidebar.vue'
 
 const router = useRouter()
 const route  = useRoute()
+const pendingCount = inject(appointmentPendingCountKey, ref(0))
 const sidebarOpen = ref(false)
-const { pendingCount } = storeToRefs(useAppointmentStore())
 const { goBack } = useGoBack()
 
 const canGoBack = computed(() => Boolean(route.meta.parent))

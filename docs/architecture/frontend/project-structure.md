@@ -42,6 +42,9 @@ Application-level behavior is owned by the root entry points: `src/main.js` boot
 `src/App.vue` owns the root shell, and `src/router/index.js` owns routing. Use `src/app/` only for
 application-level pages or development tools when one is needed.
 
+- The application root may provide data-layer state to shared shell components through typed
+  injection keys owned by `src/shared/`; shared code must not import the data layer directly.
+
 ### Feature Layer
 
 - Owns business-facing workflow functionality.
@@ -54,12 +57,23 @@ application-level pages or development tools when one is needed.
 - Import data modules through `@/data/<resource>/...`.
 - It holds the resource API service for all `/api/<resource>` requests.
 - It owns the Pinia store for shared table data when shared state is needed.
+- Each table has one canonical full-list query; pages and pickers derive their filters and ordering
+  from that shared result so URL-keyed cache entries are reused.
+- Loaded shared table stores subscribe to their resource invalidation and re-read automatically, so
+  kept-alive pages do not retain data made stale by another workflow.
 - It is the only frontend code that calls `src/shared/api` for its resource.
 - It invalidates its resource cache after writes.
 - It invalidates related resource caches affected by its writes.
+- Work-order, order-item, and invoice writes invalidate the order-history view; customer-package
+  and package-transaction writes invalidate both package resources.
+- Outcome-based writes also invalidate after any confirmed or unknown outcome that may have
+  persisted data, not only the fully successful outcome.
 - It uses the existing shared API-client cache and `src/shared/config/cache.ts`.
 - It does not add another cache.
-- Transitional: Feature-local table-data services and stores move here one resource at a time without changing request URLs, query parameters, filtering, or cache timing.
+- When a canonical list reaches its API row cap, the data store exposes a truncation flag and every
+  staff-facing list or picker using it shows an incomplete-list notice.
+- The canonical customer list uses the existing 2,000-row request cap; a response with exactly
+  2,000 rows is treated as potentially incomplete.
 
 ### Shared Layer
 

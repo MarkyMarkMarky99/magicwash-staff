@@ -3,7 +3,7 @@ import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import InvoiceCard from '@/features/invoices/components/InvoiceCard.vue'
-import { useCustomerInvoicesStore } from '../stores/customer-invoices.store'
+import { useCustomerInvoicesStore } from '@/data/invoices/customer-invoices.store'
 
 defineProps<{ customerId: string }>()
 const router = useRouter()

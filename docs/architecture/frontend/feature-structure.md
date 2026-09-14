@@ -48,6 +48,8 @@ Page
 - Pages coordinate loading, navigation, and calls to stores or data modules.
 
 - Stores own workflow state, forms, selections, and UI state.
+- Shared table rows, loading state, and cap signals belong to the resource store in `src/data/`;
+  feature consumers keep only workflow state and derive their own visible filters.
 - Features do not construct API requests or call the shared API client directly.
 - Feature-specific filtering and derivation of table data stays in the feature.
 

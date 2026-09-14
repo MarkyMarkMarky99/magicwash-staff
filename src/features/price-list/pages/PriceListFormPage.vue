@@ -7,7 +7,7 @@ import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import FormSwitch from '@/shared/components/FormSwitch.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import { serviceTypeOptions } from '@/shared/utils/service-type-labels'
-import { usePriceListStore } from '../stores/price-list.store'
+import { usePriceListStore } from '@/data/price-list/price-list.store'
 import {
   createPriceListPayload,
   updatePriceListPayload,

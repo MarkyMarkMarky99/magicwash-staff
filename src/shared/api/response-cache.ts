@@ -28,6 +28,7 @@ interface CacheEntry {
 const HOUR_MS = 60 * 60 * 1000
 
 const entries = new Map<string, CacheEntry>()
+const invalidationListeners = new Set<(path: string | undefined) => void>()
 let totalBytes = 0
 let useCounter = 0
 
@@ -129,6 +130,7 @@ export function invalidate(path?: string): void {
   if (path === undefined) {
     entries.clear()
     totalBytes = 0
+    notifyInvalidation(undefined)
     return
   }
 
@@ -137,6 +139,35 @@ export function invalidate(path?: string): void {
     const keyPath = key.split('?')[0] ?? key
     if (keyPath === pathname || keyPath.startsWith(`${pathname}/`)) drop(key)
   }
+  notifyInvalidation(pathname)
+}
+
+function notifyInvalidation(path: string | undefined): void {
+  for (const listener of invalidationListeners) {
+    try {
+      listener(path)
+    } catch (error) {
+      console.error('Cache invalidation listener failed', error)
+    }
+  }
+}
+
+export function onCacheInvalidated(
+  path: string,
+  listener: () => void,
+): () => void {
+  const pathname = path.split('?')[0] ?? path
+  const wrapped = (invalidatedPath: string | undefined) => {
+    if (
+      invalidatedPath === undefined
+      || invalidatedPath === pathname
+      || invalidatedPath.startsWith(`${pathname}/`)
+    ) {
+      listener()
+    }
+  }
+  invalidationListeners.add(wrapped)
+  return () => invalidationListeners.delete(wrapped)
 }
 
 export function cacheStats(): { entries: number; bytes: number } {

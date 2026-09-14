@@ -7,7 +7,7 @@ import {
   getAppointment,
   type AppointmentDetailDto,
 } from '@/data/appointments/appointment.service'
-import { useAppointmentStore } from '../stores/appointment.store'
+import { useAppointmentStore } from '@/data/appointments/appointment.store'
 import AppointmentForm from '../components/AppointmentForm.vue'
 
 const props = defineProps<{ appointmentId: string }>()

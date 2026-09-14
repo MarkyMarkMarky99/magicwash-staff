@@ -26,21 +26,25 @@ import type { OrderImageType } from '@/features/orders/order-image-labels'
 import { presentationFor } from '@/features/orders/order-status-presentation'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { useOrderStore } from '@/features/orders/stores/order.store'
-import { useOrderPriceListStore } from '@/features/orders/stores/order-price-list.store'
-import type { OrderPriceListItemDto } from '@/data/price-list/order-price-list.service'
+import { useWorkOrderStore } from '@/data/work-orders/work-order.store'
+import { usePriceListStore } from '@/data/price-list/price-list.store'
+import type { PriceListDto } from '@/data/price-list/price-list.service'
+import { filterOrderPriceListItems } from '@/features/orders/utils/order-price-list-items'
 import { currentActor } from '@/shared/config/actor'
 
 const itemPayloadSchema = orderItemCreateSchema.omit({ orderId: true, createdBy: true })
 const route = useRoute()
 const router = useRouter()
 const orderStore = useOrderStore()
-const orderPriceListStore = useOrderPriceListStore()
+const workOrderStore = useWorkOrderStore()
+const priceListStore = usePriceListStore()
 const orderImageStore = useOrderImageStore()
-const { currentOrder, detailLoading, detailError, itemSubmittingOrderId, itemError, itemErrorOrderId } = storeToRefs(orderStore)
+const { currentOrder, detailLoading, detailError } = storeToRefs(workOrderStore)
+const { itemSubmittingOrderId, itemError, itemErrorOrderId } = storeToRefs(orderStore)
 const { images, imagesLoading, imagesError, uploadingCount, uploadError } = storeToRefs(orderImageStore)
 const orderId = computed(() => String(route.params.orderId ?? ''))
 const orderOverlay = reactive(useOrderOverlayRoute())
-const selectedPriceListItem = ref<OrderPriceListItemDto | null>(null)
+const selectedPriceListItem = ref<PriceListDto | null>(null)
 const selectedImagePreview = ref<{ src: string, alt: string } | null>(null)
 const savingItemOrderId = ref<string | null>(null)
 let itemFlowSequence = 0
@@ -49,11 +53,14 @@ const pickerServiceType = computed(() => {
   const parsed = orderServiceTypeSchema.safeParse(currentOrder.value.serviceType)
   return parsed.success ? parsed.data : null
 })
+const pickerItems = computed(() =>
+  filterOrderPriceListItems(priceListStore.items, pickerServiceType.value),
+)
 const isPriceListPickerOpen = computed(() => orderOverlay.isItemOpen && selectedPriceListItem.value === null)
 const isItemFormOpen = computed(() => orderOverlay.isItemOpen && selectedPriceListItem.value !== null)
 const pickerError = computed(() => detailError.value
   ?? (!detailLoading.value && !pickerServiceType.value ? 'ไม่พบบริการของออเดอร์ กรุณาลองโหลดใหม่' : null)
-  ?? orderPriceListStore.error)
+  ?? priceListStore.error)
 const captureImageType = computed<OrderImageType | null>(() => {
   const overlay = orderOverlay.activeOverlay
   if (overlay === null || overlay === 'item') return null
@@ -90,19 +97,18 @@ const currentItemError = computed(() => itemErrorOrderId.value === orderId.value
 watch(orderId, (id) => {
   selectedImagePreview.value = null
   if (id) {
-    void orderStore.loadDetail(id)
+    void workOrderStore.loadDetail(id)
     void orderImageStore.loadImages(id)
     return
   }
-  orderStore.clearDetail()
+  workOrderStore.clearDetail()
   orderImageStore.clearImages()
 }, { immediate: true })
 
 watch([() => orderOverlay.isItemOpen, orderId, pickerServiceType], ([isOpen, , serviceType]) => {
   itemFlowSequence += 1
   selectedPriceListItem.value = null
-  orderPriceListStore.reset()
-  if (isOpen && serviceType) void orderPriceListStore.reload(serviceType)
+  if (isOpen && serviceType) void priceListStore.load()
 }, { immediate: true })
 
 function submitWeight(weight: number): void {
@@ -148,7 +154,7 @@ async function addItem(payload: z.infer<typeof itemPayloadSchema>) {
   try {
     await orderStore.addItem(orderItemCreateSchema.parse({ ...payload, orderId: targetOrderId, createdBy: currentActor() }))
     if (orderId.value !== targetOrderId) return
-    await orderStore.loadDetail(targetOrderId)
+    await workOrderStore.loadDetail(targetOrderId)
     if (orderId.value === targetOrderId && flowSequence === itemFlowSequence) orderOverlay.close()
   } catch {
     return
@@ -157,7 +163,7 @@ async function addItem(payload: z.infer<typeof itemPayloadSchema>) {
   }
 }
 
-function selectPriceListItem(item: OrderPriceListItemDto): void {
+function selectPriceListItem(item: PriceListDto): void {
   selectedPriceListItem.value = item
   clearItemError()
 }
@@ -177,9 +183,9 @@ function closeItemForm(): void {
 
 function retryPriceList(): void {
   if (detailError.value || !pickerServiceType.value) {
-    void orderStore.loadDetail(orderId.value)
+    void workOrderStore.loadDetail(orderId.value)
   } else {
-    void orderPriceListStore.reload(pickerServiceType.value)
+    void priceListStore.load(true)
   }
 }
 
@@ -207,10 +213,10 @@ function clearItemError() {
     v-if="selectedPriceListItem === null"
     :open="isPriceListPickerOpen"
     :detail="`${orderId} · ${pickerServiceType ? serviceTypeLabel(pickerServiceType) : '—'}`"
-    :items="orderPriceListStore.items"
-    :loading="detailLoading || orderPriceListStore.loading"
+    :items="pickerItems"
+    :loading="detailLoading || priceListStore.loading"
     :error="pickerError"
-    :truncated="orderPriceListStore.truncated"
+    :truncated="priceListStore.truncated"
     @close="closePriceListPicker"
     @retry="retryPriceList"
     @select="selectPriceListItem"

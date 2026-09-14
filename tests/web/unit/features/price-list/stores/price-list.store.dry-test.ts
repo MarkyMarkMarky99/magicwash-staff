@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict'
 import { createPinia, setActivePinia } from 'pinia'
 
-import { usePriceListStore } from '@/features/price-list/stores/price-list.store'
+import { usePriceListStore } from '@/data/price-list/price-list.store'
+import { invalidate } from '@/shared/api/response-cache'
 
 /**
  * Executable, not a source scan. An earlier version of this guard only regex-matched
- * the store's source, so swapping the `listAllPriceList()` call site for the paged
+ * the store's source, so swapping the canonical list call site for a paged
  * `listPriceList()` left it green — the import line still contained the symbol.
  * Driving the real store through a stubbed `fetch` catches that: the two services
  * send different `perPage` values, so the request itself proves which one ran.
@@ -43,6 +44,7 @@ async function withStore(
 ): Promise<void> {
   const originalFetch = globalThis.fetch
   const calls: Call[] = []
+  const currentRows = [...listRows]
 
   globalThis.fetch = (async (input: URL | string, init?: RequestInit) => {
     const method = init?.method ?? 'GET'
@@ -50,20 +52,24 @@ async function withStore(
 
     if (method === 'GET') {
       return new Response(
-        JSON.stringify({ data: listRows, meta: { pagination: { page: 1, perPage: 1000 } } }),
+        JSON.stringify({ data: currentRows.slice(0, 1000), meta: { pagination: { page: 1, perPage: 1000 } } }),
         { status: 200, headers: { 'Content-Type': 'application/json' } },
       )
     }
+    currentRows.push(row('created'))
     return new Response(JSON.stringify({ data: row('created') }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     })
   }) as typeof fetch
 
+  invalidate('/api/price-list')
   setActivePinia(createPinia())
+  const store = usePriceListStore()
   try {
-    await run(usePriceListStore(), calls)
+    await run(store, calls)
   } finally {
+    store.$dispose()
     globalThis.fetch = originalFetch
   }
 }
@@ -81,7 +87,7 @@ const createPayload = {
   active: true,
 } as never
 
-// A complete load goes through listAllPriceList — one request, the whole catalogue.
+// A complete load goes through the canonical query — one request, the whole catalogue.
 await withStore([row('a'), row('b')], async (store, calls) => {
   await store.load()
 
@@ -108,34 +114,28 @@ await withStore(cappedRows, async (store) => {
 
   assert.equal(store.truncated, true)
   assert.equal(store.loaded, false, 'a truncated catalogue must not be marked loaded')
-  assert.ok(store.error, 'a truncated catalogue must surface a load error')
+  assert.equal(store.error, null, 'the cap signal stays separate from request failures')
 })
 
-// Regression: a mutation must not wipe the truncation error and imply a complete list.
+// A mutation re-reads the canonical list and retains the incomplete state.
 await withStore(cappedRows, async (store) => {
   await store.load()
-  const truncationError = store.error
-  assert.ok(truncationError)
 
   await store.create(createPayload)
 
   assert.equal(store.truncated, true, 'creating an item does not complete the catalogue')
   assert.equal(store.loaded, false)
-  assert.equal(
-    store.error,
-    truncationError,
-    'the truncation error must survive a successful mutation',
-  )
+  assert.equal(store.error, null)
 })
 
-// On a complete catalogue the same mutation clears the stale error as before.
+// On a complete catalogue the mutation refreshes the shared rows.
 await withStore([row('a')], async (store) => {
   await store.load()
   await store.create(createPayload)
 
   assert.equal(store.error, null)
   assert.equal(store.loaded, true)
-  assert.equal(store.items.length, 2, 'a created row is appended to the loaded list')
+  assert.equal(store.items.length, 2, 'a mutation re-reads the canonical list')
 })
 
 console.log('price-list.store.dry-test: OK')

@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict'
 import { CACHE_MAX_BYTES } from '@/shared/config/cache'
-import { cacheStats, invalidate, readCache, writeCache } from '@/shared/api/response-cache'
+import {
+  cacheStats,
+  invalidate,
+  onCacheInvalidated,
+  readCache,
+  writeCache,
+} from '@/shared/api/response-cache'
 
 // The cache is the first thing in this app that can grow without bound: every feature
 // store holds a single slot and overwrites it, while this is keyed by URL and keeps one
@@ -80,6 +86,27 @@ assert.ok(cacheStats().bytes <= CACHE_MAX_BYTES, 'total stays under the ceiling'
 assert.ok(readCache('/api/c'), 'the newest entry is kept')
 assert.ok(readCache('/api/a'), 'a recently read entry survives')
 assert.equal(readCache('/api/b'), null, 'the least recently used entry is evicted first')
+
+// A broken subscriber is observable and cannot prevent later subscribers from refreshing.
+const originalConsoleError = console.error
+const loggedErrors: unknown[][] = []
+let notifiedAfterFailure = false
+const stopFailingListener = onCacheInvalidated('/api/listener-test', () => {
+  throw new Error('listener failure')
+})
+const stopFollowingListener = onCacheInvalidated('/api/listener-test', () => {
+  notifiedAfterFailure = true
+})
+console.error = (...args: unknown[]) => { loggedErrors.push(args) }
+try {
+  invalidate('/api/listener-test')
+} finally {
+  console.error = originalConsoleError
+  stopFailingListener()
+  stopFollowingListener()
+}
+assert.equal(loggedErrors.length, 1, 'listener failures are logged')
+assert.equal(notifiedAfterFailure, true, 'later listeners are still notified')
 
 invalidate()
 console.log('response-cache.dry-test: OK')

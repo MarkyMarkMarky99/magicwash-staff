@@ -12,5 +12,6 @@ export async function createOrderItem(payload: OrderItemCreatePayload): Promise<
   const result = await apiPost<OrderItemCreateDto>(ORDER_ITEMS_ENDPOINT, { data: payload, requestSchema: orderItemCreateSchema })
   invalidate('/api/order-items')
   invalidate('/api/work-orders')
+  invalidate('/api/orders')
   return result
 }

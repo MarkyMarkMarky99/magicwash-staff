@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import { getInvoices } from '@/data/invoices/invoice.service'
-import type { InvoiceFilter } from '@/data/invoices/invoice-filter.types'
-import type { InvoiceListItemDto } from '@/data/invoices/invoices.types'
+import { onScopeDispose, ref } from 'vue'
+import { getInvoices } from './invoice.service'
+import type { InvoiceFilter } from './invoice-filter.types'
+import type { InvoiceListItemDto } from './invoices.types'
+import { onCacheInvalidated } from '@/shared/api/response-cache'
 
 export const useInvoiceStore = defineStore('invoices', () => {
   const invoices = ref<InvoiceListItemDto[]>([])
@@ -11,10 +12,11 @@ export const useInvoiceStore = defineStore('invoices', () => {
   const perPage = ref(20)
   const loading = ref(false)
   const error = ref<string | null>(null)
-  // Ignore stale responses from superseded requests.
+  let activeFilter: InvoiceFilter | null = null
   let latestRequest = 0
 
   async function fetchInvoices(filter: InvoiceFilter) {
+    activeFilter = { ...filter }
     const requestId = ++latestRequest
     loading.value = true
     error.value = null
@@ -34,13 +36,10 @@ export const useInvoiceStore = defineStore('invoices', () => {
     }
   }
 
-  return {
-    invoices,
-    total,
-    page,
-    perPage,
-    loading,
-    error,
-    fetchInvoices,
-  }
+  const stopInvalidationListener = onCacheInvalidated('/api/invoices', () => {
+    if (activeFilter !== null) void fetchInvoices(activeFilter)
+  })
+  onScopeDispose(stopInvalidationListener)
+
+  return { invoices, total, page, perPage, loading, error, fetchInvoices }
 })

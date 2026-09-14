@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 
-import { listAllPriceList } from '@/data/price-list/price-list.service'
+import { listPriceList } from '@/data/price-list/price-list.service'
+import { invalidate } from '@/shared/api/response-cache'
 
 type PriceListRow = Record<string, unknown>
 
@@ -45,7 +46,8 @@ async function withMockFetch(
 }
 
 await withMockFetch([row('one')], async (calls) => {
-  const result = await listAllPriceList()
+  invalidate('/api/price-list')
+  const result = await listPriceList()
   assert.equal(calls.length, 1)
   assert.equal(calls[0]!.pathname, '/api/price-list')
   assert.equal(calls[0]!.searchParams.get('perPage'), '1000')
@@ -54,7 +56,8 @@ await withMockFetch([row('one')], async (calls) => {
 
 const cappedRows = Array.from({ length: 1000 }, (_, index) => row(`row-${index}`))
 await withMockFetch(cappedRows, async (calls) => {
-  const result = await listAllPriceList()
+  invalidate('/api/price-list')
+  const result = await listPriceList()
   assert.equal(calls.length, 1)
   assert.equal(calls[0]!.searchParams.get('perPage'), '1000')
   assert.equal(result.items.length, 1000)

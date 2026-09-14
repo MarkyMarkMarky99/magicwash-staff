@@ -11,9 +11,9 @@ import {
 import { apiGet, apiGetList, ApiError } from '@/shared/api/api-client'
 import { invalidate } from '@/shared/api/response-cache'
 
-type CustomerPackageListItem = z.infer<typeof customerPackageListResponseSchema>
+export type CustomerPackageListItem = z.infer<typeof customerPackageListResponseSchema>
 type CustomerPackageDetail = z.infer<typeof customerPackageDetailResponseSchema>
-type CustomerPackageListQuery = z.infer<typeof customerPackageListQuerySchema>
+export type CustomerPackageListQuery = z.infer<typeof customerPackageListQuerySchema>
 type CreateCustomerPackageRequest = z.infer<typeof createCustomerPackageRequestSchema>
 type CreateCustomerPackageResponse = z.infer<typeof createCustomerPackageResponseSchema>
 
@@ -111,6 +111,11 @@ function unknownCreateOutcome(message: string): CreateCustomerPackageResponse {
   }
 }
 
+function invalidateCreateCaches(): void {
+  invalidate('/api/customer-packages')
+  invalidate('/api/package-transactions')
+}
+
 export async function createCustomerPackage(request: CreateCustomerPackageRequest): Promise<CreateCustomerPackageResponse> {
   try {
     const response = await fetch('/api/customer-packages', {
@@ -122,15 +127,24 @@ export async function createCustomerPackage(request: CreateCustomerPackageReques
     try {
       body = await response.json()
     } catch {
+      invalidateCreateCaches()
       return unknownCreateOutcome('The server response could not be read. This package may already have been created.')
     }
     const parsed = createCustomerPackageResponseSchema.safeParse(body)
     if (!parsed.success) {
+      invalidateCreateCaches()
       return unknownCreateOutcome('The server response was not a recognized write outcome. This package may already have been created.')
     }
-    if (parsed.data.kind === 'created') invalidate('/api/customer-packages')
+    if (
+      parsed.data.kind === 'created'
+      || parsed.data.kind === 'package_write_failed'
+      || (parsed.data.kind === 'opening_transaction_write_failed' && parsed.data.certainty === 'unknown')
+    ) {
+      invalidateCreateCaches()
+    }
     return parsed.data
   } catch {
+    invalidateCreateCaches()
     return unknownCreateOutcome('Could not reach the server. This package may already have been created.')
   }
 }

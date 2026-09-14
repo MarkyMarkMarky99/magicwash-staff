@@ -1,11 +1,11 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import type { CustomerPackageFilter } from '../composables/useCustomerPackageFilterRoute'
-import { getCustomerPackages } from '@/data/customer-packages/customer-package.service'
-import type { z } from 'zod'
-import { customerPackageListResponseSchema } from '@contracts/customer-packages/customer-package-api.schema'
-
-type CustomerPackageListItem = z.infer<typeof customerPackageListResponseSchema>
+import { onScopeDispose, ref } from 'vue'
+import {
+  getCustomerPackages,
+  type CustomerPackageListItem,
+  type CustomerPackageListQuery,
+} from './customer-package.service'
+import { onCacheInvalidated } from '@/shared/api/response-cache'
 
 export const useCustomerPackageStore = defineStore('customer-packages', () => {
   const items = ref<CustomerPackageListItem[]>([])
@@ -13,9 +13,11 @@ export const useCustomerPackageStore = defineStore('customer-packages', () => {
   const perPage = ref(20)
   const loading = ref(false)
   const error = ref<string | null>(null)
+  let activeFilter: CustomerPackageListQuery | null = null
   let latestRequest = 0
 
-  async function fetchCustomerPackages(filter: CustomerPackageFilter) {
+  async function fetchCustomerPackages(filter: CustomerPackageListQuery) {
+    activeFilter = { ...filter }
     const requestId = ++latestRequest
     loading.value = true
     error.value = null
@@ -32,6 +34,11 @@ export const useCustomerPackageStore = defineStore('customer-packages', () => {
       if (requestId === latestRequest) loading.value = false
     }
   }
+
+  const stopInvalidationListener = onCacheInvalidated('/api/customer-packages', () => {
+    if (activeFilter !== null) void fetchCustomerPackages(activeFilter)
+  })
+  onScopeDispose(stopInvalidationListener)
 
   return { items, page, perPage, loading, error, fetchCustomerPackages }
 })

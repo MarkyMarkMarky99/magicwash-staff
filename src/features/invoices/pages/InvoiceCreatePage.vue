@@ -31,11 +31,12 @@ import { loadInvoiceCreateContext, type InvoiceCreateOrder } from '../services/i
 import { addSheetDateDays, sheetDateDaysBetween, todaySheetDate } from '@/shared/utils/sheet-date'
 import { useDuplicateInvoiceWarning } from '@/shared/composables/use-duplicate-invoice-warning'
 import { useInvoiceItemPickerRoute } from '../composables/useInvoiceItemPickerRoute'
-import { useInvoicePriceListStore } from '../stores/invoice-price-list.store'
-import type { InvoicePriceListItemDto } from '@/data/price-list/invoice-price-list.service'
+import { usePriceListStore } from '@/data/price-list/price-list.store'
+import type { PriceListDto } from '@/data/price-list/price-list.service'
 import { isValidItemQuantity } from '@shared/utils/item-quantity'
 import {
   appendPickedLine,
+  filterInvoicePriceListItems,
   invoiceUnitOptionFor,
   toLineItemFormRow,
 } from '../utils/invoice-price-list.utils'
@@ -96,23 +97,23 @@ const {
   open: openPriceListPicker,
   close: closePriceListPicker,
 } = useInvoiceItemPickerRoute()
-const invoicePriceListStore = useInvoicePriceListStore()
+const priceListStore = usePriceListStore()
 const {
-  items: priceListItems,
   loading: priceListLoading,
   error: priceListError,
   truncated: priceListTruncated,
-} = storeToRefs(invoicePriceListStore)
+} = storeToRefs(priceListStore)
+const priceListItems = computed(() => filterInvoicePriceListItems(priceListStore.items))
 
 watch(
   priceListPickerOpen,
   (open) => {
-    if (open) void invoicePriceListStore.reload()
+    if (open) void priceListStore.load()
   },
   { immediate: true },
 )
 
-function handlePriceListSelect(item: InvoicePriceListItemDto) {
+function handlePriceListSelect(item: PriceListDto) {
   const line = toLineItemFormRow(item)
   items.value = appendPickedLine(items.value, line)
   closePriceListPicker()
@@ -621,7 +622,7 @@ async function copyLiffUrl(invoiceNumber: string) {
     :error="priceListError"
     :truncated="priceListTruncated"
     @close="closePriceListPicker"
-    @retry="invoicePriceListStore.reload()"
+    @retry="priceListStore.load(true)"
     @select="handlePriceListSelect"
   />
   </AppLayout>

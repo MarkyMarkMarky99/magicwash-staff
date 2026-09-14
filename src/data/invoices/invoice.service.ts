@@ -12,6 +12,23 @@ import { synthesizeNetworkFailureOutcome } from './invoice-outcome.utils'
 
 const INVOICES_ENDPOINT = '/api/invoices'
 
+function invalidateInvoiceCaches(outcome: CreateInvoiceResponse): void {
+  if (
+    outcome.kind === 'validation_error'
+    || (outcome.kind === 'items_write_failed' && outcome.certainty === 'rejected')
+  ) return
+
+  invalidate('/api/invoices')
+  if (
+    outcome.kind === 'created'
+    || outcome.kind === 'order_link_failed'
+    || outcome.kind === 'invoice_view_sync_failed'
+  ) {
+    invalidate('/api/work-orders')
+    invalidate('/api/orders')
+  }
+}
+
 export async function getInvoices(filter: InvoiceFilter): Promise<InvoiceListResponseDto> {
   const { items, pagination } = await apiGetList<InvoiceListItemDto>(INVOICES_ENDPOINT, {
     query: filter,
@@ -58,17 +75,17 @@ export async function createInvoice(request: CreateInvoiceRequest): Promise<Crea
   try {
     body = await response.json()
   } catch {
-    return synthesizeNetworkFailureOutcome('The server responded, but the reply could not be read. This may already have been saved.')
+    const outcome = synthesizeNetworkFailureOutcome('The server responded, but the reply could not be read. This may already have been saved.')
+    invalidateInvoiceCaches(outcome)
+    return outcome
   }
 
   const parsed = createInvoiceResponseSchema.safeParse(body)
   if (!parsed.success) {
-    return synthesizeNetworkFailureOutcome('The server responded, but not with a recognized outcome. This may already have been saved.')
+    const outcome = synthesizeNetworkFailureOutcome('The server responded, but not with a recognized outcome. This may already have been saved.')
+    invalidateInvoiceCaches(outcome)
+    return outcome
   }
-  if (parsed.data.kind === 'created') {
-    invalidate('/api/invoices')
-    // Creating an invoice marks the source OrderForm row as invoiced.
-    invalidate('/api/work-orders')
-  }
+  invalidateInvoiceCaches(parsed.data)
   return parsed.data
 }

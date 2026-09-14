@@ -5,56 +5,54 @@ import {
   type CustomerDetailDto,
 } from '@/data/customers/customer.service'
 import {
-  listOrdersByCustomer,
   type OrderListDto,
 } from '@/data/orders/order.service'
-import {
-  listAppointmentsByCustomer,
-  type AppointmentListDto,
-} from '@/data/appointments/waiting-pickup.service'
+import { useCustomerOrdersStore } from '@/data/orders/order.store'
+import type { AppointmentListDto } from '@/data/appointments/waiting-pickup.service'
+import { useCustomerAppointmentsStore } from '@/data/appointments/customer-appointments.store'
 import { filterWaitingPickups } from '../utils/waiting-pickup.filter'
 
 export const useCustomerOrderHistoryStore = defineStore('customer-order-history', () => {
   const customer = ref<CustomerDetailDto | null>(null)
-  const orders = ref<OrderListDto[]>([])
-  const appointments = ref<AppointmentListDto[]>([])
+  const customerOrdersStore = useCustomerOrdersStore()
+  const customerAppointmentsStore = useCustomerAppointmentsStore()
+  const orders = computed<OrderListDto[]>(() => customerOrdersStore.items)
+  const appointments = computed<AppointmentListDto[]>(() => customerAppointmentsStore.items)
 
   const customerLoading = ref(false)
-  const ordersLoading = ref(false)
-  const appointmentsLoading = ref(false)
+  const ordersLoading = computed(() => customerOrdersStore.loading)
+  const appointmentsLoading = computed(() => customerAppointmentsStore.loading)
   const customerError = ref<string | null>(null)
-  const ordersError = ref<string | null>(null)
-  const appointmentsError = ref<string | null>(null)
+  const ordersError = computed(() => customerOrdersStore.error)
+  const appointmentsError = computed(() => customerAppointmentsStore.error)
 
   const waitingPickups = computed(() => filterWaitingPickups(appointments.value))
 
   let activeCustomerId: string | null = null
   let loadedCustomerId: string | null = null
+  let requestId = 0
 
   async function load(customerId: string, force = false) {
     if (!force && loadedCustomerId === customerId) {
       return
     }
 
+    const id = ++requestId
     activeCustomerId = customerId
     loadedCustomerId = null
     customer.value = null
-    orders.value = []
-    appointments.value = []
     customerError.value = null
-    ordersError.value = null
-    appointmentsError.value = null
     customerLoading.value = true
-    ordersLoading.value = true
-    appointmentsLoading.value = true
 
     const results = await Promise.allSettled([
       getCustomerById(customerId),
-      listOrdersByCustomer(customerId),
-      listAppointmentsByCustomer(customerId),
+      customerOrdersStore.load(customerId, force),
+      customerAppointmentsStore.load(customerId, force),
     ])
 
-    const [customerResult, ordersResult, appointmentsResult] = results
+    if (id !== requestId || activeCustomerId !== customerId) return
+
+    const [customerResult] = results
 
     if (customerResult.status === 'fulfilled') {
       customer.value = customerResult.value
@@ -62,24 +60,8 @@ export const useCustomerOrderHistoryStore = defineStore('customer-order-history'
       customerError.value = 'Unable to load customer'
     }
 
-    if (ordersResult.status === 'fulfilled') {
-      orders.value = ordersResult.value
-    } else {
-      ordersError.value = 'Unable to load order history'
-    }
-
-    if (appointmentsResult.status === 'fulfilled') {
-      appointments.value = appointmentsResult.value
-    } else {
-      appointmentsError.value = 'Unable to load waiting pickups'
-    }
-
     customerLoading.value = false
-    ordersLoading.value = false
-    appointmentsLoading.value = false
-    if (activeCustomerId === customerId) {
-      loadedCustomerId = customerId
-    }
+    loadedCustomerId = customerId
   }
 
   async function refresh() {

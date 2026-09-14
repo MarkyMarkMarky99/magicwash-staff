@@ -28,5 +28,6 @@ export function getWorkOrder(orderId: string): Promise<WorkOrderDetailDto> {
 export async function createWorkOrder(payload: WorkOrderCreatePayload): Promise<WorkOrderCreateDto> {
   const result = await apiPost<WorkOrderCreateDto>(WORK_ORDERS_ENDPOINT, { data: payload, requestSchema: workOrderCreateSchema })
   invalidate('/api/work-orders')
+  invalidate('/api/orders')
   return result
 }

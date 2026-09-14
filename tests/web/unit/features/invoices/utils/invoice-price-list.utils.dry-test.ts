@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict'
-import type { InvoicePriceListItemDto } from '../../../../../../src/data/price-list/invoice-price-list.service'
+import type { PriceListDto } from '../../../../../../src/data/price-list/price-list.service'
 import {
   appendPickedLine,
+  filterInvoicePriceListItems,
   invoiceUnitOptionFor,
   isUnusedPlaceholderLine,
   toLineItemFormRow,
 } from '../../../../../../src/features/invoices/utils/invoice-price-list.utils'
 import { createSyntheticPlaceholderLine } from '../../../../../../src/features/invoices/types/invoice-create.types'
 
-function item(overrides: Partial<InvoicePriceListItemDto> = {}): InvoicePriceListItemDto {
+function item(overrides: Partial<PriceListDto> = {}): PriceListDto {
   return {
     id: 'pl-1',
     itemCode: 'ITM-0001',
@@ -33,6 +34,15 @@ function item(overrides: Partial<InvoicePriceListItemDto> = {}): InvoicePriceLis
 
 const picked = toLineItemFormRow(item({ price: 0 }))
 assert.ok(picked)
+
+assert.deepEqual(
+  filterInvoicePriceListItems([
+    item({ id: 'active' }),
+    item({ id: 'inactive', active: false }),
+    item({ id: 'other-group', priceGroup: 'VIP' }),
+  ]).map((entry) => entry.id),
+  ['active'],
+)
 assert.equal(picked.description.includes('WSIR'), true)
 assert.equal(picked.description.includes('Synthetic Fiber Pillow'), false)
 assert.equal(picked.unit, 'piece')

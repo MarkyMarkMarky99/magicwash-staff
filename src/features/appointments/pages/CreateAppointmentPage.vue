@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.store'
 import { useDeliveryBookingIntentStore } from '@/shared/stores/delivery-booking-intent.store'
-import { useAppointmentStore } from '../stores/appointment.store'
+import { useAppointmentStore } from '@/data/appointments/appointment.store'
 import { appointmentWriteErrorMessage } from '@/data/appointments/appointment.service'
 import AppointmentForm from '../components/AppointmentForm.vue'
 

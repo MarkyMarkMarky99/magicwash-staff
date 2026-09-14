@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { createPinia, setActivePinia } from 'pinia'
 
-import { useAppointmentStore } from '@/features/appointments/stores/appointment.store'
+import { useAppointmentStore } from '@/data/appointments/appointment.store'
 
 /**
  * Executable, not a source scan. The store used to page-walk the whole sheet and

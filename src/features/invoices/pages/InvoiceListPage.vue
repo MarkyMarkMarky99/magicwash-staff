@@ -8,7 +8,7 @@ import InvoiceDateFilter from '../components/InvoiceDateFilter.vue'
 import InvoiceDatePanel from '../components/InvoiceDatePanel.vue'
 import InvoiceFilterBar from '../components/InvoiceFilterBar.vue'
 import InvoiceCard from '../components/InvoiceCard.vue'
-import { useInvoiceStore } from '../stores/invoice.store'
+import { useInvoiceStore } from '@/data/invoices/invoice.store'
 import { useInvoiceFilterRoute } from '../composables/useInvoiceFilterRoute'
 import type { InvoiceStatusDto } from '@/data/invoices/invoices.types'
 

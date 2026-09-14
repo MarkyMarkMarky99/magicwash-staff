@@ -12,7 +12,7 @@ import { useCustomerFilterRoute } from '../composables/useCustomerFilterRoute'
 
 const customerStore = useCustomerStore()
 const router = useRouter()
-const { customers, loading, error } = storeToRefs(customerStore)
+const { customers, loading, error, truncated } = storeToRefs(customerStore)
 
 const { filter, updateFilter } = useCustomerFilterRoute()
 
@@ -88,6 +88,9 @@ onMounted(() => {
           <span class="material-symbols-outlined text-[16px]" aria-hidden="true">person_add</span>
         </button>
       </template>
+      <p v-if="truncated" role="status" class="bg-amber-50 px-4 py-2 font-body text-xs text-amber-900">
+        รายชื่อลูกค้าอาจไม่ครบ เนื่องจากมีมากกว่า 2,000 รายการ
+      </p>
       <CustomerCard
         v-for="c in filteredCustomers"
         :key="c.customerId"

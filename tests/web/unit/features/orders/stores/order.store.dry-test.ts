@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { createPinia, setActivePinia } from 'pinia'
 import { invalidate } from '@/shared/api/response-cache'
-import { useOrderStore } from '@/features/orders/stores/order.store'
+import { useWorkOrderStore } from '@/data/work-orders/work-order.store'
 import type { WorkOrderListDto } from '@/data/work-orders/work-order.service'
 
 // Seeding the detail from an already-loaded list row is what lets the order page paint its header
@@ -27,7 +27,7 @@ globalThis.fetch = ((input: string | URL | Request) => new Promise<Response>((re
   pending.push({ url: new URL(String(input), 'http://localhost'), resolve })
 })) as typeof fetch
 setActivePinia(createPinia())
-const store = useOrderStore()
+const store = useWorkOrderStore()
 try {
   store.orders = [listRow('order-1'), listRow('order-2', { customerName: 'Customer two' })]
 

@@ -8,7 +8,7 @@ import CustomerPackageExtraFilter from '../components/CustomerPackageExtraFilter
 import CustomerPackageFilterBar from '../components/CustomerPackageFilterBar.vue'
 import CustomerPackageListCards from '../components/CustomerPackageListCards.vue'
 import { useCustomerPackageFilterRoute } from '../composables/useCustomerPackageFilterRoute'
-import { useCustomerPackageStore } from '../stores/customer-package.store'
+import { useCustomerPackageStore } from '@/data/customer-packages/customer-package.store'
 
 const router = useRouter()
 const store = useCustomerPackageStore()

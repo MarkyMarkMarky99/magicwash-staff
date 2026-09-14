@@ -7,7 +7,7 @@ import GenericTabs from '@/shared/components/GenericTabs.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import ImageOrIcon from '@/shared/components/ImageOrIcon.vue'
-import { usePriceListStore } from '../stores/price-list.store'
+import { usePriceListStore } from '@/data/price-list/price-list.store'
 import PriceListCard from '../components/PriceListCard.vue'
 import PriceListOptionsSheet from '../components/PriceListOptionsSheet.vue'
 import PriceListServiceFilter from '../components/PriceListServiceFilter.vue'
@@ -24,9 +24,13 @@ const props = defineProps<{
 const router = useRouter()
 const route = useRoute()
 const priceListStore = usePriceListStore()
-const { items, loading, error, loaded } = storeToRefs(priceListStore)
+const { items, loading, error, loaded, truncated } = storeToRefs(priceListStore)
 const listLoading = computed(() => loading.value && !loaded.value)
-const listError = computed(() => (loaded.value ? null : error.value))
+const listError = computed(() => {
+  if (loaded.value) return null
+  if (truncated.value) return 'รายการราคามีมากกว่า 1,000 รายการ จึงโหลดข้อมูลได้ไม่ครบ'
+  return error.value
+})
 
 const search = ref('')
 const serviceFilterOpen = ref(false)

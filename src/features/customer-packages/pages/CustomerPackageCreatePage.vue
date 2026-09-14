@@ -37,7 +37,12 @@ const purchaseStore = useCustomerPackagePurchaseStore()
 const autoInvoice = computed(() => props.customerId !== undefined)
 const attempt = computed(() => purchaseStore.attempts[props.customerId ?? ''])
 const purchaseRetryAllowed = computed(() => attempt.value ? canResumePackagePurchase(attempt.value) : false)
-const { customers, loading: customersLoading, error: customersError } = storeToRefs(customerStore)
+const {
+  customers,
+  loading: customersLoading,
+  error: customersError,
+  truncated: customersTruncated,
+} = storeToRefs(customerStore)
 const { activePackages, loading: packagesLoading, error: packagesError } = storeToRefs(packageStore)
 const customerId = ref('')
 const packageCode = ref('')
@@ -205,6 +210,9 @@ async function submitForm() {
         :error="customersError ?? ''"
         empty-text="ไม่พบลูกค้า"
       />
+      <p v-if="!autoInvoice && customersTruncated" role="status" class="-mt-2 font-body text-xs text-amber-800">
+        รายชื่อลูกค้าอาจไม่ครบ เนื่องจากมีมากกว่า 2,000 รายการ
+      </p>
       <FormPicker
         id="customer-package-code"
         v-model="packageCode"
