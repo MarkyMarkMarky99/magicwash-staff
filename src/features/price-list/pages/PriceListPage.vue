@@ -308,7 +308,7 @@ onMounted(() => {
       <template #loading>
         <div class="grid grid-cols-2 gap-3 p-4" aria-busy="true" aria-label="กำลังโหลดรายการราคา">
           <div v-for="n in 4" :key="n" class="overflow-hidden rounded-2xl bg-surface-container-low">
-            <div class="aspect-[4/3] animate-pulse bg-surface-container" />
+            <div class="aspect-4/3 animate-pulse bg-surface-container" />
             <div class="m-3 h-5 animate-pulse rounded bg-surface-container" />
           </div>
         </div>

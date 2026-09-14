@@ -12,7 +12,7 @@ withDefaults(defineProps<{
 
 <template>
   <span class="flex min-w-0 select-none flex-col overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface">
-    <span class="relative aspect-[4/3] w-full overflow-hidden bg-surface-container-low">
+    <span class="relative aspect-4/3 w-full overflow-hidden bg-surface-container-low">
       <ImageOrIcon :image-url="imageUrl" :icon="icon" fit="cover" class="pointer-events-none h-full w-full scale-[1.15] rounded-none border-0" />
       <span v-if="$slots.badge" class="absolute right-2 top-2">
         <slot name="badge" />
