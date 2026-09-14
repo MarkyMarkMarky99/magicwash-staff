@@ -17,9 +17,9 @@ const initialDate = appointmentDateFromString(selectedDate.value)
 const navYear = ref(initialDate.getFullYear())
 const navMonth = ref(initialDate.getMonth())
 const slots = [
-  { value: '10:00-12:00', label: '10:00–12:00', icon: 'wb_twilight' },
+  { value: '10:00-12:00', label: '10:00–12:00', icon: 'partly_cloudy_day' },
   { value: '13:00-15:00', label: '13:00–15:00', icon: 'wb_sunny' },
-  { value: '15:00-17:00', label: '15:00–17:00', icon: 'light_mode' },
+  { value: '15:00-17:00', label: '15:00–17:00', icon: 'wb_twilight' },
   { value: '18:00-20:00', label: '18:00–20:00', icon: 'nights_stay' },
 ] as const
 
@@ -67,7 +67,7 @@ function openReschedule(appointmentId: string) {
     <ScrollRegion as="main" class="pb-20 w-full bg-surface min-w-0">
       <ListContainer
         v-for="(slot, index) in slots"
-        :key="slot.value"
+        :key="`${slot.value}-${selectedDate}`"
         :title="slot.label"
         :icon="slot.icon"
         :count="itemsBySlot[slot.value].length"
@@ -78,6 +78,7 @@ function openReschedule(appointmentId: string) {
         :empty="itemsBySlot[slot.value].length === 0"
         empty-text="No appointments"
         collapsible
+        :default-collapsed="!loading && !error && itemsBySlot[slot.value].length === 0"
         :skeleton-rows="2"
         skeleton-avatar-class="w-12 h-12"
       >

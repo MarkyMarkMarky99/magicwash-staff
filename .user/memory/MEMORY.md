@@ -60,6 +60,8 @@ Live note for the next session. Branch: `main`.
   - `agent-docs/` drafts are non-canonical; do not use them as authority for source comments or rules.
 
 - **Verification and cleanup**
+  - Appointment date strip opens at day 1 instead of centering today; a `scrollTo` attempt hid the strip, so diagnose in a real browser first.
+  - `ListContainer` collapsible header is a non-focusable `div` without `aria-expanded`; schedule slots now start collapsed when empty.
   - Phone-test ISS-72adcdca: a cache-hit customer-row tap must open only customer detail, while the swipe action still fires.
   - Browser-check ListContainer search, theme consistency, and the order-detail dropdown at the bottom edge.
   - Re-run and triage the pre-existing web dry-test failures: `package-pages`, `invoice-price-list-service`, `order-price-list.store`, `customer-package-create-page`, `price-list.store`, and `price-list-service`.

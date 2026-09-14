@@ -13,6 +13,7 @@ const props = defineProps({
   empty: { type: Boolean, default: false },
   emptyText: { type: String, default: 'No items' },
   collapsible: { type: Boolean, default: false },
+  defaultCollapsed: { type: Boolean, default: false },
   skeletonRows: { type: Number, default: 0 },
   skeletonAvatarClass: { type: String, default: 'w-10 h-10' },
   // Search is opt-in. Several screens render more than one ListContainer at once (the
@@ -26,7 +27,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:searchValue'])
 
-const collapsed = ref(false)
+const collapsed = ref(props.defaultCollapsed)
 const searchOpen = ref(Boolean(props.searchValue))
 const keywordInput = ref(props.searchValue ?? '')
 let debounceTimer
@@ -51,6 +52,10 @@ watch(keywordInput, (keyword) => {
 })
 
 onBeforeUnmount(() => clearTimeout(debounceTimer))
+
+watch(() => props.defaultCollapsed, (value) => {
+  collapsed.value = value
+})
 
 function toggleSearch() {
   searchOpen.value = !searchOpen.value
