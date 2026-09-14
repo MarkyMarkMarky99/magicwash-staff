@@ -18,13 +18,16 @@ Write the brief to a file first (use `Write`, not a shell heredoc — brief text
 codex exec -s workspace-write -c sandbox_workspace_write.network_access=true -m gpt-5.6-luna -c model_reasoning_effort="xhigh" - < <brieffile>
 ```
 
-`network_access=true` is required — without it `-s workspace-write` blocks the npm install and the run dies with a misleading error.
+`network_access=true` is required — without it `-s workspace-write` blocks the browser's requests and the run dies with a misleading error.
+
+Before dispatch, start `vercel dev --listen 3000` in the background and wait for it to answer. After the report, stop it and any leftover browser processes — the machine is short on memory.
 
 ## Environment facts — put these in every brief
 
 - **Server: `http://localhost:3000/` (`vercel dev`).** Do NOT use `npm run dev` / port 5173: that is plain `vite`, the `api/` serverless functions do not run, every API call returns `index.html`, and the app shows "Unable to load customers". This wastes a full run.
 - The app uses `createWebHashHistory()`. "Did we navigate away?" is answered by comparing `location.hash`, never the full URL.
-- Install Playwright into the **scratchpad**, never the project: `npm install playwright --prefix <scratchpad>`, `PLAYWRIGHT_BROWSERS_PATH` into the scratchpad, `NODE_PATH` at the scratchpad's `node_modules`. Require `package.json` / `package-lock.json` to be byte-identical afterwards.
+- Playwright is already installed: use the project's `playwright` package and the browsers in `%LOCALAPPDATA%\ms-playwright`. Do not run `npm install` or `playwright install`.
+- Write scripts, screenshots and videos under `.playwright/<run-name>/` (gitignored). Require `package.json` / `package-lock.json` to be byte-identical afterwards.
 - Headed (`headless: false`) opens a **separate browser window**, not a tab in the user's existing Chrome. Say so when reporting, or the user will think nothing ran.
 - `channel: 'chrome'` uses the installed Chrome instead of the bundled Chromium. Forbid a silent fallback: if it fails, report the error and stop.
 - Prefer letting Codex discover selectors from the DOM. Hardcoded selectors from a doc go stale.
@@ -35,7 +38,7 @@ codex exec -s workspace-write -c sandbox_workspace_write.network_access=true -m 
 - **Do not weaken an existing assertion to make it pass.** Need a new scenario? Add a separate script. The suite is the only empirical evidence the feature has.
 - **Change one thing at a time.** To vary the browser or viewport, copy the script and edit the copy, so `diff` proves only that line changed. The old artifact must stay runnable.
 - **Report `BLOCKED` honestly.** No seeded data, a login wall, a failing API — say so and stop. Never substitute a different page, build a synthetic harness, or infer results from the source. A test reported as passing that did not run is worse than no test.
-- Screenshot at every assertion point, into the scratchpad, and reference the paths.
+- Screenshot at every assertion point, into `.playwright/<run-name>/`, and reference the paths.
 - Never trigger native `alert` / `confirm` / `prompt` — they freeze the automation.
 - Do not start or kill any dev server.
 - Never write to `G:\My Drive\Magicwash\Database\GoogleSheets\*.json`.
@@ -68,7 +71,7 @@ PASS / FAIL / BLOCKED per scenario, with the observed values behind each verdict
 
 ## The model must not be the judge
 
-Codex Luna is a small, cheap model. It writes and drives the harness well — installing Playwright, finding selectors, dispatching CDP touch events. It is **not** reliable at forming verdicts from what it sees. Observed twice in one session: it reported no browser window in a desktop screenshot that contained one, and reported "no data" from a screenshot that plainly showed skeleton loaders mid-load. Both were interpretation failures, not execution failures.
+Codex Luna is a small, cheap model. It writes and drives the harness well — finding selectors, dispatching CDP touch events. It is **not** reliable at forming verdicts from what it sees. Observed twice in one session: it reported no browser window in a desktop screenshot that contained one, and reported "no data" from a screenshot that plainly showed skeleton loaders mid-load. Both were interpretation failures, not execution failures.
 
 So do not route judgement through the model. Put it in the script:
 

@@ -4,7 +4,7 @@ Live note for the next session. Branch: `main`.
 
 ## Branches in flight
 
-- **`refactor/shared-data-layer`** — round-1 migration into `src/data/` committed; browser verification pending before push. Details: `.user/memory/refactor-shared-data-layer.md`.
+- **`refactor/shared-data-layer`** — round-1 migration into `src/data/` committed and browser-verified; ready to merge. Details: `.user/memory/refactor-shared-data-layer.md`.
 - **`feat/price-list-image-url`** — image-enabled picker and price form updates are ready locally; production deployment is pending. Details: `.user/memory/feat-price-list-image-url.md`.
 - **`codex/price-list-photo-release`** — integrates current main with the price-list image changes; preview deployment awaits approval. Details: `.user/memory/codex-price-list-photo-release.md`.
 - **`design/item-illustrations`** — design worktree at the price-list backend commit. Details: `.user/memory/design-item-illustrations.md`.
