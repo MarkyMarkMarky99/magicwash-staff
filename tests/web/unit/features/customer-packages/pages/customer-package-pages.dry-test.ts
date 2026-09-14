@@ -55,6 +55,8 @@ assert.match(create, /CustomerPackageCreatePage/, 'create page must use the stab
 assert.match(create, /\bonMounted\b/, 'create page must use onMounted')
 assert.doesNotMatch(create, /\bon(?:Activated|Deactivated)\b/, 'uncached create page must not use activated hooks')
 assert.match(create, /customerId/, 'create page must support customerId query prefill')
+assert.doesNotMatch(create, /defineProps|defineEmits/, 'create page must be route-owned rather than embedded')
+assert.match(create, /useCloseRoute/, 'create page must use history-aware close')
 
 const app = readFileSync(new URL('../../../../../../src/App.vue', import.meta.url), 'utf8')
 assert.match(app, /exclude[^>]*CustomerPackageCreatePage|CustomerPackageCreatePage[^>]*exclude/, 'App KeepAlive must exclude CustomerPackageCreatePage')

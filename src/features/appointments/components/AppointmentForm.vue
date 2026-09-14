@@ -13,13 +13,13 @@ import type {
   appointmentTimeSlotSchema,
   createAppointmentRequestSchema,
 } from '@contracts/appointments/appointment-api.schema'
-import type { SelectedCustomer } from '@/shared/stores/selected-customer.store'
+import type { CustomerDetailDto } from '@/data/customers/customer.service'
 import type { AppointmentDetailDto } from '@/data/appointments/appointment.service'
 import AppointmentDatePicker from './AppointmentDatePicker.vue'
 
 const props = withDefaults(defineProps<{
   mode: 'create' | 'reschedule'
-  customer?: SelectedCustomer | null
+  customer?: CustomerDetailDto | null
   appointment?: AppointmentDetailDto | null
   deliveryOrderId?: string | null
 }>(), {

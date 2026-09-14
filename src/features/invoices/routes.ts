@@ -1,4 +1,5 @@
 import type { RouteRecordRaw } from 'vue-router'
+import { INVOICE_CREATE_ROUTE_NAME } from '@/shared/navigation/form-routes'
 
 export const invoiceRoutes: RouteRecordRaw[] = [
   {
@@ -8,7 +9,7 @@ export const invoiceRoutes: RouteRecordRaw[] = [
   },
   {
     path: '/invoices/create',
-    name: 'invoice-create',
+    name: INVOICE_CREATE_ROUTE_NAME,
     component: () => import('./pages/InvoiceCreatePage.vue'),
     meta: { parent: 'invoice-list' },
   },

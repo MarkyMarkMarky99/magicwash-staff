@@ -4,7 +4,8 @@
 
 ## Fields
 
-- **ลูกค้า** — `customerId`, required. Searchable picker, options from `GET /api/customers`.
+- **ลูกค้า** — `customerId`, required. A `customerId` route query loads, preselects, and locks the
+  customer; without it the field is a searchable picker populated from `GET /api/customers`.
 - **วันที่รับผ้า** — `receivedDate`, required. Date.
 - **กำหนดส่ง** — `dueDate`, required. Date.
 - **บริการ** — `serviceType`, required. Option grid, Thai labels:
@@ -31,7 +32,7 @@ Blank optional fields submit as `null`.
 
 - Success → `router.replace` to `order-detail`.
 - Error → inline `formError`. No toast.
-- Close → `router.replace` to the list.
+- Close → `useCloseRoute` returns to the in-app origin or replaces a fresh deep link with the list.
 
 ## Caching
 

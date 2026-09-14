@@ -14,6 +14,22 @@ audit_sources:
 
 Feature routes are flat. Do not introduce nested `children` routes.
 
+## Routed forms
+
+Other features open a form with `router.push` and a shared route-location builder from
+`src/shared/navigation/form-routes.ts`. The route query carries the ids needed to load context;
+hosts do not import another feature's page, component, composable, or store. The form page loads
+and validates its own context through `src/data/`.
+
+Cancel and close controls use `useCloseRoute(fallback)`. When Vue Router's
+`window.history.state.back` is present, close calls `router.back()` to restore the exact host URL
+and scroll position. A fresh deep link has no back entry, so close uses `router.replace(fallback)`.
+Successful saves do not call the shared close helper: each feature explicitly owns its post-save
+destination and refresh policy.
+
+Hosts must use `push`, not `replace`, when opening a form so the host remains the form's history
+origin.
+
 ## Route-owned overlays
 
 A shared overlay must never call `history.pushState`, `history.back()`, `history.forward()`, or
@@ -37,8 +53,8 @@ of its width. The app column is defined once, as `.app-column` in `src/style.css
 
 Any teleported panel that should read as part of the app carries `app-column`. Never restate the
 number or the breakpoint at the call site — restating it once already shipped a form overlay capped
-at 390px on 430px phones while the page behind it was full width. `BaseOverlay` and `BaseFullOverlay`
-apply `app-column` to their panels, so an overlay built on either is correct by default.
+at 390px on 430px phones while the page behind it was full width. `BaseOverlayFrame` applies
+`app-column` to its panel, so an overlay built on it is correct by default.
 
 Full-bleed overlays are the deliberate exception: `CameraOverlay` and `DocumentScannerOverlay` are
 `fixed inset-0` and own their own chrome, including safe-area insets.

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.store'
+import { appointmentCreateRoute } from '@/shared/navigation/form-routes'
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
 import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
@@ -21,7 +21,6 @@ const TYPE_TONES: Record<string, BadgeTone> = {
 
 const baseRef = ref<InstanceType<typeof BaseSwipeCard> | null>(null)
 const router = useRouter()
-const selectedCustomerStore = useSelectedCustomerStore()
 
 function onSwipeRight() {
   baseRef.value?.snapCard('none')
@@ -39,8 +38,7 @@ function openMaps(address: string) {
 }
 
 function openNewBooking() {
-  selectedCustomerStore.select(props.customer)
-  router.push('/new-booking')
+  router.push(appointmentCreateRoute({ customerId: props.customer.customerId }))
 }
 
 function openOrderHistory() {

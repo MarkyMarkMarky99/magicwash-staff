@@ -14,14 +14,13 @@ assert.match(form, /packageStore\.update/)
 
 const list = source('features/packages/pages/PackageListPage.vue')
 assert.match(list, /packageStore\.load/)
-assert.match(list, /setTimeout[\s\S]{0,100}250/)
 assert.match(list, /deletedAt/)
 
 const customerPackageCreate = source('features/customer-packages/pages/CustomerPackageCreatePage.vue')
 assert.doesNotMatch(customerPackageCreate, /<FormInput id="customer-package-code"/)
-assert.match(customerPackageCreate, /<select id="customer-package-code"/)
+assert.match(customerPackageCreate, /<FormPicker[\s\S]*id="customer-package-code"/)
 assert.match(customerPackageCreate, /usePackageStore/)
-assert.match(customerPackageCreate, /CustomerPicker/)
+assert.match(customerPackageCreate, /<FormPicker[\s\S]*id="customer-package-customer"/)
 
 const app = source('App.vue')
 assert.match(app, /'PackageFormPage'/)

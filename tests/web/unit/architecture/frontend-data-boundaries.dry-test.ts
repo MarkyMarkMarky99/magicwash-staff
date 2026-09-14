@@ -12,10 +12,7 @@ const allowedFeatureSharedApiImports = new Set([
   'features/orders/stores/order-image.store.ts -> shared/api/firebase-storage',
 ])
 
-// Workflow stores stay in their feature even when another feature's page uses them.
-const allowedCrossFeatureImports = new Set([
-  'features/customers/pages/CustomerDetailPage.vue -> features/customer-packages/stores/customer-package-purchase.store',
-])
+const allowedCrossFeatureImports = new Set<string>()
 
 // `instanceof ApiError` checks and types do not issue requests.
 function importsOnlyApiErrorOrTypes(source: string, specifier: string): boolean {

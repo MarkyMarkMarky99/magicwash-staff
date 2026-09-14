@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.store'
+import { appointmentCreateRoute } from '@/shared/navigation/form-routes'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import type { CustomerDetailDto } from '@/data/customers/customer.service'
 
@@ -9,6 +9,7 @@ import type { BadgeTone } from '@/shared/components/BaseBadge.vue'
 defineProps<{
   customer: CustomerDetailDto
 }>()
+const emit = defineEmits<{ createOrder: [] }>()
 
 const TYPE_TONES: Record<string, BadgeTone> = {
   Regular: 'neutral',
@@ -17,11 +18,9 @@ const TYPE_TONES: Record<string, BadgeTone> = {
 }
 
 const router = useRouter()
-const selectedCustomerStore = useSelectedCustomerStore()
 
 function openNewBooking(customer: CustomerDetailDto) {
-  selectedCustomerStore.select(customer)
-  router.push('/new-booking')
+  router.push(appointmentCreateRoute({ customerId: customer.customerId }))
 }
 </script>
 
@@ -53,14 +52,24 @@ function openNewBooking(customer: CustomerDetailDto) {
         </p>
       </div>
 
-      <button
-        type="button"
-        class="inline-flex shrink-0 items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-on-primary shadow-sm transition hover:opacity-90"
-        @click="openNewBooking(customer)"
-      >
-        <span class="material-symbols-outlined text-[16px]" aria-hidden="true">calendar_add_on</span>
-        Schedule Pickup
-      </button>
+      <div class="flex shrink-0 flex-col gap-2">
+        <button
+          type="button"
+          class="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-on-primary shadow-sm transition hover:opacity-90"
+          @click="emit('createOrder')"
+        >
+          <span class="material-symbols-outlined text-[16px]" aria-hidden="true">post_add</span>
+          New Order
+        </button>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-on-primary shadow-sm transition hover:opacity-90"
+          @click="openNewBooking(customer)"
+        >
+          <span class="material-symbols-outlined text-[16px]" aria-hidden="true">calendar_add_on</span>
+          Schedule Pickup
+        </button>
+      </div>
     </div>
   </section>
 </template>

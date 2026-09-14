@@ -10,10 +10,10 @@ import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import type { CreateInvoiceRequest, CreateInvoiceResponse } from '@contracts/invoices/invoice-api.schema'
 import { computeInvoiceLine, computeInvoiceTotal, roundMoney } from '@shared/utils/invoice-calculator'
-import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.store'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import FormInput from '@/shared/components/FormInput.vue'
+import { useCloseRoute } from '@/shared/navigation/use-close-route'
 import {
   createEmptyAdjustmentRow,
   createEmptyLineItemRow,
@@ -27,7 +27,11 @@ import InvoiceLineItemsEditor from '../components/InvoiceLineItemsEditor.vue'
 import InvoiceAdjustmentsEditor from '../components/InvoiceAdjustmentsEditor.vue'
 import InvoiceTotalsPreview from '../components/InvoiceTotalsPreview.vue'
 import PriceListItemPicker from '@/features/price-list/components/PriceListItemPicker.vue'
-import { loadInvoiceCreateContext, type InvoiceCreateOrder } from '../services/invoice-create-context.service'
+import {
+  loadInvoiceCreateContext,
+  type InvoiceCreateCustomer,
+  type InvoiceCreateOrder,
+} from '../services/invoice-create-context.service'
 import { addSheetDateDays, sheetDateDaysBetween, todaySheetDate } from '@/shared/utils/sheet-date'
 import { useDuplicateInvoiceWarning } from '@/shared/composables/use-duplicate-invoice-warning'
 import { useInvoiceItemPickerRoute } from '../composables/useInvoiceItemPickerRoute'
@@ -43,10 +47,14 @@ import {
 
 const router = useRouter()
 const route = useRoute()
+const routeCustomerId = readRouteId(route.query.customerId)
+const contextFallback = routeCustomerId
+  ? { name: 'customer-detail', params: { customerId: routeCustomerId, tab: 'orders' } }
+  : { name: 'invoice-list' }
+const { close } = useCloseRoute(contextFallback)
 
 const order = ref<InvoiceCreateOrder | null>(null)
-const selectedCustomerStore = useSelectedCustomerStore()
-const { customer } = storeToRefs(selectedCustomerStore)
+const customer = ref<InvoiceCreateCustomer | null>(null)
 const contextLoading = ref(false)
 const contextError = ref<string | null>(null)
 let contextRequestId = 0
@@ -241,26 +249,32 @@ async function syncCreateContext() {
   const orderId = readRouteId(route.query.orderId)
 
   contextError.value = null
-  if (!customerId || !orderId) {
+  if (!customerId || !orderId
+    || route.query.customerId !== customerId || route.query.orderId !== orderId) {
     contextLoading.value = false
     order.value = null
+    customer.value = null
     items.value = []
+    contextError.value = 'Valid customer and order ids are required to create an invoice.'
     return
   }
 
   contextLoading.value = true
   order.value = null
+  customer.value = null
   items.value = []
 
   try {
     const context = await loadInvoiceCreateContext(customerId, orderId)
     if (requestId !== contextRequestId) return
 
-    selectedCustomerStore.select(context.customer)
+    customer.value = context.customer
     initializeForm(context.order)
-  } catch {
+  } catch (reason) {
     if (requestId !== contextRequestId) return
-    contextError.value = 'Unable to load the selected customer and order.'
+    contextError.value = reason instanceof Error && reason.message
+      ? reason.message
+      : 'Unable to load the selected customer and order.'
   } finally {
     if (requestId === contextRequestId) {
       contextLoading.value = false
@@ -364,9 +378,9 @@ async function copyLiffUrl(invoiceNumber: string) {
         <button
           type="button"
           class="rounded-xl bg-surface-container px-4 py-2 font-label text-[12px] font-semibold text-primary"
-          @click="backToOrderHistory"
+          @click="close"
         >
-          Back to order history
+          Close
         </button>
       </div>
     </div>

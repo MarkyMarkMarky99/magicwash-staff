@@ -35,7 +35,7 @@ Reusable form components own:
 
 Pages own:
 
-- loading
+- loading and validating route context from query ids through `src/data/`
 - store/service calls
 - API errors
 - navigation
@@ -50,6 +50,16 @@ Reusable forms must not call APIs or stores directly.
 - Map existing data into form state with `fillForm()` or `initializeForm()`.
 - Form pages are never cached. Add each form page's component name to the `KeepAlive` `exclude`
   list in `src/App.vue`; uncached pages use `onMounted`, not `onActivated` or `onDeactivated`.
+
+## Navigation
+
+Cross-feature hosts open routed forms with `router.push` and the shared location builders in
+`src/shared/navigation/form-routes.ts`. Query ids are the durable context boundary, so routed form
+pages can load after refresh or from a deep link without handoff stores.
+
+Cancel and X controls call `useCloseRoute(fallback)`. It returns to an in-app origin with
+`router.back()` and replaces a fresh deep link with the feature fallback. A form's successful-save
+destination is an explicit policy owned by its feature and does not use the shared close helper.
 
 ## Validation & Payload
 

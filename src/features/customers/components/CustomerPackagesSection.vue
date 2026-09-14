@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
+import { customerPackageCreateRoute } from '@/shared/navigation/form-routes'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import CustomerPackageListCards from '@/features/customer-packages/components/CustomerPackageListCards.vue'
 import { useCustomerPackagesStore } from '../stores/customer-packages.store'
 
-defineProps<{ customerId: string }>()
-const emit = defineEmits<{ buy: [] }>()
+const props = defineProps<{ customerId: string }>()
 const router = useRouter()
 const { items, loading, error } = storeToRefs(useCustomerPackagesStore())
 </script>
@@ -21,7 +21,7 @@ const { items, loading, error } = storeToRefs(useCustomerPackagesStore())
         type="button"
         class="-my-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10 active:bg-primary/20 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         aria-label="Buy a package"
-        @click.stop="emit('buy')"
+        @click.stop="router.push(customerPackageCreateRoute({ customerId: props.customerId }))"
       >
         <span class="material-symbols-outlined text-[16px]" aria-hidden="true">add_shopping_cart</span>
       </button>

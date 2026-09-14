@@ -8,9 +8,10 @@ import FormOptionGrid from '@/shared/components/FormOptionGrid.vue'
 import FormPicker from '@/shared/components/FormPicker.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
+import { useCloseRoute } from '@/shared/navigation/use-close-route'
 import { addSheetDateDays, todaySheetDate } from '@/shared/utils/sheet-date'
 import { useCustomerStore } from '@/data/customers/customer.store'
-import type { CustomerDetailDto } from '@/data/customers/customer.service'
+import { getCustomerById, type CustomerDetailDto } from '@/data/customers/customer.service'
 import { usePackageStore } from '@/data/packages/package.store'
 import {
   customerPackageServiceDaySchema,
@@ -23,19 +24,22 @@ import { currentActor } from '@/shared/config/actor'
 
 defineOptions({ name: 'CustomerPackageCreatePage' })
 
-// With customerId, the parent owns overlay navigation; otherwise this page is standalone.
-const props = defineProps<{ customerId?: string; customer?: CustomerDetailDto | null }>()
-const emit = defineEmits<{ close: []; created: [] }>()
-
 type CreateCustomerPackageResponse = z.infer<typeof createCustomerPackageResponseSchema>
 
 const route = useRoute()
 const router = useRouter()
+const sourceCustomerId = queryString(route.query.customerId)
+const hasCustomerQuery = route.query.customerId !== undefined
+const fallback = sourceCustomerId
+  ? { name: 'customer-detail', params: { customerId: sourceCustomerId, tab: 'packages' } }
+  : { name: 'customer-package-list' }
+const { close } = useCloseRoute(fallback)
 const customerStore = useCustomerStore()
 const packageStore = usePackageStore()
 const purchaseStore = useCustomerPackagePurchaseStore()
-const autoInvoice = computed(() => props.customerId !== undefined)
-const attempt = computed(() => purchaseStore.attempts[props.customerId ?? ''])
+const customer = ref<CustomerDetailDto | null>(null)
+const autoInvoice = computed(() => sourceCustomerId !== '')
+const attempt = computed(() => purchaseStore.attempts[sourceCustomerId])
 const purchaseRetryAllowed = computed(() => attempt.value ? canResumePackagePurchase(attempt.value) : false)
 const {
   customers,
@@ -71,7 +75,7 @@ const serviceDayOptions = serviceDays.map((day) => ({ value: day, label: day }))
 const timeSlotOptions = timeSlots.map((slot) => ({ value: slot, label: slot }))
 const valid = computed(() => Boolean(customerId.value.trim() && packageCode.value.trim()
   && startDate.value && expiryDate.value && expiryDate.value >= startDate.value
-  && (!autoInvoice.value || (props.customer?.customerId === props.customerId
+  && (!autoInvoice.value || (customer.value?.customerId === sourceCustomerId
     && activePackages.value.some((item) => item.packageCode === packageCode.value)))))
 const purchaseMessage = computed(() => {
   const current = attempt.value
@@ -107,37 +111,53 @@ function createPayload() {
 }
 
 function closeForm() {
-  if (props.customerId !== undefined) {
-    if (attempt.value?.packageResult?.kind === 'created') purchaseStore.clear(props.customerId)
-    emit('close')
-    return
-  }
-  const sourceCustomerId = queryString(route.query.customerId)
-  if (sourceCustomerId) {
-    void router.replace({ name: 'customer-detail', params: { customerId: sourceCustomerId, tab: 'packages' } })
-  } else {
-    void router.replace({ name: 'customer-package-list' })
-  }
+  if (attempt.value?.packageResult?.kind === 'created') purchaseStore.clear(sourceCustomerId)
+  close()
 }
 
-onMounted(() => {
-  customerId.value = props.customerId ?? queryString(route.query.customerId)
-  if (!autoInvoice.value) void customerStore.loadCustomers()
+function returnAfterSave() {
+  if (attempt.value?.packageResult?.kind === 'created') purchaseStore.clear(sourceCustomerId)
+  if (window.history.state?.back) {
+    router.back()
+    return
+  }
+  void router.replace(fallback)
+}
+
+onMounted(async () => {
+  if (hasCustomerQuery && (!sourceCustomerId || route.query.customerId !== sourceCustomerId)) {
+    formError.value = 'The customer id is invalid.'
+    return
+  }
+  customerId.value = sourceCustomerId
+  if (autoInvoice.value) {
+    try {
+      customer.value = await getCustomerById(sourceCustomerId)
+    } catch (reason) {
+      formError.value = reason instanceof Error && reason.message
+        ? reason.message
+        : 'Unable to load the customer.'
+    }
+  } else {
+    void customerStore.loadCustomers()
+  }
   void packageStore.load()
 })
 
 async function submitForm() {
   if (autoInvoice.value) {
-    if (!props.customerId || attempt.value?.submitting) return
+    if (!sourceCustomerId || attempt.value?.submitting) return
     if (attempt.value) {
-      await purchaseStore.resume(props.customerId)
+      await purchaseStore.resume(sourceCustomerId)
+      if (purchaseStore.attempts[sourceCustomerId]?.packageResult?.kind === 'created') returnAfterSave()
       return
     }
     const packageItem = activePackages.value.find((item) => item.packageCode === packageCode.value)
-    if (!valid.value || !props.customer || !packageItem) return
+    if (!valid.value || !customer.value || !packageItem) return
     formError.value = null
     try {
-      await purchaseStore.start(props.customer, packageItem, createPayload())
+      await purchaseStore.start(customer.value, packageItem, createPayload())
+      if (purchaseStore.attempts[sourceCustomerId]?.packageResult?.kind === 'created') returnAfterSave()
     } catch (reason) {
       formError.value = reason instanceof Error ? reason.message : 'Unable to start package purchase'
     }
@@ -150,7 +170,7 @@ async function submitForm() {
   submitting.value = true
   try {
     result.value = await createCustomerPackage(createPayload())
-    if (result.value.kind === 'created') emit('created')
+    if (result.value.kind === 'created') returnAfterSave()
   } catch (reason) {
     formError.value = reason instanceof Error ? reason.message : 'Unable to create customer package'
   } finally {

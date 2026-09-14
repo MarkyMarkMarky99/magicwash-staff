@@ -83,7 +83,7 @@ test.describe('Suite A - read-only', () => {
     await page.screenshot({ path: shot('check-customers-new.png') });
   });
 
-  test('5. Packages tab shows Buy button targeting the create overlay, pre-filled', async ({ page }) => {
+  test('5. Packages tab opens the route-owned purchase form and returns on close', async ({ page }) => {
     await page.goto(`/#/customers/${CUSTOMER_A.id}/packages`);
     const buy = page.getByRole('button', { name: 'Buy' });
     await expect(buy).toBeVisible({ timeout: 15_000 });
@@ -91,16 +91,7 @@ test.describe('Suite A - read-only', () => {
 
     await buy.click();
     await expect(page.getByText('Create customer package')).toBeVisible({ timeout: 5_000 });
-    // Overlay is mounted inline over the customer-detail route with a query
-    // flag — NOT a navigation to /customer-packages/create?customerId=...
-    // (that standalone route exists, but Buy here does not use it).
-    await expect(page).toHaveURL(new RegExp(`#/customers/${CUSTOMER_A.id}/packages\\?buyPackage=1$`));
-    // Scope to the overlay's own form, not page.getByText() unscoped — the
-    // customer name is ALSO present on the dimmed customer card behind the
-    // overlay, so an unscoped match can pass even while the overlay itself
-    // is still showing the raw customerId (observed: it renders the id
-    // first and swaps to the name only once the async customer fetch
-    // resolves, ~1-3s later here against the live backend).
+    await expect(page).toHaveURL(new RegExp(`#/customer-packages/create\\?customerId=${CUSTOMER_A.id}$`));
     const overlayForm = page.locator('.form-overlay');
     await expect(overlayForm.getByText(CUSTOMER_A.name)).toBeVisible({ timeout: 8_000 });
     await page.screenshot({ path: shot('check-buy-overlay.png') });

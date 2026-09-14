@@ -5,7 +5,7 @@ import FormInput from '@/shared/components/FormInput.vue'
 import FormLabel from '@/shared/components/FormLabel.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
-import { useGoBack } from '@/shared/composables/use-go-back'
+import { useCloseRoute } from '@/shared/navigation/use-close-route'
 import { useIssueReportActor } from '../composables/use-issue-report-actor'
 import { useScreenshotUpload } from '../composables/use-screenshot-upload'
 import { useIssueReportStore } from '../stores/issue-report.store'
@@ -13,7 +13,7 @@ import { useIssueReportStore } from '../stores/issue-report.store'
 defineOptions({ name: 'IssueReportFormPage' })
 
 const router = useRouter()
-const { goBack } = useGoBack()
+const { close } = useCloseRoute({ name: 'issue-reports' })
 const issueReportStore = useIssueReportStore()
 const { actor, persist } = useIssueReportActor()
 const { screenshot, imageUrl, isBusy, select, clear } = useScreenshotUpload()
@@ -70,7 +70,7 @@ onBeforeUnmount(clear)
     submit-label="ส่ง"
     :is-submitting="submitting"
     :is-submit-disabled="!canSubmit"
-    @close="goBack"
+    @close="close"
     @submit="submit"
   >
     <div class="space-y-4">

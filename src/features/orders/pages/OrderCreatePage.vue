@@ -9,15 +9,20 @@ import FormOptionGrid from '@/shared/components/FormOptionGrid.vue'
 import FormPicker from '@/shared/components/FormPicker.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
+import { useCloseRoute } from '@/shared/navigation/use-close-route'
 import { currentActor } from '@/shared/config/actor'
 import { todaySheetDate } from '@/shared/utils/sheet-date'
 import { useOrderStore } from '@/features/orders/stores/order.store'
 import { useCustomerStore } from '@/data/customers/customer.store'
+import { getCustomerById, type CustomerDetailDto } from '@/data/customers/customer.service'
 
 defineOptions({ name: 'OrderCreatePage' })
 
 const router = useRouter()
 const route = useRoute()
+const sourceCustomerId = singleQueryValue(route.query.customerId)
+const hasCustomerQuery = route.query.customerId !== undefined
+const { close: closeRoute } = useCloseRoute({ name: 'order-list' })
 const orderStore = useOrderStore()
 const customerStore = useCustomerStore()
 const {
@@ -29,15 +34,17 @@ const {
 const submitted = ref(false)
 const submitting = ref(false)
 const formError = ref<string | null>(null)
+const lockedCustomer = ref<CustomerDetailDto | null>(null)
 // Intake is nearly always logged on the day the laundry arrives, so the received
 // date defaults to today in Bangkok; the due date stays for staff to choose.
 function blankForm() { return { customerId: '', receivedDate: todaySheetDate(), dueDate: '', serviceType: '', quantity: '', note: '', orderName: '' } }
 const form = reactive(blankForm())
 const serviceOptions = serviceTypeOptions
-const customerOptions = computed(() => customers.value.map((customer) => ({
+const customerOptions = computed(() => (lockedCustomer.value ? [lockedCustomer.value] : customers.value).map((customer) => ({
   value: customer.customerId,
   label: customer.customerName,
   description: [customer.customerIndex, customer.phone, customer.location].filter(Boolean).join(' • ') || undefined,
+  disabled: Boolean(sourceCustomerId),
 })))
 const datesOutOfOrder = computed(() => Boolean(form.receivedDate && form.dueDate && form.receivedDate > form.dueDate))
 const quantityInvalid = computed(() => form.quantity !== '' && !/^\d+$/.test(form.quantity))
@@ -46,8 +53,13 @@ const dateError = computed(() => submitted.value && (!form.receivedDate || !form
 
 function resetForm() { Object.assign(form, blankForm()); submitted.value = false; formError.value = null }
 function close() {
-  if (submitting.value || route.name !== 'order-create') return
-  void router.replace({ name: 'order-list' })
+  if (submitting.value) return
+  closeRoute()
+}
+function singleQueryValue(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const normalized = value.trim()
+  return normalized || null
 }
 async function submit() {
   if (submitting.value) return
@@ -72,8 +84,23 @@ async function submit() {
     formError.value = reason instanceof Error ? reason.message : 'Unable to create work order'
   } finally { submitting.value = false }
 }
-onMounted(() => {
+onMounted(async () => {
   resetForm()
+  if (hasCustomerQuery && (!sourceCustomerId || route.query.customerId !== sourceCustomerId)) {
+    formError.value = 'The customer id is invalid.'
+    return
+  }
+  if (sourceCustomerId) {
+    try {
+      lockedCustomer.value = await getCustomerById(sourceCustomerId)
+      form.customerId = lockedCustomer.value.customerId
+    } catch (reason) {
+      formError.value = reason instanceof Error && reason.message
+        ? reason.message
+        : 'Unable to load the customer.'
+    }
+    return
+  }
   void customerStore.loadCustomers()
 })
 </script>

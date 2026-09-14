@@ -142,12 +142,9 @@ Verified inventory on 2026-08-30 —
 5. **Customer picker** — `create-order.md` must not ask the user to type a raw customer ID.
    `CustomerPicker.vue` is feature-local under `src/features/customer-packages/components/`, so
    importing it from orders is a forbidden cross-feature import.
-   `src/shared/stores/selected-customer.store.ts` **is** shared and already carries a
-   customer snapshot (`useSelectedCustomerStore`, `select()`, `clear()`), but it is handoff state,
-   not a picker UI. Options: (a) duplicate a picker inside `src/features/orders/components/`,
-   (b) promote `CustomerPicker.vue` to `src/shared/` in a dedicated refactor pass that checks every
-   existing call site, (c) navigate to `/customers`, select there, and read the shared store back.
-   Not decided here.
+   The implemented create page uses the existing shared `FormPicker`; customer-detail entry points
+   pass `customerId` in the route query so the page can load and lock that customer without handoff
+   state.
 
 ## Blockers
 

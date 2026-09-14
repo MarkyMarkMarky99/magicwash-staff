@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { reactive } from 'vue'
-import { useRouter } from 'vue-router'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
+import { useCloseRoute } from '@/shared/navigation/use-close-route'
 import CustomerCreateForm from '../components/CustomerCreateForm.vue'
 import type { CustomerCreateFormData } from '../components/CustomerCreateForm.vue'
 import { currentActor } from '@/shared/config/actor'
 
 defineOptions({ name: 'CustomerCreatePage' })
 
-const router = useRouter()
+const { close } = useCloseRoute({ name: 'customer-list' })
 
 const customer = reactive<CustomerCreateFormData>({
   customerName: '',
@@ -22,10 +22,6 @@ const customer = reactive<CustomerCreateFormData>({
   email: '',
   updatedBy: currentActor(),
 })
-
-function returnToCustomerList() {
-  void router.replace({ name: 'customer-list' })
-}
 
 function updateCustomer(value: CustomerCreateFormData) {
   Object.assign(customer, value)
@@ -41,7 +37,7 @@ function updateCustomer(value: CustomerCreateFormData) {
     submit-label="บันทึกข้อมูลลูกค้า"
     :is-submit-disabled="true"
     :close-on-backdrop="false"
-    @close="returnToCustomerList"
+    @close="close"
   >
     <CustomerCreateForm :model-value="customer" @update:model-value="updateCustomer" />
   </FormOverlay>

@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
+import { useCloseRoute } from '@/shared/navigation/use-close-route'
 import {
   appointmentWriteErrorMessage,
   getAppointment,
@@ -12,6 +13,7 @@ import AppointmentForm from '../components/AppointmentForm.vue'
 
 const props = defineProps<{ appointmentId: string }>()
 const router = useRouter()
+const { close } = useCloseRoute({ name: 'appointment-schedule' })
 const appointmentStore = useAppointmentStore()
 const appointment = ref<AppointmentDetailDto | null>(null)
 const loading = ref(false)
@@ -79,7 +81,7 @@ watch(() => props.appointmentId, () => void loadAppointment(), { immediate: true
     :is-submitting="submitting"
     :is-submit-disabled="!canConfirm"
     :close-on-backdrop="false"
-    @close="router.back()"
+    @close="close"
     @submit="submit"
   >
     <p v-if="loading" class="py-5 text-sm text-on-surface-variant">Loading appointment…</p>

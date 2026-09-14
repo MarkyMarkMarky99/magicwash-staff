@@ -1,4 +1,5 @@
 import type { RouteRecordRaw } from 'vue-router'
+import { APPOINTMENT_CREATE_ROUTE_NAME } from '@/shared/navigation/form-routes'
 
 export const appointmentRoutes: RouteRecordRaw[] = [
   {
@@ -14,7 +15,7 @@ export const appointmentRoutes: RouteRecordRaw[] = [
   },
   {
     path: '/new-booking',
-    name: 'appointment-create',
+    name: APPOINTMENT_CREATE_ROUTE_NAME,
     component: () => import('./pages/CreateAppointmentPage.vue'),
   },
   {

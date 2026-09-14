@@ -13,6 +13,11 @@ Live note for the next session. Branch: `main`.
 
 ## Pending work
 
+- **Forms and navigation**
+  - Pre-existing defect: some forms `push` on exit, so Back re-opens the form after save. See `.user/memory/form-exit-history.md`.
+  - Agreed rule: a form is a temporary layer — after leaving it by any button, no form entry may remain in history.
+  - Browser-verify the form-routes refactor (merged untested in a browser); unticked to-dos in `docs/plans/form-routes.md`.
+
 - **Images and gallery**
   - Backfill `Cache-Control` on existing photos after Firebase bucket credentials are available. See `docs/plans/image-pipeline.md`.
   - Review real document scans and decide whether the scanner output is acceptable before changing order-image compression.

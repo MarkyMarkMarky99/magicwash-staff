@@ -6,6 +6,7 @@ import FormInput from '@/shared/components/FormInput.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import FormSwitch from '@/shared/components/FormSwitch.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
+import { useCloseRoute } from '@/shared/navigation/use-close-route'
 import { serviceTypeOptions } from '@/shared/utils/service-type-labels'
 import { usePriceListStore } from '@/data/price-list/price-list.store'
 import {
@@ -21,6 +22,7 @@ const props = defineProps<{ id?: string }>()
 
 const route = useRoute()
 const router = useRouter()
+const { close } = useCloseRoute({ name: 'price-list' })
 const priceListStore = usePriceListStore()
 const { items, error: storeError, truncated } = storeToRefs(priceListStore)
 
@@ -127,10 +129,6 @@ function setCreateMode(mode: PriceListCreateMode) {
   if (mode === 'new') item.itemCode = ''
 }
 
-function returnToPriceList() {
-  void router.push('/price-list')
-}
-
 async function submitForm() {
   formError.value = null
   submitting.value = true
@@ -176,7 +174,7 @@ onMounted(async () => {
     :is-submitting="submitting"
     :is-submit-disabled="initializing || !formValid"
     :close-on-backdrop="false"
-    @close="returnToPriceList"
+    @close="close"
     @submit="submitForm"
   >
     <div class="price-list-form">

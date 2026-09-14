@@ -5,8 +5,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { appendPackageTransactionRequestSchema } from '@contracts/customer-packages/customer-package-api.schema'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
-import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.store'
-import { useDeliveryBookingIntentStore } from '@/shared/stores/delivery-booking-intent.store'
+import {
+  appointmentCreateRoute,
+  invoiceCreateRoute,
+  orderCreateRoute,
+} from '@/shared/navigation/form-routes'
 import { useCustomerOrderHistoryStore } from '../stores/customer-order-history.store'
 import { useOrderSheetRoute } from '@/features/customers/composables/useOrderSheetRoute'
 import OrderDetailSheet from '../components/OrderDetailSheet.vue'
@@ -20,9 +23,6 @@ import { useCustomerPackagesStore } from '../stores/customer-packages.store'
 import { useCustomerInvoicesStore } from '@/data/invoices/customer-invoices.store'
 import { useOrderPackageUsageRoute } from '../composables/useOrderPackageUsageRoute'
 import { resolveCustomerTab } from '../utils/customer-tab'
-import CustomerPackageCreatePage from '@/features/customer-packages/pages/CustomerPackageCreatePage.vue'
-import { useCustomerPackageBuyRoute } from '../composables/useCustomerPackageBuyRoute'
-import { useCustomerPackagePurchaseStore } from '@/features/customer-packages/stores/customer-package-purchase.store'
 import { currentActor } from '@/shared/config/actor'
 
 const props = defineProps<{
@@ -40,8 +40,6 @@ const tabs = [
 ]
 const packagesStore = useCustomerPackagesStore()
 const invoicesStore = useCustomerInvoicesStore()
-const purchaseStore = useCustomerPackagePurchaseStore()
-const { isOpen: buyPackageOpen, open: openBuyPackage, close: closeBuyPackage } = useCustomerPackageBuyRoute()
 const { isOpen: usageOpen, open: openUsage, close: closeUsage } = useOrderPackageUsageRoute()
 const usageErrors = ref<Record<string, string>>({})
 const blockedUsageOrders = ref(new Set<string>())
@@ -120,14 +118,17 @@ function openOrder(orderId: string) {
   openSheet(orderId)
 }
 
+function createOrder() {
+  if (!customer.value) return
+  router.push(orderCreateRoute({ customerId: customer.value.customerId }))
+}
+
 function bookDelivery() {
   const order = selectedOrder.value
   if (!customer.value || !order) return
   const orderId = order.orderId?.trim()
   if (!orderId || order.customerId !== customer.value.customerId) return
-  useSelectedCustomerStore().select(customer.value)
-  useDeliveryBookingIntentStore().set(orderId)
-  router.replace('/new-booking')
+  router.push(appointmentCreateRoute({ customerId: customer.value.customerId, orderId }))
 }
 
 function createInvoice() {
@@ -136,20 +137,10 @@ function createInvoice() {
   const orderId = order.orderId?.trim()
   const customerId = customer.value.customerId.trim()
   if (!orderId || !customerId || order.customerId.trim() !== customerId) return
-  useSelectedCustomerStore().select(customer.value)
-  router.replace({
-    name: 'invoice-create',
-    query: { customerId, orderId },
-  })
+  router.push(invoiceCreateRoute({ customerId, orderId }))
 }
 
 onMounted(loadCustomer)
-watch(() => purchaseStore.attempts[props.customerId]?.invoiceResult, (result) => {
-  if (result?.kind === 'created') void invoicesStore.load(props.customerId, true)
-})
-watch(() => purchaseStore.attempts[props.customerId]?.packageResult, (result) => {
-  if (result?.kind === 'created') void packagesStore.load(props.customerId, true)
-})
 watch(() => props.customerId, loadCustomer)
 watch([activeTab, () => props.customerId, openOrderId], ([tab, id, orderId]) => {
   if (tab === 'packages' || (tab === 'orders' && orderId)) void packagesStore.load(id)
@@ -168,19 +159,12 @@ watch([activeTab, () => props.customerId, openOrderId], ([tab, id, orderId]) => 
         Unable to load customer details.
       </p>
 
-      <OrderHistoryCustomerCard v-if="customer" :customer="customer" />
+      <OrderHistoryCustomerCard v-if="customer" :customer="customer" @create-order="createOrder" />
       <OrderList v-if="activeTab === 'orders'" @select-order="openOrder" />
-      <CustomerPackagesSection v-else-if="activeTab === 'packages'" :customer-id="customerId" @buy="openBuyPackage" />
+      <CustomerPackagesSection v-else-if="activeTab === 'packages'" :customer-id="customerId" />
       <CustomerInvoicesSection v-else :customer-id="customerId" />
     </ScrollRegion>
 
-    <CustomerPackageCreatePage
-      v-if="activeTab === 'packages' && buyPackageOpen"
-      :key="customerId"
-      :customer-id="customerId"
-      :customer="customer"
-      @close="closeBuyPackage"
-    />
     <OrderDetailSheet
       v-if="activeTab === 'orders'"
       :open="sheetOpen && !usageOpen"

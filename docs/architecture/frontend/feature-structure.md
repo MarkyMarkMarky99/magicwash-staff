@@ -47,7 +47,8 @@ Page
 - Components do not call APIs directly.
 - Pages coordinate loading, navigation, and calls to stores or data modules.
 
-- Stores own workflow state, forms, selections, and UI state.
+- Stores own shared workflow state, selections, and UI state. Reusable form components own their
+  local field and derived state.
 - Shared table rows, loading state, and cap signals belong to the resource store in `src/data/`;
   feature consumers keep only workflow state and derive their own visible filters.
 - Features do not construct API requests or call the shared API client directly.
@@ -62,6 +63,11 @@ their owning feature is migrated; do not use them as a template for new code.
 Feature code may depend on `src/shared/`.
 
 Avoid direct dependencies between unrelated features.
+
+When one feature opens another feature's form, it does so only through a shared route-location
+builder. The host must not import the form feature's page, component, composable, or store. The
+route query carries context ids, and the owning form page loads the corresponding records through
+`src/data/`.
 
 ## Placement Rule
 

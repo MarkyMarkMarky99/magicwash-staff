@@ -18,7 +18,7 @@ export async function loadInvoiceCreateContext(
     getWorkOrder(orderId),
   ])
 
-  if (order.customerId.trim() !== customerId) {
+  if (customer.customerId.trim() !== customerId || order.customerId.trim() !== customer.customerId.trim()) {
     throw new Error(`Order ${orderId} was not found for customer ${customerId}`)
   }
 

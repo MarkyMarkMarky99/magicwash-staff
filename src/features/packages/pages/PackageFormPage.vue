@@ -6,6 +6,7 @@ import FormInput from '@/shared/components/FormInput.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormSwitch from '@/shared/components/FormSwitch.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
+import { useCloseRoute } from '@/shared/navigation/use-close-route'
 import type { PackageDto } from '@/data/packages/package.service'
 import { usePackageStore } from '@/data/packages/package.store'
 import { currentActor } from '@/shared/config/actor'
@@ -13,6 +14,7 @@ import { currentActor } from '@/shared/config/actor'
 defineOptions({ name: 'PackageFormPage' })
 const props = defineProps<{ packageCode?: string }>()
 const router = useRouter()
+const { close } = useCloseRoute({ name: 'package-list' })
 const packageStore = usePackageStore()
 const { items, error: storeError } = storeToRefs(packageStore)
 const isEdit = computed(() => Boolean(props.packageCode))
@@ -37,7 +39,6 @@ function businessFields() {
   return { name: form.name.trim(), eligibleService: form.eligibleService.trim(), includedCredit: Number(form.includedCredit), price: Number(form.price), notes: form.notes.trim() === '' ? null : form.notes.trim() }
 }
 
-function returnToList() { void router.push('/packages') }
 async function submitForm() {
   formError.value = null
   submitting.value = true
@@ -62,7 +63,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <FormOverlay :open="true" :title="isEdit ? 'แก้ไขแพ็กเกจ' : 'เพิ่มแพ็กเกจ'" submit-label="บันทึกแพ็กเกจ" :is-submitting="submitting" :is-submit-disabled="initializing || !valid" :close-on-backdrop="false" @close="returnToList" @submit="submitForm">
+  <FormOverlay :open="true" :title="isEdit ? 'แก้ไขแพ็กเกจ' : 'เพิ่มแพ็กเกจ'" submit-label="บันทึกแพ็กเกจ" :is-submitting="submitting" :is-submit-disabled="initializing || !valid" :close-on-backdrop="false" @close="close" @submit="submitForm">
     <div class="space-y-4 pb-4">
       <FormInput v-if="!isEdit" id="package-code" v-model="form.packageCode" label="รหัสแพ็กเกจ *" />
       <FormInput id="package-name" v-model="form.name" label="ชื่อแพ็กเกจ *" />
