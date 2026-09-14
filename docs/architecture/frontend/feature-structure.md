@@ -15,11 +15,12 @@ Business functionality is organized by feature.
 
 - Each feature owns its UI, routing, workflow state, and feature-specific logic.
 
-The gallery writes photo rows through the shared API client; Apps Script is no longer in its create
-path. Its image binary still goes to Firebase Storage, only the URL reaches the API, and the photo
-list is still read from GViz — moving either is separate work. Reassigning an already saved before
-or after photo is a separate feature service operation through the same client; the gallery loads
-the current order's destination items only when the reassignment picker opens.
+The gallery writes photo rows through the photo data services in `src/data/`; Apps Script is no
+longer in its create path. Its image binary still goes to Firebase Storage, only the URL reaches the
+API, and the backend still reads the photo list from GViz — moving either is separate work. The
+gallery feature service composes those data services, including reassigning an already saved before
+or after photo; the gallery loads the current order's destination items through the data layer only
+when the reassignment picker opens.
 
 ## Structure
 

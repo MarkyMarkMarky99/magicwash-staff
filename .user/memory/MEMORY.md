@@ -1,9 +1,10 @@
 # Project memory
 
-Live note for the next session. Branch: `main`.
+Live note for the next session. Branch: `refactor/data-layer-round-2`.
 
 ## Branches in flight
 
+- **`refactor/data-layer-round-2`** — data layer round 2 (items 1-5) dispatched to Codex sol; user browser-tests when done. Details: `.user/memory/refactor-data-layer-round-2.md`.
 - **`feat/price-list-image-url`** — image-enabled picker and price form updates are ready locally; production deployment is pending. Details: `.user/memory/feat-price-list-image-url.md`.
 - **`codex/price-list-photo-release`** — integrates current main with the price-list image changes; preview deployment awaits approval. Details: `.user/memory/codex-price-list-photo-release.md`.
 - **`design/item-illustrations`** — design worktree at the price-list backend commit. Details: `.user/memory/design-item-illustrations.md`.
@@ -23,11 +24,7 @@ Live note for the next session. Branch: `main`.
   - Audit and update gallery-read documentation in `docs/architecture/frontend/feature-structure.md`, `docs/features/orders/overview.md`, and `docs/features/orders/forms/create-order-image.md`.
 
 - **Cache, API, and performance**
-  - Data layer round 2 (round 1 merged; rules in `docs/architecture/frontend/project-structure.md`): share cache by deduping price-list/customer queries, reactive shared stores for KeepAlive pages, missing invalidations (`/api/package-transactions`, `/api/orders`), 2000-row customer cap signal.
-  - Open decisions for round 2: keep `/api/orders` for customer history or switch to `/api/work-orders`; keep the customer list in localStorage or memory only.
-  - Update the `feature-structure.md` gallery paragraph, which still describes the pre-migration service path.
   - On hold: durable e2e suite in `tests/e2e/` with page objects; test IDs live in tests, derived from docs.
-  - Fix the race in `customer-order-history.store.ts`: a late response for a previous customer overwrites the current one (no request-ID guard). Deferred by the user.
   - Wire `onFresh` at remaining call sites; first correct the stale cache-plan claim that no caller uses it.
   - Reduce page-load latency, in this order: `work-order.service.ts:195` (reads the whole Customers sheet per order-list load), `customers/services/order.service.ts:11` (no `perPage`, 104 KB measured), `invoice.service.ts:631` (date filter drops pagination), `App.vue:8` (prefetches appointments on every mount), then HTTP cache headers on `/api/*`. Measured 2026-09-08: GViz 0.49s · prod warm 0.82s · prod cold 1.65s. Fewer reads beats smaller ones.
   - Fix invoice `dateFrom`/`dateTo` filtering, which compares GViz `Date(...)` values against ISO strings.
