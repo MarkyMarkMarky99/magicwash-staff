@@ -1,6 +1,6 @@
 # Project memory
 
-Live note for the next session. Branch: `main`.
+Live note for the next session. Branch: detached at `refs/heads/main`.
 
 ## Branches in flight
 
