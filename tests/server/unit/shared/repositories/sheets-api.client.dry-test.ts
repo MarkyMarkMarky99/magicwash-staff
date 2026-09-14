@@ -300,7 +300,7 @@ for (const [label, width] of [
 
 for (const [label, updatedRange] of [
   ['outside-A-start', 'Orders!O7981:P7981'],
-  ['narrower-than-sent', 'Orders!A2:A2'],
+  ['narrower-than-populated-values', 'Orders!A2:A2'],
   ['unparsable', 'not-an-a1-range'],
 ] as const) {
   test(`appendRows rejects an ${label} updatedRange as misaligned`, async () => {
@@ -449,12 +449,27 @@ test('append restores trailing blank cells as null', async () => {
   const { client, calls } = await makeClient('trailing-blanks', async () => jsonResponse(200, {
     updates: {
       updatedRows: 1,
-      updatedRange: 'Orders!A2:B2',
+      updatedRange: 'Orders!A2:A2',
       updatedData: { values: [['order-1']] },
     },
   }))
 
   const result = await client.appendRows([['order-1', '']], 'USER_ENTERED')
+  assert.deepEqual(result.updates.updatedData.values, [['order-1', null]])
+  assert.equal(calls.length, 1)
+  assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders!A:A:append')
+})
+
+test('append accepts an updatedRange shortened by a trailing null', async () => {
+  const { client, calls } = await makeClient('trailing-null', async () => jsonResponse(200, {
+    updates: {
+      updatedRows: 1,
+      updatedRange: 'Orders!A2:A2',
+      updatedData: { values: [['order-1']] },
+    },
+  }))
+
+  const result = await client.appendRows([['order-1', null]], 'USER_ENTERED')
   assert.deepEqual(result.updates.updatedData.values, [['order-1', null]])
   assert.equal(calls.length, 1)
   assertAuthorizedRequest(calls[0]!, 'POST', '/values/Orders!A:A:append')

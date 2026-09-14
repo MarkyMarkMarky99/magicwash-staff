@@ -49,6 +49,7 @@ function requestBody(call: FetchCall): Record<string, unknown> {
 function createRepository(): SheetRepository<PriceListRow> {
   return new SheetRepository<PriceListRow>({
     contract: priceListDbContract,
+    preserveNullValues: true,
     sheetsApiClientOptions: {
       fetchImpl: globalThis.fetch,
       accessTokenProvider: async () => 'price-list-test-access-token',
@@ -93,26 +94,26 @@ await withMockSheets(
           'bottoms',
           'trousers',
           'wash',
-          '',
+          null,
           'กางเกง',
-          '',
+          null,
           'WASH',
           'DEFAULT',
-          '',
+          null,
           90,
           false,
           '2026-02-03',
-          '',
+          null,
           true,
-          '',
+          null,
         ],
       ])
       return jsonResponse({
         spreadsheetId: process.env.PRICE_LIST_SPREADSHEET_ID,
         updates: {
           updatedRows: 1,
-          updatedRange: 'PriceList!A2:Q2',
-          updatedData: { values: body.values },
+          updatedRange: 'PriceList!A84:P84',
+          updatedData: { values: [(body.values as unknown[][])[0]!.slice(0, 16)] },
         },
       })
     }
@@ -125,13 +126,18 @@ await withMockSheets(
       category: 'bottoms',
       subcategory: 'trousers',
       itemtype: 'wash',
+      variant: null,
       display_name_th: 'กางเกง',
+      display_name_en: null,
       service_type: 'WASH',
       price_group: 'DEFAULT',
+      unit: null,
       price: 90,
       credit_eligible: false,
       effective_from: '2026-02-03',
+      effective_to: null,
       active: true,
+      image_url: null,
     })
 
     const appendCall = calls.find((call) => apiPath(call.url).endsWith('/values/PriceList!A:A:append'))
@@ -157,7 +163,7 @@ await withMockSheets(
         valueInputOption: 'USER_ENTERED',
         data: [
           { range: 'PriceList!N2:N2', values: [['2026-04-05']] },
-          { range: 'PriceList!O2:O2', values: [['']] },
+          { range: 'PriceList!O2:O2', values: [[null]] },
           { range: 'PriceList!P2:P2', values: [[false]] },
         ],
       })

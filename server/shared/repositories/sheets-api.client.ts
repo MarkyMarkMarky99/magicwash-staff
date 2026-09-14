@@ -176,6 +176,24 @@ function columnLetterForWidth(width: number): string {
   return letter
 }
 
+function columnWidthForLetter(letter: string): number {
+  let width = 0
+  for (const character of letter) {
+    width = width * 26 + character.charCodeAt(0) - 64
+  }
+  return width
+}
+
+function populatedWidth(rows: SheetsApiValues): number {
+  return Math.max(...rows.map((row) => {
+    let width = row.length
+    while (width > 0 && (row[width - 1] === null || row[width - 1] === '')) {
+      width -= 1
+    }
+    return width
+  }))
+}
+
 function parseLandedColumns(
   updatedRange: string,
 ): { readonly start: string; readonly end: string } | null {
@@ -340,7 +358,12 @@ export class SheetsApiClient {
     if (landed === null) {
       throw new WriteMisalignedAppendError('appendRows', `The append committed but Google did not report a readable updatedRange (${String(landedRange)}); the row's location is unverified. Do not retry.`)
     }
-    if (landed.start !== 'A' || landed.end !== expectedEnd) {
+    const landedEndWidth = columnWidthForLetter(landed.end)
+    if (
+      landed.start !== 'A' ||
+      landedEndWidth < populatedWidth(rows) ||
+      landedEndWidth > requestedWidth
+    ) {
       throw new WriteMisalignedAppendError('appendRows', `The append committed at ${landedRange} instead of columns A:${expectedEnd}; the row was written to the wrong columns. Do not retry: remove the misplaced row manually.`)
     }
 

@@ -33,7 +33,6 @@ Live note for the next session. Branch: `main`.
   - App-wide GViz read normalization is deferred by the user; do not start or re-propose it. See `.user/memory/gviz-read-normalization.md`.
 
 - **Prices, invoices, and sheet data**
-  - Price-list create without an image returns 500 `WriteMisalignedAppendError` although the row saves (also on production); under investigation.
   - Defer mixed-service orders to a separate branch after the price-list photo release; see `.user/memory/mixed-service-orders.md`.
   - Fill real prices for the 33 inactive price-list rows with `price: 0`.
   - Add a `BaseSwipeCard` action to add a price to an existing item.

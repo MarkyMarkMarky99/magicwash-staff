@@ -51,10 +51,13 @@ wrong materialized view in its Apps Script source rather than guessing in the AP
 ## Sheets writes and certainty
 
 Schema key order is physical column order for GViz reads; never reorder it cosmetically. Append
-rows are full header width and use `''` for unspecified values because the Values API skips `null`.
-Writes use Google Sheets API with `USER_ENTERED`; `valueInput` declarations guard unsupported column
-intent and do not change the wire option. APPEND writes complete rows and UPDATE patches changed
-columns, then verifies row identity.
+rows are full header width. Unspecified values normally serialize as `''`; repositories that preserve
+nullable values send `null`, which the Values API skips. An append response can therefore report an
+`updatedRange` that omits trailing blank cells. The landed-range check requires column A anchoring,
+coverage of every submitted nonblank value, and no columns beyond the submitted width. Echo
+normalization restores the full known width. Writes use Google Sheets API with `USER_ENTERED`;
+`valueInput` declarations guard unsupported column intent and do not change the wire option. APPEND
+writes complete rows and UPDATE patches changed columns, then verifies row identity.
 
 A write response echoes the row as it was serialized for the wire, not as a read would return it.
 Unspecified columns come back as `''` where a GViz read of the same row yields `null`, so a create
