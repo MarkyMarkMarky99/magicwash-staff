@@ -26,6 +26,7 @@ The architecture separates route-level application concerns, business features, 
 src/
 ├── app/        # Optional application-level pages and development tools
 ├── features/   # Business features
+├── data/       # Resource/table data access and shared table state
 ├── shared/     # Cross-feature reusable infrastructure
 ├── router/     # Application routing
 └── assets/     # Static assets
@@ -43,9 +44,22 @@ application-level pages or development tools when one is needed.
 
 ### Feature Layer
 
-Owns business-facing functionality.
+- Owns business-facing workflow functionality.
+- Defines workflows rather than table ownership.
+- May use data from every table its workflow needs.
 
-Each business capability is isolated inside its feature and contains the UI, state, and integration logic required by that feature.
+### Data Layer
+
+- Each resource uses one `src/data/<resource>/` folder.
+- Import data modules through `@/data/<resource>/...`.
+- It holds the resource API service for all `/api/<resource>` requests.
+- It owns the Pinia store for shared table data when shared state is needed.
+- It is the only frontend code that calls `src/shared/api` for its resource.
+- It invalidates its resource cache after writes.
+- It invalidates related resource caches affected by its writes.
+- It uses the existing shared API-client cache and `src/shared/config/cache.ts`.
+- It does not add another cache.
+- Transitional: Feature-local table-data services and stores move here one resource at a time without changing request URLs, query parameters, filtering, or cache timing.
 
 ### Shared Layer
 
@@ -54,7 +68,7 @@ business feature.
 
 It is frontend-only. The backend never imports from it.
 
-Shared code must remain independent from individual features.
+- Shared code must remain independent from individual features and `src/data/`.
 
 ### Contract Layer
 
@@ -112,13 +126,18 @@ TypeScript type.
 
 Application
 → Features
+→ Data
 → Shared
 
 Features
 → Contracts
 → Shared Runtime
 
-`src/shared` must not depend on individual features.
+`src/data/` may import `contracts/`, root `shared/`, and `src/shared/`; it must not import from `src/features/`.
+
+Features must not import another feature's services or stores for table data; use `src/data/`.
+
+`src/shared/` must not depend on individual features or `src/data/`.
 
 `shared/` and `contracts/` must not depend on `src/`.
 

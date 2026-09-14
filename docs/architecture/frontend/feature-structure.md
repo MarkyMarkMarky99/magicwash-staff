@@ -13,7 +13,7 @@ audit_sources:
 
 Business functionality is organized by feature.
 
-Each feature owns its UI, state, routing, API integration, and feature-specific logic.
+- Each feature owns its UI, routing, workflow state, and feature-specific logic.
 
 The gallery writes photo rows through the shared API client; Apps Script is no longer in its create
 path. Its image binary still goes to Firebase Storage, only the URL reaches the API, and the photo
@@ -28,7 +28,6 @@ src/features/<feature>/
 ├── pages/        # Route-level pages
 ├── composables/  # Reusable feature logic
 ├── stores/       # Pinia feature state and workflows
-├── services/     # Backend API communication
 ├── utils/        # Feature-specific pure helpers
 └── routes.ts     # Routes owned by the feature
 
@@ -38,18 +37,18 @@ Create only the parts the feature actually needs.
 
 Page
 → Store / Composable
-→ Service
-→ API
+→ Data
 
 Page
 → Components
 
-Components receive props and emit user actions to their owning page or feature container; they do
-not call APIs directly. Pages coordinate loading, navigation, and calls to stores or services.
+- Components receive props and emit user actions to their owning page or feature container.
+- Components do not call APIs directly.
+- Pages coordinate loading, navigation, and calls to stores or data modules.
 
-Stores own reusable feature state and workflows. Services own HTTP/API communication. Do not add a
-second API call in a page when the feature already has a store or service responsible for that
-operation.
+- Stores own workflow state, forms, selections, and UI state.
+- Features do not construct API requests or call the shared API client directly.
+- Feature-specific filtering and derivation of table data stays in the feature.
 
 The API contract is the frontend business-data boundary. New code consumes contract-derived
 camelCase DTOs directly; do not add frontend DTO copies or re-derive business facts the API owns,
