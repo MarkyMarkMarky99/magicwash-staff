@@ -31,6 +31,7 @@ export const appointmentStatusSchema = z.enum([
   'NO_SHOW',
 ])
 export const serviceTierSchema = z.enum(['PRIORITY', 'STANDARD', 'ECONOMY'])
+export const vehicleSchema = z.enum(['VAN', 'MOTORCYCLE'])
 
 /** Outcome certainty returned on an appointment create/update write failure. */
 export const appointmentWriteFailureCertaintySchema = z.enum(['rejected', 'unknown'])
@@ -51,6 +52,7 @@ export const createAppointmentRequestSchema = z.object({
   pickupOrderId: z.string().nullish(),
   deliveryOrderId: z.string().nullish(),
   notes: z.string().nullish(),
+  vehicle: vehicleSchema.nullish(),
   createdBy: z.string().min(1),
 })
 
@@ -67,6 +69,7 @@ export const updateAppointmentRequestSchema = z
     pickupOrderId: z.string().nullable().optional(),
     deliveryOrderId: z.string().nullable().optional(),
     notes: z.string().nullable().optional(),
+    vehicle: vehicleSchema.nullable().optional(),
     updatedBy: z.string().min(1),
   })
   .refine(
@@ -124,6 +127,7 @@ export const appointmentListResponseSchema = z.object({
   timeSlot: appointmentTimeSlotSchema,
   status: appointmentStatusSchema,
   notes: z.string().nullable(),
+  vehicle: vehicleSchema.nullable(),
 })
 
 export const appointmentDetailResponseSchema = appointmentListResponseSchema.extend({

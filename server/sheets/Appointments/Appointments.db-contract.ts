@@ -13,6 +13,7 @@ const appointmentStatusSchema = z.enum([
   'NO_SHOW',
 ])
 const serviceTierSchema = z.enum(['PRIORITY', 'STANDARD', 'ECONOMY'])
+const vehicleSchema = z.enum(['VAN', 'MOTORCYCLE'])
 
 /** KEY ORDER = physical Appointments sheet column order. */
 export const appointmentsRowSchema = z.object({
@@ -34,6 +35,7 @@ export const appointmentsRowSchema = z.object({
   ServiceTier: serviceTierSchema.nullable(),
   DeletedAt: z.string().nullable(),
   DeletedBy: z.string().nullable(),
+  Vehicle: vehicleSchema.nullable(),
 })
 
 export const appointmentsDbContract = {
