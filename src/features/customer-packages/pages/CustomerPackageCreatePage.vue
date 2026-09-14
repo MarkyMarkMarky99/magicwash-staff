@@ -238,6 +238,7 @@ async function submitForm() {
         v-model="packageCode"
         label="แพ็กเกจ *"
         :options="packageOptions"
+        :searchable="false"
         placeholder="เลือกแพ็กเกจ"
         search-placeholder="ค้นหาแพ็กเกจ"
         :loading="packagesLoading"

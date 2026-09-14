@@ -4,6 +4,7 @@ import type { z } from 'zod'
 import type { customerPackageListResponseSchema } from '@contracts/customer-packages/customer-package-api.schema'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import FormLabel from '@/shared/components/FormLabel.vue'
+import FormPicker from '@/shared/components/FormPicker.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 
 type CustomerPackage = z.infer<typeof customerPackageListResponseSchema>
@@ -24,6 +25,10 @@ const emit = defineEmits<{
 const packageId = ref('')
 const creditsUsed = ref('')
 const notes = ref('')
+const packageOptions = computed(() => props.packages.map((item) => ({
+  value: item.customerPackageId,
+  label: `${item.packageName} · ${item.remainingCredit} remaining`,
+})))
 const submitDisabled = computed(() => props.loading || props.retryBlocked
   || !props.packages.some((item) => item.customerPackageId === packageId.value)
   || !Number.isFinite(Number(creditsUsed.value)) || Number(creditsUsed.value) <= 0)
@@ -58,16 +63,16 @@ function submit() {
   >
     <fieldset :disabled="submitting || retryBlocked" class="space-y-5 pb-6">
       <section>
-        <FormLabel input-id="order-usage-package">Package</FormLabel>
-        <select
-          id="order-usage-package" v-model="packageId" :disabled="loading || packages.length <= 1" required
-          class="w-full rounded-xl border border-outline-variant/40 bg-white px-3 py-3 font-body text-sm text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-        >
-          <option value="" disabled>Select a package</option>
-          <option v-for="item in packages" :key="item.customerPackageId" :value="item.customerPackageId">
-            {{ item.packageName }} · {{ item.remainingCredit }} remaining
-          </option>
-        </select>
+        <fieldset :disabled="loading || packages.length <= 1" class="min-w-0 border-0 p-0">
+          <FormPicker
+            id="order-usage-package"
+            v-model="packageId"
+            label="Package"
+            :options="packageOptions"
+            :searchable="false"
+            placeholder="Select a package"
+          />
+        </fieldset>
         <p v-if="loading" class="mt-2 text-sm text-on-surface-variant">Loading packages…</p>
         <p v-else-if="packages.length === 0" class="mt-2 text-sm text-on-surface-variant">No active packages</p>
       </section>

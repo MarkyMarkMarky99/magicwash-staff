@@ -10,6 +10,7 @@ const props = defineProps({
   options:           { type: Array, required: true },
   placeholder:       { type: String, default: '' },
   searchPlaceholder: { type: String, default: '' },
+  searchable:        { type: Boolean, default: true },
   loading:           { type: Boolean, default: false },
   error:             { type: String, default: '' },
   emptyText:         { type: String, default: '' },
@@ -64,7 +65,11 @@ function openPicker() {
   isOpen.value = true
   activeIndex.value = firstEnabledIndex()
 
-  nextTick(() => searchInput.value?.focus())
+  if (props.searchable) {
+    nextTick(() => searchInput.value?.focus())
+  } else {
+    focusOption(activeIndex.value)
+  }
 }
 
 function closePicker() {
@@ -191,6 +196,7 @@ watch(filteredOptions, () => {
 
       <div v-if="isOpen" class="picker__dropdown">
         <input
+          v-if="searchable"
           ref="searchInput"
           :value="search" @input="search = $event.target.value"
           type="search"

@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import FormInput from '@/shared/components/FormInput.vue'
+import FormPicker from '@/shared/components/FormPicker.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import FormSwitch from '@/shared/components/FormSwitch.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
@@ -52,6 +53,7 @@ const submitting = ref(false)
 const isEdit = computed(() => Boolean(props.id))
 const title = computed(() => (isEdit.value ? 'แก้ไขรายการราคา' : 'เพิ่มรายการราคา'))
 const categories = computed(() => Array.from(new Set(items.value.map((entry) => entry.category))))
+const categoryOptions = computed(() => categories.value.map((category) => ({ value: category, label: category })))
 const subcategories = computed(() =>
   Array.from(
     new Set(
@@ -61,6 +63,7 @@ const subcategories = computed(() =>
     ),
   ),
 )
+const subcategoryOptions = computed(() => subcategories.value.map((subcategory) => ({ value: subcategory, label: subcategory })))
 const canSelectExistingItems = computed(() => !truncated.value && !storeError.value && !initializing.value)
 const existingItems = computed(() => {
   const query = existingItemQuery.value.trim().toLocaleLowerCase('th-TH')
@@ -72,6 +75,7 @@ const existingItems = computed(() => {
   )
 })
 const serviceOptions = serviceTypeOptions
+const servicePickerOptions = serviceOptions.map((service) => ({ value: service.value, label: service.label }))
 const formValid = computed(() =>
   Boolean(
     item.category
@@ -247,8 +251,8 @@ onMounted(async () => {
         <fieldset class="fieldset">
           <div class="section-label">รายการ</div>
           <div class="grid-2">
-            <div class="field"><label for="category">หมวดหมู่ <span class="required">*</span></label><select id="category" v-model="item.category" class="control"><option value="" disabled>เลือกหมวดหมู่</option><option v-for="category in categories" :key="category" :value="category">{{ category }}</option></select></div>
-            <div class="field"><label for="subcategory">หมวดหมู่ย่อย <span class="required">*</span></label><select id="subcategory" v-model="item.subcategory" class="control"><option value="" disabled>เลือกหมวดหมู่ย่อย</option><option v-for="subcategory in subcategories" :key="subcategory" :value="subcategory">{{ subcategory }}</option></select></div>
+            <FormPicker id="category" v-model="item.category" class="field" label="หมวดหมู่ *" :options="categoryOptions" placeholder="เลือกหมวดหมู่" />
+            <FormPicker id="subcategory" v-model="item.subcategory" class="field" label="หมวดหมู่ย่อย *" :options="subcategoryOptions" placeholder="เลือกหมวดหมู่ย่อย" />
           </div>
           <div class="grid-2">
             <FormInput id="item-type" v-model="item.itemType" class="field" label="ประเภทสินค้า *" />
@@ -260,7 +264,7 @@ onMounted(async () => {
         <section class="price-panel" aria-labelledby="price-heading">
           <div class="price-title"><h2 id="price-heading">ราคาตามบริการ</h2><span>กำหนดราคาและหน่วยคิดราคาสำหรับบริการนี้</span></div>
           <div class="price-grid">
-            <div class="price-field price-field--service"><label for="service-type">บริการ *</label><select id="service-type" v-model="item.serviceType" class="control"><option v-for="service in serviceOptions" :key="service.value" :value="service.value">{{ service.label }}</option></select></div>
+            <FormPicker id="service-type" v-model="item.serviceType" class="price-field price-field--service" label="บริการ *" :options="servicePickerOptions" :searchable="false" />
             <div class="price-field"><label for="price">ราคา *</label><div class="money"><input id="price" v-model="item.price" class="control" inputmode="decimal" type="number" min="0" step="any"><span>บาท</span></div></div>
             <div class="price-field"><label for="unit">หน่วยคิดราคา</label><input id="unit" v-model="item.unit" class="control" placeholder="เช่น piece, kg"></div>
           </div>

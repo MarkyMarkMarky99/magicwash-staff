@@ -1,19 +1,21 @@
 # Project memory
 
-Live note for the next session. Branch: detached at `refs/heads/main`.
+Live note for the next session. Branch: `refactor/form-picker-adoption` (pushed); local `main` is behind it.
 
 ## Branches in flight
 
-- **`feat/price-list-image-url`** — image work is on production via `main` (pushed 2026-09-14); branch left to clean up. Details: `.user/memory/feat-price-list-image-url.md`.
-- **`codex/price-list-photo-release`** — superseded: the release reached production via `main` on 2026-09-14; branch left to clean up. Details: `.user/memory/codex-price-list-photo-release.md`.
-- **`design/item-illustrations`** — design worktree at the price-list backend commit. Details: `.user/memory/design-item-illustrations.md`.
-- **`design/item-photos`** — design worktree at the price-list backend commit. Details: `.user/memory/design-item-photos.md`.
-- **`feat/live-order-helper`** — a read-only `getLiveOrderById` helper plus an OrdersView parity script, with no production caller and long stale against `main`. Status, contents and integration notes: `.user/memory/feat-live-order-helper.md`.
-- **`fix/customer-package-card-design`** — customer-package detail card design branch. Details: `.user/memory/fix-customer-package-card-design.md`.
+- **`refactor/form-picker-adoption`** — FormPicker `searchable` prop plus form migrations; outside-click close bug open. Details: `.user/memory/refactor-form-picker-adoption.md`.
+- **`feat/price-list-image-url`** — image work is on production via `main`; branch retained without a worktree. Details: `.user/memory/feat-price-list-image-url.md`.
+- **`codex/price-list-photo-release`** — branch retained without a worktree. Details: `.user/memory/codex-price-list-photo-release.md`.
+- **`design/item-illustrations`** — branch retained without a worktree. Details: `.user/memory/design-item-illustrations.md`.
+- **`design/item-photos`** — branch retained without a worktree. Details: `.user/memory/design-item-photos.md`.
+- **`feat/live-order-helper`** — read-only helper branch retained without a worktree. Details: `.user/memory/feat-live-order-helper.md`.
+- **`fix/customer-package-card-design`** — branch retained without a worktree. Details: `.user/memory/fix-customer-package-card-design.md`.
 
 ## Pending work
 
 - **Forms and navigation**
+  - FormPicker does not close when clicking or tabbing to another field; fix in `FormPicker.vue`, then browser-test.
   - Pre-existing defect: some forms `push` on exit, so Back re-opens the form after save. See `.user/memory/form-exit-history.md`.
   - Agreed rule: a form is a temporary layer — after leaving it by any button, no form entry may remain in history.
   - Browser-verify the form-routes refactor (merged untested in a browser); unticked to-dos in `docs/plans/form-routes.md`.

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import FormLabel from '@/shared/components/FormLabel.vue'
+import FormPicker from '@/shared/components/FormPicker.vue'
 import { isValidItemQuantity, isWeightUnit, itemQuantityStep } from '@shared/utils/item-quantity'
 /** Presentation only — props in, events out. */
 import {
@@ -23,6 +24,10 @@ const emit = defineEmits<{
 }>()
 
 const expandedAdjustments = ref<Set<string>>(new Set())
+const unitOptions = invoiceUnitOptions.map((option) => ({
+  value: option,
+  label: option === 'custom' ? 'Custom' : option,
+}))
 
 function toggleAdjustments(key: string) {
   const next = new Set(expandedAdjustments.value)
@@ -122,17 +127,14 @@ function removeLine(index: number) {
 
           <div class="grid grid-cols-3 gap-2">
             <div>
-              <FormLabel :input-id="`invoice-line-${line.key}-unit`">Unit</FormLabel>
-              <select
+              <FormPicker
                 :id="`invoice-line-${line.key}-unit`"
-                :value="line.unitOption"
-                class="invoice-line-control invoice-line-select"
-                @change="updateUnit(index, ($event.target as HTMLSelectElement).value as InvoiceUnitOption)"
-              >
-                <option v-for="option in invoiceUnitOptions" :key="option" :value="option">
-                  {{ option === 'custom' ? 'Custom' : option }}
-                </option>
-              </select>
+                :model-value="line.unitOption"
+                label="Unit"
+                :options="unitOptions"
+                :searchable="false"
+                @update:model-value="updateUnit(index, $event as InvoiceUnitOption)"
+              />
               <input
                 v-if="line.unitOption === 'custom'"
                 :id="`invoice-line-${line.key}-custom-unit`"

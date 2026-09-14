@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { z } from 'zod'
 import FormInput from '@/shared/components/FormInput.vue'
 import FormLabel from '@/shared/components/FormLabel.vue'
+import FormPicker from '@/shared/components/FormPicker.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import type { packageCreditMovementTypeSchema } from '@contracts/customer-packages/customer-package-api.schema'
@@ -44,6 +46,11 @@ const emit = defineEmits<{
 function movementLabel(movementType: TransactionType): string {
   return movementType.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
+
+const movementTypeOptions = computed(() => props.movementTypes.map((type) => ({
+  value: type,
+  label: movementLabel(type),
+})))
 </script>
 
 <template>
@@ -66,15 +73,14 @@ function movementLabel(movementType: TransactionType): string {
       </section>
 
       <section class="space-y-3">
-        <label for="customer-package-transaction-type" class="block font-label text-sm font-semibold text-on-surface">Transaction type</label>
-        <select
+        <FormPicker
           id="customer-package-transaction-type"
-          :value="movementType"
-          class="w-full rounded-xl border border-outline-variant/40 bg-surface-container-lowest px-3 py-3 font-body text-sm text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-          @change="emit('update:movementType', ($event.target as HTMLSelectElement).value as TransactionType)"
-        >
-          <option v-for="type in movementTypes" :key="type" :value="type">{{ movementLabel(type) }}</option>
-        </select>
+          :model-value="movementType"
+          label="Transaction type"
+          :options="movementTypeOptions"
+          :searchable="false"
+          @update:model-value="emit('update:movementType', $event as TransactionType)"
+        />
 
         <section>
           <FormLabel input-id="customer-package-credit-change">Credit change</FormLabel>
