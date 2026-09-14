@@ -2,7 +2,7 @@
 import { useRouter } from 'vue-router'
 import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.store'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
-import type { CustomerDetailDto } from '../services/customer.service'
+import type { CustomerDetailDto } from '@/data/customers/customer.service'
 
 import type { BadgeTone } from '@/shared/components/BaseBadge.vue'
 

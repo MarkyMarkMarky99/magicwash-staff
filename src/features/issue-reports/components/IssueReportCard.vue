@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { IssueReportDto } from '../services/issue-report.service'
+import type { IssueReportDto } from '@/data/issue-reports/issue-report.service'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { issueReportStatusBadge } from './issue-report-status'
 

@@ -7,7 +7,7 @@ import {
   type IssueReportCreatePayload,
   type IssueReportDto,
   type IssueReportUpdatePayload,
-} from '../services/issue-report.service'
+} from '@/data/issue-reports/issue-report.service'
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback

@@ -4,7 +4,7 @@ import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
-import type { AppointmentListDto } from '../services/appointment.service'
+import type { AppointmentListDto } from '@/data/appointments/appointment.service'
 
 type AppointmentStatus = AppointmentListDto['status']
 import type { BadgeTone } from '@/shared/components/BaseBadge.vue'

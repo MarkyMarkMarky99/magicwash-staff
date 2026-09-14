@@ -4,7 +4,7 @@ audit_sources:
   - src/features/customers
   - src/features/customers/routes.ts
   - src/features/customers/pages/CustomerListPage.vue
-  - src/features/customers/services/customer.service.ts
+  - src/data/customers/customer.service.ts
   - src/features/gallery/pages/OrderGalleryPage.vue
   - src/features/gallery/services/laundry-photo.service.ts
 ---

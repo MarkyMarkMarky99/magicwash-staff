@@ -1,7 +1,7 @@
 import type {
   PriceListCreatePayload,
   PriceListUpdatePayload,
-} from '../services/price-list.service'
+} from '@/data/price-list/price-list.service'
 
 export type PriceListFormState = {
   itemCode: string

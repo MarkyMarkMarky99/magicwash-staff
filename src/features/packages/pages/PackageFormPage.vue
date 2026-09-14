@@ -6,8 +6,8 @@ import FormInput from '@/shared/components/FormInput.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormSwitch from '@/shared/components/FormSwitch.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
-import type { PackageDto } from '../services/package.service'
-import { usePackageStore } from '../stores/package.store'
+import type { PackageDto } from '@/data/packages/package.service'
+import { usePackageStore } from '@/data/packages/package.store'
 import { currentActor } from '@/shared/config/actor'
 
 defineOptions({ name: 'PackageFormPage' })

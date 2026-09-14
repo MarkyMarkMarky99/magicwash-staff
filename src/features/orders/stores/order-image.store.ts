@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { createOrderImage, listOrderImages, type OrderImageDto } from '@/features/orders/services/order-image.service'
+import { createOrderImage, listOrderImages, type OrderImageDto } from '@/data/order-images/order-image.service'
 import { uploadToStorage } from '@/shared/api/firebase-storage'
 import type { OrderImageType } from '@/features/orders/order-image-labels'
 import { currentActor } from '@/shared/config/actor'

@@ -6,12 +6,12 @@ import {
   createCustomerPackageRequestSchema,
   type createCustomerPackageResponseSchema,
 } from '@contracts/customer-packages/customer-package-api.schema'
-import type { CustomerDetailDto } from '@/features/customers/services/customer.service'
-import type { PackageDto } from '@/features/packages/services/package.service'
-import { createInvoice } from '@/features/invoices/services/invoice.service'
-import { canRetryInvoiceOutcome, synthesizeNetworkFailureOutcome } from '@/features/invoices/utils/invoice-outcome.utils'
+import type { CustomerDetailDto } from '@/data/customers/customer.service'
+import type { PackageDto } from '@/data/packages/package.service'
+import { createInvoice } from '@/data/invoices/invoice.service'
+import { canRetryInvoiceOutcome, synthesizeNetworkFailureOutcome } from '@/data/invoices/invoice-outcome.utils'
 import { addSheetDateDays, todaySheetDate } from '@/shared/utils/sheet-date'
-import { createCustomerPackage } from '../services/customer-package.service'
+import { createCustomerPackage } from '@/data/customer-packages/customer-package.service'
 
 type PackageRequest = z.infer<typeof createCustomerPackageRequestSchema>
 type PackageResult = z.infer<typeof createCustomerPackageResponseSchema>

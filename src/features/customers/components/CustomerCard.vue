@@ -5,7 +5,7 @@ import { useSelectedCustomerStore } from '@/shared/stores/selected-customer.stor
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
 import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
-import type { CustomerListDto } from '../services/customer.service'
+import type { CustomerListDto } from '@/data/customers/customer.service'
 
 import type { BadgeTone } from '@/shared/components/BaseBadge.vue'
 

@@ -3,7 +3,7 @@ import BaseBadge from '@/shared/components/BaseBadge.vue'
 import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
 import { presentationFor } from '../invoice-status-presentation'
-import type { InvoiceListItemDto } from '../types/invoices.types'
+import type { InvoiceListItemDto } from '@/data/invoices/invoices.types'
 
 const props = defineProps<{
   invoice: InvoiceListItemDto

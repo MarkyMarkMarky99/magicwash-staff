@@ -2,7 +2,7 @@
 import { serviceTypeLabel } from '@/shared/utils/service-type-labels'
 import { toRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import type { OrderListDto } from '../services/order.service'
+import type { OrderListDto } from '@/data/orders/order.service'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
 import { useDuplicateInvoiceWarning } from '@/shared/composables/use-duplicate-invoice-warning'
 import DetailOverlay from '@/shared/layouts/DetailOverlay.vue'

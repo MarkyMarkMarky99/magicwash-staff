@@ -4,11 +4,11 @@ import {
   type CreateInvoiceRequest,
   type CreateInvoiceResponse,
 } from '@contracts/invoices/invoice-api.schema'
-import type { InvoiceFilter } from '../types/invoice-filter.types'
-import type { InvoiceListItemDto, InvoiceListResponseDto } from '../types/invoices.types'
+import type { InvoiceFilter } from './invoice-filter.types'
+import type { InvoiceListItemDto, InvoiceListResponseDto } from './invoices.types'
 import { apiGetList } from '@/shared/api/api-client'
 import { invalidate } from '@/shared/api/response-cache'
-import { synthesizeNetworkFailureOutcome } from '../utils/invoice-outcome.utils'
+import { synthesizeNetworkFailureOutcome } from './invoice-outcome.utils'
 
 const INVOICES_ENDPOINT = '/api/invoices'
 

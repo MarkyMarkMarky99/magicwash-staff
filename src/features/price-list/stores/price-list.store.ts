@@ -7,7 +7,7 @@ import {
   type PriceListCreatePayload,
   type PriceListDto,
   type PriceListUpdatePayload,
-} from '../services/price-list.service'
+} from '@/data/price-list/price-list.service'
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback

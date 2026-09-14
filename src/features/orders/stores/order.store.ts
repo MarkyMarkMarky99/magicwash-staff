@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { listCustomersForOrder, type CustomerLookupDto } from '@/features/orders/services/customer-lookup.service'
-import { createOrderItem, type OrderItemCreatePayload } from '@/features/orders/services/order-item.service'
-import { createWorkOrder, getWorkOrder, listWorkOrders, type WorkOrderCreateDto, type WorkOrderCreatePayload, type WorkOrderDetailDto, type WorkOrderListDto } from '@/features/orders/services/work-order.service'
+import { listCustomersForOrder, type CustomerLookupDto } from '@/data/customers/customer-lookup.service'
+import { createOrderItem, type OrderItemCreatePayload } from '@/data/order-items/order-item.service'
+import { createWorkOrder, getWorkOrder, listWorkOrders, type WorkOrderCreateDto, type WorkOrderCreatePayload, type WorkOrderDetailDto, type WorkOrderListDto } from '@/data/work-orders/work-order.service'
 
 const PAGE_SIZE = 500
 

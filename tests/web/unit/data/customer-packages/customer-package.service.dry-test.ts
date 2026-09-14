@@ -1,19 +1,23 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
-  appendPackageTransaction,
   createCustomerPackage,
   getCustomerPackageDetail,
   getCustomerPackages,
-} from '@/features/customer-packages/services/customer-package.service'
+} from '@/data/customer-packages/customer-package.service'
+import { appendPackageTransaction } from '@/data/package-transactions/package-transaction.service'
 
 const source = readFileSync(
-  new URL('../../../../../../src/features/customer-packages/services/customer-package.service.ts', import.meta.url),
+  new URL('../../../../../src/data/customer-packages/customer-package.service.ts', import.meta.url),
+  'utf8',
+)
+const transactionSource = readFileSync(
+  new URL('../../../../../src/data/package-transactions/package-transaction.service.ts', import.meta.url),
   'utf8',
 )
 
-function exportedFunction(name: string): string {
-  const match = source.match(new RegExp(`export\\s+(?:(?:async\\s+)?function\\s+${name}\\b|const\\s+${name}\\b)[\\s\\S]*?(?=\\nexport\\s+(?:(?:async\\s+)?function|const)\\s+|$)`))
+function exportedFunction(name: string, moduleSource = source): string {
+  const match = moduleSource.match(new RegExp(`export\\s+(?:(?:async\\s+)?function\\s+${name}\\b|const\\s+${name}\\b)[\\s\\S]*?(?=\\nexport\\s+(?:(?:async\\s+)?function|const)\\s+|$)`))
   assert.ok(match, `${name} must be exported`)
   return match[0]
 }
@@ -34,11 +38,11 @@ assert.match(detail, /normalizeGvizStringFields/, 'detail reads must normalize G
 assert.doesNotMatch(detail, /(?:customerPackageDetailResponseSchema|packageTransactionSchema)\.parse\(/, 'detail reads must not runtime-parse GViz data')
 
 assert.doesNotMatch(source, /\bapiPost\b/, 'customer-package writes must not import or call apiPost')
-for (const [name, endpoint, responseSchema] of [
-  ['createCustomerPackage', '/api/customer-packages', 'createCustomerPackageResponseSchema'],
-  ['appendPackageTransaction', '/api/package-transactions', 'appendPackageTransactionResponseSchema'],
+for (const [name, endpoint, responseSchema, moduleSource] of [
+  ['createCustomerPackage', '/api/customer-packages', 'createCustomerPackageResponseSchema', source],
+  ['appendPackageTransaction', '/api/package-transactions', 'appendPackageTransactionResponseSchema', transactionSource],
 ] as const) {
-  const write = exportedFunction(name)
+  const write = exportedFunction(name, moduleSource)
   assert.match(write, new RegExp(`fetch[\\s\\S]*?['"]${endpoint.replaceAll('/', '\\/')}['"]`), `${name} must use raw fetch at ${endpoint}`)
   assert.match(write, /method\s*:\s*['"]POST['"]/, `${name} must POST`)
   assert.match(write, /response\.json\(\)/, `${name} must parse JSON regardless of HTTP status`)

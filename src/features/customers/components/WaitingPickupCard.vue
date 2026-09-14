@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AppointmentListDto } from '../services/waiting-pickup.service'
+import type { AppointmentListDto } from '@/data/appointments/waiting-pickup.service'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'

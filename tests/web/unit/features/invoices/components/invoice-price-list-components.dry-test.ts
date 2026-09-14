@@ -31,7 +31,9 @@ assert.match(createPage, /isValidItemQuantity\(item\.quantity, item\.unit\)/)
 assert.match(createPage, /const unit = item\.unit\?\.trim\(\) \|\| 'piece'/)
 
 const contextService = source('features/invoices/services/invoice-create-context.service.ts')
-assert.match(contextService, /\/api\/work-orders\//)
+const workOrderService = source('data/work-orders/work-order.service.ts')
+assert.match(contextService, /getWorkOrder\(orderId\)/)
+assert.match(workOrderService, /\/api\/work-orders/)
 assert.doesNotMatch(contextService, /\/api\/orders/)
 
 console.log('invoice-price-list-components.dry-test: OK')

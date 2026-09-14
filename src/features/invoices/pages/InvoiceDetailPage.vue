@@ -9,8 +9,8 @@ import InvoiceSectionCard from '../components/InvoiceSectionCard.vue'
 import {
   getInvoiceDetail,
   InvalidInvoiceNumberError,
-} from '../services/invoice-detail.service'
-import type { InvoiceDetailDto } from '../services/invoice-detail.service'
+} from '@/data/invoices/invoice-detail.service'
+import type { InvoiceDetailDto } from '@/data/invoices/invoice-detail.service'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
 
 const props = defineProps<{ invoiceNumber: string }>()

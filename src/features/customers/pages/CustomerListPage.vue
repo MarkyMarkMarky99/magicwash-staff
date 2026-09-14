@@ -7,7 +7,7 @@ import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import CustomerTypeTabs from '../components/CustomerTypeTabs.vue'
 import CustomerCard from '../components/CustomerCard.vue'
-import { useCustomerStore } from '../stores/customer.store'
+import { useCustomerStore } from '@/data/customers/customer.store'
 import { useCustomerFilterRoute } from '../composables/useCustomerFilterRoute'
 
 const customerStore = useCustomerStore()

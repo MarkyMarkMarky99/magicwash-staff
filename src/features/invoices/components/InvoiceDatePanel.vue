@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onBeforeUnmount } from 'vue'
 import FormInput from '@/shared/components/FormInput.vue'
-import type { InvoiceFilter } from '../types/invoice-filter.types'
+import type { InvoiceFilter } from '@/data/invoices/invoice-filter.types'
 
 const props = defineProps<{
   filter: InvoiceFilter

@@ -51,8 +51,7 @@ Notes
 
 ## Live callers
 
-- `src/features/customers/services/order.service.ts:8`
-- `src/features/invoices/services/invoice-create-context.service.ts:23`
+- `src/data/orders/order.service.ts:8`
 
 Eight more files import types from `@contracts/orders/order-api.schema` without calling the
 endpoint. A change to this contract's shape reaches all of them — that is why the plan leaves it

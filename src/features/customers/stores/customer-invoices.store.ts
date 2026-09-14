@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { z } from 'zod'
 import type { invoiceListResponseSchema } from '@contracts/invoices/invoice-api.schema'
-import { getInvoices } from '@/features/invoices/services/invoice.service'
+import { getInvoices } from '@/data/invoices/invoice.service'
 
 type Invoice = z.infer<typeof invoiceListResponseSchema>
 

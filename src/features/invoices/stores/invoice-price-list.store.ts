@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import {
   fetchAllInvoicePriceListItems,
   type InvoicePriceListItemDto,
-} from '../services/invoice-price-list.service'
+} from '@/data/price-list/invoice-price-list.service'
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback

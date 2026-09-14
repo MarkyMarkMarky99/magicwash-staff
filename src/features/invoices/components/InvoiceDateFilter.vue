@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { InvoiceFilter } from '../types/invoice-filter.types'
+import type { InvoiceFilter } from '@/data/invoices/invoice-filter.types'
 
 const props = defineProps<{
   filter: InvoiceFilter

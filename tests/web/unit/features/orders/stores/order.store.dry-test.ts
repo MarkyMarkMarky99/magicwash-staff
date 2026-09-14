@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { createPinia, setActivePinia } from 'pinia'
 import { invalidate } from '@/shared/api/response-cache'
 import { useOrderStore } from '@/features/orders/stores/order.store'
-import type { WorkOrderListDto } from '@/features/orders/services/work-order.service'
+import type { WorkOrderListDto } from '@/data/work-orders/work-order.service'
 
 // Seeding the detail from an already-loaded list row is what lets the order page paint its header
 // instead of holding a full-page skeleton. The three things that can go wrong: showing the

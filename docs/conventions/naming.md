@@ -51,10 +51,10 @@ Use kebab-case with a responsibility suffix where applicable.
 
 Examples:
 
-- `customer.service.ts`
-- `waiting-pickup.service.ts`
+- `src/data/customers/customer.service.ts`
+- `src/data/appointments/waiting-pickup.service.ts`
 - `invoice.module.ts`
-- `invoice.service.ts`
+- `src/data/invoices/invoice.service.ts`
 - `customer-api.schema.ts`
 
 Feature route entry files use:

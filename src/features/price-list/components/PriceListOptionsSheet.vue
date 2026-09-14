@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import DetailOverlay from '@/shared/layouts/DetailOverlay.vue'
 import { serviceTypeLabel } from '@/shared/utils/service-type-labels'
-import type { PriceListDto } from '../services/price-list.service'
+import type { PriceListDto } from '@/data/price-list/price-list.service'
 
 const props = defineProps<{
   open: boolean

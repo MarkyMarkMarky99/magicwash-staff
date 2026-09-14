@@ -4,7 +4,7 @@ import {
   fetchOrderPriceList,
   type OrderPriceListItemDto,
   type OrderPriceListServiceType,
-} from '@/features/orders/services/order-price-list.service'
+} from '@/data/price-list/order-price-list.service'
 
 function errorMessage(reason: unknown): string {
   return reason instanceof Error && reason.message ? reason.message : 'ไม่สามารถโหลดรายการราคาได้'

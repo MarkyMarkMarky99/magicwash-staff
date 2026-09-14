@@ -7,7 +7,7 @@ import {
   type AppointmentCreateDto,
   type AppointmentListDto,
   type AppointmentUpdateDto,
-} from '../services/appointment.service'
+} from '@/data/appointments/appointment.service'
 import { normalizeSheetDate } from '@/shared/utils/sheet-date'
 import { toAppointmentDate } from '../utils/appointment-date'
 

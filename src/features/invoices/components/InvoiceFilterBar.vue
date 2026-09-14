@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import GenericTabs from '@/shared/components/GenericTabs.vue'
-import type { InvoiceFilter } from '../types/invoice-filter.types'
-import type { InvoiceStatusDto } from '../types/invoices.types'
+import type { InvoiceFilter } from '@/data/invoices/invoice-filter.types'
+import type { InvoiceStatusDto } from '@/data/invoices/invoices.types'
 
 interface FilterTab {
   key: string

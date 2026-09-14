@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { createPinia, setActivePinia } from 'pinia'
 import { useOrderPriceListStore } from '@/features/orders/stores/order-price-list.store'
-import type { OrderPriceListItemDto } from '@/features/orders/services/order-price-list.service'
+import type { OrderPriceListItemDto } from '@/data/price-list/order-price-list.service'
 
 const row = (id: string, overrides: Partial<OrderPriceListItemDto> = {}): OrderPriceListItemDto => ({
   id, itemCode: id, category: 'Clothing', subcategory: 'Shirts', itemType: 'Shirt', variant: null,

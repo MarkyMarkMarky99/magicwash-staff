@@ -6,7 +6,7 @@ import {
   appointmentWriteErrorMessage,
   getAppointment,
   type AppointmentDetailDto,
-} from '../services/appointment.service'
+} from '@/data/appointments/appointment.service'
 import { useAppointmentStore } from '../stores/appointment.store'
 import AppointmentForm from '../components/AppointmentForm.vue'
 

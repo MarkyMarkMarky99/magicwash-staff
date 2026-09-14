@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import ImageContentCard from '@/shared/components/ImageContentCard.vue'
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
-import type { PriceListDto } from '../services/price-list.service'
+import type { PriceListDto } from '@/data/price-list/price-list.service'
 
 const props = defineProps<{
   itemCode: string

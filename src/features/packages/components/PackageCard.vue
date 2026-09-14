@@ -2,7 +2,7 @@
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
 import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
-import type { PackageDto } from '../services/package.service'
+import type { PackageDto } from '@/data/packages/package.service'
 
 const props = defineProps<{ package: PackageDto }>()
 const emit = defineEmits<{ edit: [packageCode: string] }>()

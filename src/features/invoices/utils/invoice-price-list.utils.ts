@@ -1,4 +1,4 @@
-import type { InvoicePriceListItemDto } from '../services/invoice-price-list.service'
+import type { InvoicePriceListItemDto } from '@/data/price-list/invoice-price-list.service'
 import {
   createEmptyLineItemRow,
   invoiceUnitOptions,

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 
-import { listAllPriceList } from '@/features/price-list/services/price-list.service'
+import { fetchAllInvoicePriceListItems } from '@/data/price-list/invoice-price-list.service'
 
 type PriceListRow = Record<string, unknown>
 
@@ -45,20 +45,21 @@ async function withMockFetch(
 }
 
 await withMockFetch([row('one')], async (calls) => {
-  const result = await listAllPriceList()
+  const result = await fetchAllInvoicePriceListItems()
   assert.equal(calls.length, 1)
   assert.equal(calls[0]!.pathname, '/api/price-list')
   assert.equal(calls[0]!.searchParams.get('perPage'), '1000')
+  assert.equal(calls[0]!.searchParams.get('priceGroup'), 'DEFAULT')
+  assert.equal(calls[0]!.searchParams.get('sortBy'), 'itemCode')
   assert.deepEqual(result, { items: [row('one')], truncated: false })
 })
 
 const cappedRows = Array.from({ length: 1000 }, (_, index) => row(`row-${index}`))
 await withMockFetch(cappedRows, async (calls) => {
-  const result = await listAllPriceList()
+  const result = await fetchAllInvoicePriceListItems()
   assert.equal(calls.length, 1)
-  assert.equal(calls[0]!.searchParams.get('perPage'), '1000')
   assert.equal(result.items.length, 1000)
   assert.equal(result.truncated, true)
 })
 
-console.log('price-list-service.dry-test: OK')
+console.log('invoice-price-list-service.dry-test: OK')

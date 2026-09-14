@@ -1,10 +1,8 @@
-import type { z } from 'zod'
-import { customerDetailResponseSchema } from '@contracts/customers/customer-api.schema'
-import { workOrderDetailResponseSchema } from '@contracts/work-orders/work-order-api.schema'
-import { apiGet } from '@/shared/api/api-client'
+import { getCustomerById, type CustomerDetailDto } from '@/data/customers/customer.service'
+import { getWorkOrder, type WorkOrderDetailDto } from '@/data/work-orders/work-order.service'
 
-export type InvoiceCreateCustomer = z.infer<typeof customerDetailResponseSchema>
-export type InvoiceCreateOrder = z.infer<typeof workOrderDetailResponseSchema>
+export type InvoiceCreateCustomer = CustomerDetailDto
+export type InvoiceCreateOrder = WorkOrderDetailDto
 
 export interface InvoiceCreateContext {
   customer: InvoiceCreateCustomer
@@ -16,8 +14,8 @@ export async function loadInvoiceCreateContext(
   orderId: string,
 ): Promise<InvoiceCreateContext> {
   const [customer, order] = await Promise.all([
-    apiGet<InvoiceCreateCustomer>(`/api/customers/${encodeURIComponent(customerId)}`),
-    apiGet<InvoiceCreateOrder>(`/api/work-orders/${encodeURIComponent(orderId)}`),
+    getCustomerById(customerId),
+    getWorkOrder(orderId),
   ])
 
   if (order.customerId.trim() !== customerId) {

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { CustomerPackageFilter } from '../composables/useCustomerPackageFilterRoute'
-import { getCustomerPackages } from '../services/customer-package.service'
+import { getCustomerPackages } from '@/data/customer-packages/customer-package.service'
 import type { z } from 'zod'
 import { customerPackageListResponseSchema } from '@contracts/customer-packages/customer-package-api.schema'
 

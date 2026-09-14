@@ -9,15 +9,15 @@ import FormPicker from '@/shared/components/FormPicker.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import { addSheetDateDays, todaySheetDate } from '@/shared/utils/sheet-date'
-import { useCustomerStore } from '@/features/customers/stores/customer.store'
-import type { CustomerDetailDto } from '@/features/customers/services/customer.service'
-import { usePackageStore } from '@/features/packages/stores/package.store'
+import { useCustomerStore } from '@/data/customers/customer.store'
+import type { CustomerDetailDto } from '@/data/customers/customer.service'
+import { usePackageStore } from '@/data/packages/package.store'
 import {
   customerPackageServiceDaySchema,
   customerPackageTimeSlotSchema,
   createCustomerPackageResponseSchema,
 } from '@contracts/customer-packages/customer-package-api.schema'
-import { createCustomerPackage } from '../services/customer-package.service'
+import { createCustomerPackage } from '@/data/customer-packages/customer-package.service'
 import { canResumePackagePurchase, useCustomerPackagePurchaseStore } from '../stores/customer-package-purchase.store'
 import { currentActor } from '@/shared/config/actor'
 

@@ -27,7 +27,7 @@ import { presentationFor } from '@/features/orders/order-status-presentation'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { useOrderStore } from '@/features/orders/stores/order.store'
 import { useOrderPriceListStore } from '@/features/orders/stores/order-price-list.store'
-import type { OrderPriceListItemDto } from '@/features/orders/services/order-price-list.service'
+import type { OrderPriceListItemDto } from '@/data/price-list/order-price-list.service'
 import { currentActor } from '@/shared/config/actor'
 
 const itemPayloadSchema = orderItemCreateSchema.omit({ orderId: true, createdBy: true })

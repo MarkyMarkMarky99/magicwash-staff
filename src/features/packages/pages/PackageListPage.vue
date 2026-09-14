@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import GenericTabs from '@/shared/components/GenericTabs.vue'
-import { usePackageStore } from '../stores/package.store'
+import { usePackageStore } from '@/data/packages/package.store'
 import PackageCard from '../components/PackageCard.vue'
 
 defineOptions({ name: 'PackageListPage' })

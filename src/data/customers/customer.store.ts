@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
-import { listCustomers, type CustomerListDto } from '../services/customer.service'
+import { listCustomers, type CustomerListDto } from './customer.service'
 
 /** Caches the full customer list; active filters remain in the URL query. */
 export const useCustomerStore = defineStore('customers', () => {

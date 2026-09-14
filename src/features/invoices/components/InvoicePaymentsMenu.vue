@@ -2,7 +2,7 @@
 import BaseDropdown from '@/shared/components/BaseDropdown.vue'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { formatSheetDateTime } from '@/shared/utils/sheet-date'
-import type { InvoiceDetailDto } from '../services/invoice-detail.service'
+import type { InvoiceDetailDto } from '@/data/invoices/invoice-detail.service'
 
 import type { BadgeTone } from '@/shared/components/BaseBadge.vue'
 

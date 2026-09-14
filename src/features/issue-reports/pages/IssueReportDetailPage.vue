@@ -8,7 +8,7 @@ import { ApiError } from '@/shared/api/api-client'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { useIssueReportActor } from '../composables/use-issue-report-actor'
 import { ISSUE_REPORT_STATUS_OPTIONS, issueReportStatusBadge } from '../components/issue-report-status'
-import { getIssueReport, type IssueReportDto, type IssueReportStatus } from '../services/issue-report.service'
+import { getIssueReport, type IssueReportDto, type IssueReportStatus } from '@/data/issue-reports/issue-report.service'
 import { useIssueReportStore } from '../stores/issue-report.store'
 
 defineOptions({ name: 'IssueReportDetailPage' })

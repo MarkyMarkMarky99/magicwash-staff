@@ -8,7 +8,7 @@ import LightboxOverlay from '@/shared/layouts/LightboxOverlay.vue'
 import CameraOverlay from '@/shared/components/CameraOverlay.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import { currentActor } from '@/shared/config/actor'
-import { getWorkOrder } from '@/features/orders/services/work-order.service'
+import { getWorkOrder } from '@/data/work-orders/work-order.service'
 import { listGalleryPhotos, reassignPhoto } from '@/features/gallery/services/laundry-photo.service'
 
 function parseKey(key) {

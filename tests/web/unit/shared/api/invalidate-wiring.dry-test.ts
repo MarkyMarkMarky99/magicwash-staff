@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { readCache, writeCache } from '@/shared/api/response-cache'
-import { createOrderItem } from '@/features/orders/services/order-item.service'
+import { createOrderItem } from '@/data/order-items/order-item.service'
 
 // The cache dry test proves invalidate() clears what it is asked to. This proves the
 // other half: that a write service actually calls it, and calls it for every endpoint

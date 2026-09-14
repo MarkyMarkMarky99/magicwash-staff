@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { InvoiceDetailDto } from '../services/invoice-detail.service'
+import type { InvoiceDetailDto } from '@/data/invoices/invoice-detail.service'
 
 defineProps<{
   customer: InvoiceDetailDto['customer'] | null | undefined

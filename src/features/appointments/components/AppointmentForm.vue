@@ -14,7 +14,7 @@ import type {
   createAppointmentRequestSchema,
 } from '@contracts/appointments/appointment-api.schema'
 import type { SelectedCustomer } from '@/shared/stores/selected-customer.store'
-import type { AppointmentDetailDto } from '../services/appointment.service'
+import type { AppointmentDetailDto } from '@/data/appointments/appointment.service'
 import AppointmentDatePicker from './AppointmentDatePicker.vue'
 
 const props = withDefaults(defineProps<{

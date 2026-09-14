@@ -5,7 +5,8 @@ import type {
   customerPackageListResponseSchema,
   appendPackageTransactionRequestSchema,
 } from '@contracts/customer-packages/customer-package-api.schema'
-import { appendPackageTransaction, getCustomerPackages } from '@/features/customer-packages/services/customer-package.service'
+import { getCustomerPackages } from '@/data/customer-packages/customer-package.service'
+import { appendPackageTransaction } from '@/data/package-transactions/package-transaction.service'
 
 type CustomerPackage = z.infer<typeof customerPackageListResponseSchema>
 type TransactionRequest = z.infer<typeof appendPackageTransactionRequestSchema>

@@ -2,7 +2,7 @@
 import OrderImageCaptureMenu from '@/features/orders/components/OrderImageCaptureMenu.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import { getOrderImageTypeLabel, type OrderImageType } from '@/features/orders/order-image-labels'
-import type { OrderImageDto } from '@/features/orders/services/order-image.service'
+import type { OrderImageDto } from '@/data/order-images/order-image.service'
 
 defineProps<{
   images: OrderImageDto[]

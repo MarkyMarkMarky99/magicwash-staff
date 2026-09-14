@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import type { InvoicePriceListItemDto } from '../../../../../../src/features/invoices/services/invoice-price-list.service'
+import type { InvoicePriceListItemDto } from '../../../../../../src/data/price-list/invoice-price-list.service'
 import {
   appendPickedLine,
   invoiceUnitOptionFor,

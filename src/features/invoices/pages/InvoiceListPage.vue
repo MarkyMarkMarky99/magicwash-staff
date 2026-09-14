@@ -10,7 +10,7 @@ import InvoiceFilterBar from '../components/InvoiceFilterBar.vue'
 import InvoiceCard from '../components/InvoiceCard.vue'
 import { useInvoiceStore } from '../stores/invoice.store'
 import { useInvoiceFilterRoute } from '../composables/useInvoiceFilterRoute'
-import type { InvoiceStatusDto } from '../types/invoices.types'
+import type { InvoiceStatusDto } from '@/data/invoices/invoices.types'
 
 const router = useRouter()
 const invoiceStore = useInvoiceStore()

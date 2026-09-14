@@ -1,45 +1,24 @@
-import type { z } from 'zod'
 import {
-  afterPhotoCreateSchema,
-  afterPhotoListQuerySchema,
-  afterPhotoResponseSchema,
-  afterPhotoUpdateSchema,
-} from '@contracts/after-photos/after-photo-api.schema'
+  createAfterPhoto,
+  listAfterPhotos,
+  reassignAfterPhoto,
+} from '@/data/after-photos/after-photo.service'
+import type { CreateAfterPhotoPayload } from '@/data/after-photos/after-photo.service'
 import {
-  laundryPhotoCreateSchema,
-  laundryPhotoListQuerySchema,
-  laundryPhotoResponseSchema,
-  laundryPhotoUpdateSchema,
-} from '@contracts/laundry-photos/laundry-photo-api.schema'
-import { apiGetList, apiPatch, apiPost } from '@/shared/api/api-client'
-import { invalidate } from '@/shared/api/response-cache'
+  createLaundryPhoto,
+  listLaundryPhotos,
+  reassignLaundryPhoto,
+} from '@/data/laundry-photos/laundry-photo.service'
+import type {
+  CreateLaundryPhotoPayload,
+  GalleryPhoto,
+  ReassignLaundryPhotoPayload,
+} from '@/data/laundry-photos/laundry-photo.service'
 
 export type GalleryPhotoType = 'BEF' | 'AFT'
-export type ReassignPhotoPayload = z.infer<typeof laundryPhotoUpdateSchema>
-type LaundryPhotoCreatePayload = z.infer<typeof laundryPhotoCreateSchema>
-type AfterPhotoCreatePayload = z.infer<typeof afterPhotoCreateSchema>
-export type CreatePhotoPayload = LaundryPhotoCreatePayload | AfterPhotoCreatePayload
-type LaundryPhotoDto = z.infer<typeof laundryPhotoResponseSchema>
-type AfterPhotoDto = z.infer<typeof afterPhotoResponseSchema>
-export interface GalleryPhoto {
-  id: string
-  imageUrl: string
-  notes: string | null
-}
-
-const LAUNDRY_PHOTOS_ENDPOINT = '/api/laundry-photos'
-const AFTER_PHOTOS_ENDPOINT = '/api/after-photos'
-
-function normalizePhotos<T extends { imageUrl: string | null; notes: string | null }>(
-  photos: T[],
-  getId: (photo: T) => string,
-): GalleryPhoto[] {
-  return photos.flatMap(photo => (
-    photo.imageUrl
-      ? [{ id: getId(photo), imageUrl: photo.imageUrl, notes: photo.notes }]
-      : []
-  ))
-}
+export type ReassignPhotoPayload = ReassignLaundryPhotoPayload
+export type CreatePhotoPayload = CreateLaundryPhotoPayload | CreateAfterPhotoPayload
+export type { GalleryPhoto }
 
 export async function listGalleryPhotos(
   type: GalleryPhotoType,
@@ -47,32 +26,12 @@ export async function listGalleryPhotos(
   orderItemId: string | null = null,
   onFresh?: (photos: GalleryPhoto[]) => void,
 ): Promise<GalleryPhoto[]> {
-  const query = orderItemId ? { orderId, orderItemId } : { orderId }
-
   if (type === 'BEF') {
-    const { items } = await apiGetList<LaundryPhotoDto>(LAUNDRY_PHOTOS_ENDPOINT, {
-      query,
-      querySchema: laundryPhotoListQuerySchema,
-      onFresh: onFresh
-        ? ({ items: freshItems }) => onFresh(
-            normalizePhotos(freshItems, photo => photo.laundryPhotoId),
-          )
-        : undefined,
-    })
-    return normalizePhotos(items, photo => photo.laundryPhotoId)
+    return listLaundryPhotos(orderId, orderItemId, onFresh)
   }
 
   if (type === 'AFT') {
-    const { items } = await apiGetList<AfterPhotoDto>(AFTER_PHOTOS_ENDPOINT, {
-      query,
-      querySchema: afterPhotoListQuerySchema,
-      onFresh: onFresh
-        ? ({ items: freshItems }) => onFresh(
-            normalizePhotos(freshItems, photo => photo.afterPhotoId),
-          )
-        : undefined,
-    })
-    return normalizePhotos(items, photo => photo.afterPhotoId)
+    return listAfterPhotos(orderId, orderItemId, onFresh)
   }
 
   throw new Error(`Unsupported gallery photo type: ${String(type)}`)
@@ -83,23 +42,13 @@ export async function listGalleryPhotos(
 export async function createPhoto(
   type: GalleryPhotoType,
   payload: CreatePhotoPayload,
-): Promise<LaundryPhotoDto | AfterPhotoDto> {
+): Promise<Awaited<ReturnType<typeof createLaundryPhoto>> | Awaited<ReturnType<typeof createAfterPhoto>>> {
   if (type === 'BEF') {
-    const result = await apiPost<LaundryPhotoDto>(LAUNDRY_PHOTOS_ENDPOINT, {
-      data: payload,
-      requestSchema: laundryPhotoCreateSchema,
-    })
-    invalidate(LAUNDRY_PHOTOS_ENDPOINT)
-    return result
+    return createLaundryPhoto(payload as CreateLaundryPhotoPayload)
   }
 
   if (type === 'AFT') {
-    const result = await apiPost<AfterPhotoDto>(AFTER_PHOTOS_ENDPOINT, {
-      data: payload,
-      requestSchema: afterPhotoCreateSchema,
-    })
-    invalidate(AFTER_PHOTOS_ENDPOINT)
-    return result
+    return createAfterPhoto(payload as CreateAfterPhotoPayload)
   }
 
   throw new Error(`Unsupported gallery photo type: ${String(type)}`)
@@ -111,25 +60,15 @@ export async function reassignPhoto(
   type: GalleryPhotoType,
   photoId: string,
   payload: ReassignPhotoPayload,
-): Promise<LaundryPhotoDto | AfterPhotoDto> {
+): Promise<Awaited<ReturnType<typeof reassignLaundryPhoto>> | Awaited<ReturnType<typeof reassignAfterPhoto>>> {
   const encodedPhotoId = encodeURIComponent(photoId)
 
   if (type === 'BEF') {
-    const result = await apiPatch<LaundryPhotoDto>(`${LAUNDRY_PHOTOS_ENDPOINT}/${encodedPhotoId}`, {
-      data: payload,
-      requestSchema: laundryPhotoUpdateSchema,
-    })
-    invalidate(LAUNDRY_PHOTOS_ENDPOINT)
-    return result
+    return reassignLaundryPhoto(encodedPhotoId, payload)
   }
 
   if (type === 'AFT') {
-    const result = await apiPatch<AfterPhotoDto>(`${AFTER_PHOTOS_ENDPOINT}/${encodedPhotoId}`, {
-      data: payload,
-      requestSchema: afterPhotoUpdateSchema,
-    })
-    invalidate(AFTER_PHOTOS_ENDPOINT)
-    return result
+    return reassignAfterPhoto(encodedPhotoId, payload)
   }
 
   throw new Error(`Unsupported gallery photo type: ${String(type)}`)

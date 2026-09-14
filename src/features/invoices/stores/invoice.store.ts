@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getInvoices } from '../services/invoice.service'
-import type { InvoiceFilter } from '../types/invoice-filter.types'
-import type { InvoiceListItemDto } from '../types/invoices.types'
+import { getInvoices } from '@/data/invoices/invoice.service'
+import type { InvoiceFilter } from '@/data/invoices/invoice-filter.types'
+import type { InvoiceListItemDto } from '@/data/invoices/invoices.types'
 
 export const useInvoiceStore = defineStore('invoices', () => {
   const invoices = ref<InvoiceListItemDto[]>([])

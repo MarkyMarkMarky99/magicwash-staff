@@ -7,7 +7,7 @@ import {
   type PackageCreatePayload,
   type PackageDto,
   type PackageUpdatePayload,
-} from '../services/package.service'
+} from './package.service'
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback

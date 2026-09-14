@@ -1,8 +1,8 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { LocationQuery, LocationQueryRaw } from 'vue-router'
-import type { InvoiceFilter } from '../types/invoice-filter.types'
-import type { InvoiceStatusDto } from '../types/invoices.types'
+import type { InvoiceFilter } from '@/data/invoices/invoice-filter.types'
+import type { InvoiceStatusDto } from '@/data/invoices/invoices.types'
 
 export const defaultInvoiceFilter: InvoiceFilter = {
   keyword: '',

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
 const source = readFileSync(
-  new URL('../../../../../../src/features/packages/stores/package.store.ts', import.meta.url),
+  new URL('../../../../../src/data/packages/package.store.ts', import.meta.url),
   'utf8',
 )
 

@@ -13,7 +13,7 @@ import PriceListOptionsSheet from '../components/PriceListOptionsSheet.vue'
 import PriceListServiceFilter from '../components/PriceListServiceFilter.vue'
 import PriceListServicePanel from '../components/PriceListServicePanel.vue'
 import { usePriceListFilterRoute } from '../composables/usePriceListFilterRoute'
-import type { PriceListDto } from '../services/price-list.service'
+import type { PriceListDto } from '@/data/price-list/price-list.service'
 
 defineOptions({ name: 'PriceListPage' })
 

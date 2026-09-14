@@ -7,8 +7,6 @@ import {
   customerPackageDetailResponseSchema,
   customerPackageListQuerySchema,
   customerPackageListResponseSchema,
-  appendPackageTransactionRequestSchema,
-  appendPackageTransactionResponseSchema,
 } from '@contracts/customer-packages/customer-package-api.schema'
 import { apiGet, apiGetList, ApiError } from '@/shared/api/api-client'
 import { invalidate } from '@/shared/api/response-cache'
@@ -18,8 +16,6 @@ type CustomerPackageDetail = z.infer<typeof customerPackageDetailResponseSchema>
 type CustomerPackageListQuery = z.infer<typeof customerPackageListQuerySchema>
 type CreateCustomerPackageRequest = z.infer<typeof createCustomerPackageRequestSchema>
 type CreateCustomerPackageResponse = z.infer<typeof createCustomerPackageResponseSchema>
-type AppendPackageTransactionRequest = z.infer<typeof appendPackageTransactionRequestSchema>
-type AppendPackageTransactionResponse = z.infer<typeof appendPackageTransactionResponseSchema>
 
 const customerPackageStringFields = [
   'customerPackageId',
@@ -139,35 +135,3 @@ export async function createCustomerPackage(request: CreateCustomerPackageReques
   }
 }
 
-function unknownTransactionOutcome(request: AppendPackageTransactionRequest, message: string): AppendPackageTransactionResponse {
-  return {
-    kind: 'transaction_write_failed',
-    customerPackageId: request.customerPackageId,
-    message,
-    certainty: 'unknown',
-  }
-}
-
-export async function appendPackageTransaction(request: AppendPackageTransactionRequest): Promise<AppendPackageTransactionResponse> {
-  try {
-    const response = await fetch('/api/package-transactions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(appendPackageTransactionRequestSchema.parse(request)),
-    })
-    let body: unknown
-    try {
-      body = await response.json()
-    } catch {
-      return unknownTransactionOutcome(request, 'The server response could not be read. This transaction may already have been saved.')
-    }
-    const parsed = appendPackageTransactionResponseSchema.safeParse(body)
-    if (!parsed.success) {
-      return unknownTransactionOutcome(request, 'The server response was not a recognized write outcome. This transaction may already have been saved.')
-    }
-    if (parsed.data.kind === 'created') invalidate('/api/customer-packages')
-    return parsed.data
-  } catch {
-    return unknownTransactionOutcome(request, 'Could not reach the server. This transaction may already have been saved.')
-  }
-}

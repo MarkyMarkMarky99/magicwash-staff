@@ -3,15 +3,15 @@ import { defineStore } from 'pinia'
 import {
   getCustomerById,
   type CustomerDetailDto,
-} from '../services/customer.service'
+} from '@/data/customers/customer.service'
 import {
   listOrdersByCustomer,
   type OrderListDto,
-} from '../services/order.service'
+} from '@/data/orders/order.service'
 import {
   listAppointmentsByCustomer,
   type AppointmentListDto,
-} from '../services/waiting-pickup.service'
+} from '@/data/appointments/waiting-pickup.service'
 import { filterWaitingPickups } from '../utils/waiting-pickup.filter'
 
 export const useCustomerOrderHistoryStore = defineStore('customer-order-history', () => {
