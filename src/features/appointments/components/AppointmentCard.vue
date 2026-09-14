@@ -7,6 +7,7 @@ import { formatSheetDate } from '@/shared/utils/sheet-date'
 import type { AppointmentListDto } from '@/data/appointments/appointment.service'
 
 type AppointmentStatus = AppointmentListDto['status']
+type AppointmentVehicle = NonNullable<AppointmentListDto['vehicle']>
 import type { BadgeTone } from '@/shared/components/BaseBadge.vue'
 
 const statusConfig: Record<AppointmentStatus, { icon: string; label: string; tone: BadgeTone }> = {
@@ -16,6 +17,11 @@ const statusConfig: Record<AppointmentStatus, { icon: string; label: string; ton
   COMPLETED: { icon: 'task_alt', label: 'Completed', tone: 'success' },
   CANCELLED: { icon: 'cancel', label: 'Cancelled', tone: 'danger' },
   NO_SHOW: { icon: 'person_off', label: 'No Show', tone: 'danger' },
+}
+
+const vehicleConfig: Record<AppointmentVehicle, { icon: string; label: string }> = {
+  VAN: { icon: 'local_shipping', label: 'รถกระบะตู้ทึบ' },
+  MOTORCYCLE: { icon: 'two_wheeler', label: 'มอเตอร์ไซค์' },
 }
 
 const nextStatus: Partial<Record<AppointmentStatus, AppointmentStatus>> = {
@@ -52,6 +58,7 @@ const next = computed(() => nextStatus[props.appointment.status])
 const action = computed(() => next.value ? actionLabels[next.value] : null)
 const canReschedule = computed(() => !['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(props.appointment.status))
 const formattedDate = computed(() => formatSheetDate(props.appointment.appointmentDate))
+const vehicle = computed(() => props.appointment.vehicle ? vehicleConfig[props.appointment.vehicle] : null)
 
 onUnmounted(() => clearTimeout(toastTimer))
 
@@ -123,10 +130,10 @@ function openMaps() {
 
       <div class="px-4 py-3 flex gap-3" :class="variant === 'pending' ? 'py-4' : ''">
         <CardLeadingIcon
-          :icon="updating ? 'sync' : config.icon"
+          :icon="updating ? 'sync' : vehicle?.icon ?? config.icon"
           :tone="config.tone"
           size="md"
-          label="Appointment"
+          :label="vehicle?.label ?? 'Appointment'"
           :class="updating ? 'animate-spin' : ''"
         />
         <div class="flex-grow min-w-0 flex flex-col justify-center">
@@ -137,8 +144,7 @@ function openMaps() {
             </div>
             <span v-if="variant === 'daily'" class="font-body text-[11px] font-semibold text-on-surface-variant shrink-0">{{ appointment.timeSlot }}</span>
           </div>
-          <p v-if="appointment.address" class="font-body text-xs text-on-surface-variant truncate">{{ appointment.address }}</p>
-          <div v-if="variant === 'pending'" class="flex items-center gap-2 mt-1 text-xs text-on-surface-variant">
+          <p v-if="appointment.address" class="font-body text-xs text-on-surface-variant truncate">{{ appointment.address }}</p>          <div v-if="variant === 'pending'" class="flex items-center gap-2 mt-1 text-xs text-on-surface-variant">
             <span class="material-symbols-outlined text-primary text-[11px]">calendar_today</span><span>{{ formattedDate }}</span>
             <span class="material-symbols-outlined text-primary text-[11px]">schedule</span><span>{{ appointment.timeSlot }}</span>
           </div>

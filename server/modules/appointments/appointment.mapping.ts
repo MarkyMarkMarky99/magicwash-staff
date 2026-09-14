@@ -21,4 +21,5 @@ export const appointmentsFieldMap = {
   ServiceTier: 'serviceTier',
   DeletedAt: 'deletedAt',
   DeletedBy: 'deletedBy',
+  Vehicle: 'vehicle',
 } as const satisfies Record<keyof AppointmentsDbRow & string, string>

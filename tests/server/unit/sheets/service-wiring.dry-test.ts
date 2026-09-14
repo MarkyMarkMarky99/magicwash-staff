@@ -262,6 +262,7 @@ test('Appointments create wiring packs Address and uses the DB primary-key colum
     'ServiceTier',
     'DeletedAt',
     'DeletedBy',
+    'Vehicle',
   ] as const
 
   await withMockFetch(
@@ -286,7 +287,7 @@ test('Appointments create wiring packs Address and uses the DB primary-key colum
           spreadsheetId: 'characterization-spreadsheet-id',
           updates: {
             updatedRows: 1,
-            updatedRange: 'Appointments!A2:Q2',
+            updatedRange: 'Appointments!A2:R2',
             updatedData: { values: request.values },
           },
         })
@@ -351,6 +352,7 @@ test('Appointments create wiring packs Address and uses the DB primary-key colum
       assert.equal(row?.[14], 'STANDARD')
       assert.equal(row?.[15], '')
       assert.equal(row?.[16], '')
+      assert.equal(row?.[17], '')
       assert.equal(result.customerName, 'ธนวดี')
     },
   )
@@ -383,6 +385,7 @@ test('Appointments service wiring flattens the Address snapshot', async () => {
       'O',
       'P',
       'Q',
+      'R',
     ],
     [
       'APPT-a1b2c3d4',
@@ -402,6 +405,7 @@ test('Appointments service wiring flattens the Address snapshot', async () => {
       'STANDARD',
       null,
       null,
+      'VAN',
     ],
   )
 
@@ -418,6 +422,7 @@ test('Appointments service wiring flattens the Address snapshot', async () => {
       assert.equal(row.phone, '0812345678')
       assert.equal(row.location, 'Bangkok')
       assert.equal(row.address, '123 Main Road')
+      assert.equal(row.vehicle, 'VAN')
     },
   )
 })

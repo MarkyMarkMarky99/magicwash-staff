@@ -139,7 +139,7 @@ async function assertCreateTransport(
         return response({
           json: {
             ...fixture.sheetsApiResponse,
-            updates: { ...fixture.sheetsApiResponse.updates, updatedRange: 'Appointments!A2:Q2' },
+            updates: { ...fixture.sheetsApiResponse.updates, updatedRange: 'Appointments!A2:R2' },
           },
         })
       }
@@ -216,7 +216,7 @@ async function assertUpdateTransport(
         })
       }
       if (init?.method === 'GET' && path.endsWith(
-        `/values/Appointments!A${fixture.rowNumber}:Q${fixture.rowNumber}`,
+        `/values/Appointments!A${fixture.rowNumber}:R${fixture.rowNumber}`,
       )) {
         return response({ json: { values: [fixture.readBackRow] } })
       }
@@ -233,7 +233,7 @@ async function assertUpdateTransport(
         '/v4/spreadsheets/appointment-spreadsheet-id/values/Appointments!1:1',
         '/v4/spreadsheets/appointment-spreadsheet-id/values/Appointments!A:A',
         '/v4/spreadsheets/appointment-spreadsheet-id/values:batchUpdate',
-        `/v4/spreadsheets/appointment-spreadsheet-id/values/Appointments!A${fixture.rowNumber}:Q${fixture.rowNumber}`,
+        `/v4/spreadsheets/appointment-spreadsheet-id/values/Appointments!A${fixture.rowNumber}:R${fixture.rowNumber}`,
       ])
       assert.deepEqual(postBody(calls[3]), {
         valueInputOption: 'USER_ENTERED',

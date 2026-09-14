@@ -37,10 +37,30 @@ if (!writableAppointmentTypeSchema) {
 
 const {
   appointmentTypeSchema,
+  vehicleSchema,
   appointmentDetailResponseSchema,
   createAppointmentRequestSchema,
   updateAppointmentRequestSchema,
 } = appointmentApi
+
+assert.deepEqual(vehicleSchema.options, ['VAN', 'MOTORCYCLE'])
+assert.deepEqual(createAppointmentRequestSchema.partial().parse({ vehicle: 'VAN' }), {
+  vehicle: 'VAN',
+})
+assert.deepEqual(createAppointmentRequestSchema.partial().parse({ vehicle: 'MOTORCYCLE' }), {
+  vehicle: 'MOTORCYCLE',
+})
+assert.deepEqual(createAppointmentRequestSchema.partial().parse({ vehicle: null }), { vehicle: null })
+assert.deepEqual(createAppointmentRequestSchema.partial().parse({}), {})
+assert.throws(() => createAppointmentRequestSchema.partial().parse({ vehicle: 'CAR' }))
+assert.deepEqual(updateAppointmentRequestSchema.parse({ vehicle: null, updatedBy: 'tester' }), {
+  vehicle: null,
+  updatedBy: 'tester',
+})
+assert.deepEqual(updateAppointmentRequestSchema.parse({ vehicle: 'VAN', updatedBy: 'tester' }), {
+  vehicle: 'VAN',
+  updatedBy: 'tester',
+})
 
 assert.deepEqual(appointmentTypeSchema.options, [
   'PICKUP',

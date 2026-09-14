@@ -67,6 +67,7 @@ export const appointmentCreateFixtures: AppointmentCreateWriteFixture[] = [
       pickupOrderId: null,
       deliveryOrderId: null,
       notes: 'โทรก่อนเข้ารับ 15 นาที',
+      vehicle: 'VAN',
       createdBy: 'admin@magicwash',
     },
     expectedRow: [
@@ -87,6 +88,7 @@ export const appointmentCreateFixtures: AppointmentCreateWriteFixture[] = [
       'STANDARD',
       '',
       '',
+      'VAN',
     ],
     expectedAddressSnapshot: pickupAddressSnapshot,
     sheetsApiResponse: {
@@ -112,6 +114,7 @@ export const appointmentCreateFixtures: AppointmentCreateWriteFixture[] = [
             'STANDARD',
             '',
             '',
+            'VAN',
           ]],
         },
       },
@@ -132,6 +135,7 @@ export const appointmentCreateFixtures: AppointmentCreateWriteFixture[] = [
       pickupOrderId: 'PO-20260403-001',
       deliveryOrderId: null,
       notes: null,
+      vehicle: null,
       createdBy: 'admin@magicwash',
     },
     expectedRow: [
@@ -150,6 +154,7 @@ export const appointmentCreateFixtures: AppointmentCreateWriteFixture[] = [
       'admin@magicwash',
       '',
       'STANDARD',
+      '',
       '',
       '',
     ],
@@ -175,6 +180,7 @@ export const appointmentCreateFixtures: AppointmentCreateWriteFixture[] = [
             'admin@magicwash',
             '',
             'STANDARD',
+            '',
             '',
             '',
           ]],
@@ -216,6 +222,7 @@ export const appointmentUpdateFixtures: AppointmentUpdateWriteFixture[] = [
       'STANDARD',
       '',
       '',
+      'VAN',
     ],
   },
   {
@@ -247,6 +254,7 @@ export const appointmentUpdateFixtures: AppointmentUpdateWriteFixture[] = [
       'admin@magicwash',
       'driver@magicwash',
       'STANDARD',
+      '',
       '',
       '',
     ],

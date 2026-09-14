@@ -67,6 +67,7 @@ function responseRow(appointmentId: string): AppointmentSheetDbRow {
     ServiceTier: null,
     DeletedAt: null,
     DeletedBy: null,
+    Vehicle: null,
   }
 }
 
@@ -131,6 +132,7 @@ test('create validates once, enriches the command, maps it to DB fields, and lea
       }),
       CreatedBy: 'admin',
       ServiceTier: 'STANDARD',
+      Vehicle: null,
     },
   ])
   assert.equal('CreatedAt' in repository.appendCalls[0], false)
@@ -145,6 +147,14 @@ test('create ignores a client-supplied service tier because the backend owns it'
   assert.equal(repository.appendCalls[0].ServiceTier, 'STANDARD')
   assert.equal(repository.appendCalls[0].AppointmentID, 'APPT-generated')
   assert.equal(repository.appendCalls[0].Status, 'CONFIRMED')
+})
+
+test('create persists an explicit vehicle in column R', async () => {
+  const { service, repository } = createService()
+
+  await service.create({ ...createPayload, vehicle: 'MOTORCYCLE' })
+
+  assert.equal(repository.appendCalls[0].Vehicle, 'MOTORCYCLE')
 })
 
 test('update checks that the row exists, maps the patch, and leaves UpdatedAt for the repository', async () => {

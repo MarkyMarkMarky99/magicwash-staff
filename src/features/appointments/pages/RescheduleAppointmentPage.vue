@@ -56,6 +56,7 @@ async function submit() {
       appointmentDate: data.appointmentDate,
       timeSlot: data.timeSlot,
       notes: data.notes,
+      vehicle: data.vehicle,
     })
     router.back()
   } catch (reason) {

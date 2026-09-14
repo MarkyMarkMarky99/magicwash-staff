@@ -93,6 +93,7 @@ export class AppointmentService extends BaseCrudService<
       appointmentId: this.generateAppointmentId(),
       status: 'CONFIRMED',
       serviceTier: 'STANDARD',
+      vehicle: data.vehicle ?? null,
     }
   }
 

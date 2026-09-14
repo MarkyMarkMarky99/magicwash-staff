@@ -1,10 +1,9 @@
 # Project memory
 
-Live note for the next session. Branch: `feat/appointment-vehicle`.
+Live note for the next session. Branch: `main`.
 
 ## Branches in flight
 
-- **`feat/appointment-vehicle`** — appointment `Vehicle` column: registry + contracts done, backend/frontend implementation in progress. Details: `.user/memory/feat-appointment-vehicle.md`.
 - **`feat/price-list-image-url`** — image work is on production via `main` (pushed 2026-09-14); branch left to clean up. Details: `.user/memory/feat-price-list-image-url.md`.
 - **`codex/price-list-photo-release`** — superseded: the release reached production via `main` on 2026-09-14; branch left to clean up. Details: `.user/memory/codex-price-list-photo-release.md`.
 - **`design/item-illustrations`** — design worktree at the price-list backend commit. Details: `.user/memory/design-item-illustrations.md`.

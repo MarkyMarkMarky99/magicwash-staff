@@ -102,7 +102,7 @@ export const useAppointmentStore = defineStore('appointments', () => {
 
   async function rescheduleAppointment(
     appointmentId: string,
-    data: Pick<AppointmentListDto, 'appointmentDate' | 'timeSlot'> & { notes: string | null },
+    data: Pick<AppointmentListDto, 'appointmentDate' | 'timeSlot' | 'vehicle'> & { notes: string | null },
   ) {
     const persisted = await updateAppointment(appointmentId, {
       ...data,

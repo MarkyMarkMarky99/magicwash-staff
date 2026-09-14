@@ -12,6 +12,7 @@ import type { z } from 'zod'
 import type {
   appointmentTimeSlotSchema,
   createAppointmentRequestSchema,
+  vehicleSchema,
 } from '@contracts/appointments/appointment-api.schema'
 import type { CustomerDetailDto } from '@/data/customers/customer.service'
 import type { AppointmentDetailDto } from '@/data/appointments/appointment.service'
@@ -29,11 +30,17 @@ const props = withDefaults(defineProps<{
 })
 
 type TimeSlot = z.infer<typeof appointmentTimeSlotSchema>
+type Vehicle = z.infer<typeof vehicleSchema>
 type AppointmentCreateRequest = z.infer<typeof createAppointmentRequestSchema>
 const timeSlots = ['10:00-12:00', '13:00-15:00', '15:00-17:00', '18:00-20:00'] as const satisfies readonly TimeSlot[]
+const vehicleOptions: { value: Vehicle; label: string; icon: string }[] = [
+  { value: 'VAN', label: 'รถกระบะตู้ทึบ', icon: 'local_shipping' },
+  { value: 'MOTORCYCLE', label: 'มอเตอร์ไซค์', icon: 'two_wheeler' },
+]
 
 const selectedDate = ref('')
 const selectedTime = ref<TimeSlot | null>(null)
+const selectedVehicle = ref<Vehicle>('VAN')
 const notes = ref('')
 const today = getBangkokClock().date
 
@@ -79,6 +86,7 @@ const createData = computed((): Omit<AppointmentCreateRequest, 'createdBy'> | nu
     pickupOrderId: null,
     deliveryOrderId: props.deliveryOrderId,
     notes: notes.value || null,
+    vehicle: selectedVehicle.value,
   }
 })
 
@@ -91,6 +99,7 @@ const rescheduleData = computed(() => {
     appointmentDate: selectedDate.value,
     timeSlot: selectedTime.value,
     notes: notes.value || null,
+    vehicle: selectedVehicle.value,
   }
 })
 
@@ -105,12 +114,14 @@ function initialise() {
       ?? props.appointment.appointmentDate
     selectedTime.value = props.appointment.timeSlot
     notes.value = props.appointment.notes ?? ''
+    selectedVehicle.value = props.appointment.vehicle ?? 'VAN'
     return
   }
 
   selectedDate.value = smartDefaultDate()
   selectedTime.value = firstAvailableSlot(selectedDate.value)
   notes.value = ''
+  selectedVehicle.value = 'VAN'
 }
 
 function smartDefaultDate() {
@@ -163,6 +174,7 @@ defineExpose({ createData, rescheduleData, isValid })
     <AppointmentDatePicker :selected-date="selectedDate" :title="isCreate ? 'Select Date' : 'Select New Date'" :include-today="isCreate" :disabled-days-of-week="isCreate ? [2] : []" @select="selectDate" />
 
     <FormOptionGrid v-model="selectedTime" label="Available Timeslots" :options="timeSlotOptions" variant="compact" />
+    <FormOptionGrid v-model="selectedVehicle" label="เลือกรถ" :options="vehicleOptions" variant="compact" />
     <FormTextarea id="appointment-notes" v-model="notes" :label="isCreate ? 'Notes' : 'Reschedule Reason & Notes'" :placeholder="isCreate ? 'Any special instructions or notes...' : 'Please provide a brief reason for rescheduling...'" icon="edit_note" />
   </div>
 </template>

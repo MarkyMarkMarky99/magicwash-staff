@@ -133,6 +133,7 @@ const tests: ColumnOrderTest[] = [
       ServiceTier: 'O',
       DeletedAt: 'P',
       DeletedBy: 'Q',
+      Vehicle: 'R',
     },
     primaryKeyColumn: 'A',
   },

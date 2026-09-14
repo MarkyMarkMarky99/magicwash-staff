@@ -24,6 +24,7 @@ function appointment(
     timeSlot: '13:00-15:00',
     status: 'CONFIRMED',
     notes: null,
+    vehicle: null,
     ...overrides,
   }
 }

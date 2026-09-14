@@ -31,6 +31,7 @@ const appointmentPayload = {
   pickupOrderId: null,
   deliveryOrderId: null,
   notes: 'Test appointment',
+  vehicle: 'VAN' as const,
   createdBy: 'admin',
 }
 
@@ -58,6 +59,7 @@ const persistedRow: AppointmentRow = {
   ServiceTier: 'STANDARD',
   DeletedAt: null,
   DeletedBy: null,
+  Vehicle: 'VAN',
 }
 
 interface Failures {

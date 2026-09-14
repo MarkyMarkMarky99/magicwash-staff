@@ -31,6 +31,7 @@ const sampleDbRow = {
   ServiceTier: null,
   DeletedAt: null,
   DeletedBy: null,
+  Vehicle: 'VAN',
 }
 
 const sampleCreateData: AppointmentCreateTransformerData = {
@@ -50,6 +51,7 @@ const sampleCreateData: AppointmentCreateTransformerData = {
   Notes: 'ฝากโทรก่อน',
   CreatedBy: 'admin',
   ServiceTier: 'STANDARD',
+  Vehicle: 'MOTORCYCLE',
   CreatedAt: '2026-04-01 07:34:56',
   UpdatedAt: '2026-04-01 07:34:56',
 }
@@ -69,6 +71,7 @@ const sampleApiCreatePayload = {
   pickupOrderId: null,
   deliveryOrderId: null,
   notes: 'ฝากโทรก่อน',
+  vehicle: 'MOTORCYCLE',
   createdBy: 'admin',
   serviceTier: 'STANDARD',
   createdAt: '2026-04-01 07:34:56',
@@ -120,6 +123,7 @@ test('transformAppointmentRequest packs create flat customer fields into Address
       Notes: 'ฝากโทรก่อน',
       CreatedBy: 'admin',
       ServiceTier: 'STANDARD',
+      Vehicle: 'MOTORCYCLE',
       CreatedAt: '2026-04-01 07:34:56',
       UpdatedAt: '2026-04-01 07:34:56',
       Address: {
@@ -174,6 +178,7 @@ test('transformAppointmentRequest packs payload after real mapper.toDb conversio
       Notes: 'ฝากโทรก่อน',
       CreatedBy: 'admin',
       ServiceTier: 'STANDARD',
+      Vehicle: 'MOTORCYCLE',
       CreatedAt: '2026-04-01 07:34:56',
       UpdatedAt: '2026-04-01 07:34:56',
       Address: {
@@ -371,6 +376,7 @@ test('transformed response maps cleanly through repository mapper to API fields'
     serviceTier: null,
     deletedAt: null,
     deletedBy: null,
+    vehicle: 'VAN',
     customerName: '',
     customerCode: 'WIX',
     phone: '',
