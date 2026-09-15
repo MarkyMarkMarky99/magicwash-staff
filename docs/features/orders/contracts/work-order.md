@@ -1,8 +1,8 @@
 # Work order (staff lane) — API contract
 
 Module `work-orders`. Reads and writes `OrderForm` in the orders workbook
-(`ORDERS_SPREADSHEET_ID`), and joins `Customers` for the display name. Every route answers from the
-same live sheet, so list and detail never disagree.
+(`ORDERS_SPREADSHEET_ID`). Customer display names are resolved in the frontend from the customer
+store; the work-order API returns only the `OrderForm.customer_id` value as `customerId`.
 
 Source: the orders API contract and the contract conventions.
 The id field is `orderId`, not `workOrderId`: `OrderForm.id` and `OrdersView.order_id` hold the same
@@ -23,7 +23,6 @@ Query
 Response `200 { data: WorkOrderListResponse[], meta.pagination: { page, perPage } }`
 - `orderId` — string
 - `customerId` — string
-- `customerName` — string (`''` when the Customers row is missing)
 - `orderNumber` — string | null
 - `invoiceNumber` — string | null (from `OrderForm.invoice_id`, which holds the invoice number)
 - `receivedDate` — string | null
@@ -39,8 +38,8 @@ Response `200 { data: WorkOrderListResponse[], meta.pagination: { page, perPage 
 Notes
 - **no `items`** — `OrderForm` has no `items_json`, and fetching lines per row would be one read per
   order. A list screen that needs an item count cannot get it here; see the plan's Risks.
-- more than one `customerId` in the page → the whole Customers sheet is read once per request
-- duplicate `CustomerID` rows → first row wins
+- `customerName` is not part of the work-order response; order screens resolve it from the cached
+  customer store and fall back to `customerId` while the customer list is unavailable
 
 ## `GET /api/work-orders/:id` — detail (phase 2)
 
