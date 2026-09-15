@@ -62,7 +62,6 @@ Live note for the next session. Branch: `main`.
 - **Verification and cleanup**
   - Browser-test on production, all merged untested at the user's direction: row cards (scroll-and-release must not navigate, tap must open, swipe must still work) and invoice creation from both the manual form and a package purchase.
   - Decide where domain components used by two features live; `src/shared/components/` must stay generic, so the 6-entry allowlist in `scripts/check-cross-feature-imports.mjs` cannot shrink yet.
-  - Decide whether to renumber the four legacy uuid-shaped invoice numbers; they are referenced as `invoiceId` on customer-package rows.
   - Appointment date strip opens at day 1 instead of centering today; a `scrollTo` attempt hid the strip, so diagnose in a real browser first.
   - `ListContainer` collapsible header is a non-focusable `div` without `aria-expanded`; schedule slots now start collapsed when empty.
   - Phone-test ISS-72adcdca: a cache-hit customer-row tap must open only customer detail, while the swipe action still fires.
