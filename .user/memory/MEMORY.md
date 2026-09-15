@@ -4,7 +4,7 @@ Live note for the next session. Branch: `fix/invoice-number-contract`.
 
 ## Branches in flight
 
-- **`fix/invoice-number-contract`** — api-contract regex landed; the two client number-builders are not fixed yet, so package purchase fails validation here. Details: `.user/memory/fix-invoice-number-contract.md`.
+- **`fix/invoice-number-contract`** — api-contract regex plus both client builders landed; not browser-verified yet. Details: `.user/memory/fix-invoice-number-contract.md`.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree. Details: `.user/memory/feat-live-order-helper.md`.
 
 ## Pending work

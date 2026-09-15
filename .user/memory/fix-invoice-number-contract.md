@@ -19,14 +19,24 @@ arrives. Nothing validated the format.
 - Read, update, and number-check responses stay unconstrained so the four legacy rows still parse.
 - Create-path test fixtures moved to conforming numbers; three new contract tests cover accept,
   reject, and legacy-read tolerance.
+- Both client builders now call one shared `generateInvoiceNumber()` in
+  `src/data/invoices/invoice-number.utils.ts`. Implemented by codex `gpt-5.6-sol`, diff reviewed line
+  by line and re-verified.
 
 ## Not done
 
-- The package store still sends the bad shape, so package purchase now fails validation on this
-  branch. Fixing the two client callers is the next round.
+- Not browser-verified. Package purchase and manual invoice create both need a real browser run
+  before merge.
 - Server-side generation and dropping `invoiceNumber` from the create payload are not started.
 - db-contracts untouched by the user's instruction.
 - No canonical doc owns the invoice-number format; `docs/features/invoices/` does not exist.
+
+## Known tradeoff
+
+The package store used to mint a uuid, which could never collide. It now uses 8 random digits and
+relies on the server preflight at `server/modules/invoices/invoice.service.ts:351` and the header
+append, same as the manual path. A collision surfaces as a `validation_error`, and the store has no
+client-side duplicate warning of its own.
 
 ## Legacy rows to decide on
 
