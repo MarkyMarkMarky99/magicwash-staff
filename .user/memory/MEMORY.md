@@ -1,15 +1,16 @@
 # Project memory
 
-Live note for the next session. Branch: `main`.
+Live note for the next session. Branch: `fix/form-picker-blur-close`.
 
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree. Details: `.user/memory/feat-live-order-helper.md`.
+- **`fix/form-picker-blur-close`** — FormPicker outside-click/focusout close, typecheck passes, awaiting a real-browser test.
 
 ## Pending work
 
 - **Forms and navigation**
-  - FormPicker does not close when clicking or tabbing to another field; fix in `FormPicker.vue`, then browser-test. Merged into `main` with the bug open.
+  - Browser-test the FormPicker outside-close fix on `fix/form-picker-blur-close` before merging.
   - Remove dead CSS `.invoice-line-select` in `InvoiceLineItemsEditor.vue`.
   - Pre-existing defect: some forms `push` on exit, so Back re-opens the form after save. See `.user/memory/form-exit-history.md`.
   - Agreed rule: a form is a temporary layer — after leaving it by any button, no form entry may remain in history.
@@ -28,6 +29,7 @@ Live note for the next session. Branch: `main`.
   - Price-list store keeps written rows over reads until a read matches every field; watch for rows sticking if GViz formats differ.
   - On hold: durable e2e suite in `tests/e2e/` with page objects; test IDs live in tests, derived from docs.
   - Wire `onFresh` at remaining call sites; first correct the stale cache-plan claim that no caller uses it.
+  - Order-list latency root cause found 2026-09-16: `readCustomerNames` reads the whole Customers sheet whenever a page holds 2+ customer ids, because the GViz builder has no `IN`/`OR`; customer-detail is NOT affected (single-id path). Chosen fix: preload customers/appointments/price-list at app start and move the name join to the frontend.
   - Reduce page-load latency, in this order: `work-order.service.ts:195` (reads the whole Customers sheet per order-list load, now on customer detail too), `customers/services/order.service.ts:11` (no `perPage`, 104 KB measured), `invoice.service.ts:631` (date filter drops pagination), `App.vue:8` (prefetches appointments on every mount), then HTTP cache headers on `/api/*`. Measured 2026-09-08: GViz 0.49s · prod warm 0.82s · prod cold 1.65s. Fewer reads beats smaller ones.
   - Fix invoice `dateFrom`/`dateTo` filtering, which compares GViz `Date(...)` values against ISO strings.
   - Decide whether to delete the now-callerless `OrdersView`-backed `/api/orders` module or keep it for a future live `/api/orders/:id`. See `.user/memory/feat-live-order-helper.md`.

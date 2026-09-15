@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import FormLabel from './FormLabel.vue'
 import ScrollRegion from './ScrollRegion.vue'
 
@@ -21,6 +21,7 @@ const emit = defineEmits(['update:modelValue'])
 const isOpen = ref(false)
 const search = ref('')
 const activeIndex = ref(-1)
+const pickerRoot = ref(null)
 const trigger = ref(null)
 const searchInput = ref(null)
 const optionElements = ref([])
@@ -76,6 +77,18 @@ function closePicker() {
   isOpen.value = false
   search.value = ''
   activeIndex.value = -1
+}
+
+function handleDocumentPointerdown(event) {
+  if (isOpen.value && !pickerRoot.value?.contains(event.target)) {
+    closePicker()
+  }
+}
+
+function handleFocusout(event) {
+  if (isOpen.value && !pickerRoot.value?.contains(event.relatedTarget)) {
+    closePicker()
+  }
 }
 
 function closeAndFocusTrigger() {
@@ -170,10 +183,13 @@ function handleOptionKeydown(event, option, index) {
 watch(filteredOptions, () => {
   activeIndex.value = firstEnabledIndex()
 })
+
+onMounted(() => document.addEventListener('pointerdown', handleDocumentPointerdown, true))
+onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocumentPointerdown, true))
 </script>
 
 <template>
-  <section>
+  <section ref="pickerRoot" @focusout="handleFocusout">
     <FormLabel :input-id="id">
       {{ label }}
     </FormLabel>
