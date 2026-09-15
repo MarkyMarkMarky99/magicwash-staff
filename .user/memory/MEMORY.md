@@ -1,10 +1,10 @@
 # Project memory
 
-Live note for the next session. Branch: `refactor/form-picker-adoption` (pushed); local `main` is behind it.
+Live note for the next session. Branch: `feat/live-customer-order-history`; local `main` has the FormPicker merge and is 3 ahead of `origin/main`.
 
 ## Branches in flight
 
-- **`refactor/form-picker-adoption`** — FormPicker `searchable` prop plus form migrations; outside-click close bug open. Details: `.user/memory/refactor-form-picker-adoption.md`.
+- **`feat/live-customer-order-history`** — customer order history now reads the live work-order API; not browser-tested. Details: `.user/memory/feat-live-customer-order-history.md`.
 - **`feat/price-list-image-url`** — image work is on production via `main`; branch retained without a worktree. Details: `.user/memory/feat-price-list-image-url.md`.
 - **`codex/price-list-photo-release`** — branch retained without a worktree. Details: `.user/memory/codex-price-list-photo-release.md`.
 - **`design/item-illustrations`** — branch retained without a worktree. Details: `.user/memory/design-item-illustrations.md`.
@@ -15,7 +15,8 @@ Live note for the next session. Branch: `refactor/form-picker-adoption` (pushed)
 ## Pending work
 
 - **Forms and navigation**
-  - FormPicker does not close when clicking or tabbing to another field; fix in `FormPicker.vue`, then browser-test.
+  - FormPicker does not close when clicking or tabbing to another field; fix in `FormPicker.vue`, then browser-test. Merged into `main` with the bug open.
+  - Remove dead CSS `.invoice-line-select` in `InvoiceLineItemsEditor.vue`.
   - Pre-existing defect: some forms `push` on exit, so Back re-opens the form after save. See `.user/memory/form-exit-history.md`.
   - Agreed rule: a form is a temporary layer — after leaving it by any button, no form entry may remain in history.
   - Browser-verify the form-routes refactor (merged untested in a browser); unticked to-dos in `docs/plans/form-routes.md`.
