@@ -4,7 +4,7 @@ Live note for the next session. Branch: `main`.
 
 ## Branches in flight
 
-- **`feat/live-order-helper`** — read-only helper branch retained without a worktree. Details: `.user/memory/feat-live-order-helper.md`.
+- **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 228 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 
 ## Pending work
 
