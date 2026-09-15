@@ -4,12 +4,7 @@ Live note for the next session. Branch: `main`.
 
 ## Branches in flight
 
-- **`feat/price-list-image-url`** — image work is on production via `main`; branch retained without a worktree. Details: `.user/memory/feat-price-list-image-url.md`.
-- **`codex/price-list-photo-release`** — branch retained without a worktree. Details: `.user/memory/codex-price-list-photo-release.md`.
-- **`design/item-illustrations`** — branch retained without a worktree. Details: `.user/memory/design-item-illustrations.md`.
-- **`design/item-photos`** — branch retained without a worktree. Details: `.user/memory/design-item-photos.md`.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree. Details: `.user/memory/feat-live-order-helper.md`.
-- **`fix/customer-package-card-design`** — branch retained without a worktree. Details: `.user/memory/fix-customer-package-card-design.md`.
 
 ## Pending work
 
@@ -68,5 +63,4 @@ Live note for the next session. Branch: `main`.
   - Phone-test ISS-72adcdca: a cache-hit customer-row tap must open only customer detail, while the swipe action still fires.
   - Browser-check ListContainer search, theme consistency, and the order-detail dropdown at the bottom edge.
   - Give `BaseOverlayFrame` a full-bleed size so `LightboxOverlay` can drop its five `!important` padding overrides; then delete `docs/plans/scroll-region.md` and `docs/plans/overlay-frame.md` when unreferenced.
-  - Remove the old `C:\MagicwashGemini\webapp-vue-frontend` worktree after restart.
   - Delete sheet test data: `Packages` `ZZTEST01` / `af9f0651`; `OrderForm` `246fde2b`, `cc4d375e`, `f68ae08d`; `LaundryPhotos` `QK0H9DT1`, `a260b2b1`, `1b7649ba`; `AfterPhoto` `0aacd052`.
