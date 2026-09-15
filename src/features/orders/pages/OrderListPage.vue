@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watch } from 'vue'
+import { computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import GenericTabs from '@/shared/components/GenericTabs.vue'
@@ -9,16 +9,25 @@ import { getInvoiceTarget } from '@/shared/navigation/invoice-detail-route'
 import OrderCard from '@/features/orders/components/OrderCard.vue'
 import { useOrderListFilterRoute } from '@/features/orders/composables/use-order-list-filter-route'
 import { orderStatusLabels } from '@/features/orders/order-status-labels'
+import { useCustomerStore } from '@/data/customers/customer.store'
 import { useWorkOrderStore } from '@/data/work-orders/work-order.store'
 
 const router = useRouter()
+const customerStore = useCustomerStore()
 const orderStore = useWorkOrderStore()
+const { customers } = storeToRefs(customerStore)
 const { orders, listLoading, listError } = storeToRefs(orderStore)
 const { keyword, status, page, setKeyword, setStatus, setPage } = useOrderListFilterRoute()
 const statusTabs = [
   { key: '', label: 'ทั้งหมด' },
   ...Object.entries(orderStatusLabels).map(([key, label]) => ({ key, label })),
 ]
+const customerNamesById = computed(() => new Map(
+  customers.value.map((customer) => [customer.customerId, customer.customerName]),
+))
+const orderRows = computed(() => orders.value.map(
+  (order) => ({ ...order, customerName: customerNamesById.value.get(order.customerId) }),
+))
 
 watch([keyword, status, page], () => void orderStore.loadList({ keyword: keyword.value, status: status.value, page: page.value }), { immediate: true })
 function openOrder(orderId: string) { router.push({ name: 'order-detail', params: { orderId } }) }
@@ -43,7 +52,7 @@ function viewInvoice(invoiceNumber: string) {
           <span class="material-symbols-outlined text-[16px]" aria-hidden="true">post_add</span>
         </button>
       </template>
-      <OrderCard v-for="order in orders" :key="order.orderId" :order="order" :show-customer-name="true" :show-photos="true" :show-invoice="true" @select="openOrder" @view-photos="viewPhotos" @view-invoice="viewInvoice" />
+      <OrderCard v-for="order in orderRows" :key="order.orderId" :order="order" :show-customer-name="true" :show-photos="true" :show-invoice="true" @select="openOrder" @view-photos="viewPhotos" @view-invoice="viewInvoice" />
     </ListContainer>
   </ListPageLayout>
 </template>

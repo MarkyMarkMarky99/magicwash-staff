@@ -18,7 +18,6 @@ export const workOrderListQuerySchema = z.object({
 export const workOrderListResponseSchema = z.object({
   orderId: z.string(),
   customerId: z.string(),
-  customerName: z.string(),
   orderNumber: z.string().nullable(),
   invoiceNumber: z.string().nullable(),
   receivedDate: z.string().nullable(),

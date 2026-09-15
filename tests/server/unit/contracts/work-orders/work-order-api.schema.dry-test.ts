@@ -16,7 +16,7 @@ const {
 } = workOrderModule
 
 const LIST_RESPONSE_FIELDS = [
-  'orderId', 'customerId', 'customerName', 'orderNumber', 'invoiceNumber', 'receivedDate',
+  'orderId', 'customerId', 'orderNumber', 'invoiceNumber', 'receivedDate',
   'dueDate', 'serviceType', 'status', 'quantity', 'note',
 ] as const
 
@@ -153,12 +153,11 @@ assert.equal(workOrderCreateSchema.parse({
 assert.throws(() => workOrderCreateItemSchema.parse({ quantity: 0 }))
 
 const listResponse = {
-  orderId: 'ORD-1', customerId: 'CUS-1', customerName: '', orderNumber: null, invoiceNumber: null,
+  orderId: 'ORD-1', customerId: 'CUS-1', orderNumber: null, invoiceNumber: null,
   receivedDate: null, dueDate: null, serviceType: 'legacy-service', status: 'legacy-status', quantity: null,
   note: null,
 }
 assert.deepEqual(workOrderListResponseSchema.parse(listResponse), listResponse)
-assert.throws(() => workOrderListResponseSchema.parse({ ...listResponse, customerName: null }))
 assert.deepEqual(workOrderDetailResponseSchema.parse({
   ...listResponse,
   createdAt: null,
