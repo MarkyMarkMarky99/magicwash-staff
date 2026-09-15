@@ -1,10 +1,9 @@
 # Project memory
 
-Live note for the next session. Branch: `feat/live-customer-order-history`; local `main` has the FormPicker merge and is 3 ahead of `origin/main`.
+Live note for the next session. Branch: `main`.
 
 ## Branches in flight
 
-- **`feat/live-customer-order-history`** — customer order history now reads the live work-order API; browser-verified, ready to merge. Details: `.user/memory/feat-live-customer-order-history.md`.
 - **`feat/price-list-image-url`** — image work is on production via `main`; branch retained without a worktree. Details: `.user/memory/feat-price-list-image-url.md`.
 - **`codex/price-list-photo-release`** — branch retained without a worktree. Details: `.user/memory/codex-price-list-photo-release.md`.
 - **`design/item-illustrations`** — branch retained without a worktree. Details: `.user/memory/design-item-illustrations.md`.
@@ -34,8 +33,9 @@ Live note for the next session. Branch: `feat/live-customer-order-history`; loca
   - Price-list store keeps written rows over reads until a read matches every field; watch for rows sticking if GViz formats differ.
   - On hold: durable e2e suite in `tests/e2e/` with page objects; test IDs live in tests, derived from docs.
   - Wire `onFresh` at remaining call sites; first correct the stale cache-plan claim that no caller uses it.
-  - Reduce page-load latency, in this order: `work-order.service.ts:195` (reads the whole Customers sheet per order-list load), `customers/services/order.service.ts:11` (no `perPage`, 104 KB measured), `invoice.service.ts:631` (date filter drops pagination), `App.vue:8` (prefetches appointments on every mount), then HTTP cache headers on `/api/*`. Measured 2026-09-08: GViz 0.49s · prod warm 0.82s · prod cold 1.65s. Fewer reads beats smaller ones.
+  - Reduce page-load latency, in this order: `work-order.service.ts:195` (reads the whole Customers sheet per order-list load, now on customer detail too), `customers/services/order.service.ts:11` (no `perPage`, 104 KB measured), `invoice.service.ts:631` (date filter drops pagination), `App.vue:8` (prefetches appointments on every mount), then HTTP cache headers on `/api/*`. Measured 2026-09-08: GViz 0.49s · prod warm 0.82s · prod cold 1.65s. Fewer reads beats smaller ones.
   - Fix invoice `dateFrom`/`dateTo` filtering, which compares GViz `Date(...)` values against ISO strings.
+  - Decide whether to delete the now-callerless `OrdersView`-backed `/api/orders` module or keep it for a future live `/api/orders/:id`. See `.user/memory/feat-live-order-helper.md`.
   - Normalize GViz `Date(...)` values reaching photo modules according to `docs/conventions/datetime.md`.
   - Consolidate datetime helpers in a dedicated pass; `SheetRepository` is shared by every module.
   - App-wide GViz read normalization is deferred by the user; do not start or re-propose it. See `.user/memory/gviz-read-normalization.md`.
