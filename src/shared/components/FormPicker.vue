@@ -251,8 +251,11 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
             @click="selectOption(option)"
             @keydown="handleOptionKeydown($event, option, index)"
           >
-            <span class="picker__option-label">{{ option.label }}</span>
-            <span v-if="option.description" class="picker__option-description">{{ option.description }}</span>
+            <span class="picker__option-text">
+              <span class="picker__option-label">{{ option.label }}</span>
+              <span v-if="option.description" class="picker__option-description">{{ option.description }}</span>
+            </span>
+            <span v-if="option.value === modelValue" class="material-symbols-outlined picker__option-check" aria-hidden="true">check</span>
           </button>
         </ScrollRegion>
       </div>
@@ -266,9 +269,11 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
   font-family: 'Noto Sans Thai', system-ui, sans-serif;
 }
 
-.picker__trigger,
-.picker__search {
-  display: block;
+.picker__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   width: 100%;
   min-width: 0;
   height: 47px;
@@ -281,15 +286,25 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
   box-shadow: 0 1px 0 rgba(0, 79, 69, 0.02);
   font-family: inherit;
   font-size: 14px;
+  text-align: left;
   transition: border-color 150ms, box-shadow 150ms;
 }
 
-.picker__trigger {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  text-align: left;
+.picker__search {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  color: #073f38;
+  border: 0;
+  border-bottom: 1px solid #dceae7;
+  border-radius: 0;
+  outline: 0;
+  background: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  transition: border-color 150ms;
 }
 
 .picker__trigger--placeholder,
@@ -297,10 +312,13 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
   color: #5f7772;
 }
 
-.picker__trigger:focus,
-.picker__search:focus {
+.picker__trigger:focus {
   border-color: #007a69;
   box-shadow: 0 0 0 3px rgba(0, 122, 105, 0.14);
+}
+
+.picker__search:focus {
+  border-bottom-color: #007a69;
 }
 
 .picker__icon {
@@ -312,56 +330,66 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
 .picker__dropdown {
   position: absolute;
   z-index: 10;
+  overflow: hidden;
   width: 100%;
   margin-top: 6px;
-  padding: 8px;
-  border: 1px solid #a9c9c3;
-  border-radius: 10px;
+  border: 1px solid #cfe2de;
+  border-radius: 12px;
   background: #fff;
-  box-shadow: 0 8px 20px rgba(0, 79, 69, 0.14);
+  box-shadow: 0 12px 28px rgba(0, 79, 69, 0.18);
 }
 
 .picker__options {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 6px;
-  max-height: 240px;
-  margin-top: 8px;
+  max-height: 288px;
+  padding: 4px;
 }
 
 .picker__option {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   min-width: 0;
-  padding: 10px 12px;
+  padding: 9px 10px;
   color: #073f38;
-  border: 1px solid #a9c9c3;
-  border-radius: 10px;
+  border: 0;
+  border-radius: 8px;
   outline: 0;
-  background: #fff;
-  box-shadow: 0 1px 0 rgba(0, 79, 69, 0.02);
+  background: transparent;
   font-family: inherit;
   font-size: 14px;
-  line-height: 1.25;
+  line-height: 1.3;
   text-align: left;
-  transition: border-color 150ms, box-shadow 150ms, background-color 150ms, color 150ms;
+  transition: background-color 120ms, color 120ms;
 }
 
 .picker__option--unselected:hover:not(:disabled) {
-  border-color: #7eb5ac;
+  background: #f1f7f6;
 }
 
 .picker__option--selected {
-  color: #fff;
-  border-color: #004f45;
-  background: #004f45;
-  font-weight: 700;
+  color: #004f45;
+  background: #e6f2f0;
+  font-weight: 600;
 }
 
 .picker__option:focus-visible {
-  border-color: #007a69;
-  box-shadow: 0 0 0 3px rgba(0, 122, 105, 0.14);
+  box-shadow: inset 0 0 0 2px #007a69;
+}
+
+.picker__option-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.picker__option-check {
+  flex: 0 0 auto;
+  color: #007a69;
+  font-size: 18px;
 }
 
 .picker__option--disabled {
@@ -383,12 +411,9 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
   font-weight: 400;
 }
 
-.picker__option--selected .picker__option-description {
-  color: rgba(255, 255, 255, 0.76);
-}
-
 .picker__message {
-  margin: 8px 4px 0;
+  margin: 0;
+  padding: 12px;
   color: #5f7772;
   font-size: 14px;
 }

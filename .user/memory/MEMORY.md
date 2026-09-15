@@ -1,6 +1,6 @@
 # Project memory
 
-Live note for the next session. Branch: `fix/form-picker-blur-close`.
+Live note for the next session. Branch: `main`.
 
 ## Branches in flight
 
