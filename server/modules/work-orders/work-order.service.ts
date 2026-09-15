@@ -7,12 +7,9 @@ import {
   workOrderApiContract,
 } from '../../../contracts/work-orders/work-order-api.schema.js'
 import { orderItemService } from '../order-items/order-item.module.js'
-import { getCustomersRepository } from '../../sheets/Customers/Customers.repository.js'
-import { customersRowSchema } from '../../sheets/Customers/Customers.db-contract.js'
 import { getOrderFormRepository } from '../../sheets/OrderForm/OrderForm.repository.js'
 import { orderItemFormsRowSchema } from '../../sheets/OrderItemForms/OrderItemForms.db-contract.js'
 import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
-import { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import type { ServiceListResult } from '../../shared/services/base-crud.service.js'
 import { BaseCrudService } from '../../shared/services/base-crud.service.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
@@ -24,7 +21,6 @@ import {
   type OrderFormDbRow,
 } from './work-order.mapping.js'
 
-type CustomersDbRow = z.infer<typeof customersRowSchema>
 type OrderItemFormsDbRow = z.infer<typeof orderItemFormsRowSchema>
 type WorkOrderListQuery = z.infer<typeof workOrderApiContract.query.list>
 type WorkOrderCreate = z.infer<typeof workOrderApiContract.request.create>
@@ -45,7 +41,6 @@ export interface OrderItemWriter {
 
 export interface WorkOrderServiceOptions {
   orderFormRepository?: () => SheetRepositoryContract<OrderFormDbRow>
-  customerRepository?: () => SheetRepositoryContract<CustomersDbRow>
   orderItemPort?: OrderItemPort
   orderItemWriter?: OrderItemWriter
 }
@@ -78,7 +73,6 @@ export class WorkOrderService extends BaseCrudService<
   typeof orderFormFieldMap
 > {
   private readonly orderFormRepository: () => SheetRepositoryContract<OrderFormDbRow>
-  private readonly customerRepository: () => SheetRepositoryContract<CustomersDbRow>
   private readonly orderItemPort: OrderItemPort
   private readonly orderItemWriter: OrderItemWriter
 
@@ -93,7 +87,6 @@ export class WorkOrderService extends BaseCrudService<
     })
 
     this.orderFormRepository = orderFormRepository
-    this.customerRepository = input.customerRepository ?? getCustomersRepository
     this.orderItemPort = input.orderItemPort ?? defaultOrderItemPort
     this.orderItemWriter = input.orderItemWriter ?? orderItemService
   }
@@ -103,8 +96,6 @@ export class WorkOrderService extends BaseCrudService<
     const items = result.items.filter(
       (item) => typeof item.orderId === 'string' && item.orderId.trim() !== '',
     )
-    const customerIds = uniqueNonBlankIds(items.map((item) => item.customerId))
-    const namesById = await this.readCustomerNames(customerIds)
 
     return {
       items: items.map((item) => {
@@ -112,7 +103,6 @@ export class WorkOrderService extends BaseCrudService<
         return {
           ...item,
           customerId,
-          customerName: namesById.get(customerId) ?? '',
         }
       }),
       pagination: result.pagination,
@@ -122,8 +112,8 @@ export class WorkOrderService extends BaseCrudService<
   override async getById(id: string): Promise<WorkOrderDetailResponse> {
     // The header row and the items are independent sheet reads - items key off the id from the
     // URL, not off anything the header returns - so they run together instead of in sequence.
-    // Only the customer-name lookup genuinely depends on the header. allSettled rather than all
-    // so a header failure still wins the error, exactly as it did when the reads were sequential.
+    // allSettled rather than all so a header failure still wins the error, exactly as it did when
+    // the reads were sequential.
     const [rowResult, itemsResult] = await Promise.allSettled([
       super.getById(id),
       this.orderItemPort.listByOrderId(id),
@@ -132,13 +122,11 @@ export class WorkOrderService extends BaseCrudService<
     if (itemsResult.status === 'rejected') throw itemsResult.reason
     const row = rowResult.value
     const items = itemsResult.value
-    const namesById = await this.readCustomerNames([row.customerId])
     const customerId = normalizeCustomerId(row.customerId)
 
     return {
       ...row,
       customerId,
-      customerName: namesById.get(customerId) ?? '',
       items,
     }
   }
@@ -195,36 +183,10 @@ export class WorkOrderService extends BaseCrudService<
       itemsError,
     }
   }
-
-  private async readCustomerNames(customerIds: string[]): Promise<Map<string, string>> {
-    const ids = uniqueNonBlankIds(customerIds)
-    if (ids.length === 0) {
-      return new Map()
-    }
-
-    const where = ids.length === 1 ? { CustomerID: ids[0] } : {}
-    const rows = await this.customerRepository().read(
-      new ReadQueryDTO<Partial<CustomersDbRow>>({ where }),
-    )
-    const namesById = new Map<string, string>()
-
-    for (const row of rows) {
-      const customerId = row.CustomerID?.trim()
-      if (customerId !== undefined && customerId !== '' && !namesById.has(customerId)) {
-        namesById.set(customerId, row.CustomerName ?? '')
-      }
-    }
-
-    return namesById
-  }
 }
 
 function normalizeCustomerId(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
-}
-
-function uniqueNonBlankIds(ids: unknown[]): string[] {
-  return [...new Set(ids.map(normalizeCustomerId).filter((id) => id !== ''))]
 }
 
 function toOrderItemRow(

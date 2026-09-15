@@ -5,22 +5,15 @@ import { orderItemResponseSchema } from '../../../../../contracts/order-items/or
 import { workOrderApiContract } from '../../../../../contracts/work-orders/work-order-api.schema.js'
 import { WorkOrderService, type OrderItemPort } from '../../../../../server/modules/work-orders/work-order.service.js'
 import { orderFormFieldMap } from '../../../../../server/modules/work-orders/work-order.mapping.js'
-import { customersRowSchema } from '../../../../../server/sheets/Customers/Customers.db-contract.js'
 import { orderFormDbContract, orderFormRowSchema } from '../../../../../server/sheets/OrderForm/OrderForm.db-contract.js'
 import type { SheetRepositoryContract } from '../../../../../server/shared/repositories/sheet-repository.contract.js'
 import { ApiError } from '../../../../../server/shared/http/api-error.js'
 
 type OrderFormDbRow = z.infer<typeof orderFormRowSchema>
-type CustomersDbRow = z.infer<typeof customersRowSchema>
 type OrderItemResponse = z.infer<typeof orderItemResponseSchema>
 
 interface FakeOrderRepository extends SheetRepositoryContract<OrderFormDbRow> {
   readRows: Array<Partial<OrderFormDbRow>>
-  readQueries: Array<unknown>
-}
-
-interface FakeCustomerRepository extends SheetRepositoryContract<CustomersDbRow> {
-  readRows: Array<Partial<CustomersDbRow>>
   readQueries: Array<unknown>
 }
 
@@ -57,32 +50,6 @@ function makeBlankOrderRow(): Partial<OrderFormDbRow> {
   ) as Partial<OrderFormDbRow>
 }
 
-function makeCustomerRow(overrides: Partial<CustomersDbRow> = {}): CustomersDbRow {
-  return {
-    Timestamp: '2026-08-30 10:00:00',
-    CustomerID: 'CUS-1',
-    CustomerIndex: '1',
-    CustomerName: 'First customer',
-    Phone: null,
-    Address: null,
-    Location: null,
-    RegisteredDate: null,
-    Facebook: null,
-    Line: null,
-    Whatsapp: null,
-    Email: null,
-    CustomerType: null,
-    Source: null,
-    ScheduledDays: null,
-    LastVisitDate: null,
-    PreferredContactMethod: null,
-    UpdatedAt: null,
-    UpdatedBy: null,
-    DeletedAt: null,
-    ...overrides,
-  }
-}
-
 function makeOrderRepository(): FakeOrderRepository {
   const repository: FakeOrderRepository = {
     readRows: [],
@@ -102,30 +69,6 @@ function makeOrderRepository(): FakeOrderRepository {
     },
     async delete() {
       return makeOrderRow()
-    },
-  }
-  return repository
-}
-
-function makeCustomerRepository(): FakeCustomerRepository {
-  const repository: FakeCustomerRepository = {
-    readRows: [],
-    readQueries: [],
-    async read(query) {
-      repository.readQueries.push(query)
-      return repository.readRows
-    },
-    async append() {
-      return makeCustomerRow()
-    },
-    async batchAppend(rows) {
-      return rows.map((row) => makeCustomerRow(row))
-    },
-    async update() {
-      return makeCustomerRow()
-    },
-    async delete() {
-      return makeCustomerRow()
     },
   }
   return repository
@@ -169,7 +112,6 @@ assert.deepEqual(orderFormDbContract.writes, {
 assert.equal('update' in workOrderApiContract.response, false)
 
 const orderRepository = makeOrderRepository()
-const customerRepository = makeCustomerRepository()
 const embeddedItems: OrderItemResponse[] = [
   {
     orderItemId: 'item-row-1',
@@ -196,15 +138,10 @@ const itemPort: OrderItemPort = {
 
 const service = new WorkOrderService({
   orderFormRepository: () => orderRepository,
-  customerRepository: () => customerRepository,
   orderItemPort: itemPort,
 })
 
 orderRepository.readRows = [makeOrderRow({ customer_id: 'CUS-1' })]
-customerRepository.readRows = [
-  makeCustomerRow({ CustomerID: ' CUS-1 ', CustomerName: 'First customer' }),
-  makeCustomerRow({ CustomerID: 'CUS-1', CustomerName: 'Duplicate customer' }),
-]
 const singleCustomerList = await service.list({
   keyword: 'INV-1',
   customerId: 'CUS-1',
@@ -213,7 +150,6 @@ const singleCustomerList = await service.list({
   sortBy: 'receivedDate',
   sortOrder: 'asc',
 })
-assert.equal(singleCustomerList.items[0]?.customerName, 'First customer')
 assert.deepEqual(singleCustomerList.pagination, { page: 2, perPage: 7 })
 assert.deepEqual(
   (orderRepository.readQueries[0] as { where?: unknown }).where,
@@ -230,62 +166,24 @@ assert.deepEqual(
     fields: ['id', 'order_number', 'customer_id', 'invoice_id'],
   },
 )
-assert.deepEqual(
-  (customerRepository.readQueries[0] as { where?: unknown }).where,
-  { CustomerID: 'CUS-1' },
-)
-
-orderRepository.readRows = [makeOrderRow({ customer_id: 'CUS-MISSING' })]
-customerRepository.readRows = [makeCustomerRow()]
-const missingCustomerList = await service.list({ page: 1, perPage: 5, sortBy: 'receivedDate', sortOrder: 'desc' })
-assert.equal(missingCustomerList.items[0]?.customerName, '')
-assert.equal(missingCustomerList.items.length, 1)
-assert.deepEqual(
-  (customerRepository.readQueries[1] as { where?: unknown }).where,
-  { CustomerID: 'CUS-MISSING' },
-)
-
-orderRepository.readRows = [
-  makeOrderRow({ id: 'order-1', customer_id: 'CUS-1' }),
-  makeOrderRow({ id: 'order-2', customer_id: 'CUS-2' }),
-]
-customerRepository.readRows = [
-  makeCustomerRow({ CustomerID: 'CUS-1', CustomerName: 'Customer one' }),
-  makeCustomerRow({ CustomerID: 'CUS-2', CustomerName: 'Customer two' }),
-]
-const multiCustomerList = await service.list({ page: 1, perPage: 5, sortBy: 'receivedDate', sortOrder: 'desc' })
-assert.deepEqual(multiCustomerList.items.map((item) => item.customerName), [
-  'Customer one',
-  'Customer two',
-])
-assert.deepEqual((customerRepository.readQueries[2] as { where?: unknown }).where, {})
-
 orderRepository.readRows = [
   makeBlankOrderRow(),
   makeOrderRow({ id: 'order-good', customer_id: 'CUS-1' }),
 ]
-customerRepository.readRows = [makeCustomerRow({ CustomerID: 'CUS-1', CustomerName: 'Customer one' })]
 const blankRowList = await service.list({ page: 3, perPage: 5, sortBy: 'receivedDate', sortOrder: 'desc' })
 assert.equal(blankRowList.items.length, 1)
 assert.equal(blankRowList.items[0]?.orderId, 'order-good')
-assert.equal(blankRowList.items[0]?.customerName, 'Customer one')
 assert.deepEqual(blankRowList.pagination, { page: 3, perPage: 5 })
 
-const customerReadsBeforeBlankCustomer = customerRepository.readQueries.length
 orderRepository.readRows = [makeOrderRow({ id: 'order-no-customer', customer_id: null as unknown as string })]
-customerRepository.readRows = []
 const blankCustomerList = await service.list({ page: 1, perPage: 5, sortBy: 'receivedDate', sortOrder: 'desc' })
 assert.equal(blankCustomerList.items.length, 1)
 assert.equal(blankCustomerList.items[0]?.orderId, 'order-no-customer')
 assert.equal(blankCustomerList.items[0]?.customerId, '')
-assert.equal(blankCustomerList.items[0]?.customerName, '')
-assert.equal(customerRepository.readQueries.length, customerReadsBeforeBlankCustomer)
 
 orderRepository.readRows = [makeOrderRow({ id: 'order-1', customer_id: 'CUS-1' })]
-customerRepository.readRows = [makeCustomerRow({ CustomerID: 'CUS-1', CustomerName: 'Customer one' })]
 const detail = await service.getById('order-1')
 assert.deepEqual(detail.items, embeddedItems)
-assert.equal(detail.customerName, 'Customer one')
 assert.equal(detail.createdAt, '2026-08-30 10:00:00')
 assert.equal('hangers' in detail, false)
 assert.equal('bags' in detail, false)

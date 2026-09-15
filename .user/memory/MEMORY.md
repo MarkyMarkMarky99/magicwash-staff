@@ -28,7 +28,8 @@ Live note for the next session. Branch: `main`.
   - Price-list store keeps written rows over reads until a read matches every field; watch for rows sticking if GViz formats differ.
   - On hold: durable e2e suite in `tests/e2e/` with page objects; test IDs live in tests, derived from docs.
   - Wire `onFresh` at remaining call sites; first correct the stale cache-plan claim that no caller uses it.
-  - Reduce page-load latency, in this order: `work-order.service.ts:195` (reads the whole Customers sheet per order-list load, now on customer detail too), `customers/services/order.service.ts:11` (no `perPage`, 104 KB measured), `invoice.service.ts:631` (date filter drops pagination), `App.vue:8` (prefetches appointments on every mount), then HTTP cache headers on `/api/*`. Measured 2026-09-08: GViz 0.49s · prod warm 0.82s · prod cold 1.65s. Fewer reads beats smaller ones.
+  - Reduce page-load latency, in this order: `customers/services/order.service.ts:11` (no `perPage`, 104 KB measured), `invoice.service.ts:631` (date filter drops pagination), `App.vue:8` (prefetches appointments on every mount), then HTTP cache headers on `/api/*`. Measured 2026-09-08: GViz 0.49s · prod warm 0.82s · prod cold 1.65s. Fewer reads beats smaller ones.
+  - `GVizQueryBuilder` supports only equality-AND; no `IN`/`OR`. Any feature needing a multi-id read must adapt in its own layer, not widen the shared builder.
   - Fix invoice `dateFrom`/`dateTo` filtering, which compares GViz `Date(...)` values against ISO strings.
   - Decide whether to delete the now-callerless `OrdersView`-backed `/api/orders` module or keep it for a future live `/api/orders/:id`. See `.user/memory/feat-live-order-helper.md`.
   - Normalize GViz `Date(...)` values reaching photo modules according to `docs/conventions/datetime.md`.

@@ -2,16 +2,24 @@
 import { onMounted, provide } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useAppointmentStore } from '@/data/appointments/appointment.store'
+import { useCustomerStore } from '@/data/customers/customer.store'
+import { usePriceListStore } from '@/data/price-list/price-list.store'
 import { appointmentPendingCountKey } from '@/shared/appointment-pending-count'
 import { APP_Z_INDEX_CLASS } from '@/shared/layouts/z-index'
 
 const appointmentStore = useAppointmentStore()
+const customerStore = useCustomerStore()
+const priceListStore = usePriceListStore()
 const { pendingCount } = storeToRefs(appointmentStore)
 
 provide(appointmentPendingCountKey, pendingCount)
 
 // Keep the schedule and pending badge ready from the same backend-backed store.
-onMounted(() => void appointmentStore.loadInitial())
+onMounted(() => {
+  void appointmentStore.loadInitial()
+  void customerStore.loadCustomers()
+  void priceListStore.load()
+})
 </script>
 
 <template>

@@ -12,7 +12,7 @@ import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
 import { presentationFor } from '../order-status-presentation'
 
 type WorkOrderListDto = z.infer<typeof workOrderListResponseSchema>
-export type OrderRowData = Omit<WorkOrderListDto, 'customerName'> & { customerName?: string | null }
+export type OrderRowData = WorkOrderListDto & { customerName?: string | null }
 
 const props = defineProps<{
   order: OrderRowData
