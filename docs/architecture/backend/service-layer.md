@@ -1,5 +1,5 @@
 ---
-last_audited: 2026-08-26
+last_audited: 2026-09-16
 audit_sources:
   - server/shared/services/base-crud.service.ts
   - server/shared/http/crud-routes.ts
@@ -37,7 +37,7 @@ Routes in `server/shared/http/crud-routes.ts` handle HTTP transport only.
 
 `GET` collection calls `service.list`, `POST` calls `service.create`, `GET` item calls `service.getById`, and `PATCH` calls `service.update`.
 
-Invoice routes are hand-rolled in `server/modules/invoices/invoice.module.ts` because `create` returns a six-outcome union and `list` has a date-range bypass.
+Invoice routes are hand-rolled in `server/modules/invoices/invoice.module.ts` because `create` returns a six-outcome union and the invoice list returns the shared paginated envelope with a real total.
 
 `BaseCrudService` in `server/shared/services/base-crud.service.ts` validates requests against the module's `ModuleApiContract`.
 
@@ -45,7 +45,7 @@ It applies `fieldMap` and `jsonColumns` to map database rows to API DTOs and pro
 
 Named services orchestrate writes that span more than one sheet.
 
-`InvoiceService` in `server/modules/invoices/invoice.service.ts` writes `Invoices`, `InvoiceItems`, and `OrderForm`, then triggers an `InvoicesView` resync.
+`InvoiceService` in `server/modules/invoices/invoice.service.ts` reads `Invoices`, `InvoiceItems`, and `Payments` in parallel and assembles invoice DTOs in memory. It writes `Invoices`, `InvoiceItems`, and `OrderForm`, then triggers an `InvoicesView` resync for external portal compatibility.
 
 Sheet repositories use database column names only and have no public API-shape knowledge.
 

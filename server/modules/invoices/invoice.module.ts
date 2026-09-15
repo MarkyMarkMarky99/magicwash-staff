@@ -1,7 +1,7 @@
 import type { CreateInvoiceResponse } from '../../../contracts/invoices/invoice-api.schema.js'
 import { ApiHandler } from '../../shared/http/api-handler.js'
 import type { GatewayModuleRoutes } from '../../shared/http/gateway.types.js'
-import { ok, okPaged, type ApiResult } from '../../shared/http/response.js'
+import { ok, paginatedBody, type ApiResult } from '../../shared/http/response.js'
 import { InvoiceService } from './invoice.service.js'
 
 /**
@@ -9,8 +9,7 @@ import { InvoiceService } from './invoice.service.js'
  *
  * Hand-rolled routes — not `createCrudRoutes()` — because POST writes
  * multiple sheets through a non-standard six-outcome union the generic
- * factory can't express, and GET needs the date-range bypass
- * `InvoiceService.list()` already encapsulates.
+ * factory can't express, and GET returns the shared paginated envelope with a real total.
  *
  * The POST response body IS the `CreateInvoiceResponse` discriminated union
  * from `contracts/invoices/invoice-api.schema.ts`, returned directly — not
@@ -54,7 +53,7 @@ export const invoiceRoutes: GatewayModuleRoutes = {
   collection: new ApiHandler({
     GET: async (req) => {
       const { items, pagination } = await invoiceService.list(req.query)
-      return okPaged(items, pagination)
+      return { status: 200, body: paginatedBody(items, pagination) }
     },
     POST: async (req): Promise<ApiResult<CreateInvoiceResponse>> => {
       const response = await invoiceService.create(req.body)

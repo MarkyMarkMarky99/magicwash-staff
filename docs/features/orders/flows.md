@@ -6,13 +6,10 @@
 
 1. Page — `OrderListPage` mounts and reads keyword, status filter, and page from the route query.
 2. Store — order list store requests a page of orders.
-3. Service — calls `apiGetList('/api/orders', { query, querySchema: orderListQuerySchema })`.
-4. Service — ⛔ BLOCKED — `orderListQuerySchema.customerId` is `z.string().trim().min(1)`. A global
-   list has no customer, so `querySchema.parse` throws before any request is sent. See Blocker 1.
-5. Service — ⛔ BLOCKED — even with a customer, `keyword` filters nothing: `ordersService` is built
-   with `searchFields: []`. See SHARED GAPS 1 in `overview.md`.
-6. Store → Page → Component — on a future working endpoint, rows render from the DTO unchanged, and
-   pagination comes from `ListResult.pagination`.
+3. Service — calls `GET /api/work-orders` through `src/data/work-orders/work-order.service.ts`.
+   The frontend never reads `/api/orders` or the `OrdersView` behind it.
+4. Store → Page → Component — rows render from the DTO unchanged, and pagination comes from
+   `ListResult.pagination`.
 
 ## Create order
 
@@ -25,9 +22,8 @@
    See Blocker 3.
 6. Page — ⛔ BLOCKED — the page cannot navigate to order detail on success; there is no detail
    endpoint and `/api/orders/:id` 404s. See Blocker 2.
-7. Store → Service → API — ⛔ BLOCKED — a newly created order **will not** appear in
-   `GET /api/orders` until the Apps Script `OrdersView` sync runs. The interval is unmeasured.
-   See Blocker 7.
+7. Store → Service → API — staff reads use `/api/work-orders`, so the Apps Script `OrdersView` sync
+   delay affects only external consumers of `GET /api/orders`.
 
 ## View order detail
 

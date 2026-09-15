@@ -1,5 +1,5 @@
 ---
-last_audited: 2026-09-08
+last_audited: 2026-09-16
 audit_sources:
   - server/shared/repositories/sheet.repository.ts
   - server/shared/repositories/sheet-repository.contract.ts
@@ -10,6 +10,8 @@ audit_sources:
   - server/shared/contracts/sheet-contract.ts
   - server/shared/contracts/sheet-cell-type.ts
   - server/sheets/Customers/Customers.db-contract.ts
+  - server/sheets/Payments/Payments.db-contract.ts
+  - server/modules/invoices/invoice.service.ts
   - docs/architecture/backend/operations.md
   - server/modules/invoices/invoice-view-sync-client.ts
 ---
@@ -48,6 +50,8 @@ Cell types for equality-filter literals come from the same row schema, via `deri
 
 A native Sheets date or datetime cell only matches a typed literal (`date '...'`/`datetime '...'`); a quoted string silently matches zero rows with no error.
 
+Invoice list and detail reads load the complete `Invoices`, `InvoiceItems`, and `Payments` tabs in parallel. `InvoiceService` assembles the read model and applies filters, sorting, and pagination in memory; `InvoicesView` is not an API read source.
+
 ## Writes
 
 `SheetRepository.append`, `batchAppend`, and `update` use `SheetsApiClient` in `server/shared/repositories/sheets-api.client.ts`.
@@ -58,7 +62,7 @@ Writes authenticate with a service-account JWT from `google-auth.ts` using `GOOG
 
 There is no Apps Script row-write path.
 
-The remaining Apps Script call is `invoice-view-sync-client.ts`, which posts `{ invoiceNumber }` to recompute `InvoicesView` after a write rather than writing a row.
+The remaining Apps Script call is `invoice-view-sync-client.ts`, which posts `{ invoiceNumber }` to recompute `InvoicesView` after invoice creation or status updates for external portal compatibility rather than writing a row.
 
 ## Schema Locations
 

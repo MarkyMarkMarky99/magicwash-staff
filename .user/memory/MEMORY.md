@@ -28,11 +28,10 @@ Live note for the next session. Branch: `main`.
   - Price-list store keeps written rows over reads until a read matches every field; watch for rows sticking if GViz formats differ.
   - On hold: durable e2e suite in `tests/e2e/` with page objects; test IDs live in tests, derived from docs.
   - Wire `onFresh` at remaining call sites; first correct the stale cache-plan claim that no caller uses it.
-  - Reduce page-load latency, in this order: `invoice.service.ts:631` (date filter drops pagination), `App.vue:8` (prefetches appointments on every mount), then HTTP cache headers on `/api/*`. Measured 2026-09-08: GViz 0.49s · prod warm 0.82s · prod cold 1.65s. Fewer reads beats smaller ones.
+  - Reduce page-load latency, in this order: `App.vue:8` (prefetches appointments on every mount), then HTTP cache headers on `/api/*`. Measured 2026-09-08: GViz 0.49s · prod warm 0.82s · prod cold 1.65s. Fewer reads beats smaller ones.
   - Customers are fetched in full on purpose (real customers are under a thousand); `listCustomers` caps at 2000 and sets `truncated`. Do not add a customers pager.
   - `GVizQueryBuilder` supports only equality-AND; no `IN`/`OR`. Any feature needing a multi-id read must adapt in its own layer, not widen the shared builder.
-  - Fix invoice `dateFrom`/`dateTo` filtering, which compares GViz `Date(...)` values against ISO strings.
-  - Decide whether to delete the now-callerless `OrdersView`-backed `/api/orders` module or keep it for a future live `/api/orders/:id`. See `.user/memory/feat-live-order-helper.md`.
+  - `/api/orders`, `OrdersView`, `InvoicesView` and the invoice view sync stay in the backend for the external portal; the frontend must not use them.
   - Normalize GViz `Date(...)` values reaching photo modules according to `docs/conventions/datetime.md`.
   - Consolidate datetime helpers in a dedicated pass; `SheetRepository` is shared by every module.
   - App-wide GViz read normalization is deferred by the user; do not start or re-propose it. See `.user/memory/gviz-read-normalization.md`.
@@ -44,7 +43,10 @@ Live note for the next session. Branch: `main`.
   - Fix the price-list query missing an `active` filter and invoice items always writing `service_type` as `null`.
   - Decide between `CANCELLED` and `VOID` before changing the invoice contract.
   - Decide whether to renumber the four legacy uuid-shaped invoice numbers; they are referenced as `invoiceId` on customer-package rows.
-  - App-wide pagination is deferred: repair `okPaged` before adding invoice and customer-package pagers.
+  - Invoice reads now assemble from `Invoices`/`InvoiceItems`/`Payments` in memory; revisit at ~2-3k invoices.
+  - Confirm payment-status rules: only `VERIFIED` payments count, and `OVERDUE` outranks `PARTIALLY_PAID`.
+  - Confirm whether the LIFF portal still reads `InvoicesView`; if not, the Apps Script sync can go.
+  - Customer-package pager is still deferred; `okPaged` carries no total, invoices use `paginatedBody`.
   - Clean sheet data: the blank customer row, dirty Orders rows, LaundryPhotos ordering, and page-walks using non-unique sort keys.
 
 - **Auth, UX, and documentation**
@@ -63,6 +65,8 @@ Live note for the next session. Branch: `main`.
 
 - **Verification and cleanup**
   - Browser-test on production, all merged untested at the user's direction: row cards (scroll-and-release must not navigate, tap must open, swipe must still work) and invoice creation from both the manual form and a package purchase.
+  - Browser-test on production: invoice list pager, status filter, and detail totals from source tabs.
+  - Invoice `INV20260915-e4550479-…` was saved but its customer package was never created; create the package without a new invoice.
   - Five allowlisted cross-feature imports remain, all UI that knows domain fields, with no legal home under the current rule. Accepted for now; reopen only when a third feature needs one of them.
   - Placement rule settled 2026-09-16: UI folders (`src/shared/components`, `layouts`) stay generic and must not know domain fields; non-UI folders under `src/shared/` may hold cross-feature business rules. Rejected and not to be re-proposed: `src/shared/components/<domain>/`, a new `src/ui/<domain>/` layer, and moving the per-feature status-presentation modules to `src/shared/utils/`.
   - Appointment date strip opens at day 1 instead of centering today; a `scrollTo` attempt hid the strip, so diagnose in a real browser first.

@@ -25,7 +25,6 @@ function invalidateInvoiceCaches(outcome: CreateInvoiceResponse): void {
     || outcome.kind === 'invoice_view_sync_failed'
   ) {
     invalidate('/api/work-orders')
-    invalidate('/api/orders')
   }
 }
 
@@ -37,7 +36,7 @@ export async function getInvoices(filter: InvoiceFilter): Promise<InvoiceListRes
 
   return {
     invoices: items,
-    total: items.length,
+    total: pagination.total,
     page: pagination.page,
     perPage: pagination.perPage,
   }

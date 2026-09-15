@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
@@ -17,12 +17,15 @@ const invoiceStore = useInvoiceStore()
 const {
   invoices,
   total,
+  page,
+  perPage,
   loading,
   error,
 } = storeToRefs(invoiceStore)
 
 const { filter, updateFilter } = useInvoiceFilterRoute()
 const dateFilterOpen = ref(false)
+const totalPages = computed(() => Math.ceil(total.value / perPage.value))
 
 const INVOICE_STATUSES: InvoiceStatusDto[] = [
   'DRAFT',
@@ -114,5 +117,31 @@ function openInvoice(invoiceNumber: string) {
         @select="openInvoice"
       />
     </ListContainer>
+
+    <nav
+      v-if="totalPages > 1 && !error"
+      class="flex items-center justify-between border-t border-outline-variant/20 bg-surface-container-low px-4 py-3"
+      aria-label="Invoice pages"
+    >
+      <button
+        type="button"
+        class="inline-flex h-9 items-center gap-1 rounded-full px-3 font-label text-xs font-bold text-primary transition-colors hover:bg-primary/10 disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        :disabled="loading || page <= 1"
+        @click="updateFilter({ page: page - 1 })"
+      >
+        <span class="material-symbols-outlined text-[18px]" aria-hidden="true">chevron_left</span>
+        Previous
+      </button>
+      <span class="font-label text-xs font-bold text-on-surface-variant">Page {{ page }} of {{ totalPages }}</span>
+      <button
+        type="button"
+        class="inline-flex h-9 items-center gap-1 rounded-full px-3 font-label text-xs font-bold text-primary transition-colors hover:bg-primary/10 disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        :disabled="loading || page >= totalPages"
+        @click="updateFilter({ page: page + 1 })"
+      >
+        Next
+        <span class="material-symbols-outlined text-[18px]" aria-hidden="true">chevron_right</span>
+      </button>
+    </nav>
   </ListPageLayout>
 </template>

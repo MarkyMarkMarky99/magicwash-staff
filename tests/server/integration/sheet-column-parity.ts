@@ -12,6 +12,7 @@ import { afterPhotoDbContract } from '../../../server/sheets/AfterPhoto/AfterPho
 import { customersDbContract } from '../../../server/sheets/Customers/Customers.db-contract.js'
 import { invoiceItemsDbContract } from '../../../server/sheets/InvoiceItems/InvoiceItems.db-contract.js'
 import { invoicesDbContract } from '../../../server/sheets/Invoices/Invoices.db-contract.js'
+import { paymentsDbContract } from '../../../server/sheets/Payments/Payments.db-contract.js'
 import { ordersViewDbContract } from '../../../server/sheets/OrdersView/OrdersView.db-contract.js'
 import { invoicesViewDbContract } from '../../../server/sheets/InvoicesView/InvoicesView.db-contract.js'
 import { customerPackageViewDbContract } from '../../../server/sheets/CustomerPackageView/CustomerPackageView.db-contract.js'
@@ -100,6 +101,12 @@ const readableSheets: readonly ReadableSheet[] = [
     sheetName: invoiceItemsDbContract.sheetName,
     spreadsheetIdEnv: invoiceItemsDbContract.spreadsheetId!,
     rowSchema: invoiceItemsDbContract.row,
+  },
+  {
+    name: 'Payments',
+    sheetName: paymentsDbContract.sheetName,
+    spreadsheetIdEnv: paymentsDbContract.spreadsheetId!,
+    rowSchema: paymentsDbContract.row,
   },
   {
     name: 'Customers',

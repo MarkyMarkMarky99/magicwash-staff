@@ -5,8 +5,9 @@ import {
 } from '../../../contracts/invoices/invoice-api.schema'
 import {
   canRetryInvoiceOutcome,
+  isInvoicePersisted,
   synthesizeNetworkFailureOutcome,
-} from '../../../src/features/invoices/utils/invoice-outcome.utils'
+} from '../../../src/data/invoices/invoice-outcome.utils'
 
 /**
  * Frontend compatibility workflow.
@@ -136,6 +137,21 @@ test('order_link_failed is never retryable, regardless of certainty — the invo
 test('invoice_view_sync_failed is never retryable, regardless of certainty — only the read view is stale', () => {
   assert.equal(canRetryInvoiceOutcome(viewSyncFailed('rejected')), false)
   assert.equal(canRetryInvoiceOutcome(viewSyncFailed('unknown')), false)
+})
+
+test('only created and invoice_view_sync_failed mean the invoice source rows persisted', () => {
+  const outcomes: Array<[CreateInvoiceResponse | null, boolean]> = [
+    [created(), true],
+    [viewSyncFailed('rejected'), true],
+    [validationError(), false],
+    [itemsWriteFailed('rejected'), false],
+    [invoiceWriteFailed('unknown'), false],
+    [orderLinkFailed('rejected'), false],
+    [null, false],
+  ]
+  for (const [outcome, expected] of outcomes) {
+    assert.equal(isInvoicePersisted(outcome), expected)
+  }
 })
 
 test('synthesizeNetworkFailureOutcome (the catch-block path for a bodyless/lost response) is always certainty "unknown" and never retryable', () => {

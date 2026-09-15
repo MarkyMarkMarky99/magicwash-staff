@@ -173,4 +173,5 @@ Verified inventory on 2026-08-30 —
    which the architecture rules forbid. Open decision: move it to `src/shared/` in a dedicated
    refactor, or duplicate it locally. Not decided here.
 7. `OrdersView` is Apps Script-materialised. A newly created order **will not** appear in
-   `GET /api/orders` until that sync runs. The interval is unmeasured.
+   `GET /api/orders` until that sync runs. Only external consumers read that endpoint; staff reads use
+   `/api/work-orders`.

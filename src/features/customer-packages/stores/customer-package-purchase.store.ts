@@ -10,7 +10,7 @@ import type { CustomerDetailDto } from '@/data/customers/customer.service'
 import type { PackageDto } from '@/data/packages/package.service'
 import { createInvoice } from '@/data/invoices/invoice.service'
 import { generateInvoiceNumber } from '@/data/invoices/invoice-number.utils'
-import { canRetryInvoiceOutcome, synthesizeNetworkFailureOutcome } from '@/data/invoices/invoice-outcome.utils'
+import { canRetryInvoiceOutcome, isInvoicePersisted, synthesizeNetworkFailureOutcome } from '@/data/invoices/invoice-outcome.utils'
 import { addSheetDateDays, todaySheetDate } from '@/shared/utils/sheet-date'
 import { createCustomerPackage } from '@/data/customer-packages/customer-package.service'
 
@@ -27,7 +27,7 @@ interface PurchaseAttempt {
 
 export function canResumePackagePurchase(attempt: PurchaseAttempt): boolean {
   if (attempt.submitting) return false
-  if (attempt.invoiceResult?.kind !== 'created') return canRetryInvoiceOutcome(attempt.invoiceResult)
+  if (!isInvoicePersisted(attempt.invoiceResult)) return canRetryInvoiceOutcome(attempt.invoiceResult)
   const result = attempt.packageResult
   return !result || result.kind === 'validation_error' || result.kind === 'catalog_read_failed'
     || (result.kind === 'opening_transaction_write_failed' && result.certainty === 'rejected')
@@ -81,13 +81,13 @@ export const useCustomerPackagePurchaseStore = defineStore('customer-package-pur
   async function run(attempt: PurchaseAttempt) {
     attempt.submitting = true
     try {
-      if (attempt.invoiceResult?.kind !== 'created') {
+      if (!isInvoicePersisted(attempt.invoiceResult)) {
         try {
           attempt.invoiceResult = await createInvoice(attempt.invoiceRequest)
         } catch {
           attempt.invoiceResult = synthesizeNetworkFailureOutcome()
         }
-        if (attempt.invoiceResult.kind !== 'created') return
+        if (!isInvoicePersisted(attempt.invoiceResult)) return
         attempt.packageRequest.invoiceId = attempt.invoiceResult.invoiceNumber
       }
       attempt.packageResult = await createCustomerPackage(attempt.packageRequest)
@@ -100,7 +100,7 @@ export const useCustomerPackagePurchaseStore = defineStore('customer-package-pur
     const attempt = attempts.value[customerId]
     if (!attempt || attempt.submitting) return
     if (attempt.packageResult?.kind === 'created'
-      || (attempt.invoiceResult?.kind !== 'created' && canRetryInvoiceOutcome(attempt.invoiceResult))) {
+      || (!isInvoicePersisted(attempt.invoiceResult) && canRetryInvoiceOutcome(attempt.invoiceResult))) {
       delete attempts.value[customerId]
     }
   }
