@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { appointmentCreateRoute } from '@/shared/navigation/form-routes'
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
+import BaseRowCard from '@/shared/components/BaseRowCard.vue'
 import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import type { CustomerListDto } from '@/data/customers/customer.service'
@@ -47,7 +48,13 @@ function openOrderHistory() {
 </script>
 
 <template>
-  <BaseSwipeCard ref="baseRef" @tap="openOrderHistory" @swipe-right="onSwipeRight">
+  <BaseSwipeCard
+    ref="baseRef"
+    :swipeable="true"
+    :pressable="true"
+    @tap="openOrderHistory"
+    @swipe-right="onSwipeRight"
+  >
     <template #left-panel>
       <div class="absolute inset-0 bg-primary flex items-center justify-end text-on-primary">
         <div class="flex items-center justify-evenly" style="width: var(--snap-left)">
@@ -78,14 +85,15 @@ function openOrderHistory() {
       </div>
     </template>
 
-    <div class="px-4 py-3 flex gap-3">
-      <CardLeadingIcon icon="person" label="Customer" />
-
-      <div class="flex-grow min-w-0 flex flex-col justify-center">
-        <div class="flex items-center gap-1.5 mb-0.5 min-w-0">
-          <h3 class="font-headline font-bold text-primary text-[14px] leading-tight truncate">
+    <BaseRowCard :line1="customer.customerName || '—'">
+      <template #lead>
+        <CardLeadingIcon icon="person" label="Customer" />
+      </template>
+      <template #line1>
+        <span class="flex min-w-0 items-center gap-1.5">
+          <span class="truncate">
             {{ customer.customerName || '—' }}{{ customer.customerIndex ? ` (${customer.customerIndex})` : '' }}
-          </h3>
+          </span>
           <BaseBadge
             v-if="customer.customerType"
             :label="customer.customerType"
@@ -93,18 +101,20 @@ function openOrderHistory() {
             :uppercase="true"
             :tone="TYPE_TONES[customer.customerType] || 'neutral'"
           />
-        </div>
-
-        <div v-if="customer.phone" class="flex items-center gap-1 min-w-0">
-          <span class="material-symbols-outlined text-[14px] text-on-surface-variant shrink-0">phone</span>
-          <p class="font-body text-xs text-on-surface-variant truncate">{{ customer.phone }}</p>
-        </div>
-
-        <div v-if="customer.address" class="flex items-center gap-1 min-w-0">
-          <span class="material-symbols-outlined text-[14px] text-on-surface-variant shrink-0">location_on</span>
-          <p class="font-body text-xs text-on-surface-variant truncate">{{ customer.address }}</p>
-        </div>
-      </div>
-    </div>
+        </span>
+      </template>
+      <template v-if="customer.phone" #line2>
+        <span class="flex min-w-0 items-center gap-1">
+          <span class="material-symbols-outlined shrink-0 text-[14px] text-on-surface-variant">phone</span>
+          <span class="truncate">{{ customer.phone }}</span>
+        </span>
+      </template>
+      <template v-if="customer.address" #line3>
+        <span class="flex min-w-0 items-center gap-1">
+          <span class="material-symbols-outlined shrink-0 text-[14px] text-on-surface-variant">location_on</span>
+          <span class="truncate">{{ customer.address }}</span>
+        </span>
+      </template>
+    </BaseRowCard>
   </BaseSwipeCard>
 </template>

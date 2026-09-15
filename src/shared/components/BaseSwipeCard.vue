@@ -3,6 +3,8 @@ import { ref, watch, onUnmounted } from 'vue'
 
 const props = defineProps({
   disabled:  { type: Boolean, default: false },
+  swipeable: { type: Boolean, default: true  },
+  pressable: { type: Boolean, default: false },
   threshold: { type: Number,  default: 80    },
 })
 
@@ -55,10 +57,12 @@ function resolve(dx) {
 
   if (snapped.value !== 'none') { snapCard('none'); return }
 
-  const direction = dx > props.threshold ? 'right' : dx < -props.threshold ? 'left' : 'none'
+  if (props.swipeable) {
+    const direction = dx > props.threshold ? 'right' : dx < -props.threshold ? 'left' : 'none'
 
-  if (direction === 'right') { snapCard('right'); emit('swipe-right'); return }
-  if (direction === 'left')  { snapCard('left');  emit('swipe-left');  return }
+    if (direction === 'right') { snapCard('right'); emit('swipe-right'); return }
+    if (direction === 'left')  { snapCard('left');  emit('swipe-left');  return }
+  }
   snapCard('none')
   if (startSnapped === 'none' && Math.max(maxMovement, Math.abs(dx)) <= TAP_THRESHOLD) emit('tap')
 }
@@ -66,7 +70,7 @@ function resolve(dx) {
 function onTouchStart(e) {
   if (props.disabled) return
   startX         = e.touches[0].clientX
-  startTranslate = getTranslate()
+  if (props.swipeable) startTranslate = getTranslate()
   startSnapped   = snapped.value
   maxMovement    = 0
 }
@@ -74,7 +78,7 @@ function onTouchMove(e) {
   if (props.disabled) return
   const dx = e.touches[0].clientX - startX
   maxMovement = Math.max(maxMovement, Math.abs(dx))
-  setTranslate(startTranslate + dx)
+  if (props.swipeable) setTranslate(startTranslate + dx)
 }
 function onTouchEnd(e) {
   // A touch that ends on this card has already been interpreted as a tap or a
@@ -97,13 +101,13 @@ let onMouseUp   = null
 function onMouseDown(e) {
   if (props.disabled) return
   startX         = e.clientX
-  startTranslate = getTranslate()
+  if (props.swipeable) startTranslate = getTranslate()
   startSnapped   = snapped.value
   maxMovement    = 0
   onMouseMove = (ev) => {
     const dx = ev.clientX - startX
     maxMovement = Math.max(maxMovement, Math.abs(dx))
-    setTranslate(startTranslate + dx)
+    if (props.swipeable) setTranslate(startTranslate + dx)
   }
   onMouseUp   = (ev) => {
     document.removeEventListener('mousemove', onMouseMove)
@@ -114,11 +118,28 @@ function onMouseDown(e) {
   document.addEventListener('mouseup',   onMouseUp)
 }
 
+function onKeydown(e) {
+  if (!props.pressable || props.disabled) return
+  if (e.target !== e.currentTarget) return
+  if (e.key !== 'Enter' && e.key !== ' ') return
+  if (e.key === ' ') e.preventDefault()
+  emit('tap')
+}
+
 defineExpose({ snapCard })
 </script>
 
 <template>
-  <div ref="wrapRef" class="relative bg-surface-container-lowest">
+  <div
+    ref="wrapRef"
+    :class="[
+      'relative bg-surface-container-lowest',
+      pressable ? 'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-primary' : '',
+    ].join(' ')"
+    :role="pressable ? 'button' : undefined"
+    :tabindex="pressable ? 0 : undefined"
+    @keydown="onKeydown"
+  >
     <div class="relative overflow-hidden">
 
       <div class="absolute inset-0 flex items-center px-5">
@@ -135,7 +156,7 @@ defineExpose({ snapCard })
           'swipe-card relative z-10 bg-surface-container-lowest transition-colors',
           disabled
             ? 'cursor-wait bg-surface-container'
-            : 'hover:bg-surface-container-low cursor-grab active:cursor-grabbing',
+            : `${swipeable || pressable ? 'hover:bg-surface-container-low' : ''} ${swipeable ? 'cursor-grab active:cursor-grabbing' : pressable ? 'cursor-pointer' : ''}`,
           snapped === 'right' ? 'swiped-right' : snapped === 'left' ? 'swiped-left' : '',
         ].join(' ')"
         @touchstart="onTouchStart"
