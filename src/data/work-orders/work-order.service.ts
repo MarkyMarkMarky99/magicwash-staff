@@ -17,8 +17,11 @@ export type WorkOrderCreatePayload = z.infer<typeof workOrderCreateSchema>
 export type WorkOrderCreateDto = z.infer<typeof workOrderCreateResponseSchema>
 export type WorkOrderListQuery = z.infer<typeof workOrderListQuerySchema>
 
-export function listWorkOrders(query: Partial<WorkOrderListQuery> = {}): Promise<ListResult<WorkOrderListDto>> {
-  return apiGetList<WorkOrderListDto>(WORK_ORDERS_ENDPOINT, { query, querySchema: workOrderListQuerySchema })
+export function listWorkOrders(
+  query: Partial<WorkOrderListQuery> = {},
+  onFresh?: (result: ListResult<WorkOrderListDto>) => void,
+): Promise<ListResult<WorkOrderListDto>> {
+  return apiGetList<WorkOrderListDto>(WORK_ORDERS_ENDPOINT, { query, querySchema: workOrderListQuerySchema, onFresh })
 }
 
 export function getWorkOrder(orderId: string): Promise<WorkOrderDetailDto> {

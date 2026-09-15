@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { serviceTypeLabel } from '@/shared/utils/service-type-labels'
-import { toRef, watch } from 'vue'
+import { ref, toRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import type { OrderListDto } from '@/data/orders/order.service'
+import { getWorkOrder, type WorkOrderDetailDto, type WorkOrderListDto } from '@/data/work-orders/work-order.service'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
 import { useDuplicateInvoiceWarning } from '@/shared/composables/use-duplicate-invoice-warning'
 import DetailOverlay from '@/shared/layouts/DetailOverlay.vue'
@@ -10,7 +10,7 @@ import ListContainer from '@/shared/components/ListContainer.vue'
 
 const props = defineProps<{
   open: boolean
-  order: OrderListDto | null
+  order: WorkOrderListDto | null
   canUsePackage: boolean
 }>()
 
@@ -31,15 +31,56 @@ const {
   reset,
 } = useDuplicateInvoiceWarning(toRef(props, 'order'))
 
+const items = ref<WorkOrderDetailDto['items']>([])
+const itemsError = ref(false)
+let itemsSequence = 0
+let requestedOrderId: string | null = null
+
+async function loadItems(orderId: string) {
+  const sequence = ++itemsSequence
+  itemsError.value = false
+  try {
+    const detail = await getWorkOrder(orderId)
+    if (sequence !== itemsSequence) return
+    items.value = detail.items
+  } catch {
+    if (sequence !== itemsSequence) return
+    items.value = []
+    itemsError.value = true
+  }
+}
+
+function clearItems() {
+  itemsSequence += 1
+  requestedOrderId = null
+  items.value = []
+  itemsError.value = false
+}
+
 watch(
-  () => props.open,
-  (open) => {
-    if (!open) reset()
+  () => [props.open, props.order?.orderId] as const,
+  ([open, orderId]) => {
+    if (!open) {
+      reset()
+      clearItems()
+      return
+    }
+    const id = orderId?.trim()
+    if (!id) {
+      clearItems()
+      return
+    }
+    if (id === requestedOrderId) return
+    clearItems()
+    requestedOrderId = id
+    void loadItems(id)
   },
+  { immediate: true },
 )
 
 function handleClose() {
   reset()
+  clearItems()
   emit('close')
 }
 
@@ -156,19 +197,19 @@ function viewPhotos() {
       <div class="px-4 py-4">
           <div v-if="order" class="space-y-4">
             <ListContainer
-              v-if="order.items.length > 0"
+              v-if="items.length > 0"
               :key="order.orderId"
               class="overflow-hidden rounded-2xl"
               title="Items"
               icon="checkroom"
-              :count="order.quantity ?? order.items.length"
+              :count="order.quantity ?? items.length"
               count-label="pcs"
               collapsible
             >
               <ul class="divide-y divide-outline-variant/10">
                 <li
-                  v-for="(item, index) in order.items"
-                  :key="item.id || `${order.orderId}-${index}`"
+                  v-for="(item, index) in items"
+                  :key="item.orderItemId || `${order.orderId}-${index}`"
                   class="flex items-center gap-3 px-4 py-3"
                 >
                   <div class="min-w-0 flex-1">
@@ -183,6 +224,8 @@ function viewPhotos() {
                 </li>
               </ul>
             </ListContainer>
+
+            <p v-if="itemsError" class="font-body text-sm text-error">Unable to load items.</p>
 
             <div v-if="order.note" class="flex items-start gap-2 rounded-xl bg-surface-container-low px-3 py-2.5">
               <span class="material-symbols-outlined mt-0.5 shrink-0 text-[16px] leading-none text-on-surface-variant" aria-hidden="true">edit_note</span>

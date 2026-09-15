@@ -48,7 +48,7 @@ export const useCustomerOrdersStore = defineStore('customer-orders', () => {
     }
   }
 
-  const stopInvalidationListener = onCacheInvalidated('/api/orders', () => {
+  const stopInvalidationListener = onCacheInvalidated('/api/work-orders', () => {
     if (activeCustomerId !== null) void load(activeCustomerId, true)
   })
   onScopeDispose(stopInvalidationListener)

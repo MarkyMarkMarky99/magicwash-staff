@@ -7,6 +7,7 @@ const source = readFileSync(
 )
 
 assert.match(source, /import ListContainer from '@\/shared\/components\/ListContainer\.vue'/)
+assert.match(source, /getWorkOrder\(/)
 assert.match(source, /<ListContainer[\s\S]*:key="order\.orderId"[\s\S]*title="Items"[\s\S]*collapsible/)
 assert.match(source, /<ul class="divide-y divide-outline-variant\/10">/)
 assert.doesNotMatch(source, /\bitemsOpen\b/, 'ListContainer must own collapse state')

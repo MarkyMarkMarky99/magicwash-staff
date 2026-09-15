@@ -82,7 +82,7 @@ await assertSameCustomerRowsStayVisible(
 setActivePinia(createPinia())
 const orders = useCustomerOrdersStore()
 await assertSameCustomerRowsStayVisible(
-  '/api/orders',
+  '/api/work-orders',
   orders,
   [{ orderId: 'order-1' }],
   () => orders.items,

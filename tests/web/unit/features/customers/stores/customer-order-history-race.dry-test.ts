@@ -26,7 +26,7 @@ function response(data: unknown): Response {
 function resolveCustomer(customerId: string): void {
   pending.find((request) => request.url.pathname === `/api/customers/${customerId}`)!
     .resolve(response({ customerId, customerName: customerId }))
-  pending.find((request) => request.url.pathname === '/api/orders'
+  pending.find((request) => request.url.pathname === '/api/work-orders'
     && request.url.searchParams.get('customerId') === customerId)!
     .resolve(response([{ orderId: `${customerId}-order`, customerId }]))
   pending.find((request) => request.url.pathname === '/api/appointments'
