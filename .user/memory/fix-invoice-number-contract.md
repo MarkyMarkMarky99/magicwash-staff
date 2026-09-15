@@ -31,12 +31,11 @@ arrives. Nothing validated the format.
 - db-contracts untouched by the user's instruction.
 - No canonical doc owns the invoice-number format; `docs/features/invoices/` does not exist.
 
-## Known tradeoff
+## Settled
 
-The package store used to mint a uuid, which could never collide. It now uses 8 random digits and
-relies on the server preflight at `server/modules/invoices/invoice.service.ts:351` and the header
-append, same as the manual path. A collision surfaces as a `validation_error`, and the store has no
-client-side duplicate warning of its own.
+Both paths now use 8 random digits inside a YYMM namespace. The user reviewed the collision odds and
+accepts them; the server preflight and the header append already reject a duplicate. Do not reopen
+this.
 
 ## Legacy rows to decide on
 
