@@ -1,10 +1,9 @@
 # Project memory
 
-Live note for the next session. Branch: `chore/invoice-route-helper`.
+Live note for the next session. Branch: `main`.
 
 ## Branches in flight
 
-- **`chore/invoice-route-helper`** — invoice detail-route builder moved to `src/shared/navigation/`, allowlist down to five; committed, not pushed. Details: `.user/memory/chore-invoice-route-helper.md`.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree. Details: `.user/memory/feat-live-order-helper.md`.
 
 ## Pending work
@@ -63,6 +62,7 @@ Live note for the next session. Branch: `chore/invoice-route-helper`.
 - **Verification and cleanup**
   - Browser-test on production, all merged untested at the user's direction: row cards (scroll-and-release must not navigate, tap must open, swipe must still work) and invoice creation from both the manual form and a package purchase.
   - Five allowlisted cross-feature imports remain, all UI that knows domain fields, with no legal home under the current rule. Accepted for now; reopen only when a third feature needs one of them.
+  - Placement rule settled 2026-09-16: UI folders (`src/shared/components`, `layouts`) stay generic and must not know domain fields; non-UI folders under `src/shared/` may hold cross-feature business rules. Rejected and not to be re-proposed: `src/shared/components/<domain>/`, a new `src/ui/<domain>/` layer, and moving the per-feature status-presentation modules to `src/shared/utils/`.
   - Appointment date strip opens at day 1 instead of centering today; a `scrollTo` attempt hid the strip, so diagnose in a real browser first.
   - `ListContainer` collapsible header is a non-focusable `div` without `aria-expanded`; schedule slots now start collapsed when empty.
   - Phone-test ISS-72adcdca: a cache-hit customer-row tap must open only customer detail, while the swipe action still fires.
