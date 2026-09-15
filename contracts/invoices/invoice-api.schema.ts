@@ -75,6 +75,14 @@ export type InvoiceCustomerSnapshotInput = z.infer<typeof invoiceCustomerSnapsho
 
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a YYYY-MM-DD date')
 
+// Canonical issued-number format: INV + 2-digit year + 2-digit month + 8 digits.
+// Applied to creation input only. Read and update responses stay unconstrained
+// because rows predating this rule carry other shapes.
+export const invoiceNumberSchema = z
+  .string()
+  .trim()
+  .regex(/^INV\d{12}$/, 'must be INV followed by 12 digits')
+
 export const invoiceLineInputSchema = z
   .object({
     description: z.string().trim().min(1),
@@ -93,7 +101,7 @@ export type InvoiceLineInput = z.infer<typeof invoiceLineInputSchema>
 
 const invoiceCreateFieldsSchema = z
   .object({
-    invoiceNumber: z.string().trim().min(1),
+    invoiceNumber: invoiceNumberSchema,
     issuedDate: isoDateSchema,
     dueDate: isoDateSchema,
     customer: invoiceCustomerSnapshotInputSchema,
