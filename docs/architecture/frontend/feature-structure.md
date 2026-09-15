@@ -62,10 +62,13 @@ their owning feature is migrated; do not use them as a template for new code.
 
 Feature code may depend on `src/shared/`.
 
-Avoid direct dependencies between unrelated features.
+A feature must not import from another feature. This holds for components, composables, stores,
+services, and utilities, and for both `@/features/...` and relative specifiers. Code a second feature
+needs moves to `src/shared/` first. `npm run check:cross-feature-imports` enforces this; its
+allowlist holds the imports that predate the rule and may only shrink.
 
-When one feature opens another feature's form, it does so only through a shared route-location
-builder. The host must not import the form feature's page, component, composable, or store. The
+Routing across features stays allowed: one feature may navigate to another feature's route. When it
+opens another feature's form, it does so only through a shared route-location builder. The host must not import the form feature's page, component, composable, or store. The
 route query carries context ids, and the owning form page loads the corresponding records through
 `src/data/`.
 
