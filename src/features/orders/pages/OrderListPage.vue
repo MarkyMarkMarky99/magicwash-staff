@@ -5,11 +5,11 @@ import { useRouter } from 'vue-router'
 import GenericTabs from '@/shared/components/GenericTabs.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
+import { getInvoiceTarget } from '@/shared/navigation/invoice-detail-route'
 import OrderCard from '@/features/orders/components/OrderCard.vue'
 import { useOrderListFilterRoute } from '@/features/orders/composables/use-order-list-filter-route'
 import { orderStatusLabels } from '@/features/orders/order-status-labels'
 import { useWorkOrderStore } from '@/data/work-orders/work-order.store'
-import { getInvoiceTarget, isInvoiceActionAvailable } from '@/features/orders/utils/order-invoice-target'
 
 const router = useRouter()
 const orderStore = useWorkOrderStore()
@@ -24,7 +24,6 @@ watch([keyword, status, page], () => void orderStore.loadList({ keyword: keyword
 function openOrder(orderId: string) { router.push({ name: 'order-detail', params: { orderId } }) }
 function viewPhotos(orderId: string) { router.push('/gallery/BEF-' + orderId) }
 function viewInvoice(invoiceNumber: string) {
-  if (!isInvoiceActionAvailable({ invoiceNumber })) return
   const target = getInvoiceTarget(invoiceNumber)
   if (target) router.push(target)
 }

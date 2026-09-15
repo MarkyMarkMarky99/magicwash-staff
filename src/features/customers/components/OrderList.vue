@@ -2,8 +2,8 @@
 import ListContainer from '@/shared/components/ListContainer.vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
+import { getInvoiceTarget } from '@/shared/navigation/invoice-detail-route'
 import { useCustomerOrderHistoryStore } from '../stores/customer-order-history.store'
-import { getInvoiceTarget, isInvoiceActionAvailable } from '@/features/orders/utils/order-invoice-target'
 import OrderCard from '@/features/orders/components/OrderCard.vue'
 import WaitingPickupCard from './WaitingPickupCard.vue'
 
@@ -31,7 +31,6 @@ function viewPhotos(orderId: string) {
 }
 
 function viewInvoice(invoiceNumber: string) {
-  if (!isInvoiceActionAvailable({ invoiceNumber })) return
   const target = getInvoiceTarget(invoiceNumber)
   if (target) router.push(target)
 }

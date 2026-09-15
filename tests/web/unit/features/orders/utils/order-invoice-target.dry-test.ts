@@ -2,10 +2,8 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import type { z } from 'zod'
 import type { orderListResponseSchema } from '../../../../../../contracts/orders/order-api.schema'
-import {
-  getInvoiceTarget,
-  isInvoiceActionAvailable,
-} from '../../../../../../src/features/orders/utils/order-invoice-target'
+import { isInvoiceActionAvailable } from '../../../../../../src/features/orders/utils/order-invoice-target'
+import { getInvoiceTarget } from '../../../../../../src/shared/navigation/invoice-detail-route'
 
 type OrderListDto = z.infer<typeof orderListResponseSchema>
 
@@ -105,7 +103,7 @@ test('the target contains the invoice number without inventing a target for empt
 
 test('the target module is pure and has no Vue or API dependency', () => {
   const targetSource = readFileSync(
-    new URL('../../../../../../src/features/orders/utils/order-invoice-target.ts', import.meta.url),
+    new URL('../../../../../../src/shared/navigation/invoice-detail-route.ts', import.meta.url),
     'utf8',
   )
 
