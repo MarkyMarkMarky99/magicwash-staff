@@ -6,7 +6,7 @@ import { InvoiceService } from '../../../../../server/modules/invoices/invoice.s
 // package's own start and expiry dates. There is no PACKAGE billing type:
 // billingType only says how many orders an invoice covers.
 const request = {
-  billingType: 'CYCLE', invoiceNumber: 'INV-PACKAGE-TEST',
+  billingType: 'CYCLE', invoiceNumber: 'INV260700000002',
   billingPeriodStart: '2026-09-05', billingPeriodEnd: '2026-10-05',
   issuedDate: '2026-09-05', dueDate: '2026-09-08',
   customer: { customerCode: 'CUS-1', customerName: 'Customer' },

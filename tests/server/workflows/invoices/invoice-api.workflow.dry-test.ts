@@ -201,7 +201,7 @@ function postRequest(body: unknown): ApiHandlerRequest {
 
 function validPayload(): Record<string, unknown> {
   return {
-    invoiceNumber: 'INV-0001',
+    invoiceNumber: 'INV260700000001',
     sourceOrderId: 'ORD-0001',
     issuedDate: '2026-07-29',
     dueDate: '2026-08-12',
@@ -254,7 +254,7 @@ test('POST returns 201 "created" with the server-computed totals on success', as
       assert.equal(result.status, 201)
       assert.deepEqual(result.body, {
         kind: 'created',
-        invoiceNumber: 'INV-0001',
+        invoiceNumber: 'INV260700000001',
         itemCount: 1,
         itemsTotal: 200,
         invoiceTotal: 200,
@@ -322,7 +322,7 @@ test('POST returns 500 invoice_write_failed with certainty "rejected" when items
       assert.equal(result.status, 500)
       assert.deepEqual(result.body, {
         kind: 'invoice_write_failed',
-        invoiceNumber: 'INV-0001',
+        invoiceNumber: 'INV260700000001',
         itemCount: 1,
         certainty: 'rejected',
       })
@@ -342,7 +342,7 @@ test('POST returns 500 invoice_write_failed with certainty "unknown" when the he
       // No message field on this outcome — full body is kind + invoiceNumber + itemCount + certainty.
       assert.deepEqual(result.body, {
         kind: 'invoice_write_failed',
-        invoiceNumber: 'INV-0001',
+        invoiceNumber: 'INV260700000001',
         itemCount: 1,
         certainty: 'unknown',
       })
@@ -361,7 +361,7 @@ test('POST returns 500 order_link_failed when items and header succeed but the O
       assert.equal(result.status, 500)
       assert.deepEqual(result.body, {
         kind: 'order_link_failed',
-        invoiceNumber: 'INV-0001',
+        invoiceNumber: 'INV260700000001',
         sourceOrderId: 'ORD-0001',
         certainty: 'rejected',
       })

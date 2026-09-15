@@ -1,10 +1,9 @@
 # Project memory
 
-Live note for the next session. Branch: `main`.
+Live note for the next session. Branch: `fix/invoice-number-contract`.
 
 ## Branches in flight
 
-- **`fix/invoice-number-contract`** — invoice-number format enforced on create and both client builders unified; not browser-tested, not merged. Details: `.user/memory/fix-invoice-number-contract.md`.
 - **`chore/cross-feature-import-check`** — `check:cross-feature-imports` with a 6-entry allowlist; where the borrowed domain components live is still undecided. Details: `.user/memory/chore-cross-feature-import-check.md`.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree. Details: `.user/memory/feat-live-order-helper.md`.
 
@@ -43,6 +42,7 @@ Live note for the next session. Branch: `main`.
   - Add a `BaseSwipeCard` action to add a price to an existing item.
   - Fix the price-list query missing an `active` filter and invoice items always writing `service_type` as `null`.
   - Decide between `CANCELLED` and `VOID` before changing the invoice contract.
+  - Decide whether to renumber the four legacy uuid-shaped invoice numbers; they are referenced as `invoiceId` on customer-package rows.
   - App-wide pagination is deferred: repair `okPaged` before adding invoice and customer-package pagers.
   - Clean sheet data: the blank customer row, dirty Orders rows, LaundryPhotos ordering, and page-walks using non-unique sort keys.
 

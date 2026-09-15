@@ -9,6 +9,7 @@ import {
 import type { CustomerDetailDto } from '@/data/customers/customer.service'
 import type { PackageDto } from '@/data/packages/package.service'
 import { createInvoice } from '@/data/invoices/invoice.service'
+import { generateInvoiceNumber } from '@/data/invoices/invoice-number.utils'
 import { canRetryInvoiceOutcome, synthesizeNetworkFailureOutcome } from '@/data/invoices/invoice-outcome.utils'
 import { addSheetDateDays, todaySheetDate } from '@/shared/utils/sheet-date'
 import { createCustomerPackage } from '@/data/customer-packages/customer-package.service'
@@ -55,7 +56,7 @@ export const useCustomerPackagePurchaseStore = defineStore('customer-package-pur
       billingType: 'CYCLE',
       billingPeriodStart,
       billingPeriodEnd,
-      invoiceNumber: `INV${issuedDate.replaceAll('-', '')}-${crypto.randomUUID()}`,
+      invoiceNumber: generateInvoiceNumber(),
       issuedDate,
       dueDate: addSheetDateDays(issuedDate, 3),
       customer: {

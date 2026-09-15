@@ -80,7 +80,7 @@ function createService(config: FakeConfig = {}): Fakes {
 
 function baseRequest(): CreateInvoiceRequest {
   return {
-    invoiceNumber: 'INV-0001',
+    invoiceNumber: 'INV260700000001',
     sourceOrderId: 'ORD-0001',
     issuedDate: '2026-07-29',
     dueDate: '2026-08-12',
@@ -125,7 +125,7 @@ test('invoice-number preflight does not use where, search, or exact-id filtering
 })
 
 test('a matching invoice number returns validation_error before any write', async () => {
-  const { service, calls } = createService({ invoiceReadRows: [{ invoice_number: 'INV-0001' }] })
+  const { service, calls } = createService({ invoiceReadRows: [{ invoice_number: 'INV260700000001' }] })
 
   const result = await service.create(baseRequest())
 

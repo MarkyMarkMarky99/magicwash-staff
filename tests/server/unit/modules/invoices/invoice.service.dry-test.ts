@@ -108,7 +108,7 @@ function createService(config: FakeConfig = {}): Fakes {
 
 function baseRequest(): CreateInvoiceRequest {
   return {
-    invoiceNumber: 'INV-0001',
+    invoiceNumber: 'INV260700000001',
     sourceOrderId: 'ORD-0001',
     issuedDate: '2026-07-29',
     dueDate: '2026-08-12',
@@ -175,7 +175,7 @@ test('create() returns "created" and calls stages in the exact required order, o
   assert.equal('created_at' in invoiceAppendCalls[0]!, false)
   assert.equal('updated_at' in orderFormUpdateCalls[0]!.data, false)
   if (result.kind === 'created') {
-    assert.equal(result.invoiceNumber, 'INV-0001')
+    assert.equal(result.invoiceNumber, 'INV260700000001')
     assert.equal(result.itemCount, 1)
     assert.equal(result.itemsTotal, 200)
     assert.equal(result.invoiceTotal, 200)
@@ -210,7 +210,7 @@ test('create() rejects invalid input as validation_error and calls no repository
 
 test('create() rejects a requested invoice number returned by the preflight read before any write', async () => {
   const { service, calls, invoiceReadCalls, invoiceAppendCalls, orderFormUpdateCalls } = createService({
-    invoiceReadRows: [{ invoice_number: 'INV-0001' }],
+    invoiceReadRows: [{ invoice_number: 'INV260700000001' }],
   })
 
   const result = await service.create(baseRequest())
@@ -235,7 +235,7 @@ test('create() treats an empty invoice-number preflight read as unused and prese
 
   assert.deepEqual(result, {
     kind: 'created',
-    invoiceNumber: 'INV-0001',
+    invoiceNumber: 'INV260700000001',
     itemCount: 1,
     itemsTotal: 200,
     invoiceTotal: 200,
@@ -253,7 +253,7 @@ test('create() proceeds normally when the invoice-number preflight read throws',
 
   assert.deepEqual(result, {
     kind: 'created',
-    invoiceNumber: 'INV-0001',
+    invoiceNumber: 'INV260700000001',
     itemCount: 1,
     itemsTotal: 200,
     invoiceTotal: 200,
@@ -317,7 +317,7 @@ test('create() reports invoice_write_failed with certainty "rejected" after item
 
   assert.deepEqual(result, {
     kind: 'invoice_write_failed',
-    invoiceNumber: 'INV-0001',
+    invoiceNumber: 'INV260700000001',
     itemCount: 1,
     certainty: 'rejected',
   })
@@ -333,7 +333,7 @@ test('create() reports invoice_write_failed with certainty "unknown" for an unco
 
   assert.deepEqual(result, {
     kind: 'invoice_write_failed',
-    invoiceNumber: 'INV-0001',
+    invoiceNumber: 'INV260700000001',
     itemCount: 1,
     certainty: 'unknown',
   })
@@ -346,7 +346,7 @@ test('create() reports order_link_failed — never invoice_write_failed — afte
   const rejectedResult = await rejected.service.create(baseRequest())
   assert.deepEqual(rejectedResult, {
     kind: 'order_link_failed',
-    invoiceNumber: 'INV-0001',
+    invoiceNumber: 'INV260700000001',
     sourceOrderId: 'ORD-0001',
     certainty: 'rejected',
   })
@@ -358,7 +358,7 @@ test('create() reports order_link_failed — never invoice_write_failed — afte
   const unknownResult = await unknown.service.create(baseRequest())
   assert.deepEqual(unknownResult, {
     kind: 'order_link_failed',
-    invoiceNumber: 'INV-0001',
+    invoiceNumber: 'INV260700000001',
     sourceOrderId: 'ORD-0001',
     certainty: 'unknown',
   })
@@ -373,7 +373,7 @@ test('create() reports invoice_view_sync_failed after every source write is comp
 
   assert.deepEqual(result, {
     kind: 'invoice_view_sync_failed',
-    invoiceNumber: 'INV-0001',
+    invoiceNumber: 'INV260700000001',
     message: 'View unavailable',
     certainty: 'rejected',
   })
@@ -389,7 +389,7 @@ test('create() reports invoice_view_sync_failed with certainty "unknown" when th
 
   assert.deepEqual(result, {
     kind: 'invoice_view_sync_failed',
-    invoiceNumber: 'INV-0001',
+    invoiceNumber: 'INV260700000001',
     message: 'timed out',
     certainty: 'unknown',
   })

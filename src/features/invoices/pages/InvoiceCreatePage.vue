@@ -22,6 +22,7 @@ import {
   type LineItemFormRow,
 } from '../types/invoice-create.types'
 import { createInvoice } from '@/data/invoices/invoice.service'
+import { generateInvoiceNumber } from '@/data/invoices/invoice-number.utils'
 import { canRetryInvoiceOutcome, synthesizeNetworkFailureOutcome } from '@/data/invoices/invoice-outcome.utils'
 import InvoiceLineItemsEditor from '../components/InvoiceLineItemsEditor.vue'
 import InvoiceAdjustmentsEditor from '../components/InvoiceAdjustmentsEditor.vue'
@@ -68,18 +69,7 @@ function addDays(iso: string, days: number): string {
   return addSheetDateDays(iso, days)
 }
 
-function generateSuggestedInvoiceNumber(): string {
-  const now = new Date()
-  const yy = String(now.getFullYear()).slice(-2)
-  const mm = String(now.getMonth() + 1).padStart(2, '0')
-  let digits = ''
-  for (let i = 0; i < 8; i++) {
-    digits += String(Math.floor(Math.random() * 10))
-  }
-  return `INV${yy}${mm}${digits}`
-}
-
-const invoiceNumber = ref(generateSuggestedInvoiceNumber())
+const invoiceNumber = ref(generateInvoiceNumber())
 const issuedDate = ref(todayIso())
 const dueDate = ref(addDays(issuedDate.value, 3))
 const items = ref<LineItemFormRow[]>([])
@@ -215,7 +205,7 @@ const result = ref<CreateInvoiceResponse | null>(null)
 
 function initializeForm(currentOrder: InvoiceCreateOrder) {
   order.value = currentOrder
-  invoiceNumber.value = generateSuggestedInvoiceNumber()
+  invoiceNumber.value = generateInvoiceNumber()
   issuedDate.value = todayIso()
   dueDate.value = addDays(issuedDate.value, 3)
   invoiceAdjustments.value = []

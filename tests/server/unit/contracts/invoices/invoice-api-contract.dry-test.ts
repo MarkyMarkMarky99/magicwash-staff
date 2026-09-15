@@ -87,6 +87,60 @@ test('createInvoiceResponseSchema remains the standalone six-kind union', () => 
   }
 })
 
+test('invoiceNumberSchema accepts only INV followed by 12 digits', () => {
+  for (const accepted of ['INV260948254931', 'INV000000000000']) {
+    assert.equal(invoiceApi.invoiceNumberSchema.safeParse(accepted).success, true, accepted)
+  }
+
+  for (const rejected of [
+    'INV20260915-0c0123d8-3129-4498-9aa3-ec39364e63f9',
+    'INV-0001',
+    'INV26094825493',
+    'INV2609482549311',
+    'inv260948254931',
+    '260948254931',
+    '',
+  ]) {
+    assert.equal(invoiceApi.invoiceNumberSchema.safeParse(rejected).success, false, rejected)
+  }
+})
+
+test('invoiceCreateSchema rejects a create payload carrying a non-canonical invoice number', () => {
+  const payload = {
+    issuedDate: '2026-09-15',
+    dueDate: '2026-09-18',
+    customer: { customerCode: 'c-1', customerName: 'Somchai' },
+    items: [{ description: 'Laundry', unit: 'kg', quantity: 1, unitPrice: 60, adjustments: [] }],
+    sourceOrderId: 'ORD-0001',
+  }
+
+  assert.equal(
+    invoiceApi.invoiceCreateSchema.safeParse({ ...payload, invoiceNumber: 'INV260948254931' }).success,
+    true,
+  )
+  assert.equal(
+    invoiceApi.invoiceCreateSchema.safeParse({
+      ...payload,
+      invoiceNumber: 'INV20260915-0c0123d8-3129-4498-9aa3-ec39364e63f9',
+    }).success,
+    false,
+  )
+})
+
+test('read and update responses still accept legacy invoice numbers', () => {
+  const legacy = 'INV20260915-0c0123d8-3129-4498-9aa3-ec39364e63f9'
+
+  assert.equal(
+    invoiceApi.invoiceUpdateResponseSchema.safeParse({
+      invoiceNumber: legacy,
+      status: 'VOID',
+      viewSynced: true,
+    }).success,
+    true,
+  )
+  assert.equal(invoiceApi.invoiceNumberCheckResultSchema.safeParse({ invoiceNumber: legacy, exists: true }).success, true)
+})
+
 test('the retired invoice-view contract file and every import of it are absent', () => {
   const repositoryRoot = join(process.cwd())
   const retiredPath = join(repositoryRoot, 'contracts', 'invoices', 'invoice-view-api.schema.ts')
