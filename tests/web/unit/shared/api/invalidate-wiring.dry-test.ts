@@ -3,10 +3,7 @@ import { readCache, writeCache } from '@/shared/api/response-cache'
 import { createOrderItem } from '@/data/order-items/order-item.service'
 
 // The cache dry test proves invalidate() clears what it is asked to. This proves the
-// other half: that a write service actually calls it, and calls it for every endpoint
-// its write affects. Order-item creation is the representative case — it is the only
-// write whose stale reads live in two different endpoints, and the cross-endpoint call
-// is exactly the kind of line that is easy to drop in a later refactor.
+// other half: that a write service actually calls it for every endpoint its write affects.
 
 globalThis.fetch = (async () =>
   new Response(JSON.stringify({ success: true, data: {} }), {
@@ -16,7 +13,6 @@ globalThis.fetch = (async () =>
 
 writeCache('/api/order-items', ['stale'])
 writeCache('/api/work-orders?page=1', ['stale'])
-writeCache('/api/orders?customerId=customer-1', ['stale'])
 writeCache('/api/order-images', ['untouched'])
 
 await createOrderItem({
@@ -34,11 +30,6 @@ assert.equal(
   readCache('/api/work-orders?page=1'),
   null,
   'and clears work-orders, whose detail embeds the items',
-)
-assert.equal(
-  readCache('/api/orders?customerId=customer-1'),
-  null,
-  'and clears the customer order-history view',
 )
 assert.ok(readCache('/api/order-images'), 'but leaves an unrelated endpoint cached')
 

@@ -1,5 +1,5 @@
 ---
-last_audited: 2026-08-26
+last_audited: 2026-09-16
 audit_sources:
   - contracts/customers/customer-api.schema.ts
   - contracts/shared/module-api-contract.ts
@@ -45,7 +45,7 @@ Field requirements inside `create` and `update` are feature-specific. Check the 
 - Define every feature as `<feature>ApiContract satisfies ModuleApiContract`.
 - If `request` exists, include both `create` and `update`; there is no `delete` slot.
 - Keep API fields application-facing; do not expose physical Sheet structure.
-- Do not use `invoices` as a template; its current create-only shape is known technical debt.
+- The invoice list returns the shared paginated envelope with a real total.
 
 ## Boundary
 

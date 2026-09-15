@@ -23,7 +23,7 @@ import {
 } from '../types/invoice-create.types'
 import { createInvoice } from '@/data/invoices/invoice.service'
 import { generateInvoiceNumber } from '@/data/invoices/invoice-number.utils'
-import { canRetryInvoiceOutcome, synthesizeNetworkFailureOutcome } from '@/data/invoices/invoice-outcome.utils'
+import { canRetryInvoiceOutcome, isInvoicePersisted, synthesizeNetworkFailureOutcome } from '@/data/invoices/invoice-outcome.utils'
 import InvoiceLineItemsEditor from '../components/InvoiceLineItemsEditor.vue'
 import InvoiceAdjustmentsEditor from '../components/InvoiceAdjustmentsEditor.vue'
 import InvoiceTotalsPreview from '../components/InvoiceTotalsPreview.vue'
@@ -393,15 +393,16 @@ async function copyLiffUrl(invoiceNumber: string) {
     <!-- Result state: submitted, show one of the six distinct outcomes. -->
     <div v-else-if="result" class="space-y-4 px-4 pt-5">
       <section
-        v-if="result.kind === 'created'"
+        v-if="isInvoicePersisted(result)"
         class="space-y-3 rounded-2xl border border-secondary/30 bg-secondary-container/15 p-5 text-center"
       >
         <span class="material-symbols-outlined text-[36px] text-secondary" aria-hidden="true">task_alt</span>
         <h1 class="font-headline text-base font-bold text-on-surface">Invoice created</h1>
-        <p class="font-body text-sm text-on-surface-variant">
+        <p v-if="result.kind === 'created'" class="font-body text-sm text-on-surface-variant">
           {{ result.invoiceNumber }} · {{ result.itemCount }} line{{ result.itemCount === 1 ? '' : 's' }}
         </p>
-        <p class="font-headline text-xl font-bold text-primary">
+        <p v-else class="font-body text-sm text-on-surface-variant">{{ result.invoiceNumber }}</p>
+        <p v-if="result.kind === 'created'" class="font-headline text-xl font-bold text-primary">
           ฿{{ result.invoiceTotal.toLocaleString('en-US', { minimumFractionDigits: 2 }) }}
         </p>
 
@@ -526,40 +527,6 @@ async function copyLiffUrl(invoiceNumber: string) {
         </p>
         <button type="button" class="w-full rounded-xl bg-primary px-4 py-2.5 font-label text-[12px] font-semibold text-on-primary" @click="backToOrderHistory">
           Back to order history
-        </button>
-      </section>
-
-      <section
-        v-else-if="result.kind === 'invoice_view_sync_failed'"
-        class="space-y-3 rounded-2xl border border-tertiary/40 bg-tertiary-container/15 p-5"
-      >
-        <div class="flex items-center gap-2">
-          <span class="material-symbols-outlined text-[24px] text-tertiary" aria-hidden="true">sync_problem</span>
-          <h1 class="font-headline text-base font-bold text-on-surface">Invoice created — view needs a refresh</h1>
-        </div>
-        <p class="font-body text-sm text-on-surface-variant">
-          <span class="font-semibold text-on-surface">{{ result.invoiceNumber }}</span> was saved successfully,
-          but the invoice view could not be synchronized.
-        </p>
-        <p class="font-body text-xs text-on-surface-variant">{{ result.message }}</p>
-        <p class="font-body text-xs font-semibold text-tertiary">
-          Do not resubmit — that would create a duplicate invoice.
-        </p>
-
-        <div class="flex items-center gap-2 rounded-xl bg-surface-container px-3 py-2 text-left">
-          <span class="min-w-0 flex-1 truncate font-body text-xs text-on-surface-variant">{{ liffUrl(result.invoiceNumber) }}</span>
-          <button
-            type="button"
-            class="flex shrink-0 items-center gap-1 rounded-lg bg-primary px-3 py-1.5 font-label text-[11px] font-semibold text-on-primary"
-            @click="copyLiffUrl(result.invoiceNumber)"
-          >
-            <span class="material-symbols-outlined text-[16px]" aria-hidden="true">{{ copied ? 'check' : 'content_copy' }}</span>
-            {{ copied ? 'Copied' : 'Copy link' }}
-          </button>
-        </div>
-
-        <button type="button" class="w-full rounded-xl bg-primary px-4 py-2.5 font-label text-[12px] font-semibold text-on-primary" @click="goToInvoiceList">
-          View invoices
         </button>
       </section>
 

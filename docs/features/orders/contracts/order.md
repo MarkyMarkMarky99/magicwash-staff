@@ -51,7 +51,9 @@ Notes
 
 ## Live callers
 
-- `src/data/orders/order.service.ts:8`
+None in the staff app. `src/data/orders/order.service.ts` delegates to `GET /api/work-orders`, and no
+frontend code reads or invalidates `/api/orders`. The endpoint and `OrdersView` stay in the backend for
+external portal consumers.
 
 Eight more files import types from `@contracts/orders/order-api.schema` without calling the
 endpoint. A change to this contract's shape reaches all of them — that is why the plan leaves it

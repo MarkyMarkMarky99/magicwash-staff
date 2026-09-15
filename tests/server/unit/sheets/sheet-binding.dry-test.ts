@@ -143,7 +143,7 @@ const bindings = [
   {
     name: 'Payments',
     contract: paymentsDbContract,
-    expectedSpreadsheetId: undefined,
+    expectedSpreadsheetId: 'INVOICES_SPREADSHEET_ID',
     expectedSheetName: 'Payments',
   },
   {

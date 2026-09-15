@@ -1,4 +1,15 @@
-import type { CreateInvoiceItemsFailed, CreateInvoiceResponse } from '@contracts/invoices/invoice-api.schema'
+import type {
+  CreateInvoiceItemsFailed,
+  CreateInvoiceResponse,
+  CreateInvoiceSuccess,
+  CreateInvoiceViewSyncFailed,
+} from '@contracts/invoices/invoice-api.schema'
+
+export function isInvoicePersisted(
+  outcome: CreateInvoiceResponse | null,
+): outcome is CreateInvoiceSuccess | CreateInvoiceViewSyncFailed {
+  return outcome?.kind === 'created' || outcome?.kind === 'invoice_view_sync_failed'
+}
 
 /**
  * `validation_error` is retry-safe because nothing was written.

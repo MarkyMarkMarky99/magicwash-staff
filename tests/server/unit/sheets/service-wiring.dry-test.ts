@@ -6,6 +6,9 @@ import { packageTransactionsRowSchema } from '../../../../server/sheets/PackageT
 import { packagesRowSchema } from '../../../../server/sheets/Packages/Packages.db-contract.js'
 import { customersRowSchema } from '../../../../server/sheets/Customers/Customers.db-contract.js'
 import { afterPhotoRowSchema } from '../../../../server/sheets/AfterPhoto/AfterPhoto.db-contract.js'
+import { invoicesRowSchema } from '../../../../server/sheets/Invoices/Invoices.db-contract.js'
+import { invoiceItemsRowSchema } from '../../../../server/sheets/InvoiceItems/InvoiceItems.db-contract.js'
+import { paymentsRowSchema } from '../../../../server/sheets/Payments/Payments.db-contract.js'
 
 // ── Drives the REAL production wiring: the services exported by
 //    order.module.ts / appointment.module.ts, built on the real repository
@@ -23,6 +26,7 @@ process.env.APPOINTMENTS_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 process.env.LAUNDRY_PACKAGES_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 process.env.CUSTOMERS_SPREADSHEET_ID = 'characterization-customers-id'
 process.env.AFTER_PHOTOS_SPREADSHEET_ID = 'characterization-after-photos-id'
+process.env.INVOICES_SPREADSHEET_ID = 'characterization-invoices-id'
 const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
 process.env.GOOGLE_SERVICE_ACCOUNT_KEY = Buffer.from(JSON.stringify({
   client_email: 'service-wiring@example.test',
@@ -427,7 +431,7 @@ test('Appointments service wiring flattens the Address snapshot', async () => {
   )
 })
 
-test('InvoicesView service wiring decodes object and array JSON cells', async () => {
+test('invoice service wiring assembles the three source sheets', async () => {
   const body = gvizBody(
     ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q'],
     [
@@ -486,13 +490,34 @@ test('InvoicesView service wiring decodes object and array JSON cells', async ()
   )
 
   await withMockFetch(
-    async () => response(body),
+    async (url) => {
+      switch (new URL(url).searchParams.get('sheet')) {
+        case 'Invoices':
+          return response(sheetGvizBody(invoicesRowSchema, [
+            'INV-2026-0001', 'ISSUED', 'ORDER', null, null, '2026-08-06', '2026-08-08', 'd2ec63e7',
+            JSON.stringify({ customer_code: 'd2ec63e7', customer_name: 'Punch Aonny', phone: '0812345678', address: '123 Main Road' }),
+            JSON.stringify([{ label: 'Promo', calculation: 'FIXED', value: -10, ref_source: null, ref_code: null }]),
+            'staff', null, null, null, null, null,
+          ]))
+        case 'InvoiceItems':
+          return response(sheetGvizBody(invoiceItemsRowSchema, [
+            'INV-2026-0001', 'item0001', 1, null, null, null, null, 'Shirt', 1, 'piece', 1000, 1000, '[]', 1000,
+          ]))
+        case 'Payments':
+          return response(sheetGvizBody(paymentsRowSchema, [
+            'payment-1', 'INV-2026-0001', null, 'CASH', 'PENDING', null, null, null, null, null,
+            '2026-08-06T10:00:00+07:00', 'staff', null, null, null, null,
+          ]))
+        default:
+          throw new Error(`Unexpected invoice sheet: ${new URL(url).searchParams.get('sheet')}`)
+      }
+    },
     async (calls) => {
       const service = await productionInvoiceService()
       const result = await service.list({ page: '1', perPage: '1' })
       const listRow = result.items[0]
 
-      assert.equal(calls.length, 1)
+      assert.equal(calls.length, 3)
       assert.deepEqual(listRow.customer, {
         customerCode: 'd2ec63e7',
         customerName: 'Punch Aonny',
@@ -508,8 +533,8 @@ test('InvoicesView service wiring decodes object and array JSON cells', async ()
           refCode: null,
         },
       ])
-      assert.equal(listRow.issuedDate, 'Date(2026,7,6)')
-      assert.equal(listRow.subtotal, 990)
+      assert.equal(listRow.issuedDate, '2026-08-06')
+      assert.equal(listRow.subtotal, 1000)
       assert.equal(listRow.grandTotal, 990)
       assert.equal(listRow.paidAmount, 0)
       assert.equal(listRow.balanceDue, 990)
@@ -520,16 +545,16 @@ test('InvoicesView service wiring decodes object and array JSON cells', async ()
           description: 'Shirt',
           unit: 'piece',
           quantity: 1,
-          unitPrice: 990,
-          subtotal: 990,
+          unitPrice: 1000,
+          subtotal: 1000,
           adjustments: [],
-          netTotal: 990,
+          netTotal: 1000,
         },
       ])
       assert.deepEqual(detail.payments, [
         {
           paymentId: 'payment-1',
-          amount: 0,
+          amount: null,
           method: 'CASH',
           status: 'PENDING',
           paidAt: null,
@@ -538,12 +563,12 @@ test('InvoicesView service wiring decodes object and array JSON cells', async ()
           notes: null,
         },
       ])
-      assert.equal(calls.length, 2)
+      assert.equal(calls.length, 6)
     },
   )
 })
 
-test('InvoicesView date-range wiring maps DB rows before safe JSON fallbacks', async () => {
+test('invoice source wiring applies safe JSON fallbacks', async () => {
   const values = [
     'INV-2026-0002',
     'UNPAID',
@@ -565,20 +590,33 @@ test('InvoicesView date-range wiring maps DB rows before safe JSON fallbacks', a
   ]
 
   await withMockFetch(
-    async () =>
-      response(
-        gvizBody(
-          ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q'],
-          values,
-        ),
-      ),
+    async (url) => {
+      switch (new URL(url).searchParams.get('sheet')) {
+        case 'Invoices':
+          return response(sheetGvizBody(invoicesRowSchema, [
+            'INV-2026-0002', 'ISSUED', 'ORDER', null, null, '2026-08-06', '2026-08-08', 'd2ec63e7',
+            '{bad json', 'not an array', 'staff', null, null, null, null, null,
+          ]))
+        case 'InvoiceItems':
+          return response(gvizBody([], []))
+        case 'Payments':
+          return response(gvizBody([], []))
+        default:
+          throw new Error(`Unexpected invoice sheet: ${new URL(url).searchParams.get('sheet')}`)
+      }
+    },
     async () => {
       const result = await (
         await productionInvoiceService()
       ).list({ dateFrom: '2026-08-01', dateTo: '2026-08-31', page: '1', perPage: '1' })
       const row = result.items[0]
 
-      assert.deepEqual(row.customer, null)
+      assert.deepEqual(row.customer, {
+        customerCode: null,
+        customerName: null,
+        phone: null,
+        address: null,
+      })
       assert.deepEqual(row.adjustments, [])
       assert.equal(row.issuedDate, '2026-08-06')
     },

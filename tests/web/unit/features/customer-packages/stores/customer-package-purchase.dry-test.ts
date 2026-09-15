@@ -57,13 +57,18 @@ try {
   const failedInvoice = await scenario({ kind: 'validation_error', issues: [{ path: 'customer', message: 'Invalid' }] }, [])
   assert.equal(failedInvoice.calls.length, 1, 'No package write before invoice success')
 
-  for (const outcome of [new Error('Network lost'), { kind: 'invoice_view_sync_failed', invoiceNumber: 'INV-SERVER', message: 'Sync failed', certainty: 'unknown' }]) {
-    const unknown = await scenario(outcome, [])
-    unknown.store.clear('CUS-1')
-    await unknown.store.resume('CUS-1')
-    await unknown.store.start(customer, catalog, draft)
-    assert.equal(unknown.calls.length, 1, 'Uncertain invoice survives close/reopen and blocks retry')
-  }
+  const unknown = await scenario(new Error('Network lost'), [])
+  unknown.store.clear('CUS-1')
+  await unknown.store.resume('CUS-1')
+  await unknown.store.start(customer, catalog, draft)
+  assert.equal(unknown.calls.length, 1, 'Uncertain invoice survives close/reopen and blocks retry')
+
+  const syncFailed = await scenario(
+    { kind: 'invoice_view_sync_failed', invoiceNumber: 'INV-SERVER', message: 'Sync failed', certainty: 'unknown' },
+    [packageCreated],
+  )
+  assert.deepEqual(syncFailed.calls.map((call) => call.url), ['/api/invoices', '/api/customer-packages'])
+  assert.equal(syncFailed.calls[1].body.invoiceId, 'INV-SERVER')
 
   const retry = await scenario(invoiceCreated, [
     { kind: 'catalog_read_failed', packageCode: 'PKG-1', message: 'Try later' }, packageCreated,

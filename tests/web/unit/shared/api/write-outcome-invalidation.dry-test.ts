@@ -74,7 +74,7 @@ try {
   await createInvoice({} as never)
   assert.equal(readCache('/api/invoices?page=1'), null)
   assert.equal(readCache('/api/work-orders?page=1'), null)
-  assert.equal(readCache('/api/orders?customerId=customer-1'), null)
+  assert.deepEqual(readCache<string[]>('/api/orders?customerId=customer-1')?.value, ['stale'])
 } finally {
   globalThis.fetch = originalFetch
   invalidate()

@@ -13,13 +13,15 @@ import {
   computeInvoiceLine,
   computeInvoiceTotal,
   roundMoney,
+  type CalculatorAdjustment,
 } from '../../../shared/utils/invoice-calculator.js'
+import { bangkokToday } from '../../../shared/utils/bangkok-datetime.js'
 import { getInvoicesRepository } from '../../sheets/Invoices/Invoices.repository.js'
 import { invoicesRowSchema } from '../../sheets/Invoices/Invoices.db-contract.js'
 import { getInvoiceItemsRepository } from '../../sheets/InvoiceItems/InvoiceItems.repository.js'
 import { invoiceItemsRowSchema } from '../../sheets/InvoiceItems/InvoiceItems.db-contract.js'
-import { getInvoicesViewRepository } from '../../sheets/InvoicesView/InvoicesView.repository.js'
-import { invoicesViewRowSchema } from '../../sheets/InvoicesView/InvoicesView.db-contract.js'
+import { getPaymentsRepository } from '../../sheets/Payments/Payments.repository.js'
+import { paymentsRowSchema } from '../../sheets/Payments/Payments.db-contract.js'
 import { getOrderFormRepository } from '../../sheets/OrderForm/OrderForm.repository.js'
 import { orderFormRowSchema } from '../../sheets/OrderForm/OrderForm.db-contract.js'
 import { syncInvoiceView as defaultSyncInvoiceView } from './invoice-view-sync-client.js'
@@ -31,21 +33,14 @@ import {
 } from '../../shared/repositories/sheets-api.client.js'
 import { DuplicateRowKeyError } from '../../shared/repositories/sheet-row-lookup.js'
 import { WriteRowIdentityMismatchError } from '../../shared/repositories/sheet-row-identity.js'
-import {
-  BaseCrudService,
-  mapDbRowToApi,
-  type JsonColumnMap,
-  type ServiceListResult,
-} from '../../shared/services/base-crud.service.js'
-import { Mapper, type ApiRowFromFieldMap } from '../../shared/repositories/base.repository.js'
 import { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import { ApiError } from '../../shared/http/api-error.js'
 import type { ApiQueryParams } from '../../shared/http/api-handler.js'
-import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
 
 type InvoicesDbRow = z.infer<typeof invoicesRowSchema>
 type InvoiceItemsDbRow = z.infer<typeof invoiceItemsRowSchema>
+type PaymentsDbRow = z.infer<typeof paymentsRowSchema>
 type OrderFormDbRow = z.infer<typeof orderFormRowSchema>
 
 export const invoicesFieldMap = {
@@ -183,93 +178,243 @@ export interface InvoiceHeaderPort {
 export interface InvoiceItemWriter {
   batchAppend(rows: Array<Partial<InvoiceItemsDbRow>>): Promise<unknown[]>
 }
+export interface InvoiceItemReader {
+  read(): Promise<Array<Partial<InvoiceItemsDbRow>>>
+}
+export interface PaymentReader {
+  read(): Promise<Array<Partial<PaymentsDbRow>>>
+}
 export interface OrderFormWriter {
   update(id: string, data: Partial<OrderFormDbRow>): Promise<unknown>
 }
 export type ViewSyncFn = (invoiceNumber: string) => Promise<InvoiceViewSyncResult>
-
-type InvoicesViewDbRow = z.infer<typeof invoicesViewRowSchema>
-
-/** DB column -> API/domain field. JSON columns retain their storage names
- * here; `invoicesViewJsonColumns` declares the decoded fields below. */
-export const invoicesViewFieldMap = {
-  invoiceNumber: 'invoiceNumber',
-  status: 'status',
-  billingType: 'billingType',
-  billingPeriodStart: 'billingPeriodStart',
-  billingPeriodEnd: 'billingPeriodEnd',
-  issuedDate: 'issuedDate',
-  dueDate: 'dueDate',
-  customerId: 'customerId',
-  customerJson: 'customerJson',
-  itemsJson: 'itemsJson',
-  adjustmentsJson: 'adjustmentsJson',
-  paymentsJson: 'paymentsJson',
-  subtotal: 'subtotal',
-  adjustmentTotal: 'adjustmentTotal',
-  grandTotal: 'grandTotal',
-  paidAmount: 'paidAmount',
-  balanceDue: 'balanceDue',
-} as const satisfies Record<keyof InvoicesViewDbRow & string, string>
-
-export const invoicesViewJsonColumns = {
-  customerJson: { field: 'customer', kind: 'object' },
-  itemsJson: { field: 'items', kind: 'array' },
-  adjustmentsJson: { field: 'adjustments', kind: 'array' },
-  paymentsJson: { field: 'payments', kind: 'array' },
-} as const satisfies JsonColumnMap
-
-const invoicesViewMapper = new Mapper(invoicesViewFieldMap)
-
-function mapInvoicesViewRowToApi(
-  row: Partial<Record<string, unknown>>,
-): Record<string, unknown> {
-  return mapDbRowToApi(row, invoicesViewMapper, invoicesViewJsonColumns)
-}
-
-type InvoiceViewApiRow = ApiRowFromFieldMap<InvoicesViewDbRow, typeof invoicesViewFieldMap>
-const invoiceReadContract = {
-  query: invoiceApiContract.query,
-  response: {
-    list: invoiceApiContract.response.list,
-    detail: invoiceApiContract.response.detail,
-  },
-}
-type InvoiceViewListQuery = z.infer<typeof invoiceReadContract.query.list>
-type InvoiceViewListResponse = z.infer<typeof invoiceReadContract.response.list>
-type InvoiceViewDetailResponse = z.infer<typeof invoiceReadContract.response.detail>
-
-/** Read-only injection seam. The production getter returns DB-shaped rows;
- * adapters may inject a reader whose rows are already API-shaped. The shared
- * mapper accepts either representation; the production path is DB-mapped. */
 export interface InvoiceViewReader {
   read(query?: unknown): Promise<Array<Partial<Record<string, unknown>>>>
 }
 
-type InvoicesViewRepository = SheetRepositoryContract<InvoicesViewDbRow>
+type InvoiceListQuery = z.infer<typeof invoiceApiContract.query.list>
+type InvoiceListResponse = z.infer<typeof invoiceApiContract.response.list>
+type InvoiceDetailResponse = z.infer<typeof invoiceApiContract.response.detail>
 
-function adaptInvoiceViewReader(reader: InvoiceViewReader): InvoicesViewRepository {
-  const unsupported = (): never => {
-    throw new Error('InvoicesView is read-only')
+export interface InvoiceListResult {
+  items: InvoiceListResponse[]
+  pagination: {
+    total: number
+    page: number
+    perPage: number
+    totalPages: number
   }
+}
 
+type JsonRecord = Record<string, unknown>
+
+function asNumber(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0
+}
+
+function asString(value: unknown): string {
+  return typeof value === 'string' ? value : ''
+}
+
+function asNullableString(value: unknown): string | null {
+  return typeof value === 'string' && value !== '' ? value : null
+}
+
+function parseJsonRecord(value: unknown): JsonRecord {
+  if (typeof value !== 'string' || value.trim() === '') return {}
+  try {
+    const parsed = JSON.parse(value) as unknown
+    return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as JsonRecord : {}
+  } catch {
+    return {}
+  }
+}
+
+function parseJsonArray(value: unknown): unknown[] {
+  if (typeof value !== 'string' || value.trim() === '') return []
+  try {
+    const parsed = JSON.parse(value) as unknown
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function mapAdjustment(value: unknown): InvoiceDetailResponse['adjustments'][number] {
+  const adjustment = value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as JsonRecord
+    : {}
   return {
-    read: async (query) =>
-      (await reader.read(query)) as Array<Partial<InvoicesViewDbRow>>,
-    append: async () => unsupported(),
-    batchAppend: async () => unsupported(),
-    update: async () => unsupported(),
-    delete: async () => unsupported(),
+    label: asNullableString(adjustment.label),
+    calculation: asNullableString(adjustment.calculation),
+    value: typeof adjustment.value === 'number' ? adjustment.value : null,
+    refSource: asNullableString(adjustment.ref_source ?? adjustment.refSource),
+    refCode: asNullableString(adjustment.ref_code ?? adjustment.refCode),
   }
+}
+
+function calculatorAdjustments(
+  adjustments: InvoiceDetailResponse['adjustments'],
+): CalculatorAdjustment[] {
+  return adjustments.flatMap((adjustment) =>
+    (adjustment.calculation === 'FIXED' || adjustment.calculation === 'PERCENT')
+      && typeof adjustment.value === 'number'
+      ? [{ calculation: adjustment.calculation, value: adjustment.value }]
+      : [],
+  )
+}
+
+function groupByInvoiceNumber<TRow extends { invoice_number?: unknown }>(
+  rows: readonly TRow[],
+): Map<string, TRow[]> {
+  const grouped = new Map<string, TRow[]>()
+  for (const row of rows) {
+    const invoiceNumber = asString(row.invoice_number)
+    const existing = grouped.get(invoiceNumber)
+    if (existing === undefined) grouped.set(invoiceNumber, [row])
+    else existing.push(row)
+  }
+  return grouped
+}
+
+function groupPayments(paymentRows: Array<Partial<PaymentsDbRow>>): {
+  paymentsByInvoice: Map<string, Array<Partial<PaymentsDbRow>>>
+  paidAmountsByInvoice: Map<string, number>
+} {
+  const paymentsByInvoice = new Map<string, Array<Partial<PaymentsDbRow>>>()
+  const paidAmountsByInvoice = new Map<string, number>()
+  for (const payment of paymentRows) {
+    if (payment.deleted_at != null && payment.deleted_at !== '') continue
+    const invoiceNumber = asString(payment.invoice_number)
+    const existing = paymentsByInvoice.get(invoiceNumber)
+    if (existing === undefined) paymentsByInvoice.set(invoiceNumber, [payment])
+    else existing.push(payment)
+    if (payment.status === 'VERIFIED') {
+      paidAmountsByInvoice.set(
+        invoiceNumber,
+        (paidAmountsByInvoice.get(invoiceNumber) ?? 0) + asNumber(payment.amount),
+      )
+    }
+  }
+  return { paymentsByInvoice, paidAmountsByInvoice }
+}
+
+function deriveInvoiceStatus(
+  sourceStatus: unknown,
+  grandTotal: number,
+  paidAmount: number,
+  dueDate: string,
+  today: string,
+): InvoiceDetailResponse['status'] {
+  if (sourceStatus === 'DRAFT' || sourceStatus === 'CANCELLED' || sourceStatus === 'VOID') return sourceStatus
+  if (paidAmount >= grandTotal) return 'PAID'
+  if (dueDate < today) return 'OVERDUE'
+  if (paidAmount > 0) return 'PARTIALLY_PAID'
+  return 'UNPAID'
+}
+
+function assembleInvoiceRows(
+  invoiceRows: Array<Partial<InvoicesDbRow>>,
+  itemRows: Array<Partial<InvoiceItemsDbRow>>,
+  paymentRows: Array<Partial<PaymentsDbRow>>,
+  today: string,
+): InvoiceDetailResponse[] {
+  const itemsByInvoice = groupByInvoiceNumber(itemRows)
+  const { paymentsByInvoice, paidAmountsByInvoice } = groupPayments(paymentRows)
+
+  return invoiceRows.map((invoice) => {
+    const invoiceNumber = asString(invoice.invoice_number)
+    const adjustments = parseJsonArray(invoice.adjustments).map(mapAdjustment)
+    const items = [...(itemsByInvoice.get(invoiceNumber) ?? [])]
+      .sort((left, right) => asNumber(left.item_no) - asNumber(right.item_no))
+      .map((item) => {
+        const itemAdjustments = parseJsonArray(item.adjustments).map(mapAdjustment)
+        const calculated = computeInvoiceLine({
+          quantity: asNumber(item.quantity),
+          unitPrice: asNumber(item.unit_price),
+          adjustments: calculatorAdjustments(itemAdjustments),
+        })
+        return {
+          description: asNullableString(item.description),
+          unit: asNullableString(item.unit),
+          quantity: typeof item.quantity === 'number' ? item.quantity : null,
+          unitPrice: typeof item.unit_price === 'number' ? item.unit_price : null,
+          subtotal: calculated.subtotal,
+          adjustments: itemAdjustments,
+          netTotal: calculated.netTotal,
+        }
+      })
+    const activePayments = [...(paymentsByInvoice.get(invoiceNumber) ?? [])]
+      .sort((left, right) => asString(left.created_at).localeCompare(asString(right.created_at)))
+    const payments = activePayments.map((payment) => ({
+      paymentId: asNullableString(payment.payment_id),
+      amount: typeof payment.amount === 'number' ? payment.amount : null,
+      method: payment.method ?? null,
+      status: payment.status as InvoiceDetailResponse['payments'][number]['status'],
+      paidAt: asNullableString(payment.paid_at),
+      reference: asNullableString(payment.reference),
+      proofUrl: asNullableString(payment.proof_url),
+      notes: asNullableString(payment.notes),
+    }))
+    const subtotal = roundMoney(items.reduce((sum, item) => sum + asNumber(item.netTotal), 0))
+    const grandTotal = computeInvoiceTotal(
+      items.map((item) => asNumber(item.netTotal)),
+      calculatorAdjustments(adjustments),
+    )
+    const paidAmount = roundMoney(paidAmountsByInvoice.get(invoiceNumber) ?? 0)
+    const customer = parseJsonRecord(invoice.customer)
+    const dueDate = asString(invoice.due_date)
+
+    return {
+      invoiceNumber,
+      status: deriveInvoiceStatus(invoice.status, grandTotal, paidAmount, dueDate, today),
+      billingType: invoice.billing_type as InvoiceDetailResponse['billingType'],
+      billingPeriodStart: asNullableString(invoice.billing_period_start),
+      billingPeriodEnd: asNullableString(invoice.billing_period_end),
+      issuedDate: asString(invoice.issued_date),
+      dueDate,
+      customerId: asString(invoice.customer_id),
+      customer: {
+        customerCode: asNullableString(customer.customer_code ?? customer.customerCode),
+        customerName: asNullableString(customer.customer_name ?? customer.customerName),
+        phone: asNullableString(customer.phone),
+        address: asNullableString(customer.address),
+      },
+      items,
+      adjustments,
+      payments,
+      subtotal,
+      adjustmentTotal: roundMoney(grandTotal - subtotal),
+      grandTotal,
+      paidAmount,
+      balanceDue: roundMoney(grandTotal - paidAmount),
+    }
+  })
+}
+
+function compareInvoiceRows(
+  left: InvoiceDetailResponse,
+  right: InvoiceDetailResponse,
+  query: InvoiceListQuery,
+): number {
+  const leftValue = left[query.sortBy]
+  const rightValue = right[query.sortBy]
+  const comparison = typeof leftValue === 'number' && typeof rightValue === 'number'
+    ? leftValue - rightValue
+    : String(leftValue).localeCompare(String(rightValue))
+  return query.sortOrder === 'asc' ? comparison : -comparison
 }
 
 export interface InvoiceServiceOptions {
   invoiceRepository?: () => InvoiceHeaderPort
   invoiceItemRepository?: () => InvoiceItemWriter
+  invoiceItemReader?: () => InvoiceItemReader
+  paymentRepository?: () => PaymentReader
   orderFormRepository?: () => OrderFormWriter
   invoiceViewRepository?: InvoiceViewReader
   syncInvoiceView?: ViewSyncFn
   generateItemId?: () => string
+  now?: () => Date
 }
 
 /**
@@ -287,65 +432,29 @@ export interface InvoiceServiceOptions {
  * programmer error is expected to escape as a thrown error.
  */
 export class InvoiceService {
-  // Write-side repositories are lazy. GET /api/invoices only needs the
-  // materialized InvoicesView repository; constructing these here would make
-  // a read request depend on INVOICES_SPREADSHEET_ID and the write gateway
-  // configuration even though it never writes to those sheets.
   private readonly invoiceRepository: () => InvoiceHeaderPort
   private readonly invoiceItemRepository: () => InvoiceItemWriter
+  private readonly invoiceItemReader: () => InvoiceItemReader
+  private readonly paymentRepository: () => PaymentReader
   private readonly orderFormRepository: () => OrderFormWriter
-  private readonly invoiceViewRepository: () => InvoicesViewRepository
   private readonly syncInvoiceView: ViewSyncFn
   private readonly generateItemId: () => string
-  private readonly readService: BaseCrudService<
-    InvoiceViewApiRow,
-    InvoiceViewListQuery,
-    never,
-    never,
-    InvoiceViewListResponse,
-    InvoiceViewDetailResponse,
-    never,
-    never,
-    InvoicesViewDbRow,
-    typeof invoicesViewFieldMap
-  >
+  private readonly now: () => Date
 
   constructor(options: InvoiceServiceOptions = {}) {
     this.invoiceRepository = options.invoiceRepository ?? getInvoicesRepository
 
     this.invoiceItemRepository = options.invoiceItemRepository ?? getInvoiceItemsRepository
 
+    this.invoiceItemReader = options.invoiceItemReader ?? getInvoiceItemsRepository
+
+    this.paymentRepository = options.paymentRepository ?? getPaymentsRepository
+
     this.orderFormRepository = options.orderFormRepository ?? getOrderFormRepository
 
-    let invoiceViewRepository = options.invoiceViewRepository
-    this.invoiceViewRepository = () =>
-      invoiceViewRepository === undefined
-        ? getInvoicesViewRepository()
-        : adaptInvoiceViewReader(invoiceViewRepository)
     this.syncInvoiceView = options.syncInvoiceView ?? defaultSyncInvoiceView
     this.generateItemId = options.generateItemId ?? defaultGenerateItemId
-
-    this.readService = new BaseCrudService<
-      InvoiceViewApiRow,
-      InvoiceViewListQuery,
-      never,
-      never,
-      InvoiceViewListResponse,
-      InvoiceViewDetailResponse,
-      never,
-      never,
-      InvoicesViewDbRow,
-      typeof invoicesViewFieldMap
-    >({
-      // invoiceNumber/customerId are the only flat, searchable columns — the
-      // rest of the row (customer, items, adjustments, payments) is
-      // serialized JSON.
-      repository: this.invoiceViewRepository,
-      api: invoiceReadContract,
-      searchFields: ['invoiceNumber', 'customerId'],
-      fieldMap: invoicesViewFieldMap,
-      jsonColumns: invoicesViewJsonColumns,
-    })
+    this.now = options.now ?? (() => new Date())
   }
 
   private async invoiceNumberAlreadyUsed(invoiceNumber: string): Promise<boolean> {
@@ -607,95 +716,60 @@ export class InvoiceService {
     }
   }
 
-  /**
-   * List invoices. `dateFrom`/`dateTo` are a range filter against
-   * `issuedDate`, not a literal equality column — see `listWithDateRange`'s
-   * doc comment for why that one query shape bypasses the generic
-   * `BaseCrudService.list()` path.
-   */
-  async list(query: ApiQueryParams): Promise<ServiceListResult<InvoiceViewListResponse>> {
-    if (this.hasDateRangeFilter(query)) {
-      return this.listWithDateRange(query)
-    }
-    return this.readService.list(query)
-  }
+  async list(query: ApiQueryParams): Promise<InvoiceListResult> {
+    const validQuery = parseOrThrow(invoiceApiContract.query.list, query)
+    const rows = await this.readInvoices()
+    const filtered = rows.filter((row) => this.matchesListQuery(row, validQuery))
+    filtered.sort((left, right) => compareInvoiceRows(left, right, validQuery))
 
-  async getById(id: string): Promise<InvoiceViewDetailResponse> {
-    return this.readService.getById(id)
-  }
-
-  private hasDateRangeFilter(query: ApiQueryParams): boolean {
-    return query.dateFrom !== undefined || query.dateTo !== undefined
-  }
-
-  /**
-   * `dateFrom`/`dateTo` are range filters, not equality columns, so they are
-   * stripped out of the where clause; every other filter (customerId, status,
-   * keyword, sort) still goes through the repository/GViz. The `pagination`
-   * field on `ReadQueryDTO` is intentionally left unset so this fetches every
-   * row matching the OTHER filters (no sheet-side `limit`/`offset`). Date
-   * filtering then happens in JS (`issuedDate` is an ISO `YYYY-MM-DD` string;
-   * `<=`/`>=` compares correctly with no `Date` parsing) against that FULL
-   * result set, and pagination is applied last, over the filtered set — never
-   * before it, or a later page could look emptier than it really is while
-   * matches sit on an earlier page's cut.
-   */
-  private async listWithDateRange(
-    query: ApiQueryParams,
-  ): Promise<ServiceListResult<InvoiceViewListResponse>> {
-    const validQuery = parseOrThrow(invoiceReadContract.query.list, query)
-
-    // dateFrom/dateTo are intentionally omitted from the DB query: they are
-    // range semantics applied below in JavaScript, not physical columns.
-    // Only customerId/status become real equality clauses, same as the
-    // generic path would build.
-    const where = invoicesViewMapper.toDb({
-      customerId: validQuery.customerId,
-      status: validQuery.status,
-    }) as Partial<InvoicesViewDbRow>
-
-    const dto = new ReadQueryDTO<Partial<InvoicesViewDbRow>>({
-      where,
-      search: {
-        keyword: validQuery.keyword,
-        fields: ['invoiceNumber', 'customerId'].map((field) =>
-          invoicesViewMapper.toDbField(field),
-        ),
-      },
-      sort: {
-        field: invoicesViewMapper.toDbField(validQuery.sortBy),
-        order: validQuery.sortOrder,
-      },
-      // pagination intentionally omitted — see the doc comment above.
-    })
-
-    const rows = (await this.invoiceViewRepository().read(dto)).map(mapInvoicesViewRowToApi)
-
-    const filtered = rows.filter((row) => {
-      const issuedDate = (row as Record<string, unknown>).issuedDate
-      if (typeof issuedDate !== 'string') return false
-      if (validQuery.dateFrom && issuedDate < validQuery.dateFrom) return false
-      if (validQuery.dateTo && issuedDate > validQuery.dateTo) return false
-      return true
-    })
-
+    const total = filtered.length
     const start = (validQuery.page - 1) * validQuery.perPage
-    const pageRows = filtered.slice(start, start + validQuery.perPage)
-
     return {
-      items: pageRows.map((row) => this.projectListRow(row as Record<string, unknown>)),
-      pagination: { page: validQuery.page, perPage: validQuery.perPage },
+      items: filtered
+        .slice(start, start + validQuery.perPage)
+        .map((row) => this.projectListRow(row)),
+      pagination: {
+        total,
+        page: validQuery.page,
+        perPage: validQuery.perPage,
+        totalPages: Math.ceil(total / validQuery.perPage),
+      },
     }
   }
 
-  /** Projects only fields declared by the invoice-view list response. */
-  private projectListRow(
-    row: Record<string, unknown>,
-  ): InvoiceViewListResponse {
+  async getById(id: string): Promise<InvoiceDetailResponse> {
+    const safeId = id.trim()
+    if (safeId === '') throw ApiError.badRequest('id is required')
+
+    const matches = (await this.readInvoices()).filter((row) => row.invoiceNumber === safeId)
+    if (matches.length === 0) throw ApiError.notFound(`Resource '${safeId}' not found`)
+    if (matches.length > 1) throw ApiError.conflict(`Resource '${safeId}' resolved to multiple rows`)
+    return matches[0]
+  }
+
+  private async readInvoices(): Promise<InvoiceDetailResponse[]> {
+    const [invoices, items, payments] = await Promise.all([
+      this.invoiceRepository().read(),
+      this.invoiceItemReader().read(),
+      this.paymentRepository().read(),
+    ])
+    return assembleInvoiceRows(invoices, items, payments, bangkokToday(this.now()))
+  }
+
+  private matchesListQuery(row: InvoiceDetailResponse, query: InvoiceListQuery): boolean {
+    if (query.keyword && !row.invoiceNumber.includes(query.keyword) && !row.customerId.includes(query.keyword)) return false
+    if (query.customerId && row.customerId !== query.customerId) return false
+    if (query.status && row.status !== query.status) return false
+    if (query.dateFrom && row.issuedDate < query.dateFrom) return false
+    if (query.dateTo && row.issuedDate > query.dateTo) return false
+    return true
+  }
+
+  private projectListRow(row: InvoiceDetailResponse): InvoiceListResponse {
     const output: Record<string, unknown> = {}
-    for (const field of Object.keys(invoiceReadContract.response.list.shape)) {
-      output[field] = row[field]
+    for (const field of Object.keys(invoiceApiContract.response.list.shape)) {
+      output[field] = row[field as keyof InvoiceDetailResponse]
     }
-    return output as InvoiceViewListResponse
+    return output as InvoiceListResponse
   }
 }

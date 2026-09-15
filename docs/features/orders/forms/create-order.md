@@ -74,5 +74,5 @@ See Blocker 3 in `overview.md`.
 ⛔ BLOCKED — on success the page cannot navigate to `/orders/:orderId`; there is no detail endpoint.
 See Blocker 2 in `overview.md`.
 
-⛔ BLOCKED — the new order **will not** appear in `GET /api/orders` until the Apps Script
-`OrdersView` sync runs. The interval is unmeasured. See Blocker 7 in `overview.md`.
+The `OrdersView` sync delay does not affect this form: staff reads use `/api/work-orders`, not
+`GET /api/orders`.
