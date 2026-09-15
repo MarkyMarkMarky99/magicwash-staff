@@ -52,7 +52,7 @@ function viewInvoice(invoiceNumber: string) {
     <template #actions>
       <button
         type="button"
-        class="flex h-[22px] w-[22px] items-center justify-center rounded-full transition-all hover:bg-surface-container active:scale-95 disabled:opacity-50"
+        class="flex size-5.5 items-center justify-center rounded-full transition-all hover:bg-surface-container active:scale-95 disabled:opacity-50"
         aria-label="Refresh order history"
         :disabled="ordersLoading || appointmentsLoading"
         @click.stop="refresh"
