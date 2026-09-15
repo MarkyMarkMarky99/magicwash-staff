@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { serviceTypeLabel } from '@/shared/utils/service-type-labels'
 import type { z } from 'zod'
 import type { workOrderListResponseSchema } from '@contracts/work-orders/work-order-api.schema'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
 import { isInvoiceActionAvailable } from '../utils/order-invoice-target'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
+import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
+import BaseRowCard from '@/shared/components/BaseRowCard.vue'
 import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
 import { presentationFor } from '../order-status-presentation'
 
@@ -38,35 +41,33 @@ function viewInvoice() {
 function selectOrder() {
   emit('select', props.order.orderId)
 }
+
+const dateLineSlot = computed(() => props.showCustomerName ? 'line2' : 'line1')
+const noteLineSlot = computed(() => props.showCustomerName ? 'line3' : 'line2')
 </script>
 
 <template>
-  <article
-    class="flex cursor-pointer gap-3 px-4 py-3 transition-colors hover:bg-surface-container-low active:bg-surface-container"
-    role="button"
-    tabindex="0"
-    @click="selectOrder"
-    @keydown.enter="selectOrder"
-    @keydown.space.prevent="selectOrder"
-  >
-    <CardLeadingIcon
-      :icon="presentationFor(order.status).icon"
-      :tone="presentationFor(order.status).tone"
-      label="Order"
-    />
-
-    <div class="min-w-0 flex-grow">
-      <p
-        v-if="showCustomerName"
-        class="mb-0.5 truncate font-headline text-[14px] font-bold leading-tight text-primary"
-      >
-        {{ order.customerName?.trim() ? order.customerName : order.customerId }}
-      </p>
-      <div class="mb-0.5 flex items-center justify-between gap-2">
-        <div class="flex min-w-0 items-center gap-1.5">
-          <h3 class="truncate font-body text-xs text-on-surface-variant">
+  <BaseSwipeCard :swipeable="false" :pressable="true" @tap="selectOrder">
+    <BaseRowCard
+      :line1="showCustomerName
+        ? (order.customerName?.trim() ? order.customerName : order.customerId)
+        : formatSheetDate(order.receivedDate)"
+    >
+      <template #lead>
+        <CardLeadingIcon
+          :icon="presentationFor(order.status).icon"
+          :tone="presentationFor(order.status).tone"
+          label="Order"
+        />
+      </template>
+      <template v-if="showCustomerName" #line1>
+        {{ showCustomerName && order.customerName?.trim() ? order.customerName : order.customerId }}
+      </template>
+      <template #[dateLineSlot]>
+        <span class="flex min-w-0 items-center gap-1.5 font-body text-xs font-normal text-on-surface-variant">
+          <span class="truncate">
             {{ formatSheetDate(order.receivedDate) }}
-          </h3>
+          </span>
           <BaseBadge
             :label="presentationFor(order.status).label"
             size="xs"
@@ -80,22 +81,25 @@ function selectOrder() {
             :uppercase="true"
             tone="brand"
           />
-        </div>
+        </span>
+      </template>
+      <template #top-end>
         <span class="shrink-0 font-body text-[11px] font-semibold text-on-surface-variant">
           {{ order.quantity != null ? `${order.quantity} pcs` : '' }}
         </span>
-      </div>
-
-      <div class="flex items-center justify-between gap-2">
-        <p class="truncate font-body text-xs text-on-surface-variant">
-          {{ order.note || '—' }}
-        </p>
+      </template>
+      <template #[noteLineSlot]>
+        {{ order.note || '—' }}
+      </template>
+      <template #bot-end>
         <div class="flex shrink-0 items-center gap-2">
           <button
             v-if="showInvoice && isInvoiceActionAvailable(order)"
             type="button"
             class="shrink-0 p-1 text-primary transition hover:opacity-70 active:scale-95"
             aria-label="View invoice"
+            @mousedown.stop
+            @touchend.stop
             @click.stop="viewInvoice"
           >
             <span class="material-symbols-outlined text-[16px]" aria-hidden="true">receipt_long</span>
@@ -105,12 +109,14 @@ function selectOrder() {
             type="button"
             class="shrink-0 p-1 text-primary transition hover:opacity-70 active:scale-95"
             aria-label="View photos"
+            @mousedown.stop
+            @touchend.stop
             @click.stop="viewPhotos"
           >
             <span class="material-symbols-outlined text-[16px]" aria-hidden="true">photo_library</span>
           </button>
         </div>
-      </div>
-    </div>
-  </article>
+      </template>
+    </BaseRowCard>
+  </BaseSwipeCard>
 </template>

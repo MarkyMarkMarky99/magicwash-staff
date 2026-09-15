@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref } from 'vue'
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
+import BaseRowCard from '@/shared/components/BaseRowCard.vue'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
@@ -104,7 +105,7 @@ function openMaps() {
       {{ toast.message }}
     </div>
 
-    <BaseSwipeCard ref="baseCard" :disabled="updating" @swipe-right="advanceStatus">
+    <BaseSwipeCard ref="baseCard" :disabled="updating" :swipeable="true" :pressable="false" @swipe-right="advanceStatus">
       <template #right-panel>
         <div class="absolute inset-0 bg-primary flex items-center px-5 text-on-primary">
           <div class="flex items-center gap-2" :class="!next ? 'opacity-50' : ''">
@@ -128,28 +129,38 @@ function openMaps() {
         </div>
       </template>
 
-      <div class="px-4 py-3 flex gap-3" :class="variant === 'pending' ? 'py-4' : ''">
-        <CardLeadingIcon
-          :icon="updating ? 'sync' : vehicle?.icon ?? config.icon"
-          :tone="config.tone"
-          size="md"
-          :label="vehicle?.label ?? 'Appointment'"
-          :class="updating ? 'animate-spin' : ''"
-        />
-        <div class="flex-grow min-w-0 flex flex-col justify-center">
-          <div class="flex items-center justify-between gap-2 mb-0.5">
-            <div class="flex items-center gap-1.5 min-w-0">
-              <h3 class="font-headline font-bold text-primary text-[14px] leading-tight truncate">{{ appointment.customerName || appointment.customerId }}</h3>
-              <BaseBadge :label="config.label" size="xs" :uppercase="true" :tone="config.tone" />
-            </div>
-            <span v-if="variant === 'daily'" class="font-body text-[11px] font-semibold text-on-surface-variant shrink-0">{{ appointment.timeSlot }}</span>
-          </div>
-          <p v-if="appointment.address" class="font-body text-xs text-on-surface-variant truncate">{{ appointment.address }}</p>          <div v-if="variant === 'pending'" class="flex items-center gap-2 mt-1 text-xs text-on-surface-variant">
+      <BaseRowCard
+        :line1="appointment.customerName || appointment.customerId"
+        :density="variant === 'pending' ? 'roomy' : 'compact'"
+      >
+        <template #lead>
+          <CardLeadingIcon
+            :icon="updating ? 'sync' : vehicle?.icon ?? config.icon"
+            :tone="config.tone"
+            size="md"
+            :label="vehicle?.label ?? 'Appointment'"
+            :class="updating ? 'animate-spin' : ''"
+          />
+        </template>
+        <template #line1>
+          <span class="flex min-w-0 items-center gap-1.5">
+            <span class="truncate">{{ appointment.customerName || appointment.customerId }}</span>
+            <BaseBadge :label="config.label" size="xs" :uppercase="true" :tone="config.tone" />
+          </span>
+        </template>
+        <template v-if="variant === 'daily'" #top-end>
+          <span class="font-body text-[11px] font-semibold text-on-surface-variant shrink-0">{{ appointment.timeSlot }}</span>
+        </template>
+        <template v-if="appointment.address" #line2>
+          {{ appointment.address }}
+        </template>
+        <template v-if="variant === 'pending'" #line3>
+          <span class="flex items-center gap-2 mt-1 text-xs text-on-surface-variant">
             <span class="material-symbols-outlined text-primary text-[11px]">calendar_today</span><span>{{ formattedDate }}</span>
             <span class="material-symbols-outlined text-primary text-[11px]">schedule</span><span>{{ appointment.timeSlot }}</span>
-          </div>
-        </div>
-      </div>
+          </span>
+        </template>
+      </BaseRowCard>
     </BaseSwipeCard>
   </div>
 </template>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
+import BaseRowCard from '@/shared/components/BaseRowCard.vue'
 import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import type { PackageDto } from '@/data/packages/package.service'
@@ -10,32 +11,29 @@ const emit = defineEmits<{ edit: [packageCode: string] }>()
 function openEdit() {
   emit('edit', props.package.packageCode)
 }
-
-function handleKeydown(event: KeyboardEvent) {
-  if (event.key !== 'Enter' && event.key !== ' ') return
-  event.preventDefault()
-  openEdit()
-}
 </script>
 
 <template>
   <BaseSwipeCard
-    role="button"
-    tabindex="0"
+    :swipeable="false"
+    :pressable="true"
     :aria-label="`แก้ไขแพ็กเกจ ${package.name}`"
     @tap="openEdit"
-    @keydown="handleKeydown"
   >
-    <div class="flex gap-3 px-4 py-3">
-      <CardLeadingIcon icon="inventory_2" label="Package" />
-      <div class="min-w-0 flex-grow">
-        <div class="flex items-center gap-2">
-          <h3 class="truncate font-headline text-sm font-bold text-primary">{{ package.name }}</h3>
+    <BaseRowCard
+      :line1="package.name"
+      :line2="`${package.packageCode} · ${package.eligibleService}`"
+      :line3="`เครดิต ${package.includedCredit} · ฿${package.price}`"
+    >
+      <template #lead>
+        <CardLeadingIcon icon="inventory_2" label="Package" />
+      </template>
+      <template #line1>
+        <span class="flex min-w-0 items-center gap-2">
+          <span class="truncate">{{ package.name }}</span>
           <BaseBadge v-if="package.deletedAt !== null" label="เลิกขาย" size="md" tone="danger" />
-        </div>
-        <p class="truncate font-body text-xs text-on-surface-variant">{{ package.packageCode }} · {{ package.eligibleService }}</p>
-        <p class="mt-0.5 font-body text-xs text-on-surface-variant">เครดิต {{ package.includedCredit }} · ฿{{ package.price }}</p>
-      </div>
-    </div>
+        </span>
+      </template>
+    </BaseRowCard>
   </BaseSwipeCard>
 </template>
