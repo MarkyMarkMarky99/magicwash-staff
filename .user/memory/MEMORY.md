@@ -1,10 +1,9 @@
 # Project memory
 
-Live note for the next session. Branch: `fix/invoice-number-contract`.
+Live note for the next session. Branch: `main`.
 
 ## Branches in flight
 
-- **`chore/cross-feature-import-check`** — `check:cross-feature-imports` with a 6-entry allowlist; where the borrowed domain components live is still undecided. Details: `.user/memory/chore-cross-feature-import-check.md`.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree. Details: `.user/memory/feat-live-order-helper.md`.
 
 ## Pending work
@@ -61,8 +60,9 @@ Live note for the next session. Branch: `fix/invoice-number-contract`.
   - `agent-docs/` drafts are non-canonical; do not use them as authority for source comments or rules.
 
 - **Verification and cleanup**
-  - Browser-test the merged BaseRowCard work on production: scroll-and-release must not navigate, tap must open, swipe must still work. Merged untested at the user's direction.
-  - Consolidate frontend helpers into `src/shared/utils/`; strays include `src/shared/appointment-pending-count.ts` and `src/utils/imageCompression.js`.
+  - Browser-test on production, all merged untested at the user's direction: row cards (scroll-and-release must not navigate, tap must open, swipe must still work) and invoice creation from both the manual form and a package purchase.
+  - Decide where domain components used by two features live; `src/shared/components/` must stay generic, so the 6-entry allowlist in `scripts/check-cross-feature-imports.mjs` cannot shrink yet.
+  - Decide whether to renumber the four legacy uuid-shaped invoice numbers; they are referenced as `invoiceId` on customer-package rows.
   - Appointment date strip opens at day 1 instead of centering today; a `scrollTo` attempt hid the strip, so diagnose in a real browser first.
   - `ListContainer` collapsible header is a non-focusable `div` without `aria-expanded`; schedule slots now start collapsed when empty.
   - Phone-test ISS-72adcdca: a cache-hit customer-row tap must open only customer detail, while the swipe action still fires.
