@@ -51,6 +51,7 @@ Live note for the next session. Branch: `fix/invoice-number-contract`.
   - Fix screenshot-upload accessibility states, failed-upload handling, and staff-safe Firebase errors.
   - Align the customer-packages form with `docs/design/patterns/forms.md`.
   - Fix `docs/conventions/naming.md`: composables are kebab-case, not `usePascalCase.ts`.
+  - Consolidate frontend helpers into `src/shared/utils/`; strays include `src/shared/appointment-pending-count.ts` and `src/utils/imageCompression.js`. User deferred this to its own pass.
   - Remove schema-file `z.infer` exports in a dedicated all-contract pass.
   - Migrate remaining local-state overlays: `OrderGalleryPage.vue`, `InvoiceProofLightbox.vue`, `NavSidebar.vue`.
   - Unnest the remove `<button>` at `OrderGalleryPage.vue:402` from the lightbox `<button>` at `:375` — verified as the only nested pair; the other two files have none.

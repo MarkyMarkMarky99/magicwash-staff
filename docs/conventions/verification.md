@@ -26,6 +26,18 @@ Backend or shared-contract changes must also pass:
 npm run typecheck:api
 ```
 
+## Structural checks
+
+Frontend changes must also pass:
+
+```sh
+npm run check:cross-feature-imports
+```
+
+It fails on any import that crosses a feature boundary. The allowlist inside
+`scripts/check-cross-feature-imports.mjs` records the imports that predate the rule; entries are
+removed as that code moves to `src/shared/`, and no entry may be added.
+
 ## Tests
 
 There is no single `npm test` command. Run the relevant test directly.
