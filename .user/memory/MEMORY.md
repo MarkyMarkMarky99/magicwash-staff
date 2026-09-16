@@ -9,7 +9,6 @@ Live note for the next session. Branch: `main`.
 ## Pending work
 
 - **Forms and navigation**
-  - FormPicker does not close when clicking or tabbing to another field; fix in `FormPicker.vue`, then browser-test. Merged into `main` with the bug open.
   - Remove dead CSS `.invoice-line-select` in `InvoiceLineItemsEditor.vue`.
   - Pre-existing defect: some forms `push` on exit, so Back re-opens the form after save. See `.user/memory/form-exit-history.md`.
   - Agreed rule: a form is a temporary layer — after leaving it by any button, no form entry may remain in history.
@@ -40,7 +39,6 @@ Live note for the next session. Branch: `main`.
   - Defer mixed-service orders to a separate branch after the price-list photo release; see `.user/memory/mixed-service-orders.md`.
   - Fill real prices for the 33 inactive price-list rows with `price: 0`.
   - Add a `BaseSwipeCard` action to add a price to an existing item.
-  - Fix the price-list query missing an `active` filter and invoice items always writing `service_type` as `null`.
   - Decide between `CANCELLED` and `VOID` before changing the invoice contract.
   - Decide whether to renumber the four legacy uuid-shaped invoice numbers; they are referenced as `invoiceId` on customer-package rows.
   - Invoice reads now assemble from `Invoices`/`InvoiceItems`/`Payments` in memory; revisit at ~2-3k invoices.
@@ -64,9 +62,6 @@ Live note for the next session. Branch: `main`.
   - `agent-docs/` drafts are non-canonical; do not use them as authority for source comments or rules.
 
 - **Verification and cleanup**
-  - Browser-test on production, all merged untested at the user's direction: row cards (scroll-and-release must not navigate, tap must open, swipe must still work) and invoice creation from both the manual form and a package purchase.
-  - Browser-test on production: invoice list pager, status filter, and detail totals from source tabs.
-  - Invoice `INV20260915-e4550479-…` was saved but its customer package was never created; create the package without a new invoice.
   - Five allowlisted cross-feature imports remain, all UI that knows domain fields, with no legal home under the current rule. Accepted for now; reopen only when a third feature needs one of them.
   - Placement rule settled 2026-09-16: UI folders (`src/shared/components`, `layouts`) stay generic and must not know domain fields; non-UI folders under `src/shared/` may hold cross-feature business rules. Rejected and not to be re-proposed: `src/shared/components/<domain>/`, a new `src/ui/<domain>/` layer, and moving the per-feature status-presentation modules to `src/shared/utils/`.
   - Appointment date strip opens at day 1 instead of centering today; a `scrollTo` attempt hid the strip, so diagnose in a real browser first.
