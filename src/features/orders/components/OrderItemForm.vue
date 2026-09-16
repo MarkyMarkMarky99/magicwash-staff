@@ -24,8 +24,8 @@ const isOpen = computed(() => props.open && props.selectedItem !== null)
 const quantityError = computed(() => {
   if (form.quantity.trim() === '' || canSubmit.value) return null
   return isWeightUnit(selectedUnit.value)
-    ? 'จำนวนแบบกิโลกรัมต้องมากกว่า 0 และมีทศนิยมไม่เกิน 1 ตำแหน่ง'
-    : 'จำนวนสำหรับหน่วยนี้ต้องเป็นจำนวนเต็มที่มากกว่า 0'
+    ? 'Quantity in kg must be greater than 0 with at most 1 decimal place'
+    : 'Quantity for this unit must be a whole number greater than 0'
 })
 
 function resetForm() {
@@ -50,7 +50,7 @@ function submit() {
     specialInstructions: form.specialInstructions.trim() || null,
   })
   if (!parsed.success) {
-    validationError.value = 'ข้อมูลรายการไม่ครบหรือราคาไม่ถูกต้อง กรุณาเลือกสินค้าใหม่'
+    validationError.value = 'Item details are incomplete or the price is invalid. Please choose the item again.'
     return
   }
   validationError.value = null
@@ -59,14 +59,14 @@ function submit() {
 </script>
 
 <template>
-  <FormOverlay :open="isOpen" title="เพิ่มรายการสินค้า" eyebrow="Order item" submit-label="เพิ่มรายการลงออเดอร์" :is-submitting="props.isSubmitting" :is-submit-disabled="!canSubmit" @close="emit('close')" @submit="submit">
+  <FormOverlay :open="isOpen" title="Add item" eyebrow="Order item" submit-label="Add item to order" :is-submitting="props.isSubmitting" :is-submit-disabled="!canSubmit" @close="emit('close')" @submit="submit">
     <fieldset v-if="props.selectedItem" :disabled="props.isSubmitting" class="min-w-0 space-y-5 pb-5">
       <div class="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4">
-        <div class="flex items-start justify-between gap-3"><div class="min-w-0"><p class="font-label text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">{{ props.selectedItem.itemCode }}</p><p class="mt-1 font-headline text-base font-bold text-on-surface">{{ props.selectedItem.displayNameTh }}</p><p class="mt-1 text-xs text-on-surface-variant">{{ [props.selectedItem.variant, serviceTypeLabel(props.selectedItem.serviceType), props.selectedItem.unit && `ต่อ ${props.selectedItem.unit}`].filter(Boolean).join(' · ') }}</p></div><p class="shrink-0 font-headline text-lg font-extrabold text-primary">{{ formatOrderPrice(props.selectedItem.price) }}</p></div>
-        <button type="button" class="mt-3 text-sm font-bold text-primary underline underline-offset-2" @click="emit('changeItem')">เปลี่ยนสินค้า</button>
+        <div class="flex items-start justify-between gap-3"><div class="min-w-0"><p class="font-label text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">{{ props.selectedItem.itemCode }}</p><p class="mt-1 font-headline text-base font-bold text-on-surface">{{ props.selectedItem.displayNameTh }}</p><p class="mt-1 text-xs text-on-surface-variant">{{ [props.selectedItem.variant, serviceTypeLabel(props.selectedItem.serviceType), props.selectedItem.unit && `per ${props.selectedItem.unit}`].filter(Boolean).join(' · ') }}</p></div><p class="shrink-0 font-headline text-lg font-extrabold text-primary">{{ formatOrderPrice(props.selectedItem.price) }}</p></div>
+        <button type="button" class="mt-3 text-sm font-bold text-primary underline underline-offset-2" @click="emit('changeItem')">Change item</button>
       </div>
       <p v-if="quantityError" id="order-item-quantity-error" class="rounded-xl border border-error/20 bg-error-container/30 px-3 py-2 text-sm text-on-error-container">{{ quantityError }}</p><p v-if="props.error || validationError" class="rounded-xl border border-error/20 bg-error-container/30 px-3 py-2 text-sm text-on-error-container">{{ props.error || validationError }}</p>
-      <FormInput id="order-item-quantity" v-model="form.quantity" label="จำนวน *" type="number" placeholder="1" min="0" :step="itemQuantityStep(selectedUnit)" :inputmode="isWeightUnit(selectedUnit) ? 'decimal' : 'numeric'" :aria-describedby="quantityError ? 'order-item-quantity-error' : undefined" :aria-invalid="Boolean(quantityError)" /><FormTextarea id="order-item-instructions" v-model="form.specialInstructions" label="คำแนะนำเพิ่มเติม" placeholder="ระบุข้อควรระวังได้"/>
+      <FormInput id="order-item-quantity" v-model="form.quantity" label="Quantity *" type="number" placeholder="1" min="0" :step="itemQuantityStep(selectedUnit)" :inputmode="isWeightUnit(selectedUnit) ? 'decimal' : 'numeric'" :aria-describedby="quantityError ? 'order-item-quantity-error' : undefined" :aria-invalid="Boolean(quantityError)" /><FormTextarea id="order-item-instructions" v-model="form.specialInstructions" label="Additional notes" placeholder="Add any precautions"/>
     </fieldset>
   </FormOverlay>
 </template>

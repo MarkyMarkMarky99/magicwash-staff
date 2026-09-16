@@ -20,11 +20,11 @@ function select(action: 'addItem' | 'openAlbum', close: () => void): void {
         :ref="setTrigger"
         v-bind="triggerAttrs"
         type="button"
-        class="-my-0.5 inline-flex min-h-10 items-center justify-center rounded-full px-2 text-primary transition-colors hover:bg-primary/10 active:bg-primary/20 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        aria-label="จัดการรายการสินค้า"
+        class="relative -my-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full text-primary transition-colors after:absolute after:-inset-1.5 after:content-[''] hover:bg-primary/10 active:bg-primary/20 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        aria-label="Manage items"
         @click.stop="toggle"
       >
-        <span class="material-symbols-outlined text-[20px]" :class="open ? 'rotate-45' : ''" aria-hidden="true">add</span>
+        <span class="material-symbols-outlined text-[18px]" :class="open ? 'rotate-45' : ''" aria-hidden="true">add</span>
       </button>
     </template>
 
@@ -36,7 +36,7 @@ function select(action: 'addItem' | 'openAlbum', close: () => void): void {
           @click="select('addItem', close)"
         >
           <span class="material-symbols-outlined text-[16px] leading-none text-primary" aria-hidden="true">playlist_add</span>
-          เพิ่มรายการสินค้า
+          Add item
         </button>
         <button
           type="button"
@@ -44,7 +44,7 @@ function select(action: 'addItem' | 'openAlbum', close: () => void): void {
           @click="select('openAlbum', close)"
         >
           <span class="material-symbols-outlined text-[16px] leading-none text-primary" aria-hidden="true">photo_library</span>
-          อัลบั้มรูปผ้า
+          Garment album
         </button>
       </div>
     </template>

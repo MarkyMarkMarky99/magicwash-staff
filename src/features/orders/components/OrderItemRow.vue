@@ -16,18 +16,17 @@ function selectItem(): void {
 
 <template>
   <article
-    class="flex cursor-pointer gap-3 px-4 py-3.5 transition-colors hover:bg-surface-container-low active:bg-surface-container focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+    class="flex cursor-pointer items-center gap-3 px-4 py-2 transition-colors hover:bg-surface-container-low active:bg-surface-container focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
     role="button"
     tabindex="0"
-    :aria-label="`เปิดอัลบั้มรูปผ้า${item.description ? ` ${item.description}` : ` รายการที่ ${index + 1}`}`"
+    :aria-label="`Open garment album${item.description ? ` ${item.description}` : ` item ${index + 1}`}`"
     @click="selectItem"
     @keydown.enter="selectItem"
     @keydown.space.prevent="selectItem"
   >
-    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-surface-container font-label text-[10px] font-bold text-primary">{{ index + 1 }}</span>
     <div class="min-w-0 flex-1">
-      <p class="font-body text-sm font-semibold leading-snug text-on-surface">{{ item.description || 'ไม่ได้ระบุรายละเอียด' }}</p>
+      <p class="truncate font-body text-sm font-medium leading-tight text-on-surface">{{ item.description || 'No description' }}</p>
     </div>
-    <div class="shrink-0 self-center text-right"><p class="font-label text-xs font-bold text-primary">{{ item.quantity ?? '—' }} <span class="text-[9px] text-on-surface-variant">pcs</span></p><p class="mt-1 font-label text-[10px] font-bold text-on-surface-variant">{{ item.price ?? '—' }}</p></div>
+    <span class="shrink-0 font-label text-[11px] font-semibold text-on-surface-variant">{{ item.quantity ?? '—' }} pcs</span>
   </article>
 </template>

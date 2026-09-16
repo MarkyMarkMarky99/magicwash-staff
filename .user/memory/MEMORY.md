@@ -1,9 +1,10 @@
 # Project memory
 
-Live note for the next session. Branch: `main`.
+Live note for the next session. Branch: `refactor/order-detail-ui`.
 
 ## Branches in flight
 
+- **`refactor/order-detail-ui`** — order-detail UI pass: item rows stripped to description + quantity, card chrome and section spacing unified, page copy translated to English. Not browser-verified.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 228 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 
 ## Pending work
@@ -13,6 +14,15 @@ Live note for the next session. Branch: `main`.
   - Pre-existing defect: some forms `push` on exit, so Back re-opens the form after save. See `.user/memory/form-exit-history.md`.
   - Agreed rule: a form is a temporary layer — after leaving it by any button, no form entry may remain in history.
   - Browser-verify the form-routes refactor (merged untested in a browser); unticked to-dos in `docs/plans/form-routes.md`.
+
+- **Order detail UI**
+  - `unit` is a Price List join computed per read; both item tables hardcode `pcs` instead of using `item.unit`.
+  - Order items show quantity `0` on every row; not investigated.
+  - `OrderDetailSheet.vue` re-implements the item row and the store's load/sequence logic instead of reusing `OrderItemRow` and `useWorkOrderStore`.
+  - Order-detail header is taller than the sheet's; the menu button footprint was reduced but the result is unverified in a browser.
+  - `orderImageTypeLabels` and `serviceTypeLabel` still return Thai on the now-English order-detail page; decide whether shared labels follow.
+  - `docs/features/orders/flows.md` and `order-item-form.md` still describe detail and add-item as unimplemented.
+  - `OrderDetailPage.vue` holds its whole template on one physical line, so diffs there carry no signal.
 
 - **Images and gallery**
   - Backfill `Cache-Control` on existing photos after Firebase bucket credentials are available. See `docs/plans/image-pipeline.md`.

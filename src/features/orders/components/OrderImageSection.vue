@@ -34,15 +34,15 @@ function previewImage(imagePath: string | null, imageType: string | null): void 
     <div class="pointer-events-none absolute -top-[18px] right-[52px] h-[36px] w-[36px] rounded-full bg-lime shadow-[22px_11px_0_rgba(178,223,38,0.22)]" />
     <div class="relative mb-3 flex items-start justify-between gap-3">
       <div>
-        <p class="font-label text-[9px] font-bold uppercase tracking-widest text-mint">หลักฐานรับผ้า</p>
-        <h2 class="font-headline text-base font-bold">รูปภาพของออเดอร์</h2>
+        <p class="font-label text-[9px] font-bold uppercase tracking-widest text-mint">Pickup evidence</p>
+        <h2 class="font-headline text-base font-bold">Order photos</h2>
       </div>
       <OrderImageCaptureMenu @capture="emit('capture', $event)" />
     </div>
 
     <div v-if="uploadError" class="relative mb-3 flex items-center justify-between gap-2">
       <p class="font-body text-sm text-mint">{{ uploadError }}</p>
-      <button type="button" class="font-body text-sm text-mint" @click="emit('clearUploadError')">ปิด</button>
+      <button type="button" class="font-body text-sm text-mint" @click="emit('clearUploadError')">Close</button>
     </div>
 
     <div v-if="loading" class="relative flex gap-2">
@@ -55,7 +55,7 @@ function previewImage(imagePath: string | null, imageType: string | null): void 
           v-if="isDisplayableImagePath(image.imagePath)"
           type="button"
           class="h-full w-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-mint"
-          :aria-label="`ดูรูป${getOrderImageTypeLabel(image.imageType)}`"
+          :aria-label="`View photo ${getOrderImageTypeLabel(image.imageType)}`"
           @click="previewImage(image.imagePath, image.imageType)"
         >
           <img :src="image.imagePath" :alt="getOrderImageTypeLabel(image.imageType)" class="h-full w-full object-cover">
@@ -65,6 +65,6 @@ function previewImage(imagePath: string | null, imageType: string | null): void 
       </figure>
       <span v-for="index in uploadingCount" :key="'uploading-' + index" class="h-24 w-24 shrink-0 animate-pulse rounded-xl bg-white/15" />
     </ScrollRegion>
-    <p v-else class="relative rounded-xl border border-dashed border-mint/35 bg-white/5 px-3 py-4 font-body text-sm text-mint/80">ยังไม่มีรูปภาพสำหรับออเดอร์นี้</p>
+    <p v-else class="relative rounded-xl border border-dashed border-mint/35 bg-white/5 px-3 py-4 font-body text-sm text-mint/80">No photos for this order yet</p>
   </section>
 </template>

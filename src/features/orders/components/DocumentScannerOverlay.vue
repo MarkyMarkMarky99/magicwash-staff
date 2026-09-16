@@ -328,7 +328,7 @@ async function startCamera(): Promise<void> {
   cameraError.value = ''
 
   if (!navigator.mediaDevices?.getUserMedia) {
-    cameraError.value = 'กล้องใช้ได้เมื่อเปิดผ่าน HTTPS หรือ localhost'
+    cameraError.value = 'Camera works only over HTTPS or localhost'
     return
   }
 
@@ -370,8 +370,8 @@ async function startCamera(): Promise<void> {
   } catch (error) {
     if (!props.open || disposed || startToken !== cameraStartToken) return
     cameraError.value = errorName(error) === 'NotAllowedError'
-      ? 'ไม่ได้รับอนุญาตให้ใช้กล้อง'
-      : 'เปิดกล้องไม่สำเร็จ'
+      ? 'Camera access was not granted'
+      : 'Failed to open camera'
   } finally {
     isStarting.value = false
   }
@@ -533,7 +533,7 @@ function capturePhoto(): void {
   if (!canCapture.value) return
   const video = videoRef.value
   if (!video || !video.videoWidth || !video.videoHeight) {
-    errorMessage.value = 'กล้องยังไม่พร้อม'
+    errorMessage.value = 'Camera is not ready yet'
     return
   }
 
@@ -568,7 +568,7 @@ function capturePhoto(): void {
     releaseCapturedStill()
     resetHoldStill()
     scannerStage.value = 'viewfinder'
-    errorMessage.value = `ถ่ายภาพไม่สำเร็จ · ${errorDetails(error)}`
+    errorMessage.value = `Failed to take photo · ${errorDetails(error)}`
   }
 }
 
@@ -620,7 +620,7 @@ async function useAdjustedDocument(): Promise<void> {
     scannerStage.value = 'viewfinder'
   } catch (error) {
     // Preserve the captured still and corners after a warp failure so the user can retry.
-    errorMessage.value = `ปรับเอกสารไม่สำเร็จ · ${errorDetails(error)}`
+    errorMessage.value = `Failed to adjust document · ${errorDetails(error)}`
     scannerStage.value = 'adjusting'
   }
 }
@@ -709,11 +709,11 @@ onBeforeUnmount(() => {
     <div v-if="showAdjustUi" class="absolute inset-0 z-10 flex flex-col bg-black px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
       <div class="flex items-start justify-between gap-3">
         <div class="min-w-0 flex-1">
-          <p class="font-label text-[10px] font-bold uppercase tracking-[0.16em] text-mint">ปรับมุมเอกสาร</p>
+          <p class="font-label text-[10px] font-bold uppercase tracking-[0.16em] text-mint">Adjust document corners</p>
         </div>
         <button
           class="h-11 w-11 shrink-0 rounded-full bg-white/15 flex items-center justify-center active:opacity-80"
-          aria-label="ปิด"
+          aria-label="Close"
           :disabled="isWarping"
           @click="closeScanner"
         >
@@ -774,14 +774,14 @@ onBeforeUnmount(() => {
           :disabled="isWarping"
           @click="retakeDocument"
         >
-          ถ่ายใหม่
+          Retake
         </button>
         <button
           class="flex-1 rounded-full bg-lime px-4 py-3 font-body text-sm font-semibold text-primary active:opacity-80 disabled:opacity-50"
           :disabled="isWarping"
           @click="useAdjustedDocument"
         >
-          {{ isWarping ? 'กำลังปรับ…' : 'ใช้รูปนี้' }}
+          {{ isWarping ? 'Adjusting…' : 'Use this photo' }}
         </button>
       </div>
     </div>
@@ -795,7 +795,7 @@ onBeforeUnmount(() => {
             :aria-pressed="autoCaptureEnabled"
             @click="autoCaptureEnabled = true"
           >
-            อัตโนมัติ
+            Auto
           </button>
           <button
             class="rounded-full px-2 py-1 transition-colors"
@@ -803,12 +803,12 @@ onBeforeUnmount(() => {
             :aria-pressed="!autoCaptureEnabled"
             @click="autoCaptureEnabled = false"
           >
-            กดเอง
+            Manual
           </button>
         </div>
         <button
           class="h-11 w-11 rounded-full bg-white/15 flex items-center justify-center active:opacity-80"
-          aria-label="ปิดกล้อง"
+          aria-label="Close camera"
           @click="closeScanner"
         >
           <span class="material-symbols-outlined text-2xl">close</span>
@@ -831,14 +831,14 @@ onBeforeUnmount(() => {
         {{ isStarting ? 'progress_activity' : 'photo_camera' }}
       </span>
       <p class="font-body text-sm text-white/80">
-        {{ isStarting ? 'กำลังเปิดกล้อง…' : cameraError }}
+        {{ isStarting ? 'Opening camera…' : cameraError }}
       </p>
       <button
         v-if="cameraError"
         class="mt-2 rounded-full bg-white px-5 py-2.5 font-body text-sm font-medium text-black"
         @click="retryCamera"
       >
-        ลองใหม่
+        Try again
       </button>
     </div>
 
@@ -861,7 +861,7 @@ onBeforeUnmount(() => {
           </svg>
           <button
             class="absolute inset-2 h-20 w-20 rounded-full border-4 border-white bg-white/20 p-1 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label="ถ่ายภาพเอกสาร"
+            aria-label="Take document photo"
             :disabled="!canCapture"
             @click="capturePhoto"
           >
