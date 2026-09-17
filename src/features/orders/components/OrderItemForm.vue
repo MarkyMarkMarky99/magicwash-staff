@@ -7,7 +7,6 @@ import FormInput from '@/shared/components/FormInput.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import { serviceTypeLabel } from '@/shared/utils/service-type-labels'
-import { isValidItemQuantity, isWeightUnit, itemQuantityStep } from '@shared/utils/item-quantity'
 import { formatOrderPrice } from '@/features/orders/utils/order-price-format'
 
 type PriceListItem = z.infer<typeof priceListListResponseSchema>
@@ -18,14 +17,14 @@ const props = defineProps<{ open: boolean; orderId: string; selectedItem: PriceL
 const emit = defineEmits<{ close: []; changeItem: []; submit: [payload: ItemPayload]; clearError: [] }>()
 const validationError = ref<string | null>(null)
 const form = reactive({ quantity: '1', specialInstructions: '' })
-const selectedUnit = computed(() => props.selectedItem?.unit)
-const canSubmit = computed(() => props.selectedItem !== null && isValidItemQuantity(form.quantity, selectedUnit.value))
+const canSubmit = computed(() => {
+  const quantity = Number(form.quantity)
+  return props.selectedItem !== null && Number.isInteger(quantity) && quantity > 0
+})
 const isOpen = computed(() => props.open && props.selectedItem !== null)
 const quantityError = computed(() => {
   if (form.quantity.trim() === '' || canSubmit.value) return null
-  return isWeightUnit(selectedUnit.value)
-    ? 'Quantity in kg must be greater than 0 with at most 1 decimal place'
-    : 'Quantity for this unit must be a whole number greater than 0'
+  return 'Quantity must be a whole number greater than 0'
 })
 
 function resetForm() {
@@ -66,7 +65,7 @@ function submit() {
         <button type="button" class="mt-3 text-sm font-bold text-primary underline underline-offset-2" @click="emit('changeItem')">Change item</button>
       </div>
       <p v-if="quantityError" id="order-item-quantity-error" class="rounded-xl border border-error/20 bg-error-container/30 px-3 py-2 text-sm text-on-error-container">{{ quantityError }}</p><p v-if="props.error || validationError" class="rounded-xl border border-error/20 bg-error-container/30 px-3 py-2 text-sm text-on-error-container">{{ props.error || validationError }}</p>
-      <FormInput id="order-item-quantity" v-model="form.quantity" label="Quantity *" type="number" placeholder="1" min="0" :step="itemQuantityStep(selectedUnit)" :inputmode="isWeightUnit(selectedUnit) ? 'decimal' : 'numeric'" :aria-describedby="quantityError ? 'order-item-quantity-error' : undefined" :aria-invalid="Boolean(quantityError)" /><FormTextarea id="order-item-instructions" v-model="form.specialInstructions" label="Additional notes" placeholder="Add any precautions"/>
+      <FormInput id="order-item-quantity" v-model="form.quantity" label="Quantity *" type="number" placeholder="1" min="1" step="1" inputmode="numeric" :aria-describedby="quantityError ? 'order-item-quantity-error' : undefined" :aria-invalid="Boolean(quantityError)" /><FormTextarea id="order-item-instructions" v-model="form.specialInstructions" label="Additional notes" placeholder="Add any precautions"/>
     </fieldset>
   </FormOverlay>
 </template>

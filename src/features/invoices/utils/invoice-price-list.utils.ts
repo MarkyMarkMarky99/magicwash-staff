@@ -33,6 +33,13 @@ export function invoiceUnitOptionFor(unit: string): InvoiceUnitOption {
     : 'custom'
 }
 
+export function invoiceUnitForOrderItem(
+  itemId: string | null,
+  priceListItems: readonly PriceListDto[],
+): string {
+  return priceListItems.find((item) => item.id === itemId)?.unit?.trim() || 'piece'
+}
+
 export function isUnusedPlaceholderLine(row: LineItemFormRow): boolean {
   return (
     row.syntheticPlaceholder === true

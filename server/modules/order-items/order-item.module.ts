@@ -4,8 +4,6 @@ import { getOrderFormRepository } from '../../sheets/OrderForm/OrderForm.reposit
 import { orderFormRowSchema } from '../../sheets/OrderForm/OrderForm.db-contract.js'
 import { getOrderItemFormsRepository } from '../../sheets/OrderItemForms/OrderItemForms.repository.js'
 import { orderItemFormsRowSchema } from '../../sheets/OrderItemForms/OrderItemForms.db-contract.js'
-import { getPriceListRepository } from '../../sheets/PriceList/PriceList.repository.js'
-import { priceListRowSchema } from '../../sheets/PriceList/PriceList.db-contract.js'
 import { Mapper, type ApiRowFromFieldMap } from '../../shared/repositories/base.repository.js'
 import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
 import { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
@@ -18,11 +16,9 @@ import {
   type ServiceListResult,
 } from '../../shared/services/base-crud.service.js'
 import { generateShortId } from '../../shared/utils/id.js'
-import { isValidItemQuantity } from '../../../shared/utils/item-quantity.js'
 
 type OrderItemFormsDbRow = z.infer<typeof orderItemFormsRowSchema>
 type OrderFormDbRow = z.infer<typeof orderFormRowSchema>
-type PriceListDbRow = z.infer<typeof priceListRowSchema>
 
 export const orderItemFieldMap = {
   id: 'orderItemId',
@@ -52,7 +48,6 @@ type OrderItemCreateResponse = z.infer<typeof orderItemApiContract.response.crea
 export interface OrderItemServiceOptions {
   repository?: SheetRepositoryContract<OrderItemFormsDbRow>
   orderFormRepository?: () => SheetRepositoryContract<OrderFormDbRow>
-  priceListRepository?: () => SheetRepositoryContract<PriceListDbRow>
 }
 
 export function createOrderItemId(): string {
@@ -95,7 +90,6 @@ export class OrderItemService extends BaseCrudService<
 > {
   private readonly writeRepository: SheetRepositoryContract<OrderItemFormsDbRow>
   private readonly orderFormRepository: () => SheetRepositoryContract<OrderFormDbRow>
-  private readonly priceListRepository: () => SheetRepositoryContract<PriceListDbRow>
 
   constructor(input: OrderItemServiceOptions = {}) {
     const repository = input.repository ?? createOrderItemRepository()
@@ -107,7 +101,6 @@ export class OrderItemService extends BaseCrudService<
     })
     this.writeRepository = repository
     this.orderFormRepository = input.orderFormRepository ?? getOrderFormRepository
-    this.priceListRepository = input.priceListRepository ?? getPriceListRepository
   }
 
   override async list(query: unknown): Promise<ServiceListResult<OrderItemListResponse>> {
@@ -115,23 +108,10 @@ export class OrderItemService extends BaseCrudService<
     const items = result.items.filter(
       (item) => typeof item.orderItemId === 'string' && item.orderItemId.trim() !== '',
     )
-    const unitsByItemId = await this.readUnitsByItemId(items.map((item) => item.itemId))
 
     return {
-      items: items.map((item) => ({
-        ...item,
-        unit: item.itemId === null ? null : unitsByItemId.get(item.itemId) ?? null,
-      })),
+      items,
       pagination: result.pagination,
-    }
-  }
-
-  override async getById(id: string): Promise<OrderItemDetailResponse> {
-    const item = await super.getById(id)
-    const unitsByItemId = await this.readUnitsByItemId([item.itemId])
-    return {
-      ...item,
-      unit: item.itemId === null ? null : unitsByItemId.get(item.itemId) ?? null,
     }
   }
 
@@ -143,11 +123,6 @@ export class OrderItemService extends BaseCrudService<
     if (rows.length === 0) {
       throw ApiError.notFound(`Resource '${data.orderId}' not found`)
     }
-
-    const unitsByItemId = await this.readUnitsByItemId([data.itemId])
-    assertPriceListItemExists(data.itemId, unitsByItemId)
-    const unit = data.itemId === null ? null : unitsByItemId.get(data.itemId) ?? null
-    validateItemQuantity(data.quantity, unit)
 
     const stored = await this.writeRepository.append({
       id: createOrderItemId(),
@@ -166,52 +141,16 @@ export class OrderItemService extends BaseCrudService<
     const response = Object.fromEntries(
       Object.keys(orderItemResponseSchema.shape).map((key) => [key, apiRow[key]]),
     ) as OrderItemCreateResponse
-    return { ...response, unit }
+    return response
   }
 
   async createMany(rows: Array<Partial<OrderItemFormsDbRow>>): Promise<void> {
-    const unitsByItemId = await this.readUnitsByItemId(rows.map((row) => row.item_id))
     for (const row of rows) {
-      const itemId = typeof row.item_id === 'string' ? row.item_id : null
-      if (typeof row.quantity !== 'number') {
+      if (typeof row.quantity !== 'number' || !Number.isInteger(row.quantity) || row.quantity <= 0) {
         throw ApiError.validation('Invalid item quantity')
       }
-      assertPriceListItemExists(itemId, unitsByItemId)
-      validateItemQuantity(row.quantity, itemId === null ? null : unitsByItemId.get(itemId) ?? null)
     }
     await this.writeRepository.batchAppend(rows)
-  }
-
-  private async readUnitsByItemId(itemIds: Array<string | null | undefined>): Promise<Map<string, string | null>> {
-    const requestedIds = new Set(itemIds.filter((itemId): itemId is string => typeof itemId === 'string' && itemId.trim() !== ''))
-    if (requestedIds.size === 0) return new Map()
-
-    const rows = await this.priceListRepository().read()
-    return new Map(
-      rows.flatMap((row) =>
-        typeof row.id === 'string' && requestedIds.has(row.id)
-          ? [[row.id, row.unit ?? null] as const]
-          : [],
-      ),
-    )
-  }
-}
-
-function assertPriceListItemExists(
-  itemId: string | null,
-  unitsByItemId: ReadonlyMap<string, string | null>,
-): void {
-  if (itemId !== null && !unitsByItemId.has(itemId)) {
-    throw ApiError.notFound(`Price list item '${itemId}' not found`)
-  }
-}
-
-function validateItemQuantity(quantity: number, unit: string | null): void {
-  if (!isValidItemQuantity(quantity, unit)) {
-    throw ApiError.validation(
-      'kg quantity must use at most one decimal place; other units require a positive whole number',
-      { fieldErrors: { quantity: ['Invalid quantity for the price-list unit'] } },
-    )
   }
 }
 

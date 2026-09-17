@@ -6,9 +6,11 @@ const source = readFileSync(
   'utf8',
 )
 
-assert.match(source, /isValidItemQuantity\(form\.quantity, selectedUnit\.value\)/)
-assert.match(source, /:step="itemQuantityStep\(selectedUnit\)"/)
-assert.match(source, /isWeightUnit\(selectedUnit\)/)
+assert.match(source, /Number\.isInteger\(quantity\) && quantity > 0/)
+assert.match(source, /step="1"/)
+assert.match(source, /inputmode="numeric"/)
+assert.match(source, /Quantity must be a whole number greater than 0/)
+assert.doesNotMatch(source, /selectedItem\?\.unit|selectedUnit|isValidItemQuantity|isWeightUnit|itemQuantityStep/)
 assert.match(source, /:aria-describedby="quantityError \? 'order-item-quantity-error' : undefined"/)
 assert.match(source, /:aria-invalid="Boolean\(quantityError\)"/)
 

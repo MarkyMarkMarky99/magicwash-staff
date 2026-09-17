@@ -28,7 +28,9 @@ assert.match(editor, /isWeightUnit\(line\.unit\)/)
 assert.doesNotMatch(editor, /line\.quantity[\s\S]{0,120}step="any"/)
 
 assert.match(createPage, /isValidItemQuantity\(item\.quantity, item\.unit\)/)
-assert.match(createPage, /const unit = item\.unit\?\.trim\(\) \|\| 'piece'/)
+assert.match(createPage, /invoiceUnitForOrderItem\(item\.itemId, priceListStore\.items\)/)
+assert.match(createPage, /loadInvoiceCreateContext\(customerId, orderId\)[\s\S]{0,100}priceListStore\.load\(\)/)
+assert.doesNotMatch(createPage, /item\.unit\?\.trim\(\)/)
 
 const contextService = source('features/invoices/services/invoice-create-context.service.ts')
 const workOrderService = source('data/work-orders/work-order.service.ts')

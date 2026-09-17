@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { z } from 'zod'
 import { orderItemResponseSchema } from '../../../../../contracts/order-items/order-item-api.schema.js'
 import { orderFormRowSchema } from '../../../../../server/sheets/OrderForm/OrderForm.db-contract.js'
-import { priceListRowSchema } from '../../../../../server/sheets/PriceList/PriceList.db-contract.js'
 import type { SheetRepositoryContract } from '../../../../../server/shared/repositories/sheet-repository.contract.js'
 import { ReadQueryDTO } from '../../../../../server/shared/dtos/read-query.dto.js'
 import { ApiError } from '../../../../../server/shared/http/api-error.js'
@@ -10,7 +10,6 @@ import { API_ERROR_CODES } from '../../../../../contracts/shared/api.schema.js'
 
 type OrderItemFormsDbRow = z.infer<typeof import('../../../../../server/sheets/OrderItemForms/OrderItemForms.db-contract.js').orderItemFormsRowSchema>
 type OrderFormDbRow = z.infer<typeof orderFormRowSchema>
-type PriceListDbRow = z.infer<typeof priceListRowSchema>
 type ItemReadRow = Omit<Partial<OrderItemFormsDbRow>, 'id'> & { id?: string | null }
 
 interface FakeItemRepository extends SheetRepositoryContract<OrderItemFormsDbRow> {
@@ -25,10 +24,6 @@ interface FakeOrderRepository extends SheetRepositoryContract<OrderFormDbRow> {
   readRows: Array<Partial<OrderFormDbRow>>
   readQueries: Array<unknown>
 }
-interface FakePriceListRepository extends SheetRepositoryContract<PriceListDbRow> {
-  readRows: Array<Partial<PriceListDbRow>>
-}
-
 function makeItemRepository(): FakeItemRepository {
   const repository = {
     readRows: [] as Array<Partial<OrderItemFormsDbRow>>,
@@ -63,33 +58,19 @@ function makeOrderRepository(): FakeOrderRepository {
   return repository as FakeOrderRepository
 }
 
-function makePriceListRepository(): FakePriceListRepository {
-  const repository = {
-    readRows: [] as Array<Partial<PriceListDbRow>>,
-    async read() { return repository.readRows },
-    async append() { throw new Error('not used') },
-    async batchAppend() { throw new Error('not used') },
-    async update() { throw new Error('not used') },
-    async delete() { throw new Error('not used') },
-  }
-  return repository
-}
+const orderItemSource = readFileSync(
+  new URL('../../../../../server/modules/order-items/order-item.module.ts', import.meta.url),
+  'utf8',
+)
+assert.doesNotMatch(orderItemSource, /PriceList|priceList/)
 
 const orderItemModule = await import('../../../../../server/modules/order-items/order-item.module.js')
 const { OrderItemService } = orderItemModule
 const itemRepository = makeItemRepository()
 const orderRepository = makeOrderRepository()
-const priceListRepository = makePriceListRepository()
-priceListRepository.readRows = [
-  { id: 'item-1', unit: 'piece' },
-  { id: 'item-2', unit: 'piece' },
-  { id: 'item-from-request', unit: 'piece' },
-  { id: 'weight-item', unit: 'kg' },
-]
 const service = new OrderItemService({
   repository: itemRepository,
   orderFormRepository: () => orderRepository,
-  priceListRepository: () => priceListRepository,
 })
 
 itemRepository.readRows = [
@@ -102,7 +83,7 @@ itemRepository.readRows = [
 const listed = await service.list({ keyword: '', orderId: 'order-1', page: 2, perPage: 5, sortBy: 'createdAt', sortOrder: 'desc' })
 assert.deepEqual(listed, {
   items: [{ orderItemId: 'fc60a477', orderId: 'order-1', itemId: 'item-1', description: 'shirt', quantity: 2,
-    price: 25, creditsUsed: 1, serviceType: '\u0e0b\u0e31\u0e01\u0e23\u0e35\u0e14', unit: 'piece', specialInstructions: 'fold',
+    price: 25, creditsUsed: 1, serviceType: '\u0e0b\u0e31\u0e01\u0e23\u0e35\u0e14', specialInstructions: 'fold',
     createdAt: '2026-08-30 10:00:00', createdBy: 'staff-1' }],
   pagination: { page: 2, perPage: 5 },
 })
@@ -124,17 +105,16 @@ assert.equal('timestamp' in appended, false)
 assert.equal('serviceType' in appended, false)
 assert.deepEqual(Object.keys(created).sort(), Object.keys(orderItemResponseSchema.shape).sort())
 assert.equal(created.serviceType, parentServiceType)
-assert.equal(created.unit, 'piece')
 
 await assert.rejects(
-  () => service.create({ orderId: 'order-1', itemId: 'item-from-request', description: 'trousers', quantity: 1.5,
+  () => service.create({ orderId: 'order-1', itemId: 'weight-item', description: 'laundry by weight', quantity: 1.5,
     price: 30, specialInstructions: null, createdBy: 'staff-2' }),
   (error: unknown) => error instanceof ApiError && error.status === 422,
 )
-const weighted = await service.create({ orderId: 'order-1', itemId: 'weight-item', description: 'laundry by weight', quantity: 1.5,
+const unlisted = await service.create({ orderId: 'order-1', itemId: 'not-in-price-list', description: 'unlisted garment', quantity: 2,
   price: 60, specialInstructions: null, createdBy: 'staff-2' })
-assert.equal(weighted.quantity, 1.5)
-assert.equal(weighted.unit, 'kg')
+assert.equal(unlisted.quantity, 2)
+assert.equal(unlisted.itemId, 'not-in-price-list')
 
 const missingItemRepository = makeItemRepository()
 const missingOrderRepository = makeOrderRepository()
@@ -156,6 +136,14 @@ const rowsForBatch = [{ order_id: 'order-1', item_id: 'item-1', quantity: 1 }, {
 await service.createMany(rowsForBatch)
 assert.equal(itemRepository.batchAppendRows.length, 1)
 assert.deepEqual(itemRepository.batchAppendRows[0], rowsForBatch)
+
+for (const quantity of [undefined, 0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+  await assert.rejects(
+    () => service.createMany([{ order_id: 'order-1', item_id: 'item-1', quantity }]),
+    (error: unknown) => error instanceof ApiError && error.status === 422,
+  )
+}
+assert.equal(itemRepository.batchAppendRows.length, 1)
 
 const previousSpreadsheetId = process.env.ORDERS_SPREADSHEET_ID
 process.env.ORDERS_SPREADSHEET_ID = 'order-item-forms-wrapper-test-spreadsheet'

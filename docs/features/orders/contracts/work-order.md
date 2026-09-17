@@ -81,8 +81,8 @@ Request
 - `orderDescription` — string, nullable, default `null`
 - `createdBy` — string, required
 - `items` — `WorkOrderCreateItem[]`, default `[]` (the order-item create body minus `orderId` and
-  `createdBy`; it carries no `serviceType` — the header's applies to every line). Linked Price
-  List unit `kg` permits quantity with at most one decimal place; other units require whole numbers.
+  `createdBy`; it carries no `serviceType` — the header's applies to every line). Each item quantity
+  is a positive whole-number garment count.
 - not accepted: `orderId`, `orderNumber`, `status`, `invoiceNumber`, `timestamp`, `updatedAt`,
   `updatedBy`
 

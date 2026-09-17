@@ -3,6 +3,7 @@ import type { PriceListDto } from '../../../../../../src/data/price-list/price-l
 import {
   appendPickedLine,
   filterInvoicePriceListItems,
+  invoiceUnitForOrderItem,
   invoiceUnitOptionFor,
   isUnusedPlaceholderLine,
   toLineItemFormRow,
@@ -58,6 +59,10 @@ assert.equal(customUnit.unit, 'bag')
 assert.equal(customUnit.unitPrice, '125')
 assert.equal(invoiceUnitOptionFor('kg'), 'kg')
 assert.equal(invoiceUnitOptionFor('bag'), 'custom')
+assert.equal(invoiceUnitForOrderItem('pl-1', [item({ unit: 'kg' })]), 'kg')
+assert.equal(invoiceUnitForOrderItem('missing', [item({ unit: 'kg' })]), 'piece')
+assert.equal(invoiceUnitForOrderItem(null, [item({ unit: 'kg' })]), 'piece')
+assert.equal(invoiceUnitForOrderItem('pl-1', [item({ unit: '   ' })]), 'piece')
 
 assert.equal(isUnusedPlaceholderLine(createSyntheticPlaceholderLine()), true)
 assert.deepEqual(appendPickedLine([], picked), [picked])

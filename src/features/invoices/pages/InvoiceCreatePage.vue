@@ -42,6 +42,7 @@ import { isValidItemQuantity } from '@shared/utils/item-quantity'
 import {
   appendPickedLine,
   filterInvoicePriceListItems,
+  invoiceUnitForOrderItem,
   invoiceUnitOptionFor,
   toLineItemFormRow,
 } from '../utils/invoice-price-list.utils'
@@ -214,7 +215,7 @@ function initializeForm(currentOrder: InvoiceCreateOrder) {
 
   items.value = currentOrder.items.length > 0
     ? currentOrder.items.map((item) => {
-      const unit = item.unit?.trim() || 'piece'
+      const unit = invoiceUnitForOrderItem(item.itemId, priceListStore.items)
       return {
         key: crypto.randomUUID(),
         description: item.description ?? '',
@@ -255,7 +256,10 @@ async function syncCreateContext() {
   items.value = []
 
   try {
-    const context = await loadInvoiceCreateContext(customerId, orderId)
+    const [context] = await Promise.all([
+      loadInvoiceCreateContext(customerId, orderId),
+      priceListStore.load(),
+    ])
     if (requestId !== contextRequestId) return
 
     customer.value = context.customer
