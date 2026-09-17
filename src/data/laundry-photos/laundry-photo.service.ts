@@ -13,31 +13,30 @@ export type CreateLaundryPhotoPayload = z.infer<typeof laundryPhotoCreateSchema>
 type LaundryPhotoDto = z.infer<typeof laundryPhotoResponseSchema>
 export interface GalleryPhoto {
   id: string
+  orderItemId: string | null
   imageUrl: string
   notes: string | null
 }
 
 const LAUNDRY_PHOTOS_ENDPOINT = '/api/laundry-photos'
 
-function normalizePhotos<T extends { imageUrl: string | null; notes: string | null }>(
+function normalizePhotos<T extends { orderItemId: string | null; imageUrl: string | null; notes: string | null }>(
   photos: T[],
   getId: (photo: T) => string,
 ): GalleryPhoto[] {
   return photos.flatMap(photo => (
     photo.imageUrl
-      ? [{ id: getId(photo), imageUrl: photo.imageUrl, notes: photo.notes }]
+      ? [{ id: getId(photo), orderItemId: photo.orderItemId, imageUrl: photo.imageUrl, notes: photo.notes }]
       : []
   ))
 }
 
 export async function listLaundryPhotos(
   orderId: string,
-  orderItemId: string | null = null,
   onFresh?: (photos: GalleryPhoto[]) => void,
 ): Promise<GalleryPhoto[]> {
-  const query = orderItemId ? { orderId, orderItemId } : { orderId }
   const { items } = await apiGetList<LaundryPhotoDto>(LAUNDRY_PHOTOS_ENDPOINT, {
-    query,
+    query: { orderId },
     querySchema: laundryPhotoListQuerySchema,
     onFresh: onFresh
       ? ({ items: freshItems }) => onFresh(

@@ -5,6 +5,7 @@ import {
   listGalleryPhotos,
   reassignPhoto,
 } from '@/features/gallery/services/laundry-photo.service'
+import { invalidate, readCache, writeCache } from '@/shared/api/response-cache'
 
 interface Call {
   body: string
@@ -35,6 +36,7 @@ async function withMockFetch(run: (calls: Call[]) => Promise<void>): Promise<voi
 }
 
 await withMockFetch(async (calls) => {
+  invalidate()
   const createPayload = {
     orderId: 'order-1',
     imageUrl: 'https://example.com/photo.jpg',
@@ -44,10 +46,21 @@ await withMockFetch(async (calls) => {
   }
   const payload = { orderItemId: 'item-2', updatedBy: 'staff-1' }
 
+  writeCache('/api/laundry-photos?orderId=order-1', ['stale'])
   await createPhoto('BEF', createPayload)
+  assert.equal(readCache('/api/laundry-photos?orderId=order-1'), null)
+
+  writeCache('/api/after-photos?orderId=order-1', ['stale'])
   await createPhoto('AFT', createPayload)
+  assert.equal(readCache('/api/after-photos?orderId=order-1'), null)
+
+  writeCache('/api/laundry-photos?orderId=order-1', ['stale'])
   await reassignPhoto('BEF', 'photo/before-1', payload)
+  assert.equal(readCache('/api/laundry-photos?orderId=order-1'), null)
+
+  writeCache('/api/after-photos?orderId=order-1', ['stale'])
   await reassignPhoto('AFT', 'photo-after-1', payload)
+  assert.equal(readCache('/api/after-photos?orderId=order-1'), null)
 
   assert.equal(calls.length, 4)
   assert.equal(calls[0]!.url.pathname, '/api/laundry-photos')
@@ -90,20 +103,26 @@ await withMockFetch(async (calls) => {
     () => reassignPhoto('AFT', 'photo-missing-actor', { orderItemId: 'item-2' } as never),
   )
   assert.equal(calls.length, 4, 'invalid payloads must be rejected before a request')
+  invalidate()
 })
 
 const originalFetch = globalThis.fetch
+const originalNow = Date.now
 const listCalls: URL[] = []
+let now = Date.now()
+let afterVersion = 1
+Date.now = () => now
 globalThis.fetch = (async (input: URL | string) => {
   const url = new URL(String(input), 'http://localhost')
   listCalls.push(url)
   const data = url.pathname === '/api/laundry-photos'
     ? [
-        { laundryPhotoId: 'before-1', imageUrl: 'https://example.com/before.jpg', notes: 'before' },
-        { laundryPhotoId: 'before-missing', imageUrl: null, notes: null },
+        { laundryPhotoId: 'before-1', orderItemId: 'item-before', imageUrl: 'https://example.com/before.jpg', notes: 'before' },
+        { laundryPhotoId: 'before-missing', orderItemId: null, imageUrl: null, notes: null },
       ]
     : [
-        { afterPhotoId: 'after-1', imageUrl: 'https://example.com/after.jpg', notes: null },
+        { afterPhotoId: 'after-1', orderItemId: 'item-after', imageUrl: `https://example.com/after-${afterVersion}.jpg`, notes: null },
+        { afterPhotoId: 'after-2', orderItemId: 'item-other', imageUrl: 'https://example.com/other.jpg', notes: 'other' },
       ]
   return new Response(JSON.stringify({
     success: true,
@@ -116,8 +135,9 @@ globalThis.fetch = (async (input: URL | string) => {
 }) as typeof fetch
 
 try {
+  invalidate()
   const beforePhotos = await listGalleryPhotos('BEF', 'order-before')
-  const afterPhotos = await listGalleryPhotos('AFT', 'order-after', 'item-after')
+  const afterPhotos = await listGalleryPhotos('AFT', 'order-after')
 
   assert.equal(listCalls.length, 2)
   assert.equal(listCalls[0]!.pathname, '/api/laundry-photos')
@@ -129,26 +149,43 @@ try {
   assert.equal(listCalls[0]!.searchParams.get('sortOrder'), 'asc')
   assert.equal(listCalls[1]!.pathname, '/api/after-photos')
   assert.equal(listCalls[1]!.searchParams.get('orderId'), 'order-after')
-  assert.equal(listCalls[1]!.searchParams.get('orderItemId'), 'item-after')
+  assert.equal(listCalls[1]!.searchParams.has('orderItemId'), false)
   assert.equal(listCalls[1]!.searchParams.get('page'), '1')
   assert.equal(listCalls[1]!.searchParams.get('perPage'), '500')
   assert.equal(listCalls[1]!.searchParams.get('sortBy'), 'createdAt')
   assert.equal(listCalls[1]!.searchParams.get('sortOrder'), 'asc')
   assert.deepEqual(beforePhotos, [
-    { id: 'before-1', imageUrl: 'https://example.com/before.jpg', notes: 'before' },
+    { id: 'before-1', orderItemId: 'item-before', imageUrl: 'https://example.com/before.jpg', notes: 'before' },
   ])
   assert.deepEqual(afterPhotos, [
-    { id: 'after-1', imageUrl: 'https://example.com/after.jpg', notes: null },
+    { id: 'after-1', orderItemId: 'item-after', imageUrl: 'https://example.com/after-1.jpg', notes: null },
+    { id: 'after-2', orderItemId: 'item-other', imageUrl: 'https://example.com/other.jpg', notes: 'other' },
   ])
 
-  let freshBeforePhotos: Awaited<ReturnType<typeof listGalleryPhotos>> | null = null
-  await listGalleryPhotos('BEF', 'order-before', null, (photos) => {
-    freshBeforePhotos = photos
+  const beforeItemPhotos = await listGalleryPhotos('BEF', 'order-before', 'item-before')
+  assert.deepEqual(beforeItemPhotos, beforePhotos)
+
+  const itemPhotos = await listGalleryPhotos('AFT', 'order-after', 'item-after')
+  assert.deepEqual(itemPhotos, [
+    { id: 'after-1', orderItemId: 'item-after', imageUrl: 'https://example.com/after-1.jpg', notes: null },
+  ])
+  assert.equal(listCalls.length, 2, 'item views reuse both fresh full-album responses')
+
+  now += 60 * 60 * 1000 + 1
+  afterVersion = 2
+  let freshItemPhotos: Awaited<ReturnType<typeof listGalleryPhotos>> | null = null
+  const staleItemPhotos = await listGalleryPhotos('AFT', 'order-after', 'item-after', (photos) => {
+    freshItemPhotos = photos
   })
+  assert.deepEqual(staleItemPhotos, itemPhotos, 'a stale item view returns cached photos immediately')
   await new Promise(resolve => setTimeout(resolve, 0))
-  assert.deepEqual(freshBeforePhotos, beforePhotos)
+  assert.deepEqual(freshItemPhotos, [
+    { id: 'after-1', orderItemId: 'item-after', imageUrl: 'https://example.com/after-2.jpg', notes: null },
+  ])
   assert.equal(listCalls.length, 3)
 } finally {
+  invalidate()
+  Date.now = originalNow
   globalThis.fetch = originalFetch
 }
 

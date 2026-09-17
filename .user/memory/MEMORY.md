@@ -4,7 +4,7 @@ Live note for the next session. Branch: `refactor/order-detail-ui`.
 
 ## Branches in flight
 
-- **`refactor/order-detail-ui`** — order-detail UI pass plus removal of the price-list `unit` join from order items. Not browser-verified.
+- **`refactor/order-detail-ui`** — order-detail UI pass, removal of the price-list `unit` join from order items, and the gallery fetch/cache rework. Gallery verified in a browser; the `unit` change is not.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 228 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 
 ## Pending work
@@ -28,7 +28,7 @@ Live note for the next session. Branch: `refactor/order-detail-ui`.
   - Backfill `Cache-Control` on existing photos after Firebase bucket credentials are available. See `docs/plans/image-pipeline.md`.
   - Review real document scans and decide whether the scanner output is acceptable before changing order-image compression.
   - Fix gallery `created_by`: it is read only from `?by=`, and the frontend fallback can fail silently.
-  - Remove unnecessary gallery revisit work: `OrderGalleryPage.vue` clears `requestedKey` on deactivation and clears photos before a fetch resolves.
+  - Deferred: preloading the image files themselves on order detail; only photo metadata is prefetched. Decide once photo counts per order are known.
   - Move `usePhotoUpload.js` into the gallery feature and decide where legacy photo capture belongs.
   - Do not re-propose lazy-loading the gallery route: staff open it on nearly every order.
   - Audit and update gallery-read documentation in `docs/architecture/frontend/feature-structure.md`, `docs/features/orders/overview.md`, and `docs/features/orders/forms/create-order-image.md`.

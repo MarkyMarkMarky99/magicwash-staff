@@ -26,12 +26,17 @@ export async function listGalleryPhotos(
   orderItemId: string | null = null,
   onFresh?: (photos: GalleryPhoto[]) => void,
 ): Promise<GalleryPhoto[]> {
+  const selectPhotos = (photos: GalleryPhoto[]) => (
+    orderItemId ? photos.filter(photo => photo.orderItemId === orderItemId) : photos
+  )
+  const handleFresh = onFresh ? (photos: GalleryPhoto[]) => onFresh(selectPhotos(photos)) : undefined
+
   if (type === 'BEF') {
-    return listLaundryPhotos(orderId, orderItemId, onFresh)
+    return selectPhotos(await listLaundryPhotos(orderId, handleFresh))
   }
 
   if (type === 'AFT') {
-    return listAfterPhotos(orderId, orderItemId, onFresh)
+    return selectPhotos(await listAfterPhotos(orderId, handleFresh))
   }
 
   throw new Error(`Unsupported gallery photo type: ${String(type)}`)

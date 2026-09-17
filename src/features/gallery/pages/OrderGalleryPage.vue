@@ -59,20 +59,26 @@ const fetchedPhotos = ref([])
 const fetchStatus = ref('loading')
 let fetchSequence = 0
 let requestedKey = ''
+let fetchedSourceKey = ''
 
 async function loadFetchedPhotos(key) {
   const parsed = parseKey(key)
   if (!parsed.type || !parsed.orderId) {
     fetchedPhotos.value = []
+    fetchedSourceKey = ''
     fetchStatus.value = 'error'
     return
   }
 
   const sequence = ++fetchSequence
+  const sourceKey = `${parsed.type}-${parsed.orderId}`
   requestedKey = key
   clearAll()
-  fetchedPhotos.value = []
-  fetchStatus.value = 'loading'
+  if (sourceKey !== fetchedSourceKey) {
+    fetchedPhotos.value = []
+    fetchedSourceKey = ''
+    fetchStatus.value = 'loading'
+  }
   lightbox.value = null
   reassignError.value = null
   orderItems.value = []
@@ -88,10 +94,12 @@ async function loadFetchedPhotos(key) {
       (freshPhotos) => {
         if (sequence !== fetchSequence) return
         fetchedPhotos.value = freshPhotos
+        fetchedSourceKey = sourceKey
       },
     )
     if (sequence !== fetchSequence) return
     fetchedPhotos.value = photos
+    fetchedSourceKey = sourceKey
     fetchStatus.value = 'done'
   } catch {
     if (sequence !== fetchSequence) return
@@ -117,7 +125,6 @@ onActivated(() => {
 })
 
 onDeactivated(() => {
-  requestedKey = ''
   fetchSequence += 1
 })
 

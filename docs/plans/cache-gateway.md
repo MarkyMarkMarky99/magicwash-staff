@@ -76,12 +76,15 @@ why the size cap and eviction below are not optional.
  *  cached copy first so the page never waits on the network. */
 export const DEFAULT_CACHE_HOURS = 0
 
-/** Per-endpoint overrides, matched against the start of the request path.
- *  Being listed here ALSO means the entry is persisted to localStorage. */
+/** Per-endpoint overrides, matched against the start of the request path. */
 const CACHE_HOURS: Record<string, number> = {
-  '/api/customers': 24,
-  '/api/price-list': 24,
+  '/api/after-photos': 1,
+  '/api/customers': 1,
+  '/api/laundry-photos': 1,
+  '/api/price-list': 1,
 }
+
+const PERSIST_ENDPOINTS = ['/api/customers', '/api/price-list']
 
 /** Endpoints that must never be cached at all. */
 const NEVER_CACHE: string[] = []
@@ -94,8 +97,8 @@ Matching is by path prefix, so `/api/customers` covers every query string on tha
 `invalidate('/api/customers')` clears the whole group under the same rule.
 
 Only `/api/customers` (140 KB) and `/api/price-list` (30 KB) are worth persisting: they barely
-change. Invoices and orders change daily and are queried under many filter combinations, so
-persisting them only churns the store.
+change. Photo lists have a one-hour in-memory freshness window, but photos, invoices, and orders
+change daily, so persisting them only churns the store.
 
 ### Build order
 
@@ -110,15 +113,12 @@ persisting them only churns the store.
 5. ~~A staff-facing refresh control that calls `invalidate()`.~~ Built as the bottom-pinned
    "รีเฟรชข้อมูล" action in `NavSidebar.vue`, plus an `invalidate()` call on all 14 write services.
 
-6. ~~Raise the first TTLs.~~ `/api/customers` and `/api/price-list` sit at **1 hour**, not the 24
-   proposed above: the write path is only as good as its least-covered branch, and an hour bounds
-   how long a missed `invalidate()` — or an edit made on another device or straight in the sheet —
-   can stay invisible. This is the step that changes observable behaviour; everything before it was
-   inert.
-
-**Known gap, not a blocker:** no call site passes `onFresh` yet, so on a stale hit the background
-refresh updates the cache but the view that triggered it keeps showing the old copy until the next
-read. Wiring it into the customer and price-list stores is the natural follow-up.
+6. ~~Raise the first TTLs.~~ `/api/customers`, `/api/price-list`, `/api/laundry-photos`, and
+   `/api/after-photos` sit at **1 hour**, not the 24 originally proposed: the write path is only as
+   good as its least-covered branch, and an hour bounds how long an edit made on another device or
+   straight in the sheet can stay invisible. Every frontend write to these endpoints invalidates
+   its cached variants. Their list consumers pass `onFresh`, so a stale hit paints immediately and
+   swaps in the background refresh when it resolves.
 
 ### Three failure modes to handle
 

@@ -19,6 +19,7 @@ import CameraOverlay from '@/shared/components/CameraOverlay.vue'
 import DocumentScannerOverlay from '@/features/orders/components/DocumentScannerOverlay.vue'
 import OrderImageSection from '@/features/orders/components/OrderImageSection.vue'
 import { useOrderImageStore } from '@/features/orders/stores/order-image.store'
+import { listLaundryPhotos } from '@/data/laundry-photos/laundry-photo.service'
 import OrderImageWeightPrompt from '@/features/orders/components/OrderImageWeightPrompt.vue'
 import { useOrderOverlayRoute } from '@/features/orders/composables/use-order-overlay-route'
 import { imageTypeToOverlay, overlayToImageType, readOrderImageWeight } from '@/features/orders/composables/use-order-overlay-route'
@@ -110,6 +111,7 @@ watch(orderId, (id) => {
   if (id) {
     void workOrderStore.loadDetail(id)
     void orderImageStore.loadImages(id)
+    void listLaundryPhotos(id).catch(() => {})
     return
   }
   workOrderStore.clearDetail()

@@ -14,25 +14,23 @@ type AfterPhotoDto = z.infer<typeof afterPhotoResponseSchema>
 
 const AFTER_PHOTOS_ENDPOINT = '/api/after-photos'
 
-function normalizePhotos<T extends { imageUrl: string | null; notes: string | null }>(
+function normalizePhotos<T extends { orderItemId: string | null; imageUrl: string | null; notes: string | null }>(
   photos: T[],
   getId: (photo: T) => string,
 ): GalleryPhoto[] {
   return photos.flatMap(photo => (
     photo.imageUrl
-      ? [{ id: getId(photo), imageUrl: photo.imageUrl, notes: photo.notes }]
+      ? [{ id: getId(photo), orderItemId: photo.orderItemId, imageUrl: photo.imageUrl, notes: photo.notes }]
       : []
   ))
 }
 
 export async function listAfterPhotos(
   orderId: string,
-  orderItemId: string | null = null,
   onFresh?: (photos: GalleryPhoto[]) => void,
 ): Promise<GalleryPhoto[]> {
-  const query = orderItemId ? { orderId, orderItemId } : { orderId }
   const { items } = await apiGetList<AfterPhotoDto>(AFTER_PHOTOS_ENDPOINT, {
-    query,
+    query: { orderId },
     querySchema: afterPhotoListQuerySchema,
     onFresh: onFresh
       ? ({ items: freshItems }) => onFresh(

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { CACHE_MAX_BYTES } from '@/shared/config/cache'
+import { CACHE_MAX_BYTES, cachePolicyFor } from '@/shared/config/cache'
 import {
   cacheStats,
   invalidate,
@@ -28,8 +28,7 @@ assert.equal(readCache('/api/work-orders?page=2'), null, 'a different query is a
 // network behaviour identical to before the cache existed.
 assert.equal(hit.fresh, false, 'a 0-hour endpoint is always stale')
 
-// The two near-static lists are the only endpoints with a real window. A fresh hit is
-// the one thing that actually removes a request, so it is asserted directly.
+// Endpoints with a real window produce fresh hits that remove requests.
 writeCache('/api/customers', [{ customerId: 'CUS-1' }])
 const customers = readCache('/api/customers')
 assert.ok(customers, 'endpoints marked for persistence cache the same way')
@@ -39,6 +38,11 @@ assert.equal(
   null,
   'a TTL does not make an unwritten filter variant a hit',
 )
+for (const endpoint of ['/api/laundry-photos', '/api/after-photos']) {
+  writeCache(`${endpoint}?orderId=order-1`, [])
+  assert.equal(readCache(`${endpoint}?orderId=order-1`)?.fresh, true)
+  assert.equal(cachePolicyFor(endpoint).persist, false, 'photo responses stay memory-only')
+}
 
 // --- invalidate clears an endpoint and all of its filtered variants -------------------
 writeCache('/api/customers?keyword=a', [])
