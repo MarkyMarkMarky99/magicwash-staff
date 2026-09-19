@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { serviceTypeLabel } from '@/shared/utils/service-type-labels'
+import { formatCustomerLabel } from '@/shared/utils/customer-label'
 import type { z } from 'zod'
 import type { workOrderListResponseSchema } from '@contracts/work-orders/work-order-api.schema'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
@@ -12,7 +13,7 @@ import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
 import { presentationFor } from '../order-status-presentation'
 
 type WorkOrderListDto = z.infer<typeof workOrderListResponseSchema>
-export type OrderRowData = WorkOrderListDto & { customerName?: string | null }
+export type OrderRowData = WorkOrderListDto & { customerName?: string | null; customerIndex?: string | null }
 
 const props = defineProps<{
   order: OrderRowData
@@ -42,6 +43,7 @@ function selectOrder() {
   emit('select', props.order.orderId)
 }
 
+const customerLabel = computed(() => formatCustomerLabel(props.order.customerName?.trim() ? props.order.customerName : props.order.customerId, props.order.customerIndex))
 const dateLineSlot = computed(() => props.showCustomerName ? 'line2' : 'line1')
 const noteLineSlot = computed(() => props.showCustomerName ? 'line3' : 'line2')
 </script>
@@ -50,7 +52,7 @@ const noteLineSlot = computed(() => props.showCustomerName ? 'line3' : 'line2')
   <BaseSwipeCard :swipeable="false" :pressable="true" @tap="selectOrder">
     <BaseRowCard
       :line1="showCustomerName
-        ? (order.customerName?.trim() ? order.customerName : order.customerId)
+        ? customerLabel
         : formatSheetDate(order.receivedDate)"
     >
       <template #lead>
@@ -61,7 +63,7 @@ const noteLineSlot = computed(() => props.showCustomerName ? 'line3' : 'line2')
         />
       </template>
       <template v-if="showCustomerName" #line1>
-        {{ showCustomerName && order.customerName?.trim() ? order.customerName : order.customerId }}
+        {{ customerLabel }}
       </template>
       <template #[dateLineSlot]>
         <span class="flex min-w-0 items-center gap-1.5 font-body text-xs font-normal text-on-surface-variant">

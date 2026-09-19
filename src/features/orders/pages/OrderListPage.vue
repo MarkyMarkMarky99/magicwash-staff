@@ -22,11 +22,15 @@ const statusTabs = [
   { key: '', label: 'ทั้งหมด' },
   ...Object.entries(orderStatusLabels).map(([key, label]) => ({ key, label })),
 ]
-const customerNamesById = computed(() => new Map(
-  customers.value.map((customer) => [customer.customerId, customer.customerName]),
+const customersById = computed(() => new Map(
+  customers.value.map((customer) => [customer.customerId, customer]),
 ))
 const orderRows = computed(() => orders.value.map(
-  (order) => ({ ...order, customerName: customerNamesById.value.get(order.customerId) }),
+  (order) => ({
+    ...order,
+    customerName: customersById.value.get(order.customerId)?.customerName,
+    customerIndex: customersById.value.get(order.customerId)?.customerIndex,
+  }),
 ))
 
 watch([keyword, status, page], () => void orderStore.loadList({ keyword: keyword.value, status: status.value, page: page.value }), { immediate: true })
