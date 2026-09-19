@@ -1,10 +1,9 @@
 # Project memory
 
-Live note for the next session. Branch: `feat/appointment-card-open-customer`.
+Live note for the next session. Branch: `main`.
 
 ## Branches in flight
 
-- **`feat/appointment-card-open-customer`** — appointment card tap opens customer detail; browser-verified, not merged.
 - **`refactor/order-detail-ui`** — order-detail UI pass, removal of the price-list `unit` join from order items, and the gallery fetch/cache rework. Gallery verified in a browser; the `unit` change is not.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 228 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 
@@ -81,3 +80,4 @@ Live note for the next session. Branch: `feat/appointment-card-open-customer`.
   - Browser-check ListContainer search, theme consistency, and the order-detail dropdown at the bottom edge.
   - Give `BaseOverlayFrame` a full-bleed size so `LightboxOverlay` can drop its five `!important` padding overrides; then delete `docs/plans/scroll-region.md` and `docs/plans/overlay-frame.md` when unreferenced.
   - Delete sheet test data: `Packages` `ZZTEST01` / `af9f0651`; `OrderForm` `246fde2b`, `cc4d375e`, `f68ae08d`; `LaundryPhotos` `QK0H9DT1`, `a260b2b1`, `1b7649ba`; `AfterPhoto` `0aacd052`.
+  - Browser-check the appointment card status badge now sitting in the top-end slot on both the schedule and pending pages.
