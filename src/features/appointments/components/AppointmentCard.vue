@@ -5,6 +5,7 @@ import BaseRowCard from '@/shared/components/BaseRowCard.vue'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
+import { formatCustomerLabel } from '@/shared/utils/customer-label'
 import type { AppointmentListDto } from '@/data/appointments/appointment.service'
 
 type AppointmentStatus = AppointmentListDto['status']
@@ -60,6 +61,7 @@ const next = computed(() => nextStatus[props.appointment.status])
 const action = computed(() => next.value ? actionLabels[next.value] : null)
 const canReschedule = computed(() => !['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(props.appointment.status))
 const formattedDate = computed(() => formatSheetDate(props.appointment.appointmentDate))
+const customerLabel = computed(() => formatCustomerLabel(props.appointment.customerName || props.appointment.customerId, props.appointment.customerCode))
 const vehicle = computed(() => props.appointment.vehicle ? vehicleConfig[props.appointment.vehicle] : null)
 
 onUnmounted(() => clearTimeout(toastTimer))
@@ -131,7 +133,7 @@ function openMaps() {
       </template>
 
       <BaseRowCard
-        :line1="appointment.customerName || appointment.customerId"
+        :line1="customerLabel"
         :density="variant === 'pending' ? 'roomy' : 'compact'"
       >
         <template #lead>
@@ -145,12 +147,11 @@ function openMaps() {
         </template>
         <template #line1>
           <span class="flex min-w-0 items-center gap-1.5">
-            <span class="truncate">{{ appointment.customerName || appointment.customerId }}</span>
-            <BaseBadge :label="config.label" size="xs" :uppercase="true" :tone="config.tone" />
+            <span class="truncate">{{ customerLabel }}</span>
           </span>
         </template>
-        <template v-if="variant === 'daily'" #top-end>
-          <span class="font-body text-[11px] font-semibold text-on-surface-variant shrink-0">{{ appointment.timeSlot }}</span>
+        <template #top-end>
+          <BaseBadge :label="config.label" size="xs" :uppercase="true" :tone="config.tone" />
         </template>
         <template v-if="appointment.address" #line2>
           {{ appointment.address }}
