@@ -1,9 +1,10 @@
 # Project memory
 
-Live note for the next session. Branch: `refactor/order-detail-ui`.
+Live note for the next session. Branch: `feat/appointment-card-open-customer`.
 
 ## Branches in flight
 
+- **`feat/appointment-card-open-customer`** — appointment card tap opens customer detail; browser-verified, not merged.
 - **`refactor/order-detail-ui`** — order-detail UI pass, removal of the price-list `unit` join from order items, and the gallery fetch/cache rework. Gallery verified in a browser; the `unit` change is not.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 228 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 

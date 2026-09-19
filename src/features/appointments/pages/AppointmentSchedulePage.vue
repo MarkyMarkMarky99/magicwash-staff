@@ -56,6 +56,10 @@ function nextMonth() {
 function openReschedule(appointmentId: string) {
   router.push({ name: 'appointment-reschedule', params: { appointmentId } })
 }
+
+function openCustomer(customerId: string) {
+  router.push({ name: 'customer-detail', params: { customerId } })
+}
 </script>
 
 <template>
@@ -88,6 +92,7 @@ function openReschedule(appointmentId: string) {
           :appointment="appointment"
           :on-status-update="store.updateStatus"
           @reschedule="openReschedule"
+          @open-customer="openCustomer"
         />
       </ListContainer>
     </ScrollRegion>
