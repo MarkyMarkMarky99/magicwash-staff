@@ -297,6 +297,25 @@ export const invoiceNumberCheckResultSchema = z.object({
 
 export type InvoiceNumberCheckResult = z.infer<typeof invoiceNumberCheckResultSchema>
 
+// Request and response for the separate POST /api/invoice-prints operation.
+export const invoicePrintRequestSchema = z
+  .object({
+    invoiceNumber: z.string().trim().min(1),
+  })
+  .strict()
+
+export const invoicePrintResponseSchema = z
+  .object({
+    success: z.literal(true),
+    accepted: z.literal(true),
+    printerName: z.string().min(1),
+    invoiceNumber: z.string().min(1),
+  })
+  .strict()
+
+export type InvoicePrintRequest = z.infer<typeof invoicePrintRequestSchema>
+export type InvoicePrintResponse = z.infer<typeof invoicePrintResponseSchema>
+
 export const invoiceApiContract = {
   query: { list: invoiceListQuerySchema },
   request: {

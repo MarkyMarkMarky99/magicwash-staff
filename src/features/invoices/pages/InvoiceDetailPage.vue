@@ -11,6 +11,8 @@ import {
   InvalidInvoiceNumberError,
 } from '@/data/invoices/invoice-detail.service'
 import type { InvoiceDetailDto } from '@/data/invoices/invoice-detail.service'
+import { printInvoice } from '@/data/invoices/invoice-print.service'
+import { ApiError } from '@/shared/api/api-client'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
 
 const props = defineProps<{ invoiceNumber: string }>()
@@ -20,6 +22,9 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const notFound = ref(false)
 const proofUrl = ref<string | null>(null)
+const printing = ref(false)
+const printSuccess = ref<string | null>(null)
+const printError = ref<string | null>(null)
 let latestRequest = 0
 
 const statusStyles: Record<string, { badge: string; icon: string }> = {
@@ -77,6 +82,8 @@ async function loadInvoice() {
   notFound.value = false
   invoice.value = null
   proofUrl.value = null
+  printSuccess.value = null
+  printError.value = null
 
   try {
     const result = await getInvoiceDetail(props.invoiceNumber)
@@ -95,6 +102,32 @@ async function loadInvoice() {
     error.value = 'Unable to load invoice'
   } finally {
     if (requestId === latestRequest) loading.value = false
+  }
+}
+
+async function handlePrint() {
+  if (!invoice.value || printing.value) return
+
+  const invoiceNumber = invoice.value.invoiceNumber
+  printing.value = true
+  printSuccess.value = null
+  printError.value = null
+
+  try {
+    const result = await printInvoice(invoiceNumber)
+    if (invoice.value?.invoiceNumber !== invoiceNumber) return
+    printSuccess.value = `ส่งคำขอพิมพ์ไปยัง ${result.printerName} แล้ว`
+  } catch (reason) {
+    if (invoice.value?.invoiceNumber !== invoiceNumber) return
+    if (reason instanceof ApiError && reason.status === 422) {
+      printError.value = 'เลขที่ใบแจ้งหนี้ไม่ถูกต้อง กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง'
+    } else if (reason instanceof ApiError && reason.status === 502) {
+      printError.value = 'ไม่สามารถติดต่อเครื่องพิมพ์ได้ กรุณาตรวจสอบเครื่องพิมพ์แล้วลองอีกครั้ง'
+    } else {
+      printError.value = 'ไม่สามารถส่งคำขอพิมพ์ได้ กรุณาตรวจสอบเครื่องพิมพ์ก่อนลองอีกครั้ง'
+    }
+  } finally {
+    printing.value = false
   }
 }
 
@@ -162,6 +195,37 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
                   </span>
                 </div>
               </div>
+            </section>
+
+            <section class="rounded-2xl border border-outline-variant/20 bg-surface-container-low p-3">
+              <button
+                type="button"
+                class="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 font-label text-[13px] font-bold text-on-primary shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-wait disabled:opacity-60 disabled:active:scale-100"
+                :disabled="printing"
+                :aria-busy="printing"
+                @click="handlePrint"
+              >
+                <span
+                  class="material-symbols-outlined text-[20px] leading-none"
+                  :class="{ 'animate-spin': printing }"
+                  aria-hidden="true"
+                >{{ printing ? 'progress_activity' : 'print' }}</span>
+                <span>{{ printing ? 'กำลังส่งไปยังเครื่องพิมพ์…' : 'พิมพ์ใบแจ้งหนี้' }}</span>
+              </button>
+              <p
+                v-if="printSuccess"
+                class="mt-2 rounded-xl bg-green-100 px-3 py-2 font-body text-xs text-green-800"
+                role="status"
+              >
+                {{ printSuccess }}
+              </p>
+              <p
+                v-else-if="printError"
+                class="mt-2 rounded-xl bg-error-container px-3 py-2 font-body text-xs text-on-error-container"
+                role="alert"
+              >
+                {{ printError }}
+              </p>
             </section>
 
             <InvoiceCustomerCard :customer="invoice.customer" />

@@ -76,6 +76,11 @@ fallback. `APPSCRIPT_INVOICE_VIEW_SYNC_URL` only recomputes `InvoicesView`. Brow
 sends its image binary to Firebase Storage and then writes the row through this API like any other
 module; the binary itself never passes through the backend.
 
+Invoice printing uses the collection endpoint `POST /api/invoice-prints`. The backend forwards only
+the invoice number to the shop print service. `PRINT_SERVER_URL`, `CF_ACCESS_CLIENT_ID`, and
+`CF_ACCESS_CLIENT_SECRET` are server-only environment variables; Cloudflare Access credentials must
+never be exposed to browser code or API responses.
+
 ## Environment and external state
 
 Repository getters are lazy, memoized module singletons. Each reads its workbook environment key on
