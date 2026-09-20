@@ -14,6 +14,10 @@ export const routeRegistry = {
     import('../modules/invoice-prints/invoice-print.module.js').then(
       (module) => module.invoicePrintRoutes,
     ),
+  'laundry-tag-prints': (): ReturnType<RouteLoader> =>
+    import('../modules/laundry-tag-prints/laundry-tag-print.module.js').then(
+      (module) => module.laundryTagPrintRoutes,
+    ),
   'customer-packages': (): ReturnType<RouteLoader> =>
     import('../modules/customer-packages/customer-package-view.module.js').then(
       (module) => module.customerPackageRoutes,

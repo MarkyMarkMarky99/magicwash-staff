@@ -81,6 +81,13 @@ the invoice number to the shop print service. `PRINT_SERVER_URL`, `CF_ACCESS_CLI
 `CF_ACCESS_CLIENT_SECRET` are server-only environment variables; Cloudflare Access credentials must
 never be exposed to browser code or API responses.
 
+Laundry tag printing uses the collection endpoint POST /api/laundry-tag-prints.
+The order detail page sends the customerIndex, total item quantity, and one
+sequence/tagId pair per physical piece. The backend validates and forwards the
+complete print body to the shop service's POST /print-order-tags using the same
+server-only Cloudflare Access credentials. Tag IDs are currently generated in
+the browser and are not persisted; barcode lookup is not part of this route.
+
 ## Environment and external state
 
 Repository getters are lazy, memoized module singletons. Each reads its workbook environment key on
