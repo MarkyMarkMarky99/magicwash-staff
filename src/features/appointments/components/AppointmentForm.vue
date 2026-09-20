@@ -51,8 +51,7 @@ const hasCustomerSnapshot = computed(() => Boolean(
   && props.customer.customerName?.trim()
   && props.customer.customerIndex?.trim()
   && props.customer.phone?.trim()
-  && props.customer.address?.trim()
-  && props.customer.location?.trim(),
+  && props.customer.address?.trim(),
 ))
 const customerBookingMessage = computed(() => {
   if (!props.customer) return 'Choose a customer from the Customers screen before creating a booking.'
