@@ -45,7 +45,7 @@ export const createAppointmentRequestSchema = z.object({
   customerCode: z.string().trim().min(1),
   phone: z.string().trim().min(1),
   address: z.string().trim().min(1),
-  location: z.string().trim().min(1),
+  location: z.string().trim(),
   appointmentType: appointmentWritableTypeSchema,
   appointmentDate: isoDateSchema,
   timeSlot: appointmentTimeSlotSchema,

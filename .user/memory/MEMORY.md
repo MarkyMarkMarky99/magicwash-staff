@@ -1,9 +1,10 @@
 # Project memory
 
-Live note for the next session. Branch: `main`.
+Live note for the next session. Branch: `fix/appointment-missing-location`.
 
 ## Branches in flight
 
+- **`fix/appointment-missing-location`** — booking validation update awaiting Preview verification. Details: `.user/memory/fix-appointment-missing-location.md`.
 - **`refactor/order-detail-ui`** — order-detail UI pass, removal of the price-list `unit` join from order items, and the gallery fetch/cache rework. Gallery verified in a browser; the `unit` change is not.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 228 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 

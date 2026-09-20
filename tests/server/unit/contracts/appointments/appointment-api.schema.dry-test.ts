@@ -52,6 +52,8 @@ assert.deepEqual(createAppointmentRequestSchema.partial().parse({ vehicle: 'MOTO
 })
 assert.deepEqual(createAppointmentRequestSchema.partial().parse({ vehicle: null }), { vehicle: null })
 assert.deepEqual(createAppointmentRequestSchema.partial().parse({}), {})
+assert.deepEqual(createAppointmentRequestSchema.partial().parse({ location: '' }), { location: '' })
+assert.throws(() => createAppointmentRequestSchema.partial().parse({ address: '' }))
 assert.throws(() => createAppointmentRequestSchema.partial().parse({ vehicle: 'CAR' }))
 assert.deepEqual(updateAppointmentRequestSchema.parse({ vehicle: null, updatedBy: 'tester' }), {
   vehicle: null,
