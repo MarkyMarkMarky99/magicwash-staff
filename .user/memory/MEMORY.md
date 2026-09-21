@@ -3,8 +3,6 @@
 
 ## Branches in flight
 
-- **`feature/invoice-print`** - Invoice printer work is merged into main; this local branch remains. Details: .user/memory/feature-invoice-print.md.
-- **`refactor/order-detail-ui`** — order-detail UI pass, removal of the price-list `unit` join from order items, and the gallery fetch/cache rework. Gallery verified in a browser; the `unit` change is not. Details: .user/memory/refactor-order-detail-ui.md.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 228 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 
 ## Pending work
