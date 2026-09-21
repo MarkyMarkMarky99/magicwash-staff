@@ -12,6 +12,7 @@ const ENDPOINT = '/api/laundry-tag-prints'
 export function createLaundryTagPrintRequest(
   order: WorkOrderDetailDto,
   customerIndex: string,
+  requestedCount?: number,
 ): LaundryTagPrintRequest {
   const quantities = order.items.map((item) => item.quantity)
   if (quantities.length === 0 || quantities.some((quantity) =>
@@ -20,9 +21,10 @@ export function createLaundryTagPrintRequest(
     throw new Error('รายการชิ้นยังไม่มีจำนวนที่ใช้พิมพ์แท็กได้')
   }
 
-  const totalCount = quantities.reduce<number>((sum, quantity) => sum + quantity!, 0)
-  if (totalCount > 100) {
-    throw new Error('พิมพ์แท็กได้ไม่เกิน 100 ใบต่อครั้ง')
+  const itemCount = quantities.reduce<number>((sum, quantity) => sum + quantity!, 0)
+  const totalCount = requestedCount ?? itemCount
+  if (!Number.isInteger(totalCount) || totalCount < 1 || totalCount > 999) {
+    throw new Error('จำนวนแท็กต้องเป็นเลขจำนวนเต็มตั้งแต่ 1 ถึง 999')
   }
 
   const usedIds = new Set<string>()

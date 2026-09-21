@@ -9,6 +9,7 @@ defineProps({
   placeholder:  { type: String, default: '' },
   icon:         { type: String, default: '' },
   autocomplete: { type: String, default: undefined },
+  autofocus:    { type: Boolean, default: false },
   min:          { type: String, default: undefined },
   max:          { type: String, default: undefined },
   step:         { type: String, default: undefined },
@@ -33,6 +34,7 @@ defineEmits(['update:modelValue', 'invalid'])
         :type="type"
         :placeholder="placeholder"
         :autocomplete="autocomplete"
+        :autofocus="autofocus"
         :min="min"
         :max="max"
         :step="step"

@@ -1,14 +1,14 @@
 import { z } from 'zod'
 
 const tagSchema = z.object({
-  sequence: z.number().int().positive().max(100),
+  sequence: z.number().int().positive().max(999),
   tagId: z.string().regex(/^\d{8}$/),
 }).strict()
 
 export const laundryTagPrintRequestSchema = z.object({
   customerIndex: z.string().trim().regex(/^[A-Za-z0-9_-]{1,8}$/),
-  totalCount: z.number().int().positive().max(100),
-  tags: z.array(tagSchema).min(1).max(100),
+  totalCount: z.number().int().positive().max(999),
+  tags: z.array(tagSchema).min(1).max(999),
 }).strict().superRefine((request, context) => {
   if (request.tags.length !== request.totalCount) {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['tags'], message: 'Tag count must match totalCount' })
@@ -30,7 +30,7 @@ export const laundryTagPrintResponseSchema = z.object({
   success: z.literal(true),
   accepted: z.literal(true),
   printerName: z.string().min(1),
-  totalCount: z.number().int().positive(),
+  totalCount: z.number().int().positive().max(999),
 }).strict()
 
 export type LaundryTagPrintRequest = z.infer<typeof laundryTagPrintRequestSchema>

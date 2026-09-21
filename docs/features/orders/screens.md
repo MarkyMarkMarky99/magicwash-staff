@@ -1,4 +1,4 @@
-> Status: PLANNING — not implemented.
+> Status: PARTIALLY IMPLEMENTED — see each screen section for current blockers.
 
 # Order Screens
 
@@ -53,10 +53,10 @@ Main UI:
 
 Actions:
 - Add item — opens the item overlay and reloads work-order detail after saving.
-- Print tags — one tag per item quantity, numbered from 1 through the total.
+- Print tags — opens a confirmation dialog with the item quantity total. Staff can adjust the tag count from 1 through 999 before printing.
   The customerIndex comes from the loaded customer store. The button is disabled
   while detail is loading, if the index is missing, or if item quantities are
-  missing, invalid, or total more than 100.
+  missing or invalid. For totals above 999, the dialog starts at the per-request maximum of 999 so staff can print in batches.
 - The page sends a complete body to POST /api/laundry-tag-prints; the backend
   forwards it to the TSC print server. Tag IDs are not yet persisted.
 
