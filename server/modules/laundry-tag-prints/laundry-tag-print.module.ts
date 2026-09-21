@@ -12,6 +12,13 @@ export const laundryTagPrintRoutes: GatewayModuleRoutes = {
       const request = parseOrThrow(laundryTagPrintRequestSchema, req.body)
       const result = await requestLaundryTagPrint(request)
 
+      console.info(JSON.stringify({
+        event: 'laundry_tag_print_request_outcome',
+        customerIndex: request.customerIndex,
+        totalCount: request.totalCount,
+        outcome: result.outcome,
+      }))
+
       if (result.outcome === 'accepted') return ok(result.data)
 
       if (result.outcome === 'configuration_error') {

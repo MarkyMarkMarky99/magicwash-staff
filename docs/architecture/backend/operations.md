@@ -87,6 +87,9 @@ sequence/tagId pair per physical piece. The backend validates and forwards the
 complete print body to the shop service's POST /print-order-tags using the same
 server-only Cloudflare Access credentials. Tag IDs are currently generated in
 the browser and are not persisted; barcode lookup is not part of this route.
+Forwarding failures remain opaque to the browser and are logged server-side as
+`laundry_tag_print_failure` JSON events. These events distinguish timeout, transport, HTTP,
+JSON, schema, and count-mismatch failures and redact the print server URL and Access credentials.
 
 ## Environment and external state
 
