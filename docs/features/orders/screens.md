@@ -1,4 +1,4 @@
-> Status: PLANNING — not implemented.
+> Status: PARTIALLY IMPLEMENTED — see each screen section for current blockers.
 
 # Order Screens
 
@@ -39,42 +39,26 @@ constructed with `searchFields: []`. See Blockers 1 and 3 in `overview.md` and t
 
 ## Order Detail
 
-Route: /orders/:orderId — name `order-detail`, meta `{ parent: 'order-list' }`, `props: true`
+Route: /orders/:orderId — name order-detail
 
 Purpose:
-แสดงรายละเอียด Order พร้อมรายการสินค้าและรูปภาพ
+แสดงรายละเอียดออเดอร์ รายการชิ้น รูปภาพ และสั่งพิมพ์แท็ก
 
 Main UI:
-- `AppLayout` (shared layout) as the page shell
-- `AppHeader` back target resolved from `meta.parent`
-- `ListContainer` (shared component) for the items section
-- `OrderItemRow.vue` — feature-local
-- `FormOverlay` (shared layout) for the add-item overlay
-
-Sections:
-- Header summary — order number, customer, received date, due date, status, service type
-- Items — `ListContainer`, exact props:
-  - `title="รายการสินค้า"`
-  - `icon="checkroom"` (required prop; same glyph the existing `OrderDetailSheet.vue` items header uses)
-  - `:count="order.items.length"`
-  - `countLabel="pcs"` (required prop)
-  - `:collapsible="true"`
-  - `:loading`, `:error`, `:empty` bound to store state
-  - `emptyText="ยังไม่มีรายการสินค้า"`
-  - `:skeletonRows="3"`
-  - default slot: `OrderItemRow.vue` per item; `actions` slot: the add-item button
-  - `ListContainer` is a titled collapsible section, not a table — it has no rows/columns model and
-    no emits
+- AppLayout and ScrollRegion wrap the page.
+- Header shows customer, status, pickup/due dates, service, and header quantity.
+- Items use ListContainer and OrderItemRow; OrderItemsMenu adds an item or opens the garment album.
+- OrderTagPrintAction shows the TSC print button and its loading/success/error feedback.
+- OrderImageSection shows order images.
 
 Actions:
-- Add item — opens `?item=new` (flow: `flows.md` § Add order item; ⛔ Blocker 4)
-
-Shared components:
-- `AppHeader`
-- `ListContainer`
-
-⛔ BLOCKED — `/api/orders/:id` 404s with `Route not found`; there is no detail endpoint. See
-Blocker 2 in `overview.md`.
+- Add item — opens the item overlay and reloads work-order detail after saving.
+- Print tags — opens a confirmation dialog with the item quantity total. Staff can adjust the tag count from 1 through 999 before printing.
+  The customerIndex comes from the loaded customer store. The button is disabled
+  while detail is loading, if the index is missing, or if item quantities are
+  missing or invalid. For totals above 999, the dialog starts at the per-request maximum of 999 so staff can print in batches.
+- The page sends a complete body to POST /api/laundry-tag-prints; the backend
+  forwards it to the TSC print server. Tag IDs are not yet persisted.
 
 ## Create Order Form
 
