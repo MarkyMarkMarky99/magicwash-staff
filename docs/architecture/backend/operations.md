@@ -82,7 +82,7 @@ the invoice number to the shop print service. `PRINT_SERVER_URL`, `CF_ACCESS_CLI
 never be exposed to browser code or API responses.
 
 Laundry tag printing uses the collection endpoint POST /api/laundry-tag-prints.
-The order detail page sends the customerIndex, total item quantity, and one
+The order detail page sends the customerIndex, the order header quantity (or staff-adjusted tag count), and one
 sequence/tagId pair per physical piece. The backend validates and forwards the
 complete print body to the shop service's POST /print-order-tags using the same
 server-only Cloudflare Access credentials. Tag IDs are currently generated in

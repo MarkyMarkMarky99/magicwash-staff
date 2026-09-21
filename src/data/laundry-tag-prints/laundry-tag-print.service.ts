@@ -14,16 +14,8 @@ export function createLaundryTagPrintRequest(
   customerIndex: string,
   requestedCount?: number,
 ): LaundryTagPrintRequest {
-  const quantities = order.items.map((item) => item.quantity)
-  if (quantities.length === 0 || quantities.some((quantity) =>
-    !Number.isInteger(quantity) || quantity === null || quantity < 1
-  )) {
-    throw new Error('รายการชิ้นยังไม่มีจำนวนที่ใช้พิมพ์แท็กได้')
-  }
-
-  const itemCount = quantities.reduce<number>((sum, quantity) => sum + quantity!, 0)
-  const totalCount = requestedCount ?? itemCount
-  if (!Number.isInteger(totalCount) || totalCount < 1 || totalCount > 999) {
+  const totalCount = requestedCount ?? order.quantity
+  if (typeof totalCount !== 'number' || !Number.isInteger(totalCount) || totalCount < 1 || totalCount > 999) {
     throw new Error('จำนวนแท็กต้องเป็นเลขจำนวนเต็มตั้งแต่ 1 ถึง 999')
   }
 
