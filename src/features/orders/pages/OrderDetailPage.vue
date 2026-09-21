@@ -72,12 +72,9 @@ const currentCustomerIndex = computed(() =>
   customersById.value.get(currentOrder.value?.customerId ?? '')?.customerIndex ?? null,
 )
 const tagCount = computed(() => {
-  const items = currentOrder.value?.items ?? []
-  if (items.length === 0 || items.some((item) =>
-    item.quantity === null || !Number.isInteger(item.quantity) || item.quantity < 1
-  )) return null
-  const count = items.reduce((sum, item) => sum + item.quantity!, 0)
-  return Math.min(count, 999)
+  const quantity = currentOrder.value?.quantity
+  if (quantity === null || quantity === undefined || !Number.isInteger(quantity) || quantity < 1) return null
+  return Math.min(quantity, 999)
 })
 const canPrintTags = computed(() =>
   !detailLoading.value && Boolean(currentCustomerIndex.value?.trim()) && tagCount.value !== null,

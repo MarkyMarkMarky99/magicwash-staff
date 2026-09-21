@@ -23,7 +23,7 @@ defineEmits<{ print: [] }>()
       <span>{{ printing ? 'กำลังส่งแท็ก…' : 'พิมพ์แท็ก ' + (totalCount ?? 0) + ' ใบ' }}</span>
     </button>
     <p v-if="!canPrint" class="mt-2 text-xs text-on-surface-variant">
-      ต้องมีรหัสลูกค้าและจำนวนชิ้นในรายการก่อนพิมพ์แท็ก
+      ต้องมีรหัสลูกค้าและจำนวนชิ้นในออเดอร์ก่อนพิมพ์แท็ก
     </p>
     <p v-if="printSuccess" class="mt-2 rounded-xl bg-success-container px-3 py-2 text-xs text-on-success-container" role="status">{{ printSuccess }}</p>
     <p v-else-if="printError" class="mt-2 rounded-xl bg-error-container px-3 py-2 text-xs text-on-error-container" role="alert">{{ printError }}</p>

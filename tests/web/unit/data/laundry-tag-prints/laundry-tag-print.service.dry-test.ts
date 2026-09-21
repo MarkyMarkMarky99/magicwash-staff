@@ -3,7 +3,8 @@ import type { WorkOrderDetailDto } from '../../../../../src/data/work-orders/wor
 import { createLaundryTagPrintRequest } from '../../../../../src/data/laundry-tag-prints/laundry-tag-print.service'
 
 const order = {
-  items: [{ quantity: 2 }, { quantity: 1 }],
+  quantity: 3,
+  items: [],
 } as WorkOrderDetailDto
 
 const request = createLaundryTagPrintRequest(order, '1999')
@@ -17,7 +18,8 @@ assert.equal(adjustedRequest.totalCount, 205)
 assert.equal(adjustedRequest.tags.length, 205)
 assert.throws(() => createLaundryTagPrintRequest(order, '1999', 0))
 assert.throws(() => createLaundryTagPrintRequest(order, '1999', 1000))
-assert.throws(() => createLaundryTagPrintRequest({ items: [{ quantity: null }] } as WorkOrderDetailDto, '1999'))
-assert.throws(() => createLaundryTagPrintRequest({ items: [] } as unknown as WorkOrderDetailDto, '1999'))
+assert.throws(() => createLaundryTagPrintRequest({ quantity: null, items: [] } as WorkOrderDetailDto, '1999'))
+assert.throws(() => createLaundryTagPrintRequest({ quantity: 0, items: [] } as WorkOrderDetailDto, '1999'))
+assert.throws(() => createLaundryTagPrintRequest({ quantity: 1.5, items: [] } as WorkOrderDetailDto, '1999'))
 
 console.log('laundry tag print service dry tests passed')
