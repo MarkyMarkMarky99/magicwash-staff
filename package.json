@@ -15,6 +15,8 @@
     "check:cross-feature-imports": "node scripts/check-cross-feature-imports.mjs"
   },
   "dependencies": {
+    "@zxing/browser": "^0.1.5",
+    "@zxing/library": "^0.21.3",
     "axios": "^1.14.0",
     "firebase": "^12.13.0",
     "pinia": "^3.0.4",
