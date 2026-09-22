@@ -1,17 +1,16 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import type { z } from 'zod'
-import type { priceListListResponseSchema } from '@contracts/price-list/price-list-api.schema'
+import type { ItemDto } from '@/data/items/items.service'
 import { orderItemCreateSchema } from '@contracts/order-items/order-item-api.schema'
 import FormInput from '@/shared/components/FormInput.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 
-type PriceListItem = z.infer<typeof priceListListResponseSchema>
 const itemPayloadSchema = orderItemCreateSchema.omit({ orderId: true, createdBy: true })
 type ItemPayload = z.infer<typeof itemPayloadSchema>
 
-const props = defineProps<{ open: boolean; orderId: string; selectedItem: PriceListItem | null; isSubmitting: boolean; error: string | null }>()
+const props = defineProps<{ open: boolean; orderId: string; selectedItem: ItemDto | null; isSubmitting: boolean; error: string | null }>()
 const emit = defineEmits<{ close: []; changeItem: []; submit: [payload: ItemPayload]; clearError: [] }>()
 const validationError = ref<string | null>(null)
 const form = reactive({ quantity: '1', specialInstructions: '' })

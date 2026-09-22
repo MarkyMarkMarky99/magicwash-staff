@@ -30,9 +30,8 @@ import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { useOrderStore } from '@/features/orders/stores/order.store'
 import { useWorkOrderStore } from '@/data/work-orders/work-order.store'
 import { useCustomerStore } from '@/data/customers/customer.store'
-import { usePriceListStore } from '@/data/price-list/price-list.store'
-import type { PriceListDto } from '@/data/price-list/price-list.service'
-import { filterOrderPriceListItems } from '@/features/orders/utils/order-price-list-items'
+import { useItemsStore } from '@/data/items/items.store'
+import type { ItemDto } from '@/data/items/items.service'
 import { currentActor } from '@/shared/config/actor'
 import { createLaundryTagPrintRequest, printLaundryTags } from '@/data/laundry-tag-prints/laundry-tag-print.service'
 import { ApiError } from '@/shared/api/api-client'
@@ -44,7 +43,7 @@ const router = useRouter()
 const orderStore = useOrderStore()
 const workOrderStore = useWorkOrderStore()
 const customerStore = useCustomerStore()
-const priceListStore = usePriceListStore()
+const itemsStore = useItemsStore()
 const orderImageStore = useOrderImageStore()
 const { customers } = storeToRefs(customerStore)
 const { currentOrder, detailLoading, detailError } = storeToRefs(workOrderStore)
@@ -52,7 +51,7 @@ const { itemSubmittingOrderId, itemError, itemErrorOrderId } = storeToRefs(order
 const { images, imagesLoading, imagesError, uploadingCount, uploadError } = storeToRefs(orderImageStore)
 const orderId = computed(() => String(route.params.orderId ?? ''))
 const orderOverlay = reactive(useOrderOverlayRoute())
-const selectedPriceListItem = ref<PriceListDto | null>(null)
+const selectedPriceListItem = ref<ItemDto | null>(null)
 const selectedImagePreview = ref<{ src: string, alt: string } | null>(null)
 const savingItemOrderId = ref<string | null>(null)
 const tagPrinting = ref(false)
@@ -79,12 +78,10 @@ const tagCount = computed(() => {
 const canPrintTags = computed(() =>
   !detailLoading.value && Boolean(currentCustomerIndex.value?.trim()) && tagCount.value !== null,
 )
-const pickerItems = computed(() =>
-  filterOrderPriceListItems(priceListStore.items),
-)
+const pickerItems = computed(() => itemsStore.items)
 const isPriceListPickerOpen = computed(() => orderOverlay.isItemOpen && selectedPriceListItem.value === null)
 const isItemFormOpen = computed(() => orderOverlay.isItemOpen && selectedPriceListItem.value !== null)
-const pickerError = computed(() => detailError.value ?? priceListStore.error)
+const pickerError = computed(() => detailError.value ?? itemsStore.error)
 const captureImageType = computed<OrderImageType | null>(() => {
   const overlay = orderOverlay.activeOverlay
   if (overlay === null || overlay === 'item') return null
@@ -139,7 +136,7 @@ watch([canPrintTags, tagPrinting], ([canPrint, printing]) => {
 watch([() => orderOverlay.isItemOpen, orderId], ([isOpen]) => {
   itemFlowSequence += 1
   selectedPriceListItem.value = null
-  if (isOpen) void priceListStore.load()
+  if (isOpen) void itemsStore.load()
 }, { immediate: true })
 
 function submitWeight(weight: number): void {
@@ -234,7 +231,7 @@ async function addItem(payload: z.infer<typeof itemPayloadSchema>) {
   }
 }
 
-function selectPriceListItem(item: PriceListDto): void {
+function selectPriceListItem(item: ItemDto): void {
   selectedPriceListItem.value = item
   clearItemError()
 }
@@ -261,7 +258,7 @@ function retryPriceList(): void {
   if (detailError.value) {
     void workOrderStore.loadDetail(orderId.value)
   } else {
-    void priceListStore.load(true)
+    void itemsStore.load()
   }
 }
 
@@ -298,9 +295,9 @@ function clearItemError() {
     :open="isPriceListPickerOpen"
     :detail="orderId"
     :items="pickerItems"
-    :loading="detailLoading || priceListStore.loading"
+    :loading="detailLoading || itemsStore.loading"
     :error="pickerError"
-    :truncated="priceListStore.truncated"
+    :truncated="itemsStore.truncated"
     @close="closePriceListPicker"
     @retry="retryPriceList"
     @create="openPriceListItemCreate"

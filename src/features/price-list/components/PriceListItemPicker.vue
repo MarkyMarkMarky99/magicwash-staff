@@ -1,7 +1,8 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends ItemDto">
 import { computed, ref, watch } from 'vue'
 import type { z } from 'zod'
 import type { priceListListResponseSchema } from '@contracts/price-list/price-list-api.schema'
+import type { ItemDto } from '@/data/items/items.service'
 import PickerOverlay from '@/shared/layouts/PickerOverlay.vue'
 import DetailOverlay from '@/shared/layouts/DetailOverlay.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
@@ -11,12 +12,12 @@ import { groupItemTypes, groupVariants } from '../utils/price-list-picker-groups
 import { comparePriceListCategories } from '../utils/price-list-display'
 
 type PriceListItem = z.infer<typeof priceListListResponseSchema>
-type ItemTypeGroup = ReturnType<typeof groupItemTypes<PriceListItem>>[number]
+type ItemTypeGroup = ReturnType<typeof groupItemTypes<T>>[number]
 
 const props = defineProps<{
   open: boolean
   detail: string
-  items: PriceListItem[]
+  items: T[]
   selectionMode?: 'item' | 'price'
   loading: boolean
   error: string | null
@@ -27,7 +28,7 @@ const emit = defineEmits<{
   close: []
   create: [category: string | null, subcategory: string | null]
   retry: []
-  select: [item: PriceListItem]
+  select: [item: T]
 }>()
 
 const search = ref('')
@@ -53,7 +54,8 @@ const filteredItems = computed(() => {
     if (subcategory.value !== null && item.subcategory !== subcategory.value) return false
     if (!query) return true
     return [item.itemCode, item.category, item.subcategory, item.itemType, item.variant,
-      item.displayNameTh, item.displayNameEn, serviceTypeLabel(item.serviceType), serviceTypeLabelEn(item.serviceType)]
+      item.displayNameTh, item.displayNameEn,
+      ...('serviceType' in item ? [serviceTypeLabel(String(item.serviceType)), serviceTypeLabelEn(String(item.serviceType))] : [])]
       .some((value) => String(value ?? '').toLocaleLowerCase('th-TH').includes(query))
   })
 })
@@ -68,7 +70,8 @@ const typeGroups = computed<ItemTypeGroup[]>(() => props.selectionMode === 'item
 const selectedType = computed(() => typeGroups.value.find((group) => group.key === selectedTypeKey.value) ?? null)
 const variants = computed(() => groupVariants(selectedType.value?.items ?? []))
 const priceOptions = computed(() =>
-  selectedType.value?.items.filter((item) => (item.variant ?? '') === selectedVariantKey.value) ?? [],
+  selectedType.value?.items.filter((item): item is T & PriceListItem =>
+    'price' in item && 'serviceType' in item && (item.variant ?? '') === selectedVariantKey.value) ?? [],
 )
 
 watch(() => props.open, (open) => {
@@ -79,7 +82,7 @@ watch(() => props.open, (open) => {
   } else closeSheet()
 })
 
-function imageFor(items: PriceListItem[]): string | null {
+function imageFor(items: T[]): string | null {
   return items.find((item) => item.imageUrl)?.imageUrl ?? null
 }
 
@@ -127,7 +130,7 @@ function closeSheet() {
   step.value = 'variant'
 }
 
-function selectOption(item: PriceListItem) {
+function selectOption(item: T) {
   closeSheet()
   emit('select', item)
 }

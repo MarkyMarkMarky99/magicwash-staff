@@ -12,6 +12,9 @@ label appears beside or below it. The dedicated shared `ImageOrIcon` component s
 keeps its cover crop.
 
 The PriceList form does not edit `imageUrl`; catalog image assignment is managed outside the form.
+The separate new-item form uploads its optional photo to Firebase under `items/<unique-id>` before
+creating the Items row with the returned URL. It reuses that uploaded URL if a rejected save is
+retried; an uncertain API write must be checked in the picker before creating again.
 
 The persisted API cache version changes with this response shape so a returning browser fetches
 rows containing `imageUrl` instead of continuing to display a pre-image cached row.

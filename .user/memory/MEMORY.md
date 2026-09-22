@@ -1,10 +1,10 @@
 # Project memory
 
-- Branch: `codex/items-master`; backend diff reviewed and checks pass; concurrent item-code allocation remains unresolved.
+- Branch: `codex/items-master`; frontend reviewed for Preview deployment; live create/PATCH verification is pending.
 
 ## Branches in flight
 
-- **`codex/items-master`** — Items contracts/backend await acceptance; frontend integration is pending. Details: `.user/memory/codex-items-master.md`.
+- **`codex/items-master`** — Items form and Order picker are ready for Preview testing. Details: `.user/memory/codex-items-master.md`.
 - **`codex/price-list-item-form`** — UI-only form preview and picker link are committed separately from the picker redesign. Details: `.user/memory/codex-price-list-item-form.md`.
 - **`codex/price-list-picker-redesign`** — committed picker redesign and image backfill; base for the form branch. Details: `.user/memory/codex-price-list-picker-redesign.md`.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 251 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
@@ -49,7 +49,7 @@
   - App-wide GViz read normalization is deferred by the user; do not start or re-propose it. See `.user/memory/gviz-read-normalization.md`.
 
 - **Prices, invoices, and sheet data**
-  - Wire the no-price item form to Items after backend acceptance; resolve concurrent item-code allocation before production use.
+  - Verify Items create/PATCH on Preview; resolve concurrent item-code allocation before production use.
   - Defer mixed-service orders to a separate branch after the price-list photo release; see `.user/memory/mixed-service-orders.md`.
   - Fill real prices for the 33 inactive price-list rows with `price: 0`.
   - Add a `BaseSwipeCard` action to add a price to an existing item.

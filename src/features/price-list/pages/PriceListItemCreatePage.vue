@@ -1,53 +1,30 @@
 <script setup lang="ts">
-import { onBeforeUnmount, reactive, ref } from 'vue'
-import { useRoute } from 'vue-router'
 import FormInput from '@/shared/components/FormInput.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
-import { useCloseRoute } from '@/shared/navigation/use-close-route'
+import { useItemCreateForm } from '../composables/use-item-create-form'
 
 defineOptions({ name: 'PriceListItemCreatePage' })
 
-const route = useRoute()
+const {
+  item,
+  photoInput,
+  photoPreviewUrl,
+  photoName,
+  clearPhoto,
+  selectPhoto,
+  saving,
+  error,
+  canSubmit,
+  submit,
+  close,
+  contextLoading,
+  contextLoadError,
+  retryContext,
+} = useItemCreateForm()
 
-function prefilledValue(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : ''
+function choosePhoto() {
+  if (!saving.value) photoInput.value?.click()
 }
-
-const item = reactive({
-  category: prefilledValue(route.query.category),
-  subcategory: prefilledValue(route.query.subcategory),
-  itemType: '',
-  variant: '',
-  displayNameTh: '',
-  displayNameEn: '',
-})
-
-const orderId = prefilledValue(route.query.orderId)
-const fallback = orderId
-  ? { name: 'order-detail', params: { orderId }, query: { orderAction: 'item' } }
-  : { name: 'price-list' }
-const { close } = useCloseRoute(fallback)
-
-const photoInput = ref<HTMLInputElement | null>(null)
-const photoPreviewUrl = ref<string | null>(null)
-const photoName = ref('')
-
-function clearPhoto() {
-  if (photoPreviewUrl.value) URL.revokeObjectURL(photoPreviewUrl.value)
-  photoPreviewUrl.value = null
-  photoName.value = ''
-  if (photoInput.value) photoInput.value.value = ''
-}
-
-function selectPhoto(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (!file) return
-  if (photoPreviewUrl.value) URL.revokeObjectURL(photoPreviewUrl.value)
-  photoPreviewUrl.value = URL.createObjectURL(file)
-  photoName.value = file.name
-}
-
-onBeforeUnmount(clearPhoto)
 </script>
 
 <template>
@@ -56,41 +33,45 @@ onBeforeUnmount(clearPhoto)
     title="Add item type"
     eyebrow="Price list / new item"
     helper-text="Add item details within the selected category."
-    submit-label="Save item (coming soon)"
-    :is-submit-disabled="true"
+    submit-label="Save item"
+    submitting-label="Saving item…"
+    :is-submitting="saving"
+    :is-submit-disabled="!canSubmit"
     :close-on-backdrop="false"
     @close="close"
+    @submit="submit"
   >
-    <div class="price-list-item-create">
+    <div class="price-list-item-create" :aria-busy="saving">
       <section class="photo-section" aria-labelledby="photo-heading" aria-describedby="photo-description">
         <h2 id="photo-heading" class="section-label">Item photo</h2>
-        <p id="photo-description" class="photo-description">Optional. The photo stays on this device until upload is connected.</p>
-        <input ref="photoInput" class="photo-input" type="file" accept="image/*" tabindex="-1" aria-hidden="true" @change="selectPhoto">
-        <div class="photo-card">
+        <p id="photo-description" class="photo-description">Optional. Add a photo to help staff recognize this item.</p>
+        <input ref="photoInput" class="photo-input" type="file" accept="image/*" tabindex="-1" aria-hidden="true" :disabled="saving" @change="selectPhoto">
+        <div class="photo-card" :inert="saving">
           <img v-if="photoPreviewUrl" :src="photoPreviewUrl" :alt="`Preview of ${photoName}`" class="photo-preview">
           <span v-else class="material-symbols-outlined photo-placeholder" aria-hidden="true">image</span>
           <div class="photo-card__copy">
             <strong>{{ photoName || 'No photo selected' }}</strong>
-            <span>{{ photoName ? 'Local preview only' : 'JPG, PNG, or HEIC' }}</span>
+            <span>{{ photoName ? 'Ready to upload' : 'JPG, PNG, or HEIC' }}</span>
           </div>
           <button v-if="photoPreviewUrl" type="button" class="photo-action" @click="clearPhoto">Remove</button>
-          <button v-else type="button" class="photo-action" @click="photoInput?.click()">Choose photo</button>
+          <button v-else type="button" class="photo-action" @click="choosePhoto">Choose photo</button>
         </div>
       </section>
 
-      <fieldset class="fieldset">
+      <fieldset class="fieldset" :disabled="saving">
         <legend class="section-label">Item details</legend>
         <div class="grid-2">
-          <FormInput id="item-type" v-model="item.itemType" class="field" label="ประเภทสินค้า *" />
-          <FormInput id="variant" v-model="item.variant" class="field" label="รูปแบบ" placeholder="เว้นว่างได้" />
+          <FormInput id="item-type" v-model="item.itemType" class="field" label="Item type *" />
+          <FormInput id="variant" v-model="item.variant" class="field" label="Variant" placeholder="Optional" />
         </div>
-        <FormInput id="display-name-th" v-model="item.displayNameTh" class="field" label="ชื่อแสดงภาษาไทย *" />
-        <FormInput id="display-name-en" v-model="item.displayNameEn" class="field" label="ชื่อแสดงภาษาอังกฤษ" placeholder="เว้นว่างได้" />
+        <FormInput id="display-name-th" v-model="item.displayNameTh" class="field" label="Thai display name *" />
+        <FormInput id="display-name-en" v-model="item.displayNameEn" class="field" label="English display name" placeholder="Optional" />
       </fieldset>
 
-      <p class="preview-note" role="note">
-        Saving is disabled while the item data contract and workflow are being prepared.
-      </p>
+      <p v-if="error" class="form-error" role="alert">{{ error }}</p>
+      <p v-if="contextLoading" class="saving-status" role="status">Loading item categories…</p>
+      <button v-else-if="contextLoadError" type="button" class="photo-action" @click="retryContext">Try again</button>
+      <p v-if="saving" class="saving-status">Saving item…</p>
     </div>
   </FormOverlay>
 </template>
@@ -115,7 +96,8 @@ onBeforeUnmount(clearPhoto)
 .section-label::after { content:""; height:1px; flex:1; background:var(--line); }
 .grid-2 { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:13px; }
 .field { min-width:0; margin-bottom:15px; }
-.preview-note { margin:22px 0 8px; padding:11px 12px; border-radius:10px; color:var(--quiet); background:var(--color-surface-container-low); font-size:12px; line-height:1.4; }
+.form-error { margin:22px 0 8px; padding:11px 12px; border-radius:10px; color:var(--color-error); background:color-mix(in srgb, var(--color-error) 12%, white); font-size:12px; line-height:1.4; }
+.saving-status { margin:14px 0 8px; color:var(--quiet); font-size:12px; line-height:1.4; }
 @media (max-width:350px) { .grid-2 { gap:10px; } .photo-card { align-items:flex-start; flex-wrap:wrap; } .photo-action { margin-left:71px; } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; } }
 </style>

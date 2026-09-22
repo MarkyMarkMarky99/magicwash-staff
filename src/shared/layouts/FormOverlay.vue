@@ -39,6 +39,10 @@ const props = defineProps({
       type: Boolean,
       default: false,
     },
+    submittingLabel: {
+      type: String,
+      default: 'กำลังบันทึก...',
+    },
     isSubmitDisabled: {
       type: Boolean,
       default: false,
@@ -105,10 +109,10 @@ function handleSubmit() {
           :disabled="submitDisabled"
           :aria-busy="isSubmitting"
         >
-          {{ isSubmitting ? 'กำลังบันทึก...' : submitLabel }}
+          {{ isSubmitting ? submittingLabel : submitLabel }}
         </button>
         <p class="sr-only" role="status" aria-live="polite">
-          {{ isSubmitting ? 'กำลังบันทึกข้อมูล' : '' }}
+          {{ isSubmitting ? submittingLabel : '' }}
         </p>
       </footer>
     </form>
