@@ -10,6 +10,7 @@ const environmentKeys = [
   'PRICE_LIST_SPREADSHEET_ID',
   'LAUNDRY_PACKAGES_SPREADSHEET_ID',
   'ISSUE_REPORTS_SPREADSHEET_ID',
+  'JOB_TICKETS_SPREADSHEET_ID',
 ] as const
 
 for (const key of environmentKeys) {
@@ -36,6 +37,7 @@ const [
   packageTransactionsModule,
   packagesModule,
   issueReportsModule,
+  jobTicketsModule,
 ] = await Promise.all([
   import('../../../../server/sheets/AfterPhoto/AfterPhoto.repository.js'),
   import('../../../../server/sheets/OrderForm/OrderForm.repository.js'),
@@ -56,6 +58,7 @@ const [
   import('../../../../server/sheets/PackageTransactions/PackageTransactions.repository.js'),
   import('../../../../server/sheets/Packages/Packages.repository.js'),
   import('../../../../server/sheets/IssueReports/IssueReports.repository.js'),
+  import('../../../../server/sheets/JobTickets/JobTickets.repository.js'),
 ])
 
 process.env.ORDERS_SPREADSHEET_ID = 'orders-spreadsheet-id'
@@ -66,6 +69,7 @@ process.env.INVOICES_SPREADSHEET_ID = 'invoices-spreadsheet-id'
 process.env.PRICE_LIST_SPREADSHEET_ID = 'price-list-spreadsheet-id'
 process.env.LAUNDRY_PACKAGES_SPREADSHEET_ID = 'laundry-packages-spreadsheet-id'
 process.env.ISSUE_REPORTS_SPREADSHEET_ID = 'issue-reports-spreadsheet-id'
+process.env.JOB_TICKETS_SPREADSHEET_ID = 'job-tickets-spreadsheet-id'
 process.env.AFTER_PHOTOS_SPREADSHEET_ID = 'after-photos-spreadsheet-id'
 
 const getters = [
@@ -87,6 +91,7 @@ const getters = [
   ['PackageTransactions', packageTransactionsModule.getPackageTransactionsRepository],
   ['Packages', packagesModule.getPackagesRepository],
   ['IssueReports', issueReportsModule.getIssueReportsRepository],
+  ['JobTickets', jobTicketsModule.getJobTicketsRepository],
   ['AfterPhoto', afterPhotoModule.getAfterPhotoRepository],
   ['OrderItemForms', orderItemFormsModule.getOrderItemFormsRepository],
   ['OrderImages', orderImagesModule.getOrderImagesRepository],

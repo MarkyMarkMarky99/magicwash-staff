@@ -13,6 +13,7 @@ const {
   workOrderListQuerySchema,
   workOrderListResponseSchema,
   workOrderStatusSchema,
+  workOrderTicketProvisioningSchema,
   workOrderUpdateResponseSchema,
   workOrderUpdateSchema,
 } = workOrderModule
@@ -44,6 +45,7 @@ assert.deepEqual(new Set(Object.keys(workOrderModule)), new Set([
   'workOrderListQuerySchema',
   'workOrderListResponseSchema',
   'workOrderStatusSchema',
+  'workOrderTicketProvisioningSchema',
   'workOrderUpdateResponseSchema',
   'workOrderUpdateSchema',
 ]))
@@ -59,7 +61,10 @@ assert.equal(workOrderApiContract.response.list, workOrderListResponseSchema)
 assert.equal(workOrderApiContract.response.detail, workOrderDetailResponseSchema)
 assert.equal(workOrderApiContract.response.create, workOrderCreateResponseSchema)
 assert.equal(workOrderApiContract.response.update, workOrderUpdateResponseSchema)
-assert.equal(workOrderUpdateResponseSchema, workOrderListResponseSchema)
+assert.deepEqual(Object.keys(workOrderUpdateResponseSchema.shape), [
+  ...LIST_RESPONSE_FIELDS,
+  'ticketProvisioning',
+])
 
 assert.deepEqual(Object.keys(workOrderListResponseSchema.shape), LIST_RESPONSE_FIELDS)
 assert.equal(Object.hasOwn(workOrderListResponseSchema.shape, 'items'), false)
@@ -197,6 +202,19 @@ assert.deepEqual(workOrderStatusSchema.options, [
 assert.deepEqual(workOrderUpdateSchema.parse({ status: 'APPROVED', updatedBy: 'staff-1' }), {
   status: 'APPROVED',
   updatedBy: 'staff-1',
+})
+assert.deepEqual(workOrderTicketProvisioningSchema.parse({
+  ticketsCreated: 2,
+  skippedGarments: [{
+    laundryItemId: 'tag-1', serviceType: null, reason: 'unsupportedServiceType',
+  }],
+  failure: { certainty: 'unknown' },
+}), {
+  ticketsCreated: 2,
+  skippedGarments: [{
+    laundryItemId: 'tag-1', serviceType: null, reason: 'unsupportedServiceType',
+  }],
+  failure: { certainty: 'unknown' },
 })
 for (const input of [
   {},

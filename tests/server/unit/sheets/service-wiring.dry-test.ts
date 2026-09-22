@@ -9,6 +9,7 @@ import { afterPhotoRowSchema } from '../../../../server/sheets/AfterPhoto/AfterP
 import { invoicesRowSchema } from '../../../../server/sheets/Invoices/Invoices.db-contract.js'
 import { invoiceItemsRowSchema } from '../../../../server/sheets/InvoiceItems/InvoiceItems.db-contract.js'
 import { paymentsRowSchema } from '../../../../server/sheets/Payments/Payments.db-contract.js'
+import { jobTicketsRowSchema } from '../../../../server/sheets/JobTickets/JobTickets.db-contract.js'
 
 // ── Drives the REAL production wiring: the services exported by
 //    order.module.ts / appointment.module.ts, built on the real repository
@@ -27,6 +28,7 @@ process.env.LAUNDRY_PACKAGES_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 process.env.CUSTOMERS_SPREADSHEET_ID = 'characterization-customers-id'
 process.env.AFTER_PHOTOS_SPREADSHEET_ID = 'characterization-after-photos-id'
 process.env.INVOICES_SPREADSHEET_ID = 'characterization-invoices-id'
+process.env.JOB_TICKETS_SPREADSHEET_ID = 'characterization-job-tickets-id'
 const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
 process.env.GOOGLE_SERVICE_ACCOUNT_KEY = Buffer.from(JSON.stringify({
   client_email: 'service-wiring@example.test',
@@ -127,6 +129,58 @@ async function productionAfterPhotoService() {
   )
   return afterPhotoService
 }
+
+async function productionJobTicketService() {
+  const { jobTicketService } = await import(
+    '../../../../server/modules/job-tickets/job-ticket.module.js'
+  )
+  return jobTicketService
+}
+
+test('JobTickets service wiring maps all physical columns', async () => {
+  const body = sheetGvizBody(jobTicketsRowSchema, [
+    'order-1:tag-1:Washing', 'order-1', 'tag-1', 'ITEM', 'WSIR', 'Washing', 1,
+    'customer-1', 'Order one', '2026-09-30', 'Delicate', 'Rush', 'Pending', null, null,
+    null, null, '2026-09-23 10:00:00', 'staff-1', null, null, null, null,
+  ])
+
+  await withMockFetch(
+    async () => response(body),
+    async (calls) => {
+      const result = await (await productionJobTicketService()).list({
+        orderId: 'order-1',
+        page: 1,
+        perPage: 1,
+      })
+      assert.equal(calls.length, 1)
+      assert.deepEqual(result.items[0], {
+        id: 'order-1:tag-1:Washing',
+        orderId: 'order-1',
+        laundryItemId: 'tag-1',
+        scope: 'ITEM',
+        serviceType: 'WSIR',
+        department: 'Washing',
+        stepNo: 1,
+        customerId: 'customer-1',
+        orderName: 'Order one',
+        dueDate: '2026-09-30',
+        specialInstructions: 'Delicate',
+        notes: 'Rush',
+        status: 'Pending',
+        startedAt: null,
+        completedAt: null,
+        scannedBy: null,
+        photoEvidenceUrl: null,
+        createdAt: '2026-09-23 10:00:00',
+        createdBy: 'staff-1',
+        updatedAt: null,
+        updatedBy: null,
+        deletedAt: null,
+        deletedBy: null,
+      })
+    },
+  )
+})
 
 test('AfterPhoto service wiring maps the physical after-sheet columns', async () => {
   const body = sheetGvizBody(afterPhotoRowSchema, [

@@ -86,7 +86,21 @@ export const workOrderUpdateSchema = z.object({
   updatedBy: z.string().min(1),
 })
 
-export const workOrderUpdateResponseSchema = workOrderListResponseSchema
+export const workOrderTicketProvisioningSchema = z.object({
+  ticketsCreated: z.number().int().nonnegative(),
+  skippedGarments: z.array(z.object({
+    laundryItemId: z.string(),
+    serviceType: z.string().nullable(),
+    reason: z.enum(['missingLaundryItemId', 'unsupportedServiceType']),
+  })),
+  failure: z.object({
+    certainty: z.enum(['rejected', 'unknown']),
+  }).nullable(),
+})
+
+export const workOrderUpdateResponseSchema = workOrderListResponseSchema.extend({
+  ticketProvisioning: workOrderTicketProvisioningSchema,
+})
 
 export const workOrderApiContract = {
   query: { list: workOrderListQuerySchema },

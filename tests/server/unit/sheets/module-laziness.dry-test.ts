@@ -9,6 +9,7 @@ const relevantEnvironmentKeys = [
   'LAUNDRY_PACKAGES_SPREADSHEET_ID',
   'ISSUE_REPORTS_SPREADSHEET_ID',
   'AFTER_PHOTOS_SPREADSHEET_ID',
+  'JOB_TICKETS_SPREADSHEET_ID',
 ]
 
 const modulePaths = [
@@ -26,6 +27,7 @@ const modulePaths = [
   '../../../../server/modules/issue-reports/issue-report.module.js',
   '../../../../server/modules/packages/package.module.js',
   '../../../../server/modules/after-photos/after-photo.module.js',
+  '../../../../server/modules/job-tickets/job-ticket.module.js',
 ]
 
 async function main(): Promise<void> {
@@ -52,7 +54,7 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log('14 module laziness checks passed')
+  console.log('15 module laziness checks passed')
 }
 
 main().catch((error) => {

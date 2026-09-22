@@ -8,11 +8,18 @@ import {
 } from '../../../contracts/work-orders/work-order-api.schema.js'
 import { orderItemService } from '../order-items/order-item.module.js'
 import { getOrderFormRepository } from '../../sheets/OrderForm/OrderForm.repository.js'
+import { getLaundryPhotosRepository } from '../../sheets/LaundryPhotos/LaundryPhotos.repository.js'
+import { laundryPhotosRowSchema } from '../../sheets/LaundryPhotos/LaundryPhotos.db-contract.js'
+import { getOrderItemFormsRepository } from '../../sheets/OrderItemForms/OrderItemForms.repository.js'
 import { orderItemFormsRowSchema } from '../../sheets/OrderItemForms/OrderItemForms.db-contract.js'
+import { getJobTicketsRepository } from '../../sheets/JobTickets/JobTickets.repository.js'
+import { jobTicketsRowSchema } from '../../sheets/JobTickets/JobTickets.db-contract.js'
 import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
+import type { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import type { ServiceListResult } from '../../shared/services/base-crud.service.js'
 import { BaseCrudService } from '../../shared/services/base-crud.service.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
+import { classifySheetWriteFailure } from '../../shared/repositories/write-failure.js'
 import { generateShortId } from '../../shared/utils/id.js'
 import {
   orderFormFieldMap,
@@ -20,8 +27,11 @@ import {
   type OrderFormApiRow,
   type OrderFormDbRow,
 } from './work-order.mapping.js'
+import { buildJobTickets } from './job-ticket-provisioning.js'
 
 type OrderItemFormsDbRow = z.infer<typeof orderItemFormsRowSchema>
+type LaundryPhotosDbRow = z.infer<typeof laundryPhotosRowSchema>
+type JobTicketsDbRow = z.infer<typeof jobTicketsRowSchema>
 type WorkOrderListQuery = z.infer<typeof workOrderApiContract.query.list>
 type WorkOrderCreate = z.infer<typeof workOrderApiContract.request.create>
 type WorkOrderCreateItem = WorkOrderCreate['items'][number]
@@ -40,10 +50,26 @@ export interface OrderItemWriter {
   createMany(rows: Array<Partial<OrderItemFormsDbRow>>): Promise<void>
 }
 
+export interface LaundryPhotoReader {
+  read(query?: ReadQueryDTO<Partial<LaundryPhotosDbRow>>): Promise<Array<Partial<LaundryPhotosDbRow>>>
+}
+
+export interface OrderItemReader {
+  read(query?: ReadQueryDTO<Partial<OrderItemFormsDbRow>>): Promise<Array<Partial<OrderItemFormsDbRow>>>
+}
+
+export interface JobTicketProvisioningRepository {
+  read(query?: ReadQueryDTO<Partial<JobTicketsDbRow>>): Promise<Array<Partial<JobTicketsDbRow>>>
+  batchAppend(rows: Array<Partial<JobTicketsDbRow>>): Promise<unknown[]>
+}
+
 export interface WorkOrderServiceOptions {
   orderFormRepository?: () => SheetRepositoryContract<OrderFormDbRow>
   orderItemPort?: OrderItemPort
   orderItemWriter?: OrderItemWriter
+  laundryPhotoRepository?: () => LaundryPhotoReader
+  orderItemRepository?: () => OrderItemReader
+  jobTicketRepository?: () => JobTicketProvisioningRepository
 }
 
 const defaultOrderItemPort: OrderItemPort = {
@@ -76,6 +102,9 @@ export class WorkOrderService extends BaseCrudService<
   private readonly orderFormRepository: () => SheetRepositoryContract<OrderFormDbRow>
   private readonly orderItemPort: OrderItemPort
   private readonly orderItemWriter: OrderItemWriter
+  private readonly laundryPhotoRepository: () => LaundryPhotoReader
+  private readonly orderItemRepository: () => OrderItemReader
+  private readonly jobTicketRepository: () => JobTicketProvisioningRepository
 
   constructor(input: WorkOrderServiceOptions = {}) {
     const orderFormRepository = input.orderFormRepository ?? getOrderFormRepository
@@ -90,6 +119,9 @@ export class WorkOrderService extends BaseCrudService<
     this.orderFormRepository = orderFormRepository
     this.orderItemPort = input.orderItemPort ?? defaultOrderItemPort
     this.orderItemWriter = input.orderItemWriter ?? orderItemService
+    this.laundryPhotoRepository = input.laundryPhotoRepository ?? getLaundryPhotosRepository
+    this.orderItemRepository = input.orderItemRepository ?? getOrderItemFormsRepository
+    this.jobTicketRepository = input.jobTicketRepository ?? getJobTicketsRepository
   }
 
   override async list(query: unknown): Promise<ServiceListResult<WorkOrderListResponse>> {
@@ -182,6 +214,90 @@ export class WorkOrderService extends BaseCrudService<
       itemsCreated,
       itemsFailed,
       itemsError,
+    }
+  }
+
+  override async update(id: string, payload: unknown): Promise<WorkOrderUpdateResponse> {
+    const updatedOrder = await super.update(id, payload)
+    const request = parseOrThrow(workOrderApiContract.request.update, payload)
+    const emptyProvisioning = {
+      ticketsCreated: 0,
+      skippedGarments: [],
+      failure: null,
+    }
+
+    if (request.status !== 'APPROVED') {
+      return { ...updatedOrder, ticketProvisioning: emptyProvisioning }
+    }
+
+    const [orderHeaderRows, photoRows, itemRows, existingTicketRows] = await Promise.all([
+      this.orderFormRepository().read({ id: updatedOrder.orderId }),
+      this.laundryPhotoRepository().read({ where: { order_id: updatedOrder.orderId } }),
+      this.orderItemRepository().read({ where: { order_id: updatedOrder.orderId } }),
+      this.jobTicketRepository().read({ where: { order_id: updatedOrder.orderId } }),
+    ])
+    const linesById = new Map(
+      itemRows.flatMap((row) => typeof row.id === 'string' && row.id !== '' ? [[row.id, row] as const] : []),
+    )
+    const garments = photoRows
+      .filter((photo) => photo.deleted_at == null || photo.deleted_at === '')
+      .map((photo) => {
+        const line = typeof photo.orderitem_id === 'string'
+          ? linesById.get(photo.orderitem_id)
+          : undefined
+        return {
+          laundryItemId: typeof photo.item_id === 'string' ? photo.item_id : '',
+          serviceType: line === undefined ? updatedOrder.serviceType : line.service_type ?? null,
+          specialInstructions: line?.special_instructions ?? null,
+        }
+      })
+    const provisioning = buildJobTickets(
+      {
+        orderId: updatedOrder.orderId,
+        customerId: updatedOrder.customerId,
+        orderName: orderHeaderRows[0]?.order_name ?? null,
+        dueDate: updatedOrder.dueDate,
+        notes: updatedOrder.note,
+        createdBy: request.updatedBy,
+      },
+      garments,
+      existingTicketRows.flatMap((ticket) =>
+        typeof ticket.laundry_item_id === 'string' && typeof ticket.department === 'string'
+          ? [{ laundryItemId: ticket.laundry_item_id, department: ticket.department }]
+          : [],
+      ),
+    )
+
+    if (provisioning.rows.length === 0) {
+      return {
+        ...updatedOrder,
+        ticketProvisioning: {
+          ticketsCreated: 0,
+          skippedGarments: provisioning.unroutableGarments,
+          failure: null,
+        },
+      }
+    }
+
+    try {
+      await this.jobTicketRepository().batchAppend(provisioning.rows)
+      return {
+        ...updatedOrder,
+        ticketProvisioning: {
+          ticketsCreated: provisioning.rows.length,
+          skippedGarments: provisioning.unroutableGarments,
+          failure: null,
+        },
+      }
+    } catch (error) {
+      return {
+        ...updatedOrder,
+        ticketProvisioning: {
+          ticketsCreated: 0,
+          skippedGarments: provisioning.unroutableGarments,
+          failure: { certainty: classifySheetWriteFailure(error).certainty },
+        },
+      }
     }
   }
 }

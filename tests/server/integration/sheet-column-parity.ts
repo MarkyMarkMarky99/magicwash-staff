@@ -26,6 +26,7 @@ import { customerPackagesDbContract } from '../../../server/sheets/CustomerPacka
 import { packageTransactionsDbContract } from '../../../server/sheets/PackageTransactions/PackageTransactions.db-contract.js'
 import { packagesDbContract } from '../../../server/sheets/Packages/Packages.db-contract.js'
 import { issueReportsDbContract } from '../../../server/sheets/IssueReports/IssueReports.db-contract.js'
+import { jobTicketsDbContract } from '../../../server/sheets/JobTickets/JobTickets.db-contract.js'
 
 const GVIZ_BASE_URL = 'https://docs.google.com/spreadsheets/d'
 
@@ -78,6 +79,12 @@ const readableSheets: readonly ReadableSheet[] = [
     sheetName: orderFormDbContract.sheetName,
     spreadsheetIdEnv: orderFormDbContract.spreadsheetId!,
     rowSchema: orderFormDbContract.row,
+  },
+  {
+    name: 'JobTickets',
+    sheetName: jobTicketsDbContract.sheetName,
+    spreadsheetIdEnv: jobTicketsDbContract.spreadsheetId!,
+    rowSchema: jobTicketsDbContract.row,
   },
   {
     name: 'OrderItemForms',

@@ -24,6 +24,7 @@ import { customerPackagesDbContract } from '../../../../server/sheets/CustomerPa
 import { packageTransactionsDbContract } from '../../../../server/sheets/PackageTransactions/PackageTransactions.db-contract.js'
 import { packagesDbContract } from '../../../../server/sheets/Packages/Packages.db-contract.js'
 import { issueReportsDbContract } from '../../../../server/sheets/IssueReports/IssueReports.db-contract.js'
+import { jobTicketsDbContract } from '../../../../server/sheets/JobTickets/JobTickets.db-contract.js'
 import { deriveGVizColumns } from '../../../../server/shared/repositories/utils/gviz-query.builder.js'
 
 interface SheetContractLike {
@@ -208,6 +209,18 @@ const tests: ColumnOrderTest[] = [
       net_total: 'N',
     },
     primaryKeyColumn: 'B',
+  },
+  {
+    name: 'JobTickets',
+    contract: jobTicketsDbContract,
+    expected: {
+      id: 'A', order_id: 'B', laundry_item_id: 'C', scope: 'D', service_type: 'E',
+      department: 'F', step_no: 'G', customer_id: 'H', order_name: 'I', due_date: 'J',
+      special_instructions: 'K', notes: 'L', status: 'M', started_at: 'N', completed_at: 'O',
+      scanned_by: 'P', photo_evidence_url: 'Q', created_at: 'R', created_by: 'S',
+      updated_at: 'T', updated_by: 'U', deleted_at: 'V', deleted_by: 'W',
+    },
+    primaryKeyColumn: 'A',
   },
   {
     name: 'LaundryPhotos',

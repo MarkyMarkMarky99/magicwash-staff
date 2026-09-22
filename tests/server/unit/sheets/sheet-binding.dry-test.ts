@@ -21,8 +21,9 @@ import { packageTransactionsDbContract } from '../../../../server/sheets/Package
 import { packagesDbContract } from '../../../../server/sheets/Packages/Packages.db-contract.js'
 import { issueReportsDbContract } from '../../../../server/sheets/IssueReports/IssueReports.db-contract.js'
 import { itemsDbContract } from '../../../../server/sheets/Items/Items.db-contract.js'
+import { jobTicketsDbContract } from '../../../../server/sheets/JobTickets/JobTickets.db-contract.js'
 
-const expectedSheetCount = 19
+const expectedSheetCount = 20
 const expectedSheetDirectories = [
   'AfterPhoto',
   'Appointments',
@@ -34,6 +35,7 @@ const expectedSheetDirectories = [
   'InvoicesView',
   'IssueReports',
   'Items',
+  'JobTickets',
   'LaundryPhotos',
   'OrderForm',
   'OrderImages',
@@ -99,6 +101,12 @@ const bindings = [
     contract: invoicesViewDbContract,
     expectedSpreadsheetId: 'PORTAL_SPREADSHEET_ID',
     expectedSheetName: 'InvoicesView',
+  },
+  {
+    name: 'JobTickets',
+    contract: jobTicketsDbContract,
+    expectedSpreadsheetId: 'JOB_TICKETS_SPREADSHEET_ID',
+    expectedSheetName: 'JobTickets',
   },
   {
     name: 'LaundryPhotos',

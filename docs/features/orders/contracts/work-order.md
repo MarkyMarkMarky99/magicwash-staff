@@ -70,8 +70,24 @@ Request
 - `updatedBy` — string, required
 
 No other order field is updatable. Any valid status value is accepted without transition guards.
-The repository stamps `updated_at`; the response is the updated work-order list/header shape and
-does not read or modify order items.
+The repository stamps `updated_at`.
+
+The response is the updated work-order list/header shape plus:
+
+- `ticketProvisioning.ticketsCreated` — number of ticket rows whose batch append was confirmed
+- `ticketProvisioning.skippedGarments` — garments that could not be routed, with `laundryItemId`,
+  `serviceType`, and a `missingLaundryItemId` or `unsupportedServiceType` reason
+- `ticketProvisioning.failure` — `null`, or `{ certainty: 'rejected' | 'unknown' }`
+
+For statuses other than `APPROVED`, ticket provisioning is not run and the nested result contains
+zero created tickets, no skipped garments, and no failure. After an `APPROVED` status write, the
+service reads LaundryPhotos, OrderItemForms, and existing JobTickets, builds every missing
+item-scoped department ticket, and uses one batch append. Existing garment/department pairs are
+not appended again, so a repeated approval can fill tickets for a garment tagged later.
+
+The status write is not rolled back if provisioning fails. A rejected append confirms that no
+ticket batch landed. An unknown append outcome must not be retried automatically because the batch
+may have landed even though its response could not be confirmed.
 
 Errors
 - invalid status or payload → 422

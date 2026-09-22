@@ -12,8 +12,10 @@ import { packagesDbContract } from '../../../../server/sheets/Packages/Packages.
 import { issueReportsDbContract } from '../../../../server/sheets/IssueReports/IssueReports.db-contract.js'
 import { laundryPhotosDbContract } from '../../../../server/sheets/LaundryPhotos/LaundryPhotos.db-contract.js'
 import { afterPhotoDbContract } from '../../../../server/sheets/AfterPhoto/AfterPhoto.db-contract.js'
+import { jobTicketsDbContract } from '../../../../server/sheets/JobTickets/JobTickets.db-contract.js'
 
 const declaredAudits = [
+  { name: 'JobTickets', contract: jobTicketsDbContract, expected: { onAppend: ['created_at'], onUpdate: ['updated_at'] } },
   { name: 'IssueReports', contract: issueReportsDbContract, expected: { onAppend: ['CreatedAt'], onUpdate: ['UpdatedAt'] } },
   {
     name: 'CustomerPackages',
