@@ -16,7 +16,7 @@ import { DuplicateRowKeyError } from '../../../../server/shared/repositories/she
 import { WriteRowIdentityMismatchError } from '../../../../server/shared/repositories/sheet-row-identity.js'
 
 const request: CreateInvoiceRequest = {
-  invoiceNumber: 'INV-ERROR-1',
+  invoiceNumber: 'INV260800000001',
   sourceOrderId: 'ORD-ERROR-1',
   issuedDate: '2026-08-10',
   dueDate: '2026-08-20',
