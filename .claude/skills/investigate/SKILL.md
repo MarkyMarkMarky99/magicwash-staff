@@ -10,7 +10,7 @@ scope, and available artifacts. Codex uses its `investigate` skill to build a sy
 verified evidence, and return ranked leads without diagnosing a root cause or proposing a fix.
 
 ```bash
-codex exec --model gpt-5.6-sol -c model_reasoning_effort="medium" "Use skill investigate. <request>" < /dev/null
+codex exec --model gpt-6-sol -c model_reasoning_effort="medium" "Use skill investigate. <request>" < /dev/null
 ```
 
 If the first attempt fails, rerun it with `model_reasoning_effort="high"`.

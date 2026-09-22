@@ -17,7 +17,7 @@ the evidence you need. Codex uses its `explore` skill to dispatch parallel Explo
 synthesis with exact `path:line` references.
 
 ```bash
-codex exec --model gpt-5.6-luna -c model_reasoning_effort="high" "Use skill explore. <request>" < /dev/null
+codex exec --model gpt-6-luna -c model_reasoning_effort="high" "Use skill explore. <request>" < /dev/null
 ```
 
 Example: `Use skill explore. Discover the new-order creation flow from Vue route through API write;

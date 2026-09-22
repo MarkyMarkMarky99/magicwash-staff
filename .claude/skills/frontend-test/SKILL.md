@@ -15,7 +15,7 @@ Claude writes the brief. **Codex drives the browser.** Claude never runs the tes
 Write the brief to a file first (use `Write`, not a shell heredoc — brief text contains quotes and backticks that break shell parsing).
 
 ```bash
-codex exec -s workspace-write -c sandbox_workspace_write.network_access=true -m gpt-5.6-luna -c model_reasoning_effort="xhigh" - < <brieffile>
+codex exec -s workspace-write -c sandbox_workspace_write.network_access=true -m gpt-6-luna -c model_reasoning_effort="xhigh" - < <brieffile>
 ```
 
 `network_access=true` is required — without it `-s workspace-write` blocks the browser's requests and the run dies with a misleading error.
