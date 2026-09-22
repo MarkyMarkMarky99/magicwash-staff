@@ -591,7 +591,7 @@ async function copyLiffUrl(invoiceNumber: string) {
 
   <PriceListItemPicker
     :open="priceListPickerOpen"
-    :detail="`ใบแจ้งหนี้ #${invoiceNumber || '—'} · ${items.length} รายการ`"
+    :detail="`Invoice #${invoiceNumber || '—'} · ${items.length} ${items.length === 1 ? 'item' : 'items'}`"
     :items="priceListItems"
     :loading="priceListLoading"
     :error="priceListError"

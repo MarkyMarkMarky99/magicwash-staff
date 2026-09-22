@@ -16,8 +16,8 @@ the full loaded collection, independently of search and service filters. Categor
 rows remain available as zero-count tabs, so an explicit `category=CLOTHING` still selects CLOTHING
 even when that category has no active prices. Its empty state explains that no active items exist.
 The price sheet shows every active price row for that code, with a match for the selected service
-placed first. Main cards use a two-column image-led grid and the same generic `ImageContentCard` as
-the price-list picker's item-type grid. The shared image frame slightly crops source-photo margins
+placed first. Main cards use a two-column image-led grid with the generic `ImageContentCard`.
+The picker uses its own contained-image card markup. The shared image frame slightly crops source-photo margins
 so photos fill the card edge. Both a single price and a minimum–maximum range across active rows
 appear as text at the top right of the image, with a light text shadow for contrast and no
 background panel. Equal prices display once. The card has no separate status line.

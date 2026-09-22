@@ -24,18 +24,19 @@ const row = (id: string, overrides: Partial<PriceListDto> = {}): PriceListDto =>
 })
 
 const items = [
-  row('first'),
-  row('inactive', { active: false }),
+  row('first', { active: false, priceGroup: 'VIP' }),
   row('other-service', { serviceType: 'DRCL' }),
   row('other-group', { priceGroup: 'VIP' }),
+  row('first-default', { itemCode: 'first', active: false }),
+  row('first-active', { itemCode: 'first', serviceType: 'IRON' }),
+  row('inactive', { active: false }),
   row('last'),
 ]
 
 assert.deepEqual(
-  filterOrderPriceListItems(items, 'WSIR').map((item) => item.id),
-  ['first', 'last'],
-  'client filtering preserves the canonical item-code order',
+  filterOrderPriceListItems(items).map((item) => item.id),
+  ['first-active', 'other-service', 'other-group', 'inactive', 'last'],
+  'each item code appears once, including other services, groups, and inactive-only codes',
 )
-assert.deepEqual(filterOrderPriceListItems(items, null), [])
 
 console.log('order-price-list-items.dry-test: OK')

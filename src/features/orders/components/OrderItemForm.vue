@@ -6,8 +6,6 @@ import { orderItemCreateSchema } from '@contracts/order-items/order-item-api.sch
 import FormInput from '@/shared/components/FormInput.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
-import { serviceTypeLabel } from '@/shared/utils/service-type-labels'
-import { formatOrderPrice } from '@/features/orders/utils/order-price-format'
 
 type PriceListItem = z.infer<typeof priceListListResponseSchema>
 const itemPayloadSchema = orderItemCreateSchema.omit({ orderId: true, createdBy: true })
@@ -45,11 +43,11 @@ function submit() {
     itemId: item.id,
     description: item.displayNameTh,
     quantity: Number(form.quantity),
-    price: item.price,
+    price: null,
     specialInstructions: form.specialInstructions.trim() || null,
   })
   if (!parsed.success) {
-    validationError.value = 'Item details are incomplete or the price is invalid. Please choose the item again.'
+    validationError.value = 'Item details are incomplete. Please choose the item again.'
     return
   }
   validationError.value = null
@@ -61,7 +59,7 @@ function submit() {
   <FormOverlay :open="isOpen" title="Add item" eyebrow="Order item" submit-label="Add item to order" :is-submitting="props.isSubmitting" :is-submit-disabled="!canSubmit" @close="emit('close')" @submit="submit">
     <fieldset v-if="props.selectedItem" :disabled="props.isSubmitting" class="min-w-0 space-y-5 pb-5">
       <div class="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4">
-        <div class="flex items-start justify-between gap-3"><div class="min-w-0"><p class="font-label text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">{{ props.selectedItem.itemCode }}</p><p class="mt-1 font-headline text-base font-bold text-on-surface">{{ props.selectedItem.displayNameTh }}</p><p class="mt-1 text-xs text-on-surface-variant">{{ [props.selectedItem.variant, serviceTypeLabel(props.selectedItem.serviceType), props.selectedItem.unit && `per ${props.selectedItem.unit}`].filter(Boolean).join(' · ') }}</p></div><p class="shrink-0 font-headline text-lg font-extrabold text-primary">{{ formatOrderPrice(props.selectedItem.price) }}</p></div>
+        <div class="min-w-0"><p class="font-label text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">{{ props.selectedItem.itemCode }}</p><p class="mt-1 font-headline text-base font-bold text-on-surface">{{ props.selectedItem.displayNameTh }}</p></div>
         <button type="button" class="mt-3 text-sm font-bold text-primary underline underline-offset-2" @click="emit('changeItem')">Change item</button>
       </div>
       <p v-if="quantityError" id="order-item-quantity-error" class="rounded-xl border border-error/20 bg-error-container/30 px-3 py-2 text-sm text-on-error-container">{{ quantityError }}</p><p v-if="props.error || validationError" class="rounded-xl border border-error/20 bg-error-container/30 px-3 py-2 text-sm text-on-error-container">{{ props.error || validationError }}</p>

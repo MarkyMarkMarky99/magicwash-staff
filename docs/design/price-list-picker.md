@@ -2,20 +2,34 @@
 
 Order and invoice both render `PriceListItemPicker` from the price-list feature. The owning page
 loads and filters API rows, controls the route-owned open state, and handles the selected row. The
-picker owns only local search, category selection, and its two-step bottom sheet.
+picker owns only local search and category and subcategory selection. Its price mode also owns a
+two-step bottom sheet.
 
-The picker uses the shared `PickerOverlay` at full height, matching the form overlay's height. Its first screen groups
-available rows by `category` and then by the tuple `(category, subcategory, itemType)`, since an
-`itemType` string can occur in unrelated subcategories. Its item-type grid uses the generic
-`ImageContentCard` also used by the staff price-list browse page, while selection remains owned by
-the picker. Selecting an item type opens a draggable
+The picker uses the shared `PickerOverlay` at full height, matching the form overlay's height. The
+compact order header shows only a title and search field; the invoice header also shows its
+price-list context. The order header reuses the translucent mint circle from Order Detail and
+ends in a static white `rounded-t-2xl` edge like the customer order detail sheet. It has no drag
+handle and fades in without a bottom-sheet slide. Below the header are category icon tiles and subcategory chips. Price mode
+groups the filtered rows by the tuple
+`(category, subcategory, itemType)`, since an `itemType` string can occur in unrelated subcategories.
+The two-column item grid shows a contained product image, an English item-type title with an
+add-to-cart icon beside it, and a Thai description on the next line. The card does not show a price.
+The picker's headings, controls, status text, and service labels are English; Thai product descriptions
+from the PriceList sheet stay as supplied.
+In invoice price mode, the icon and card open the same item selection flow; they do not add a row
+before its variant and price are chosen. Selecting an item type opens a draggable
 `DetailOverlay` bottom sheet already used by customer order history. The first sheet step lists
 its distinct variants; selecting one slides the sheet content right-to-left to the available price
-rows. A null variant is labelled `ทั่วไป`. Every
+rows. A null variant is labelled `General`. Every
 price row remains selectable, including two active rows with the same code and variant but
 different prices.
 
-Order passes only active, DEFAULT-group rows matching its service type. Invoice passes active,
-DEFAULT-group rows across services. The picker emits the exact selected API row. Order then opens
-its quantity form and saves that row's `id`; invoice copies the description, unit, and price into
-a line item and closes its picker. The picker does not own either workflow.
+Order passes one representative row for every distinct `itemCode` in the loaded price list,
+regardless of service, price group, or active status. It prefers an active row, then a DEFAULT-group
+row, while preserving the first appearance of each code. In item mode each card represents one
+code and selects it immediately, without a variant, service, or price step. Each order card shows
+its code on the image so similarly named items stay distinguishable. Order then opens its quantity
+form and saves the selected row's `id` with `price: null`; service type remains on the
+order header. Invoice passes active, DEFAULT-group rows across services and uses price mode. It
+copies the selected row's description, unit, and price into a line item. The picker does not own
+either workflow.

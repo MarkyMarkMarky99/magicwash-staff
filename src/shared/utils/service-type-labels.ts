@@ -27,6 +27,18 @@ export function serviceTypeLabel(serviceType: string | null | undefined): string
   return serviceTypePresentation[serviceType as ServiceType]?.label ?? serviceType
 }
 
+const englishServiceLabels: Record<ServiceType, string> = {
+  WSIR: 'Wash, Dry & Iron',
+  IRON: 'Ironing',
+  DRCL: 'Dry Cleaning',
+  WASH: 'Washing',
+}
+
+export function serviceTypeLabelEn(serviceType: string | null | undefined): string | null {
+  if (!serviceType) return null
+  return englishServiceLabels[serviceType as ServiceType] ?? serviceType
+}
+
 export const serviceTypeOptions = serviceTypeSchema.options.map((value) => ({
   value,
   label: serviceTypePresentation[value].label,

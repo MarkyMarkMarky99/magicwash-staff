@@ -18,6 +18,6 @@ assert.deepEqual(pillowVariants.find((variant) => variant.key === 'Synthetic Fib
   'multiple price options for one variant must remain selectable')
 
 const toyVariants = groupVariants(types[1]!.items)
-assert.equal(toyVariants[0]?.name, 'ทั่วไป')
+assert.equal(toyVariants[0]?.name, 'General')
 
 console.log('price-list-picker-groups.dry-test: OK')

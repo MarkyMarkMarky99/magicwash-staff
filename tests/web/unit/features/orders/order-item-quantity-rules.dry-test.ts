@@ -13,5 +13,7 @@ assert.match(source, /Quantity must be a whole number greater than 0/)
 assert.doesNotMatch(source, /selectedItem\?\.unit|selectedUnit|isValidItemQuantity|isWeightUnit|itemQuantityStep/)
 assert.match(source, /:aria-describedby="quantityError \? 'order-item-quantity-error' : undefined"/)
 assert.match(source, /:aria-invalid="Boolean\(quantityError\)"/)
+assert.match(source, /price: null/, 'assigning an order item does not set a price')
+assert.doesNotMatch(source, /selectedItem\.price|formatOrderPrice|serviceTypeLabel/)
 
 console.log('order item quantity rule dry tests passed')

@@ -35,6 +35,6 @@ export function groupVariants<T extends { variant: string | null }>(items: reado
     else groups.set(key, [item])
   }
   return [...groups].map(([key, groupedItems]) => ({
-    key, items: groupedItems, name: key || 'ทั่วไป',
+    key, items: groupedItems, name: key || 'General',
   }))
 }

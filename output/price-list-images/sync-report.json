@@ -1,0 +1,72 @@
+{
+  "updated": [
+    {
+      "codes": [
+        "ITM-0057"
+      ],
+      "patchedRows": 1
+    },
+    {
+      "codes": [
+        "ITM-0087",
+        "ITM-0088"
+      ],
+      "patchedRows": 2
+    },
+    {
+      "codes": [
+        "ITM-0089"
+      ],
+      "patchedRows": 1
+    },
+    {
+      "codes": [
+        "ITM-0090"
+      ],
+      "patchedRows": 2
+    },
+    {
+      "codes": [
+        "ITM-0091"
+      ],
+      "patchedRows": 2
+    },
+    {
+      "codes": [
+        "ITM-0092"
+      ],
+      "patchedRows": 2
+    },
+    {
+      "codes": [
+        "ITM-0093"
+      ],
+      "patchedRows": 2
+    },
+    {
+      "codes": [
+        "ITM-0094"
+      ],
+      "patchedRows": 2
+    },
+    {
+      "codes": [
+        "ITM-0095"
+      ],
+      "patchedRows": 2
+    },
+    {
+      "codes": [
+        "ITM-0097"
+      ],
+      "patchedRows": 2
+    },
+    {
+      "codes": [
+        "ITM-0098"
+      ],
+      "patchedRows": 2
+    }
+  ],
+  "remainingWithoutImage": []
+}

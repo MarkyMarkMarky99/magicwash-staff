@@ -4,7 +4,6 @@ import { computed, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { z } from 'zod'
 import { orderItemCreateSchema } from '@contracts/order-items/order-item-api.schema'
-import { orderServiceTypeSchema } from '@contracts/order-items/order-item-api.schema'
 import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import LightboxOverlay from '@/shared/layouts/LightboxOverlay.vue'
@@ -79,19 +78,12 @@ const tagCount = computed(() => {
 const canPrintTags = computed(() =>
   !detailLoading.value && Boolean(currentCustomerIndex.value?.trim()) && tagCount.value !== null,
 )
-const pickerServiceType = computed(() => {
-  if (currentOrder.value?.orderId !== orderId.value) return null
-  const parsed = orderServiceTypeSchema.safeParse(currentOrder.value.serviceType)
-  return parsed.success ? parsed.data : null
-})
 const pickerItems = computed(() =>
-  filterOrderPriceListItems(priceListStore.items, pickerServiceType.value),
+  filterOrderPriceListItems(priceListStore.items),
 )
 const isPriceListPickerOpen = computed(() => orderOverlay.isItemOpen && selectedPriceListItem.value === null)
 const isItemFormOpen = computed(() => orderOverlay.isItemOpen && selectedPriceListItem.value !== null)
-const pickerError = computed(() => detailError.value
-  ?? (!detailLoading.value && !pickerServiceType.value ? 'Order service type not found. Please try reloading.' : null)
-  ?? priceListStore.error)
+const pickerError = computed(() => detailError.value ?? priceListStore.error)
 const captureImageType = computed<OrderImageType | null>(() => {
   const overlay = orderOverlay.activeOverlay
   if (overlay === null || overlay === 'item') return null
@@ -143,10 +135,10 @@ watch(orderId, (id) => {
 watch([canPrintTags, tagPrinting], ([canPrint, printing]) => {
   if (!canPrint && !printing) tagPrintConfirmOpen.value = false
 })
-watch([() => orderOverlay.isItemOpen, orderId, pickerServiceType], ([isOpen, , serviceType]) => {
+watch([() => orderOverlay.isItemOpen, orderId], ([isOpen]) => {
   itemFlowSequence += 1
   selectedPriceListItem.value = null
-  if (isOpen && serviceType) void priceListStore.load()
+  if (isOpen) void priceListStore.load()
 }, { immediate: true })
 
 function submitWeight(weight: number): void {
@@ -225,7 +217,7 @@ async function handleCapture(file: File): Promise<void> {
   await orderImageStore.captureImage({ orderId: targetOrderId, imageType, file, quantity })
 }
 async function addItem(payload: z.infer<typeof itemPayloadSchema>) {
-  if (!selectedPriceListItem.value || !pickerServiceType.value || itemSubmitting.value) return
+  if (!selectedPriceListItem.value || itemSubmitting.value) return
   const targetOrderId = orderId.value
   const flowSequence = itemFlowSequence
   savingItemOrderId.value = targetOrderId
@@ -260,7 +252,7 @@ function closeItemForm(): void {
 }
 
 function retryPriceList(): void {
-  if (detailError.value || !pickerServiceType.value) {
+  if (detailError.value) {
     void workOrderStore.loadDetail(orderId.value)
   } else {
     void priceListStore.load(true)
@@ -296,8 +288,9 @@ function clearItemError() {
   </LightboxOverlay>
   <PriceListItemPicker
     v-if="selectedPriceListItem === null"
+    selection-mode="item"
     :open="isPriceListPickerOpen"
-    :detail="`${orderId} · ${pickerServiceType ? serviceTypeLabel(pickerServiceType) : '—'}`"
+    :detail="orderId"
     :items="pickerItems"
     :loading="detailLoading || priceListStore.loading"
     :error="pickerError"

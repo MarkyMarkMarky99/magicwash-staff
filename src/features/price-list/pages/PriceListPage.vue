@@ -13,6 +13,7 @@ import PriceListOptionsSheet from '../components/PriceListOptionsSheet.vue'
 import PriceListServiceFilter from '../components/PriceListServiceFilter.vue'
 import PriceListServicePanel from '../components/PriceListServicePanel.vue'
 import { usePriceListFilterRoute } from '../composables/usePriceListFilterRoute'
+import { comparePriceListCategories } from '../utils/price-list-display'
 import type { PriceListDto } from '@/data/price-list/price-list.service'
 
 defineOptions({ name: 'PriceListPage' })
@@ -35,7 +36,6 @@ const listError = computed(() => {
 const search = ref('')
 const serviceFilterOpen = ref(false)
 const { filter, updateFilter } = usePriceListFilterRoute()
-const categoryOrder = ['CLOTHING', 'BEDDING', 'HOUSEHOLD', 'OTHERS']
 const selectedCode = computed(() => {
   const raw = route.query.itemCode
   const value = Array.isArray(raw) ? raw[0] : raw
@@ -95,12 +95,7 @@ const categoryTabs = computed(() => {
   return [
     { key: 'ALL', label: 'ALL', count: itemGroups.value.length },
     ...Array.from(counts.keys())
-      .sort((a, b) => {
-        const aOrder = categoryOrder.indexOf(a)
-        const bOrder = categoryOrder.indexOf(b)
-        if (aOrder !== bOrder) return (aOrder < 0 ? Infinity : aOrder) - (bOrder < 0 ? Infinity : bOrder)
-        return a.localeCompare(b, 'th-TH')
-      })
+      .sort(comparePriceListCategories)
       .map((category) => ({ key: category, label: category, count: counts.get(category)! })),
   ]
 })
