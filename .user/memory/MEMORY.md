@@ -1,12 +1,9 @@
 # Project memory
 
-- Branch: `codex/items-master`; pushed to Preview and live create/PATCH verified; concurrent item-code allocation remains unresolved.
+- Branch: `main`; Items master is merged and live in production, with no work branch open.
 
 ## Branches in flight
 
-- **`codex/items-master`** — Preview verified; concurrent code allocation remains before production use. Details: `.user/memory/codex-items-master.md`.
-- **`codex/price-list-item-form`** — fully contained in `codex/items-master`; safe to delete. Details: `.user/memory/codex-items-master.md`.
-- **`codex/price-list-picker-redesign`** — committed picker redesign and image backfill; base for the form branch. Details: `.user/memory/codex-price-list-picker-redesign.md`.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 251 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 - **`prototype/mobile-tag-scanner`** — retained local prototype branch, separate from current picker work. Details: `.user/memory/prototype-mobile-tag-scanner.md`.
 
@@ -53,6 +50,8 @@
   - Defer mixed-service orders to a separate branch after the price-list photo release; see `.user/memory/mixed-service-orders.md`.
   - Fill real prices for the 33 inactive price-list rows with `price: 0`.
   - Add a `BaseSwipeCard` action to add a price to an existing item.
+  - No Items edit UI exists; `PATCH /api/items/:id` is implemented and tested but unreachable from the app.
+  - Test item `ITM-0099` / `2e6b91d2` is retained inactive in `Items`; delete it with the other sheet test data.
   - Decide between `CANCELLED` and `VOID` before changing the invoice contract.
   - Decide whether to renumber the four legacy uuid-shaped invoice numbers; they are referenced as `invoiceId` on customer-package rows.
   - Invoice reads now assemble from `Invoices`/`InvoiceItems`/`Payments` in memory; revisit at ~2-3k invoices.
@@ -77,6 +76,8 @@
 
 - **Verification and cleanup**
   - Browser-verify appointment creation without a customer location in Preview.
+  - `src/features/orders/utils/order-price-list-items.ts` has no caller since Orders moved to Items, but keeps a unit test; decide whether to delete both.
+  - `output/price-list-images/generated/*.jpg` are committed generated artifacts; decide whether they belong in the repo or `.gitignore`.
   - Five allowlisted cross-feature imports remain, all UI that knows domain fields, with no legal home under the current rule. Accepted for now; reopen only when a third feature needs one of them.
   - Placement rule settled 2026-09-16: UI folders (`src/shared/components`, `layouts`) stay generic and must not know domain fields; non-UI folders under `src/shared/` may hold cross-feature business rules. Rejected and not to be re-proposed: `src/shared/components/<domain>/`, a new `src/ui/<domain>/` layer, and moving the per-feature status-presentation modules to `src/shared/utils/`.
   - Appointment date strip opens at day 1 instead of centering today; a `scrollTo` attempt hid the strip, so diagnose in a real browser first.
