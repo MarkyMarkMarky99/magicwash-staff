@@ -5,7 +5,7 @@
 ## Branches in flight
 
 - **`codex/items-master`** — Preview verified; concurrent code allocation remains before production use. Details: `.user/memory/codex-items-master.md`.
-- **`codex/price-list-item-form`** — UI-only form preview and picker link are committed separately from the picker redesign. Details: `.user/memory/codex-price-list-item-form.md`.
+- **`codex/price-list-item-form`** — fully contained in `codex/items-master`; safe to delete. Details: `.user/memory/codex-items-master.md`.
 - **`codex/price-list-picker-redesign`** — committed picker redesign and image backfill; base for the form branch. Details: `.user/memory/codex-price-list-picker-redesign.md`.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 251 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 - **`prototype/mobile-tag-scanner`** — retained local prototype branch, separate from current picker work. Details: `.user/memory/prototype-mobile-tag-scanner.md`.

@@ -16,4 +16,5 @@
 - Test item name: ZZ TEST Items 1790072460209; intentionally retained inactive in Items; PriceList rows unchanged.
 - No Items edit UI exists; live edit verification uses PATCH from a browser context.
 - Read-then-append item-code allocation has no cross-instance uniqueness guarantee.
+- `Items.json` is registered in the G Drive schema registry.
 - Resume at `server/modules/items/items.module.ts` and `tests/server/unit/modules/items/`.
