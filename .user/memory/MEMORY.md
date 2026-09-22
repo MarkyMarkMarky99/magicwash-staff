@@ -1,10 +1,11 @@
 # Project memory
 
-- Branch: `codex/price-list-picker-redesign`; picker work is the current branch, with the no-price item form discussion next.
+- Branch: `codex/price-list-item-form`; UI-only no-price item form preview is ready, with data integration pending.
 
 ## Branches in flight
 
-- **`codex/price-list-picker-redesign`** — picker redesign and image backfill on the current branch. Details: `.user/memory/codex-price-list-picker-redesign.md`.
+- **`codex/price-list-item-form`** — UI-only form preview and picker link are committed separately from the picker redesign. Details: `.user/memory/codex-price-list-item-form.md`.
+- **`codex/price-list-picker-redesign`** — committed picker redesign and image backfill; base for the form branch. Details: `.user/memory/codex-price-list-picker-redesign.md`.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 251 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 - **`prototype/mobile-tag-scanner`** — retained local prototype branch, separate from current picker work. Details: `.user/memory/prototype-mobile-tag-scanner.md`.
 
@@ -47,7 +48,7 @@
   - App-wide GViz read normalization is deferred by the user; do not start or re-propose it. See `.user/memory/gviz-read-normalization.md`.
 
 - **Prices, invoices, and sheet data**
-  - Discuss a no-price item creation form in the price-list feature after the picker commit.
+  - Define the no-price item contract and write flow after the UI preview.
   - Defer mixed-service orders to a separate branch after the price-list photo release; see `.user/memory/mixed-service-orders.md`.
   - Fill real prices for the 33 inactive price-list rows with `price: 0`.
   - Add a `BaseSwipeCard` action to add a price to an existing item.

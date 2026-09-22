@@ -25,6 +25,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: []
+  create: [category: string | null, subcategory: string | null]
   retry: []
   select: [item: PriceListItem]
 }>()
@@ -191,7 +192,10 @@ function formatPrice(price: number): string {
           </ScrollRegion>
         </section>
 
-        <h2 v-if="!loading && !error && typeGroups.length" class="px-4 pt-5 font-headline text-lg font-bold text-on-surface">Items</h2>
+        <div v-if="selectionMode === 'item' || (!loading && !error && typeGroups.length)" class="flex items-center justify-between gap-3 px-4 pt-5">
+          <h2 v-if="!loading && !error && typeGroups.length" class="font-headline text-lg font-bold text-on-surface">Items</h2>
+          <button v-if="selectionMode === 'item'" type="button" :disabled="!category || !subcategory" class="ml-auto font-label text-xs font-bold tracking-wide text-primary focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40" @click="emit('create', category, subcategory)">NEW ITEM</button>
+        </div>
         <div v-if="loading" class="grid grid-cols-2 gap-3 p-4" aria-busy="true" aria-label="Loading price list items">
           <div v-for="n in 6" :key="n" class="overflow-hidden rounded-2xl bg-surface-container-low">
             <div class="aspect-4/3 animate-pulse bg-surface-container" />

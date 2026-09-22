@@ -36,6 +36,7 @@ import { filterOrderPriceListItems } from '@/features/orders/utils/order-price-l
 import { currentActor } from '@/shared/config/actor'
 import { createLaundryTagPrintRequest, printLaundryTags } from '@/data/laundry-tag-prints/laundry-tag-print.service'
 import { ApiError } from '@/shared/api/api-client'
+import { priceListItemCreateRoute } from '@/shared/navigation/form-routes'
 
 const itemPayloadSchema = orderItemCreateSchema.omit({ orderId: true, createdBy: true })
 const route = useRoute()
@@ -238,6 +239,11 @@ function selectPriceListItem(item: PriceListDto): void {
   clearItemError()
 }
 
+function openPriceListItemCreate(category: string | null, subcategory: string | null): void {
+  if (!category || !subcategory) return
+  void router.push(priceListItemCreateRoute({ orderId: orderId.value, category, subcategory }))
+}
+
 function changePriceListItem(): void {
   selectedPriceListItem.value = null
   clearItemError()
@@ -297,6 +303,7 @@ function clearItemError() {
     :truncated="priceListStore.truncated"
     @close="closePriceListPicker"
     @retry="retryPriceList"
+    @create="openPriceListItemCreate"
     @select="selectPriceListItem"
   />
   <OrderItemForm

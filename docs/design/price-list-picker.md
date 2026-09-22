@@ -16,6 +16,11 @@ The two-column item grid shows a contained product image, an English item-type t
 add-to-cart icon beside it, and a Thai description on the next line. The card does not show a price.
 The picker's headings, controls, status text, and service labels are English; Thai product descriptions
 from the PriceList sheet stay as supplied.
+Order item mode shows a `NEW ITEM` text link at the right of the Items heading. It is disabled
+until a category and subcategory are both selected, then opens the UI-only new item form in the
+price-list feature through a shared form route builder. The existing Order picker route remains
+in browser history, so closing the form returns to the picker. The chosen category and
+subcategory are carried in the route query and prefilled in the UI-only form.
 In invoice price mode, the icon and card open the same item selection flow; they do not add a row
 before its variant and price are chosen. Selecting an item type opens a draggable
 `DetailOverlay` bottom sheet already used by customer order history. The first sheet step lists

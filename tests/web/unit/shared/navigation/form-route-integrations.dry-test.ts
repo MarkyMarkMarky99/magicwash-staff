@@ -19,6 +19,17 @@ assert.match(order, /form\.customerId = lockedCustomer\.value\.customerId/)
 assert.match(order, /disabled: Boolean\(sourceCustomerId\)/)
 assert.match(order, /router\.replace\(\{ name: 'order-detail'/)
 
+const orderDetail = source('features/orders/pages/OrderDetailPage.vue')
+assert.match(orderDetail, /router\.push\(priceListItemCreateRoute\(\{ orderId: orderId\.value, category, subcategory \}\)\)/)
+assert.match(orderDetail, /@create="openPriceListItemCreate"/)
+
+const priceListItemForm = source('features/price-list/pages/PriceListItemCreatePage.vue')
+assert.match(priceListItemForm, /category: prefilledValue\(route\.query\.category\)/)
+assert.match(priceListItemForm, /subcategory: prefilledValue\(route\.query\.subcategory\)/)
+assert.match(priceListItemForm, /orderId = prefilledValue\(route\.query\.orderId\)/)
+assert.doesNotMatch(priceListItemForm, /v-model="item\.(?:category|subcategory|displayNameTh|displayNameEn)"/)
+assert.doesNotMatch(priceListItemForm, /type="file"/)
+
 const invoice = source('features/invoices/pages/InvoiceCreatePage.vue')
 assert.match(invoice, /loadInvoiceCreateContext\(customerId, orderId\)/)
 assert.doesNotMatch(invoice, /selected-customer\.store|useSelectedCustomerStore/)

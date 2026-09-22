@@ -23,5 +23,11 @@ assert.match(source(pages[0][0]), /rescheduleAppointment[\s\S]*router\.back\(\)/
 assert.match(source(pages[2][0]), /packageStore\.(?:update|create)[\s\S]*router\.push\('\/packages'\)/)
 assert.match(source(pages[3][0]), /priceListStore\.(?:update|create)[\s\S]*router\.push\('\/price-list'\)/)
 assert.match(source(pages[4][0]), /issueReportStore\.create[\s\S]*router\.replace\(\{ name: 'issue-reports' \}\)/)
+const itemCreatePage = source('features/price-list/pages/PriceListItemCreatePage.vue')
+assert.match(itemCreatePage, /orderId = prefilledValue\(route\.query\.orderId\)/)
+assert.match(itemCreatePage, /name: 'order-detail', params: \{ orderId \}, query: \{ orderAction: 'item' \}/)
+assert.match(itemCreatePage, /: \{ name: 'price-list' \}/)
+assert.match(itemCreatePage, /useCloseRoute\(fallback\)/)
+assert.match(itemCreatePage, /@close="close"/)
 
-console.log('5 form-page close route dry tests passed')
+console.log('6 form-page close route dry tests passed')
