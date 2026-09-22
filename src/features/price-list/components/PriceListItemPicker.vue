@@ -9,7 +9,7 @@ import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import ImageOrIcon from '@/shared/components/ImageOrIcon.vue'
 import { serviceTypeLabel, serviceTypeLabelEn } from '@/shared/utils/service-type-labels'
 import { groupItemTypes, groupVariants } from '../utils/price-list-picker-groups'
-import { comparePriceListCategories } from '../utils/price-list-display'
+import { comparePriceListCategories, defaultItemCategory, defaultItemSubcategory } from '../utils/price-list-display'
 
 type PriceListItem = z.infer<typeof priceListListResponseSchema>
 type ItemTypeGroup = ReturnType<typeof groupItemTypes<T>>[number]
@@ -77,8 +77,8 @@ const priceOptions = computed(() =>
 watch(() => props.open, (open) => {
   if (open) {
     search.value = ''
-    category.value = null
-    subcategory.value = null
+    category.value = props.selectionMode === 'item' ? defaultItemCategory : null
+    subcategory.value = props.selectionMode === 'item' ? defaultItemSubcategory : null
   } else closeSheet()
 })
 

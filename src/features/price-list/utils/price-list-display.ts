@@ -6,3 +6,7 @@ export function comparePriceListCategories(a: string, b: string): number {
   return (aOrder < 0 ? categoryOrder.length : aOrder)
     - (bOrder < 0 ? categoryOrder.length : bOrder) || a.localeCompare(b, 'th-TH')
 }
+
+// Preselected in the Orders item picker so staff land on the busiest category first.
+export const defaultItemCategory = 'Clothing'
+export const defaultItemSubcategory = 'Tops'
