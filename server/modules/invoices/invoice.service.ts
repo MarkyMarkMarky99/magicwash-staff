@@ -26,13 +26,7 @@ import { getOrderFormRepository } from '../../sheets/OrderForm/OrderForm.reposit
 import { orderFormRowSchema } from '../../sheets/OrderForm/OrderForm.db-contract.js'
 import { syncInvoiceView as defaultSyncInvoiceView } from './invoice-view-sync-client.js'
 import type { InvoiceViewSyncResult } from './invoice-view-sync-client.js'
-import {
-  WriteCommittedUnreadableError,
-  WriteRejectedError,
-  WriteTransportError,
-} from '../../shared/repositories/sheets-api.client.js'
-import { DuplicateRowKeyError } from '../../shared/repositories/sheet-row-lookup.js'
-import { WriteRowIdentityMismatchError } from '../../shared/repositories/sheet-row-identity.js'
+import { classifySheetWriteFailure } from '../../shared/repositories/write-failure.js'
 import { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import { ApiError } from '../../shared/http/api-error.js'
@@ -125,46 +119,6 @@ function toDbAdjustment(adjustment: InvoiceAdjustmentInput): InvoiceDbAdjustment
     ...(adjustment.refSource !== undefined ? { ref_source: adjustment.refSource } : {}),
     ...(adjustment.refCode !== undefined ? { ref_code: adjustment.refCode } : {}),
   }
-}
-
-interface WriteFailure {
-  certainty: 'rejected' | 'unknown'
-  message: string
-}
-
-/**
- * Maps a write failure to the public certainty value.
- *
- * rejected  — WriteRejectedError, DuplicateRowKeyError:
- *             the write was refused before or by the sheet, nothing was stored.
- * unknown   — WriteTransportError:
- *             the transport outcome does not prove whether the row was stored.
- * unknown   — WriteCommittedUnreadableError, WriteRowIdentityMismatchError:
- *             the write completed, but its persisted result could not be safely
- *             read or identified. Neither group may be auto-retried.
- *
- * Any error that is not one of these typed classes is classified 'unknown',
- * never 'rejected' — over-claiming 'rejected' would invite a retry that
- * duplicates data. A new write error class must be added here explicitly; the
- * default is deliberately the cautious one, not the correct one.
- */
-function classifyWriteFailure(error: unknown): WriteFailure {
-  if (error instanceof WriteRejectedError || error instanceof DuplicateRowKeyError) {
-    return { certainty: 'rejected', message: error.message }
-  }
-  if (error instanceof WriteCommittedUnreadableError) {
-    return {
-      certainty: 'unknown',
-      message: `Write committed but the persisted row could not be read back; do not retry: ${error.message}`,
-    }
-  }
-  if (error instanceof WriteTransportError || error instanceof WriteRowIdentityMismatchError) {
-    return {
-      certainty: 'unknown',
-      message: `Write outcome unknown: ${error.message}`,
-    }
-  }
-  return { certainty: 'unknown', message: error instanceof Error ? error.message : String(error) }
 }
 
 /** Minimal ports `InvoiceService` depends on — real `SheetRepository` instances
@@ -531,7 +485,7 @@ export class InvoiceService {
     try {
       await this.invoiceItemRepository().batchAppend(itemCommands)
     } catch (error) {
-      const failure = classifyWriteFailure(error)
+      const failure = classifySheetWriteFailure(error)
       console.error('items_write_failed', error instanceof Error ? error.stack ?? error.message : String(error))
       return { kind: 'items_write_failed', message: failure.message, certainty: failure.certainty }
     }
@@ -577,7 +531,7 @@ export class InvoiceService {
       // reconcile this by hand, and a plain retry would append a second set
       // of items, regardless of `certainty`. This outcome carries no
       // `message` field in the public contract — only `certainty`.
-      const failure = classifyWriteFailure(error)
+      const failure = classifySheetWriteFailure(error)
       console.error('invoice_write_failed', error instanceof Error ? error.stack ?? error.message : String(error))
       return {
         kind: 'invoice_write_failed',
@@ -605,7 +559,7 @@ export class InvoiceService {
           updated_by: FALLBACK_ACTOR,
         })
       } catch (error) {
-        const failure = classifyWriteFailure(error)
+        const failure = classifySheetWriteFailure(error)
         console.error('order_link_failed', error instanceof Error ? error.stack ?? error.message : String(error))
         return {
           kind: 'order_link_failed',
@@ -696,7 +650,7 @@ export class InvoiceService {
           updated_by: FALLBACK_ACTOR,
         })
       } catch (error) {
-        const failure = classifyWriteFailure(error)
+        const failure = classifySheetWriteFailure(error)
         throw ApiError.internal(failure.message, {
           stage: 'invoice_status_write',
           certainty: failure.certainty,

@@ -24,10 +24,6 @@ export class DuplicateRowKeyError extends Error {
  * adding CAS, a lock, a retry, or a protected range. If this causes a real
  * incident, move to storage with real transactions or combine lookup and write
  * into one Apps Script operation; do not cover it with retries.
- *
- * A duplicate key is invalid data. InvoiceService.classifyWriteFailure maps
- * DuplicateRowKeyError to certainty 'rejected' and it must never be retried;
- * keep both properties if you touch that mapping.
  */
 export async function findRowNumberByKey(
   headerMap: SheetHeaderMap,

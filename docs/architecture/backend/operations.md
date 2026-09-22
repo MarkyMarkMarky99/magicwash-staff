@@ -85,6 +85,13 @@ Write outcomes distinguish rejected from unknown persistence. Never auto-retry a
 request was sent: a transport failure can follow a committed write and retry can duplicate data.
 Token acquisition may be retried. Unsupported delete must fail rather than report false success.
 
+`classifySheetWriteFailure` in `server/shared/repositories/write-failure.ts` is the single place that
+maps a thrown write error to that certainty, and every module reads it from there. `WriteRejectedError`
+and `DuplicateRowKeyError` are `rejected`, because nothing was stored. `WriteTransportError`,
+`WriteCommittedUnreadableError` and `WriteRowIdentityMismatchError` are `unknown`, because the row may
+have landed. An unrecognised error is `unknown`, never `rejected`: claiming `rejected` invites a retry
+that duplicates data, so a new error class must be added to the classifier deliberately.
+
 All sheet row writes use the Google Sheets API; there is no SheetLib or Apps Script row-write
 fallback. `APPSCRIPT_INVOICE_VIEW_SYNC_URL` only recomputes `InvoicesView`. Browser photo upload
 sends its image binary to Firebase Storage and then writes the row through this API like any other
