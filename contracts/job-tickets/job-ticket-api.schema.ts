@@ -77,6 +77,11 @@ export const jobTicketScanResponseSchema = z.discriminatedUnion('kind', [
     department: jobTicketDepartmentSchema,
   }),
   z.object({
+    kind: z.literal('not_advanceable'),
+    ticketId: z.string(),
+    status: jobTicketStatusSchema,
+  }),
+  z.object({
     kind: z.literal('blocked'),
     laundryItemId: z.string(),
     department: jobTicketDepartmentSchema,

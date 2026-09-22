@@ -21,10 +21,7 @@
 - G Drive `JobTicket.json` and the live JobTickets tab carry the 23 agreed columns; the old malformed `spreadsheetId` is corrected.
 
 ## Agreed changes not yet made
-- Ticket id becomes `XXX-<orderId>-<tagId>` with a three-letter department prefix (WSH, DRC, IRN, PCK, LOG), replacing `orderId:tagId:department`.
-- `server/shared/repositories/write-failure.ts` must become the only classifier; move `invoice.service.ts` onto it in its own commit.
-- A scan of a Cancelled ticket must return its real status instead of `not_found`; the UI decides how to show it, and history stays visible.
-- Tag codes move from 8 decimal digits to 8 base62 characters; at 100 garments a day the current scheme reaches a 50 percent collision chance in about four months.
+- Tag codes move from 8 decimal digits to 8 base62 characters. This cannot ship from this repo alone: the print server strips non-digits (`C:/MagicwashInvoice/server.js:274-276`) and validates 8 digits, so the generator, `laundry-tag-print.schema.ts` and that repo must change together, most likely when the label becomes a QR code.
 - Scanning advances Pending to In Progress to Completed, so each department scans twice. The user has not confirmed this.
 
 ## Next

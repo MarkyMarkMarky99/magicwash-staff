@@ -51,6 +51,10 @@ export class JobTicketScanService {
       return { kind: 'already_completed', ticketId: ticket.id }
     }
 
+    if (ticket.status === 'Cancelled') {
+      return { kind: 'not_advanceable', ticketId: ticket.id, status: ticket.status }
+    }
+
     const blocker = tickets
       .filter((candidate) =>
         typeof candidate.step_no === 'number'
@@ -65,14 +69,6 @@ export class JobTicketScanService {
         laundryItemId: request.laundryItemId,
         department: request.department,
         blockedByDepartment: blocker.department,
-      }
-    }
-
-    if (ticket.status !== 'Pending' && ticket.status !== 'In Progress') {
-      return {
-        kind: 'not_found',
-        laundryItemId: request.laundryItemId,
-        department: request.department,
       }
     }
 

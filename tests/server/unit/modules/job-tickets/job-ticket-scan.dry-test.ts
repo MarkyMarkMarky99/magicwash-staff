@@ -64,6 +64,17 @@ assert.deepEqual(await completed.service.scan({
   laundryItemId: 'tag-1', department: 'Washing', scannedBy: 'staff-1',
 }), { kind: 'already_completed', ticketId: 'ticket-1' })
 
+const cancelled = serviceWith([ticket({ status: 'Cancelled' })])
+assert.deepEqual(await cancelled.service.scan({
+  laundryItemId: 'tag-1', department: 'Washing', scannedBy: 'staff-1',
+}), { kind: 'not_advanceable', ticketId: 'ticket-1', status: 'Cancelled' })
+assert.deepEqual(cancelled.updates, [])
+
+const missing = serviceWith([])
+assert.deepEqual(await missing.service.scan({
+  laundryItemId: 'tag-1', department: 'Washing', scannedBy: 'staff-1',
+}), { kind: 'not_found', laundryItemId: 'tag-1', department: 'Washing' })
+
 for (const [error, certainty] of [
   [new WriteRejectedError('UPDATE', 'rejected'), 'rejected'],
   [new WriteTransportError('UPDATE', 'network'), 'unknown'],

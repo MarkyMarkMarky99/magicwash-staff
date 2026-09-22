@@ -77,6 +77,7 @@ function statusForScan(response: JobTicketScanResponse): number {
       return 200
     case 'not_found':
       return 404
+    case 'not_advanceable':
     case 'blocked':
       return 409
     case 'write_failed':

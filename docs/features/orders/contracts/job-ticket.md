@@ -19,6 +19,10 @@ exact filters for `orderId`, `laundryItemId`, `department`, and `status`.
 The response exposes all physical columns in camelCase. `serviceType` is nullable. Audit, scan,
 completion, evidence, and soft-delete fields are nullable strings.
 
+Ticket ids are deterministic: `XXX-<orderId>-<laundryItemId>`. Department prefixes are `TAG`,
+`WSH`, `DRC`, `IRN`, `PCK`, and `LOG` for Tagging, Washing, DryCleaning, Ironing, Packaging, and
+Logistics respectively.
+
 ## `GET /api/job-tickets/:id`
 
 Returns the full camelCase ticket row.
@@ -48,8 +52,12 @@ The response is an unwrapped discriminated union:
 - `advanced` — 200
 - `already_completed` — 200
 - `not_found` — 404
+- `not_advanceable` — 409 and includes the resolved ticket id and its current status
 - `blocked` — 409 and includes `blockedByDepartment`
 - `write_failed` — 502 for a rejected write, 500 for an unknown write outcome
+
+`not_found` is reserved for a garment that has no ticket for the requested department. A cancelled
+ticket returns `not_advanceable` with status `Cancelled`, so it remains resolvable in history.
 
 ## Provisioning
 

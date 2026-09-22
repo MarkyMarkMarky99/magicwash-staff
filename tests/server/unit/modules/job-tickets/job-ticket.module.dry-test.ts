@@ -40,6 +40,15 @@ try {
   assert.equal((blocked.body as { kind: string }).kind, 'blocked')
 
   scanMethods.scan = async () => ({
+    kind: 'not_advanceable', ticketId: 'ticket-1', status: 'Cancelled',
+  })
+  const notAdvanceable = await jobTicketRoutes.item!.handleRequest(request('scan'))
+  assert.equal(notAdvanceable.status, 409)
+  assert.deepEqual(notAdvanceable.body, {
+    kind: 'not_advanceable', ticketId: 'ticket-1', status: 'Cancelled',
+  })
+
+  scanMethods.scan = async () => ({
     kind: 'write_failed', ticketId: 'ticket-1', certainty: 'unknown',
   })
   assert.equal((await jobTicketRoutes.item!.handleRequest(request('scan'))).status, 500)

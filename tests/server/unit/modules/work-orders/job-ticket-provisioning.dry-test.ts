@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict'
-import { buildJobTickets } from '../../../../../server/modules/work-orders/job-ticket-provisioning.js'
+import {
+  buildJobTicketId,
+  buildJobTickets,
+} from '../../../../../server/modules/work-orders/job-ticket-provisioning.js'
 
 const order = {
   orderId: 'order-1',
@@ -17,6 +20,22 @@ const expectedRoutes = {
   IRON: ['Ironing', 'Packaging'],
 } as const
 
+assert.deepEqual([
+  buildJobTicketId('075f2236', 'AU829dj0', 'Tagging'),
+  buildJobTicketId('075f2236', 'AU829dj0', 'Washing'),
+  buildJobTicketId('075f2236', 'AU829dj0', 'DryCleaning'),
+  buildJobTicketId('075f2236', 'AU829dj0', 'Ironing'),
+  buildJobTicketId('075f2236', 'AU829dj0', 'Packaging'),
+  buildJobTicketId('075f2236', 'AU829dj0', 'Logistics'),
+], [
+  'TAG-075f2236-AU829dj0',
+  'WSH-075f2236-AU829dj0',
+  'DRC-075f2236-AU829dj0',
+  'IRN-075f2236-AU829dj0',
+  'PCK-075f2236-AU829dj0',
+  'LOG-075f2236-AU829dj0',
+])
+
 for (const [serviceType, departments] of Object.entries(expectedRoutes)) {
   const result = buildJobTickets(order, [{
     laundryItemId: `tag-${serviceType}`,
@@ -25,6 +44,7 @@ for (const [serviceType, departments] of Object.entries(expectedRoutes)) {
   }], [])
   assert.deepEqual(result.rows.map((row) => row.department), departments)
   assert.deepEqual(result.rows.map((row) => row.step_no), departments.map((_value, index) => index + 1))
+  assert.ok(result.rows.every((row) => /^[A-Z]{3}-order-1-tag-/.test(row.id)))
   assert.ok(result.rows.every((row) => row.scope === 'ITEM' && row.status === 'Pending'))
   assert.deepEqual(result.unroutableGarments, [])
 }

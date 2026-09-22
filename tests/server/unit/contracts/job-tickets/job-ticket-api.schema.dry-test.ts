@@ -39,6 +39,9 @@ assert.equal(jobTicketApiContract.response.update, jobTicketResponseSchema)
 assert.equal(jobTicketScanResponseSchema.parse({
   kind: 'blocked', laundryItemId: 'tag-1', department: 'Ironing', blockedByDepartment: 'Washing',
 }).kind, 'blocked')
+assert.deepEqual(jobTicketScanResponseSchema.parse({
+  kind: 'not_advanceable', ticketId: 'ticket-1', status: 'Cancelled',
+}), { kind: 'not_advanceable', ticketId: 'ticket-1', status: 'Cancelled' })
 assert.throws(() => jobTicketScanResponseSchema.parse({ kind: 'write_failed', ticketId: 'ticket-1', certainty: 'maybe' }))
 
 console.log('job-ticket API contract dry test passed')

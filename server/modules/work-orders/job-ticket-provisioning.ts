@@ -1,5 +1,11 @@
 export type RoutableServiceType = 'WSIR' | 'IRON' | 'DRCL' | 'WASH'
-export type JobTicketDepartment = 'Washing' | 'DryCleaning' | 'Ironing' | 'Packaging'
+export type JobTicketDepartment =
+  | 'Tagging'
+  | 'Washing'
+  | 'DryCleaning'
+  | 'Ironing'
+  | 'Packaging'
+  | 'Logistics'
 
 export interface JobTicketProvisioningOrder {
   orderId: string
@@ -56,6 +62,23 @@ const routes: Record<RoutableServiceType, readonly JobTicketDepartment[]> = {
   IRON: ['Ironing', 'Packaging'],
 }
 
+const departmentPrefixes: Record<JobTicketDepartment, string> = {
+  Tagging: 'TAG',
+  Washing: 'WSH',
+  DryCleaning: 'DRC',
+  Ironing: 'IRN',
+  Packaging: 'PCK',
+  Logistics: 'LOG',
+}
+
+export function buildJobTicketId(
+  orderId: string,
+  laundryItemId: string,
+  department: JobTicketDepartment,
+): string {
+  return `${departmentPrefixes[department]}-${orderId}-${laundryItemId}`
+}
+
 export function buildJobTickets(
   order: JobTicketProvisioningOrder,
   garments: readonly JobTicketProvisioningGarment[],
@@ -91,7 +114,7 @@ export function buildJobTickets(
       if (occupiedPairs.has(pair)) continue
       occupiedPairs.add(pair)
       rows.push({
-        id: `${order.orderId}:${garment.laundryItemId}:${department}`,
+        id: buildJobTicketId(order.orderId, garment.laundryItemId, department),
         order_id: order.orderId,
         laundry_item_id: garment.laundryItemId,
         scope: 'ITEM',
