@@ -5,7 +5,7 @@
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
-- **`prototype/mobile-tag-scanner`** — QR/Code 128 camera scanner prototype, rebased onto main; Preview phone verification still pending. Details: `.user/memory/prototype-mobile-tag-scanner.md`.
+- **`prototype/mobile-tag-scanner`** — garment tag tracking: design settled, work-order status update landed, job-tickets module still to build. Details: `.user/memory/prototype-mobile-tag-scanner.md`.
 
 ## Pending work
 

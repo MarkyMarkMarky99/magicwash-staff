@@ -63,6 +63,20 @@ Errors
 
 An order created through `POST` is readable here immediately — no Apps Script sync is in the path.
 
+## `PATCH /api/work-orders/:id` — update status
+
+Request
+- `status` — `PENDING` | `RECEIVED` | `SUBMITTED` | `APPROVED` | `COMPLETED` | `CANCELLED`, required
+- `updatedBy` — string, required
+
+No other order field is updatable. Any valid status value is accepted without transition guards.
+The repository stamps `updated_at`; the response is the updated work-order list/header shape and
+does not read or modify order items.
+
+Errors
+- invalid status or payload → 422
+- not found → 404 `Resource '<id>' not found`
+
 ## `POST /api/work-orders` — create (phase 3)
 
 The contract's create slots already exist, so this endpoint goes live the moment the module is
@@ -117,4 +131,4 @@ Behaviour
 
 ## Not available
 
-- `PATCH` / `DELETE` — 405; `response.update` is never declared and `writes.delete` stays `false`
+- `DELETE` — 405; `writes.delete` stays `false`

@@ -5,6 +5,15 @@ import type { ModuleApiContract } from '../shared/module-api-contract.js'
 
 export const MAX_WORK_ORDERS_PER_PAGE = 500
 
+export const workOrderStatusSchema = z.enum([
+  'PENDING',
+  'RECEIVED',
+  'SUBMITTED',
+  'APPROVED',
+  'COMPLETED',
+  'CANCELLED',
+])
+
 export const workOrderListQuerySchema = z.object({
   keyword: z.string().default(''),
   customerId: z.string().trim().min(1).optional(),
@@ -72,7 +81,12 @@ export const workOrderCreateResponseSchema = z.object({
   itemsError: z.string().nullable(),
 })
 
-export const workOrderUpdateSchema = z.never()
+export const workOrderUpdateSchema = z.object({
+  status: workOrderStatusSchema,
+  updatedBy: z.string().min(1),
+})
+
+export const workOrderUpdateResponseSchema = workOrderListResponseSchema
 
 export const workOrderApiContract = {
   query: { list: workOrderListQuerySchema },
@@ -81,5 +95,6 @@ export const workOrderApiContract = {
     list: workOrderListResponseSchema,
     detail: workOrderDetailResponseSchema,
     create: workOrderCreateResponseSchema,
+    update: workOrderUpdateResponseSchema,
   },
 } satisfies ModuleApiContract

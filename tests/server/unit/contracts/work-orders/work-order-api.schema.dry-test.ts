@@ -12,6 +12,8 @@ const {
   workOrderDetailResponseSchema,
   workOrderListQuerySchema,
   workOrderListResponseSchema,
+  workOrderStatusSchema,
+  workOrderUpdateResponseSchema,
   workOrderUpdateSchema,
 } = workOrderModule
 
@@ -41,20 +43,23 @@ assert.deepEqual(new Set(Object.keys(workOrderModule)), new Set([
   'workOrderDetailResponseSchema',
   'workOrderListQuerySchema',
   'workOrderListResponseSchema',
+  'workOrderStatusSchema',
+  'workOrderUpdateResponseSchema',
   'workOrderUpdateSchema',
 ]))
 
 assert.deepEqual(Object.keys(workOrderApiContract), ['query', 'request', 'response'])
 assert.deepEqual(Object.keys(workOrderApiContract.query), ['list'])
 assert.deepEqual(Object.keys(workOrderApiContract.request ?? {}), ['create', 'update'])
-assert.deepEqual(Object.keys(workOrderApiContract.response), ['list', 'detail', 'create'])
+assert.deepEqual(Object.keys(workOrderApiContract.response), ['list', 'detail', 'create', 'update'])
 assert.equal(workOrderApiContract.query.list, workOrderListQuerySchema)
 assert.equal(workOrderApiContract.request?.create, workOrderCreateSchema)
 assert.equal(workOrderApiContract.request?.update, workOrderUpdateSchema)
 assert.equal(workOrderApiContract.response.list, workOrderListResponseSchema)
 assert.equal(workOrderApiContract.response.detail, workOrderDetailResponseSchema)
 assert.equal(workOrderApiContract.response.create, workOrderCreateResponseSchema)
-assert.equal('update' in workOrderApiContract.response, false)
+assert.equal(workOrderApiContract.response.update, workOrderUpdateResponseSchema)
+assert.equal(workOrderUpdateResponseSchema, workOrderListResponseSchema)
 
 assert.deepEqual(Object.keys(workOrderListResponseSchema.shape), LIST_RESPONSE_FIELDS)
 assert.equal(Object.hasOwn(workOrderListResponseSchema.shape, 'items'), false)
@@ -186,7 +191,21 @@ const createResponse = {
   itemsRequested: 0, itemsCreated: 0, itemsFailed: false, itemsError: null,
 }
 assert.deepEqual(workOrderCreateResponseSchema.parse(createResponse), createResponse)
-assert.throws(() => workOrderUpdateSchema.parse({}))
+assert.deepEqual(workOrderStatusSchema.options, [
+  'PENDING', 'RECEIVED', 'SUBMITTED', 'APPROVED', 'COMPLETED', 'CANCELLED',
+])
+assert.deepEqual(workOrderUpdateSchema.parse({ status: 'APPROVED', updatedBy: 'staff-1' }), {
+  status: 'APPROVED',
+  updatedBy: 'staff-1',
+})
+for (const input of [
+  {},
+  { status: 'INVALID', updatedBy: 'staff-1' },
+  { status: 'APPROVED' },
+  { status: 'APPROVED', updatedBy: '' },
+]) {
+  assert.throws(() => workOrderUpdateSchema.parse(input), JSON.stringify(input))
+}
 
 const schemaSource = readFileSync(new URL('../../../../../contracts/work-orders/work-order-api.schema.ts', import.meta.url), 'utf8')
 assert.equal(/\bexport\s+type\s+\w+\s*=\s*z\.infer\s*</.test(schemaSource), false)

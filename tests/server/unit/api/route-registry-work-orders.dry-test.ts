@@ -49,7 +49,7 @@ try {
     params: { id: 'order-1' },
   })
   assert.equal(itemDelete.status, 405)
-  assert.equal(itemDelete.headers?.Allow, 'GET')
+  assert.equal(itemDelete.headers?.Allow, 'GET, PATCH')
 
   const itemPatch = await resolved.item.handleRequest({
     method: 'PATCH',
@@ -58,8 +58,7 @@ try {
     headers: {},
     params: { id: 'order-1' },
   })
-  assert.equal(itemPatch.status, 405)
-  assert.equal(itemPatch.headers?.Allow, 'GET')
+  assert.equal(itemPatch.status, 422)
 } finally {
   if (previousSpreadsheetId === undefined) {
     delete process.env.ORDERS_SPREADSHEET_ID

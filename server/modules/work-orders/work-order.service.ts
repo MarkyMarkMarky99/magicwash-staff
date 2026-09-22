@@ -29,6 +29,7 @@ type WorkOrderUpdate = z.infer<typeof workOrderApiContract.request.update>
 type WorkOrderListResponse = z.infer<typeof workOrderApiContract.response.list>
 type WorkOrderDetailResponse = z.infer<typeof workOrderApiContract.response.detail>
 export type WorkOrderCreateResponse = z.infer<typeof workOrderApiContract.response.create>
+type WorkOrderUpdateResponse = z.infer<typeof workOrderApiContract.response.update>
 export type OrderItemResponse = z.infer<typeof orderItemResponseSchema>
 
 export interface OrderItemPort {
@@ -68,7 +69,7 @@ export class WorkOrderService extends BaseCrudService<
   WorkOrderListResponse,
   WorkOrderDetailResponse,
   WorkOrderCreateResponse,
-  never,
+  WorkOrderUpdateResponse,
   OrderFormDbRow,
   typeof orderFormFieldMap
 > {

@@ -109,7 +109,7 @@ assert.deepEqual(orderFormDbContract.writes, {
   update: true,
   delete: false,
 })
-assert.equal('update' in workOrderApiContract.response, false)
+assert.equal('update' in workOrderApiContract.response, true)
 
 const orderRepository = makeOrderRepository()
 const embeddedItems: OrderItemResponse[] = [
