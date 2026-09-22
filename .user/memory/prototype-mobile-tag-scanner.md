@@ -11,6 +11,7 @@
 - Only `scope: ITEM` tickets exist so far; Logistics and ORDER-scoped tickets are not built.
 - Route per `service_type`: WASH = Washing, Packaging; WSIR = Washing, Ironing, Packaging; DRCL = DryCleaning, Ironing, Packaging; IRON = Ironing, Packaging.
 - A department may scan a garment only once every lower `step_no` ticket for that tag is Completed.
+- Each department scans twice: Pending to In Progress on arrival, In Progress to Completed when done. Confirmed by the user.
 - A ticket carries `service_type` rather than `orderitem_id`, so nothing resolves the order line again.
 - Provisioning is idempotent, so a garment tagged after approval gets its tickets on a later approval.
 - A failed ticket append never rolls back the approved order status; the response carries a certainty instead.
@@ -22,7 +23,7 @@
 
 ## Agreed changes not yet made
 - Tag codes move from 8 decimal digits to 8 base62 characters. This cannot ship from this repo alone: the print server strips non-digits (`C:/MagicwashInvoice/server.js:274-276`) and validates 8 digits, so the generator, `laundry-tag-print.schema.ts` and that repo must change together, most likely when the label becomes a QR code.
-- Scanning advances Pending to In Progress to Completed, so each department scans twice. The user has not confirmed this.
+
 
 ## Next
 - Persist tag ids at print time and add a single-tag reprint flow before real use.
