@@ -90,7 +90,14 @@ export const priceListService: PriceListService = new BaseCrudService({
   transformer: createPriceListTransformer(),
 })
 
-export const priceListRoutes = createCrudRoutes(priceListService, priceListApiContract)
+// Items owns item creation; retain the shared schemas for existing form consumers.
+export const priceListRoutes = createCrudRoutes(priceListService, {
+  ...priceListApiContract,
+  response: {
+    list: priceListApiContract.response.list,
+    update: priceListApiContract.response.update,
+  },
+})
 
 const GVIZ_DATE_PATTERN = /^Date\((\d{4}),(\d{1,2}),(\d{1,2})(?:,[^)]+)?\)$/
 const PRICE_LIST_NULLABLE_COLUMNS = [

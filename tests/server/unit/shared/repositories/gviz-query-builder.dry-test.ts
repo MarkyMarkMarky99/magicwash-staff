@@ -46,6 +46,14 @@ test('no cellTypes argument at all still renders a quoted string literal', async
   assert.equal(query, "select *\nwhere D = 'hello'")
 })
 
+test('native boolean filters render unquoted including false', async () => {
+  const query = GVizQueryBuilder.fromColumns({ active: 'I' })
+    .where({ active: false })
+    .build()
+
+  assert.equal(query, 'select *\nwhere I = false')
+})
+
 test('deriveGVizCellTypes returns only marked columns', async () => {
   const rowSchema = z.object({
     AppointmentID: z.string(),

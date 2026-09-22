@@ -21,6 +21,7 @@ import { orderFormDbContract } from '../../../server/sheets/OrderForm/OrderForm.
 import { orderItemFormsDbContract } from '../../../server/sheets/OrderItemForms/OrderItemForms.db-contract.js'
 import { orderImagesDbContract } from '../../../server/sheets/OrderImages/OrderImages.db-contract.js'
 import { priceListDbContract } from '../../../server/sheets/PriceList/PriceList.db-contract.js'
+import { itemsDbContract } from '../../../server/sheets/Items/Items.db-contract.js'
 import { customerPackagesDbContract } from '../../../server/sheets/CustomerPackages/CustomerPackages.db-contract.js'
 import { packageTransactionsDbContract } from '../../../server/sheets/PackageTransactions/PackageTransactions.db-contract.js'
 import { packagesDbContract } from '../../../server/sheets/Packages/Packages.db-contract.js'
@@ -155,6 +156,12 @@ const readableSheets: readonly ReadableSheet[] = [
     sheetName: priceListDbContract.sheetName,
     spreadsheetIdEnv: priceListDbContract.spreadsheetId!,
     rowSchema: priceListDbContract.row,
+  },
+  {
+    name: 'Items',
+    sheetName: itemsDbContract.sheetName,
+    spreadsheetIdEnv: itemsDbContract.spreadsheetId!,
+    rowSchema: itemsDbContract.row,
   },
   {
     name: 'IssueReports',

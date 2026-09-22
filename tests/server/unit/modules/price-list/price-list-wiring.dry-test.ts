@@ -178,7 +178,7 @@ test('production wiring exposes no delete route', async () => {
     params: {},
   })
   assert.equal(collectionDelete.status, 405)
-  assert.equal(collectionDelete.headers?.Allow, 'GET, POST')
+  assert.equal(collectionDelete.headers?.Allow, 'GET')
 
   const itemDelete = await priceListRoutes.item?.handleRequest({
     method: 'DELETE',

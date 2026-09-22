@@ -249,7 +249,9 @@ async function withMockSheets(run: (calls: FetchCall[]) => Promise<void>): Promi
 }
 
 await withMockSheets(async (calls) => {
-  const invalidCreateBodies = [
+  const blockedCreateBodies = [
+    createPayload,
+    suppliedItemCodePayload,
     { ...createPayload, id: 'client-id' },
     { ...createPayload, itemCode: 'ITEM-9999' },
     (() => {
@@ -261,12 +263,12 @@ await withMockSheets(async (calls) => {
     { ...createPayload, price: -1 },
   ]
 
-  for (const body of invalidCreateBodies) {
+  for (const body of blockedCreateBodies) {
     const before = calls.length
     assertApiError(
       await priceListRoutes.collection.handleRequest(request('POST', body)),
-      422,
-      'VALIDATION_ERROR',
+      405,
+      'METHOD_NOT_ALLOWED',
     )
     assert.equal(calls.length, before)
   }
@@ -286,60 +288,12 @@ await withMockSheets(async (calls) => {
     assert.equal(calls.length, before)
   }
 
-  const firstCreate = await priceListRoutes.collection.handleRequest(
-    request('POST', createPayload),
+  const listBeforeUpdate = await priceListRoutes.collection.handleRequest(request('GET'))
+  const beforeUpdate = (bodyOf(listBeforeUpdate).data as Array<Record<string, unknown>>).find(
+    (item) => item.id === 'a1b2c3d4',
   )
-  assert.equal(firstCreate.status, 201)
-  const firstCreated = dataOf(firstCreate)
-  assert.match(String(firstCreated.id), /^[a-z0-9]{8}$/)
-  assert.equal(firstCreated.itemCode, 'ITM-0013')
-  assert.equal(firstCreated.variant, null)
-  assert.equal(firstCreated.price, createPayload.price)
-  assert.equal(firstCreated.effectiveFrom, '2026-02-03')
-  assert.equal(firstCreated.effectiveTo, null)
-  assert.equal(JSON.stringify(firstCreate.body).includes('Date('), false)
-
-  const appendCall = calls.find(
-    (call) => call.init?.method === 'POST' && apiPath(call.url).endsWith('/values/PriceList!A:A:append'),
-  )
-  assert.ok(appendCall)
-  const appendUrl = new URL(appendCall.url)
-  assert.equal(appendUrl.searchParams.get('valueInputOption'), 'USER_ENTERED')
-  const appendBody = JSON.parse(String(appendCall.init?.body)) as { values: SheetRow[] }
-  assert.equal(appendBody.values[0]![1], 'ITM-0013')
-  assert.equal(appendBody.values[0]![13], '2026-02-03')
-
-  const secondCreate = await priceListRoutes.collection.handleRequest(
-    request('POST', {
-      ...suppliedItemCodePayload,
-      displayNameTh: 'กางเกงตัวที่สอง',
-      priceGroup: 'DEFAULT2026',
-    }),
-  )
-  assert.equal(secondCreate.status, 201)
-  const secondCreated = dataOf(secondCreate)
-  assert.match(String(secondCreated.id), /^[a-z0-9]{8}$/)
-  assert.notEqual(secondCreated.id, firstCreated.id)
-  assert.equal(secondCreated.itemCode, 'ITM-0010')
-  const appendCalls = calls.filter(
-    (call) => call.init?.method === 'POST' && apiPath(call.url).endsWith('/values/PriceList!A:A:append'),
-  )
-  const secondAppendBody = JSON.parse(String(appendCalls.at(-1)!.init?.body)) as { values: SheetRow[] }
-  assert.equal(secondAppendBody.values[0]![1], 'ITM-0010')
-
-  const listAfterCreates = await priceListRoutes.collection.handleRequest(request('GET'))
-  const listedAfterCreates = bodyOf(listAfterCreates).data as Array<Record<string, unknown>>
-  assert.deepEqual(
-    listedAfterCreates.find((item) => item.id === firstCreated.id),
-    firstCreated,
-  )
-  assert.deepEqual(
-    listedAfterCreates.find((item) => item.id === secondCreated.id),
-    secondCreated,
-  )
-
-  const beforeUpdate = listedAfterCreates.find((item) => item.id === 'a1b2c3d4')
   assert.ok(beforeUpdate)
+  assert.equal(beforeUpdate.effectiveFrom, '2026-01-01')
   const updatedResponse = await priceListRoutes.item!.handleRequest(
     request('PATCH', { price: 95, active: false }, { id: 'a1b2c3d4' }),
   )
@@ -381,7 +335,7 @@ await withMockSheets(async (calls) => {
 
   const collectionDelete = await priceListRoutes.collection.handleRequest(request('DELETE'))
   assert.equal(collectionDelete.status, 405)
-  assert.equal(collectionDelete.headers?.Allow, 'GET, POST')
+  assert.equal(collectionDelete.headers?.Allow, 'GET')
   const itemDelete = await priceListRoutes.item!.handleRequest(
     request('DELETE', undefined, { id: 'a1b2c3d4' }),
   )
@@ -397,10 +351,10 @@ console.error = (...args: unknown[]) => {
 }
 try {
   await withMockSheets(async () => {
-    const failedCreate = await priceListRoutes.collection.handleRequest(
-      request('POST', createPayload),
+    const failedUpdate = await priceListRoutes.item!.handleRequest(
+      request('PATCH', { price: 100 }, { id: 'a1b2c3d4' }),
     )
-    assertApiError(failedCreate, 500, 'INTERNAL_ERROR')
+    assertApiError(failedUpdate, 500, 'INTERNAL_ERROR')
   })
 } finally {
   console.error = originalConsoleError

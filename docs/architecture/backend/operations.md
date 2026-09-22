@@ -44,6 +44,20 @@ dedicated module service.
 query fields to `where`, maps API fields to database fields, and projects responses through the API
 response schema. Keep custom query paths only for different semantics and test them.
 
+The Items master uses the `Items` tab in `PRICE_LIST_SPREADSHEET_ID` and exposes `GET /api/items`,
+`GET /api/items/:id`, `POST /api/items`, and `PATCH /api/items/:id`. Its API contains item identity,
+classification, display names, active state, and image URL; pricing and service fields remain in
+PriceList. Collection reads include inactive items unless `active=true` or `active=false` is supplied.
+Creates assign an eight-character lowercase alphanumeric `id`, the next `ITM-####` code after the
+largest numeric suffix currently readable in Items, nullable fields as null, and `active=true` by
+default. Client-provided `id` and `itemCode` are rejected. The read-then-append code allocation
+has a cross-instance race because Sheets provides no atomic sequence operation; callers must not
+assume concurrent creates receive distinct codes. `POST /api/price-list` is deliberately disabled
+with 405 and `Allow: GET`; PriceList GET and PATCH remain available. This stops new PriceList rows
+from allocating item codes independently of Items while preserving its physical sheet structure.
+Items serializes nullable write fields as empty cells so PATCH with null clears an existing value;
+its response transformer returns those blank optional fields as null.
+
 Legacy dirty cells must not become 500 responses. JSON view columns listed in `jsonColumns` decode
 to their API fields with `[]` for malformed arrays and `null` for malformed objects; correct a
 wrong materialized view in its Apps Script source rather than guessing in the API or frontend.

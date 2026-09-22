@@ -158,6 +158,9 @@ export class GVizQueryBuilder {
    * derived from the row schema; it is never inferred from `value`'s shape.
    */
   private renderLiteral(field: string, value: unknown): string {
+    if (typeof value === 'boolean') {
+      return String(value)
+    }
     const sanitized = this.sanitizeValue(String(value))
     const cellType = this.cellTypes[field]
 

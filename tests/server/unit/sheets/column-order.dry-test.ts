@@ -19,6 +19,7 @@ import {
 import { ordersViewDbContract } from '../../../../server/sheets/OrdersView/OrdersView.db-contract.js'
 import { paymentsDbContract } from '../../../../server/sheets/Payments/Payments.db-contract.js'
 import { priceListDbContract } from '../../../../server/sheets/PriceList/PriceList.db-contract.js'
+import { itemsDbContract } from '../../../../server/sheets/Items/Items.db-contract.js'
 import { customerPackagesDbContract } from '../../../../server/sheets/CustomerPackages/CustomerPackages.db-contract.js'
 import { packageTransactionsDbContract } from '../../../../server/sheets/PackageTransactions/PackageTransactions.db-contract.js'
 import { packagesDbContract } from '../../../../server/sheets/Packages/Packages.db-contract.js'
@@ -364,6 +365,15 @@ const tests: ColumnOrderTest[] = [
       effective_to: 'O',
       active: 'P',
       image_url: 'Q',
+    },
+    primaryKeyColumn: 'A',
+  },
+  {
+    name: 'Items',
+    contract: itemsDbContract,
+    expected: {
+      id: 'A', item_code: 'B', category: 'C', subcategory: 'D', itemtype: 'E',
+      variant: 'F', display_name_th: 'G', display_name_en: 'H', active: 'I', image_url: 'J',
     },
     primaryKeyColumn: 'A',
   },

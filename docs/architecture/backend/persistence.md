@@ -47,6 +47,7 @@ Column letters come from `deriveGVizColumns(contract.row)` in `gviz-query.builde
 The row schema's key order must match the physical column order of the sheet.
 
 Cell types for equality-filter literals come from the same row schema, via `deriveGVizCellTypes(contract.row)` reading markers set by `sheetDate()`/`sheetDateTime()` in `server/shared/contracts/sheet-cell-type.ts`.
+Boolean filter values render as native unquoted `true` and `false` GViz literals.
 
 A native Sheets date or datetime cell only matches a typed literal (`date '...'`/`datetime '...'`); a quoted string silently matches zero rows with no error.
 

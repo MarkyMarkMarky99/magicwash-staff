@@ -28,6 +28,8 @@ export const routeRegistry = {
     ),
   'price-list': (): ReturnType<RouteLoader> =>
     import('../modules/price-list/price-list.module.js').then((module) => module.priceListRoutes),
+  items: (): ReturnType<RouteLoader> =>
+    import('../modules/items/items.module.js').then((module) => module.itemsRoutes),
   packages: (): ReturnType<RouteLoader> =>
     import('../modules/packages/package.module.js').then((module) => module.packageRoutes),
   'issue-reports': (): ReturnType<RouteLoader> =>
