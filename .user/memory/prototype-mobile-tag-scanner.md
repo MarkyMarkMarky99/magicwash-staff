@@ -19,14 +19,21 @@
 ## Built
 - `PATCH /api/work-orders/:id` updates `status` only, and provisions tickets when it becomes `APPROVED`.
 - `job-tickets` module: sheet layer, API contract, CRUD routes, and `POST /api/job-tickets/scan` with the step gate.
+- Every module mints ids through `shared/utils/id.ts`, which both runtimes import.
 - G Drive `JobTicket.json` and the live JobTickets tab carry the 23 agreed columns; the old malformed `spreadsheetId` is corrected.
+
+## In flight, unreviewed
+- A Codex run was still building order editing when the session ended: widen the work-order update contract to `status`, `receivedDate`, `dueDate` and `quantity`; a swipe-left action panel with an Edit button on `OrderCard.vue`; one form serving create and edit; an update method in the work-orders service and store that surfaces `ticketProvisioning`.
+- Its diff has NOT been reviewed and nothing from it is committed. Review it line by line first, then commit.
+- Log: `impl-order-edit.log` in this session's scratchpad under `%TEMP%/claude/C--MagicwashGemini-webapp-vue/`.
 
 ## Agreed changes not yet made
 - Tag codes move from 8 decimal digits to 8 base62 characters. This cannot ship from this repo alone: the print server strips non-digits (`C:/MagicwashInvoice/server.js:274-276`) and validates 8 digits, so the generator, `laundry-tag-print.schema.ts` and that repo must change together, most likely when the label becomes a QR code.
 
-
 ## Next
+- Decide the order status sequence before any swipe-to-advance work; six statuses exist and no transition rule is defined anywhere.
+- The tagging flow must write the scanned tag into `LaundryPhotos.item_id`. Until it does, approving an order provisions no tickets at all.
+- Scanner page needs a department selector and a call to `POST /api/job-tickets/scan`.
 - Persist tag ids at print time and add a single-tag reprint flow before real use.
-- Scanner page needs a department selector and a gated scan call.
-- `JOB_TICKETS_SPREADSHEET_ID=11Xfi6OjBRbjkU-SR564v3XQGWy-zNRE8LRYGmUkFJEk` is not in `.env.local` or Vercel yet, so nothing has touched the live sheet.
-- Codex session that built this: `01a0ca04-64c7-7220-a476-dc5cac69ac99`.
+- `JOB_TICKETS_SPREADSHEET_ID=11Xfi6OjBRbjkU-SR564v3XQGWy-zNRE8LRYGmUkFJEk` is still missing from `.env.local`, so the live parity test fails on JobTickets while all 18 other sheets pass. Vercel needs it too.
+- Codex sessions: job tickets `01a0ca04-64c7-7220-a476-dc5cac69ac99`, id helper `01a0ca64-7623-79f1-95b2-57fdb86ad4ac`.
