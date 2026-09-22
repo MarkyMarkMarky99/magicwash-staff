@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { onBeforeUnmount, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import FormInput from '@/shared/components/FormInput.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
@@ -18,6 +18,8 @@ const item = reactive({
   subcategory: prefilledValue(route.query.subcategory),
   itemType: '',
   variant: '',
+  displayNameTh: '',
+  displayNameEn: '',
 })
 
 const orderId = prefilledValue(route.query.orderId)
@@ -25,6 +27,27 @@ const fallback = orderId
   ? { name: 'order-detail', params: { orderId }, query: { orderAction: 'item' } }
   : { name: 'price-list' }
 const { close } = useCloseRoute(fallback)
+
+const photoInput = ref<HTMLInputElement | null>(null)
+const photoPreviewUrl = ref<string | null>(null)
+const photoName = ref('')
+
+function clearPhoto() {
+  if (photoPreviewUrl.value) URL.revokeObjectURL(photoPreviewUrl.value)
+  photoPreviewUrl.value = null
+  photoName.value = ''
+  if (photoInput.value) photoInput.value.value = ''
+}
+
+function selectPhoto(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  if (photoPreviewUrl.value) URL.revokeObjectURL(photoPreviewUrl.value)
+  photoPreviewUrl.value = URL.createObjectURL(file)
+  photoName.value = file.name
+}
+
+onBeforeUnmount(clearPhoto)
 </script>
 
 <template>
@@ -32,37 +55,37 @@ const { close } = useCloseRoute(fallback)
     :open="true"
     title="Add item type"
     eyebrow="Price list / new item"
-    helper-text="Add an item type and variant within the selected category."
+    helper-text="Add item details within the selected category."
     submit-label="Save item (coming soon)"
     :is-submit-disabled="true"
     :close-on-backdrop="false"
     @close="close"
   >
     <div class="price-list-item-create">
-      <div class="form-intro">
-        <p>Item setup preview</p>
-        <span class="stamp">UI ONLY</span>
-      </div>
-
-      <section class="assigned-code" aria-labelledby="assigned-code-heading">
-        <span class="material-symbols-outlined" aria-hidden="true">tag</span>
-        <div>
-          <h2 id="assigned-code-heading">Item code</h2>
-          <p>The server will assign an item code when this form is connected to saving.</p>
+      <section class="photo-section" aria-labelledby="photo-heading" aria-describedby="photo-description">
+        <h2 id="photo-heading" class="section-label">Item photo</h2>
+        <p id="photo-description" class="photo-description">Optional. The photo stays on this device until upload is connected.</p>
+        <input ref="photoInput" class="photo-input" type="file" accept="image/*" tabindex="-1" aria-hidden="true" @change="selectPhoto">
+        <div class="photo-card">
+          <img v-if="photoPreviewUrl" :src="photoPreviewUrl" :alt="`Preview of ${photoName}`" class="photo-preview">
+          <span v-else class="material-symbols-outlined photo-placeholder" aria-hidden="true">image</span>
+          <div class="photo-card__copy">
+            <strong>{{ photoName || 'No photo selected' }}</strong>
+            <span>{{ photoName ? 'Local preview only' : 'JPG, PNG, or HEIC' }}</span>
+          </div>
+          <button v-if="photoPreviewUrl" type="button" class="photo-action" @click="clearPhoto">Remove</button>
+          <button v-else type="button" class="photo-action" @click="photoInput?.click()">Choose photo</button>
         </div>
-      </section>
-
-      <section class="selected-context" aria-label="Selected item category">
-        <span>Category / Subcategory</span>
-        <strong>{{ item.category && item.subcategory ? `${item.category} / ${item.subcategory}` : 'Select both in the item picker' }}</strong>
       </section>
 
       <fieldset class="fieldset">
         <legend class="section-label">Item details</legend>
         <div class="grid-2">
-          <FormInput id="item-type" v-model="item.itemType" class="field" label="Item type *" placeholder="e.g. Cardigan" />
-          <FormInput id="variant" v-model="item.variant" class="field" label="Variant" placeholder="Optional" />
+          <FormInput id="item-type" v-model="item.itemType" class="field" label="ประเภทสินค้า *" />
+          <FormInput id="variant" v-model="item.variant" class="field" label="รูปแบบ" placeholder="เว้นว่างได้" />
         </div>
+        <FormInput id="display-name-th" v-model="item.displayNameTh" class="field" label="ชื่อแสดงภาษาไทย *" />
+        <FormInput id="display-name-en" v-model="item.displayNameEn" class="field" label="ชื่อแสดงภาษาอังกฤษ" placeholder="เว้นว่างได้" />
       </fieldset>
 
       <p class="preview-note" role="note">
@@ -73,24 +96,26 @@ const { close } = useCloseRoute(fallback)
 </template>
 
 <style scoped>
-.price-list-item-create { --ink:var(--color-on-surface); --teal:var(--color-primary); --teal-2:var(--color-secondary); --line:var(--color-outline-variant); --quiet:var(--color-on-surface-variant); color:var(--ink); font-family:var(--font-body); }
+.price-list-item-create { --ink:var(--color-on-surface); --teal:var(--color-primary); --line:var(--color-outline-variant); --quiet:var(--color-on-surface-variant); color:var(--ink); font-family:var(--font-body); }
 .price-list-item-create * { box-sizing:border-box; }
-.form-intro { display:flex; align-items:center; justify-content:space-between; padding:0 1px 18px; }
-.form-intro p { margin:0; color:var(--quiet); font-size:12px; }
-.stamp { color:var(--teal); font:700 10px var(--font-headline); letter-spacing:.1em; }
-.assigned-code { display:flex; align-items:flex-start; gap:11px; margin:0 0 24px; padding:13px; border:1px solid var(--line); border-radius:12px; background:var(--color-surface-container-low); }
-.assigned-code .material-symbols-outlined { flex:0 0 auto; color:var(--teal); font-size:20px; }
-.assigned-code h2 { margin:0; color:var(--teal); font:700 13px/1.25 var(--font-headline); }
-.assigned-code p { margin:3px 0 0; color:var(--quiet); font-size:12px; line-height:1.4; }
-.selected-context { display:flex; flex-direction:column; gap:4px; margin:0 0 22px; padding:12px 13px; border:1px solid var(--line); border-radius:12px; background:var(--color-surface-container-low); }
-.selected-context span { color:var(--quiet); font-size:11px; }
-.selected-context strong { color:var(--teal); font:700 13px/1.35 var(--font-headline); }
+.photo-section { margin-bottom:22px; }
+.photo-description { margin:-4px 0 12px; color:var(--quiet); font-size:12px; line-height:1.4; }
+.photo-input { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.photo-card { display:flex; align-items:center; gap:11px; min-height:82px; padding:10px; border:1px dashed var(--color-outline); border-radius:12px; background:var(--color-surface-container-lowest); }
+.photo-preview { width:60px; height:60px; flex:0 0 auto; border-radius:8px; object-fit:cover; }
+.photo-placeholder { display:grid; width:60px; height:60px; flex:0 0 auto; place-items:center; border-radius:8px; color:var(--teal); background:var(--color-surface-container-low); font-size:25px; }
+.photo-card__copy { min-width:0; margin-right:auto; }
+.photo-card__copy strong,.photo-card__copy span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.photo-card__copy strong { color:var(--ink); font-size:13px; }
+.photo-card__copy span { margin-top:3px; color:var(--quiet); font-size:11px; }
+.photo-action { flex:0 0 auto; padding:7px 9px; border:1px solid var(--color-outline); border-radius:8px; color:var(--teal); background:var(--color-surface-container-lowest); font:700 11px var(--font-body); cursor:pointer; }
+.photo-action:focus-visible { outline:3px solid var(--color-primary-container); outline-offset:2px; }
 .fieldset { margin:0; padding:0; border:0; }
 .section-label { display:flex; align-items:center; gap:10px; margin:0 0 12px; color:var(--teal); font:700 12px var(--font-headline); letter-spacing:.03em; }
 .section-label::after { content:""; height:1px; flex:1; background:var(--line); }
 .grid-2 { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:13px; }
 .field { min-width:0; margin-bottom:15px; }
 .preview-note { margin:22px 0 8px; padding:11px 12px; border-radius:10px; color:var(--quiet); background:var(--color-surface-container-low); font-size:12px; line-height:1.4; }
-@media (max-width:350px) { .grid-2 { gap:10px; } }
+@media (max-width:350px) { .grid-2 { gap:10px; } .photo-card { align-items:flex-start; flex-wrap:wrap; } .photo-action { margin-left:71px; } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; } }
 </style>

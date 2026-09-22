@@ -1,6 +1,6 @@
 # Project memory
 
-- Branch: `codex/price-list-item-form`; UI-only no-price item form preview is ready, with data integration pending.
+- Branch: `codex/price-list-item-form`; UI-only item form with photo and bilingual names is ready, with data integration pending.
 
 ## Branches in flight
 

@@ -27,8 +27,10 @@ const priceListItemForm = source('features/price-list/pages/PriceListItemCreateP
 assert.match(priceListItemForm, /category: prefilledValue\(route\.query\.category\)/)
 assert.match(priceListItemForm, /subcategory: prefilledValue\(route\.query\.subcategory\)/)
 assert.match(priceListItemForm, /orderId = prefilledValue\(route\.query\.orderId\)/)
-assert.doesNotMatch(priceListItemForm, /v-model="item\.(?:category|subcategory|displayNameTh|displayNameEn)"/)
-assert.doesNotMatch(priceListItemForm, /type="file"/)
+assert.doesNotMatch(priceListItemForm, /v-model="item\.(?:category|subcategory)"/)
+assert.match(priceListItemForm, /v-model="item\.displayNameTh"/)
+assert.match(priceListItemForm, /v-model="item\.displayNameEn"/)
+assert.match(priceListItemForm, /type="file"/)
 
 const invoice = source('features/invoices/pages/InvoiceCreatePage.vue')
 assert.match(invoice, /loadInvoiceCreateContext\(customerId, orderId\)/)
