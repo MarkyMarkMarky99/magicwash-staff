@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import type { z } from 'zod'
 import { FALLBACK_ACTOR } from '../../shared/config/actor.js'
 import {
@@ -16,6 +15,7 @@ import {
   type CalculatorAdjustment,
 } from '../../../shared/utils/invoice-calculator.js'
 import { bangkokToday } from '../../../shared/utils/bangkok-datetime.js'
+import { generateShortId } from '../../../shared/utils/id.js'
 import { getInvoicesRepository } from '../../sheets/Invoices/Invoices.repository.js'
 import { invoicesRowSchema } from '../../sheets/Invoices/Invoices.db-contract.js'
 import { getInvoiceItemsRepository } from '../../sheets/InvoiceItems/InvoiceItems.repository.js'
@@ -97,11 +97,8 @@ export const orderFormFieldMap = {
   order_description: 'orderDescription',
 } as const satisfies Record<keyof OrderFormDbRow & string, string>
 
-/** The one id scheme used across this codebase: the first 8 hex characters
- *  of `crypto.randomUUID()` (its first hyphen-delimited group, no stripping
- *  needed) — not a per-entity format. */
 function defaultGenerateItemId(): string {
-  return randomUUID().slice(0, 8)
+  return generateShortId()
 }
 
 /** Safe to drop `refSource`/`refCode` only when BOTH are absent — the API

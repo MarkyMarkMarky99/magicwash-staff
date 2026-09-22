@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import type { z } from 'zod'
 import type { RepositoryTransformer } from '../../shared/repositories/base.repository.js'
 import { BaseCrudService } from '../../shared/services/base-crud.service.js'
@@ -17,6 +16,7 @@ import {
 import { DuplicateRowKeyError } from '../../shared/repositories/sheet-row-lookup.js'
 import { WriteRowIdentityMismatchError } from '../../shared/repositories/sheet-row-identity.js'
 import { ApiError } from '../../shared/http/api-error.js'
+import { generateShortId } from '../../../shared/utils/id.js'
 
 export type AppointmentSheetDbRow = z.infer<typeof appointmentsRowSchema>
 export type AppointmentApiRow = z.infer<typeof appointmentApiContract.response.detail>
@@ -168,5 +168,5 @@ function classifyWriteFailure(error: unknown): AppointmentWriteFailure {
 }
 
 function defaultAppointmentId(): string {
-  return `APPT-${randomUUID().slice(0, 8)}`
+  return generateShortId('APPT-')
 }

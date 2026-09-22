@@ -1,6 +1,6 @@
-import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { itemsApiContract } from '../../../contracts/items/items-api.schema.js'
+import { generateShortId } from '../../../shared/utils/id.js'
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
 import type { ApiRowFromFieldMap, RepositoryTransformer } from '../../shared/repositories/base.repository.js'
 import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
@@ -34,9 +34,9 @@ const itemsRepository: SheetRepositoryContract<ItemsDbRow> = {
   append: async (row) => {
     const existingRows = await getItemsRepository().read()
     const existingIds = new Set(existingRows.map((existing) => existing.id))
-    let id = randomUUID().replace(/-/g, '').slice(0, 8)
+    let id = generateShortId()
     while (existingIds.has(id)) {
-      id = randomUUID().replace(/-/g, '').slice(0, 8)
+      id = generateShortId()
     }
 
     let maximum = 0

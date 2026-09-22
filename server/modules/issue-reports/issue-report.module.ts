@@ -6,7 +6,7 @@ import type { SheetRepositoryContract } from '../../shared/repositories/sheet-re
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
 import { getIssueReportsRepository } from '../../sheets/IssueReports/IssueReports.repository.js'
 import { issueReportsRowSchema } from '../../sheets/IssueReports/IssueReports.db-contract.js'
-import { generateShortId } from '../../shared/utils/id.js'
+import { generateShortId } from '../../../shared/utils/id.js'
 
 type IssueReportDbRow = z.infer<typeof issueReportsRowSchema>
 
@@ -48,7 +48,7 @@ type IssueReportService = BaseCrudService<
 
 /** 'ISS-' + 8 lowercase hex. Duplicate keys are rejected by append before any write. */
 export function createIssueReportId(): string {
-  return `ISS-${generateShortId()}`
+  return generateShortId('ISS-')
 }
 
 // Server-owned columns are filled here, not in the request schema: the client

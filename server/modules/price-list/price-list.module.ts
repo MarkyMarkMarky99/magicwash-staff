@@ -1,6 +1,6 @@
-import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { priceListApiContract } from '../../../contracts/price-list/price-list-api.schema.js'
+import { generateShortId } from '../../../shared/utils/id.js'
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
 import type {
   ApiRowFromFieldMap,
@@ -158,7 +158,7 @@ function nextPriceListId(rows: Array<Partial<PriceListDbRow>>): string {
 }
 
 function createPriceListId(): string {
-  return randomUUID().replace(/-/g, '').slice(0, 8)
+  return generateShortId()
 }
 
 function nextPriceListItemCode(rows: Array<Partial<PriceListDbRow>>): string {
