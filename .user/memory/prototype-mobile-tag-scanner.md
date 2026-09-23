@@ -37,7 +37,7 @@
 
 ## Scanner engine
 - All scanners use `src/shared/utils/barcode-scanner.ts`: native BarcodeDetector on Android, self-hosted zxing-wasm elsewhere; ZXing JS removed.
-- Next: department scan still preview-only; wiring POST /api/job-tickets/scan is the next brief.
+- Department scan now writes via POST /api/job-tickets/scan; next: sound/vibration toggles on scan screens.
 
 ## Tag ids
 - Web now generates 8-char base62 ids via `shared/utils/id.ts`; print server (MagicwashInvoice `baf0899`) prints QR and accepts any text.

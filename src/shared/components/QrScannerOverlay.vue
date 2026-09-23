@@ -2,7 +2,7 @@
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { startBarcodeScanner } from '@/shared/utils/barcode-scanner'
 
-const props = defineProps<{ open: boolean; title: string }>()
+const props = defineProps<{ open: boolean; title: string; vibrateOnRead?: boolean }>()
 const emit = defineEmits<{ close: []; scan: [value: string] }>()
 
 const videoRef = ref<HTMLVideoElement | null>(null)
@@ -59,7 +59,7 @@ async function startCamera(): Promise<void> {
       if (trimmed && (trimmed !== lastResult || now - lastResultAt > 2000)) {
         lastResult = trimmed
         lastResultAt = now
-        navigator.vibrate?.(70)
+        if (props.vibrateOnRead !== false) navigator.vibrate?.(70)
         emit('scan', trimmed)
       }
     }, () => {

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { onScopeDispose, ref } from 'vue'
-import type { JobTicketListQuery } from './job-ticket.service'
-import { loadDepartmentTickets, type JobTicketDto } from './job-ticket.service'
+import type { JobTicketListQuery, JobTicketScanPayload } from './job-ticket.service'
+import { loadDepartmentTickets, scanJobTicket, type JobTicketDto } from './job-ticket.service'
 import { onCacheInvalidated } from '@/shared/api/response-cache'
 
 export const useJobTicketStore = defineStore('job-tickets', () => {
@@ -32,10 +32,24 @@ export const useJobTicketStore = defineStore('job-tickets', () => {
     }
   }
 
+  async function scan(payload: JobTicketScanPayload) {
+    const result = await scanJobTicket(payload)
+    if (result.kind === 'advanced') {
+      const ticket = tickets.value.find(row => row.id === result.ticketId)
+      if (ticket) {
+        ticket.status = result.status
+        ticket.startedAt = result.startedAt
+        ticket.completedAt = result.completedAt
+        ticket.scannedBy = payload.scannedBy
+      }
+    }
+    return result
+  }
+
   const stopInvalidationListener = onCacheInvalidated('/api/job-tickets', () => {
     if (activeDepartment) void loadDepartment(activeDepartment)
   })
   onScopeDispose(stopInvalidationListener)
 
-  return { tickets, loading, error, truncated, loadDepartment }
+  return { tickets, loading, error, truncated, loadDepartment, scan }
 })

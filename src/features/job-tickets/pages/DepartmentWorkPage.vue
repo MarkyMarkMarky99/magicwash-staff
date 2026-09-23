@@ -13,9 +13,11 @@ import type { JobTicketDto } from '@/data/job-tickets/job-ticket.service'
 import { useWorkOrderStore } from '@/data/work-orders/work-order.store'
 import { getWorkOrder, type WorkOrderDetailDto } from '@/data/work-orders/work-order.service'
 import { useCustomerStore } from '@/data/customers/customer.store'
+import { currentActor } from '@/shared/config/actor'
 import { formatSheetDate, formatSheetDateTime } from '@/shared/utils/sheet-date'
 import { countDepartmentStatuses, filterTickets, groupDepartmentOrders, readDepartment, readGrouper, readStatusFilter, sortDepartmentTickets, statusFilters } from '../department-work'
 import type { Grouper, OrderInfo, TicketStatus } from '../department-work'
+import { createTagScanGuard, presentScanResult, type ScanTone } from '../scan-result'
 
 const route = useRoute()
 const router = useRouter()
@@ -27,12 +29,14 @@ const activeFilter = computed(() => readStatusFilter(route.query.status))
 const grouper = computed(() => readGrouper(route.query.group))
 const scannerOpen = computed(() => department.value !== null && route.query.scan === '1')
 const expandedOrderId = ref<string | null>(null)
-const scanResult = ref<{ tagId: string; orderId?: string; customerName?: string; status?: TicketStatus; message: string; error: boolean } | null>(null)
+const scanResult = ref<{ tagId: string; orderId?: string; customerName?: string; status?: TicketStatus; message: string; tone: ScanTone } | null>(null)
 const orderDetails = shallowRef(new Map<string, WorkOrderDetailDto>())
 const metadataLoading = ref(false)
 const metadataError = ref<string | null>(null)
 const detailPromises = new Map<string, Promise<void>>()
+const runTagScan = createTagScanGuard()
 let pageRequestId = 0
+let latestScanVersion = 0
 let pushedScanner = false
 let replacingLeave = false
 
@@ -103,6 +107,8 @@ async function reload(): Promise<void> {
 
 watch(() => department.value?.code, code => {
   expandedOrderId.value = null
+  latestScanVersion += 1
+  scanResult.value = null
   if (code) void reload()
 }, { immediate: true })
 
@@ -125,6 +131,7 @@ function changeGrouper(value: Grouper): void {
 
 function openScanner(): void {
   if (!department.value || scannerOpen.value) return
+  latestScanVersion += 1
   scanResult.value = null
   void router.push({ query: { ...route.query, scan: '1' } }).then(() => {
     pushedScanner = scannerOpen.value
@@ -133,6 +140,7 @@ function openScanner(): void {
 
 function closeScanner(): void {
   if (!scannerOpen.value) return
+  latestScanVersion += 1
   scanResult.value = null
   if (pushedScanner) {
     pushedScanner = false
@@ -145,26 +153,42 @@ function closeScanner(): void {
 }
 
 function handleScan(value: string): void {
-  if (listLoading.value || listError.value) {
-    scanResult.value = { tagId: value, message: 'รายการงานยังไม่พร้อม กรุณาลองอีกครั้ง', error: true }
-    return
-  }
-  const ticket = ticketStore.tickets.find(row => row.laundryItemId === value)
-  if (!ticket) {
-    scanResult.value = { tagId: value, message: 'ไม่พบแท็กในรายการที่โหลด', error: true }
-    return
-  }
-  const message = ticket.status === 'Pending' ? 'สแกนแล้วจะเปลี่ยนเป็น กำลังดำเนินการ'
-    : ticket.status === 'In Progress' ? 'สแกนแล้วจะเปลี่ยนเป็น เสร็จแล้ว'
-      : 'งานนี้เสร็จแล้ว'
-  scanResult.value = {
-    tagId: value,
-    orderId: ticket.orderId,
-    customerName: orderInfo.value.get(ticket.orderId)?.customerName,
-    status: ticket.status,
-    message,
-    error: ticket.status === 'Completed',
-  }
+  void runTagScan(value, async () => {
+    const code = department.value?.code
+    if (!code) return
+    const version = ++latestScanVersion
+    const ticket = ticketStore.tickets.find(row => row.laundryItemId === value)
+    const context = {
+      tagId: value,
+      orderId: ticket?.orderId,
+      customerName: ticket ? orderInfo.value.get(ticket.orderId)?.customerName : undefined,
+    }
+    scanResult.value = { ...context, message: 'กำลังบันทึก…', tone: 'loading' }
+    try {
+      const response = await ticketStore.scan({
+        laundryItemId: value,
+        department: code,
+        scannedBy: currentActor(Array.isArray(route.query.by) ? route.query.by[0] : route.query.by),
+      })
+      const presentation = presentScanResult(response)
+      if (scannerOpen.value && department.value?.code === code) {
+        navigator.vibrate?.(response.kind === 'advanced' ? 70 : [80, 60, 80])
+      }
+      if (version === latestScanVersion && scannerOpen.value && department.value?.code === code) {
+        scanResult.value = {
+          ...context,
+          status: response.kind === 'advanced' || response.kind === 'not_advanceable' ? response.status
+            : response.kind === 'already_completed' ? 'Completed' : undefined,
+          ...presentation,
+        }
+      }
+    } catch {
+      if (scannerOpen.value && department.value?.code === code) navigator.vibrate?.([80, 60, 80])
+      if (version === latestScanVersion && scannerOpen.value && department.value?.code === code) {
+        scanResult.value = { ...context, message: 'เชื่อมต่อไม่สำเร็จ ลองสแกนอีกครั้ง', tone: 'error' }
+      }
+    }
+  })
 }
 
 function ticketSecondary(ticket: JobTicketDto): string {
@@ -178,6 +202,7 @@ function statusCount(tickets: readonly JobTicketDto[], status: TicketStatus): nu
 
 watch(scannerOpen, open => {
   if (!open) {
+    latestScanVersion += 1
     pushedScanner = false
     scanResult.value = null
   }
@@ -275,9 +300,9 @@ onBeforeRouteLeave(to => {
       <span class="material-symbols-outlined" aria-hidden="true">qr_code_scanner</span>
     </button>
 
-    <QrScannerOverlay :open="scannerOpen" :title="department?.label ?? ''" @close="closeScanner" @scan="handleScan">
+    <QrScannerOverlay :open="scannerOpen" :title="department?.label ?? ''" :vibrate-on-read="false" @close="closeScanner" @scan="handleScan">
       <template #result>
-        <div v-if="scanResult" role="status" class="mx-auto max-w-sm rounded-xl p-4 font-body shadow-lg" :class="scanResult.error ? 'bg-error-container text-on-error-container' : 'bg-surface text-on-surface'">
+        <div v-if="scanResult" role="status" class="mx-auto max-w-sm rounded-xl p-4 font-body shadow-lg" :class="scanResult.tone === 'success' ? 'bg-success-container text-on-success-container' : scanResult.tone === 'warning' ? 'bg-warning-container text-on-warning-container' : scanResult.tone === 'error' ? 'bg-error-container text-on-error-container' : 'bg-surface text-on-surface'">
           <p class="font-headline font-bold">{{ scanResult.tagId }}</p>
           <p v-if="scanResult.orderId" class="text-sm">{{ scanResult.customerName }} · {{ scanResult.orderId }}</p>
           <p v-if="scanResult.status" class="text-sm">สถานะ {{ statusLabels[scanResult.status] }}</p>

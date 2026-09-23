@@ -120,22 +120,25 @@ async function fetchFresh<TBody, TValue>(
   return tracked
 }
 
-interface WriteOptions<TRequest extends z.ZodTypeAny> {
+type WriteOptions<TRequest extends z.ZodTypeAny, TResponse = unknown> = {
   /** Raw request body; validated against the shared API contract before sending. */
   data: unknown
   requestSchema: TRequest
-}
+} & (
+  | { responseSchema?: never; acceptedStatuses?: never }
+  | { responseSchema: z.ZodType<TResponse>; acceptedStatuses: readonly number[] }
+)
 
 export async function apiPost<TResponse, TRequest extends z.ZodTypeAny = z.ZodTypeAny>(
   path: string,
-  options: WriteOptions<TRequest>,
+  options: WriteOptions<TRequest, TResponse>,
 ): Promise<TResponse> {
   return apiWrite<TResponse, TRequest>(path, 'POST', options)
 }
 
 export async function apiPatch<TResponse, TRequest extends z.ZodTypeAny = z.ZodTypeAny>(
   path: string,
-  options: WriteOptions<TRequest>,
+  options: WriteOptions<TRequest, TResponse>,
 ): Promise<TResponse> {
   return apiWrite<TResponse, TRequest>(path, 'PATCH', options)
 }
@@ -143,7 +146,7 @@ export async function apiPatch<TResponse, TRequest extends z.ZodTypeAny = z.ZodT
 async function apiWrite<TResponse, TRequest extends z.ZodTypeAny>(
   path: string,
   method: 'POST' | 'PATCH',
-  options: WriteOptions<TRequest>,
+  options: WriteOptions<TRequest, TResponse>,
 ): Promise<TResponse> {
   const validatedData = options.requestSchema.parse(options.data)
   const response = await fetch(path, {
@@ -151,10 +154,10 @@ async function apiWrite<TResponse, TRequest extends z.ZodTypeAny>(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(validatedData),
   })
-  if (!response.ok) throw await toApiError(response)
+  if (!response.ok && !options.acceptedStatuses?.includes(response.status)) throw await toApiError(response)
 
-  const body = (await response.json()) as { data: TResponse }
-  return body.data
+  const body = await response.json()
+  return options.responseSchema ? options.responseSchema.parse(body) : (body as { data: TResponse }).data
 }
 
 function buildQueryString(query: unknown): string {

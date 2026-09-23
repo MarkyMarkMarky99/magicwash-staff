@@ -1,10 +1,12 @@
 import type { z } from 'zod'
-import { jobTicketListQuerySchema, jobTicketResponseSchema } from '@contracts/job-tickets/job-ticket-api.schema'
-import { apiGetList, type ListResult } from '@/shared/api/api-client'
+import { jobTicketListQuerySchema, jobTicketResponseSchema, jobTicketScanRequestSchema, jobTicketScanResponseSchema } from '@contracts/job-tickets/job-ticket-api.schema'
+import { apiGetList, apiPost, type ListResult } from '@/shared/api/api-client'
 import { normalizeSheetDate, todaySheetDate } from '@/shared/utils/sheet-date'
 
 export type JobTicketDto = z.infer<typeof jobTicketResponseSchema>
 export type JobTicketListQuery = z.infer<typeof jobTicketListQuerySchema>
+export type JobTicketScanPayload = z.infer<typeof jobTicketScanRequestSchema>
+export type JobTicketScanResult = z.infer<typeof jobTicketScanResponseSchema>
 
 const ENDPOINT = '/api/job-tickets'
 const PAGE_SIZE = 500
@@ -12,6 +14,15 @@ export const MAX_DEPARTMENT_TICKETS = 2000
 
 export function listJobTickets(query: Partial<JobTicketListQuery>): Promise<ListResult<JobTicketDto>> {
   return apiGetList<JobTicketDto>(ENDPOINT, { query, querySchema: jobTicketListQuerySchema })
+}
+
+export function scanJobTicket(payload: JobTicketScanPayload): Promise<JobTicketScanResult> {
+  return apiPost<JobTicketScanResult>(`${ENDPOINT}/scan`, {
+    data: payload,
+    requestSchema: jobTicketScanRequestSchema,
+    responseSchema: jobTicketScanResponseSchema,
+    acceptedStatuses: [404, 409, 500, 502],
+  })
 }
 
 export function completedTodayFromPage(tickets: readonly JobTicketDto[], today: string): { tickets: JobTicketDto[]; reachedOlder: boolean } {
