@@ -19,6 +19,7 @@
   - Decide whether to remove the old BEF album add-photo path now that registration is proven.
   - Physical QR labels: real-print scan test pending; consider print DENSITY and larger QR cells.
   - Logistics and ORDER-scoped tickets are not built.
+  - GViz types a whole column by majority: numeric legacy tags in JobTickets/LaundryPhotos make base62 tags read as null; user is clearing the numeric rows (frontend now tolerates both).
 
 - **Forms and navigation**
   - Remove dead CSS `.invoice-line-select` in `InvoiceLineItemsEditor.vue`.

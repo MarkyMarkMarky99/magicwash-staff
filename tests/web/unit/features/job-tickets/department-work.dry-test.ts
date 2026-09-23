@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import type { JobTicketDto, JobTicketListQuery } from '@/data/job-tickets/job-ticket.service'
-import { completedTodayFromPage, loadDepartmentTickets, MAX_DEPARTMENT_TICKETS } from '@/data/job-tickets/job-ticket.service'
+import { completedTodayFromPage, listJobTickets, loadDepartmentTickets, MAX_DEPARTMENT_TICKETS } from '@/data/job-tickets/job-ticket.service'
 import { completionPercentage, countDepartmentStatuses, filterTickets, groupDepartmentOrders, readDepartment, readGrouper, readStatusFilter, sortDepartmentTickets } from '@/features/job-tickets/department-work'
+import { normalizeGarmentTagId } from '@/shared/utils/garment-tag-id'
 
 function ticket(id: string, orderId: string, status: JobTicketDto['status'], completedAt: string | null = null): JobTicketDto {
   return {
@@ -35,6 +36,46 @@ assert.equal(groupDepartmentOrders(tickets, orderInfo)[0]?.percentage, 50)
 assert.equal(completionPercentage([]), 0)
 assert.equal(completionPercentage(tickets), 33)
 assert.deepEqual(countDepartmentStatuses(tickets), { ALL: 3, PENDING: 1, 'IN PROGRESS': 1, COMPLETED: 1 })
+
+assert.equal(normalizeGarmentTagId(18806075), '18806075')
+assert.equal(normalizeGarmentTagId(9305753), '09305753')
+assert.equal(normalizeGarmentTagId('Ab12Cd34'), 'Ab12Cd34')
+assert.equal(normalizeGarmentTagId(null), null)
+assert.equal(normalizeGarmentTagId(undefined), null)
+
+const originalFetch = globalThis.fetch
+globalThis.fetch = (async () => new Response(JSON.stringify({
+  success: true,
+  data: [
+    { ...ticket('numeric-full', 'order-soon', 'Pending'), laundryItemId: 18806075 },
+    { ...ticket('numeric-short', 'order-soon', 'In Progress'), laundryItemId: 9305753 },
+    { ...ticket('missing', 'order-soon', 'Completed'), laundryItemId: null },
+    { ...ticket('alpha', 'order-late', 'Pending'), laundryItemId: 'Ab12Cd34' },
+  ],
+  meta: { pagination: { page: 1, perPage: 500, total: 4, totalPages: 1 } },
+}), { status: 200, headers: { 'Content-Type': 'application/json' } })) as typeof fetch
+
+let productionTickets: JobTicketDto[]
+try {
+  productionTickets = (await listJobTickets({ department: 'Washing' })).items
+} finally {
+  globalThis.fetch = originalFetch
+}
+assert.deepEqual(productionTickets.map(row => row.laundryItemId), ['18806075', '09305753', null, 'Ab12Cd34'])
+assert.deepEqual(countDepartmentStatuses(productionTickets), { ALL: 4, PENDING: 2, 'IN PROGRESS': 1, COMPLETED: 1 })
+for (const [filter, expectedIds] of [
+  ['ALL', ['numeric-short', 'numeric-full', 'alpha', 'missing']],
+  ['PENDING', ['numeric-full', 'alpha']],
+  ['IN PROGRESS', ['numeric-short']],
+  ['COMPLETED', ['missing']],
+] as const) {
+  const filtered = filterTickets(productionTickets, filter)
+  const sorted = sortDepartmentTickets(filtered, orderInfo)
+  assert.deepEqual(sorted.map(row => row.id), expectedIds)
+  const grouped = groupDepartmentOrders(sorted, orderInfo)
+  assert.equal(grouped.reduce((count, order) => count + order.tickets.length, 0), expectedIds.length)
+  assert.equal(countDepartmentStatuses(productionTickets)[filter], expectedIds.length)
+}
 
 const today = '2026-09-23'
 const completed = [

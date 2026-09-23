@@ -19,11 +19,12 @@ let response: JobTicketScanResult = {
   kind: 'advanced', ticketId: row.id, status: 'In Progress', startedAt: '2026-09-23T09:00:00+07:00', completedAt: null,
 }
 let responseStatus = 200
+let rawResponse: unknown = null
 const requests: Array<{ url: string; method: string; body: unknown }> = []
 
 globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
   requests.push({ url: String(input), method: init?.method ?? 'GET', body: JSON.parse(String(init?.body)) })
-  return new Response(JSON.stringify(response), { status: responseStatus, headers: { 'Content-Type': 'application/json' } })
+  return new Response(JSON.stringify(rawResponse ?? response), { status: responseStatus, headers: { 'Content-Type': 'application/json' } })
 }) as typeof fetch
 
 try {
@@ -72,8 +73,12 @@ try {
     assert.equal(store.tickets[0], loadedRow)
     assert.equal(loadedRow?.status, 'Completed')
   }
+  responseStatus = 409
+  rawResponse = { kind: 'blocked', laundryItemId: 9305753, department: 'Washing', blockedByDepartment: 'DryCleaning' }
+  assert.deepEqual(await scanJobTicket(payload), { kind: 'blocked', laundryItemId: '09305753', department: 'Washing', blockedByDepartment: 'DryCleaning' })
+  rawResponse = null
   await assert.rejects(() => scanJobTicket({ ...payload, scannedBy: ' ' }))
-  assert.equal(requests.length, 8)
+  assert.equal(requests.length, 9)
   store.$dispose()
 
   const guard = createTagScanGuard()

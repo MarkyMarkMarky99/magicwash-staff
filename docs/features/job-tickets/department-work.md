@@ -4,6 +4,7 @@ The four department pages use `/departments/:department`: `washing`, `drycleanin
 
 Each page loads Pending and In Progress tickets for its department through the existing job-ticket list API. It also loads Completed tickets ordered by `completedAt` descending, stopping when the first completion before the current Bangkok date appears. The combined list is capped at 2,000 tickets; a warning marks a capped list as incomplete. Loading, errors with retry, and empty results use the list page pattern.
 Job-ticket GETs bypass the response cache so reopening the work queue reads current statuses.
+Loaded garment tags are normalized to strings, with numeric tags padded to eight digits and missing tags retained as null so those tickets remain visible.
 
 The `status` query selects ALL, PENDING, IN PROGRESS, or COMPLETED. Tab counts and sorting use the loaded list in memory. The `group` query selects `item` for a flat garment grid or defaults to `order` for order cards. Both controls replace the current URL entry. Orders sort by nearest due date. Each order card shows customer, order ID, due date, a completed percentage ring, and counts for the three statuses. Expanding a card shows only garments matching the active tab. Garments use the shared square image card, showing photo evidence when present.
 

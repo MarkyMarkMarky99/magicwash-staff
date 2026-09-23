@@ -66,9 +66,10 @@ function dueSortKey(dueDate: string | null): string {
 
 export function sortDepartmentTickets(tickets: readonly JobTicketDto[], orderInfo: ReadonlyMap<string, OrderInfo>): JobTicketDto[] {
   return [...tickets].sort((left, right) =>
-    dueSortKey(orderInfo.get(left.orderId)?.dueDate ?? null).localeCompare(dueSortKey(orderInfo.get(right.orderId)?.dueDate ?? null))
-    || left.orderId.localeCompare(right.orderId)
-    || left.laundryItemId.localeCompare(right.laundryItemId))
+    Number(left.laundryItemId === null) - Number(right.laundryItemId === null)
+    || dueSortKey(orderInfo.get(left.orderId)?.dueDate ?? null).localeCompare(dueSortKey(orderInfo.get(right.orderId)?.dueDate ?? null))
+    || String(left.orderId ?? '').localeCompare(String(right.orderId ?? ''))
+    || (left.laundryItemId ?? '').localeCompare(right.laundryItemId ?? ''))
 }
 
 export function groupDepartmentOrders(tickets: readonly JobTicketDto[], orderInfo: ReadonlyMap<string, OrderInfo>): DepartmentOrder[] {
@@ -85,5 +86,5 @@ export function groupDepartmentOrders(tickets: readonly JobTicketDto[], orderInf
     customerName: orderInfo.get(orderId)?.customerName ?? orderId,
     tickets: orderTickets,
     percentage: completionPercentage(orderTickets),
-  })).sort((left, right) => dueSortKey(left.dueDate).localeCompare(dueSortKey(right.dueDate)) || left.orderId.localeCompare(right.orderId))
+  })).sort((left, right) => dueSortKey(left.dueDate).localeCompare(dueSortKey(right.dueDate)) || String(left.orderId ?? '').localeCompare(String(right.orderId ?? '')))
 }

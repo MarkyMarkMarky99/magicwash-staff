@@ -15,7 +15,7 @@ test('duplicate lookup includes every order page and rows without an image URL',
     const page = Number(url.searchParams.get('page'))
     pages.push(page)
     const data = page === 1
-      ? Array.from({ length: 500 }, (_, index) => ({ itemId: index === 0 ? '12345678' : null, imageUrl: null }))
+      ? Array.from({ length: 500 }, (_, index) => ({ itemId: index === 0 ? 18806075 : index === 1 ? 9305753 : null, imageUrl: null }))
       : [{ itemId: '87654321', imageUrl: 'https://example.com/photo.jpg' }]
     return new Response(JSON.stringify({
       success: true,
@@ -31,7 +31,7 @@ test('duplicate lookup includes every order page and rows without an image URL',
     ])
     assert.deepEqual(galleryPhotos, [])
     assert.deepEqual(pages, [1, 2])
-    assert.deepEqual(tags, new Set(['12345678', '87654321']))
+    assert.deepEqual(tags, new Set(['18806075', '09305753', '87654321']))
     assert.deepEqual(readCache<string[]>(otherOrderUrl)?.value, ['preserved'])
   } finally {
     invalidate()

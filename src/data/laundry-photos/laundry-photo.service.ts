@@ -9,6 +9,7 @@ import {
 import { apiGetList, apiPatch, apiPost } from '@/shared/api/api-client'
 import { uploadToStorage } from '@/shared/api/firebase-storage'
 import { invalidate } from '@/shared/api/response-cache'
+import { normalizeGarmentTagId } from '@/shared/utils/garment-tag-id'
 
 export type ReassignLaundryPhotoPayload = z.infer<typeof laundryPhotoUpdateSchema>
 export type CreateLaundryPhotoPayload = z.infer<typeof laundryPhotoCreateSchema>
@@ -52,7 +53,8 @@ export async function listLaundryPhotos(
 function tagIdsFromPhotos(photos: LaundryPhotoDto[]): Set<string> {
   const tagIds = new Set<string>()
   for (const photo of photos) {
-    if (photo.itemId) tagIds.add(photo.itemId)
+    const tagId = normalizeGarmentTagId(photo.itemId)
+    if (tagId !== null) tagIds.add(tagId)
   }
   return tagIds
 }

@@ -159,7 +159,7 @@ function handleScan(value: string): void {
     const code = department.value?.code
     if (!code) return
     const version = ++latestScanVersion
-    const ticket = ticketStore.tickets.find(row => row.laundryItemId === value)
+    const ticket = ticketStore.tickets.find(row => row.laundryItemId !== null && row.laundryItemId === value)
     const context = {
       tagId: value,
       orderId: ticket?.orderId,
@@ -256,7 +256,7 @@ onBeforeRouteLeave(to => {
       </template>
 
       <div v-if="grouper === 'item'" class="grid grid-cols-2 gap-x-3 gap-y-5 p-4 sm:grid-cols-3">
-        <SquareImageCard v-for="ticket in visibleTickets" :key="ticket.id" :image-url="ticket.photoEvidenceUrl" :primary-text="ticket.laundryItemId" :secondary-text="ticketSecondary(ticket)">
+        <SquareImageCard v-for="ticket in visibleTickets" :key="ticket.id" :image-url="ticket.photoEvidenceUrl" :primary-text="ticket.laundryItemId ?? ticket.id" :secondary-text="ticketSecondary(ticket)">
           <template #badge><BaseBadge :label="statusLabels[ticket.status]" :tone="statusTones[ticket.status]" size="sm" /></template>
         </SquareImageCard>
       </div>
@@ -300,7 +300,7 @@ onBeforeRouteLeave(to => {
           </span>
         </button>
         <div v-if="expandedOrderId === order.orderId" class="grid grid-cols-2 gap-x-3 gap-y-5 p-3 sm:grid-cols-3">
-          <SquareImageCard v-for="ticket in order.tickets" :key="ticket.id" :image-url="ticket.photoEvidenceUrl" :primary-text="ticket.laundryItemId" :secondary-text="ticketSecondary(ticket)">
+          <SquareImageCard v-for="ticket in order.tickets" :key="ticket.id" :image-url="ticket.photoEvidenceUrl" :primary-text="ticket.laundryItemId ?? ticket.id" :secondary-text="ticketSecondary(ticket)">
             <template #badge><BaseBadge :label="statusLabels[ticket.status]" :tone="statusTones[ticket.status]" size="sm" /></template>
           </SquareImageCard>
         </div>

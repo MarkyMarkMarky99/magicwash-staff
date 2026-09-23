@@ -1,9 +1,10 @@
-import type { z } from 'zod'
+import { z } from 'zod'
 import { jobTicketListQuerySchema, jobTicketResponseSchema, jobTicketScanRequestSchema, jobTicketScanResponseSchema } from '@contracts/job-tickets/job-ticket-api.schema'
 import { apiGetList, apiPost, type ListResult } from '@/shared/api/api-client'
 import { normalizeSheetDate, todaySheetDate } from '@/shared/utils/sheet-date'
+import { normalizeGarmentTagId } from '@/shared/utils/garment-tag-id'
 
-export type JobTicketDto = z.infer<typeof jobTicketResponseSchema>
+export type JobTicketDto = Omit<z.infer<typeof jobTicketResponseSchema>, 'laundryItemId'> & { laundryItemId: string | null }
 export type JobTicketListQuery = z.infer<typeof jobTicketListQuerySchema>
 export type JobTicketScanPayload = z.infer<typeof jobTicketScanRequestSchema>
 export type JobTicketScanResult = z.infer<typeof jobTicketScanResponseSchema>
@@ -12,15 +13,23 @@ const ENDPOINT = '/api/job-tickets'
 const PAGE_SIZE = 500
 export const MAX_DEPARTMENT_TICKETS = 2000
 
-export function listJobTickets(query: Partial<JobTicketListQuery>): Promise<ListResult<JobTicketDto>> {
-  return apiGetList<JobTicketDto>(ENDPOINT, { query, querySchema: jobTicketListQuerySchema })
+export async function listJobTickets(query: Partial<JobTicketListQuery>): Promise<ListResult<JobTicketDto>> {
+  const result = await apiGetList<z.infer<typeof jobTicketResponseSchema>>(ENDPOINT, { query, querySchema: jobTicketListQuerySchema })
+  return { ...result, items: result.items.map(ticket => ({ ...ticket, laundryItemId: normalizeGarmentTagId(ticket.laundryItemId) })) }
 }
+
+const scanResponseSchema = z.preprocess(value => {
+  if (value && typeof value === 'object' && 'laundryItemId' in value) {
+    return { ...value, laundryItemId: normalizeGarmentTagId(value.laundryItemId) }
+  }
+  return value
+}, jobTicketScanResponseSchema)
 
 export function scanJobTicket(payload: JobTicketScanPayload): Promise<JobTicketScanResult> {
   return apiPost<JobTicketScanResult>(`${ENDPOINT}/scan`, {
     data: payload,
     requestSchema: jobTicketScanRequestSchema,
-    responseSchema: jobTicketScanResponseSchema,
+    responseSchema: scanResponseSchema as z.ZodType<JobTicketScanResult>,
     acceptedStatuses: [404, 409, 500, 502],
   })
 }
