@@ -23,7 +23,7 @@
 - Every module mints ids through `shared/utils/id.ts`, which both runtimes import.
 - G Drive `JobTicket.json` and the live JobTickets tab carry the 23 agreed columns; the old malformed `spreadsheetId` is corrected.
 
-## Garment registration screen (built 2026-09-23, awaiting phone test on Preview)
+## Garment registration screen (built 2026-09-23, phone-tested OK on Preview)
 - Spec and behaviour: `docs/features/orders/garment-registration.md`; component `GarmentRegistrationCamera.vue` (old camera components untouched).
 - Open decision: phone Back still closes the screen while uploads are pending; user not yet asked to block it.
 - Once proven on a phone, the old camera component copy can be removed per the user.

@@ -177,7 +177,7 @@ async function startCamera(): Promise<void> {
   starting.value = true
   try {
     const nextStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
       audio: false,
     })
     if (!props.open || token !== startToken) {
