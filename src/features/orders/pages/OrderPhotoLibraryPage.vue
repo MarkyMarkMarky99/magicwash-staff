@@ -22,6 +22,15 @@ const PHOTO_TABS: { key: PhotoType; label: string }[] = [
   { key: 'AFT', label: 'After' },
 ]
 
+const REFRACT_SUPPORTED = typeof navigator !== 'undefined' && 'userAgentData' in navigator
+const REFRACT_MAP_X = svgMap(`<linearGradient id='m' x1='0' x2='1' y1='0' y2='0'><stop offset='0' stop-color='rgb(255,0,0)'/><stop offset='0.24' stop-color='rgb(128,0,0)'/><stop offset='0.76' stop-color='rgb(128,0,0)'/><stop offset='1' stop-color='rgb(0,0,0)'/></linearGradient>`)
+const REFRACT_MAP_Y = svgMap(`<linearGradient id='m' x1='0' x2='0' y1='0' y2='1'><stop offset='0' stop-color='rgb(0,255,0)'/><stop offset='0.3' stop-color='rgb(0,128,0)'/><stop offset='0.7' stop-color='rgb(0,128,0)'/><stop offset='1' stop-color='rgb(0,0,0)'/></linearGradient>`)
+
+function svgMap(gradient: string): string {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'><defs>${gradient}</defs><rect width='100' height='100' fill='url(#m)'/></svg>`
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+}
+
 const props = defineProps<{ orderId: string }>()
 const route = useRoute()
 const router = useRouter()
@@ -229,7 +238,15 @@ const subtitle = computed(() => {
 </script>
 
 <template>
-  <div class="relative h-full overflow-hidden bg-surface text-on-surface">
+  <div class="relative h-full overflow-hidden bg-surface text-on-surface" :class="{ 'lg-refract': REFRACT_SUPPORTED }">
+    <svg v-if="REFRACT_SUPPORTED" class="absolute size-0" aria-hidden="true">
+      <filter id="lg-refract" x="0" y="0" width="1" height="1" primitiveUnits="objectBoundingBox" color-interpolation-filters="sRGB">
+        <feImage :href="REFRACT_MAP_X" x="0" y="0" width="1" height="1" preserveAspectRatio="none" result="mapX" />
+        <feImage :href="REFRACT_MAP_Y" x="0" y="0" width="1" height="1" preserveAspectRatio="none" result="mapY" />
+        <feComposite in="mapX" in2="mapY" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" result="map" />
+        <feDisplacementMap in="SourceGraphic" in2="map" scale="0.09" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+    </svg>
     <div
       ref="scroller"
       class="no-scrollbar h-full overflow-y-auto overscroll-contain pb-32"
@@ -311,15 +328,20 @@ const subtitle = computed(() => {
         <button type="button" class="glass pointer-events-auto flex size-15 shrink-0 items-center justify-center rounded-full" aria-label="Back to order" @click="close">
           <span class="material-symbols-outlined text-[28px]" aria-hidden="true">arrow_back</span>
         </button>
-        <div class="glass pointer-events-auto flex h-15 items-center rounded-full p-1.5" role="tablist" aria-label="Photo type">
+        <div class="glass pointer-events-auto relative grid h-15 grid-cols-2 items-center rounded-full p-1.5" role="tablist" aria-label="Photo type">
+          <span
+            class="glass-pill absolute inset-y-1.5 left-1.5 w-[calc(50%-0.375rem)] rounded-full transition-transform duration-500 ease-[cubic-bezier(0.34,1.4,0.5,1)]"
+            :style="{ transform: photoType === 'AFT' ? 'translateX(100%)' : 'translateX(0)' }"
+            aria-hidden="true"
+          />
           <button
             v-for="tab in PHOTO_TABS"
             :key="tab.key"
             type="button"
             role="tab"
             :aria-selected="photoType === tab.key"
-            class="h-full rounded-full px-7 font-body text-[17px] font-semibold transition-all duration-300"
-            :class="photoType === tab.key ? 'glass-pill' : 'opacity-90'"
+            class="relative h-full rounded-full px-7 font-body text-[17px] font-semibold transition-opacity duration-300"
+            :class="photoType === tab.key ? '' : 'opacity-75'"
             @click="selectType(tab.key)"
           >
             {{ tab.label }}
@@ -377,52 +399,53 @@ const subtitle = computed(() => {
 .glass {
   position: relative;
   isolation: isolate;
+  overflow: hidden;
   color: #fff;
-  text-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.22), rgb(255 255 255 / 0.06));
-  backdrop-filter: blur(10px) saturate(1.9) brightness(1.08);
-  -webkit-backdrop-filter: blur(10px) saturate(1.9) brightness(1.08);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.28);
+  border: 1px solid rgb(255 255 255 / 0.22);
+  background: rgb(255 255 255 / 0.1);
+  -webkit-backdrop-filter: blur(8px) saturate(180%) brightness(1.08);
+  backdrop-filter: blur(8px) saturate(180%) brightness(1.08);
   box-shadow:
-    0 14px 34px -10px rgb(0 0 0 / 0.45),
-    inset 0 0 14px rgb(255 255 255 / 0.14),
-    inset 0 -8px 16px -10px rgb(255 255 255 / 0.25);
+    0 8px 32px rgb(0 0 0 / 0.22),
+    inset 0 1px 1px rgb(255 255 255 / 0.55),
+    inset 0 -1px 1px rgb(255 255 255 / 0.28),
+    inset 1px 0 1px rgb(255 255 255 / 0.18),
+    inset -1px 0 1px rgb(255 255 255 / 0.18);
 }
 
-.glass::before,
-.glass-pill::before {
+.lg-refract .glass {
+  backdrop-filter: url(#lg-refract) blur(3px) saturate(180%) brightness(1.08);
+}
+
+.glass::after {
   content: '';
   position: absolute;
   inset: 0;
   z-index: -1;
-  padding: 1.25px;
   border-radius: inherit;
-  background: linear-gradient(
-    135deg,
-    rgb(255 255 255 / 0.95),
-    rgb(255 255 255 / 0.2) 30%,
-    rgb(255 255 255 / 0.04) 55%,
-    rgb(255 255 255 / 0.25) 80%,
-    rgb(255 255 255 / 0.8)
-  );
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  background: linear-gradient(135deg, rgb(255 255 255 / 0.28), rgb(255 255 255 / 0) 42%, rgb(255 255 255 / 0) 70%, rgb(255 255 255 / 0.12));
   pointer-events: none;
 }
 
 .glass-light {
   color: var(--color-on-surface);
   text-shadow: none;
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.82), rgb(255 255 255 / 0.62));
+  border-color: rgb(255 255 255 / 0.6);
+  background: rgb(255 255 255 / 0.72);
+}
+
+.lg-refract .glass-light {
+  backdrop-filter: url(#lg-refract) blur(6px) saturate(180%) brightness(1.08);
 }
 
 .glass-pill {
-  position: relative;
-  isolation: isolate;
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.3), rgb(255 255 255 / 0.12));
+  border: 1px solid rgb(255 255 255 / 0.3);
+  background: rgb(255 255 255 / 0.2);
   box-shadow:
-    0 4px 12px -4px rgb(0 0 0 / 0.3),
-    inset 0 0 10px rgb(255 255 255 / 0.18);
+    0 4px 14px rgb(0 0 0 / 0.18),
+    inset 0 1px 1px rgb(255 255 255 / 0.6),
+    inset 0 -1px 1px rgb(255 255 255 / 0.25);
 }
 
 .photo-tile {
