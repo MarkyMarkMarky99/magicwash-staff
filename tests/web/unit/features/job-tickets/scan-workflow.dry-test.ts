@@ -42,7 +42,7 @@ try {
   assert.equal(loadedRow?.completedAt, null)
   assert.equal(loadedRow?.scannedBy, 'staff-1')
   assert.deepEqual(countDepartmentStatuses(store.tickets), { ALL: 1, PENDING: 0, 'IN PROGRESS': 1, COMPLETED: 0 })
-  assert.deepEqual(presentScanResult(response), { tone: 'success', message: 'รับงานแล้ว' })
+  assert.deepEqual(presentScanResult(response), { tone: 'success', message: 'Job started' })
   assert.equal(feedbackOutcomeForScanResult(response), 'success')
 
   response = { kind: 'advanced', ticketId: row.id, status: 'Completed', startedAt: '2026-09-23T09:00:00+07:00', completedAt: '2026-09-23T09:10:00+07:00' }
@@ -52,16 +52,16 @@ try {
   assert.equal(loadedRow?.status, 'Completed')
   assert.equal(loadedRow?.completedAt, '2026-09-23T09:10:00+07:00')
   assert.equal(completionPercentage(store.tickets), 100)
-  assert.deepEqual(presentScanResult(response), { tone: 'success', message: 'เสร็จแล้ว' })
+  assert.deepEqual(presentScanResult(response), { tone: 'success', message: 'Completed' })
   assert.equal(feedbackOutcomeForScanResult(response), 'success')
 
   const outcomes: Array<{ result: JobTicketScanResult; status: number; tone: string; message: string }> = [
-    { result: { kind: 'already_completed', ticketId: row.id }, status: 200, tone: 'warning', message: 'งานนี้เสร็จไปแล้ว' },
-    { result: { kind: 'not_found', laundryItemId: 'tag-1', department: 'Washing' }, status: 404, tone: 'error', message: 'ไม่พบงานของแท็กนี้ในแผนกนี้' },
-    { result: { kind: 'blocked', laundryItemId: 'tag-1', department: 'Washing', blockedByDepartment: 'DryCleaning' }, status: 409, tone: 'error', message: 'ยังทำไม่ได้: แผนก ซักแห้ง ยังไม่เสร็จ' },
-    { result: { kind: 'not_advanceable', ticketId: row.id, status: 'Cancelled' }, status: 409, tone: 'error', message: 'ยังดำเนินการไม่ได้: สถานะ ยกเลิก' },
-    { result: { kind: 'write_failed', ticketId: row.id, certainty: 'rejected' }, status: 502, tone: 'error', message: 'บันทึกไม่สำเร็จ' },
-    { result: { kind: 'write_failed', ticketId: row.id, certainty: 'unknown' }, status: 500, tone: 'error', message: 'บันทึกไม่สำเร็จ กรุณาตรวจสอบก่อนสแกนซ้ำ' },
+    { result: { kind: 'already_completed', ticketId: row.id }, status: 200, tone: 'warning', message: 'This job is already completed' },
+    { result: { kind: 'not_found', laundryItemId: 'tag-1', department: 'Washing' }, status: 404, tone: 'error', message: 'No job found for this tag in this department' },
+    { result: { kind: 'blocked', laundryItemId: 'tag-1', department: 'Washing', blockedByDepartment: 'DryCleaning' }, status: 409, tone: 'error', message: 'Cannot proceed: Dry Cleaning is not completed' },
+    { result: { kind: 'not_advanceable', ticketId: row.id, status: 'Cancelled' }, status: 409, tone: 'error', message: 'Cannot proceed with status Cancelled' },
+    { result: { kind: 'write_failed', ticketId: row.id, certainty: 'rejected' }, status: 502, tone: 'error', message: 'Could not save' },
+    { result: { kind: 'write_failed', ticketId: row.id, certainty: 'unknown' }, status: 500, tone: 'error', message: 'Could not save. Check the job before scanning again' },
   ]
   for (const outcome of outcomes) {
     response = outcome.result

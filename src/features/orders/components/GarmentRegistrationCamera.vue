@@ -165,7 +165,7 @@ async function startCamera(): Promise<void> {
   const token = ++startToken
   cameraError.value = ''
   if (!navigator.mediaDevices?.getUserMedia) {
-    cameraError.value = 'กล้องใช้ได้เมื่อเปิดผ่าน HTTPS หรือ localhost'
+    cameraError.value = 'Camera requires HTTPS or localhost'
     return
   }
   starting.value = true
@@ -195,7 +195,7 @@ async function startCamera(): Promise<void> {
     }, () => {
       if (token !== startToken || !props.open) return
       stopCamera()
-      cameraError.value = 'กล้องหยุดทำงาน กรุณาลองใหม่'
+      cameraError.value = 'Camera stopped. Try again'
     }, () => !props.tag)
     if (token !== startToken) {
       nextStop()
@@ -206,8 +206,8 @@ async function startCamera(): Promise<void> {
     if (token !== startToken) return
     stopCamera()
     cameraError.value = error instanceof DOMException && error.name === 'NotAllowedError'
-      ? 'ไม่ได้รับอนุญาตให้ใช้กล้อง'
-      : 'เปิดกล้องไม่สำเร็จ'
+      ? 'Camera access denied'
+      : 'Could not open camera'
   } finally {
     if (token === startToken) starting.value = false
   }
@@ -237,7 +237,7 @@ async function capturePhoto(): Promise<void> {
     emit('photo', file)
     if (!props.tag) mode.value = 'scan'
   } catch {
-    if (props.open && !disposed && sessionId === captureSessionId) cameraError.value = 'ถ่ายภาพไม่สำเร็จ'
+    if (props.open && !disposed && sessionId === captureSessionId) cameraError.value = 'Could not take photo'
   } finally {
     if (sessionId === captureSessionId && !disposed) {
       shutterTimer = window.setTimeout(() => {
@@ -304,35 +304,35 @@ onBeforeUnmount(() => {
     <div class="absolute inset-x-0 top-0 bg-gradient-to-b from-black/85 to-transparent px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))]">
       <div class="flex items-center gap-2">
         <div class="flex shrink-0 items-center gap-1">
-          <button type="button" class="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 disabled:opacity-40" :disabled="pendingCount > 0" aria-label="ปิดลงทะเบียน" @click="emit('close')">
+          <button type="button" class="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 disabled:opacity-40" :disabled="pendingCount > 0" aria-label="Close registration" @click="emit('close')">
             <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
-          <button type="button" class="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white focus-visible:outline-2 focus-visible:outline-white" :class="soundEnabled ? '' : 'opacity-45'" :aria-pressed="soundEnabled" :aria-label="soundEnabled ? 'ปิดเสียงตอบรับ' : 'เปิดเสียงตอบรับ'" @click="setSoundEnabled(!soundEnabled)">
+          <button type="button" class="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white focus-visible:outline-2 focus-visible:outline-white" :class="soundEnabled ? '' : 'opacity-45'" :aria-pressed="soundEnabled" :aria-label="soundEnabled ? 'Turn off sound' : 'Turn on sound'" @click="setSoundEnabled(!soundEnabled)">
             <span class="material-symbols-outlined text-[19px]" aria-hidden="true">{{ soundEnabled ? 'volume_up' : 'volume_off' }}</span>
           </button>
-          <button v-if="vibrationAvailable" type="button" class="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white focus-visible:outline-2 focus-visible:outline-white" :class="vibrationEnabled ? '' : 'opacity-45'" :aria-pressed="vibrationEnabled" :aria-label="vibrationEnabled ? 'ปิดการสั่นตอบรับ' : 'เปิดการสั่นตอบรับ'" @click="setVibrationEnabled(!vibrationEnabled)">
+          <button v-if="vibrationAvailable" type="button" class="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white focus-visible:outline-2 focus-visible:outline-white" :class="vibrationEnabled ? '' : 'opacity-45'" :aria-pressed="vibrationEnabled" :aria-label="vibrationEnabled ? 'Turn off vibration' : 'Turn on vibration'" @click="setVibrationEnabled(!vibrationEnabled)">
             <span class="material-symbols-outlined text-[19px]" aria-hidden="true">{{ vibrationEnabled ? 'vibration' : 'mobile_off' }}</span>
           </button>
         </div>
         <div class="min-w-0 flex-1 text-right">
-          <p class="truncate font-headline text-sm font-bold">ลงทะเบียน {{ itemLabel }}</p>
-          <p class="font-label text-xs text-white/75">สำเร็จ {{ registeredCount }} · กำลังอัปโหลด {{ pendingCount }}</p>
+          <p class="truncate font-headline text-sm font-bold">Register {{ itemLabel }}</p>
+          <p class="font-label text-xs text-white/75">Registered {{ registeredCount }} · Uploading {{ pendingCount }}</p>
         </div>
       </div>
       <div class="mt-2 flex justify-center">
         <div class="inline-flex rounded-full bg-black/65 p-1">
-          <button type="button" class="rounded-full px-3 py-2 text-sm" :class="mode === 'scan' ? 'bg-lime text-primary' : 'text-white'" :aria-pressed="mode === 'scan'" @click="mode = 'scan'">สแกน</button>
-          <button type="button" class="rounded-full px-3 py-2 text-sm" :class="mode === 'photo' ? 'bg-lime text-primary' : 'text-white'" :aria-pressed="mode === 'photo'" @click="mode = 'photo'">ถ่ายรูป</button>
+          <button type="button" class="rounded-full px-3 py-2 text-sm" :class="mode === 'scan' ? 'bg-lime text-primary' : 'text-white'" :aria-pressed="mode === 'scan'" @click="mode = 'scan'">Scan</button>
+          <button type="button" class="rounded-full px-3 py-2 text-sm" :class="mode === 'photo' ? 'bg-lime text-primary' : 'text-white'" :aria-pressed="mode === 'photo'" @click="mode = 'photo'">Photo</button>
         </div>
       </div>
       <div v-if="warning" role="alert" class="mt-3 rounded-xl bg-warning-container px-3 py-2 font-body text-sm text-on-warning-container">{{ warning }}</div>
       <div v-for="(error, index) in errors" :key="index" role="alert" class="mt-3 flex items-start gap-2 rounded-xl bg-error-container px-3 py-2 font-body text-sm text-on-error-container">
         <span class="flex-1">{{ error }}</span>
-        <button type="button" :aria-label="`ปิดข้อผิดพลาด ${error}`" @click="emit('clearError', index)"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
+        <button type="button" :aria-label="`Dismiss error: ${error}`" @click="emit('clearError', index)"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
       </div>
       <div v-if="loadError" role="alert" class="mt-3 flex items-center gap-2 rounded-xl bg-error-container px-3 py-2 font-body text-sm text-on-error-container">
         <span class="flex-1">{{ loadError }}</span>
-        <button type="button" class="rounded-full border border-current px-3 py-1" @click="emit('retry')">ลองใหม่</button>
+        <button type="button" class="rounded-full border border-current px-3 py-1" @click="emit('retry')">Try again</button>
       </div>
     </div>
 
@@ -348,8 +348,8 @@ onBeforeUnmount(() => {
 
     <div v-if="starting || cameraError" class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/75 px-6 text-center">
       <span class="material-symbols-outlined text-5xl" aria-hidden="true">{{ starting ? 'progress_activity' : 'photo_camera' }}</span>
-      <p class="font-body text-sm">{{ starting ? 'กำลังเปิดกล้อง…' : cameraError }}</p>
-      <button v-if="cameraError" type="button" class="pointer-events-auto rounded-full bg-white px-5 py-2 text-black" @click="cameraError = ''; startCamera()">ลองใหม่</button>
+      <p class="font-body text-sm">{{ starting ? 'Opening camera…' : cameraError }}</p>
+      <button v-if="cameraError" type="button" class="pointer-events-auto rounded-full bg-white px-5 py-2 text-black" @click="cameraError = ''; startCamera()">Try again</button>
     </div>
 
     <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-10">
@@ -357,15 +357,15 @@ onBeforeUnmount(() => {
         <label class="flex min-h-16 w-full max-w-xs items-center gap-2 rounded-xl border border-white/40 bg-black/60 p-2 text-left">
           <span class="material-symbols-outlined text-lime" aria-hidden="true">qr_code_2</span>
           <span class="min-w-0 flex-1">
-            <span class="block font-label text-xs text-white/70">แท็ก</span>
-            <input :value="tagInput" type="text" maxlength="8" autocomplete="off" enterkeyhint="done" aria-label="รหัสแท็ก" placeholder="ยังไม่มี" class="w-full bg-transparent font-body text-sm text-white outline-none placeholder:text-white/70" @input="updateTagInput" @keydown.enter.prevent="submitTag">
+            <span class="block font-label text-xs text-white/70">Tag</span>
+            <input :value="tagInput" type="text" maxlength="8" autocomplete="off" enterkeyhint="done" aria-label="Tag ID" placeholder="None yet" class="w-full bg-transparent font-body text-sm text-white outline-none placeholder:text-white/70" @input="updateTagInput" @keydown.enter.prevent="submitTag">
           </span>
-          <span v-if="tagChecking" class="material-symbols-outlined animate-spin text-[18px] text-lime" role="status" aria-label="กำลังตรวจสอบแท็ก">progress_activity</span>
+          <span v-if="tagChecking" class="material-symbols-outlined animate-spin text-[18px] text-lime" role="status" aria-label="Checking tag">progress_activity</span>
         </label>
       </div>
       <div class="grid grid-cols-3 items-center">
         <div class="flex justify-start">
-          <div class="h-14 w-14 overflow-hidden rounded-lg border border-white/45 bg-white/15 shadow-lg" :class="{ 'preview-pop': previewPulse }" role="img" aria-label="ภาพล่าสุด">
+          <div class="h-14 w-14 overflow-hidden rounded-lg border border-white/45 bg-white/15 shadow-lg" :class="{ 'preview-pop': previewPulse }" role="img" aria-label="Latest photo">
             <img v-if="lastPreviewUrl" :src="lastPreviewUrl" alt="" class="h-full w-full object-cover">
             <div v-else class="flex h-full w-full items-center justify-center text-white/70">
               <span class="material-symbols-outlined text-2xl" aria-hidden="true">photo_library</span>
@@ -373,7 +373,7 @@ onBeforeUnmount(() => {
           </div>
         </div>
         <div class="flex justify-center">
-          <button type="button" class="h-20 w-20 rounded-full border-4 border-white bg-white/20 p-1 disabled:opacity-40" :disabled="starting || !!cameraError || capturing" aria-label="ถ่ายรูปก่อนซัก" @click="capturePhoto">
+          <button type="button" class="h-20 w-20 rounded-full border-4 border-white bg-white/20 p-1 disabled:opacity-40" :disabled="starting || !!cameraError || capturing" aria-label="Take before-wash photo" @click="capturePhoto">
             <span class="block h-full w-full rounded-full bg-white" />
           </button>
         </div>

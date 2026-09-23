@@ -10,37 +10,37 @@ export function feedbackOutcomeForScanResult(result: JobTicketScanResult): Feedb
 }
 
 const departmentLabels: Record<z.infer<typeof jobTicketDepartmentSchema>, string> = {
-  Tagging: 'ติดแท็ก',
-  Washing: 'ซัก',
-  DryCleaning: 'ซักแห้ง',
-  Ironing: 'รีด',
-  Packaging: 'แพ็ก',
-  Logistics: 'ขนส่ง',
+  Tagging: 'Tagging',
+  Washing: 'Washing',
+  DryCleaning: 'Dry Cleaning',
+  Ironing: 'Ironing',
+  Packaging: 'Packaging',
+  Logistics: 'Logistics',
 }
 
 const statusLabels: Record<Extract<JobTicketScanResult, { kind: 'not_advanceable' }>['status'], string> = {
-  Pending: 'รอดำเนินการ',
-  'In Progress': 'กำลังดำเนินการ',
-  Completed: 'เสร็จแล้ว',
-  Cancelled: 'ยกเลิก',
+  Pending: 'Pending',
+  'In Progress': 'In Progress',
+  Completed: 'Completed',
+  Cancelled: 'Cancelled',
 }
 
 export function presentScanResult(result: JobTicketScanResult): { tone: Exclude<ScanTone, 'loading'>; message: string } {
   switch (result.kind) {
     case 'advanced':
-      return { tone: 'success', message: result.status === 'In Progress' ? 'รับงานแล้ว' : 'เสร็จแล้ว' }
+      return { tone: 'success', message: result.status === 'In Progress' ? 'Job started' : 'Completed' }
     case 'already_completed':
-      return { tone: 'warning', message: 'งานนี้เสร็จไปแล้ว' }
+      return { tone: 'warning', message: 'This job is already completed' }
     case 'blocked':
-      return { tone: 'error', message: `ยังทำไม่ได้: แผนก ${departmentLabels[result.blockedByDepartment]} ยังไม่เสร็จ` }
+      return { tone: 'error', message: `Cannot proceed: ${departmentLabels[result.blockedByDepartment]} is not completed` }
     case 'not_found':
-      return { tone: 'error', message: 'ไม่พบงานของแท็กนี้ในแผนกนี้' }
+      return { tone: 'error', message: 'No job found for this tag in this department' }
     case 'not_advanceable':
-      return { tone: 'error', message: `ยังดำเนินการไม่ได้: สถานะ ${statusLabels[result.status]}` }
+      return { tone: 'error', message: `Cannot proceed with status ${statusLabels[result.status]}` }
     case 'write_failed':
       return { tone: 'error', message: result.certainty === 'unknown'
-        ? 'บันทึกไม่สำเร็จ กรุณาตรวจสอบก่อนสแกนซ้ำ'
-        : 'บันทึกไม่สำเร็จ' }
+        ? 'Could not save. Check the job before scanning again'
+        : 'Could not save' }
   }
 }
 

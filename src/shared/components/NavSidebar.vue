@@ -120,13 +120,13 @@ function refresh() {
           </button>
         </li>
       </ul>
-      <div class="border-t border-outline-variant/20 px-5 pb-1 pt-3 font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">แผนก</div>
+      <div class="border-t border-outline-variant/20 px-5 pb-1 pt-3 font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">Departments</div>
       <ul class="flex flex-col pb-2">
         <li v-for="entry in [
-          { path: '/departments/washing', label: 'ซัก · Washing', icon: 'local_laundry_service' },
-          { path: '/departments/drycleaning', label: 'ซักแห้ง · Dry Cleaning', icon: 'dry_cleaning' },
-          { path: '/departments/ironing', label: 'รีด · Ironing', icon: 'iron' },
-          { path: '/departments/packaging', label: 'แพ็ก · Packaging', icon: 'inventory_2' },
+          { path: '/departments/washing', label: 'Washing', icon: 'local_laundry_service' },
+          { path: '/departments/drycleaning', label: 'Dry Cleaning', icon: 'dry_cleaning' },
+          { path: '/departments/ironing', label: 'Ironing', icon: 'iron' },
+          { path: '/departments/packaging', label: 'Packaging', icon: 'inventory_2' },
         ]" :key="entry.path">
           <button
             class="w-full flex items-center gap-4 px-5 py-3 text-left hover:bg-black/5 transition-colors"

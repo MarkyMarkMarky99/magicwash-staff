@@ -21,10 +21,10 @@ export interface DepartmentOrder extends OrderInfo {
 }
 
 export const departments: Record<string, { code: Department; label: string }> = {
-  washing: { code: 'Washing', label: 'ซัก · Washing' },
-  drycleaning: { code: 'DryCleaning', label: 'ซักแห้ง · Dry Cleaning' },
-  ironing: { code: 'Ironing', label: 'รีด · Ironing' },
-  packaging: { code: 'Packaging', label: 'แพ็ก · Packaging' },
+  washing: { code: 'Washing', label: 'Washing' },
+  drycleaning: { code: 'DryCleaning', label: 'Dry Cleaning' },
+  ironing: { code: 'Ironing', label: 'Ironing' },
+  packaging: { code: 'Packaging', label: 'Packaging' },
 }
 
 export const statusFilters: readonly StatusFilter[] = ['ALL', 'PENDING', 'IN PROGRESS', 'COMPLETED']

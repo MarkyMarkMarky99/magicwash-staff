@@ -42,13 +42,13 @@ let pushedScanner = false
 let replacingLeave = false
 
 const statusLabels: Record<TicketStatus, string> = {
-  Pending: 'รอดำเนินการ',
-  'In Progress': 'กำลังดำเนินการ',
-  Completed: 'เสร็จแล้ว',
-  Cancelled: 'ยกเลิก',
+  Pending: 'Pending',
+  'In Progress': 'In Progress',
+  Completed: 'Completed',
+  Cancelled: 'Cancelled',
 }
 const statusTones = { Pending: 'warning', 'In Progress': 'info', Completed: 'success', Cancelled: 'danger' } as const
-const filterLabels = { ALL: 'ทั้งหมด', PENDING: 'รอดำเนินการ', 'IN PROGRESS': 'กำลังดำเนินการ', COMPLETED: 'เสร็จแล้ว' } as const
+const filterLabels = { ALL: 'All', PENDING: 'Pending', 'IN PROGRESS': 'In Progress', COMPLETED: 'Completed' } as const
 const counts = computed(() => countDepartmentStatuses(ticketStore.tickets))
 const tabs = computed(() => statusFilters.map(key => ({ key, label: filterLabels[key], count: counts.value[key] })))
 const listLoading = computed(() => ticketStore.loading || metadataLoading.value)
@@ -91,7 +91,7 @@ async function loadMissingOrderDetails(requestId: number): Promise<void> {
     return promise
   }))
   if (requestId !== pageRequestId) return
-  metadataError.value = results.some(result => result.status === 'rejected') ? 'โหลดข้อมูลออเดอร์ไม่สำเร็จ' : null
+  metadataError.value = results.some(result => result.status === 'rejected') ? 'Could not load order details' : null
   metadataLoading.value = false
 }
 
@@ -165,7 +165,7 @@ function handleScan(value: string): void {
       orderId: ticket?.orderId,
       customerName: ticket ? orderInfo.value.get(ticket.orderId)?.customerName : undefined,
     }
-    scanResult.value = { ...context, message: 'กำลังบันทึก…', tone: 'loading' }
+    scanResult.value = { ...context, message: 'Saving…', tone: 'loading' }
     try {
       const response = await ticketStore.scan({
         laundryItemId: value,
@@ -187,7 +187,7 @@ function handleScan(value: string): void {
     } catch {
       if (scannerOpen.value && department.value?.code === code) feedback('failure')
       if (version === latestScanVersion && scannerOpen.value && department.value?.code === code) {
-        scanResult.value = { ...context, message: 'เชื่อมต่อไม่สำเร็จ ลองสแกนอีกครั้ง', tone: 'error' }
+        scanResult.value = { ...context, message: 'Connection failed. Scan again', tone: 'error' }
       }
     }
   })
@@ -196,6 +196,10 @@ function handleScan(value: string): void {
 function ticketSecondary(ticket: JobTicketDto): string {
   const time = ticket.status === 'Completed' ? ticket.completedAt : ticket.startedAt
   return `${statusLabels[ticket.status]}${time ? ` · ${formatSheetDateTime(time)}` : ''}`
+}
+
+function statusShare(tickets: readonly JobTicketDto[], status: TicketStatus): number {
+  return tickets.length === 0 ? 0 : Math.round(100 * statusCount(tickets, status) / tickets.length)
 }
 
 function statusCount(tickets: readonly JobTicketDto[], status: TicketStatus): number {
@@ -226,7 +230,7 @@ onBeforeRouteLeave(to => {
     </template>
 
     <div v-if="department && ticketStore.truncated" role="alert" class="flex-none border-b border-warning bg-warning-container px-4 py-2 font-body text-sm text-on-warning-container">
-      รายการไม่ครบ: แสดงได้สูงสุด 2,000 งาน
+      List incomplete: showing up to 2,000 jobs
     </div>
 
     <ListContainer
@@ -236,18 +240,18 @@ onBeforeRouteLeave(to => {
       :count-label="grouper === 'order' ? 'orders' : 'items'"
       :loading="listLoading" :error="listError"
       :empty="!listLoading && !listError && visibleTickets.length === 0"
-      empty-text="ไม่มีงานในสถานะนี้" :skeleton-rows="5"
+      empty-text="No jobs with this status" :skeleton-rows="5"
     >
       <template #actions>
         <div class="flex rounded-full bg-surface-container p-0.5 font-label text-[10px]">
-          <button type="button" class="flex items-center gap-1 rounded-full px-2 py-1 focus-visible:outline-2 focus-visible:outline-primary" :class="grouper === 'item' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'" :aria-pressed="grouper === 'item'" aria-label="รายชิ้น" @click="changeGrouper('item')"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">grid_view</span><span class="hidden sm:inline">รายชิ้น</span></button>
-          <button type="button" class="flex items-center gap-1 rounded-full px-2 py-1 focus-visible:outline-2 focus-visible:outline-primary" :class="grouper === 'order' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'" :aria-pressed="grouper === 'order'" aria-label="ตามออเดอร์" @click="changeGrouper('order')"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">view_agenda</span><span class="hidden sm:inline">ตามออเดอร์</span></button>
+          <button type="button" class="flex items-center gap-1 rounded-full px-2 py-1 focus-visible:outline-2 focus-visible:outline-primary" :class="grouper === 'item' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'" :aria-pressed="grouper === 'item'" aria-label="By item" @click="changeGrouper('item')"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">grid_view</span><span class="hidden sm:inline">By item</span></button>
+          <button type="button" class="flex items-center gap-1 rounded-full px-2 py-1 focus-visible:outline-2 focus-visible:outline-primary" :class="grouper === 'order' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'" :aria-pressed="grouper === 'order'" aria-label="By order" @click="changeGrouper('order')"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">view_agenda</span><span class="hidden sm:inline">By order</span></button>
         </div>
       </template>
       <template #error>
         <div class="px-4 py-6 text-center">
           <p role="alert" class="text-sm text-error">{{ listError }}</p>
-          <button type="button" class="mt-3 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" @click="reload">ลองใหม่</button>
+          <button type="button" class="mt-3 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" @click="reload">Try again</button>
         </div>
       </template>
 
@@ -267,25 +271,27 @@ onBeforeRouteLeave(to => {
           <span class="flex items-start justify-between gap-2">
             <span class="min-w-0">
               <strong class="block truncate font-headline text-sm text-primary">{{ order.customerName }}</strong>
-              <span class="block truncate font-label text-xs text-on-surface-variant">{{ order.orderId }} · กำหนด {{ formatSheetDate(order.dueDate) }}</span>
+              <span class="block truncate font-label text-xs text-on-surface-variant">{{ order.orderId }} · Due {{ formatSheetDate(order.dueDate) }}</span>
             </span>
             <span class="material-symbols-outlined text-primary" aria-hidden="true">{{ expandedOrderId === order.orderId ? 'expand_less' : 'expand_more' }}</span>
           </span>
-          <span class="mt-3 grid grid-cols-[104px_minmax(0,1fr)] items-center gap-3">
-            <span class="relative flex h-[104px] w-[104px] items-center justify-center">
+          <span class="mt-4 grid grid-cols-[148px_minmax(0,1fr)] items-center gap-4">
+            <span class="relative flex h-[148px] w-[148px] items-center justify-center">
               <svg viewBox="0 0 100 100" class="absolute inset-0 h-full w-full -rotate-90" aria-hidden="true">
-                <circle cx="50" cy="50" r="43" fill="none" stroke="currentColor" stroke-width="11" class="text-surface-container" />
-                <circle cx="50" cy="50" r="43" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round" pathLength="100" :stroke-dasharray="`${allOrders.get(order.orderId)?.percentage ?? 0} 100`" class="text-primary" />
+                <circle cx="50" cy="50" r="43" fill="none" stroke="currentColor" stroke-width="13" class="text-secondary/15" />
+                <circle v-if="(allOrders.get(order.orderId)?.percentage ?? 0) > 0" cx="50" cy="50" r="43" fill="none" stroke="currentColor" stroke-width="13" stroke-linecap="round" pathLength="100" :stroke-dasharray="`${allOrders.get(order.orderId)?.percentage ?? 0} 100`" class="text-secondary" />
               </svg>
-              <span class="relative text-center">
-                <span class="block font-headline text-xl font-bold text-primary">{{ allOrders.get(order.orderId)?.percentage ?? 0 }}%</span>
-                <span class="block font-label text-[10px] text-on-surface-variant">{{ statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Completed') }} of {{ allOrders.get(order.orderId)?.tickets.length ?? 0 }}</span>
+              <span class="absolute inset-[18%] rounded-full bg-surface-container-lowest shadow-[0_2px_10px_rgba(0,0,0,0.12)]" aria-hidden="true" />
+              <span class="relative flex flex-col items-center leading-none">
+                <span class="font-label text-[10px] font-medium text-on-surface-variant">Completed</span>
+                <span class="mt-1 font-headline text-[28px] font-semibold tracking-tight text-on-surface">{{ allOrders.get(order.orderId)?.percentage ?? 0 }}%</span>
               </span>
+              <span class="absolute bottom-0 left-1/2 -translate-x-1/2 rounded-full bg-secondary px-2 py-0.5 font-label text-[10px] font-semibold text-white">{{ statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Completed') }} of {{ allOrders.get(order.orderId)?.tickets.length ?? 0 }}</span>
             </span>
-            <span class="flex min-w-0 flex-col gap-1.5">
-              <span class="flex items-center gap-2 rounded-xl bg-warning-container px-2 py-1.5 text-on-warning-container"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">schedule</span><span class="min-w-0 flex-1 truncate font-label text-xs">รอดำเนินการ</span><strong class="text-sm">{{ statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Pending') }}</strong></span>
-              <span class="flex items-center gap-2 rounded-xl bg-secondary-container px-2 py-1.5 text-on-secondary-container"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">autorenew</span><span class="min-w-0 flex-1 truncate font-label text-xs">กำลังทำ</span><strong class="text-sm">{{ statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'In Progress') }}</strong></span>
-              <span class="flex items-center gap-2 rounded-xl bg-success-container px-2 py-1.5 text-on-success-container"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">check_circle</span><span class="min-w-0 flex-1 truncate font-label text-xs">เสร็จแล้ว</span><strong class="text-sm">{{ statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Completed') }}</strong></span>
+            <span class="flex min-w-0 flex-col gap-2">
+              <span class="relative flex h-[44px] items-center overflow-hidden rounded-xl bg-warning-container"><span class="absolute inset-y-0 left-0 rounded-xl bg-warning/25" :style="{ width: `max(2.75rem, ${statusShare(allOrders.get(order.orderId)?.tickets ?? [], 'Pending')}%)` }" /><span class="relative flex h-full w-11 shrink-0 items-center justify-center text-on-surface"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">schedule</span></span><span class="relative flex min-w-0 flex-col pl-1 leading-none"><span class="truncate font-label text-[10px] font-medium text-on-surface-variant">Pending</span><strong class="mt-1 font-headline text-lg font-semibold text-on-surface">{{ statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Pending') }}</strong></span></span>
+              <span class="relative flex h-[44px] items-center overflow-hidden rounded-xl bg-mint/50"><span class="absolute inset-y-0 left-0 rounded-xl bg-secondary/25" :style="{ width: `max(2.75rem, ${statusShare(allOrders.get(order.orderId)?.tickets ?? [], 'In Progress')}%)` }" /><span class="relative flex h-full w-11 shrink-0 items-center justify-center text-on-surface"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">autorenew</span></span><span class="relative flex min-w-0 flex-col pl-1 leading-none"><span class="truncate font-label text-[10px] font-medium text-on-surface-variant">In Progress</span><strong class="mt-1 font-headline text-lg font-semibold text-on-surface">{{ statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'In Progress') }}</strong></span></span>
+              <span class="relative flex h-[44px] items-center overflow-hidden rounded-xl bg-lime/25"><span class="absolute inset-y-0 left-0 rounded-xl bg-lime/60" :style="{ width: `max(2.75rem, ${statusShare(allOrders.get(order.orderId)?.tickets ?? [], 'Completed')}%)` }" /><span class="relative flex h-full w-11 shrink-0 items-center justify-center text-on-surface"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">check_circle</span></span><span class="relative flex min-w-0 flex-col pl-1 leading-none"><span class="truncate font-label text-[10px] font-medium text-on-surface-variant">Completed</span><strong class="mt-1 font-headline text-lg font-semibold text-on-surface">{{ statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Completed') }}</strong></span></span>
             </span>
           </span>
         </button>
@@ -296,9 +302,9 @@ onBeforeRouteLeave(to => {
         </div>
       </div>
     </ListContainer>
-    <ListContainer v-else title="ไม่พบแผนก" icon="error" count-label="orders" empty empty-text="ไม่รู้จักแผนกนี้" />
+    <ListContainer v-else title="Department not found" icon="error" count-label="orders" empty empty-text="Unknown department" />
 
-    <button v-if="department" type="button" :disabled="listLoading || !!listError" class="absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50" aria-label="สแกนแท็ก" @click="openScanner">
+    <button v-if="department" type="button" :disabled="listLoading || !!listError" class="absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50" aria-label="Scan tag" @click="openScanner">
       <span class="material-symbols-outlined" aria-hidden="true">qr_code_scanner</span>
     </button>
 
@@ -307,7 +313,7 @@ onBeforeRouteLeave(to => {
         <div v-if="scanResult" role="status" class="mx-auto max-w-sm rounded-xl p-4 font-body shadow-lg" :class="scanResult.tone === 'success' ? 'bg-success-container text-on-success-container' : scanResult.tone === 'warning' ? 'bg-warning-container text-on-warning-container' : scanResult.tone === 'error' ? 'bg-error-container text-on-error-container' : 'bg-surface text-on-surface'">
           <p class="font-headline font-bold">{{ scanResult.tagId }}</p>
           <p v-if="scanResult.orderId" class="text-sm">{{ scanResult.customerName }} · {{ scanResult.orderId }}</p>
-          <p v-if="scanResult.status" class="text-sm">สถานะ {{ statusLabels[scanResult.status] }}</p>
+          <p v-if="scanResult.status" class="text-sm">Status {{ statusLabels[scanResult.status] }}</p>
           <p class="mt-1 text-sm font-semibold">{{ scanResult.message }}</p>
         </div>
       </template>

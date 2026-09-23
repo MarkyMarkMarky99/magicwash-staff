@@ -226,7 +226,7 @@ function mergeRegistrationTags(tags: ReadonlySet<string>): void {
   const pendingTag = registrationTag.value
   if (pendingTag && isDuplicateGarmentTag(pendingTag, merged, sessionRegistrationTags.value)) {
     resetRegistration()
-    setRegistrationWarning(`แท็ก ${pendingTag} ลงทะเบียนแล้ว กรุณาใช้แท็กอื่น`)
+    setRegistrationWarning(`Tag ${pendingTag} is already registered. Use another tag`)
     feedback('failure')
   }
 }
@@ -247,7 +247,7 @@ async function loadRegistrationTags(id: string): Promise<void> {
       registrationTagsReady.value = true
     }
   } catch {
-    if (sequence === registrationLoadSequence) registrationLoadError.value = 'โหลดแท็กเดิมไม่สำเร็จ กรุณาลองใหม่'
+    if (sequence === registrationLoadSequence) registrationLoadError.value = 'Could not load existing tags. Try again'
   } finally {
     if (sequence === registrationLoadSequence) registrationLoading.value = false
   }
@@ -263,13 +263,13 @@ function acceptRegistrationTag(value: string): void {
   if (!registrationItem.value) return
   const tag = validGarmentTag(value)
   if (!tag) {
-    setRegistrationWarning('รหัสแท็กต้องเป็นตัวอักษรหรือตัวเลข 8 ตัว')
+    setRegistrationWarning('Tag ID must be 8 letters or digits')
     feedback('failure')
     return
   }
   if (registrationTagsReady.value && isDuplicateGarmentTag(tag, existingRegistrationTags.value, sessionRegistrationTags.value)) {
     resetRegistration()
-    setRegistrationWarning(`แท็ก ${tag} ลงทะเบียนแล้ว กรุณาใช้แท็กอื่น`)
+    setRegistrationWarning(`Tag ${tag} is already registered. Use another tag`)
     feedback('failure')
     return
   }
@@ -313,7 +313,7 @@ function saveRegistration(): void {
       if (orderId.value === targetOrderId) {
         pendingRegistrationTags.value.delete(tag)
         sessionRegistrationTags.value.delete(tag)
-        registrationErrors.value.push(`อัปโหลดแท็ก ${tag} ไม่สำเร็จ กรุณาลองใหม่`)
+        registrationErrors.value.push(`Could not upload tag ${tag}. Try again`)
       }
     })
 }
@@ -518,7 +518,7 @@ function clearItemError() {
     :warning="registrationWarning"
     :errors="registrationErrors"
     :load-error="registrationLoadError"
-    :item-label="registrationItem.description || 'รายการผ้า'"
+    :item-label="registrationItem.description || 'Garment'"
     :reset-version="registrationResetVersion"
     @close="orderOverlay.close"
     @tag="acceptRegistrationTag"
@@ -528,7 +528,7 @@ function clearItemError() {
     @clear-error="index => registrationErrors.splice(index, 1)"
   />
   <div v-else-if="isRegistrationOpen" class="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-4 bg-surface p-6 text-on-surface">
-    <p role="alert">{{ detailLoading ? 'กำลังโหลดรายการผ้า…' : 'ไม่พบรายการผ้านี้' }}</p>
-    <button type="button" class="rounded-full bg-primary px-5 py-2 text-on-primary" @click="orderOverlay.close">ปิด</button>
+    <p role="alert">{{ detailLoading ? 'Loading garment…' : 'Garment not found' }}</p>
+    <button type="button" class="rounded-full bg-primary px-5 py-2 text-on-primary" @click="orderOverlay.close">Close</button>
   </div>
 </template>

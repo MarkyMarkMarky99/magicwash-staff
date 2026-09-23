@@ -59,7 +59,7 @@ test('order preload keeps early tags pending without covering the camera', () =>
   assert.match(detailSource, /mergeRegistrationTags\(tags\)[\s\S]*registrationTagsReady\.value = true/)
   assert.match(detailSource, /:tag-checking="registrationTag !== null && registrationLoading"/)
   assert.match(cameraSource, /v-if="tagChecking"/)
-  assert.doesNotMatch(cameraSource, /กำลังตรวจสอบแท็กเดิม|props\.loading/)
+  assert.doesNotMatch(cameraSource, /Checking existing tags|props\.loading/)
 })
 
 test('capture feedback keeps the latest thumbnail without navigation', () => {
@@ -93,6 +93,6 @@ test('fresh tag IDs merge and recheck a waiting tag', () => {
   assert.match(detailSource, /mergeRegistrationTags\(freshTags\)/)
   assert.match(detailSource, /const pendingTag = registrationTag\.value[\s\S]*isDuplicateGarmentTag\(pendingTag, merged, sessionRegistrationTags\.value\)/)
   assert.match(detailSource, /mergeRegistrationTags\(tags\)[\s\S]*if \(pendingTag && registrationTag\.value === pendingTag\) feedback\('success'\)/)
-  assert.match(detailSource, /setRegistrationWarning\(`แท็ก \$\{pendingTag\} ลงทะเบียนแล้ว กรุณาใช้แท็กอื่น`\)[\s\S]*feedback\('failure'\)/)
+  assert.match(detailSource, /setRegistrationWarning\(`Tag \$\{pendingTag\} is already registered. Use another tag`\)[\s\S]*feedback\('failure'\)/)
   assert.doesNotMatch(detailSource, /navigator\.vibrate\?\.\(70\)/)
 })

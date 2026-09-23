@@ -29,12 +29,12 @@ const latestScan = computed(() => scans.value[0] ?? null)
 
 function getCameraErrorMessage(error: unknown) {
   if (error instanceof DOMException) {
-    if (error.name === 'NotAllowedError') return 'ไม่ได้รับอนุญาตให้ใช้กล้อง กรุณาอนุญาตกล้องใน browser แล้วลองใหม่'
-    if (error.name === 'NotFoundError') return 'ไม่พบกล้องบนอุปกรณ์นี้'
-    if (error.name === 'NotReadableError') return 'กล้องกำลังถูกใช้งานโดยแอปอื่น'
+    if (error.name === 'NotAllowedError') return 'Camera access denied. Allow camera access in your browser and try again'
+    if (error.name === 'NotFoundError') return 'No camera found on this device'
+    if (error.name === 'NotReadableError') return 'Camera is in use by another app'
   }
 
-  return 'เปิดกล้องไม่สำเร็จ กรุณาลองใหม่'
+  return 'Could not open camera. Try again'
 }
 
 function prepareAudio() {
@@ -74,7 +74,7 @@ function handleTerminalScanError(startToken: number) {
   if (startToken !== scannerStartToken) return
 
   stopScanner()
-  errorMessage.value = 'กล้องหยุดทำงาน กรุณากดเปิดกล้องเพื่อลองใหม่'
+  errorMessage.value = 'Camera stopped. Open it again to retry'
 }
 
 function acceptResult(rawValue: string, format: string) {
@@ -102,7 +102,7 @@ async function startScanner() {
   isStarting.value = true
 
   if (!navigator.mediaDevices?.getUserMedia) {
-    errorMessage.value = 'อุปกรณ์นี้ไม่รองรับกล้องผ่าน browser หรือไม่ได้เปิดผ่าน HTTPS'
+    errorMessage.value = 'Camera is unavailable in this browser or without HTTPS'
     isStarting.value = false
     return
   }
@@ -202,9 +202,9 @@ onBeforeUnmount(disposeScanner)
       <section class="mx-auto flex min-h-full w-full max-w-xl flex-col gap-4 p-4 pb-24">
         <header>
           <p class="font-label text-xs font-bold uppercase tracking-[0.14em] text-secondary">Prototype</p>
-          <h2 class="mt-1 font-headline text-2xl font-bold text-on-surface">ทดสอบสแกนแท็ก</h2>
+          <h2 class="mt-1 font-headline text-2xl font-bold text-on-surface">Test tag scanner</h2>
           <p class="mt-1 text-sm leading-6 text-on-surface-variant">
-            อ่าน QR Code และ Code 128 จากกล้องหลัง ผลลัพธ์หน้านี้เป็นรหัสดิบและยังไม่ค้นหาออเดอร์
+            Scan QR Code and Code 128 with the rear camera. This page shows raw codes without looking up orders.
           </p>
         </header>
 
@@ -223,7 +223,7 @@ onBeforeUnmount(disposeScanner)
                 {{ isStarting ? 'progress_activity' : 'qr_code_scanner' }}
               </span>
               <p class="text-sm text-on-primary/80">
-                {{ isStarting ? 'กำลังเปิดกล้อง…' : 'กดเปิดกล้อง แล้วหันกล้องหลังไปที่แท็ก' }}
+                {{ isStarting ? 'Opening camera…' : 'Open the camera and point it at a tag' }}
               </p>
             </div>
 
@@ -241,14 +241,14 @@ onBeforeUnmount(disposeScanner)
 
             <div v-if="isRunning" class="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/80 to-transparent px-3 pb-3 pt-8">
               <span class="rounded-full bg-black/55 px-3 py-1.5 text-xs font-medium text-white">
-                กำลังสแกน
+                Scanning
               </span>
               <button
                 v-if="torchAvailable"
                 type="button"
                 class="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm active:scale-95"
                 :aria-pressed="torchOn"
-                :aria-label="torchOn ? 'ปิดไฟฉาย' : 'เปิดไฟฉาย'"
+                :aria-label="torchOn ? 'Turn off flashlight' : 'Turn on flashlight'"
                 @click="toggleTorch"
               >
                 <span class="material-symbols-outlined">{{ torchOn ? 'flashlight_on' : 'flashlight_off' }}</span>
@@ -264,7 +264,7 @@ onBeforeUnmount(disposeScanner)
               :disabled="isStarting"
               @click="startScanner"
             >
-              {{ isStarting ? 'กำลังเปิดกล้อง…' : 'เปิดกล้อง' }}
+              {{ isStarting ? 'Opening camera…' : 'Open camera' }}
             </button>
             <button
               v-else
@@ -272,7 +272,7 @@ onBeforeUnmount(disposeScanner)
               class="min-h-12 flex-1 rounded-full border border-white/40 px-5 py-3 font-semibold text-white active:scale-[0.98]"
               @click="stopScanner"
             >
-              หยุดกล้อง
+              Stop camera
             </button>
           </div>
         </div>
@@ -284,11 +284,11 @@ onBeforeUnmount(disposeScanner)
         <section class="rounded-xl bg-surface-container-lowest p-4 shadow-sm ring-1 ring-outline-variant/50">
           <div class="flex items-start justify-between gap-3">
             <div>
-              <p class="text-xs font-semibold text-on-surface-variant">ผลล่าสุด</p>
+              <p class="text-xs font-semibold text-on-surface-variant">Latest result</p>
               <p v-if="latestScan" class="mt-1 break-all font-headline text-2xl font-bold text-primary">
                 {{ latestScan.value }}
               </p>
-              <p v-else class="mt-2 text-sm text-on-surface-variant">ยังไม่มีผลการสแกน</p>
+              <p v-else class="mt-2 text-sm text-on-surface-variant">No scans yet</p>
             </div>
             <span v-if="latestScan" class="shrink-0 rounded-full bg-secondary-container px-3 py-1 text-xs font-semibold text-on-secondary-container">
               {{ latestScan.format }}
@@ -298,19 +298,19 @@ onBeforeUnmount(disposeScanner)
 
         <section class="rounded-xl bg-surface-container-lowest shadow-sm ring-1 ring-outline-variant/50">
           <div class="flex items-center justify-between border-b border-outline-variant/50 px-4 py-3">
-            <h3 class="font-headline font-bold">รายการที่อ่านได้ ({{ scans.length }})</h3>
+            <h3 class="font-headline font-bold">Scanned codes ({{ scans.length }})</h3>
             <button
               v-if="scans.length"
               type="button"
               class="rounded-full px-3 py-1.5 text-sm font-semibold text-error active:bg-error-container"
               @click="clearScans"
             >
-              ล้างรายการ
+              Clear list
             </button>
           </div>
 
           <div v-if="!scans.length" class="px-4 py-8 text-center text-sm text-on-surface-variant">
-            รหัสแต่ละตัวจะถูกนับครั้งเดียวจนกว่าจะล้างรายการ
+            Each code is counted once until you clear the list
           </div>
           <ol v-else class="divide-y divide-outline-variant/50">
             <li v-for="(scan, index) in scans" :key="scan.value" class="flex items-center gap-3 px-4 py-3">

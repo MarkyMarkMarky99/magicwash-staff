@@ -39,7 +39,7 @@ function selectItem(): void {
       </button>
     </template>
     <template #default="{ close }">
-      <button type="button" class="w-full px-3 py-3 text-left font-body text-sm text-on-surface hover:bg-surface-container-low" @click="close(); emit('register', item.orderItemId)">ลงทะเบียนรูปและแท็ก</button>
+      <button type="button" class="w-full px-3 py-3 text-left font-body text-sm text-on-surface hover:bg-surface-container-low" @click="close(); emit('register', item.orderItemId)">Register photo and tag</button>
     </template>
   </BaseDropdown>
   </div>
