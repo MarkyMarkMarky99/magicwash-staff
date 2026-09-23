@@ -35,6 +35,7 @@ import { useCustomerStore } from '@/data/customers/customer.store'
 import { useItemsStore } from '@/data/items/items.store'
 import type { ItemDto } from '@/data/items/items.service'
 import { currentActor } from '@/shared/config/actor'
+import { feedback, primeFeedbackAudio } from '@/shared/utils/scan-feedback'
 import { createLaundryTagPrintRequest, printLaundryTags } from '@/data/laundry-tag-prints/laundry-tag-print.service'
 import { ApiError } from '@/shared/api/api-client'
 import { priceListItemCreateRoute } from '@/shared/navigation/form-routes'
@@ -226,6 +227,7 @@ function mergeRegistrationTags(tags: ReadonlySet<string>): void {
   if (pendingTag && isDuplicateGarmentTag(pendingTag, merged, sessionRegistrationTags.value)) {
     resetRegistration()
     setRegistrationWarning(`แท็ก ${pendingTag} ลงทะเบียนแล้ว กรุณาใช้แท็กอื่น`)
+    feedback('failure')
   }
 }
 
@@ -239,7 +241,9 @@ async function loadRegistrationTags(id: string): Promise<void> {
       if (sequence === registrationLoadSequence && id === orderId.value) mergeRegistrationTags(freshTags)
     })
     if (sequence === registrationLoadSequence && id === orderId.value) {
+      const pendingTag = registrationTag.value
       mergeRegistrationTags(tags)
+      if (pendingTag && registrationTag.value === pendingTag) feedback('success')
       registrationTagsReady.value = true
     }
   } catch {
@@ -251,6 +255,7 @@ async function loadRegistrationTags(id: string): Promise<void> {
 
 function openRegistration(orderItemId: string): void {
   if (!orderId.value || !orderItemId) return
+  void primeFeedbackAudio()
   orderOverlay.open('register-garment', orderItemId)
 }
 
@@ -259,15 +264,17 @@ function acceptRegistrationTag(value: string): void {
   const tag = validGarmentTag(value)
   if (!tag) {
     setRegistrationWarning('รหัสแท็กต้องเป็นตัวอักษรหรือตัวเลข 8 ตัว')
+    feedback('failure')
     return
   }
   if (registrationTagsReady.value && isDuplicateGarmentTag(tag, existingRegistrationTags.value, sessionRegistrationTags.value)) {
     resetRegistration()
     setRegistrationWarning(`แท็ก ${tag} ลงทะเบียนแล้ว กรุณาใช้แท็กอื่น`)
+    feedback('failure')
     return
   }
   setRegistrationWarning(null)
-  navigator.vibrate?.(70)
+  if (registrationTagsReady.value) feedback('success')
   registrationTag.value = tag
 }
 

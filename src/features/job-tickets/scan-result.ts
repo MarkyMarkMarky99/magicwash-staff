@@ -1,8 +1,13 @@
 import type { z } from 'zod'
 import type { jobTicketDepartmentSchema } from '@contracts/job-tickets/job-ticket-api.schema'
 import type { JobTicketScanResult } from '@/data/job-tickets/job-ticket.service'
+import type { FeedbackOutcome } from '@/shared/utils/scan-feedback'
 
 export type ScanTone = 'loading' | 'success' | 'warning' | 'error'
+
+export function feedbackOutcomeForScanResult(result: JobTicketScanResult): FeedbackOutcome {
+  return result.kind === 'advanced' ? 'success' : 'failure'
+}
 
 const departmentLabels: Record<z.infer<typeof jobTicketDepartmentSchema>, string> = {
   Tagging: 'ติดแท็ก',

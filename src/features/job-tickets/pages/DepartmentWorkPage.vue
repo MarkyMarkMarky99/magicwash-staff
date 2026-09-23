@@ -14,10 +14,11 @@ import { useWorkOrderStore } from '@/data/work-orders/work-order.store'
 import { getWorkOrder, type WorkOrderDetailDto } from '@/data/work-orders/work-order.service'
 import { useCustomerStore } from '@/data/customers/customer.store'
 import { currentActor } from '@/shared/config/actor'
+import { feedback, primeFeedbackAudio } from '@/shared/utils/scan-feedback'
 import { formatSheetDate, formatSheetDateTime } from '@/shared/utils/sheet-date'
 import { countDepartmentStatuses, filterTickets, groupDepartmentOrders, readDepartment, readGrouper, readStatusFilter, sortDepartmentTickets, statusFilters } from '../department-work'
 import type { Grouper, OrderInfo, TicketStatus } from '../department-work'
-import { createTagScanGuard, presentScanResult, type ScanTone } from '../scan-result'
+import { createTagScanGuard, feedbackOutcomeForScanResult, presentScanResult, type ScanTone } from '../scan-result'
 
 const route = useRoute()
 const router = useRouter()
@@ -131,6 +132,7 @@ function changeGrouper(value: Grouper): void {
 
 function openScanner(): void {
   if (!department.value || scannerOpen.value) return
+  void primeFeedbackAudio()
   latestScanVersion += 1
   scanResult.value = null
   void router.push({ query: { ...route.query, scan: '1' } }).then(() => {
@@ -172,7 +174,7 @@ function handleScan(value: string): void {
       })
       const presentation = presentScanResult(response)
       if (scannerOpen.value && department.value?.code === code) {
-        navigator.vibrate?.(response.kind === 'advanced' ? 70 : [80, 60, 80])
+        feedback(feedbackOutcomeForScanResult(response))
       }
       if (version === latestScanVersion && scannerOpen.value && department.value?.code === code) {
         scanResult.value = {
@@ -183,7 +185,7 @@ function handleScan(value: string): void {
         }
       }
     } catch {
-      if (scannerOpen.value && department.value?.code === code) navigator.vibrate?.([80, 60, 80])
+      if (scannerOpen.value && department.value?.code === code) feedback('failure')
       if (version === latestScanVersion && scannerOpen.value && department.value?.code === code) {
         scanResult.value = { ...context, message: 'เชื่อมต่อไม่สำเร็จ ลองสแกนอีกครั้ง', tone: 'error' }
       }
@@ -300,7 +302,7 @@ onBeforeRouteLeave(to => {
       <span class="material-symbols-outlined" aria-hidden="true">qr_code_scanner</span>
     </button>
 
-    <QrScannerOverlay :open="scannerOpen" :title="department?.label ?? ''" :vibrate-on-read="false" @close="closeScanner" @scan="handleScan">
+    <QrScannerOverlay :open="scannerOpen" :title="department?.label ?? ''" @close="closeScanner" @scan="handleScan">
       <template #result>
         <div v-if="scanResult" role="status" class="mx-auto max-w-sm rounded-xl p-4 font-body shadow-lg" :class="scanResult.tone === 'success' ? 'bg-success-container text-on-success-container' : scanResult.tone === 'warning' ? 'bg-warning-container text-on-warning-container' : scanResult.tone === 'error' ? 'bg-error-container text-on-error-container' : 'bg-surface text-on-surface'">
           <p class="font-headline font-bold">{{ scanResult.tagId }}</p>

@@ -33,6 +33,11 @@ The first tag page shares the gallery's cached order-photo request. Fresh cache 
 merge new tag IDs into the current set and check a pending tag again; later pages use
 their own requests. Tag loading does not clear the photo response cache.
 Auto-save waits until duplicate checking succeeds.
+A valid, nonduplicate tag plays success feedback after acceptance. A tag entered while the
+existing-tag list is loading waits for that check before success feedback. Invalid format or a
+duplicate, including one found when loading finishes, plays failure feedback. The header's sound
+and vibration controls share persisted preferences with the department scanner; photo capture
+keeps its visual flash and animation without sound feedback.
 A duplicate rejects the tag and discards any unsaved photo. The page saves automatically
 as soon as a valid, nonduplicate tag and one photo are present. The scanned or typed tag
 becomes `LaundryPhotos.itemId`;

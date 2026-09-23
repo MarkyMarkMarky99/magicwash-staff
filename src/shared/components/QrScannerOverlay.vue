@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { startBarcodeScanner } from '@/shared/utils/barcode-scanner'
+import { canVibrate, setSoundEnabled, setVibrationEnabled, soundEnabled, vibrationEnabled } from '@/shared/utils/scan-feedback'
 
-const props = defineProps<{ open: boolean; title: string; vibrateOnRead?: boolean }>()
+const props = defineProps<{ open: boolean; title: string }>()
 const emit = defineEmits<{ close: []; scan: [value: string] }>()
+const vibrationAvailable = canVibrate()
 
 const videoRef = ref<HTMLVideoElement | null>(null)
 const cameraError = ref('')
@@ -59,7 +61,6 @@ async function startCamera(): Promise<void> {
       if (trimmed && (trimmed !== lastResult || now - lastResultAt > 2000)) {
         lastResult = trimmed
         lastResultAt = now
-        if (props.vibrateOnRead !== false) navigator.vibrate?.(70)
         emit('scan', trimmed)
       }
     }, () => {
@@ -101,12 +102,17 @@ onBeforeUnmount(stopCamera)
     <div v-if="open" class="fixed inset-0 z-[60] bg-black text-white" role="dialog" aria-modal="true" :aria-label="title">
       <video ref="videoRef" class="absolute inset-0 h-full w-full object-cover" autoplay muted playsinline />
       <div class="absolute inset-x-0 top-0 bg-gradient-to-b from-black/85 to-transparent px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))]">
-        <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+        <div class="flex items-center gap-2">
           <button type="button" class="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 focus-visible:outline-2 focus-visible:outline-white" aria-label="ปิดกล้องสแกน" @click="emit('close')">
             <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
-          <h2 class="font-headline text-sm font-bold">{{ title }}</h2>
-          <div />
+          <button type="button" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-white focus-visible:outline-2 focus-visible:outline-white" :class="soundEnabled ? '' : 'opacity-45'" :aria-pressed="soundEnabled" :aria-label="soundEnabled ? 'ปิดเสียงตอบรับ' : 'เปิดเสียงตอบรับ'" @click="setSoundEnabled(!soundEnabled)">
+            <span class="material-symbols-outlined text-[19px]" aria-hidden="true">{{ soundEnabled ? 'volume_up' : 'volume_off' }}</span>
+          </button>
+          <button v-if="vibrationAvailable" type="button" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-white focus-visible:outline-2 focus-visible:outline-white" :class="vibrationEnabled ? '' : 'opacity-45'" :aria-pressed="vibrationEnabled" :aria-label="vibrationEnabled ? 'ปิดการสั่นตอบรับ' : 'เปิดการสั่นตอบรับ'" @click="setVibrationEnabled(!vibrationEnabled)">
+            <span class="material-symbols-outlined text-[19px]" aria-hidden="true">{{ vibrationEnabled ? 'vibration' : 'mobile_off' }}</span>
+          </button>
+          <h2 class="ml-auto min-w-0 truncate text-right font-headline text-sm font-bold">{{ title }}</h2>
         </div>
       </div>
 

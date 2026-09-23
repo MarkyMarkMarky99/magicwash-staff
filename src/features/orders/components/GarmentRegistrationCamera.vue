@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { startBarcodeScanner } from '@/shared/utils/barcode-scanner'
+import { canVibrate, setSoundEnabled, setVibrationEnabled, soundEnabled, vibrationEnabled } from '@/shared/utils/scan-feedback'
 import { encodeCanvasToJpeg } from '@/utils/imageCompression'
 
 const props = defineProps<{
@@ -25,6 +26,7 @@ const emit = defineEmits<{
   retry: []
   clearError: [index: number]
 }>()
+const vibrationAvailable = canVibrate()
 
 const videoRef = ref<HTMLVideoElement | null>(null)
 const flyoutCanvasRef = ref<HTMLCanvasElement | null>(null)
@@ -300,17 +302,27 @@ onBeforeUnmount(() => {
     <div class="pointer-events-none absolute inset-0 bg-white transition-opacity duration-150" :class="flashActive ? 'opacity-75' : 'opacity-0'" />
     <canvas v-if="flyoutActive" ref="flyoutCanvasRef" aria-hidden="true" class="capture-flyout pointer-events-none absolute inset-0 h-full w-full object-cover"></canvas>
     <div class="absolute inset-x-0 top-0 bg-gradient-to-b from-black/85 to-transparent px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))]">
-      <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-        <button type="button" class="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 disabled:opacity-40" :disabled="pendingCount > 0" aria-label="ปิดลงทะเบียน" @click="emit('close')">
-          <span class="material-symbols-outlined" aria-hidden="true">close</span>
-        </button>
+      <div class="flex items-center gap-2">
+        <div class="flex shrink-0 items-center gap-1">
+          <button type="button" class="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 disabled:opacity-40" :disabled="pendingCount > 0" aria-label="ปิดลงทะเบียน" @click="emit('close')">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+          <button type="button" class="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white focus-visible:outline-2 focus-visible:outline-white" :class="soundEnabled ? '' : 'opacity-45'" :aria-pressed="soundEnabled" :aria-label="soundEnabled ? 'ปิดเสียงตอบรับ' : 'เปิดเสียงตอบรับ'" @click="setSoundEnabled(!soundEnabled)">
+            <span class="material-symbols-outlined text-[19px]" aria-hidden="true">{{ soundEnabled ? 'volume_up' : 'volume_off' }}</span>
+          </button>
+          <button v-if="vibrationAvailable" type="button" class="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white focus-visible:outline-2 focus-visible:outline-white" :class="vibrationEnabled ? '' : 'opacity-45'" :aria-pressed="vibrationEnabled" :aria-label="vibrationEnabled ? 'ปิดการสั่นตอบรับ' : 'เปิดการสั่นตอบรับ'" @click="setVibrationEnabled(!vibrationEnabled)">
+            <span class="material-symbols-outlined text-[19px]" aria-hidden="true">{{ vibrationEnabled ? 'vibration' : 'mobile_off' }}</span>
+          </button>
+        </div>
+        <div class="min-w-0 flex-1 text-right">
+          <p class="truncate font-headline text-sm font-bold">ลงทะเบียน {{ itemLabel }}</p>
+          <p class="font-label text-xs text-white/75">สำเร็จ {{ registeredCount }} · กำลังอัปโหลด {{ pendingCount }}</p>
+        </div>
+      </div>
+      <div class="mt-2 flex justify-center">
         <div class="inline-flex rounded-full bg-black/65 p-1">
           <button type="button" class="rounded-full px-3 py-2 text-sm" :class="mode === 'scan' ? 'bg-lime text-primary' : 'text-white'" :aria-pressed="mode === 'scan'" @click="mode = 'scan'">สแกน</button>
           <button type="button" class="rounded-full px-3 py-2 text-sm" :class="mode === 'photo' ? 'bg-lime text-primary' : 'text-white'" :aria-pressed="mode === 'photo'" @click="mode = 'photo'">ถ่ายรูป</button>
-        </div>
-        <div class="min-w-0 text-right">
-          <p class="truncate font-headline text-sm font-bold">ลงทะเบียน {{ itemLabel }}</p>
-          <p class="font-label text-xs text-white/75">สำเร็จ {{ registeredCount }} · กำลังอัปโหลด {{ pendingCount }}</p>
         </div>
       </div>
       <div v-if="warning" role="alert" class="mt-3 rounded-xl bg-warning-container px-3 py-2 font-body text-sm text-on-warning-container">{{ warning }}</div>
@@ -334,10 +346,10 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div v-if="starting || cameraError" class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/75 px-6 text-center">
+    <div v-if="starting || cameraError" class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/75 px-6 text-center">
       <span class="material-symbols-outlined text-5xl" aria-hidden="true">{{ starting ? 'progress_activity' : 'photo_camera' }}</span>
       <p class="font-body text-sm">{{ starting ? 'กำลังเปิดกล้อง…' : cameraError }}</p>
-      <button v-if="cameraError" type="button" class="rounded-full bg-white px-5 py-2 text-black" @click="cameraError = ''; startCamera()">ลองใหม่</button>
+      <button v-if="cameraError" type="button" class="pointer-events-auto rounded-full bg-white px-5 py-2 text-black" @click="cameraError = ''; startCamera()">ลองใหม่</button>
     </div>
 
     <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-10">

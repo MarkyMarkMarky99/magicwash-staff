@@ -4,7 +4,7 @@ import type { JobTicketDto, JobTicketScanResult } from '@/data/job-tickets/job-t
 import { scanJobTicket } from '@/data/job-tickets/job-ticket.service'
 import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
 import { completionPercentage, countDepartmentStatuses } from '@/features/job-tickets/department-work'
-import { createTagScanGuard, presentScanResult } from '@/features/job-tickets/scan-result'
+import { createTagScanGuard, feedbackOutcomeForScanResult, presentScanResult } from '@/features/job-tickets/scan-result'
 
 const row: JobTicketDto = {
   id: 'WSH-order-1-tag-1', orderId: 'order-1', laundryItemId: 'tag-1', scope: 'ITEM', serviceType: 'WASH',
@@ -43,6 +43,7 @@ try {
   assert.equal(loadedRow?.scannedBy, 'staff-1')
   assert.deepEqual(countDepartmentStatuses(store.tickets), { ALL: 1, PENDING: 0, 'IN PROGRESS': 1, COMPLETED: 0 })
   assert.deepEqual(presentScanResult(response), { tone: 'success', message: 'รับงานแล้ว' })
+  assert.equal(feedbackOutcomeForScanResult(response), 'success')
 
   response = { kind: 'advanced', ticketId: row.id, status: 'Completed', startedAt: '2026-09-23T09:00:00+07:00', completedAt: '2026-09-23T09:10:00+07:00' }
   assert.deepEqual(await store.scan(payload), response)
@@ -52,6 +53,7 @@ try {
   assert.equal(loadedRow?.completedAt, '2026-09-23T09:10:00+07:00')
   assert.equal(completionPercentage(store.tickets), 100)
   assert.deepEqual(presentScanResult(response), { tone: 'success', message: 'เสร็จแล้ว' })
+  assert.equal(feedbackOutcomeForScanResult(response), 'success')
 
   const outcomes: Array<{ result: JobTicketScanResult; status: number; tone: string; message: string }> = [
     { result: { kind: 'already_completed', ticketId: row.id }, status: 200, tone: 'warning', message: 'งานนี้เสร็จไปแล้ว' },
@@ -66,6 +68,7 @@ try {
     responseStatus = outcome.status
     assert.deepEqual(await store.scan(payload), outcome.result)
     assert.deepEqual(presentScanResult(outcome.result), { tone: outcome.tone, message: outcome.message })
+    assert.equal(feedbackOutcomeForScanResult(outcome.result), 'failure')
     assert.equal(store.tickets[0], loadedRow)
     assert.equal(loadedRow?.status, 'Completed')
   }

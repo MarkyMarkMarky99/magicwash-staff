@@ -92,4 +92,7 @@ test('fresh tag IDs merge and recheck a waiting tag', () => {
   assert.match(detailSource, /listLaundryPhotoTagIds\(id, freshTags =>/)
   assert.match(detailSource, /mergeRegistrationTags\(freshTags\)/)
   assert.match(detailSource, /const pendingTag = registrationTag\.value[\s\S]*isDuplicateGarmentTag\(pendingTag, merged, sessionRegistrationTags\.value\)/)
+  assert.match(detailSource, /mergeRegistrationTags\(tags\)[\s\S]*if \(pendingTag && registrationTag\.value === pendingTag\) feedback\('success'\)/)
+  assert.match(detailSource, /setRegistrationWarning\(`แท็ก \$\{pendingTag\} ลงทะเบียนแล้ว กรุณาใช้แท็กอื่น`\)[\s\S]*feedback\('failure'\)/)
+  assert.doesNotMatch(detailSource, /navigator\.vibrate\?\.\(70\)/)
 })
