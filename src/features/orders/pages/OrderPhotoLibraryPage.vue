@@ -9,6 +9,8 @@ import { getWorkOrder, type WorkOrderDetailDto } from '@/data/work-orders/work-o
 import { listLaundryPhotos, reassignLaundryPhoto, type GalleryPhoto } from '@/data/laundry-photos/laundry-photo.service'
 import { listAfterPhotos, reassignAfterPhoto } from '@/data/after-photos/after-photo.service'
 import { usePhotoDragSelect } from '../composables/use-photo-drag-select'
+import { useGlassLens } from '../composables/use-glass-lens'
+import GlassLens from '../components/GlassLens.vue'
 
 type PhotoType = 'BEF' | 'AFT'
 type OrderItem = WorkOrderDetailDto['items'][number]
@@ -21,15 +23,6 @@ const PHOTO_TABS: { key: PhotoType; label: string }[] = [
   { key: 'BEF', label: 'Before' },
   { key: 'AFT', label: 'After' },
 ]
-
-const REFRACT_SUPPORTED = typeof navigator !== 'undefined' && 'userAgentData' in navigator
-const REFRACT_MAP_X = svgMap(`<linearGradient id='m' x1='0' x2='1' y1='0' y2='0'><stop offset='0' stop-color='rgb(255,0,0)'/><stop offset='0.24' stop-color='rgb(128,0,0)'/><stop offset='0.76' stop-color='rgb(128,0,0)'/><stop offset='1' stop-color='rgb(0,0,0)'/></linearGradient>`)
-const REFRACT_MAP_Y = svgMap(`<linearGradient id='m' x1='0' x2='0' y1='0' y2='1'><stop offset='0' stop-color='rgb(0,255,0)'/><stop offset='0.3' stop-color='rgb(0,128,0)'/><stop offset='0.7' stop-color='rgb(0,128,0)'/><stop offset='1' stop-color='rgb(0,0,0)'/></linearGradient>`)
-
-function svgMap(gradient: string): string {
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'><defs>${gradient}</defs><rect width='100' height='100' fill='url(#m)'/></svg>`
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
-}
 
 const props = defineProps<{ orderId: string }>()
 const route = useRoute()
@@ -115,6 +108,8 @@ const { selected, toggle, clear, consumeClick, handlers } = usePhotoDragSelect({
   scroller,
   onStart: () => { selecting.value = true },
 })
+
+const lens = useGlassLens(scroller, [sections, selecting, selected])
 
 function exitSelect() {
   selecting.value = false
@@ -238,15 +233,7 @@ const subtitle = computed(() => {
 </script>
 
 <template>
-  <div class="relative h-full overflow-hidden bg-surface text-on-surface" :class="{ 'lg-refract': REFRACT_SUPPORTED }">
-    <svg v-if="REFRACT_SUPPORTED" class="absolute size-0" aria-hidden="true">
-      <filter id="lg-refract" x="0" y="0" width="1" height="1" primitiveUnits="objectBoundingBox" color-interpolation-filters="sRGB">
-        <feImage :href="REFRACT_MAP_X" x="0" y="0" width="1" height="1" preserveAspectRatio="none" result="mapX" />
-        <feImage :href="REFRACT_MAP_Y" x="0" y="0" width="1" height="1" preserveAspectRatio="none" result="mapY" />
-        <feComposite in="mapX" in2="mapY" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" result="map" />
-        <feDisplacementMap in="SourceGraphic" in2="map" scale="0.09" xChannelSelector="R" yChannelSelector="G" />
-      </filter>
-    </svg>
+  <div class="relative h-full overflow-hidden bg-surface text-on-surface">
     <div
       ref="scroller"
       class="no-scrollbar h-full overflow-y-auto overscroll-contain pb-32"
@@ -324,10 +311,12 @@ const subtitle = computed(() => {
       </p>
 
       <div v-if="!selecting" class="flex items-center justify-between gap-3">
-        <button type="button" class="glass pointer-events-auto flex size-15 shrink-0 items-center justify-center rounded-full" aria-label="Back to order" @click="close">
+        <button :ref="lens.bind('back')" type="button" class="glass pointer-events-auto flex size-15 shrink-0 items-center justify-center rounded-full" aria-label="Back to order" @click="close">
+          <GlassLens :view="lens.view('back')" />
           <span class="material-symbols-outlined text-[28px] [font-variation-settings:'wght'_500]" aria-hidden="true">arrow_back_ios_new</span>
         </button>
-        <div class="glass pointer-events-auto relative grid h-15 grid-cols-2 items-center rounded-full p-1.5" role="tablist" aria-label="Photo type">
+        <div :ref="lens.bind('tabs')" class="glass pointer-events-auto relative grid h-15 grid-cols-2 items-center rounded-full p-1.5" role="tablist" aria-label="Photo type">
+          <GlassLens :view="lens.view('tabs')" />
           <span
             class="glass-pill absolute inset-y-1.5 left-1.5 w-[calc(50%-0.375rem)] overflow-hidden rounded-full transition-transform duration-500 ease-[cubic-bezier(0.34,1.4,0.5,1)]"
             :style="{ transform: photoType === 'AFT' ? 'translateX(100%)' : 'translateX(0)' }"
@@ -348,7 +337,8 @@ const subtitle = computed(() => {
         <div class="size-15 shrink-0" aria-hidden="true" />
       </div>
 
-      <div v-else class="glass pointer-events-auto mx-auto flex h-15 max-w-sm items-center justify-between gap-3 rounded-full py-1.5 pl-6 pr-1.5">
+      <div v-else :ref="lens.bind('selection')" class="glass pointer-events-auto mx-auto flex h-15 max-w-sm items-center justify-between gap-3 rounded-full py-1.5 pl-6 pr-1.5">
+        <GlassLens :view="lens.view('selection')" />
         <span class="glass-label text-[18px]">
           {{ moving ? `Moving ${moveProgress}/${moveTotal}…` : `${selected.size} selected` }}
         </span>
@@ -400,17 +390,23 @@ const subtitle = computed(() => {
   overflow: hidden;
   color: #fff;
   text-shadow: 0 1px 3px rgb(0 0 0 / 0.4), 0 0 14px rgb(0 0 0 / 0.18);
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.1), rgb(255 255 255 / 0.02));
-  -webkit-backdrop-filter: blur(2.5px) saturate(1.9) brightness(0.9) contrast(1.06);
-  backdrop-filter: blur(2.5px) saturate(1.9) brightness(0.9) contrast(1.06);
+  background: rgb(0 0 0 / 0.04);
   box-shadow:
     0 12px 32px rgb(0 0 0 / 0.3),
     0 2px 6px rgb(0 0 0 / 0.14),
-    inset 0 0 22px rgb(255 255 255 / 0.1);
+    inset 0 0 22px rgb(255 255 255 / 0.12);
 }
 
-.lg-refract .glass {
-  backdrop-filter: url(#lg-refract) blur(2px) saturate(1.9) brightness(0.9) contrast(1.06);
+.glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background:
+    radial-gradient(120% 90% at 20% 0%, rgb(255 255 255 / 0.22), rgb(255 255 255 / 0) 55%),
+    linear-gradient(180deg, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0));
+  pointer-events: none;
 }
 
 .glass::before,
@@ -443,10 +439,6 @@ const subtitle = computed(() => {
   background: rgb(255 255 255 / 0.78);
   -webkit-backdrop-filter: blur(12px) saturate(1.8);
   backdrop-filter: blur(12px) saturate(1.8);
-}
-
-.lg-refract .glass-light {
-  backdrop-filter: url(#lg-refract) blur(10px) saturate(1.8);
 }
 
 .glass-pill {

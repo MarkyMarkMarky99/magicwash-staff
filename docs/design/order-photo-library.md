@@ -16,6 +16,15 @@ here.
 - Photos are a three-column square grid with 2px gutters, grouped into sections by order item, in
   the order's item order. Photos whose item is missing or unknown go in a final "No item" section.
 
+## Glass controls
+
+- The bottom controls refract the photos behind them. Each control holds a lens layer: copies of
+  the grid photos under it, positioned to match the scroll, bent by an SVG displacement filter with
+  a slight per-channel spread for chromatic edges. A CSS `filter: url(...)` on content is used
+  because WebKit does not paint SVG filters in `backdrop-filter`.
+- The displacement map is generated per control size: neutral in the middle, bending toward the
+  rounded edge. Select stays a frosted light capsule without a lens.
+
 ## Selection
 
 - Select enters selection mode; a tap toggles a photo.
