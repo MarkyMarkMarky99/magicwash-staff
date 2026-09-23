@@ -293,7 +293,7 @@ const subtitle = computed(() => {
       </div>
       <button
         type="button"
-        class="glass pointer-events-auto h-11 shrink-0 rounded-full px-5 font-body text-[15px] font-semibold"
+        class="glass glass-light pointer-events-auto h-12 shrink-0 rounded-full px-6 font-body text-[17px] font-semibold"
         :disabled="moving || photos.length === 0"
         @click="toggleSelectMode"
       >
@@ -301,39 +301,40 @@ const subtitle = computed(() => {
       </button>
     </header>
 
+    <div class="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/45 via-black/15 to-transparent" aria-hidden="true" />
     <div class="pointer-events-none absolute inset-x-0 bottom-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <p v-if="moveError" role="alert" class="glass pointer-events-auto mx-auto mb-3 max-w-sm rounded-2xl px-4 py-2 text-center font-body text-xs font-semibold text-error">
+      <p v-if="moveError" role="alert" class="glass glass-light pointer-events-auto mx-auto mb-3 max-w-sm rounded-2xl px-4 py-2 text-center font-body text-xs font-semibold !text-error">
         {{ moveError }}
       </p>
 
       <div v-if="!selecting" class="flex items-center justify-between gap-3">
-        <button type="button" class="glass pointer-events-auto flex size-13 shrink-0 items-center justify-center rounded-full" aria-label="Back to order" @click="close">
-          <span class="material-symbols-outlined text-[24px]" aria-hidden="true">arrow_back</span>
+        <button type="button" class="glass pointer-events-auto flex size-15 shrink-0 items-center justify-center rounded-full" aria-label="Back to order" @click="close">
+          <span class="material-symbols-outlined text-[28px]" aria-hidden="true">arrow_back</span>
         </button>
-        <div class="glass pointer-events-auto flex h-13 items-center gap-1 rounded-full p-1" role="tablist" aria-label="Photo type">
+        <div class="glass pointer-events-auto flex h-15 items-center rounded-full p-1.5" role="tablist" aria-label="Photo type">
           <button
             v-for="tab in PHOTO_TABS"
             :key="tab.key"
             type="button"
             role="tab"
             :aria-selected="photoType === tab.key"
-            class="h-11 rounded-full px-6 font-body text-[15px] font-semibold transition-colors"
-            :class="photoType === tab.key ? 'bg-on-surface/10' : 'text-on-surface-variant'"
+            class="h-full rounded-full px-7 font-body text-[17px] font-semibold transition-all duration-300"
+            :class="photoType === tab.key ? 'glass-pill' : 'opacity-90'"
             @click="selectType(tab.key)"
           >
             {{ tab.label }}
           </button>
         </div>
-        <div class="size-13 shrink-0" aria-hidden="true" />
+        <div class="size-15 shrink-0" aria-hidden="true" />
       </div>
 
-      <div v-else class="glass pointer-events-auto mx-auto flex h-13 max-w-sm items-center justify-between gap-3 rounded-full py-1 pl-5 pr-1">
-        <span class="font-body text-[15px] font-semibold">
+      <div v-else class="glass pointer-events-auto mx-auto flex h-15 max-w-sm items-center justify-between gap-3 rounded-full py-1.5 pl-6 pr-1.5">
+        <span class="font-body text-[17px] font-semibold">
           {{ moving ? `Moving ${moveProgress}/${moveTotal}…` : `${selected.size} selected` }}
         </span>
         <button
           type="button"
-          class="flex h-11 items-center gap-1.5 rounded-full bg-primary px-4 font-body text-[14px] font-semibold text-on-primary disabled:opacity-40"
+          class="flex h-full items-center gap-1.5 rounded-full bg-primary px-5 font-body text-[15px] font-semibold text-on-primary shadow-[inset_0_1px_0_rgb(255_255_255/0.35)] disabled:opacity-40"
           :disabled="selected.size === 0 || moving"
           @click="openMovePicker"
         >
@@ -374,12 +375,54 @@ const subtitle = computed(() => {
 
 <style scoped>
 .glass {
-  background: color-mix(in srgb, var(--color-surface-container-lowest) 62%, transparent);
-  border: 1px solid color-mix(in srgb, white 45%, transparent);
-  box-shadow: 0 8px 28px rgb(0 0 0 / 0.18), inset 0 1px 0 rgb(255 255 255 / 0.5);
-  backdrop-filter: blur(22px) saturate(1.6);
-  -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  position: relative;
+  isolation: isolate;
+  color: #fff;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.22), rgb(255 255 255 / 0.06));
+  backdrop-filter: blur(10px) saturate(1.9) brightness(1.08);
+  -webkit-backdrop-filter: blur(10px) saturate(1.9) brightness(1.08);
+  box-shadow:
+    0 14px 34px -10px rgb(0 0 0 / 0.45),
+    inset 0 0 14px rgb(255 255 255 / 0.14),
+    inset 0 -8px 16px -10px rgb(255 255 255 / 0.25);
+}
+
+.glass::before,
+.glass-pill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  padding: 1.25px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgb(255 255 255 / 0.95),
+    rgb(255 255 255 / 0.2) 30%,
+    rgb(255 255 255 / 0.04) 55%,
+    rgb(255 255 255 / 0.25) 80%,
+    rgb(255 255 255 / 0.8)
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none;
+}
+
+.glass-light {
   color: var(--color-on-surface);
+  text-shadow: none;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.82), rgb(255 255 255 / 0.62));
+}
+
+.glass-pill {
+  position: relative;
+  isolation: isolate;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.3), rgb(255 255 255 / 0.12));
+  box-shadow:
+    0 4px 12px -4px rgb(0 0 0 / 0.3),
+    inset 0 0 10px rgb(255 255 255 / 0.18);
 }
 
 .photo-tile {
