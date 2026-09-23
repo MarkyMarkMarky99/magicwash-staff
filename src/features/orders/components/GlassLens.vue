@@ -95,7 +95,7 @@ const filterId = computed(() => `${baseId}-${width.value}x${height.value}`)
         top: `${-LENS_BLEED_PX}px`,
         width: `${outerWidth}px`,
         height: `${outerHeight}px`,
-        filter: `url(#${filterId}) blur(3.5px) saturate(1.2) brightness(0.96)`,
+        filter: `url(#${filterId}) blur(2px) saturate(1.3) brightness(0.96)`,
       }"
     >
       <img

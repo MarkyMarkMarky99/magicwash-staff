@@ -405,7 +405,7 @@ const subtitle = computed(() => {
   border-radius: inherit;
   background:
     radial-gradient(120% 90% at 20% 0%, rgb(255 255 255 / 0.2), rgb(255 255 255 / 0) 55%),
-    linear-gradient(180deg, rgb(255 255 255 / 0.2), rgb(255 255 255 / 0.12));
+    linear-gradient(180deg, rgb(255 255 255 / 0.13), rgb(255 255 255 / 0.07));
   pointer-events: none;
 }
 
