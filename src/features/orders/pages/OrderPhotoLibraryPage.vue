@@ -310,7 +310,7 @@ const subtitle = computed(() => {
       </div>
       <button
         type="button"
-        class="glass glass-light pointer-events-auto h-12 shrink-0 rounded-full px-6 font-body text-[17px] font-semibold"
+        class="glass glass-light glass-label pointer-events-auto h-12 shrink-0 rounded-full px-6 text-[17px]"
         :disabled="moving || photos.length === 0"
         @click="toggleSelectMode"
       >
@@ -318,19 +318,18 @@ const subtitle = computed(() => {
       </button>
     </header>
 
-    <div class="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/45 via-black/15 to-transparent" aria-hidden="true" />
-    <div class="pointer-events-none absolute inset-x-0 bottom-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <div class="pointer-events-none absolute inset-x-0 bottom-0 px-4 pb-[max(1.75rem,calc(env(safe-area-inset-bottom)+0.5rem))]">
       <p v-if="moveError" role="alert" class="glass glass-light pointer-events-auto mx-auto mb-3 max-w-sm rounded-2xl px-4 py-2 text-center font-body text-xs font-semibold !text-error">
         {{ moveError }}
       </p>
 
       <div v-if="!selecting" class="flex items-center justify-between gap-3">
         <button type="button" class="glass pointer-events-auto flex size-15 shrink-0 items-center justify-center rounded-full" aria-label="Back to order" @click="close">
-          <span class="material-symbols-outlined text-[28px]" aria-hidden="true">arrow_back</span>
+          <span class="material-symbols-outlined text-[28px] [font-variation-settings:'wght'_500]" aria-hidden="true">arrow_back_ios_new</span>
         </button>
         <div class="glass pointer-events-auto relative grid h-15 grid-cols-2 items-center rounded-full p-1.5" role="tablist" aria-label="Photo type">
           <span
-            class="glass-pill absolute inset-y-1.5 left-1.5 w-[calc(50%-0.375rem)] rounded-full transition-transform duration-500 ease-[cubic-bezier(0.34,1.4,0.5,1)]"
+            class="glass-pill absolute inset-y-1.5 left-1.5 w-[calc(50%-0.375rem)] overflow-hidden rounded-full transition-transform duration-500 ease-[cubic-bezier(0.34,1.4,0.5,1)]"
             :style="{ transform: photoType === 'AFT' ? 'translateX(100%)' : 'translateX(0)' }"
             aria-hidden="true"
           />
@@ -340,8 +339,7 @@ const subtitle = computed(() => {
             type="button"
             role="tab"
             :aria-selected="photoType === tab.key"
-            class="relative h-full rounded-full px-7 font-body text-[17px] font-semibold transition-opacity duration-300"
-            :class="photoType === tab.key ? '' : 'opacity-75'"
+            class="glass-label relative h-full rounded-full px-7 text-[18px]"
             @click="selectType(tab.key)"
           >
             {{ tab.label }}
@@ -351,7 +349,7 @@ const subtitle = computed(() => {
       </div>
 
       <div v-else class="glass pointer-events-auto mx-auto flex h-15 max-w-sm items-center justify-between gap-3 rounded-full py-1.5 pl-6 pr-1.5">
-        <span class="font-body text-[17px] font-semibold">
+        <span class="glass-label text-[18px]">
           {{ moving ? `Moving ${moveProgress}/${moveTotal}…` : `${selected.size} selected` }}
         </span>
         <button
@@ -401,51 +399,71 @@ const subtitle = computed(() => {
   isolation: isolate;
   overflow: hidden;
   color: #fff;
-  text-shadow: 0 1px 2px rgb(0 0 0 / 0.28);
-  border: 1px solid rgb(255 255 255 / 0.22);
-  background: rgb(255 255 255 / 0.1);
-  -webkit-backdrop-filter: blur(8px) saturate(180%) brightness(1.08);
-  backdrop-filter: blur(8px) saturate(180%) brightness(1.08);
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.4), 0 0 14px rgb(0 0 0 / 0.18);
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.1), rgb(255 255 255 / 0.02));
+  -webkit-backdrop-filter: blur(2.5px) saturate(1.9) brightness(0.9) contrast(1.06);
+  backdrop-filter: blur(2.5px) saturate(1.9) brightness(0.9) contrast(1.06);
   box-shadow:
-    0 8px 32px rgb(0 0 0 / 0.22),
-    inset 0 1px 1px rgb(255 255 255 / 0.55),
-    inset 0 -1px 1px rgb(255 255 255 / 0.28),
-    inset 1px 0 1px rgb(255 255 255 / 0.18),
-    inset -1px 0 1px rgb(255 255 255 / 0.18);
+    0 12px 32px rgb(0 0 0 / 0.3),
+    0 2px 6px rgb(0 0 0 / 0.14),
+    inset 0 0 22px rgb(255 255 255 / 0.1);
 }
 
 .lg-refract .glass {
-  backdrop-filter: url(#lg-refract) blur(3px) saturate(180%) brightness(1.08);
+  backdrop-filter: url(#lg-refract) blur(2px) saturate(1.9) brightness(0.9) contrast(1.06);
 }
 
-.glass::after {
+.glass::before,
+.glass-pill::before {
   content: '';
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: 1;
+  padding: 1.5px;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgb(255 255 255 / 0.28), rgb(255 255 255 / 0) 42%, rgb(255 255 255 / 0) 70%, rgb(255 255 255 / 0.12));
+  background: conic-gradient(
+    from 315deg,
+    rgb(255 255 255 / 0.95),
+    rgb(255 255 255 / 0.18) 50deg,
+    rgb(255 255 255 / 0.04) 110deg,
+    rgb(255 255 255 / 0.55) 180deg,
+    rgb(255 255 255 / 0.1) 240deg,
+    rgb(255 255 255 / 0.04) 290deg,
+    rgb(255 255 255 / 0.95)
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
   pointer-events: none;
 }
 
 .glass-light {
-  color: var(--color-on-surface);
+  color: #111;
   text-shadow: none;
-  border-color: rgb(255 255 255 / 0.6);
-  background: rgb(255 255 255 / 0.72);
+  background: rgb(255 255 255 / 0.78);
+  -webkit-backdrop-filter: blur(12px) saturate(1.8);
+  backdrop-filter: blur(12px) saturate(1.8);
 }
 
 .lg-refract .glass-light {
-  backdrop-filter: url(#lg-refract) blur(6px) saturate(180%) brightness(1.08);
+  backdrop-filter: url(#lg-refract) blur(10px) saturate(1.8);
 }
 
 .glass-pill {
-  border: 1px solid rgb(255 255 255 / 0.3);
   background: rgb(255 255 255 / 0.2);
   box-shadow:
-    0 4px 14px rgb(0 0 0 / 0.18),
-    inset 0 1px 1px rgb(255 255 255 / 0.6),
-    inset 0 -1px 1px rgb(255 255 255 / 0.25);
+    0 2px 10px rgb(0 0 0 / 0.14),
+    inset 0 0 14px rgb(255 255 255 / 0.18);
+}
+
+.glass-pill::before {
+  opacity: 0.55;
+}
+
+.glass-label {
+  font-family: Inter, var(--font-body, system-ui), sans-serif;
+  font-weight: 500;
+  letter-spacing: -0.01em;
 }
 
 .photo-tile {
