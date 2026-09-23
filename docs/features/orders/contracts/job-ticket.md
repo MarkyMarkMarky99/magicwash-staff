@@ -15,6 +15,7 @@ Routes are fixed by `serviceType`:
 
 The generic list query accepts `keyword`, `page`, `perPage`, `sortBy`, and `sortOrder`, plus optional
 exact filters for `orderId`, `laundryItemId`, `department`, and `status`.
+`sortBy` accepts `createdAt`, `stepNo`, `dueDate`, or `completedAt`; `completedAt` maps to the physical `completed_at` column.
 
 The response exposes all physical columns in camelCase. `serviceType` is nullable. Audit, scan,
 completion, evidence, and soft-delete fields are nullable strings.

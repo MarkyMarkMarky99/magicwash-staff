@@ -18,7 +18,7 @@ export const jobTicketListQuerySchema = z.object({
   keyword: z.string().default(''),
   page: z.coerce.number().int().positive().default(API_PAGINATION_DEFAULTS.page),
   perPage: z.coerce.number().int().positive().max(500).default(500),
-  sortBy: z.enum(['createdAt', 'stepNo', 'dueDate']).default('createdAt'),
+  sortBy: z.enum(['createdAt', 'stepNo', 'dueDate', 'completedAt']).default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
   orderId: z.string().trim().min(1).optional(),
   laundryItemId: z.string().trim().min(1).optional(),

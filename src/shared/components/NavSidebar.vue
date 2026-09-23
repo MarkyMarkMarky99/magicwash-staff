@@ -36,7 +36,7 @@ function refresh() {
   <Transition name="slide">
     <nav
       v-if="open"
-      class="fixed top-0 left-0 h-full w-[75%] max-w-sm bg-surface text-on-surface flex flex-col shadow-2xl"
+      class="fixed top-0 left-0 h-full w-[75%] max-w-sm overflow-y-auto bg-surface text-on-surface flex flex-col shadow-2xl"
       :class="APP_Z_INDEX_CLASS.navigation"
     >
       <div class="bg-primary text-on-primary flex items-center justify-between px-4 py-3">
@@ -117,6 +117,24 @@ function refresh() {
           >
             <span class="material-symbols-outlined">bug_report</span>
             <span>แจ้งปัญหา</span>
+          </button>
+        </li>
+      </ul>
+      <div class="border-t border-outline-variant/20 px-5 pb-1 pt-3 font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">แผนก</div>
+      <ul class="flex flex-col pb-2">
+        <li v-for="entry in [
+          { path: '/departments/washing', label: 'ซัก · Washing', icon: 'local_laundry_service' },
+          { path: '/departments/drycleaning', label: 'ซักแห้ง · Dry Cleaning', icon: 'dry_cleaning' },
+          { path: '/departments/ironing', label: 'รีด · Ironing', icon: 'iron' },
+          { path: '/departments/packaging', label: 'แพ็ก · Packaging', icon: 'inventory_2' },
+        ]" :key="entry.path">
+          <button
+            class="w-full flex items-center gap-4 px-5 py-3 text-left hover:bg-black/5 transition-colors"
+            :class="route.path === entry.path ? 'text-primary font-semibold' : ''"
+            @click="navigate(entry.path)"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">{{ entry.icon }}</span>
+            <span>{{ entry.label }}</span>
           </button>
         </li>
       </ul>

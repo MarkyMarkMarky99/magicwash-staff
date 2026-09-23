@@ -33,6 +33,9 @@ src/
 Do not add similar feature dependencies to shared components; remove this exception only in a
 dedicated shared-component refactor.
 
+See [Shared QR scanner overlay](./qr-scanner-overlay.md) for the camera-only overlay API.
+`SquareImageCard.vue` is a generic square image card with nullable image, two text lines, and an optional badge slot.
+
 ### Feature Components
 
 - May understand the owning feature's domain.

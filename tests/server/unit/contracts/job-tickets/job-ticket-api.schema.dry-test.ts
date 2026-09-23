@@ -17,6 +17,7 @@ assert.deepEqual(jobTicketListQuerySchema.parse({
   keyword: '', page: 1, perPage: 500, sortBy: 'createdAt', sortOrder: 'desc',
   orderId: 'order-1', laundryItemId: 'tag-1', department: 'Washing', status: 'Pending',
 })
+assert.equal(jobTicketListQuerySchema.parse({ sortBy: 'completedAt', sortOrder: 'desc' }).sortBy, 'completedAt')
 assert.deepEqual(jobTicketUpdateSchema.parse({ status: 'Completed', updatedBy: ' staff-1 ', notes: 'ignored' }), {
   status: 'Completed', updatedBy: 'staff-1',
 })
