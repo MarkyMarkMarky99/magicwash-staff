@@ -78,9 +78,9 @@ const filterId = computed(() => `${baseId}-${width.value}x${height.value}`)
         <feFlood flood-color="rgb(128,128,128)" result="neutral" />
         <feImage :href="map" :x="LENS_BLEED_PX" :y="LENS_BLEED_PX" :width="width" :height="height" preserveAspectRatio="none" result="lens" />
         <feComposite in="lens" in2="neutral" operator="over" result="map" />
-        <feDisplacementMap in="SourceGraphic" in2="map" :scale="strength * 1.1" xChannelSelector="R" yChannelSelector="G" result="shiftR" />
+        <feDisplacementMap in="SourceGraphic" in2="map" :scale="strength * 1.035" xChannelSelector="R" yChannelSelector="G" result="shiftR" />
         <feDisplacementMap in="SourceGraphic" in2="map" :scale="strength" xChannelSelector="R" yChannelSelector="G" result="shiftG" />
-        <feDisplacementMap in="SourceGraphic" in2="map" :scale="strength * 0.9" xChannelSelector="R" yChannelSelector="G" result="shiftB" />
+        <feDisplacementMap in="SourceGraphic" in2="map" :scale="strength * 0.965" xChannelSelector="R" yChannelSelector="G" result="shiftB" />
         <feColorMatrix in="shiftR" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="red" />
         <feColorMatrix in="shiftG" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="green" />
         <feColorMatrix in="shiftB" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="blue" />
@@ -95,7 +95,7 @@ const filterId = computed(() => `${baseId}-${width.value}x${height.value}`)
         top: `${-LENS_BLEED_PX}px`,
         width: `${outerWidth}px`,
         height: `${outerHeight}px`,
-        filter: `url(#${filterId}) blur(0.5px) saturate(1.7) brightness(0.9) contrast(1.05)`,
+        filter: `url(#${filterId}) blur(3.5px) saturate(1.2) brightness(0.96)`,
       }"
     >
       <img

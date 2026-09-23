@@ -404,8 +404,8 @@ const subtitle = computed(() => {
   z-index: -1;
   border-radius: inherit;
   background:
-    radial-gradient(120% 90% at 20% 0%, rgb(255 255 255 / 0.22), rgb(255 255 255 / 0) 55%),
-    linear-gradient(180deg, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0));
+    radial-gradient(120% 90% at 20% 0%, rgb(255 255 255 / 0.2), rgb(255 255 255 / 0) 55%),
+    linear-gradient(180deg, rgb(255 255 255 / 0.2), rgb(255 255 255 / 0.12));
   pointer-events: none;
 }
 
@@ -442,7 +442,7 @@ const subtitle = computed(() => {
 }
 
 .glass-pill {
-  background: rgb(255 255 255 / 0.2);
+  background: rgb(255 255 255 / 0.3);
   box-shadow:
     0 2px 10px rgb(0 0 0 / 0.14),
     inset 0 0 14px rgb(255 255 255 / 0.18);
