@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { onScopeDispose, ref, shallowRef } from 'vue'
 import { listOrdersByCustomer, type OrderListDto } from './order.service'
+import type { WorkOrderUpdateDto } from '@/data/work-orders/work-order.service'
 import { onCacheInvalidated } from '@/shared/api/response-cache'
 
 function errorMessage(reason: unknown): string {
@@ -48,10 +49,18 @@ export const useCustomerOrdersStore = defineStore('customer-orders', () => {
     }
   }
 
+  function applyPersisted(persisted: WorkOrderUpdateDto): void {
+    if (activeCustomerId !== persisted.customerId) return
+    requestId += 1
+    loadedCustomerId = activeCustomerId
+    loading.value = false
+    items.value = items.value.map((item) => item.orderId === persisted.orderId ? persisted : item)
+  }
+
   const stopInvalidationListener = onCacheInvalidated('/api/work-orders', () => {
     if (activeCustomerId !== null) void load(activeCustomerId, true)
   })
   onScopeDispose(stopInvalidationListener)
 
-  return { items, loading, error, load }
+  return { items, loading, error, load, applyPersisted }
 })

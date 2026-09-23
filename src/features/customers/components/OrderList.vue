@@ -3,6 +3,7 @@ import ListContainer from '@/shared/components/ListContainer.vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { getInvoiceTarget } from '@/shared/navigation/invoice-detail-route'
+import { orderEditRoute } from '@/shared/navigation/form-routes'
 import { useCustomerOrderHistoryStore } from '../stores/customer-order-history.store'
 import OrderCard from '@/features/orders/components/OrderCard.vue'
 import WaitingPickupCard from './WaitingPickupCard.vue'
@@ -24,6 +25,10 @@ const {
 
 function refresh() {
   store.refresh()
+}
+
+function editOrder(orderId: string) {
+  return router.push(orderEditRoute(orderId))
 }
 
 function viewPhotos(orderId: string) {
@@ -76,6 +81,7 @@ function viewInvoice(invoiceNumber: string) {
       :show-customer-name="false"
       :show-photos="true"
       :show-invoice="true"
+      :on-edit="editOrder"
       @select="emit('selectOrder', $event)"
       @view-photos="viewPhotos"
       @view-invoice="viewInvoice"

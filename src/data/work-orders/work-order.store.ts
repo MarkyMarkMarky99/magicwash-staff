@@ -3,8 +3,10 @@ import { onScopeDispose, ref } from 'vue'
 import {
   getWorkOrder,
   listWorkOrders,
+  updateWorkOrder,
   type WorkOrderDetailDto,
   type WorkOrderListDto,
+  type WorkOrderUpdatePayload,
 } from './work-order.service'
 import { onCacheInvalidated } from '@/shared/api/response-cache'
 
@@ -89,6 +91,20 @@ export const useWorkOrderStore = defineStore('work-orders', () => {
     }
   }
 
+  async function update(orderId: string, payload: WorkOrderUpdatePayload) {
+    const persisted = await updateWorkOrder(orderId, payload)
+    listRequestSequence += 1
+    listLoading.value = false
+    orders.value = orders.value.map((order) => order.orderId === orderId ? persisted : order)
+      .filter((order) => !activeListFilter?.status || order.status === activeListFilter.status)
+    if (currentOrder.value?.orderId === orderId) {
+      detailRequestSequence += 1
+      detailLoading.value = false
+      currentOrder.value = { ...currentOrder.value, ...persisted }
+    }
+    return persisted
+  }
+
   function clearDetail() {
     activeOrderId = null
     detailRequestSequence += 1
@@ -105,6 +121,6 @@ export const useWorkOrderStore = defineStore('work-orders', () => {
 
   return {
     orders, pagination, listLoading, listError, currentOrder, detailLoading, detailError,
-    loadList, loadDetail, clearDetail,
+    loadList, loadDetail, clearDetail, update,
   }
 })

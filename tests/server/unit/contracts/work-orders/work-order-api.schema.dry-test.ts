@@ -203,6 +203,14 @@ assert.deepEqual(workOrderUpdateSchema.parse({ status: 'APPROVED', updatedBy: 's
   status: 'APPROVED',
   updatedBy: 'staff-1',
 })
+assert.deepEqual(workOrderUpdateSchema.parse({
+  receivedDate: '2026-09-22', dueDate: '2026-09-25', quantity: null, updatedBy: 'staff-1',
+}), {
+  receivedDate: '2026-09-22', dueDate: '2026-09-25', quantity: null, updatedBy: 'staff-1',
+})
+assert.deepEqual(workOrderUpdateSchema.parse({ quantity: 4, updatedBy: 'staff-1' }), {
+  quantity: 4, updatedBy: 'staff-1',
+})
 assert.deepEqual(workOrderTicketProvisioningSchema.parse({
   ticketsCreated: 2,
   skippedGarments: [{
@@ -221,6 +229,10 @@ for (const input of [
   { status: 'INVALID', updatedBy: 'staff-1' },
   { status: 'APPROVED' },
   { status: 'APPROVED', updatedBy: '' },
+  { updatedBy: 'staff-1' },
+  { receivedDate: '22/09/2026', updatedBy: 'staff-1' },
+  { dueDate: '', updatedBy: 'staff-1' },
+  { quantity: -1, updatedBy: 'staff-1' },
 ]) {
   assert.throws(() => workOrderUpdateSchema.parse(input), JSON.stringify(input))
 }

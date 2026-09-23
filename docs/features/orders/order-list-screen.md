@@ -1,40 +1,40 @@
 # Order list screen
 
-**Route:** `/orders` · **Page:** `OrderListPage.vue` · **Row:** `OrderRow.vue`
+**Route:** `/orders` · **Page:** `OrderListPage.vue` · **Card:** `OrderCard.vue`
 
-Covers the staff-facing list row only. `src/features/customers/components/OrderCard.vue` is a separate component with its own layout.
+The card is shared with customer order history. The staff list uses `GET /api/work-orders`.
 
-## Row
+## Card
 
-- **Title** — `orderNumber`, falling back to `orderId`. Bold, truncated.
-- **Badge, top right** — `status` as a Thai label.
-- **Subtitle** — `customerName`, falling back to `customerId` when blank.
-- **Bottom left** — `receivedDate` → `dueDate`, `DD Mon YYYY`, `—` when absent.
-- **Bottom right** — `serviceType` chip, `—` when null.
-- **Quantity** — `quantity` as `N ชิ้น`, hidden when null.
-- **Invoice** — `invoiceNumber` badge, hidden when null.
+- **Customer** — display name from the customer store, falling back to `customerId`.
+- **Date** — formatted `receivedDate`; status and service badges follow it.
+- **Quantity** — order-header `quantity` as `N pcs`, hidden when null.
+- **Note** — shown below the date, with a dash when absent.
+- **Invoice and photos** — optional icon actions.
 
-`note` is not shown.
-
-`customerName` is a non-nullable `z.string()` and arrives as `''` when unresolved, so the fallback is a truthy/trim check, never `??`.
+Customer names are resolved from the customer store. The card falls back to the customer id when a name is unavailable.
 
 ## Status labels
 
-- `PENDING` — รอดำเนินการ
-- `RECEIVED` — รับผ้าแล้ว
-- `COMPLETED` — เสร็จแล้ว
-- anything else — the raw value
-
-Staff-facing labels only; raw API enum values never reach the screen. See `docs/design/patterns/list-pages.md`.
+The card uses `order-status-presentation.ts` for its status icon, label, and badge tone. The
+status filter tabs use `order-status-labels.ts`.
 
 ## Controls
 
 - **Search** — one keyword across `orderId`, `orderNumber`, `customerId`, `invoiceNumber`. See `search-fields.md`.
 - **Status tabs** — ทั้งหมด / รอดำเนินการ / รับผ้าแล้ว / เสร็จแล้ว.
 - **Sort** — `receivedDate` descending, fixed.
-- No date-range filter and no page controls.
+- No date-range filter. The route owns the page value.
 
 Control state lives in the query string. Changing the keyword or the tab resets `page` to 1.
+
+## Actions
+
+Tap opens detail. Swiping left reveals Edit, which pushes `/orders/:orderId/edit` through the
+host. The card closes its panel after navigation and shows a failure message if navigation rejects.
+The message stays visible until its close button is pressed or the next edit attempt begins.
+The work-order store reconciles the PATCH response into loaded rows so changed header values appear
+without waiting for a full reload.
 
 ## States
 

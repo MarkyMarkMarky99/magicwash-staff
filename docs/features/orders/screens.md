@@ -1,4 +1,4 @@
-> Status: PARTIALLY IMPLEMENTED — see each screen section for current blockers.
+> Historical screen plan. For the implemented list and shared create/edit form, use [Order list screen](./order-list-screen.md) and [Order create and edit screen](./order-create-screen.md). The blocked statements below describe the earlier plan.
 
 # Order Screens
 
@@ -46,6 +46,10 @@ Purpose:
 
 Main UI:
 - AppLayout and ScrollRegion wrap the page.
+- A closeable inline result appears near the top after an edit explicitly approves the order.
+  It reports the ticket count and completion, failure, or unconfirmed result. Successful
+  provisioning uses status styling; failure and unconfirmed results use alert styling. The
+  result stays visible until closed and does not return after a reload.
 - Header shows customer, status, pickup/due dates, service, and header quantity.
 - Items use ListContainer and OrderItemRow; OrderItemsMenu adds an item or opens the garment album.
 - OrderTagPrintAction shows the TSC print button and its loading/success/error feedback.

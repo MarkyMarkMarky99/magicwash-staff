@@ -82,9 +82,15 @@ export const workOrderCreateResponseSchema = z.object({
 })
 
 export const workOrderUpdateSchema = z.object({
-  status: workOrderStatusSchema,
+  status: workOrderStatusSchema.optional(),
+  receivedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  quantity: z.number().nonnegative().nullable().optional(),
   updatedBy: z.string().min(1),
-})
+}).refine(
+  (data) => Object.entries(data).some(([key, value]) => key !== 'updatedBy' && value !== undefined),
+  { message: 'At least one updatable field is required' },
+)
 
 export const workOrderTicketProvisioningSchema = z.object({
   ticketsCreated: z.number().int().nonnegative(),

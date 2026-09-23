@@ -8,13 +8,13 @@ Source: the orders API contract and the contract conventions.
 The id field is `orderId`, not `workOrderId`: `OrderForm.id` and `OrdersView.order_id` hold the same
 value for the same job (verified live, e.g. `117ac0a1`).
 
-## `GET /api/work-orders` — list (phase 2)
+## `GET /api/work-orders` — list
 
 Query
 - `customerId` — string, optional → omitted means an unfiltered list
 - `status` — string, optional, free string on the API side (the db column is a 6-member enum;
   the API stays open so an out-of-enum legacy row cannot 422 the list)
-- `keyword` — string, default `''` (no-op)
+- `keyword` — string, default `''`, searched across order id, order number, customer id, and invoice number
 - `page` — number, default from the shared pagination defaults
 - `perPage` — number, max 500 → over that is 422, not clamped
 - `sortBy` — `receivedDate` only, default `receivedDate`
@@ -30,10 +30,7 @@ Response `200 { data: WorkOrderListResponse[], meta.pagination: { page, perPage 
 - `serviceType` — string | null
 - `status` — string | null
 - `quantity` — number | null
-- `hangers` — number | null
-- `bags` — number | null
 - `note` — string | null
-- `createdAt` — string | null
 
 Notes
 - **no `items`** — `OrderForm` has no `items_json`, and fetching lines per row would be one read per
@@ -41,7 +38,7 @@ Notes
 - `customerName` is not part of the work-order response; order screens resolve it from the cached
   customer store and fall back to `customerId` while the customer list is unavailable
 
-## `GET /api/work-orders/:id` — detail (phase 2)
+## `GET /api/work-orders/:id` — detail
 
 Path
 - `id` — `OrderForm.id`
@@ -63,14 +60,18 @@ Errors
 
 An order created through `POST` is readable here immediately — no Apps Script sync is in the path.
 
-## `PATCH /api/work-orders/:id` — update status
+## `PATCH /api/work-orders/:id` — update header
 
 Request
-- `status` — `PENDING` | `RECEIVED` | `SUBMITTED` | `APPROVED` | `COMPLETED` | `CANCELLED`, required
-- `updatedBy` — string, required
+- `status` — `PENDING` | `RECEIVED` | `SUBMITTED` | `APPROVED` | `COMPLETED` | `CANCELLED`, optional
+- `receivedDate` — `YYYY-MM-DD` string, optional
+- `dueDate` — `YYYY-MM-DD` string, optional
+- `quantity` — nonnegative number or `null`, optional; this is `OrderForm.quantity`, not per-line `OrderItemForms.quantity`
+- `updatedBy` — nonempty string, required
 
-No other order field is updatable. Any valid status value is accepted without transition guards.
-The repository stamps `updated_at`.
+At least one of the four mutable fields must be present. No other order field is updatable.
+The date columns are strings in the OrderForm DB contract. Any valid status value is accepted
+without transition guards. The repository stamps `updated_at`; order-item rows remain append only.
 
 The response is the updated work-order list/header shape plus:
 
@@ -79,7 +80,7 @@ The response is the updated work-order list/header shape plus:
   `serviceType`, and a `missingLaundryItemId` or `unsupportedServiceType` reason
 - `ticketProvisioning.failure` — `null`, or `{ certainty: 'rejected' | 'unknown' }`
 
-For statuses other than `APPROVED`, ticket provisioning is not run and the nested result contains
+For updates without an explicit `APPROVED` status, ticket provisioning is not run and the nested result contains
 zero created tickets, no skipped garments, and no failure. After an `APPROVED` status write, the
 service reads LaundryPhotos, OrderItemForms, and existing JobTickets, builds every missing
 item-scoped department ticket, and uses one batch append. Existing garment/department pairs are
@@ -90,13 +91,10 @@ ticket batch landed. An unknown append outcome must not be retried automatically
 may have landed even though its response could not be confirmed.
 
 Errors
-- invalid status or payload → 422
+- invalid status, date format, quantity, or empty update payload → 422
 - not found → 404 `Resource '<id>' not found`
 
-## `POST /api/work-orders` — create (phase 3)
-
-The contract's create slots already exist, so this endpoint goes live the moment the module is
-registered — which is why registration is deferred to phase 3 rather than phase 2.
+## `POST /api/work-orders` — create
 
 Request
 - `customerId` — string, required
@@ -104,8 +102,6 @@ Request
 - `dueDate` — string, required
 - `serviceType` — enum `WSIR` | `IRON` | `DRCL` | `WASH`, required
 - `quantity` — number ≥ 0, nullable, default `null`
-- `hangers` — integer ≥ 0, nullable, default `null`
-- `bags` — integer ≥ 0, nullable, default `null`
 - `note` — string, nullable, default `null`
 - `orderName` — string, nullable, default `null`
 - `orderDescription` — string, nullable, default `null`

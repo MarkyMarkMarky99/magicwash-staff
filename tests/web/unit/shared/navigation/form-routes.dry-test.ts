@@ -4,11 +4,13 @@ import {
   CUSTOMER_PACKAGE_CREATE_ROUTE_NAME,
   INVOICE_CREATE_ROUTE_NAME,
   ORDER_CREATE_ROUTE_NAME,
+  ORDER_EDIT_ROUTE_NAME,
   PRICE_LIST_ITEM_CREATE_ROUTE_NAME,
   appointmentCreateRoute,
   customerPackageCreateRoute,
   invoiceCreateRoute,
   orderCreateRoute,
+  orderEditRoute,
   priceListItemCreateRoute,
 } from '../../../../../src/shared/navigation/form-routes'
 
@@ -24,6 +26,10 @@ assert.deepEqual(orderCreateRoute(), { name: ORDER_CREATE_ROUTE_NAME, query: {} 
 assert.deepEqual(orderCreateRoute({ customerId: 'C-1' }), {
   name: ORDER_CREATE_ROUTE_NAME,
   query: { customerId: 'C-1' },
+})
+assert.deepEqual(orderEditRoute('O-2'), {
+  name: ORDER_EDIT_ROUTE_NAME,
+  params: { orderId: 'O-2' },
 })
 assert.deepEqual(customerPackageCreateRoute(), {
   name: CUSTOMER_PACKAGE_CREATE_ROUTE_NAME,

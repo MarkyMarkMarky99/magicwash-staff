@@ -5,9 +5,12 @@ import {
   workOrderDetailResponseSchema,
   workOrderListQuerySchema,
   workOrderListResponseSchema,
+  workOrderUpdateResponseSchema,
+  workOrderUpdateSchema,
 } from '@contracts/work-orders/work-order-api.schema'
-import { apiGet, apiGetList, apiPost, type ListResult } from '@/shared/api/api-client'
+import { apiGet, apiGetList, apiPatch, apiPost, type ListResult } from '@/shared/api/api-client'
 import { invalidate } from '@/shared/api/response-cache'
+import { currentActor } from '@/shared/config/actor'
 
 const WORK_ORDERS_ENDPOINT = '/api/work-orders'
 
@@ -16,6 +19,8 @@ export type WorkOrderDetailDto = z.infer<typeof workOrderDetailResponseSchema>
 export type WorkOrderCreatePayload = z.infer<typeof workOrderCreateSchema>
 export type WorkOrderCreateDto = z.infer<typeof workOrderCreateResponseSchema>
 export type WorkOrderListQuery = z.infer<typeof workOrderListQuerySchema>
+export type WorkOrderUpdatePayload = Omit<z.input<typeof workOrderUpdateSchema>, 'updatedBy'>
+export type WorkOrderUpdateDto = z.infer<typeof workOrderUpdateResponseSchema>
 
 export function listWorkOrders(
   query: Partial<WorkOrderListQuery> = {},
@@ -26,6 +31,15 @@ export function listWorkOrders(
 
 export function getWorkOrder(orderId: string): Promise<WorkOrderDetailDto> {
   return apiGet<WorkOrderDetailDto>(`${WORK_ORDERS_ENDPOINT}/${encodeURIComponent(orderId)}`)
+}
+
+export async function updateWorkOrder(orderId: string, payload: WorkOrderUpdatePayload): Promise<WorkOrderUpdateDto> {
+  const result = await apiPatch<WorkOrderUpdateDto>(
+    `${WORK_ORDERS_ENDPOINT}/${encodeURIComponent(orderId)}`,
+    { data: { ...payload, updatedBy: currentActor() }, requestSchema: workOrderUpdateSchema },
+  )
+  invalidate('/api/work-orders')
+  return result
 }
 
 export async function createWorkOrder(payload: WorkOrderCreatePayload): Promise<WorkOrderCreateDto> {

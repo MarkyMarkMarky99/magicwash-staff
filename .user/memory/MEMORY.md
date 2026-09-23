@@ -5,7 +5,7 @@
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
-- **`prototype/mobile-tag-scanner`** — garment tag tracking: job-tickets backend built and committed; an unreviewed Codex diff for order editing is sitting in the working tree. Details: `.user/memory/prototype-mobile-tag-scanner.md`.
+- **`prototype/mobile-tag-scanner`** — garment tag tracking: job-tickets backend and order editing committed; next is the tagging flow and scanner wiring. Details: `.user/memory/prototype-mobile-tag-scanner.md`.
 
 ## Pending work
 

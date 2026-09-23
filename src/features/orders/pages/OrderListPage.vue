@@ -6,6 +6,7 @@ import GenericTabs from '@/shared/components/GenericTabs.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import { getInvoiceTarget } from '@/shared/navigation/invoice-detail-route'
+import { orderEditRoute } from '@/shared/navigation/form-routes'
 import OrderCard from '@/features/orders/components/OrderCard.vue'
 import { useOrderListFilterRoute } from '@/features/orders/composables/use-order-list-filter-route'
 import { orderStatusLabels } from '@/features/orders/order-status-labels'
@@ -35,6 +36,7 @@ const orderRows = computed(() => orders.value.map(
 
 watch([keyword, status, page], () => void orderStore.loadList({ keyword: keyword.value, status: status.value, page: page.value }), { immediate: true })
 function openOrder(orderId: string) { router.push({ name: 'order-detail', params: { orderId } }) }
+function editOrder(orderId: string) { return router.push(orderEditRoute(orderId)) }
 function viewPhotos(orderId: string) { router.push('/gallery/BEF-' + orderId) }
 function viewInvoice(invoiceNumber: string) {
   const target = getInvoiceTarget(invoiceNumber)
@@ -56,7 +58,7 @@ function viewInvoice(invoiceNumber: string) {
           <span class="material-symbols-outlined text-[16px]" aria-hidden="true">post_add</span>
         </button>
       </template>
-      <OrderCard v-for="order in orderRows" :key="order.orderId" :order="order" :show-customer-name="true" :show-photos="true" :show-invoice="true" @select="openOrder" @view-photos="viewPhotos" @view-invoice="viewInvoice" />
+      <OrderCard v-for="order in orderRows" :key="order.orderId" :order="order" :show-customer-name="true" :show-photos="true" :show-invoice="true" :on-edit="editOrder" @select="openOrder" @view-photos="viewPhotos" @view-invoice="viewInvoice" />
     </ListContainer>
   </ListPageLayout>
 </template>

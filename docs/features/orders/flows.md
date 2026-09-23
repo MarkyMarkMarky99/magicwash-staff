@@ -1,4 +1,4 @@
-> Status: PLANNING — not implemented.
+> Historical flow plan. Current list, create, and edit behavior is documented in [Order list screen](./order-list-screen.md), [Order create and edit screen](./order-create-screen.md), and [Work order contract](./contracts/work-order.md). The blocked statements below describe the earlier plan.
 
 # Order Flows
 

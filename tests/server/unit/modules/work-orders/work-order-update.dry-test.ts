@@ -105,4 +105,24 @@ await assert.rejects(
 )
 assert.equal(repository.updateCalls.length, 1)
 
+repository.readRows = [orderRow()]
+const fieldsUpdated = await service.update('order-1', {
+  receivedDate: '2026-09-23', dueDate: '2026-09-26', quantity: null, updatedBy: 'staff-2',
+})
+assert.deepEqual(repository.updateCalls[1], {
+  id: 'order-1',
+  data: { received_date: '2026-09-23', due_date: '2026-09-26', quantity: null, updated_by: 'staff-2' },
+})
+assert.equal(fieldsUpdated.receivedDate, '2026-09-23')
+assert.equal(fieldsUpdated.dueDate, '2026-09-26')
+assert.equal(fieldsUpdated.quantity, null)
+assert.deepEqual(fieldsUpdated.ticketProvisioning, {
+  ticketsCreated: 0, skippedGarments: [], failure: null,
+})
+await assert.rejects(
+  () => service.update('order-1', { updatedBy: 'staff-2' }),
+  (error: unknown) => error instanceof ApiError && error.status === 422,
+)
+assert.equal(repository.updateCalls.length, 2)
+
 console.log('work-order update dry test passed')

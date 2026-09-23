@@ -2,6 +2,7 @@ import type { RouteLocationRaw } from 'vue-router'
 
 export const APPOINTMENT_CREATE_ROUTE_NAME = 'appointment-create'
 export const ORDER_CREATE_ROUTE_NAME = 'order-create'
+export const ORDER_EDIT_ROUTE_NAME = 'order-edit'
 export const CUSTOMER_PACKAGE_CREATE_ROUTE_NAME = 'customer-package-create'
 export const INVOICE_CREATE_ROUTE_NAME = 'invoice-create'
 export const PRICE_LIST_ITEM_CREATE_ROUTE_NAME = 'price-list-item-create'
@@ -43,6 +44,10 @@ export function orderCreateRoute(context: OptionalCustomerRouteContext = {}): Ro
     name: ORDER_CREATE_ROUTE_NAME,
     query: context.customerId ? { customerId: context.customerId } : {},
   }
+}
+
+export function orderEditRoute(orderId: string): RouteLocationRaw {
+  return { name: ORDER_EDIT_ROUTE_NAME, params: { orderId } }
 }
 
 export function customerPackageCreateRoute(

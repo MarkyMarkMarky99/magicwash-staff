@@ -1,4 +1,4 @@
-> Status: PLANNING — not implemented.
+> Historical planning record. The implemented create and edit behavior is documented in [Order create and edit screen](../order-create-screen.md). The same page now handles both routes, and edit changes only status, received date, due date, and order-header quantity.
 
 # Create Order Form
 
