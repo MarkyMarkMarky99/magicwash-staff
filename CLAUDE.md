@@ -29,6 +29,7 @@ implemented behavior, correct the canonical document rather than adding a compet
 - [Price list form](docs/design/price-list-form.md)
 - [Price list browse](docs/design/price-list-browse.md)
 - [Price list picker flow](docs/design/price-list-picker.md)
+- [Order photo library](docs/design/order-photo-library.md)
 
 ## Verification
 

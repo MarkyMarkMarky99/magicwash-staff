@@ -4,6 +4,7 @@
 
 ## Branches in flight
 
+- **`feat/order-photo-library`** — order photo Library page (Before/After, drag-select, move to item) pushed for Preview; not browser-verified. Details: `.user/memory/feat-order-photo-library.md`.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 
 ## Pending work

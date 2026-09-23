@@ -4,12 +4,14 @@ import BaseDropdown from '@/shared/components/BaseDropdown.vue'
 const emit = defineEmits<{
   addItem: []
   openAlbum: []
+  openLibrary: []
 }>()
 
-function select(action: 'addItem' | 'openAlbum', close: () => void): void {
+function select(action: 'addItem' | 'openAlbum' | 'openLibrary', close: () => void): void {
   close()
   if (action === 'addItem') emit('addItem')
-  else emit('openAlbum')
+  else if (action === 'openAlbum') emit('openAlbum')
+  else emit('openLibrary')
 }
 </script>
 
@@ -45,6 +47,14 @@ function select(action: 'addItem' | 'openAlbum', close: () => void): void {
         >
           <span class="material-symbols-outlined text-[16px] leading-none text-primary" aria-hidden="true">photo_library</span>
           Garment album
+        </button>
+        <button
+          type="button"
+          class="flex w-full items-center gap-2 px-3 py-2 text-left font-body text-[12px] text-on-surface transition-colors hover:bg-surface-container-low focus:bg-surface-container-low focus:outline-none active:bg-surface-container"
+          @click="select('openLibrary', close)"
+        >
+          <span class="material-symbols-outlined text-[16px] leading-none text-primary" aria-hidden="true">grid_view</span>
+          Photo library
         </button>
       </div>
     </template>
