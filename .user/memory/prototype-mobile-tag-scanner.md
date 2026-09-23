@@ -29,14 +29,15 @@
 - Once proven on a phone, the old camera component copy can be removed per the user.
 - Codex session for this screen: `01a0cd22-c35b-7bb2-8297-11120a74e806`.
 
-## Scan speed benchmark (paused by user)
-- `/#/scan-benchmark` compares ZXing full, ZXing ROI, native BarcodeDetector and zxing-wasm; user tests on phones, results recorded but no change until the user decides.
-
 ## Department work pages (frontend only, in progress)
 - `/departments/:department` loads real tickets (Pending, In Progress, Completed today, cap 2000) via existing APIs; awaiting phone test. CANCELLED tab dropped for now.
 - Open: completion ring counts only today's completed tickets, so it understates progress; user to decide label vs backend totals.
 - Ticket provisioning now defaults `photoEvidenceUrl` to the LaundryPhotos before-photo; staff evidence photos will overwrite it. Order be2f58f2 backfilled.
 - Backend later: a worklist read (not-done + done-today, cap 2000) and cancel timestamps; not started, user deferred.
+
+## Scanner engine
+- All scanners use `src/shared/utils/barcode-scanner.ts`: native BarcodeDetector on Android, self-hosted zxing-wasm elsewhere; ZXing JS removed.
+- Next: department scan still preview-only; wiring POST /api/job-tickets/scan is the next brief.
 
 ## Tag ids
 - Web now generates 8-char base62 ids via `shared/utils/id.ts`; print server (MagicwashInvoice `baf0899`) prints QR and accepts any text.

@@ -6,9 +6,4 @@ export const tagScannerRoutes: RouteRecordRaw[] = [
     name: 'tag-scanner-prototype',
     component: () => import('./pages/TagScannerPrototypePage.vue'),
   },
-  {
-    path: '/scan-benchmark',
-    name: 'scan-benchmark',
-    component: () => import('./pages/ScanBenchmarkPage.vue'),
-  },
 ]

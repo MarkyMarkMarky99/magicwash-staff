@@ -6,8 +6,10 @@ The order detail item menu opens the before-photo registration overlay with
 The overlay follows the order detail query navigation: opening pushes a history entry,
 Back closes it, and a refreshed deep link closes by replacing the overlay query.
 
-The registration camera owns one rear-camera stream. ZXing continuously reads QR Code
-and Code 128 whenever the tag is missing, regardless of the selected mode. The shutter
+The registration camera owns one rear-camera stream. The shared scanner engine reads full
+frames for QR Code and Code 128 whenever the tag is missing, regardless of the selected mode.
+It uses native BarcodeDetector when QR Code is supported, otherwise the lazily loaded
+barcode-detector ponyfill with a self-hosted ZXing-C++ WASM asset. The shutter
 draws a live video frame to canvas and encodes a JPEG in either mode; another press
 replaces the unsaved photo. The capture flashes and flies into a bottom-left thumbnail,
 which shows the last capture after auto-save until the next photo. The thumbnail has no

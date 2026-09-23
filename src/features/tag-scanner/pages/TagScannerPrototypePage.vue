@@ -1,14 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onDeactivated, ref } from 'vue'
-import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser'
-import {
-  BarcodeFormat,
-  ChecksumException,
-  DecodeHintType,
-  FormatException,
-  NotFoundException,
-  type Result,
-} from '@zxing/library'
+import { startBarcodeScanner } from '@/shared/utils/barcode-scanner'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 
@@ -18,13 +10,6 @@ type ScanEntry = {
   scannedAt: string
 }
 
-const hints = new Map()
-hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.QR_CODE, BarcodeFormat.CODE_128])
-
-const reader = new BrowserMultiFormatReader(hints, {
-  delayBetweenScanAttempts: 80,
-  delayBetweenScanSuccess: 250,
-})
 const videoRef = ref<HTMLVideoElement | null>(null)
 const scans = ref<ScanEntry[]>([])
 const isStarting = ref(false)
@@ -34,16 +19,13 @@ const torchAvailable = ref(false)
 const torchOn = ref(false)
 const scanPulse = ref(false)
 const seenValues = new Set<string>()
-let controls: IScannerControls | null = null
+let stream: MediaStream | null = null
+let stopDecode: (() => void) | null = null
 let audioContext: AudioContext | null = null
 let pulseTimer: number | null = null
 let scannerStartToken = 0
 
 const latestScan = computed(() => scans.value[0] ?? null)
-
-function formatName(result: Result) {
-  return result.getBarcodeFormat() === BarcodeFormat.QR_CODE ? 'QR Code' : 'Code 128'
-}
 
 function getCameraErrorMessage(error: unknown) {
   if (error instanceof DOMException) {
@@ -88,12 +70,6 @@ function playScanFeedback() {
   }, 260)
 }
 
-function isRetryableScanError(error: unknown) {
-  return error instanceof NotFoundException
-    || error instanceof ChecksumException
-    || error instanceof FormatException
-}
-
 function handleTerminalScanError(startToken: number) {
   if (startToken !== scannerStartToken) return
 
@@ -101,14 +77,14 @@ function handleTerminalScanError(startToken: number) {
   errorMessage.value = 'กล้องหยุดทำงาน กรุณากดเปิดกล้องเพื่อลองใหม่'
 }
 
-function acceptResult(result: Result) {
-  const value = result.getText().trim()
+function acceptResult(rawValue: string, format: string) {
+  const value = rawValue.trim()
   if (!value || seenValues.has(value)) return
 
   seenValues.add(value)
   scans.value.unshift({
     value,
-    format: formatName(result),
+    format: format === 'qr_code' ? 'QR Code' : 'Code 128',
     scannedAt: new Intl.DateTimeFormat('th-TH', {
       hour: '2-digit',
       minute: '2-digit',
@@ -122,7 +98,6 @@ async function startScanner() {
   if (isRunning.value || isStarting.value) return
 
   const startToken = ++scannerStartToken
-  let nextControls: IScannerControls | null = null
   errorMessage.value = ''
   isStarting.value = true
 
@@ -137,39 +112,41 @@ async function startScanner() {
     try {
       await audioContext?.resume()
     } catch {
-      // Sound feedback is optional; camera scanning can continue without it.
     }
     await nextTick()
-    if (!videoRef.value) throw new Error('Video element unavailable')
+    if (startToken !== scannerStartToken) return
+    const video = videoRef.value
+    if (!video) throw new Error('Video element unavailable')
 
-    nextControls = await reader.decodeFromConstraints(
-      {
-        audio: false,
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
+    const nextStream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
       },
-      videoRef.value,
-      (result, error) => {
-        if (result && startToken === scannerStartToken) acceptResult(result)
-        if (error && !isRetryableScanError(error)) handleTerminalScanError(startToken)
-      },
-    )
-
+    })
     if (startToken !== scannerStartToken) {
-      nextControls.stop()
+      nextStream.getTracks().forEach(track => track.stop())
       return
     }
 
-    controls = nextControls
-    torchAvailable.value = Boolean(controls.switchTorch)
+    stream = nextStream
+    video.srcObject = nextStream
+    await video.play()
+    const nextStop = await startBarcodeScanner(video, acceptResult, () => handleTerminalScanError(startToken))
+    if (startToken !== scannerStartToken) {
+      nextStop()
+      return
+    }
+
+    stopDecode = nextStop
+    const capabilities = nextStream.getVideoTracks()[0]?.getCapabilities?.() as (MediaTrackCapabilities & { torch?: boolean }) | undefined
+    torchAvailable.value = Boolean(capabilities?.torch)
     isRunning.value = true
   } catch (error) {
-    nextControls?.stop()
     if (startToken !== scannerStartToken) return
-    controls = null
+    stopScanner()
     errorMessage.value = getCameraErrorMessage(error)
   } finally {
     if (startToken === scannerStartToken) isStarting.value = false
@@ -178,20 +155,24 @@ async function startScanner() {
 
 function stopScanner() {
   scannerStartToken++
-  controls?.stop()
-  controls = null
+  stopDecode?.()
+  stopDecode = null
   if (videoRef.value) videoRef.value.srcObject = null
+  stream?.getTracks().forEach(track => track.stop())
+  stream = null
+  isStarting.value = false
   isRunning.value = false
   torchAvailable.value = false
   torchOn.value = false
 }
 
 async function toggleTorch() {
-  if (!controls?.switchTorch) return
+  const track = stream?.getVideoTracks()[0]
+  if (!track || !torchAvailable.value) return
 
   try {
     const nextValue = !torchOn.value
-    await controls.switchTorch(nextValue)
+    await track.applyConstraints({ advanced: [{ torch: nextValue } as MediaTrackConstraintSet & { torch: boolean }] })
     torchOn.value = nextValue
   } catch {
     torchAvailable.value = false

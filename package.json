@@ -15,8 +15,6 @@
     "check:cross-feature-imports": "node scripts/check-cross-feature-imports.mjs"
   },
   "dependencies": {
-    "@zxing/browser": "^0.1.5",
-    "@zxing/library": "^0.21.3",
     "axios": "^1.14.0",
     "barcode-detector": "^3.2.2",
     "firebase": "^12.13.0",
@@ -24,7 +22,8 @@
     "scanic": "1.6.0",
     "vue": "^3.5.30",
     "vue-router": "^4.6.4",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "zxing-wasm": "3.1.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

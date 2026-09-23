@@ -2,8 +2,8 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { itemsCreateSchema } from '@contracts/items/items-api.schema'
 import { useItemsStore } from '@/data/items/items.store'
+import { uploadItemPhoto } from '@/data/items/items.service'
 import { ApiError } from '@/shared/api/api-client'
-import { uploadToStorage } from '@/shared/api/firebase-storage'
 import { useCloseRoute } from '@/shared/navigation/use-close-route'
 
 export function useItemCreateForm() {
@@ -87,7 +87,7 @@ export function useItemCreateForm() {
     formError.value = null
     let creating = false
     try {
-      if (photo && !uploadedUrl) uploadedUrl = await uploadToStorage(photo, `items/${crypto.randomUUID()}`)
+      if (photo && !uploadedUrl) uploadedUrl = await uploadItemPhoto(photo)
       const data = itemsCreateSchema.parse({ ...payload.value, imageUrl: uploadedUrl })
       creating = true
       await store.create(data)

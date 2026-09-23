@@ -7,6 +7,7 @@ import {
   laundryPhotoUpdateSchema,
 } from '@contracts/laundry-photos/laundry-photo-api.schema'
 import { apiGetList, apiPatch, apiPost } from '@/shared/api/api-client'
+import { uploadToStorage } from '@/shared/api/firebase-storage'
 import { invalidate } from '@/shared/api/response-cache'
 
 export type ReassignLaundryPhotoPayload = z.infer<typeof laundryPhotoUpdateSchema>
@@ -72,6 +73,10 @@ export async function listLaundryPhotoTagIds(
     if (items.length < MAX_LAUNDRY_PHOTOS_PER_PAGE) return tagIds
     page += 1
   }
+}
+
+export async function uploadLaundryPhoto(file: File): Promise<string> {
+  return uploadToStorage(file)
 }
 
 export async function createLaundryPhoto(

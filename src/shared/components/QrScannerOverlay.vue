@@ -1,31 +1,23 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
-import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser'
-import { BarcodeFormat, ChecksumException, DecodeHintType, FormatException, NotFoundException } from '@zxing/library'
+import { startBarcodeScanner } from '@/shared/utils/barcode-scanner'
 
 const props = defineProps<{ open: boolean; title: string }>()
 const emit = defineEmits<{ close: []; scan: [value: string] }>()
 
-const hints = new Map()
-hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.QR_CODE, BarcodeFormat.CODE_128])
-const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 80, delayBetweenScanSuccess: 250 })
 const videoRef = ref<HTMLVideoElement | null>(null)
 const cameraError = ref('')
 const starting = ref(false)
 let stream: MediaStream | null = null
-let controls: IScannerControls | null = null
+let stopScanner: (() => void) | null = null
 let startToken = 0
 let lastResult = ''
 let lastResultAt = 0
 
-function retryableScanError(error: unknown): boolean {
-  return error instanceof NotFoundException || error instanceof ChecksumException || error instanceof FormatException
-}
-
 function stopCamera(): void {
   startToken += 1
-  controls?.stop()
-  controls = null
+  stopScanner?.()
+  stopScanner = null
   if (videoRef.value) videoRef.value.srcObject = null
   stream?.getTracks().forEach(track => track.stop())
   stream = null
@@ -60,28 +52,26 @@ async function startCamera(): Promise<void> {
     }
     videoRef.value.srcObject = nextStream
     await videoRef.value.play()
-    const nextControls = await reader.decodeFromStream(nextStream, videoRef.value, (result, error) => {
+    const nextStop = await startBarcodeScanner(videoRef.value, value => {
       if (token !== startToken || !props.open) return
-      if (result) {
-        const value = result.getText().trim()
-        const now = Date.now()
-        if (value && (value !== lastResult || now - lastResultAt > 2000)) {
-          lastResult = value
-          lastResultAt = now
-          navigator.vibrate?.(70)
-          emit('scan', value)
-        }
+      const trimmed = value.trim()
+      const now = Date.now()
+      if (trimmed && (trimmed !== lastResult || now - lastResultAt > 2000)) {
+        lastResult = trimmed
+        lastResultAt = now
+        navigator.vibrate?.(70)
+        emit('scan', trimmed)
       }
-      if (error && !retryableScanError(error)) {
-        stopCamera()
-        cameraError.value = 'กล้องหยุดทำงาน กรุณาลองใหม่'
-      }
+    }, () => {
+      if (token !== startToken || !props.open) return
+      stopCamera()
+      cameraError.value = 'กล้องหยุดทำงาน กรุณาลองใหม่'
     })
     if (token !== startToken) {
-      nextControls.stop()
+      nextStop()
       return
     }
-    controls = nextControls
+    stopScanner = nextStop
   } catch (error) {
     if (token !== startToken) return
     stopCamera()

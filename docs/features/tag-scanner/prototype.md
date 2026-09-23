@@ -2,7 +2,9 @@
 
 The Preview prototype route is `/#/tag-scanner`.
 
-It opens the rear camera and continuously reads the two formats used for tag evaluation:
+It opens the rear camera at ideal 1280 × 720 and reads full frames with the shared scanner engine.
+The engine uses native BarcodeDetector when QR Code is supported, otherwise the lazily loaded
+barcode-detector ponyfill with a self-hosted ZXing-C++ WASM asset. It reads:
 
 - QR Code
 - Code 128

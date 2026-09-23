@@ -20,9 +20,7 @@ import CameraOverlay from '@/shared/components/CameraOverlay.vue'
 import DocumentScannerOverlay from '@/features/orders/components/DocumentScannerOverlay.vue'
 import OrderImageSection from '@/features/orders/components/OrderImageSection.vue'
 import { useOrderImageStore } from '@/features/orders/stores/order-image.store'
-import { listLaundryPhotos } from '@/data/laundry-photos/laundry-photo.service'
-import { createLaundryPhoto, listLaundryPhotoTagIds } from '@/data/laundry-photos/laundry-photo.service'
-import { uploadToStorage } from '@/shared/api/firebase-storage'
+import { createLaundryPhoto, listLaundryPhotoTagIds, listLaundryPhotos, uploadLaundryPhoto } from '@/data/laundry-photos/laundry-photo.service'
 import GarmentRegistrationCamera from '@/features/orders/components/GarmentRegistrationCamera.vue'
 import { canSaveGarment, isDuplicateGarmentTag, validGarmentTag } from '@/features/orders/garment-registration'
 import OrderImageWeightPrompt from '@/features/orders/components/OrderImageWeightPrompt.vue'
@@ -289,7 +287,7 @@ function saveRegistration(): void {
   sessionRegistrationTags.value.add(tag)
   pendingRegistrationTags.value.add(tag)
   resetRegistration()
-  void uploadToStorage(file)
+  void uploadLaundryPhoto(file)
     .then(imageUrl => createLaundryPhoto({
       orderId: targetOrderId,
       orderItemId: targetOrderItemId,

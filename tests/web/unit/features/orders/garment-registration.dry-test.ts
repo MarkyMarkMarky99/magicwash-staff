@@ -44,7 +44,8 @@ test('registration route state carries the order item and closes cleanly', () =>
 })
 
 test('registration scans and captures in either mode and saves when complete', () => {
-  assert.match(cameraSource, /if \(result && !props\.tag\)/)
+  assert.match(cameraSource, /startBarcodeScanner\(videoRef\.value/)
+  assert.match(cameraSource, /\(\) => !props\.tag\)/)
   assert.match(cameraSource, /if \(!video \|\| !stream \|\| capturing\.value/)
   assert.match(cameraSource, /:disabled="pendingCount > 0"/)
   assert.match(cameraSource, /@keydown\.enter\.prevent="submitTag"/)
