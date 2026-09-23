@@ -35,7 +35,7 @@
 ## Department work pages (frontend only, in progress)
 - `/departments/:department` loads real tickets (Pending, In Progress, Completed today, cap 2000) via existing APIs; awaiting phone test. CANCELLED tab dropped for now.
 - Open: completion ring counts only today's completed tickets, so it understates progress; user to decide label vs backend totals.
-- Backend later: ticket provisioning copies the LaundryPhotos before-photo into `photoEvidenceUrl` as a default; staff photo evidence overwrites it when done.
+- Ticket provisioning now defaults `photoEvidenceUrl` to the LaundryPhotos before-photo; staff evidence photos will overwrite it. Order be2f58f2 backfilled.
 - Backend later: a worklist read (not-done + done-today, cap 2000) and cancel timestamps; not started, user deferred.
 
 ## Tag ids

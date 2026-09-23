@@ -32,8 +32,8 @@ function createService(appendError?: Error) {
     laundryPhotoRepository: () => ({
       async read() {
         return [
-          { order_id: 'order-1', orderitem_id: 'line-1', item_id: 'tag-1' },
-          { order_id: 'order-1', orderitem_id: 'missing-line', item_id: 'tag-2' },
+          { order_id: 'order-1', orderitem_id: 'line-1', item_id: 'tag-1', image_url: 'https://example.test/tag-1.jpg' },
+          { order_id: 'order-1', orderitem_id: 'missing-line', item_id: 'tag-2', image_url: '' },
         ]
       },
     }),
@@ -66,6 +66,10 @@ assert.equal(successful.appendCalls.length, 1)
 assert.deepEqual(successful.appendCalls[0]?.map((row) => [row.laundry_item_id, row.department]), [
   ['tag-1', 'Ironing'], ['tag-1', 'Packaging'], ['tag-2', 'Washing'], ['tag-2', 'Packaging'],
 ])
+assert.deepEqual(successful.appendCalls[0]?.map((row) => row.photo_evidence_url), [
+  'https://example.test/tag-1.jpg', 'https://example.test/tag-1.jpg', null, null,
+])
+assert.ok(successful.appendCalls[0]?.every((row) => row.department !== 'Washing' || row.laundry_item_id !== 'tag-1'))
 
 for (const [error, certainty] of [
   [new WriteRejectedError('APPEND', 'rejected'), 'rejected'],

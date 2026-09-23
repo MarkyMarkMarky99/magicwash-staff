@@ -166,7 +166,7 @@ function buildQueryString(query: unknown): string {
     params.set(key, String(value))
   }
 
-  const qs = params.toString()
+  const qs = params.toString().replace(/\+/g, '%20')
   return qs ? `?${qs}` : ''
 }
 

@@ -58,7 +58,7 @@ const orderInfo = computed(() => {
     const order = listed.get(ticket.orderId) ?? orderDetails.value.get(ticket.orderId)
     const customerId = order?.customerId ?? ticket.customerId
     info.set(ticket.orderId, {
-      dueDate: order?.dueDate ?? null,
+      dueDate: order?.dueDate ?? ticket.dueDate ?? null,
       customerId,
       customerName: (customerId && customers.get(customerId)) || customerId || ticket.orderId,
     })

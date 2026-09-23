@@ -20,6 +20,7 @@ export interface JobTicketProvisioningGarment {
   laundryItemId: string
   serviceType: string | null
   specialInstructions: string | null
+  photoEvidenceUrl: string | null
 }
 
 export interface ExistingJobTicket {
@@ -41,6 +42,7 @@ export interface ProvisionedJobTicketRow {
   special_instructions: string | null
   notes: string | null
   status: 'Pending'
+  photo_evidence_url: string | null
   created_by: string
 }
 
@@ -89,6 +91,13 @@ export function buildJobTickets(
   )
   const rows: ProvisionedJobTicketRow[] = []
   const unroutableGarments: UnroutableGarment[] = []
+  const photosByTag = new Map<string, string>()
+
+  for (const garment of garments) {
+    if (garment.photoEvidenceUrl?.trim() && !photosByTag.has(garment.laundryItemId)) {
+      photosByTag.set(garment.laundryItemId, garment.photoEvidenceUrl)
+    }
+  }
 
   for (const garment of garments) {
     if (garment.laundryItemId.trim() === '') {
@@ -127,6 +136,7 @@ export function buildJobTickets(
         special_instructions: garment.specialInstructions,
         notes: order.notes,
         status: 'Pending',
+        photo_evidence_url: photosByTag.get(garment.laundryItemId) ?? null,
         created_by: order.createdBy,
       })
     }

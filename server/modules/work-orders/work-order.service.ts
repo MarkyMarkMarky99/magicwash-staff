@@ -249,6 +249,7 @@ export class WorkOrderService extends BaseCrudService<
           laundryItemId: typeof photo.item_id === 'string' ? photo.item_id : '',
           serviceType: line === undefined ? updatedOrder.serviceType : line.service_type ?? null,
           specialInstructions: line?.special_instructions ?? null,
+          photoEvidenceUrl: typeof photo.image_url === 'string' ? photo.image_url : null,
         }
       })
     const provisioning = buildJobTickets(
