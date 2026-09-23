@@ -1,10 +1,9 @@
 # Project memory
 
-- Branch: `main`; garment tag tracking (registration, job tickets, department pages, QR scanning) merged 2026-09-23.
+- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24.
 
 ## Branches in flight
 
-- **`feat/order-photo-library`** — order photo Library page (Before/After, drag-select, move to item) pushed for Preview; not browser-verified. Details: `.user/memory/feat-order-photo-library.md`.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 
 ## Pending work
@@ -29,6 +28,11 @@
   - Browser-verify the form-routes refactor (merged untested in a browser); unticked to-dos in `docs/plans/form-routes.md`.
 
 - **Order detail UI**
+  - Phone-test the order photo library: long-press drag-select, edge auto-scroll, glass refraction, and parallel Move to item.
+  - Phone-test Register garments without an item, then assigning those photos from the library.
+  - Deferred: bulk photo-reassign endpoint with a shared `updateMany` (35 → 5 requests for 7 photos).
+  - Deferred: shared `LiquidGlass` component + `provideGlassBackdrop`; lens code lives in `features/orders` for now.
+  - Decide whether the Items menu "Garment album" is retired in favour of the photo library.
   - Order items show quantity `0` on every row; not investigated.
   - `OrderDetailSheet.vue` re-implements the item row and the store's load/sequence logic instead of reusing `OrderItemRow` and `useWorkOrderStore`.
   - Order-detail header is taller than the sheet's; the menu button footprint was reduced but the result is unverified in a browser.
