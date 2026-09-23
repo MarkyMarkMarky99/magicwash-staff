@@ -19,6 +19,7 @@ const TYPE_QUERY_KEY = 'type'
 const PHOTO_QUERY_KEY = 'photo'
 const MOVE_QUERY_KEY = 'move'
 const UNASSIGNED_KEY = '__unassigned__'
+const MOVE_CONCURRENCY = 4
 const PHOTO_TABS: { key: PhotoType; label: string }[] = [
   { key: 'BEF', label: 'Before' },
   { key: 'AFT', label: 'After' },
@@ -199,17 +200,22 @@ async function moveTo(item: OrderItem) {
   const failed = new Set<string>()
   const payload = { orderItemId: item.orderItemId, updatedBy: actor.value }
 
-  for (const photo of targets) {
-    try {
-      const encodedId = encodeURIComponent(photo.id)
-      if (type === 'BEF') await reassignLaundryPhoto(encodedId, payload)
-      else await reassignAfterPhoto(encodedId, payload)
-      photos.value = photos.value.map(entry => (entry.id === photo.id ? { ...entry, orderItemId: item.orderItemId } : entry))
-    } catch {
-      failed.add(photo.id)
+  const queue = [...targets]
+  async function worker() {
+    for (let photo = queue.shift(); photo; photo = queue.shift()) {
+      const photoId = photo.id
+      try {
+        const encodedId = encodeURIComponent(photoId)
+        if (type === 'BEF') await reassignLaundryPhoto(encodedId, payload)
+        else await reassignAfterPhoto(encodedId, payload)
+        photos.value = photos.value.map(entry => (entry.id === photoId ? { ...entry, orderItemId: item.orderItemId } : entry))
+      } catch {
+        failed.add(photoId)
+      }
+      moveProgress.value += 1
     }
-    moveProgress.value += 1
   }
+  await Promise.all(Array.from({ length: Math.min(MOVE_CONCURRENCY, targets.length) }, worker))
 
   moving.value = false
   if (failed.size === 0) {

@@ -38,7 +38,7 @@ here.
 
 - Opens a bottom picker listing the order's items. An item is disabled when every selected photo
   already belongs to it.
-- Photos are reassigned one at a time through the photo type's `PATCH`; photos already on the
+- Photos are reassigned through the photo type's single-photo `PATCH`, up to four requests in flight; photos already on the
   target item are skipped. On full success selection mode ends. On partial failure the failed photos
   stay selected and a message reports how many moved.
 
