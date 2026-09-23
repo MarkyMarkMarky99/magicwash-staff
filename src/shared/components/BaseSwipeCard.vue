@@ -6,6 +6,8 @@ const props = defineProps({
   swipeable: { type: Boolean, default: true  },
   pressable: { type: Boolean, default: false },
   threshold: { type: Number,  default: 80    },
+  leftActions: Number,
+  rightActions: Number,
 })
 
 const emit = defineEmits(['swipe-right', 'swipe-left', 'tap'])
@@ -19,6 +21,7 @@ let startTranslate = 0
 let startSnapped    = 'none'
 let maxMovement     = 0
 const TAP_THRESHOLD = 8
+const ACTION_WIDTH_REM = 4
 
 onUnmounted(() => {
   document.removeEventListener('mousemove', onMouseMove)
@@ -132,6 +135,10 @@ defineExpose({ snapCard })
 <template>
   <div
     ref="wrapRef"
+    :style="{
+      ...(leftActions !== undefined ? { '--snap-left': `calc(${leftActions} * ${ACTION_WIDTH_REM}rem)` } : {}),
+      ...(rightActions !== undefined ? { '--snap-right': `calc(${rightActions} * ${ACTION_WIDTH_REM}rem)` } : {}),
+    }"
     :class="[
       'relative bg-surface-container-lowest',
       pressable ? 'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-primary' : '',

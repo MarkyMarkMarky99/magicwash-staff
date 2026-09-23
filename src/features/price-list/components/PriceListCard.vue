@@ -45,7 +45,7 @@ function formatPrice(price: number): string {
   <BaseSwipeCard
     v-if="item"
     ref="baseCard"
-    :style="{ '--snap-left': '6rem' }"
+    :left-actions="1"
     class="min-w-0 overflow-hidden rounded-2xl"
     role="button"
     tabindex="0"
@@ -58,8 +58,8 @@ function formatPrice(price: number): string {
     @keydown.space="handleKeydown"
   >
     <template #left-panel="{ snapped }">
-      <div class="absolute inset-0 flex items-center justify-end bg-primary/80 pr-4 text-on-primary">
-        <button type="button" class="flex min-h-11 items-center gap-1 font-label text-xs font-bold focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-white" :class="snapped === 'left' ? '' : 'pointer-events-none'" :tabindex="snapped === 'left' ? 0 : -1" :aria-hidden="snapped !== 'left'" :aria-label="`แก้ไขราคา ${item.displayNameTh}`" @click="emit('open', props.itemCode)">
+      <div class="absolute inset-0 flex items-center justify-end bg-primary/80 text-on-primary">
+        <button type="button" class="flex min-h-11 w-16 shrink-0 items-center justify-center gap-1 font-label text-xs font-bold focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-white" :class="snapped === 'left' ? '' : 'pointer-events-none'" :tabindex="snapped === 'left' ? 0 : -1" :aria-hidden="snapped !== 'left'" :aria-label="`แก้ไขราคา ${item.displayNameTh}`" @click="emit('open', props.itemCode)">
           <span class="material-symbols-outlined text-[18px]" aria-hidden="true">edit</span>แก้ไข
         </button>
       </div>

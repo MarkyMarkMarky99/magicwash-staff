@@ -22,7 +22,9 @@ so photos fill the card edge. Both a single price and a minimum–maximum range 
 appear as text at the top right of the image, with a light text shadow for contrast and no
 background panel. Equal prices display once. The card has no separate status line.
 
-Every main-list card uses `BaseSwipeCard`: swiping left reveals Edit underneath the card. For a
+Every main-list card uses `BaseSwipeCard`: swiping left reveals Edit underneath the card.
+`leftActions` and `rightActions` set the revealed width to 4rem per action button on the matching
+side; omitting either prop keeps the shared default for that side. For a
 single-price code, Edit opens that row's form directly. Tapping a multi-price card or choosing its
 Edit action opens a compact,
 content-height bottom sheet using the shared `DetailOverlay`. Each price is a choice that opens

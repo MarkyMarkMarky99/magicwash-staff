@@ -12,7 +12,6 @@ const specifierPattern = /(?:\bfrom\s*|\bimport\s*\(\s*|^\s*import\s+)['"]([^'"\
 const knownViolations = new Set([
   'features/customers/components/CustomerInvoicesSection.vue -> @/features/invoices/components/InvoiceCard.vue',
   'features/customers/components/CustomerPackagesSection.vue -> @/features/customer-packages/components/CustomerPackageListCards.vue',
-  'features/customers/components/OrderList.vue -> @/features/orders/components/OrderCard.vue',
   'features/invoices/pages/InvoiceCreatePage.vue -> @/features/price-list/components/PriceListItemPicker.vue',
   'features/orders/pages/OrderDetailPage.vue -> @/features/price-list/components/PriceListItemPicker.vue',
 ])
