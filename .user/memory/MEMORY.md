@@ -1,13 +1,24 @@
 # Project memory
 
-- Branch: `main`; Items master is merged and live in production, with no work branch open.
+- Branch: `main`; garment tag tracking (registration, job tickets, department pages, QR scanning) merged 2026-09-23.
 
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
-- **`prototype/mobile-tag-scanner`** — garment tag tracking: job tickets, order editing and the garment registration screen committed and phone-tested on Preview. Details: `.user/memory/prototype-mobile-tag-scanner.md`.
 
 ## Pending work
+
+- **Garment tracking and job tickets**
+  - Decide the order status sequence before any swipe-to-advance work.
+  - Persist tag ids at print time and add a single-tag reprint flow before real use.
+  - Department scan: user to decide instant local result with background POST, plus preloading other departments for the step gate.
+  - Department page reload policy undecided (on return, on app focus, interval, or a refresh button); KeepAlive keeps it stale now.
+  - Completion ring counts only today's completed tickets; decide label vs backend totals.
+  - Deferred backend: worklist read (not-done + done-today, cap 2000) and cancel timestamps.
+  - Phone Back closes garment registration while uploads are pending; blocking it not decided.
+  - Decide whether to remove the old BEF album add-photo path now that registration is proven.
+  - Physical QR labels: real-print scan test pending; consider print DENSITY and larger QR cells.
+  - Logistics and ORDER-scoped tickets are not built.
 
 - **Forms and navigation**
   - Remove dead CSS `.invoice-line-select` in `InvoiceLineItemsEditor.vue`.
