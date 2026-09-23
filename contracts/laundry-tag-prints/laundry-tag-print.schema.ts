@@ -1,8 +1,10 @@
 import { z } from 'zod'
 
+export const laundryTagIdSchema = z.string().regex(/^[0-9A-Za-z]{8}$/)
+
 const tagSchema = z.object({
   sequence: z.number().int().positive().max(999),
-  tagId: z.string().regex(/^\d{8}$/),
+  tagId: laundryTagIdSchema,
 }).strict()
 
 export const laundryTagPrintRequestSchema = z.object({

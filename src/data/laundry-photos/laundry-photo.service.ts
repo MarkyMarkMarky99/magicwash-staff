@@ -1,5 +1,6 @@
 import type { z } from 'zod'
 import {
+  MAX_LAUNDRY_PHOTOS_PER_PAGE,
   laundryPhotoCreateSchema,
   laundryPhotoListQuerySchema,
   laundryPhotoResponseSchema,
@@ -45,6 +46,32 @@ export async function listLaundryPhotos(
       : undefined,
   })
   return normalizePhotos(items, photo => photo.laundryPhotoId)
+}
+
+function tagIdsFromPhotos(photos: LaundryPhotoDto[]): Set<string> {
+  const tagIds = new Set<string>()
+  for (const photo of photos) {
+    if (photo.itemId) tagIds.add(photo.itemId)
+  }
+  return tagIds
+}
+
+export async function listLaundryPhotoTagIds(
+  orderId: string,
+  onFresh?: (tagIds: Set<string>) => void,
+): Promise<Set<string>> {
+  const tagIds = new Set<string>()
+  let page = 1
+  while (true) {
+    const { items } = await apiGetList<LaundryPhotoDto>(LAUNDRY_PHOTOS_ENDPOINT, {
+      query: page === 1 ? { orderId } : { orderId, page },
+      querySchema: laundryPhotoListQuerySchema,
+      onFresh: onFresh ? ({ items: freshItems }) => onFresh(tagIdsFromPhotos(freshItems)) : undefined,
+    })
+    for (const tagId of tagIdsFromPhotos(items)) tagIds.add(tagId)
+    if (items.length < MAX_LAUNDRY_PHOTOS_PER_PAGE) return tagIds
+    page += 1
+  }
 }
 
 export async function createLaundryPhoto(

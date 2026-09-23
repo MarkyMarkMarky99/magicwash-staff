@@ -26,3 +26,7 @@ The page is not on the `<KeepAlive>` exclude list. The item form overlay it host
 - `?item=new` — the item form.
 
 The item form uses `useOrderOverlayRoute`.
+
+Each item row opens its before-photo gallery on tap and offers a separate menu action to
+register a garment's tag and before-photo. See [garment registration](garment-registration.md).
+The registration overlay is owned by `?orderAction=register-garment&registerItem=<orderItemId>`.

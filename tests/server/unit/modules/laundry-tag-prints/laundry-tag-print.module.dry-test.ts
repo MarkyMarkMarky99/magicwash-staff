@@ -14,8 +14,8 @@ const payload = {
   totalCount: 3,
   tags: [
     { sequence: 1, tagId: '12345678' },
-    { sequence: 2, tagId: '23456789' },
-    { sequence: 3, tagId: '34567890' },
+    { sequence: 2, tagId: 'Ab12Cd34' },
+    { sequence: 3, tagId: 'Zz90Yy12' },
   ],
 }
 const request = (body: unknown) => ({
@@ -69,6 +69,11 @@ async function main(): Promise<void> {
 
   const invalid = await routes.collection.handleRequest(request({ ...payload, tags: payload.tags.slice(1) }))
   assert.equal(invalid.status, 422)
+  const invalidTag = await routes.collection.handleRequest(request({
+    ...payload,
+    tags: [{ ...payload.tags[0], tagId: 'bad-tag!' }, ...payload.tags.slice(1)],
+  }))
+  assert.equal(invalidTag.status, 422)
 
   globalThis.fetch = (async () => new Response(
     `Cloudflare denied https://printer.example/base client-id client-secret ${'x'.repeat(600)}`,

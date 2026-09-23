@@ -6,8 +6,10 @@ import {
 } from '@contracts/laundry-tag-prints/laundry-tag-print.schema'
 import type { WorkOrderDetailDto } from '@/data/work-orders/work-order.service'
 import { apiPost } from '@/shared/api/api-client'
+import { generateId } from '@shared/utils/id'
 
 const ENDPOINT = '/api/laundry-tag-prints'
+const TAG_ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 
 export function createLaundryTagPrintRequest(
   order: WorkOrderDetailDto,
@@ -23,8 +25,7 @@ export function createLaundryTagPrintRequest(
   const tags = Array.from({ length: totalCount }, (_, index) => {
     let tagId: string
     do {
-      const value = crypto.getRandomValues(new Uint32Array(1))[0]!
-      tagId = (value % 100_000_000).toString().padStart(8, '0')
+      tagId = generateId({ length: 8, alphabet: TAG_ALPHABET })
     } while (usedIds.has(tagId))
     usedIds.add(tagId)
     return { sequence: index + 1, tagId }

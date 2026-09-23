@@ -4,16 +4,17 @@ import { useRoute, useRouter } from 'vue-router'
 import type { OrderImageType } from '@/features/orders/order-image-labels'
 import { isValidOrderImageWeight, MAX_ORDER_IMAGE_WEIGHT_KG } from '@shared/utils/item-quantity'
 
-export type OrderOverlay = 'item' | 'photo-weight' | 'photo-belonging' | 'photo-document'
+export type OrderOverlay = 'item' | 'photo-weight' | 'photo-belonging' | 'photo-document' | 'register-garment'
 
-const OVERLAY_VALUES: readonly OrderOverlay[] = ['item', 'photo-weight', 'photo-belonging', 'photo-document']
-export const overlayToImageType = { 'photo-weight': 'WEIGHT', 'photo-belonging': 'BELONGING', 'photo-document': 'DOCUMENT' } as const satisfies Record<Exclude<OrderOverlay, 'item'>, OrderImageType>
-export const imageTypeToOverlay = { WEIGHT: 'photo-weight', BELONGING: 'photo-belonging', DOCUMENT: 'photo-document' } as const satisfies Record<OrderImageType, Exclude<OrderOverlay, 'item'>>
+const OVERLAY_VALUES: readonly OrderOverlay[] = ['item', 'photo-weight', 'photo-belonging', 'photo-document', 'register-garment']
+export const overlayToImageType = { 'photo-weight': 'WEIGHT', 'photo-belonging': 'BELONGING', 'photo-document': 'DOCUMENT' } as const satisfies Record<Exclude<OrderOverlay, 'item' | 'register-garment'>, OrderImageType>
+export const imageTypeToOverlay = { WEIGHT: 'photo-weight', BELONGING: 'photo-belonging', DOCUMENT: 'photo-document' } as const satisfies Record<OrderImageType, Exclude<OrderOverlay, 'item' | 'register-garment'>>
 
 const OVERLAY_QUERY_KEY = 'orderAction'
 const LEGACY_ITEM_QUERY_KEY = 'item'
 const LEGACY_CAPTURE_QUERY_KEY = 'capture'
 const WEIGHT_QUERY_KEY = 'weight'
+const REGISTER_ITEM_QUERY_KEY = 'registerItem'
 export { MAX_ORDER_IMAGE_WEIGHT_KG }
 
 function readFirstQueryValue(value: unknown): string | null {
@@ -36,8 +37,15 @@ export function buildOrderOverlayQuery(query: LocationQuery, overlay: OrderOverl
   delete nextQuery[LEGACY_ITEM_QUERY_KEY]
   delete nextQuery[LEGACY_CAPTURE_QUERY_KEY]
   delete nextQuery[WEIGHT_QUERY_KEY]
+  delete nextQuery[REGISTER_ITEM_QUERY_KEY]
   if (overlay) nextQuery[OVERLAY_QUERY_KEY] = overlay
   return nextQuery
+}
+
+export function readRegistrationItemId(query: LocationQuery): string | null {
+  if (readOrderOverlay(query) !== 'register-garment') return null
+  const itemId = readFirstQueryValue(query[REGISTER_ITEM_QUERY_KEY])?.trim()
+  return itemId || null
 }
 
 export function parseOrderImageWeight(raw: string): number | null {
@@ -62,10 +70,11 @@ export function useOrderOverlayRoute() {
 
   watch(activeOverlay, (overlay) => { if (overlay === null) pushedByUs = false })
 
-  function open(overlay: OrderOverlay) {
+  function open(overlay: OrderOverlay, orderItemId?: string) {
     if (activeOverlay.value === overlay) return
 
     const query = buildOrderOverlayQuery(route.query, overlay)
+    if (overlay === 'register-garment' && orderItemId) query[REGISTER_ITEM_QUERY_KEY] = orderItemId
     if (activeOverlay.value !== null) {
       void router.replace({ query })
       return

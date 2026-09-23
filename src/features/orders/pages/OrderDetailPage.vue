@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { serviceTypeLabel } from '@/shared/utils/service-type-labels'
-import { computed, onActivated, reactive, ref, watch } from 'vue'
+import { computed, onActivated, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { z } from 'zod'
 import { orderItemCreateSchema } from '@contracts/order-items/order-item-api.schema'
@@ -21,9 +21,13 @@ import DocumentScannerOverlay from '@/features/orders/components/DocumentScanner
 import OrderImageSection from '@/features/orders/components/OrderImageSection.vue'
 import { useOrderImageStore } from '@/features/orders/stores/order-image.store'
 import { listLaundryPhotos } from '@/data/laundry-photos/laundry-photo.service'
+import { createLaundryPhoto, listLaundryPhotoTagIds } from '@/data/laundry-photos/laundry-photo.service'
+import { uploadToStorage } from '@/shared/api/firebase-storage'
+import GarmentRegistrationCamera from '@/features/orders/components/GarmentRegistrationCamera.vue'
+import { canSaveGarment, isDuplicateGarmentTag, validGarmentTag } from '@/features/orders/garment-registration'
 import OrderImageWeightPrompt from '@/features/orders/components/OrderImageWeightPrompt.vue'
 import { useOrderOverlayRoute } from '@/features/orders/composables/use-order-overlay-route'
-import { imageTypeToOverlay, overlayToImageType, readOrderImageWeight } from '@/features/orders/composables/use-order-overlay-route'
+import { imageTypeToOverlay, overlayToImageType, readOrderImageWeight, readRegistrationItemId } from '@/features/orders/composables/use-order-overlay-route'
 import type { OrderImageType } from '@/features/orders/order-image-labels'
 import { presentationFor } from '@/features/orders/order-status-presentation'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
@@ -59,6 +63,42 @@ const tagPrintSuccess = ref<string | null>(null)
 const tagPrintError = ref<string | null>(null)
 const tagPrintConfirmOpen = ref(false)
 const orderApprovalNotice = ref<{ message: string, success: boolean } | null>(null)
+const registrationItemId = computed(() => readRegistrationItemId(route.query))
+const isRegistrationOpen = computed(() => orderOverlay.activeOverlay === 'register-garment')
+const registrationItem = computed(() => currentOrder.value?.orderId === orderId.value
+  ? currentOrder.value.items.find(item => item.orderItemId === registrationItemId.value) ?? null
+  : null)
+const registrationTag = ref<string | null>(null)
+const registrationPhoto = ref<File | null>(null)
+const registrationWarning = ref<string | null>(null)
+const registrationErrors = ref<string[]>([])
+const registrationLoadError = ref<string | null>(null)
+const registrationTagsReady = ref(false)
+const existingRegistrationTags = ref(new Set<string>())
+const sessionRegistrationTags = ref(new Set<string>())
+const pendingRegistrationTags = ref(new Set<string>())
+const registrationCount = ref(0)
+const registrationLoading = ref(false)
+const registrationResetVersion = ref(0)
+const registrationCanSave = computed(() =>
+  isRegistrationOpen.value && registrationItem.value !== null && registrationTagsReady.value && !registrationLoading.value && canSaveGarment(
+    registrationTag.value, registrationPhoto.value,
+    existingRegistrationTags.value, sessionRegistrationTags.value,
+  ),
+)
+let registrationLoadSequence = 0
+let registrationWarningTimer: number | null = null
+
+function setRegistrationWarning(message: string | null): void {
+  if (registrationWarningTimer !== null) window.clearTimeout(registrationWarningTimer)
+  registrationWarningTimer = null
+  registrationWarning.value = message
+  if (message === null) return
+  registrationWarningTimer = window.setTimeout(() => {
+    registrationWarning.value = null
+    registrationWarningTimer = null
+  }, 3000)
+}
 
 function consumeOrderApprovalNotice(): void {
   const state = window.history.state
@@ -102,7 +142,7 @@ const isItemFormOpen = computed(() => orderOverlay.isItemOpen && selectedPriceLi
 const pickerError = computed(() => detailError.value ?? itemsStore.error)
 const captureImageType = computed<OrderImageType | null>(() => {
   const overlay = orderOverlay.activeOverlay
-  if (overlay === null || overlay === 'item') return null
+  if (overlay === null || overlay === 'item' || overlay === 'register-garment') return null
   return overlayToImageType[overlay]
 })
 const captureWeight = computed<number | null>(() => {
@@ -135,6 +175,16 @@ const itemSubmitting = computed(() => itemSubmittingOrderId.value === orderId.va
 const currentItemError = computed(() => itemErrorOrderId.value === orderId.value ? itemError.value : null)
 watch(orderId, (id) => {
   selectedImagePreview.value = null
+  registrationLoadSequence += 1
+  resetRegistration()
+  existingRegistrationTags.value = new Set()
+  sessionRegistrationTags.value = new Set()
+  pendingRegistrationTags.value = new Set()
+  registrationCount.value = 0
+  registrationErrors.value = []
+  registrationLoadError.value = null
+  registrationTagsReady.value = false
+  registrationLoading.value = false
   tagPrintSuccess.value = null
   tagPrintError.value = null
   tagPrintConfirmOpen.value = false
@@ -142,11 +192,130 @@ watch(orderId, (id) => {
     void workOrderStore.loadDetail(id)
     void orderImageStore.loadImages(id)
     void listLaundryPhotos(id).catch(() => {})
+    void loadRegistrationTags(id)
     return
   }
   workOrderStore.clearDetail()
   orderImageStore.clearImages()
 }, { immediate: true })
+
+watch(isRegistrationOpen, open => {
+  if (!open) resetRegistration()
+}, { immediate: true })
+
+onBeforeUnmount(() => {
+  registrationLoadSequence += 1
+  clearRegistrationPhoto()
+  setRegistrationWarning(null)
+})
+
+function clearRegistrationPhoto(): void {
+  registrationPhoto.value = null
+}
+
+function resetRegistration(): void {
+  registrationTag.value = null
+  clearRegistrationPhoto()
+  setRegistrationWarning(null)
+  registrationResetVersion.value += 1
+}
+
+function mergeRegistrationTags(tags: ReadonlySet<string>): void {
+  const merged = new Set(existingRegistrationTags.value)
+  for (const tag of tags) merged.add(tag)
+  existingRegistrationTags.value = merged
+  const pendingTag = registrationTag.value
+  if (pendingTag && isDuplicateGarmentTag(pendingTag, merged, sessionRegistrationTags.value)) {
+    resetRegistration()
+    setRegistrationWarning(`แท็ก ${pendingTag} ลงทะเบียนแล้ว กรุณาใช้แท็กอื่น`)
+  }
+}
+
+async function loadRegistrationTags(id: string): Promise<void> {
+  const sequence = ++registrationLoadSequence
+  registrationLoading.value = true
+  registrationLoadError.value = null
+  registrationTagsReady.value = false
+  try {
+    const tags = await listLaundryPhotoTagIds(id, freshTags => {
+      if (sequence === registrationLoadSequence && id === orderId.value) mergeRegistrationTags(freshTags)
+    })
+    if (sequence === registrationLoadSequence && id === orderId.value) {
+      mergeRegistrationTags(tags)
+      registrationTagsReady.value = true
+    }
+  } catch {
+    if (sequence === registrationLoadSequence) registrationLoadError.value = 'โหลดแท็กเดิมไม่สำเร็จ กรุณาลองใหม่'
+  } finally {
+    if (sequence === registrationLoadSequence) registrationLoading.value = false
+  }
+}
+
+function openRegistration(orderItemId: string): void {
+  if (!orderId.value || !orderItemId) return
+  orderOverlay.open('register-garment', orderItemId)
+}
+
+function acceptRegistrationTag(value: string): void {
+  if (!registrationItem.value) return
+  const tag = validGarmentTag(value)
+  if (!tag) {
+    setRegistrationWarning('รหัสแท็กต้องเป็นตัวอักษรหรือตัวเลข 8 ตัว')
+    return
+  }
+  if (registrationTagsReady.value && isDuplicateGarmentTag(tag, existingRegistrationTags.value, sessionRegistrationTags.value)) {
+    resetRegistration()
+    setRegistrationWarning(`แท็ก ${tag} ลงทะเบียนแล้ว กรุณาใช้แท็กอื่น`)
+    return
+  }
+  setRegistrationWarning(null)
+  navigator.vibrate?.(70)
+  registrationTag.value = tag
+}
+
+function setRegistrationPhoto(file: File): void {
+  clearRegistrationPhoto()
+  registrationPhoto.value = file
+  setRegistrationWarning(null)
+}
+
+function saveRegistration(): void {
+  if (!registrationCanSave.value || !registrationTag.value || !registrationPhoto.value || !registrationItemId.value) return
+  const tag = registrationTag.value
+  const file = registrationPhoto.value
+  const targetOrderId = orderId.value
+  const targetOrderItemId = registrationItemId.value
+  const actor = currentActor(Array.isArray(route.query.by) ? route.query.by[0] : route.query.by)
+  sessionRegistrationTags.value.add(tag)
+  pendingRegistrationTags.value.add(tag)
+  resetRegistration()
+  void uploadToStorage(file)
+    .then(imageUrl => createLaundryPhoto({
+      orderId: targetOrderId,
+      orderItemId: targetOrderItemId,
+      itemId: tag,
+      createdBy: actor,
+      imageUrl,
+    }))
+    .then(() => {
+      if (orderId.value === targetOrderId) {
+        pendingRegistrationTags.value.delete(tag)
+        existingRegistrationTags.value.add(tag)
+        registrationCount.value += 1
+      }
+    })
+    .catch(() => {
+      if (orderId.value === targetOrderId) {
+        pendingRegistrationTags.value.delete(tag)
+        sessionRegistrationTags.value.delete(tag)
+        registrationErrors.value.push(`อัปโหลดแท็ก ${tag} ไม่สำเร็จ กรุณาลองใหม่`)
+      }
+    })
+}
+
+watch(registrationCanSave, ready => {
+  if (ready) saveRegistration()
+}, { flush: 'sync' })
 
 watch([canPrintTags, tagPrinting], ([canPrint, printing]) => {
   if (!canPrint && !printing) tagPrintConfirmOpen.value = false
@@ -286,7 +455,7 @@ function clearItemError() {
 </script>
 
 <template>
-  <AppLayout><ScrollRegion as="main" class="bg-surface pb-8"><div v-if="detailLoading && !currentOrder" class="space-y-4 p-4 animate-pulse"><div class="h-40 rounded-2xl bg-surface-container" /><div class="h-32 rounded-2xl bg-surface-container" /></div><p v-else-if="detailError" class="p-5 text-sm text-error">{{ detailError }}</p><template v-else-if="currentOrder"><div class="space-y-4 p-4"><div v-if="orderApprovalNotice" :role="orderApprovalNotice.success ? 'status' : 'alert'" class="flex items-start gap-2 rounded-xl px-3 py-2 text-sm" :class="orderApprovalNotice.success ? 'bg-success-container text-on-success-container' : 'bg-error-container text-on-error-container'"><span class="flex-1">{{ orderApprovalNotice.message }}</span><button type="button" class="shrink-0 rounded p-0.5" aria-label="Close ticket creation result" @click="orderApprovalNotice = null"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span></button></div><section class="relative overflow-hidden rounded-[20px] border border-mint/25 bg-primary px-5 pb-4 pt-3 text-on-primary shadow-lg"><div class="pointer-events-none absolute -right-[138px] -top-[112px] h-[270px] w-[270px] rounded-full border-[34px] border-mint/[0.17]" /><div class="pointer-events-none absolute -bottom-[21px] right-[38px] h-[42px] w-[42px] rounded-full bg-lime shadow-[-22px_-11px_0_rgba(178,223,38,0.22)]" /><div class="relative flex items-start justify-between gap-3"><p class="font-label text-[9px] font-bold uppercase tracking-[0.18em] text-mint">Order detail</p><BaseBadge class="-mt-1 shrink-0" :label="presentationFor(currentOrder.status).label" size="lg" :uppercase="true" :tone="presentationFor(currentOrder.status).tone" /></div><h1 class="relative mt-1 truncate font-headline text-[26px] font-bold leading-tight tracking-tight">{{ currentCustomerName }}</h1><div class="relative mt-2 border-t border-white/15 pt-2"><template v-if="laundryWindow"><div class="flex items-baseline justify-between gap-3"><p class="font-label text-[9px] font-bold uppercase tracking-[0.14em] text-mint">Laundry window · {{ laundryWindow.span }} days</p><p v-if="laundryWindow.remaining > 0" class="shrink-0 font-headline text-xs font-bold text-lime">{{ laundryWindow.remaining }} days left</p><p v-else-if="laundryWindow.remaining === 0" class="shrink-0 font-headline text-xs font-bold text-lime">Due today</p><p v-else class="shrink-0 rounded-full bg-error px-2 py-0.5 font-headline text-[11px] font-bold text-white">{{ -laundryWindow.remaining }} days overdue</p></div><div class="relative mt-1.5 h-1.5 rounded-full bg-white/20"><div class="h-full rounded-full bg-mint" :style="{ width: laundryWindow.percent + '%' }" /><span class="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-mint bg-primary" :style="{ left: laundryWindow.percent + '%' }" /></div></template><div class="mt-2 flex items-start justify-between gap-3"><div class="min-w-0"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-mint">Pickup</p><p class="mt-0.5 font-headline text-[13px] font-bold">{{ currentOrder.receivedDate ? formatSheetDate(currentOrder.receivedDate) : 'Not set' }}</p></div><div class="min-w-0 text-right"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-mint">Due</p><p class="mt-0.5 font-headline text-[13px] font-bold">{{ currentOrder.dueDate ? formatSheetDate(currentOrder.dueDate) : 'Not set' }}</p></div></div><div class="mt-2 flex items-start justify-between gap-3"><div class="min-w-0"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-mint">Service</p><p class="mt-0.5 truncate font-headline text-[13px] font-bold">{{ serviceTypeLabel(currentOrder.serviceType) ?? '—' }}</p></div><div class="min-w-0 text-right"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-mint">Quantity</p><p class="mt-0.5 font-headline text-[13px] font-bold">{{ currentOrder.quantity ?? '—' }}</p></div></div><div v-if="currentOrder.invoiceNumber" class="mt-2 flex items-start justify-between gap-3"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-mint">Invoice</p><p class="min-w-0 truncate font-headline text-[13px] font-bold">{{ currentOrder.invoiceNumber }}</p></div></div></section><section v-if="currentOrder.note" class="rounded-xl border border-outline-variant/20 bg-surface-container-low px-3 py-3 shadow-sm"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">Note</p><p class="mt-1 whitespace-pre-wrap font-body text-sm leading-relaxed text-on-surface">{{ currentOrder.note }}</p></section><div><ListContainer class="overflow-hidden rounded-2xl shadow-sm" title="Items" icon="checkroom" :count="detailLoading ? undefined : currentOrder.items.length" count-label="items" :loading="detailLoading" :error="detailError ?? undefined" :empty="currentOrder.items.length === 0" empty-text="No items yet" :skeleton-rows="3"><template #actions><OrderItemsMenu @add-item="openItemOverlay" @open-album="openOrderGallery" /></template><OrderItemRow v-for="(item, index) in currentOrder.items" :key="item.orderItemId ?? `${currentOrder.orderId}-${index}`" :item="item" :index="index" @select="openItemGallery" /></ListContainer><OrderTagPrintAction :total-count="tagCount" :can-print="canPrintTags" :printing="tagPrinting" :print-success="tagPrintSuccess" :print-error="tagPrintError" @print="openTagPrintConfirm" /></div><div class="-mx-4"><OrderImageSection :images="images" :loading="imagesLoading" :error="imagesError" :upload-error="uploadError" :uploading-count="uploadingCount" @capture="openCapture" @clear-upload-error="orderImageStore.clearUploadError" @preview="openImagePreview" /></div></div></template><p v-else class="p-5 text-sm text-on-surface-variant">Order not found</p></ScrollRegion><OrderImageWeightPrompt :open="isWeightPromptOpen" @submit="submitWeight" @close="orderOverlay.close" /><CameraOverlay :open="isSimpleCameraOpen" @close="orderOverlay.close" @capture="handleCapture" /><DocumentScannerOverlay :open="isDocumentScannerOpen" @close="orderOverlay.close" @capture="handleCapture" /></AppLayout>
+  <AppLayout><ScrollRegion as="main" class="bg-surface pb-8"><div v-if="detailLoading && !currentOrder" class="space-y-4 p-4 animate-pulse"><div class="h-40 rounded-2xl bg-surface-container" /><div class="h-32 rounded-2xl bg-surface-container" /></div><p v-else-if="detailError" class="p-5 text-sm text-error">{{ detailError }}</p><template v-else-if="currentOrder"><div class="space-y-4 p-4"><div v-if="orderApprovalNotice" :role="orderApprovalNotice.success ? 'status' : 'alert'" class="flex items-start gap-2 rounded-xl px-3 py-2 text-sm" :class="orderApprovalNotice.success ? 'bg-success-container text-on-success-container' : 'bg-error-container text-on-error-container'"><span class="flex-1">{{ orderApprovalNotice.message }}</span><button type="button" class="shrink-0 rounded p-0.5" aria-label="Close ticket creation result" @click="orderApprovalNotice = null"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span></button></div><section class="relative overflow-hidden rounded-[20px] border border-mint/25 bg-primary px-5 pb-4 pt-3 text-on-primary shadow-lg"><div class="pointer-events-none absolute -right-[138px] -top-[112px] h-[270px] w-[270px] rounded-full border-[34px] border-mint/[0.17]" /><div class="pointer-events-none absolute -bottom-[21px] right-[38px] h-[42px] w-[42px] rounded-full bg-lime shadow-[-22px_-11px_0_rgba(178,223,38,0.22)]" /><div class="relative flex items-start justify-between gap-3"><p class="font-label text-[9px] font-bold uppercase tracking-[0.18em] text-mint">Order detail</p><BaseBadge class="-mt-1 shrink-0" :label="presentationFor(currentOrder.status).label" size="lg" :uppercase="true" :tone="presentationFor(currentOrder.status).tone" /></div><h1 class="relative mt-1 truncate font-headline text-[26px] font-bold leading-tight tracking-tight">{{ currentCustomerName }}</h1><div class="relative mt-2 border-t border-white/15 pt-2"><template v-if="laundryWindow"><div class="flex items-baseline justify-between gap-3"><p class="font-label text-[9px] font-bold uppercase tracking-[0.14em] text-mint">Laundry window · {{ laundryWindow.span }} days</p><p v-if="laundryWindow.remaining > 0" class="shrink-0 font-headline text-xs font-bold text-lime">{{ laundryWindow.remaining }} days left</p><p v-else-if="laundryWindow.remaining === 0" class="shrink-0 font-headline text-xs font-bold text-lime">Due today</p><p v-else class="shrink-0 rounded-full bg-error px-2 py-0.5 font-headline text-[11px] font-bold text-white">{{ -laundryWindow.remaining }} days overdue</p></div><div class="relative mt-1.5 h-1.5 rounded-full bg-white/20"><div class="h-full rounded-full bg-mint" :style="{ width: laundryWindow.percent + '%' }" /><span class="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-mint bg-primary" :style="{ left: laundryWindow.percent + '%' }" /></div></template><div class="mt-2 flex items-start justify-between gap-3"><div class="min-w-0"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-mint">Pickup</p><p class="mt-0.5 font-headline text-[13px] font-bold">{{ currentOrder.receivedDate ? formatSheetDate(currentOrder.receivedDate) : 'Not set' }}</p></div><div class="min-w-0 text-right"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-mint">Due</p><p class="mt-0.5 font-headline text-[13px] font-bold">{{ currentOrder.dueDate ? formatSheetDate(currentOrder.dueDate) : 'Not set' }}</p></div></div><div class="mt-2 flex items-start justify-between gap-3"><div class="min-w-0"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-mint">Service</p><p class="mt-0.5 truncate font-headline text-[13px] font-bold">{{ serviceTypeLabel(currentOrder.serviceType) ?? '—' }}</p></div><div class="min-w-0 text-right"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-mint">Quantity</p><p class="mt-0.5 font-headline text-[13px] font-bold">{{ currentOrder.quantity ?? '—' }}</p></div></div><div v-if="currentOrder.invoiceNumber" class="mt-2 flex items-start justify-between gap-3"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-mint">Invoice</p><p class="min-w-0 truncate font-headline text-[13px] font-bold">{{ currentOrder.invoiceNumber }}</p></div></div></section><section v-if="currentOrder.note" class="rounded-xl border border-outline-variant/20 bg-surface-container-low px-3 py-3 shadow-sm"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">Note</p><p class="mt-1 whitespace-pre-wrap font-body text-sm leading-relaxed text-on-surface">{{ currentOrder.note }}</p></section><div><ListContainer class="overflow-hidden rounded-2xl shadow-sm" title="Items" icon="checkroom" :count="detailLoading ? undefined : currentOrder.items.length" count-label="items" :loading="detailLoading" :error="detailError ?? undefined" :empty="currentOrder.items.length === 0" empty-text="No items yet" :skeleton-rows="3"><template #actions><OrderItemsMenu @add-item="openItemOverlay" @open-album="openOrderGallery" /></template><OrderItemRow v-for="(item, index) in currentOrder.items" :key="item.orderItemId ?? `${currentOrder.orderId}-${index}`" :item="item" :index="index" @select="openItemGallery" @register="openRegistration" /></ListContainer><OrderTagPrintAction :total-count="tagCount" :can-print="canPrintTags" :printing="tagPrinting" :print-success="tagPrintSuccess" :print-error="tagPrintError" @print="openTagPrintConfirm" /></div><div class="-mx-4"><OrderImageSection :images="images" :loading="imagesLoading" :error="imagesError" :upload-error="uploadError" :uploading-count="uploadingCount" @capture="openCapture" @clear-upload-error="orderImageStore.clearUploadError" @preview="openImagePreview" /></div></div></template><p v-else class="p-5 text-sm text-on-surface-variant">Order not found</p></ScrollRegion><OrderImageWeightPrompt :open="isWeightPromptOpen" @submit="submitWeight" @close="orderOverlay.close" /><CameraOverlay :open="isSimpleCameraOpen" @close="orderOverlay.close" @capture="handleCapture" /><DocumentScannerOverlay :open="isDocumentScannerOpen" @close="orderOverlay.close" @capture="handleCapture" /></AppLayout>
   <OrderTagPrintConfirmDialog
     :open="tagPrintConfirmOpen"
     :total-count="tagCount ?? 1"
@@ -333,4 +502,28 @@ function clearItemError() {
     @submit="addItem"
     @clear-error="clearItemError"
   />
+  <GarmentRegistrationCamera
+    v-if="registrationItem"
+    :open="isRegistrationOpen"
+    :tag="registrationTag"
+    :has-photo="registrationPhoto !== null"
+    :registered-count="registrationCount"
+    :pending-count="pendingRegistrationTags.size"
+    :tag-checking="registrationTag !== null && registrationLoading"
+    :warning="registrationWarning"
+    :errors="registrationErrors"
+    :load-error="registrationLoadError"
+    :item-label="registrationItem.description || 'รายการผ้า'"
+    :reset-version="registrationResetVersion"
+    @close="orderOverlay.close"
+    @tag="acceptRegistrationTag"
+    @photo="setRegistrationPhoto"
+    @redo-tag="registrationTag = null"
+    @retry="loadRegistrationTags(orderId)"
+    @clear-error="index => registrationErrors.splice(index, 1)"
+  />
+  <div v-else-if="isRegistrationOpen" class="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-4 bg-surface p-6 text-on-surface">
+    <p role="alert">{{ detailLoading ? 'กำลังโหลดรายการผ้า…' : 'ไม่พบรายการผ้านี้' }}</p>
+    <button type="button" class="rounded-full bg-primary px-5 py-2 text-on-primary" @click="orderOverlay.close">ปิด</button>
+  </div>
 </template>

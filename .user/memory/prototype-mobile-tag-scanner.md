@@ -23,12 +23,18 @@
 - Every module mints ids through `shared/utils/id.ts`, which both runtimes import.
 - G Drive `JobTicket.json` and the live JobTickets tab carry the 23 agreed columns; the old malformed `spreadsheetId` is corrected.
 
-## Agreed changes not yet made
-- Tag codes move from 8 decimal digits to 8 base62 characters. This cannot ship from this repo alone: the print server strips non-digits (`C:/MagicwashInvoice/server.js:274-276`) and validates 8 digits, so the generator, `laundry-tag-print.schema.ts` and that repo must change together, most likely when the label becomes a QR code.
+## Garment registration screen (built 2026-09-23, awaiting phone test on Preview)
+- Spec and behaviour: `docs/features/orders/garment-registration.md`; component `GarmentRegistrationCamera.vue` (old camera components untouched).
+- Open decision: phone Back still closes the screen while uploads are pending; user not yet asked to block it.
+- Once proven on a phone, the old camera component copy can be removed per the user.
+- Codex session for this screen: `01a0cd22-c35b-7bb2-8297-11120a74e806`.
+
+## Tag ids
+- Web now generates 8-char base62 ids via `shared/utils/id.ts`; print server (MagicwashInvoice `baf0899`) prints QR and accepts any text.
+- The running print server must be restarted onto `baf0899` before base62 tags print correctly; real-print QR scan test still pending.
 
 ## Next
 - Decide the order status sequence before any swipe-to-advance work; six statuses exist and no transition rule is defined anywhere.
-- The tagging flow must write the scanned tag into `LaundryPhotos.item_id`. Until it does, approving an order provisions no tickets at all.
 - Scanner page needs a department selector and a call to `POST /api/job-tickets/scan`.
 - Persist tag ids at print time and add a single-tag reprint flow before real use.
 - `JOB_TICKETS_SPREADSHEET_ID` is in `.env.local`; confirm Vercel has it too.
