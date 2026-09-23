@@ -5,13 +5,15 @@ const emit = defineEmits<{
   addItem: []
   openAlbum: []
   openLibrary: []
+  registerGarments: []
 }>()
 
-function select(action: 'addItem' | 'openAlbum' | 'openLibrary', close: () => void): void {
+function select(action: 'addItem' | 'openAlbum' | 'openLibrary' | 'registerGarments', close: () => void): void {
   close()
   if (action === 'addItem') emit('addItem')
   else if (action === 'openAlbum') emit('openAlbum')
-  else emit('openLibrary')
+  else if (action === 'openLibrary') emit('openLibrary')
+  else emit('registerGarments')
 }
 </script>
 
@@ -55,6 +57,14 @@ function select(action: 'addItem' | 'openAlbum' | 'openLibrary', close: () => vo
         >
           <span class="material-symbols-outlined text-[16px] leading-none text-primary" aria-hidden="true">grid_view</span>
           Photo library
+        </button>
+        <button
+          type="button"
+          class="flex w-full items-center gap-2 px-3 py-2 text-left font-body text-[12px] text-on-surface transition-colors hover:bg-surface-container-low focus:bg-surface-container-low focus:outline-none active:bg-surface-container"
+          @click="select('registerGarments', close)"
+        >
+          <span class="material-symbols-outlined text-[16px] leading-none text-primary" aria-hidden="true">qr_code_scanner</span>
+          Register garments
         </button>
       </div>
     </template>

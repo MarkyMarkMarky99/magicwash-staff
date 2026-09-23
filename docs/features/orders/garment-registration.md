@@ -3,6 +3,9 @@
 The order detail item menu opens the before-photo registration overlay with
 `?orderAction=register-garment&registerItem=<orderItemId>`. The order ID comes from
 `/orders/:orderId`. The item row itself still opens that item's before-photo gallery.
+The Items menu's **Register garments** action opens the same overlay without `registerItem`:
+photos are created with no order item, so a batch can be shot first and assigned later from the
+order photo library (`docs/design/order-photo-library.md`), where they appear under "No item".
 The overlay follows the order detail query navigation: opening pushes a history entry,
 Back closes it, and a refreshed deep link closes by replacing the overlay query.
 
@@ -46,7 +49,7 @@ Invalid-format and duplicate-tag warnings disappear three seconds after their la
 
 Saving reserves the tag and resets the current garment immediately. In the background, the camera
 JPEG uploads to Firebase Storage's `images` folder, then the existing LaundryPhotos create
-API receives `orderId`, `orderItemId`, `itemId`, `createdBy`, and `imageUrl`. The actor is
+API receives `orderId`, `orderItemId` (`null` when opened without an item), `itemId`, `createdBy`, and `imageUrl`. The actor is
 resolved with `currentActor` from the optional `by` query, matching the gallery upload.
 The registered count increases only after the create request succeeds. A failure releases
 the tag for retry and shows a dismissible error naming it. The close button remains disabled

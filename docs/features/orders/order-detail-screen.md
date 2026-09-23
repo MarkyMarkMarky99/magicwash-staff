@@ -30,3 +30,5 @@ The item form uses `useOrderOverlayRoute`.
 Each item row opens its before-photo gallery on tap and offers a separate menu action to
 register a garment's tag and before-photo. See [garment registration](garment-registration.md).
 The registration overlay is owned by `?orderAction=register-garment&registerItem=<orderItemId>`.
+The Items menu also offers **Register garments**, which opens it without `registerItem` to register
+garments not yet assigned to an item.
