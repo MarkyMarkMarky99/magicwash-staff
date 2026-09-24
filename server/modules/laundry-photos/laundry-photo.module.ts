@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import {
   laundryPhotoApiContract,
+  laundryPhotoReassignSchema,
+  laundryPhotoReassignResponseSchema,
   laundryPhotoUpdateResponseSchema,
 } from '../../../contracts/laundry-photos/laundry-photo-api.schema.js'
 import { getLaundryPhotosRepository } from '../../sheets/LaundryPhotos/LaundryPhotos.repository.js'
@@ -8,9 +10,12 @@ import { laundryPhotosRowSchema } from '../../sheets/LaundryPhotos/LaundryPhotos
 import { getOrderItemFormsRepository } from '../../sheets/OrderItemForms/OrderItemForms.repository.js'
 import { orderItemFormsRowSchema } from '../../sheets/OrderItemForms/OrderItemForms.db-contract.js'
 import { Mapper, type ApiRowFromFieldMap } from '../../shared/repositories/base.repository.js'
-import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
+import type { SheetBatchUpdateContract, SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
 import { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
+import { ApiHandler } from '../../shared/http/api-handler.js'
+import type { GatewayModuleRoutes } from '../../shared/http/gateway.types.js'
+import { ok } from '../../shared/http/response.js'
 import { ApiError } from '../../shared/http/api-error.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import { BaseCrudService, mapDbRowToApi } from '../../shared/services/base-crud.service.js'
@@ -47,9 +52,11 @@ type LaundryPhotoListResponse = z.infer<typeof laundryPhotoApiContract.response.
 type LaundryPhotoDetailResponse = z.infer<typeof laundryPhotoApiContract.response.detail>
 type LaundryPhotoCreateResponse = z.infer<typeof laundryPhotoApiContract.response.create>
 type LaundryPhotoUpdateResponse = z.infer<typeof laundryPhotoApiContract.response.update>
+type LaundryPhotoReassignResponse = z.infer<typeof laundryPhotoReassignResponseSchema>
+type LaundryPhotoRepository = SheetRepositoryContract<LaundryPhotosDbRow> & SheetBatchUpdateContract<LaundryPhotosDbRow>
 
 export interface LaundryPhotoServiceOptions {
-  repository?: SheetRepositoryContract<LaundryPhotosDbRow>
+  repository?: LaundryPhotoRepository
   orderItemFormsRepository?: () => SheetRepositoryContract<OrderItemFormsDbRow>
 }
 
@@ -66,13 +73,14 @@ function prepareLaundryPhotoAppendRow(
   }
 }
 
-export function createLaundryPhotoRepository(): SheetRepositoryContract<LaundryPhotosDbRow> {
+export function createLaundryPhotoRepository(): LaundryPhotoRepository {
   return {
     read: (query) => getLaundryPhotosRepository().read(query),
     append: (row) => getLaundryPhotosRepository().append(prepareLaundryPhotoAppendRow(row)),
     batchAppend: (rows) =>
       getLaundryPhotosRepository().batchAppend(rows.map(prepareLaundryPhotoAppendRow)),
     update: (keyValue, patch) => getLaundryPhotosRepository().update(keyValue, patch),
+    updateMany: (updates) => getLaundryPhotosRepository().updateMany(updates),
     delete: (keyValue, deletedBy) => getLaundryPhotosRepository().delete(keyValue, deletedBy),
   }
 }
@@ -91,7 +99,7 @@ export class LaundryPhotoService extends BaseCrudService<
   LaundryPhotosDbRow,
   typeof laundryPhotoFieldMap
 > {
-  private readonly photoRepository: SheetRepositoryContract<LaundryPhotosDbRow>
+  private readonly photoRepository: LaundryPhotoRepository
   private readonly orderItemFormsRepository: () => SheetRepositoryContract<OrderItemFormsDbRow>
 
   constructor(input: LaundryPhotoServiceOptions = {}) {
@@ -144,7 +152,53 @@ export class LaundryPhotoService extends BaseCrudService<
     const apiRow = mapDbRowToApi(stored, laundryPhotoMapper, {})
     return projectResponse<LaundryPhotoUpdateResponse>(apiRow, laundryPhotoUpdateResponseSchema)
   }
+
+  async reassign(payload: unknown): Promise<LaundryPhotoReassignResponse> {
+    const data = parseOrThrow(laundryPhotoReassignSchema, payload)
+    if (new Set(data.photoIds).size !== data.photoIds.length) {
+      throw ApiError.badRequest('Duplicate photo id')
+    }
+
+    const itemRows = await this.orderItemFormsRepository().read(
+      ReadQueryDTO.fromId<Partial<OrderItemFormsDbRow>>(data.orderItemId),
+    )
+    const item = requireSingleRow(itemRows, data.orderItemId)
+    if (typeof item.order_id !== 'string' || item.order_id.trim() === '') {
+      throw ApiError.badRequest('Photo and order item must belong to an order')
+    }
+
+    const stored = await this.photoRepository.updateMany(data.photoIds.map((keyValue) => ({
+      keyValue,
+      patch: {
+        orderitem_id: data.orderItemId,
+        item_id: item.item_id,
+        updated_by: data.updatedBy,
+      },
+    })))
+    const photos = stored.map((row) => projectResponse<LaundryPhotoUpdateResponse>(
+      mapDbRowToApi(row, laundryPhotoMapper, {}), laundryPhotoUpdateResponseSchema,
+    ))
+    return { photos }
+  }
 }
 
 export const laundryPhotoService = new LaundryPhotoService()
-export const laundryPhotoRoutes = createCrudRoutes(laundryPhotoService, laundryPhotoApiContract)
+const crudRoutes = createCrudRoutes(laundryPhotoService, laundryPhotoApiContract)
+export const laundryPhotoRoutes: GatewayModuleRoutes = {
+  collection: crudRoutes.collection,
+  item: new ApiHandler({
+    GET: async (req) => {
+      if (req.params.id === 'reassign') throw ApiError.notFound('Route not found')
+      return crudRoutes.item!.handleRequest(req)
+    },
+    PATCH: async (req) => {
+      if (req.params.id === 'reassign') throw ApiError.notFound('Route not found')
+      return crudRoutes.item!.handleRequest(req)
+    },
+    POST: async (req) => {
+      if (req.params.id !== 'reassign') throw ApiError.notFound('Route not found')
+      return ok(await laundryPhotoService.reassign(req.body))
+    },
+    DELETE: async (req) => crudRoutes.item!.handleRequest(req),
+  }),
+}

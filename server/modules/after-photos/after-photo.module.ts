@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import {
   afterPhotoApiContract,
+  afterPhotoReassignSchema,
+  afterPhotoReassignResponseSchema,
   afterPhotoUpdateResponseSchema,
 } from '../../../contracts/after-photos/after-photo-api.schema.js'
 import { getAfterPhotoRepository } from '../../sheets/AfterPhoto/AfterPhoto.repository.js'
@@ -8,9 +10,12 @@ import { afterPhotoRowSchema } from '../../sheets/AfterPhoto/AfterPhoto.db-contr
 import { getOrderItemFormsRepository } from '../../sheets/OrderItemForms/OrderItemForms.repository.js'
 import { orderItemFormsRowSchema } from '../../sheets/OrderItemForms/OrderItemForms.db-contract.js'
 import { Mapper, type ApiRowFromFieldMap } from '../../shared/repositories/base.repository.js'
-import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
+import type { SheetBatchUpdateContract, SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
 import { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
+import { ApiHandler } from '../../shared/http/api-handler.js'
+import type { GatewayModuleRoutes } from '../../shared/http/gateway.types.js'
+import { ok } from '../../shared/http/response.js'
 import { ApiError } from '../../shared/http/api-error.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import { BaseCrudService, mapDbRowToApi } from '../../shared/services/base-crud.service.js'
@@ -47,9 +52,11 @@ type AfterPhotoListResponse = z.infer<typeof afterPhotoApiContract.response.list
 type AfterPhotoDetailResponse = z.infer<typeof afterPhotoApiContract.response.detail>
 type AfterPhotoCreateResponse = z.infer<typeof afterPhotoApiContract.response.create>
 type AfterPhotoUpdateResponse = z.infer<typeof afterPhotoApiContract.response.update>
+type AfterPhotoReassignResponse = z.infer<typeof afterPhotoReassignResponseSchema>
+type AfterPhotoRepository = SheetRepositoryContract<AfterPhotoDbRow> & SheetBatchUpdateContract<AfterPhotoDbRow>
 
 export interface AfterPhotoServiceOptions {
-  repository?: SheetRepositoryContract<AfterPhotoDbRow>
+  repository?: AfterPhotoRepository
   orderItemFormsRepository?: () => SheetRepositoryContract<OrderItemFormsDbRow>
 }
 
@@ -64,13 +71,14 @@ function prepareAfterPhotoAppendRow(row: Partial<AfterPhotoDbRow>): Partial<Afte
   }
 }
 
-export function createAfterPhotoRepository(): SheetRepositoryContract<AfterPhotoDbRow> {
+export function createAfterPhotoRepository(): AfterPhotoRepository {
   return {
     read: (query) => getAfterPhotoRepository().read(query),
     append: (row) => getAfterPhotoRepository().append(prepareAfterPhotoAppendRow(row)),
     batchAppend: (rows) =>
       getAfterPhotoRepository().batchAppend(rows.map(prepareAfterPhotoAppendRow)),
     update: (keyValue, patch) => getAfterPhotoRepository().update(keyValue, patch),
+    updateMany: (updates) => getAfterPhotoRepository().updateMany(updates),
     delete: (keyValue, deletedBy) => getAfterPhotoRepository().delete(keyValue, deletedBy),
   }
 }
@@ -89,7 +97,7 @@ export class AfterPhotoService extends BaseCrudService<
   AfterPhotoDbRow,
   typeof afterPhotoFieldMap
 > {
-  private readonly photoRepository: SheetRepositoryContract<AfterPhotoDbRow>
+  private readonly photoRepository: AfterPhotoRepository
   private readonly orderItemFormsRepository: () => SheetRepositoryContract<OrderItemFormsDbRow>
 
   constructor(input: AfterPhotoServiceOptions = {}) {
@@ -142,7 +150,53 @@ export class AfterPhotoService extends BaseCrudService<
     const apiRow = mapDbRowToApi(stored, afterPhotoMapper, {})
     return projectResponse<AfterPhotoUpdateResponse>(apiRow, afterPhotoUpdateResponseSchema)
   }
+
+  async reassign(payload: unknown): Promise<AfterPhotoReassignResponse> {
+    const data = parseOrThrow(afterPhotoReassignSchema, payload)
+    if (new Set(data.photoIds).size !== data.photoIds.length) {
+      throw ApiError.badRequest('Duplicate photo id')
+    }
+
+    const itemRows = await this.orderItemFormsRepository().read(
+      ReadQueryDTO.fromId<Partial<OrderItemFormsDbRow>>(data.orderItemId),
+    )
+    const item = requireSingleRow(itemRows, data.orderItemId)
+    if (typeof item.order_id !== 'string' || item.order_id.trim() === '') {
+      throw ApiError.badRequest('Photo and order item must belong to an order')
+    }
+
+    const stored = await this.photoRepository.updateMany(data.photoIds.map((keyValue) => ({
+      keyValue,
+      patch: {
+        orderitem_id: data.orderItemId,
+        item_id: item.item_id,
+        updated_by: data.updatedBy,
+      },
+    })))
+    const photos = stored.map((row) => projectResponse<AfterPhotoUpdateResponse>(
+      mapDbRowToApi(row, afterPhotoMapper, {}), afterPhotoUpdateResponseSchema,
+    ))
+    return { photos }
+  }
 }
 
 export const afterPhotoService = new AfterPhotoService()
-export const afterPhotoRoutes = createCrudRoutes(afterPhotoService, afterPhotoApiContract)
+const crudRoutes = createCrudRoutes(afterPhotoService, afterPhotoApiContract)
+export const afterPhotoRoutes: GatewayModuleRoutes = {
+  collection: crudRoutes.collection,
+  item: new ApiHandler({
+    GET: async (req) => {
+      if (req.params.id === 'reassign') throw ApiError.notFound('Route not found')
+      return crudRoutes.item!.handleRequest(req)
+    },
+    PATCH: async (req) => {
+      if (req.params.id === 'reassign') throw ApiError.notFound('Route not found')
+      return crudRoutes.item!.handleRequest(req)
+    },
+    POST: async (req) => {
+      if (req.params.id !== 'reassign') throw ApiError.notFound('Route not found')
+      return ok(await afterPhotoService.reassign(req.body))
+    },
+    DELETE: async (req) => crudRoutes.item!.handleRequest(req),
+  }),
+}

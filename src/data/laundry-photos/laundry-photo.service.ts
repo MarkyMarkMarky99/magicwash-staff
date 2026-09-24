@@ -5,6 +5,8 @@ import {
   laundryPhotoListQuerySchema,
   laundryPhotoResponseSchema,
   laundryPhotoUpdateSchema,
+  laundryPhotoReassignSchema,
+  laundryPhotoReassignResponseSchema,
 } from '@contracts/laundry-photos/laundry-photo-api.schema'
 import { apiGetList, apiPatch, apiPost } from '@/shared/api/api-client'
 import { uploadToStorage } from '@/shared/api/firebase-storage'
@@ -14,6 +16,8 @@ import { normalizeGarmentTagId } from '@/shared/utils/garment-tag-id'
 export type ReassignLaundryPhotoPayload = z.infer<typeof laundryPhotoUpdateSchema>
 export type CreateLaundryPhotoPayload = z.infer<typeof laundryPhotoCreateSchema>
 type LaundryPhotoDto = z.infer<typeof laundryPhotoResponseSchema>
+type LaundryPhotoReassignPayload = z.infer<typeof laundryPhotoReassignSchema>
+type LaundryPhotoReassignResponse = z.infer<typeof laundryPhotoReassignResponseSchema>
 export interface GalleryPhoto {
   id: string
   orderItemId: string | null
@@ -99,6 +103,17 @@ export async function reassignLaundryPhoto(
   const result = await apiPatch<LaundryPhotoDto>(`${LAUNDRY_PHOTOS_ENDPOINT}/${encodedPhotoId}`, {
     data: payload,
     requestSchema: laundryPhotoUpdateSchema,
+  })
+  invalidate(LAUNDRY_PHOTOS_ENDPOINT)
+  return result
+}
+
+export async function reassignLaundryPhotos(
+  payload: LaundryPhotoReassignPayload,
+): Promise<LaundryPhotoReassignResponse> {
+  const result = await apiPost<LaundryPhotoReassignResponse>(`${LAUNDRY_PHOTOS_ENDPOINT}/reassign`, {
+    data: payload,
+    requestSchema: laundryPhotoReassignSchema,
   })
   invalidate(LAUNDRY_PHOTOS_ENDPOINT)
   return result

@@ -50,9 +50,16 @@ export const afterPhotoUpdateSchema = z
   })
   .strict()
 
+export const afterPhotoReassignSchema = afterPhotoUpdateSchema.extend({
+  photoIds: z.array(z.string().trim().min(1)).min(1),
+})
+
 export const afterPhotoDetailResponseSchema = afterPhotoResponseSchema
 export const afterPhotoCreateResponseSchema = afterPhotoResponseSchema
 export const afterPhotoUpdateResponseSchema = afterPhotoResponseSchema
+export const afterPhotoReassignResponseSchema = z.object({
+  photos: z.array(afterPhotoUpdateResponseSchema),
+})
 
 export const afterPhotoApiContract = {
   query: { list: afterPhotoListQuerySchema },

@@ -91,13 +91,19 @@ after-photo sheet is the lowercase `after` tab in the workbook identified by
 `server/sheets/` with `writes: { append: true, update: true, delete: false }`: rows are created and
 reassigned through this API, and removal stays outside it.
 
-The backend modules expose `GET` collection/detail routes, a `POST` create route, and `PATCH`
-reassignment routes. Create takes `orderId`, `imageUrl` and `createdBy`, with optional
+The backend modules expose `GET` collection/detail routes, a `POST` create route, single-photo
+`PATCH` routes, and `POST /api/laundry-photos/reassign` or `POST /api/after-photos/reassign` for
+batch moves. The batch request takes nonempty `photoIds`, `orderItemId`, and `updatedBy`, and returns
+`{ photos }` in request order using the single-photo update response shape. One request reads the
+destination `OrderItemForms` row once, then calls `updateMany` once. The batch is all-or-nothing:
+an invalid or missing photo causes zero writes. The backend does not read photo rows or check their
+order against the destination; the order photo library page constrains both lists to one order.
+Create takes `orderId`, `imageUrl` and `createdBy`, with optional
 `orderItemId` and `itemId`; the row id and the created timestamp are server-owned. The image binary
 is not part of it — the browser uploads that to Firebase Storage and sends only its URL. List
-queries require `orderId` and optionally accept `orderItemId`; reassignment validates the photo,
-the destination `OrderItemForms` row, and their order before writing only `orderitem_id`,
-`item_id`, and `updated_by`. It never rewrites `updated_at`, whose plain `DD/MM/YYYY` text must
+queries require `orderId` and optionally accept `orderItemId`. The single-photo `PATCH` validates
+the photo and its order against the destination. Both update paths write only `orderitem_id`,
+`item_id`, and `updated_by`. Neither rewrites `updated_at`, whose plain `DD/MM/YYYY` text must
 not be re-entered through the `USER_ENTERED` Sheets API path.
 
 ## OrdersView

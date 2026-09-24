@@ -5,13 +5,13 @@ import { AfterPhotoService } from '../../../../../server/modules/after-photos/af
 import { afterPhotoRowSchema } from '../../../../../server/sheets/AfterPhoto/AfterPhoto.db-contract.js'
 import { orderItemFormsRowSchema } from '../../../../../server/sheets/OrderItemForms/OrderItemForms.db-contract.js'
 import type { ReadQueryDTO } from '../../../../../server/shared/dtos/read-query.dto.js'
-import type { SheetRepositoryContract } from '../../../../../server/shared/repositories/sheet-repository.contract.js'
+import type { SheetBatchUpdateContract, SheetRepositoryContract } from '../../../../../server/shared/repositories/sheet-repository.contract.js'
 import { ApiError } from '../../../../../server/shared/http/api-error.js'
 
 type PhotoRow = z.infer<typeof afterPhotoRowSchema>
 type ItemRow = z.infer<typeof orderItemFormsRowSchema>
 
-interface FakePhotoRepository extends SheetRepositoryContract<PhotoRow> {
+interface FakePhotoRepository extends SheetRepositoryContract<PhotoRow>, SheetBatchUpdateContract<PhotoRow> {
   rows: Array<Partial<PhotoRow>>
   updateCalls: Array<{ id: string; patch: Partial<PhotoRow> }>
   readIds: Array<string | undefined>
@@ -62,6 +62,9 @@ function makePhotoRepository(rows: Array<Partial<PhotoRow>>): FakePhotoRepositor
     async update(id: string, patch: Partial<PhotoRow>) {
       repository.updateCalls.push({ id, patch })
       return makePhotoRow({ id, ...patch })
+    },
+    async updateMany() {
+      throw new Error('not used')
     },
     async delete() {
       throw new Error('not used')

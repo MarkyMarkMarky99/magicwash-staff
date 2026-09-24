@@ -39,9 +39,11 @@ here.
 
 - Opens a bottom picker listing the order's items. An item is disabled when every selected photo
   already belongs to it.
-- Photos are reassigned through the photo type's single-photo `PATCH`, up to four requests in flight; photos already on the
-  target item are skipped. On full success selection mode ends. On partial failure the failed photos
-  stay selected and a message reports how many moved.
+- Photos already on the target item are skipped. The remaining photos move in one request to the
+  photo type's `POST /reassign` endpoint. The backend writes the batch all-or-nothing; on success
+  the returned rows update the page and selection mode ends. On failure nothing moves, the full
+  selection stays selected, and the error message is shown. The page offers photos and items from
+  one order; the batch endpoint does not check that they belong to the same order.
 
 ## Route state
 

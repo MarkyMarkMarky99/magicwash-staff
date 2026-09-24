@@ -4,6 +4,8 @@ import {
   afterPhotoListQuerySchema,
   afterPhotoResponseSchema,
   afterPhotoUpdateSchema,
+  afterPhotoReassignSchema,
+  afterPhotoReassignResponseSchema,
 } from '@contracts/after-photos/after-photo-api.schema'
 import { apiGetList, apiPatch, apiPost } from '@/shared/api/api-client'
 import { invalidate } from '@/shared/api/response-cache'
@@ -11,6 +13,8 @@ import type { GalleryPhoto } from '@/data/laundry-photos/laundry-photo.service'
 
 export type CreateAfterPhotoPayload = z.infer<typeof afterPhotoCreateSchema>
 type AfterPhotoDto = z.infer<typeof afterPhotoResponseSchema>
+type AfterPhotoReassignPayload = z.infer<typeof afterPhotoReassignSchema>
+type AfterPhotoReassignResponse = z.infer<typeof afterPhotoReassignResponseSchema>
 
 const AFTER_PHOTOS_ENDPOINT = '/api/after-photos'
 
@@ -57,6 +61,17 @@ export async function reassignAfterPhoto(
   const result = await apiPatch<AfterPhotoDto>(`${AFTER_PHOTOS_ENDPOINT}/${encodedPhotoId}`, {
     data: payload,
     requestSchema: afterPhotoUpdateSchema,
+  })
+  invalidate(AFTER_PHOTOS_ENDPOINT)
+  return result
+}
+
+export async function reassignAfterPhotos(
+  payload: AfterPhotoReassignPayload,
+): Promise<AfterPhotoReassignResponse> {
+  const result = await apiPost<AfterPhotoReassignResponse>(`${AFTER_PHOTOS_ENDPOINT}/reassign`, {
+    data: payload,
+    requestSchema: afterPhotoReassignSchema,
   })
   invalidate(AFTER_PHOTOS_ENDPOINT)
   return result

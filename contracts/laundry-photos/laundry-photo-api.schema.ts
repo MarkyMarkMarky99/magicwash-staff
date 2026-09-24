@@ -50,9 +50,16 @@ export const laundryPhotoUpdateSchema = z
   })
   .strict()
 
+export const laundryPhotoReassignSchema = laundryPhotoUpdateSchema.extend({
+  photoIds: z.array(z.string().trim().min(1)).min(1),
+})
+
 export const laundryPhotoDetailResponseSchema = laundryPhotoResponseSchema
 export const laundryPhotoCreateResponseSchema = laundryPhotoResponseSchema
 export const laundryPhotoUpdateResponseSchema = laundryPhotoResponseSchema
+export const laundryPhotoReassignResponseSchema = z.object({
+  photos: z.array(laundryPhotoUpdateResponseSchema),
+})
 
 export const laundryPhotoApiContract = {
   query: { list: laundryPhotoListQuerySchema },

@@ -28,10 +28,10 @@
   - Browser-verify the form-routes refactor (merged untested in a browser); unticked to-dos in `docs/plans/form-routes.md`.
 
 - **Order detail UI**
-  - Phone-test the order photo library: long-press drag-select, edge auto-scroll, glass refraction (now on Select too), black glass labels, lime selected-tab contrast, and parallel Move to item.
+  - Phone-test the order photo library: long-press drag-select, edge auto-scroll, glass refraction (now on Select too), black glass labels, lime selected-tab contrast, and single-request Move to item.
   - Phone-test Register garments without an item, then assigning those photos from the library.
-  - `SheetRepository.updateMany` is built; next is the bulk photo-reassign endpoint (Before and After) plus a single frontend request.
-  - Bulk reassign: decide per-photo results (filter in service) vs all-or-nothing before building the endpoint.
+  - Bulk photo reassign (one all-or-nothing request) is pushed but not browser-verified end to end.
+  - 31 legacy photo ids were stored as numbers by Sheets (user: leave them); a bulk move including one returns 500 although the write lands.
   - Deferred: shared `LiquidGlass` component + `provideGlassBackdrop`; lens code lives in `features/orders` for now.
   - Decide whether the Items menu "Garment album" is retired in favour of the photo library.
   - Order items show quantity `0` on every row; not investigated.

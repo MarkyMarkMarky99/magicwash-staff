@@ -6,8 +6,8 @@ import LightboxOverlay from '@/shared/layouts/LightboxOverlay.vue'
 import { currentActor } from '@/shared/config/actor'
 import { useCloseRoute } from '@/shared/navigation/use-close-route'
 import { getWorkOrder, type WorkOrderDetailDto } from '@/data/work-orders/work-order.service'
-import { listLaundryPhotos, reassignLaundryPhoto, type GalleryPhoto } from '@/data/laundry-photos/laundry-photo.service'
-import { listAfterPhotos, reassignAfterPhoto } from '@/data/after-photos/after-photo.service'
+import { listLaundryPhotos, reassignLaundryPhotos, type GalleryPhoto } from '@/data/laundry-photos/laundry-photo.service'
+import { listAfterPhotos, reassignAfterPhotos } from '@/data/after-photos/after-photo.service'
 import { usePhotoDragSelect } from '../composables/use-photo-drag-select'
 import { useGlassLens } from '../composables/use-glass-lens'
 import GlassLens from '../components/GlassLens.vue'
@@ -19,7 +19,6 @@ const TYPE_QUERY_KEY = 'type'
 const PHOTO_QUERY_KEY = 'photo'
 const MOVE_QUERY_KEY = 'move'
 const UNASSIGNED_KEY = '__unassigned__'
-const MOVE_CONCURRENCY = 4
 const PHOTO_TABS: { key: PhotoType; label: string }[] = [
   { key: 'BEF', label: 'Before' },
   { key: 'AFT', label: 'After' },
@@ -197,33 +196,22 @@ async function moveTo(item: OrderItem) {
   moveProgress.value = 0
   moveTotal.value = targets.length
   moveError.value = null
-  const failed = new Set<string>()
-  const payload = { orderItemId: item.orderItemId, updatedBy: actor.value }
-
-  const queue = [...targets]
-  async function worker() {
-    for (let photo = queue.shift(); photo; photo = queue.shift()) {
-      const photoId = photo.id
-      try {
-        const encodedId = encodeURIComponent(photoId)
-        if (type === 'BEF') await reassignLaundryPhoto(encodedId, payload)
-        else await reassignAfterPhoto(encodedId, payload)
-        photos.value = photos.value.map(entry => (entry.id === photoId ? { ...entry, orderItemId: item.orderItemId } : entry))
-      } catch {
-        failed.add(photoId)
-      }
-      moveProgress.value += 1
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(MOVE_CONCURRENCY, targets.length) }, worker))
-
-  moving.value = false
-  if (failed.size === 0) {
+  const payload = { photoIds: targets.map(photo => photo.id), orderItemId: item.orderItemId, updatedBy: actor.value }
+  try {
+    const movedPhotos = type === 'BEF'
+      ? (await reassignLaundryPhotos(payload)).photos.map(photo => ({ id: photo.laundryPhotoId, orderItemId: photo.orderItemId }))
+      : (await reassignAfterPhotos(payload)).photos.map(photo => ({ id: photo.afterPhotoId, orderItemId: photo.orderItemId }))
+    const moved = new Map(movedPhotos.map(photo => [photo.id, photo.orderItemId]))
+    photos.value = photos.value.map(entry => moved.has(entry.id)
+      ? { ...entry, orderItemId: moved.get(entry.id) ?? null }
+      : entry)
+    moveProgress.value = targets.length
     exitSelect()
-    return
+  } catch (error) {
+    moveError.value = error instanceof Error ? error.message : 'Unable to move photos.'
+  } finally {
+    moving.value = false
   }
-  selected.value = failed
-  moveError.value = `Moved ${targets.length - failed.size} of ${targets.length}. ${failed.size} failed and stay selected.`
 }
 
 watch([() => props.orderId, photoType], () => {
