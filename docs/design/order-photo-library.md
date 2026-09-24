@@ -18,12 +18,13 @@ here.
 
 ## Glass controls
 
-- The bottom controls refract the photos behind them. Each control holds a lens layer: copies of
-  the grid photos under it, positioned to match the scroll, bent by an SVG displacement filter with
+- The bottom controls and the Select/Cancel capsule refract the photos behind them. Each control
+  holds a lens layer: copies of the grid photos under it, positioned to match the scroll, bent by
+  an SVG displacement filter with
   a slight per-channel spread for chromatic edges. A CSS `filter: url(...)` on content is used
   because WebKit does not paint SVG filters in `backdrop-filter`.
 - The displacement map is generated per control size: neutral in the middle, bending toward the
-  rounded edge. Select stays a frosted light capsule without a lens.
+  rounded edge. Select/Cancel uses the same lens refraction as the bottom controls.
 
 ## Selection
 

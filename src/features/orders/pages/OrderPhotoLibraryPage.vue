@@ -302,11 +302,13 @@ const subtitle = computed(() => {
         <p class="mt-1 truncate font-body text-sm font-semibold">{{ subtitle }}</p>
       </div>
       <button
+        :ref="lens.bind('select')"
         type="button"
-        class="glass glass-light glass-label pointer-events-auto h-12 shrink-0 rounded-full px-6 text-[17px]"
+        class="glass glass-label pointer-events-auto h-12 shrink-0 rounded-full px-6 text-[17px]"
         :disabled="moving || photos.length === 0"
         @click="toggleSelectMode"
       >
+        <GlassLens :view="lens.view('select')" />
         {{ selecting ? 'Cancel' : 'Select' }}
       </button>
     </header>
@@ -335,6 +337,7 @@ const subtitle = computed(() => {
             role="tab"
             :aria-selected="photoType === tab.key"
             class="glass-label relative h-full rounded-full px-7 text-[18px]"
+            :class="{ 'text-lime': photoType === tab.key }"
             @click="selectType(tab.key)"
           >
             {{ tab.label }}
@@ -394,8 +397,8 @@ const subtitle = computed(() => {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  color: #fff;
-  text-shadow: 0 1px 3px rgb(0 0 0 / 0.4), 0 0 14px rgb(0 0 0 / 0.18);
+  color: #111;
+  text-shadow: 0 0 8px rgb(255 255 255 / 0.45);
   background: rgb(0 0 0 / 0.04);
   box-shadow:
     0 12px 32px rgb(0 0 0 / 0.3),

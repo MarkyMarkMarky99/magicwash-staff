@@ -28,7 +28,7 @@
   - Browser-verify the form-routes refactor (merged untested in a browser); unticked to-dos in `docs/plans/form-routes.md`.
 
 - **Order detail UI**
-  - Phone-test the order photo library: long-press drag-select, edge auto-scroll, glass refraction, and parallel Move to item.
+  - Phone-test the order photo library: long-press drag-select, edge auto-scroll, glass refraction (now on Select too), black glass labels, lime selected-tab contrast, and parallel Move to item.
   - Phone-test Register garments without an item, then assigning those photos from the library.
   - Deferred: bulk photo-reassign endpoint with a shared `updateMany` (35 → 5 requests for 7 photos).
   - Deferred: shared `LiquidGlass` component + `provideGlassBackdrop`; lens code lives in `features/orders` for now.
