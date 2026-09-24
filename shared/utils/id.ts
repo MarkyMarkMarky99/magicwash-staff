@@ -32,5 +32,9 @@ export function generateId({
 }
 
 export function generateShortId(prefix = ''): string {
-  return generateId({ length: 8, alphabet: LOWERCASE_HEX_ALPHABET, prefix })
+  let id: string
+  do {
+    id = generateId({ length: 8, alphabet: LOWERCASE_HEX_ALPHABET, prefix })
+  } while (/^[0-9]+(e[0-9]+)?$/.test(id))
+  return id
 }

@@ -100,6 +100,7 @@ The frontend consumes these contracts rather than duplicating API DTO definition
 must execute identically, such as money calculation shown as a form preview and applied
 again to the value the backend stores, and random id generation in `shared/utils/id.ts`.
 The id helper supports prefixed short hex ids and unbiased generation from custom alphabets.
+Short ids exclude all-digit and digits-e-digits values so Sheets keeps them as text.
 
 Duplicating such logic lets the two copies diverge silently, so a single implementation
 is imported by both.

@@ -15,6 +15,38 @@ test('generateShortId prepends a prefix without changing the hex suffix', () => 
   assert.match(generateShortId('APPT-'), /^APPT-[0-9a-f]{8}$/)
 })
 
+test('generateShortId keeps its format and excludes numeric-looking ids', () => {
+  for (let index = 0; index < 200000; index++) {
+    const id = generateShortId()
+    assert.match(id, /^[0-9a-f]{8}$/)
+    assert.doesNotMatch(id, /^[0-9]+(e[0-9]+)?$/)
+  }
+})
+
+test('generateShortId draws again when the first id looks numeric', () => {
+  const originalCrypto = Object.getOwnPropertyDescriptor(globalThis, 'crypto')
+  let calls = 0
+  Object.defineProperty(globalThis, 'crypto', {
+    configurable: true,
+    value: {
+      getRandomValues(values: Uint32Array) {
+        calls++
+        values.set(calls % 2 === 1 ? [1, 3, 0, 6, 3, 3, 14, 3] : [10, 0, 0, 0, 0, 0, 0, 0])
+        return values
+      },
+    },
+  })
+  try {
+    assert.equal(generateShortId(), 'a0000000')
+    assert.equal(calls, 2)
+    assert.equal(generateShortId('1'), '1a0000000')
+    assert.equal(calls, 4)
+  } finally {
+    if (originalCrypto) Object.defineProperty(globalThis, 'crypto', originalCrypto)
+    else Reflect.deleteProperty(globalThis, 'crypto')
+  }
+})
+
 test('generateId uses the requested alphabet and length', () => {
   assert.match(generateId({ length: 12, alphabet: 'AB' }), /^[AB]{12}$/)
 })
