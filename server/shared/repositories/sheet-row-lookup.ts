@@ -69,3 +69,44 @@ export async function findRowNumberByKey(
 function normalizeKeyValue(value: SheetsApiValue): string {
   return String(value ?? '').trim()
 }
+
+/** Resolve several keys from one column read; row positions have the same TOCTOU risk as a single lookup. */
+export async function findRowNumbersByKeys(
+  headerMap: SheetHeaderMap,
+  keyColumn: string,
+  keyValues: readonly SheetsApiValue[],
+  readColumn: (columnLetter: string) => Promise<SheetsApiValues>,
+): Promise<Map<string, number | null>> {
+  if (!Object.prototype.hasOwnProperty.call(headerMap.letterByName, keyColumn)) {
+    throw new SheetHeaderMapError(`Key column '${keyColumn}' is not present in the sheet header map`)
+  }
+
+  const requestedKeys = new Set(keyValues.map(normalizeKeyValue))
+  const matchingRows = new Map<string, number[]>()
+  const values = await readColumn(headerMap.letterByName[keyColumn])
+
+  for (let index = 1; index < values.length; index += 1) {
+    const cellValue = values[index]?.[0]
+    if (cellValue === undefined) {
+      continue
+    }
+    const normalizedCellValue = normalizeKeyValue(cellValue)
+    if (normalizedCellValue === '' || !requestedKeys.has(normalizedCellValue)) {
+      continue
+    }
+    const rows = matchingRows.get(normalizedCellValue) ?? []
+    rows.push(index + 1)
+    matchingRows.set(normalizedCellValue, rows)
+  }
+
+  const results = new Map<string, number | null>()
+  for (const keyValue of keyValues) {
+    const normalizedKey = normalizeKeyValue(keyValue)
+    const rows = matchingRows.get(normalizedKey) ?? []
+    if (rows.length > 1) {
+      throw new DuplicateRowKeyError(keyColumn, keyValue, rows)
+    }
+    results.set(normalizedKey, rows[0] ?? null)
+  }
+  return results
+}

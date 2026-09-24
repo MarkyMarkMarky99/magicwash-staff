@@ -292,6 +292,38 @@ export class SheetsApiClient {
     return values
   }
 
+  async readRanges(ranges: readonly string[], options?: SheetsApiReadOptions): Promise<SheetsApiValues[]> {
+    if (ranges.length === 0) {
+      throw new WriteRejectedError('readRanges', 'Cannot read an empty set of ranges.')
+    }
+
+    const url = new URL(`${SHEETS_API_BASE_URL}/${encodeURIComponent(this.spreadsheetId)}/values:batchGet`)
+    for (const range of ranges) {
+      requireNonEmpty(range, 'range')
+      url.searchParams.append('ranges', `${this.sheetName}!${range}`)
+    }
+    if (options?.valueRenderOption !== undefined) {
+      url.searchParams.set('valueRenderOption', options.valueRenderOption)
+    }
+    if (options?.dateTimeRenderOption !== undefined) {
+      url.searchParams.set('dateTimeRenderOption', options.dateTimeRenderOption)
+    }
+
+    const body = await this.requestJson('readRanges', 'GET', url.toString(), undefined, false)
+    const valueRanges = isRecord(body) ? body.valueRanges : undefined
+    if (!Array.isArray(valueRanges) || valueRanges.length !== ranges.length) {
+      throw new WriteTransportError('readRanges', 'The Sheets API returned an unreadable range count.')
+    }
+
+    return valueRanges.map((valueRange) => {
+      const values = isRecord(valueRange) ? valueRange.values : undefined
+      if (!isSheetsApiValues(values)) {
+        throw new WriteTransportError('readRanges', 'The Sheets API returned an unreadable range response.')
+      }
+      return values
+    })
+  }
+
   async appendRows(
     rows: SheetsApiValues,
     valueInputOption: SheetsValueInputOption,

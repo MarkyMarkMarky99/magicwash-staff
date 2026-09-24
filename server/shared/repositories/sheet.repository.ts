@@ -14,7 +14,7 @@ import {
 } from './utils/gviz-query.builder.js'
 import { fetchGVizRows } from './utils/gviz-reader.js'
 import { requireEnv } from '../utils/env.js'
-import type { SheetRepositoryContract } from './sheet-repository.contract.js'
+import type { SheetBatchUpdateContract, SheetRepositoryContract, SheetRowUpdate } from './sheet-repository.contract.js'
 import {
   DuplicatePrimaryKeyError,
   SheetsApiClient,
@@ -40,7 +40,7 @@ import {
   resolveValueInputOption,
   serializeCellValue,
 } from './sheet-value-serializer.js'
-import { DuplicateRowKeyError, findRowNumberByKey } from './sheet-row-lookup.js'
+import { DuplicateRowKeyError, findRowNumberByKey, findRowNumbersByKeys } from './sheet-row-lookup.js'
 import { verifyRowIdentity } from './sheet-row-identity.js'
 import { formatBangkokTimestamp } from '../utils/bangkok-timestamp.js'
 
@@ -86,7 +86,7 @@ function waitForAppendGvizVerify(delayMs: number): Promise<void> {
 
 /** Google Sheets implementation of the storage-agnostic sheet repository. */
 export class SheetRepository<TDbRow extends object>
-  implements SheetRepositoryContract<TDbRow>
+  implements SheetRepositoryContract<TDbRow>, SheetBatchUpdateContract<TDbRow>
 {
   private readonly contract: SheetContract
   private readonly columns: GSheetColumnMap
@@ -590,6 +590,129 @@ export class SheetRepository<TDbRow extends object>
 
     verifyRowIdentity(storedRow, this.contract.primaryKey, expectedKey)
     return storedRow as TDbRow
+  }
+
+  async updateMany(updates: ReadonlyArray<SheetRowUpdate<TDbRow>>): Promise<TDbRow[]> {
+    this.requireWriteCapability('update')
+    if (updates.length === 0) {
+      throw new WriteRejectedError('UPDATE', 'Cannot update an empty set of rows.')
+    }
+
+    const keys = updates.map(({ keyValue }) =>
+      this.resolveWhere({ id: keyValue }, 'update')[this.contract.primaryKey] as string,
+    )
+    const seen = new Set<string>()
+    for (const key of keys) {
+      const normalizedKey = key.trim()
+      if (seen.has(normalizedKey)) {
+        throw new WriteRejectedError('UPDATE', `Duplicate primary key '${key}' in update batch.`)
+      }
+      seen.add(normalizedKey)
+    }
+
+    const client = this.requireSheetsApiClient('UPDATE')
+    this.validateValueInputPolicy('update')
+    const headerMap = await this.loadSheetsApiHeaderMap('update')
+
+    let prepared: Array<{ key: string; patch: Record<string, unknown> }>
+    try {
+      const timestamp = formatBangkokTimestamp(this.now())
+      prepared = updates.map(({ patch }, index) => ({
+        key: keys[index]!,
+        patch: this.prepareAuditRow(patch, headerMap, 'update', timestamp),
+      }))
+    } catch (error) {
+      if (error instanceof WriteRejectedError) {
+        throw error
+      }
+      throw new WriteRejectedError('UPDATE', error instanceof Error ? error.message : String(error))
+    }
+
+    let located: Map<string, number | null>
+    try {
+      located = await findRowNumbersByKeys(
+        headerMap,
+        this.contract.primaryKey,
+        keys,
+        (columnLetter) => client.readColumn(columnLetter),
+      )
+    } catch (error) {
+      if (error instanceof SheetHeaderMapError) {
+        throw new WriteRejectedError('UPDATE', error.message)
+      }
+      throw error
+    }
+
+    const rowNumbers = prepared.map(({ key }) => {
+      const rowNumber = located.get(key.trim())
+      if (rowNumber == null) {
+        throw new WriteRejectedError(
+          'UPDATE',
+          `No row found for primary key '${this.contract.primaryKey}' with value '${key}'.`,
+        )
+      }
+      return rowNumber
+    })
+
+    const ranges: SheetsApiValueRange[] = []
+    try {
+      for (let index = 0; index < prepared.length; index += 1) {
+        const { [this.contract.primaryKey]: _primaryKey, ...dbPatch } = prepared[index]!.patch
+        const rowNumber = rowNumbers[index]!
+        for (const [column, value] of Object.entries(dbPatch)) {
+          const columnLetter = headerMap.letterByName[column]
+          if (columnLetter === undefined) {
+            throw new Error(`Column '${column}' is not present in the sheet header map`)
+          }
+          ranges.push({
+            range: `${this.contract.sheetName}!${columnLetter}${rowNumber}:${columnLetter}${rowNumber}`,
+            values: [[serializeCellValue(value, this.preserveNullValues)]],
+          })
+        }
+      }
+    } catch (error) {
+      if (error instanceof WriteRejectedError) {
+        throw error
+      }
+      throw new WriteRejectedError('UPDATE', error instanceof Error ? error.message : String(error))
+    }
+    if (ranges.length === 0) {
+      throw new WriteRejectedError('UPDATE', 'Cannot update an empty set of ranges.')
+    }
+
+    await client.updateCells(ranges, 'USER_ENTERED')
+
+    let returned: SheetsApiValues[]
+    try {
+      returned = await client.readRanges(rowNumbers.map((rowNumber) => buildRowRange(headerMap, rowNumber)), {
+        valueRenderOption: 'UNFORMATTED_VALUE',
+        dateTimeRenderOption: 'FORMATTED_STRING',
+      })
+    } catch (error) {
+      throw new WriteCommittedUnreadableError(
+        'UPDATE',
+        `UPDATE committed, but the persisted rows could not be read back: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
+
+    try {
+      if (returned.length !== updates.length) {
+        throw new Error(`The persisted row read-back returned ${returned.length} rows instead of ${updates.length}.`)
+      }
+      return returned.map((values, index) => {
+        if (values.length !== 1) {
+          throw new Error(`The persisted row read-back returned ${values.length} rows instead of one.`)
+        }
+        const row = parseRowValues(values[0]!, headerMap)
+        verifyRowIdentity(row, this.contract.primaryKey, prepared[index]!.key)
+        return row as TDbRow
+      })
+    } catch (error) {
+      throw new WriteCommittedUnreadableError(
+        'UPDATE',
+        `UPDATE committed, but the persisted rows could not be parsed or verified: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
   }
 
   private requireSheetsApiClient(operation: 'APPEND' | 'UPDATE'): SheetsApiClient {

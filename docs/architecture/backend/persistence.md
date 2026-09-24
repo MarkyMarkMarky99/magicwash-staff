@@ -57,6 +57,8 @@ Invoice list and detail reads load the complete `Invoices`, `InvoiceItems`, and 
 
 `SheetRepository.append`, `batchAppend`, and `update` use `SheetsApiClient` in `server/shared/repositories/sheets-api.client.ts`.
 
+`SheetRepository.updateMany` updates several rows of one sheet. It validates every update before writing, sends all changed cells in one write call, then reads all affected rows in one readback call and returns them in input order. The key-column lookup and write can race if rows move between calls; this TOCTOU risk is accepted. The separate `SheetBatchUpdateContract` exposes this capability while `SheetRepositoryContract` remains unchanged.
+
 Writes authenticate with a service-account JWT from `google-auth.ts` using `GOOGLE_SERVICE_ACCOUNT_KEY`.
 
 `delete` is gated by write capability: it rejects up front when `writes.delete` is false, and when the capability is enabled it currently always throws `'delete is not supported yet'` — the operation is stubbed, not implemented.

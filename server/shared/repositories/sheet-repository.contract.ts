@@ -7,3 +7,12 @@ export interface SheetRepositoryContract<TDbRow extends object> {
   update(keyValue: string, patch: Partial<TDbRow>): Promise<TDbRow>
   delete(keyValue: string, deletedBy: string): Promise<TDbRow>
 }
+
+export interface SheetRowUpdate<TDbRow extends object> {
+  keyValue: string
+  patch: Partial<TDbRow>
+}
+
+export interface SheetBatchUpdateContract<TDbRow extends object> {
+  updateMany(updates: ReadonlyArray<SheetRowUpdate<TDbRow>>): Promise<TDbRow[]>
+}

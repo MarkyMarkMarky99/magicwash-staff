@@ -30,7 +30,8 @@
 - **Order detail UI**
   - Phone-test the order photo library: long-press drag-select, edge auto-scroll, glass refraction (now on Select too), black glass labels, lime selected-tab contrast, and parallel Move to item.
   - Phone-test Register garments without an item, then assigning those photos from the library.
-  - Deferred: bulk photo-reassign endpoint with a shared `updateMany` (35 → 5 requests for 7 photos).
+  - `SheetRepository.updateMany` is built; next is the bulk photo-reassign endpoint (Before and After) plus a single frontend request.
+  - Bulk reassign: decide per-photo results (filter in service) vs all-or-nothing before building the endpoint.
   - Deferred: shared `LiquidGlass` component + `provideGlassBackdrop`; lens code lives in `features/orders` for now.
   - Decide whether the Items menu "Garment album" is retired in favour of the photo library.
   - Order items show quantity `0` on every row; not investigated.
