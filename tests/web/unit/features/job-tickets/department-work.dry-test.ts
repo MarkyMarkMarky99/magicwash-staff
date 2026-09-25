@@ -25,8 +25,8 @@ assert.equal(readGrouper('unknown'), 'order')
 
 const tickets = [ticket('tag-a', 'order-late', 'Pending'), ticket('tag-b', 'order-soon', 'Completed'), ticket('tag-c', 'order-soon', 'In Progress')]
 const orderInfo = new Map([
-  ['order-late', { dueDate: '2026-10-02', customerId: 'customer-1', customerName: 'Late' }],
-  ['order-soon', { dueDate: '2026-09-24', customerId: 'customer-2', customerName: 'Soon' }],
+  ['order-late', { dueDate: '2026-10-02', customerId: 'customer-1', customerName: 'Late', customerIndex: 'LAT' }],
+  ['order-soon', { dueDate: '2026-09-24', customerId: 'customer-2', customerName: 'Soon', customerIndex: 'SOO' }],
 ])
 assert.deepEqual(sortDepartmentTickets(tickets, orderInfo).map(row => row.id), ['tag-b', 'tag-c', 'tag-a'])
 assert.deepEqual(groupDepartmentOrders(tickets, orderInfo).map(order => order.orderId), ['order-soon', 'order-late'])

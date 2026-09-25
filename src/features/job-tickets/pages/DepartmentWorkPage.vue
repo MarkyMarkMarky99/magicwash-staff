@@ -7,6 +7,7 @@ import GenericTabs from '@/shared/components/GenericTabs.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import QrScannerOverlay from '@/shared/components/QrScannerOverlay.vue'
 import SquareImageCard from '@/shared/components/SquareImageCard.vue'
+import CompletionRing from '../components/CompletionRing.vue'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
 import type { JobTicketDto } from '@/data/job-tickets/job-ticket.service'
@@ -56,7 +57,7 @@ const listError = computed(() => ticketStore.error || metadataError.value)
 
 const orderInfo = computed(() => {
   const listed = new Map(workOrderStore.orders.map(order => [order.orderId, order]))
-  const customers = new Map(customerStore.customers.map(customer => [customer.customerId, customer.customerName]))
+  const customers = new Map(customerStore.customers.map(customer => [customer.customerId, customer]))
   const info = new Map<string, OrderInfo>()
   for (const ticket of ticketStore.tickets) {
     if (info.has(ticket.orderId)) continue
@@ -65,7 +66,8 @@ const orderInfo = computed(() => {
     info.set(ticket.orderId, {
       dueDate: order?.dueDate ?? ticket.dueDate ?? null,
       customerId,
-      customerName: (customerId && customers.get(customerId)) || customerId || ticket.orderId,
+      customerName: (customerId && customers.get(customerId)?.customerName) || customerId || ticket.orderId,
+      customerIndex: (customerId && customers.get(customerId)?.customerIndex) || null,
     })
   }
   return info
@@ -276,22 +278,7 @@ onBeforeRouteLeave(to => {
             <span class="material-symbols-outlined text-primary" aria-hidden="true">{{ expandedOrderId === order.orderId ? 'expand_less' : 'expand_more' }}</span>
           </span>
           <span class="mt-4 grid grid-cols-[164px_minmax(0,1fr)] items-center gap-4">
-            <span class="relative flex h-[164px] w-[164px] items-center justify-center">
-              <svg viewBox="0 0 100 100" class="absolute inset-0 h-full w-full -rotate-90" aria-hidden="true">
-                <circle cx="50" cy="50" r="43" fill="none" stroke="currentColor" stroke-width="13" class="text-secondary/15" />
-                <circle v-if="(allOrders.get(order.orderId)?.percentage ?? 0) > 0" cx="50" cy="50" r="43" fill="none" stroke="currentColor" stroke-width="13" stroke-linecap="round" pathLength="100" :stroke-dasharray="`${allOrders.get(order.orderId)?.percentage ?? 0} 100`" class="text-secondary" />
-              </svg>
-              <span class="absolute inset-[18%] rounded-full bg-surface-container-lowest shadow-[0_2px_10px_rgba(0,0,0,0.12)]" aria-hidden="true" />
-              <svg viewBox="0 0 100 100" class="absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
-                <defs>
-                  <path :id="`ring-top-${order.orderId}`" d="M 27 50 A 23 23 0 0 1 73 50" />
-                  <path :id="`ring-bottom-${order.orderId}`" d="M 22 50 A 28 28 0 0 0 78 50" />
-                </defs>
-                <text class="fill-on-surface-variant font-label" font-size="6" font-weight="600" letter-spacing="0.3"><textPath :href="`#ring-top-${order.orderId}`" startOffset="50%" text-anchor="middle">Completed</textPath></text>
-                <text class="fill-secondary font-label" font-size="6.5" font-weight="700" letter-spacing="0.2"><textPath :href="`#ring-bottom-${order.orderId}`" startOffset="50%" text-anchor="middle">{{ statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Completed') }} of {{ allOrders.get(order.orderId)?.tickets.length ?? 0 }}</textPath></text>
-              </svg>
-              <span class="relative font-headline text-[30px] font-semibold leading-none tracking-tight text-on-surface">{{ allOrders.get(order.orderId)?.percentage ?? 0 }}%</span>
-            </span>
+            <CompletionRing :percentage="allOrders.get(order.orderId)?.percentage ?? 0" :completed="statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Completed')" :total="allOrders.get(order.orderId)?.tickets.length ?? 0" :label="order.customerIndex ?? '-'" />
             <span class="flex min-w-0 flex-col gap-1.5">
               <span class="relative flex h-[50px] items-center gap-3 overflow-hidden rounded-2xl pl-2 pr-3 bg-warning-container"><span class="absolute inset-y-0 left-0 bg-warning/15" :style="{ width: `${statusShare(allOrders.get(order.orderId)?.tickets ?? [], 'Pending')}%` }" /><span class="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-warning/25 text-on-surface"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">schedule</span></span><span class="relative flex min-w-0 flex-col justify-center"><span class="truncate font-label text-[12px] font-medium leading-4 text-on-surface/70">Pending</span><strong class="font-headline text-[22px] font-semibold leading-6 text-on-surface">{{ statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Pending') }}</strong></span></span>
               <span class="relative flex h-[50px] items-center gap-3 overflow-hidden rounded-2xl pl-2 pr-3 bg-mint/40"><span class="absolute inset-y-0 left-0 bg-secondary/10" :style="{ width: `${statusShare(allOrders.get(order.orderId)?.tickets ?? [], 'In Progress')}%` }" /><span class="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary/25 text-on-surface"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">autorenew</span></span><span class="relative flex min-w-0 flex-col justify-center"><span class="truncate font-label text-[12px] font-medium leading-4 text-on-surface/70">In Progress</span><strong class="font-headline text-[22px] font-semibold leading-6 text-on-surface">{{ statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'In Progress') }}</strong></span></span>

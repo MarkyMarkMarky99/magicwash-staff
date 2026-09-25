@@ -12,6 +12,7 @@ export interface OrderInfo {
   dueDate: string | null
   customerId: string | null
   customerName: string
+  customerIndex: string | null
 }
 
 export interface DepartmentOrder extends OrderInfo {
@@ -84,6 +85,7 @@ export function groupDepartmentOrders(tickets: readonly JobTicketDto[], orderInf
     dueDate: orderInfo.get(orderId)?.dueDate ?? null,
     customerId: orderInfo.get(orderId)?.customerId ?? null,
     customerName: orderInfo.get(orderId)?.customerName ?? orderId,
+    customerIndex: orderInfo.get(orderId)?.customerIndex ?? null,
     tickets: orderTickets,
     percentage: completionPercentage(orderTickets),
   })).sort((left, right) => dueSortKey(left.dueDate).localeCompare(dueSortKey(right.dueDate)) || String(left.orderId ?? '').localeCompare(String(right.orderId ?? '')))
