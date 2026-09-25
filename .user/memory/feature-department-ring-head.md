@@ -2,7 +2,7 @@
 
 ## Status
 
-- Completion ring extracted to `src/features/job-tickets/components/CompletionRing.vue`: percent pill rides the arc head, centre shows `customerIndex`.
+- Completion ring in `src/features/job-tickets/components/CompletionRing.vue`: the head is a second, thinner lime stroke of fixed length locked to the arc end; centre shows `customerIndex`.
 - Not browser-verified in motion: no QR tags to change a status yet.
 
 ## Next
