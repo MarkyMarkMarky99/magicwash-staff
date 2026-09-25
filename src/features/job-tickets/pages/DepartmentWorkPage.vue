@@ -328,7 +328,7 @@ onBeforeRouteLeave(to => {
         </div>
       </template>
 
-      <div v-if="grouper === 'item'" class="grid grid-cols-2 gap-x-3 gap-y-5 p-4 sm:grid-cols-3">
+      <div v-if="grouper === 'item'" class="grid grid-cols-2 gap-2 p-4 sm:grid-cols-3">
         <button v-for="ticket in visibleTickets" :key="ticket.id" type="button" class="min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed" :disabled="ticket.laundryItemId === null" :aria-label="`Advance tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="ticket.laundryItemId && advanceTicket(ticket.laundryItemId, 'tap')">
           <SquareImageCard :image-url="ticket.photoEvidenceUrl">
             <template #badge><TicketStatusIcon :status="ticket.status" :state="tapStates.get(ticket.id)" /></template>
@@ -337,10 +337,10 @@ onBeforeRouteLeave(to => {
       </div>
 
       <div v-for="order in grouper === 'order' ? visibleOrders : []" :key="order.orderId" class="bg-surface px-4 py-2">
-        <div class="relative">
+        <div class="relative rounded-2xl border border-outline-variant/30 bg-surface-container-low">
           <button
             type="button"
-            class="w-full rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4 text-left focus-visible:outline-2 focus-visible:outline-primary"
+            class="w-full rounded-2xl p-4 text-left focus-visible:outline-2 focus-visible:outline-primary"
             :aria-expanded="expandedOrderId === order.orderId"
             @click="expandedOrderId = expandedOrderId === order.orderId ? null : order.orderId"
           >
@@ -360,13 +360,13 @@ onBeforeRouteLeave(to => {
             </span>
           </button>
           <button type="button" class="absolute right-4 top-4 z-10 rounded-full text-primary focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40" aria-label="Start all pending" :disabled="startingOrderId !== null || statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Pending') === 0" @click="startOrder(order.orderId)"><span class="material-symbols-outlined" aria-hidden="true">play_arrow</span></button>
-        </div>
-        <div v-if="expandedOrderId === order.orderId" class="grid grid-cols-2 gap-x-3 gap-y-5 p-3 sm:grid-cols-3">
-          <button v-for="ticket in order.tickets" :key="ticket.id" type="button" class="min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed" :disabled="ticket.laundryItemId === null" :aria-label="`Advance tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="ticket.laundryItemId && advanceTicket(ticket.laundryItemId, 'tap')">
-            <SquareImageCard :image-url="ticket.photoEvidenceUrl">
-              <template #badge><TicketStatusIcon :status="ticket.status" :state="tapStates.get(ticket.id)" /></template>
-            </SquareImageCard>
-          </button>
+          <div v-if="expandedOrderId === order.orderId" class="grid grid-cols-2 gap-2 px-4 pb-4 sm:grid-cols-3">
+            <button v-for="ticket in order.tickets" :key="ticket.id" type="button" class="min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed" :disabled="ticket.laundryItemId === null" :aria-label="`Advance tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="ticket.laundryItemId && advanceTicket(ticket.laundryItemId, 'tap')">
+              <SquareImageCard :image-url="ticket.photoEvidenceUrl">
+                <template #badge><TicketStatusIcon :status="ticket.status" :state="tapStates.get(ticket.id)" /></template>
+              </SquareImageCard>
+            </button>
+          </div>
         </div>
       </div>
     </ListContainer>
