@@ -2,13 +2,13 @@
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import type { LocationQueryRaw } from 'vue-router'
-import BaseBadge from '@/shared/components/BaseBadge.vue'
 import GenericTabs from '@/shared/components/GenericTabs.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import QrScannerOverlay from '@/shared/components/QrScannerOverlay.vue'
 import SquareImageCard from '@/shared/components/SquareImageCard.vue'
 import CompletionRing from '../components/CompletionRing.vue'
 import ScanResultCard from '../components/ScanResultCard.vue'
+import TicketStatusIcon, { type TicketTapState } from '../components/TicketStatusIcon.vue'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
 import type { JobTicketDto } from '@/data/job-tickets/job-ticket.service'
@@ -35,6 +35,8 @@ const expandedOrderId = ref<string | null>(null)
 const scanResult = ref<ScanDisplay | null>(null)
 const pageNotice = ref<ScanDisplay | null>(null)
 const startingOrderId = ref<string | null>(null)
+const tapStates = ref(new Map<string, TicketTapState>())
+const tapTimers = new Map<string, ReturnType<typeof setTimeout>>()
 const orderDetails = shallowRef(new Map<string, WorkOrderDetailDto>())
 const metadataLoading = ref(false)
 const metadataError = ref<string | null>(null)
@@ -52,7 +54,6 @@ const statusLabels: Record<TicketStatus, string> = {
   Completed: 'Completed',
   Cancelled: 'Cancelled',
 }
-const statusTones = { Pending: 'warning', 'In Progress': 'info', Completed: 'success', Cancelled: 'danger' } as const
 const filterLabels = { ALL: 'All', PENDING: 'Pending', 'IN PROGRESS': 'In Progress', COMPLETED: 'Completed' } as const
 const counts = computed(() => countDepartmentStatuses(ticketStore.tickets))
 const tabs = computed(() => statusFilters.map(key => ({ key, label: filterLabels[key], count: counts.value[key] })))
@@ -117,6 +118,7 @@ watch(() => department.value?.code, code => {
   latestScanVersion += 1
   scanResult.value = null
   dismissPageNotice()
+  clearTapStates()
   if (code) void reload()
 }, { immediate: true })
 
@@ -173,6 +175,23 @@ function showPageNotice(result: ScanDisplay): void {
   if (result.tone !== 'loading') noticeTimer = setTimeout(dismissPageNotice, 5000)
 }
 
+function setTapState(ticketId: string, state: TicketTapState | null): void {
+  const timer = tapTimers.get(ticketId)
+  if (timer) clearTimeout(timer)
+  tapTimers.delete(ticketId)
+  const next = new Map(tapStates.value)
+  if (state) next.set(ticketId, state)
+  else next.delete(ticketId)
+  tapStates.value = next
+  if (state === 'failed') tapTimers.set(ticketId, setTimeout(() => setTapState(ticketId, null), 2000))
+}
+
+function clearTapStates(): void {
+  for (const timer of tapTimers.values()) clearTimeout(timer)
+  tapTimers.clear()
+  tapStates.value = new Map()
+}
+
 async function advanceTicket(value: string, source: 'scan' | 'tap' | 'start'): Promise<boolean> {
   let advanced = false
   await runTagScan(value, async () => {
@@ -186,7 +205,8 @@ async function advanceTicket(value: string, source: 'scan' | 'tap' | 'start'): P
       customerName: ticket ? orderInfo.value.get(ticket.orderId)?.customerName : undefined,
     }
     if (source === 'scan') scanResult.value = { ...context, message: 'Saving…', tone: 'loading' }
-    if (source === 'tap') showPageNotice({ ...context, message: 'Saving…', tone: 'loading' })
+    const ticketId = ticket?.id
+    if (ticketId) setTapState(ticketId, 'saving')
     try {
       const response = await ticketStore.scan({
         laundryItemId: value,
@@ -194,6 +214,7 @@ async function advanceTicket(value: string, source: 'scan' | 'tap' | 'start'): P
         scannedBy: currentActor(Array.isArray(route.query.by) ? route.query.by[0] : route.query.by),
       })
       advanced = response.kind === 'advanced'
+      if (ticketId) setTapState(ticketId, advanced || response.kind === 'already_completed' ? null : 'failed')
       const presentation = presentScanResult(response)
       if (source === 'scan' && scannerOpen.value && department.value?.code === code) {
         feedback(feedbackOutcomeForScanResult(response))
@@ -206,14 +227,15 @@ async function advanceTicket(value: string, source: 'scan' | 'tap' | 'start'): P
           ...presentation,
         }
         if (source === 'scan' && version === latestScanVersion && scannerOpen.value) scanResult.value = result
-        if (source === 'tap' && pageNotice.value?.title === value) showPageNotice(result)
+        if (source === 'tap' && !advanced && response.kind !== 'already_completed') showPageNotice(result)
       }
     } catch {
+      if (ticketId) setTapState(ticketId, 'failed')
       if (source === 'scan' && scannerOpen.value && department.value?.code === code) feedback('failure')
       if (department.value?.code === code) {
         const result: ScanDisplay = { ...context, message: 'Connection failed. Scan again', tone: 'error' }
         if (source === 'scan' && version === latestScanVersion && scannerOpen.value) scanResult.value = result
-        if (source === 'tap' && pageNotice.value?.title === value) showPageNotice(result)
+        if (source === 'tap') showPageNotice(result)
       }
     }
   })
@@ -260,7 +282,10 @@ watch(scannerOpen, open => {
   }
 })
 
-onBeforeUnmount(dismissPageNotice)
+onBeforeUnmount(() => {
+  dismissPageNotice()
+  clearTapStates()
+})
 
 onBeforeRouteLeave(to => {
   if (!scannerOpen.value || replacingLeave) return
@@ -306,7 +331,7 @@ onBeforeRouteLeave(to => {
       <div v-if="grouper === 'item'" class="grid grid-cols-2 gap-x-3 gap-y-5 p-4 sm:grid-cols-3">
         <button v-for="ticket in visibleTickets" :key="ticket.id" type="button" class="min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed" :disabled="ticket.laundryItemId === null" :aria-label="`Advance tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="ticket.laundryItemId && advanceTicket(ticket.laundryItemId, 'tap')">
           <SquareImageCard :image-url="ticket.photoEvidenceUrl">
-            <template #badge><BaseBadge :label="statusLabels[ticket.status]" :tone="statusTones[ticket.status]" size="sm" /></template>
+            <template #badge><TicketStatusIcon :status="ticket.status" :state="tapStates.get(ticket.id)" /></template>
           </SquareImageCard>
         </button>
       </div>
@@ -339,7 +364,7 @@ onBeforeRouteLeave(to => {
         <div v-if="expandedOrderId === order.orderId" class="grid grid-cols-2 gap-x-3 gap-y-5 p-3 sm:grid-cols-3">
           <button v-for="ticket in order.tickets" :key="ticket.id" type="button" class="min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed" :disabled="ticket.laundryItemId === null" :aria-label="`Advance tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="ticket.laundryItemId && advanceTicket(ticket.laundryItemId, 'tap')">
             <SquareImageCard :image-url="ticket.photoEvidenceUrl">
-              <template #badge><BaseBadge :label="statusLabels[ticket.status]" :tone="statusTones[ticket.status]" size="sm" /></template>
+              <template #badge><TicketStatusIcon :status="ticket.status" :state="tapStates.get(ticket.id)" /></template>
             </SquareImageCard>
           </button>
         </div>

@@ -14,7 +14,7 @@
   - Persist tag ids at print time and add a single-tag reprint flow before real use.
   - Department scan: user to decide instant local result with background POST, plus preloading other departments for the step gate.
   - Department page reload policy undecided (on return, on app focus, interval, or a refresh button); KeepAlive keeps it stale now.
-  - Completion ring counts only today's completed tickets; decide label vs backend totals.
+  - Department ring under-counts orders with earlier completions; board endpoint decided, not built. See `.user/memory/department-board-load.md`.
   - Deferred backend: worklist read (not-done + done-today, cap 2000) and cancel timestamps.
   - Phone Back closes garment registration while uploads are pending; blocking it not decided.
   - Decide whether to remove the old BEF album add-photo path now that registration is proven.
