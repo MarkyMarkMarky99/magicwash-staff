@@ -4,6 +4,7 @@ import type { JobTicketScanResult } from '@/data/job-tickets/job-ticket.service'
 import type { FeedbackOutcome } from '@/shared/utils/scan-feedback'
 
 export type ScanTone = 'loading' | 'success' | 'warning' | 'error'
+export type ScanDisplay = { title: string; orderId?: string; customerName?: string; status?: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled'; message: string; tone: ScanTone }
 
 export function feedbackOutcomeForScanResult(result: JobTicketScanResult): FeedbackOutcome {
   return result.kind === 'advanced' ? 'success' : 'failure'

@@ -34,7 +34,7 @@ Do not add similar feature dependencies to shared components; remove this except
 dedicated shared-component refactor.
 
 See [Shared QR scanner overlay](./qr-scanner-overlay.md) for the camera-only overlay API.
-`SquareImageCard.vue` is a generic square image card with nullable image, two text lines, and an optional badge slot.
+`SquareImageCard.vue` is a generic square image card with nullable image, optional text lines, and an optional badge slot.
 
 ### Feature Components
 

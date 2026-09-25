@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import type { JobTicketDto, JobTicketListQuery } from '@/data/job-tickets/job-ticket.service'
 import { completedTodayFromPage, listJobTickets, loadDepartmentTickets, MAX_DEPARTMENT_TICKETS } from '@/data/job-tickets/job-ticket.service'
-import { completionPercentage, countDepartmentStatuses, filterTickets, groupDepartmentOrders, readDepartment, readGrouper, readStatusFilter, sortDepartmentTickets } from '@/features/job-tickets/department-work'
+import { completionPercentage, countDepartmentStatuses, filterTickets, groupDepartmentOrders, pendingOrderTags, readDepartment, readGrouper, readStatusFilter, sortDepartmentTickets } from '@/features/job-tickets/department-work'
 import { normalizeGarmentTagId } from '@/shared/utils/garment-tag-id'
 
 function ticket(id: string, orderId: string, status: JobTicketDto['status'], completedAt: string | null = null): JobTicketDto {
@@ -36,6 +36,8 @@ assert.equal(groupDepartmentOrders(tickets, orderInfo)[0]?.percentage, 50)
 assert.equal(completionPercentage([]), 0)
 assert.equal(completionPercentage(tickets), 33)
 assert.deepEqual(countDepartmentStatuses(tickets), { ALL: 3, PENDING: 1, 'IN PROGRESS': 1, COMPLETED: 1 })
+assert.deepEqual(pendingOrderTags([ticket('tag-a', 'order-1', 'Pending'), { ...ticket('missing', 'order-1', 'Pending'), laundryItemId: null }, ticket('tag-b', 'order-1', 'In Progress')]), { tags: ['tag-a'], missingTags: 1 })
+assert.deepEqual(pendingOrderTags(tickets.slice(1)), { tags: [], missingTags: 0 })
 
 assert.equal(normalizeGarmentTagId(18806075), '18806075')
 assert.equal(normalizeGarmentTagId(9305753), '09305753')

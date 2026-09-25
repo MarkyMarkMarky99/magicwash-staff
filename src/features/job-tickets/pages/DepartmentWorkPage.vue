@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import type { LocationQueryRaw } from 'vue-router'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
@@ -8,6 +8,7 @@ import ListContainer from '@/shared/components/ListContainer.vue'
 import QrScannerOverlay from '@/shared/components/QrScannerOverlay.vue'
 import SquareImageCard from '@/shared/components/SquareImageCard.vue'
 import CompletionRing from '../components/CompletionRing.vue'
+import ScanResultCard from '../components/ScanResultCard.vue'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
 import type { JobTicketDto } from '@/data/job-tickets/job-ticket.service'
@@ -16,10 +17,10 @@ import { getWorkOrder, type WorkOrderDetailDto } from '@/data/work-orders/work-o
 import { useCustomerStore } from '@/data/customers/customer.store'
 import { currentActor } from '@/shared/config/actor'
 import { feedback, primeFeedbackAudio } from '@/shared/utils/scan-feedback'
-import { formatSheetDate, formatSheetDateTime } from '@/shared/utils/sheet-date'
-import { countDepartmentStatuses, filterTickets, groupDepartmentOrders, readDepartment, readGrouper, readStatusFilter, sortDepartmentTickets, statusFilters } from '../department-work'
+import { formatSheetDate } from '@/shared/utils/sheet-date'
+import { countDepartmentStatuses, filterTickets, groupDepartmentOrders, pendingOrderTags, readDepartment, readGrouper, readStatusFilter, sortDepartmentTickets, statusFilters } from '../department-work'
 import type { Grouper, OrderInfo, TicketStatus } from '../department-work'
-import { createTagScanGuard, feedbackOutcomeForScanResult, presentScanResult, type ScanTone } from '../scan-result'
+import { createTagScanGuard, feedbackOutcomeForScanResult, presentScanResult, type ScanDisplay } from '../scan-result'
 
 const route = useRoute()
 const router = useRouter()
@@ -31,7 +32,9 @@ const activeFilter = computed(() => readStatusFilter(route.query.status))
 const grouper = computed(() => readGrouper(route.query.group))
 const scannerOpen = computed(() => department.value !== null && route.query.scan === '1')
 const expandedOrderId = ref<string | null>(null)
-const scanResult = ref<{ tagId: string; orderId?: string; customerName?: string; status?: TicketStatus; message: string; tone: ScanTone } | null>(null)
+const scanResult = ref<ScanDisplay | null>(null)
+const pageNotice = ref<ScanDisplay | null>(null)
+const startingOrderId = ref<string | null>(null)
 const orderDetails = shallowRef(new Map<string, WorkOrderDetailDto>())
 const metadataLoading = ref(false)
 const metadataError = ref<string | null>(null)
@@ -41,6 +44,7 @@ let pageRequestId = 0
 let latestScanVersion = 0
 let pushedScanner = false
 let replacingLeave = false
+let noticeTimer: ReturnType<typeof setTimeout> | undefined
 
 const statusLabels: Record<TicketStatus, string> = {
   Pending: 'Pending',
@@ -112,6 +116,7 @@ watch(() => department.value?.code, code => {
   expandedOrderId.value = null
   latestScanVersion += 1
   scanResult.value = null
+  dismissPageNotice()
   if (code) void reload()
 }, { immediate: true })
 
@@ -156,48 +161,87 @@ function closeScanner(): void {
   void router.replace({ query })
 }
 
-function handleScan(value: string): void {
-  void runTagScan(value, async () => {
+function dismissPageNotice(): void {
+  if (noticeTimer) clearTimeout(noticeTimer)
+  noticeTimer = undefined
+  pageNotice.value = null
+}
+
+function showPageNotice(result: ScanDisplay): void {
+  dismissPageNotice()
+  pageNotice.value = result
+  if (result.tone !== 'loading') noticeTimer = setTimeout(dismissPageNotice, 5000)
+}
+
+async function advanceTicket(value: string, source: 'scan' | 'tap' | 'start'): Promise<boolean> {
+  let advanced = false
+  await runTagScan(value, async () => {
     const code = department.value?.code
     if (!code) return
-    const version = ++latestScanVersion
+    const version = source === 'scan' ? ++latestScanVersion : latestScanVersion
     const ticket = ticketStore.tickets.find(row => row.laundryItemId !== null && row.laundryItemId === value)
     const context = {
-      tagId: value,
+      title: value,
       orderId: ticket?.orderId,
       customerName: ticket ? orderInfo.value.get(ticket.orderId)?.customerName : undefined,
     }
-    scanResult.value = { ...context, message: 'Saving…', tone: 'loading' }
+    if (source === 'scan') scanResult.value = { ...context, message: 'Saving…', tone: 'loading' }
+    if (source === 'tap') showPageNotice({ ...context, message: 'Saving…', tone: 'loading' })
     try {
       const response = await ticketStore.scan({
         laundryItemId: value,
         department: code,
         scannedBy: currentActor(Array.isArray(route.query.by) ? route.query.by[0] : route.query.by),
       })
+      advanced = response.kind === 'advanced'
       const presentation = presentScanResult(response)
-      if (scannerOpen.value && department.value?.code === code) {
+      if (source === 'scan' && scannerOpen.value && department.value?.code === code) {
         feedback(feedbackOutcomeForScanResult(response))
       }
-      if (version === latestScanVersion && scannerOpen.value && department.value?.code === code) {
-        scanResult.value = {
+      if (department.value?.code === code) {
+        const result: ScanDisplay = {
           ...context,
           status: response.kind === 'advanced' || response.kind === 'not_advanceable' ? response.status
             : response.kind === 'already_completed' ? 'Completed' : undefined,
           ...presentation,
         }
+        if (source === 'scan' && version === latestScanVersion && scannerOpen.value) scanResult.value = result
+        if (source === 'tap' && pageNotice.value?.title === value) showPageNotice(result)
       }
     } catch {
-      if (scannerOpen.value && department.value?.code === code) feedback('failure')
-      if (version === latestScanVersion && scannerOpen.value && department.value?.code === code) {
-        scanResult.value = { ...context, message: 'Connection failed. Scan again', tone: 'error' }
+      if (source === 'scan' && scannerOpen.value && department.value?.code === code) feedback('failure')
+      if (department.value?.code === code) {
+        const result: ScanDisplay = { ...context, message: 'Connection failed. Scan again', tone: 'error' }
+        if (source === 'scan' && version === latestScanVersion && scannerOpen.value) scanResult.value = result
+        if (source === 'tap' && pageNotice.value?.title === value) showPageNotice(result)
       }
     }
   })
+  return advanced
 }
 
-function ticketSecondary(ticket: JobTicketDto): string {
-  const time = ticket.status === 'Completed' ? ticket.completedAt : ticket.startedAt
-  return `${statusLabels[ticket.status]}${time ? ` · ${formatSheetDateTime(time)}` : ''}`
+async function startOrder(orderId: string): Promise<void> {
+  if (startingOrderId.value !== null) return
+  const departmentCode = department.value?.code
+  if (!departmentCode) return
+  const tickets = allOrders.value.get(orderId)?.tickets ?? []
+  if (!tickets.some(ticket => ticket.status === 'Pending')) return
+  startingOrderId.value = orderId
+  dismissPageNotice()
+  const { tags, missingTags } = pendingOrderTags(tickets)
+  let advanced = 0
+  let failed = 0
+  try {
+    for (const tag of tags) {
+      if (department.value?.code !== departmentCode) return
+      if (await advanceTicket(tag, 'start')) advanced += 1
+      else failed += 1
+    }
+    if (department.value?.code !== departmentCode) return
+    showPageNotice({ title: orderId, message: `${advanced} advanced · ${failed} blocked or failed · ${missingTags} skipped without tag`, tone: failed ? 'error' : missingTags ? 'warning' : 'success' })
+  } finally {
+    startingOrderId.value = null
+  }
 }
 
 function statusShare(tickets: readonly JobTicketDto[], status: TicketStatus): number {
@@ -215,6 +259,8 @@ watch(scannerOpen, open => {
     scanResult.value = null
   }
 })
+
+onBeforeUnmount(dismissPageNotice)
 
 onBeforeRouteLeave(to => {
   if (!scannerOpen.value || replacingLeave) return
@@ -258,38 +304,44 @@ onBeforeRouteLeave(to => {
       </template>
 
       <div v-if="grouper === 'item'" class="grid grid-cols-2 gap-x-3 gap-y-5 p-4 sm:grid-cols-3">
-        <SquareImageCard v-for="ticket in visibleTickets" :key="ticket.id" :image-url="ticket.photoEvidenceUrl" :primary-text="ticket.laundryItemId ?? ticket.id" :secondary-text="ticketSecondary(ticket)">
-          <template #badge><BaseBadge :label="statusLabels[ticket.status]" :tone="statusTones[ticket.status]" size="sm" /></template>
-        </SquareImageCard>
+        <button v-for="ticket in visibleTickets" :key="ticket.id" type="button" class="min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed" :disabled="ticket.laundryItemId === null" :aria-label="`Advance tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="ticket.laundryItemId && advanceTicket(ticket.laundryItemId, 'tap')">
+          <SquareImageCard :image-url="ticket.photoEvidenceUrl">
+            <template #badge><BaseBadge :label="statusLabels[ticket.status]" :tone="statusTones[ticket.status]" size="sm" /></template>
+          </SquareImageCard>
+        </button>
       </div>
 
       <div v-for="order in grouper === 'order' ? visibleOrders : []" :key="order.orderId" class="bg-surface px-4 py-2">
-        <button
-          type="button"
-          class="w-full rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4 text-left focus-visible:outline-2 focus-visible:outline-primary"
-          :aria-expanded="expandedOrderId === order.orderId"
-          @click="expandedOrderId = expandedOrderId === order.orderId ? null : order.orderId"
-        >
-          <span class="flex items-start justify-between gap-2">
-            <span class="min-w-0">
-              <strong class="block truncate font-headline text-sm text-primary">{{ order.customerName }}</strong>
-              <span class="block truncate font-label text-xs text-on-surface-variant">{{ order.orderId }} · Due {{ formatSheetDate(order.dueDate) }}</span>
+        <div class="relative">
+          <button
+            type="button"
+            class="w-full rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4 text-left focus-visible:outline-2 focus-visible:outline-primary"
+            :aria-expanded="expandedOrderId === order.orderId"
+            @click="expandedOrderId = expandedOrderId === order.orderId ? null : order.orderId"
+          >
+            <span class="flex items-start justify-between gap-2 pr-8">
+              <span class="min-w-0">
+                <strong class="block truncate font-headline text-sm text-primary">{{ order.customerName }}</strong>
+                <span class="block truncate font-label text-xs text-on-surface-variant">{{ order.orderId }} · Due {{ formatSheetDate(order.dueDate) }}</span>
+              </span>
             </span>
-            <span class="material-symbols-outlined text-primary" aria-hidden="true">{{ expandedOrderId === order.orderId ? 'expand_less' : 'expand_more' }}</span>
-          </span>
-          <span class="mt-4 grid grid-cols-[164px_minmax(0,1fr)] items-center gap-4">
-            <CompletionRing :percentage="allOrders.get(order.orderId)?.percentage ?? 0" :completed="statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Completed')" :total="allOrders.get(order.orderId)?.tickets.length ?? 0" :label="order.customerIndex ?? '-'" />
-            <span class="flex min-w-0 flex-col gap-1.5">
-              <span class="relative flex h-[50px] items-center gap-3 overflow-hidden rounded-2xl pl-2 pr-3 bg-warning-container"><span class="absolute inset-y-0 left-0 bg-warning/15" :style="{ width: `${statusShare(allOrders.get(order.orderId)?.tickets ?? [], 'Pending')}%` }" /><span class="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-warning/25 text-on-surface"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">schedule</span></span><span class="relative flex min-w-0 flex-col justify-center"><span class="truncate font-label text-[12px] font-medium leading-4 text-on-surface/70">Pending</span><strong class="font-headline text-[22px] font-semibold leading-6 text-on-surface">{{ statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Pending') }}</strong></span></span>
-              <span class="relative flex h-[50px] items-center gap-3 overflow-hidden rounded-2xl pl-2 pr-3 bg-mint/40"><span class="absolute inset-y-0 left-0 bg-secondary/10" :style="{ width: `${statusShare(allOrders.get(order.orderId)?.tickets ?? [], 'In Progress')}%` }" /><span class="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary/25 text-on-surface"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">autorenew</span></span><span class="relative flex min-w-0 flex-col justify-center"><span class="truncate font-label text-[12px] font-medium leading-4 text-on-surface/70">In Progress</span><strong class="font-headline text-[22px] font-semibold leading-6 text-on-surface">{{ statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'In Progress') }}</strong></span></span>
-              <span class="relative flex h-[50px] items-center gap-3 overflow-hidden rounded-2xl pl-2 pr-3 bg-lime/20"><span class="absolute inset-y-0 left-0 bg-lime/25" :style="{ width: `${statusShare(allOrders.get(order.orderId)?.tickets ?? [], 'Completed')}%` }" /><span class="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-lime/60 text-on-surface"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">check_circle</span></span><span class="relative flex min-w-0 flex-col justify-center"><span class="truncate font-label text-[12px] font-medium leading-4 text-on-surface/70">Completed</span><strong class="font-headline text-[22px] font-semibold leading-6 text-on-surface">{{ statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Completed') }}</strong></span></span>
+            <span class="mt-4 grid grid-cols-[164px_minmax(0,1fr)] items-center gap-4">
+              <CompletionRing :percentage="allOrders.get(order.orderId)?.percentage ?? 0" :completed="statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Completed')" :total="allOrders.get(order.orderId)?.tickets.length ?? 0" :label="order.customerIndex ?? '-'" />
+              <span class="flex min-w-0 flex-col gap-1.5">
+                <span class="relative flex h-[50px] items-center gap-3 overflow-hidden rounded-2xl pl-2 pr-3 bg-warning-container"><span class="absolute inset-y-0 left-0 bg-warning/15" :style="{ width: `${statusShare(allOrders.get(order.orderId)?.tickets ?? [], 'Pending')}%` }" /><span class="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-warning/25 text-on-surface"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">schedule</span></span><span class="relative flex min-w-0 flex-col justify-center"><span class="truncate font-label text-[12px] font-medium leading-4 text-on-surface/70">Pending</span><strong class="font-headline text-[22px] font-semibold leading-6 text-on-surface">{{ statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Pending') }}</strong></span></span>
+                <span class="relative flex h-[50px] items-center gap-3 overflow-hidden rounded-2xl pl-2 pr-3 bg-mint/40"><span class="absolute inset-y-0 left-0 bg-secondary/10" :style="{ width: `${statusShare(allOrders.get(order.orderId)?.tickets ?? [], 'In Progress')}%` }" /><span class="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary/25 text-on-surface"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">autorenew</span></span><span class="relative flex min-w-0 flex-col justify-center"><span class="truncate font-label text-[12px] font-medium leading-4 text-on-surface/70">In Progress</span><strong class="font-headline text-[22px] font-semibold leading-6 text-on-surface">{{ statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'In Progress') }}</strong></span></span>
+                <span class="relative flex h-[50px] items-center gap-3 overflow-hidden rounded-2xl pl-2 pr-3 bg-lime/20"><span class="absolute inset-y-0 left-0 bg-lime/25" :style="{ width: `${statusShare(allOrders.get(order.orderId)?.tickets ?? [], 'Completed')}%` }" /><span class="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-lime/60 text-on-surface"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">check_circle</span></span><span class="relative flex min-w-0 flex-col justify-center"><span class="truncate font-label text-[12px] font-medium leading-4 text-on-surface/70">Completed</span><strong class="font-headline text-[22px] font-semibold leading-6 text-on-surface">{{ statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Completed') }}</strong></span></span>
+              </span>
             </span>
-          </span>
-        </button>
+          </button>
+          <button type="button" class="absolute right-4 top-4 z-10 rounded-full text-primary focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40" aria-label="Start all pending" :disabled="startingOrderId !== null || statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Pending') === 0" @click="startOrder(order.orderId)"><span class="material-symbols-outlined" aria-hidden="true">play_arrow</span></button>
+        </div>
         <div v-if="expandedOrderId === order.orderId" class="grid grid-cols-2 gap-x-3 gap-y-5 p-3 sm:grid-cols-3">
-          <SquareImageCard v-for="ticket in order.tickets" :key="ticket.id" :image-url="ticket.photoEvidenceUrl" :primary-text="ticket.laundryItemId ?? ticket.id" :secondary-text="ticketSecondary(ticket)">
-            <template #badge><BaseBadge :label="statusLabels[ticket.status]" :tone="statusTones[ticket.status]" size="sm" /></template>
-          </SquareImageCard>
+          <button v-for="ticket in order.tickets" :key="ticket.id" type="button" class="min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed" :disabled="ticket.laundryItemId === null" :aria-label="`Advance tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="ticket.laundryItemId && advanceTicket(ticket.laundryItemId, 'tap')">
+            <SquareImageCard :image-url="ticket.photoEvidenceUrl">
+              <template #badge><BaseBadge :label="statusLabels[ticket.status]" :tone="statusTones[ticket.status]" size="sm" /></template>
+            </SquareImageCard>
+          </button>
         </div>
       </div>
     </ListContainer>
@@ -299,14 +351,13 @@ onBeforeRouteLeave(to => {
       <span class="material-symbols-outlined" aria-hidden="true">qr_code_scanner</span>
     </button>
 
-    <QrScannerOverlay :open="scannerOpen" :title="department?.label ?? ''" @close="closeScanner" @scan="handleScan">
+    <div v-if="pageNotice && !scannerOpen" class="pointer-events-none absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-4 right-20 z-20">
+      <div class="pointer-events-auto"><ScanResultCard :result="pageNotice" dismissible @dismiss="dismissPageNotice" /></div>
+    </div>
+
+    <QrScannerOverlay :open="scannerOpen" :title="department?.label ?? ''" @close="closeScanner" @scan="value => void advanceTicket(value, 'scan')">
       <template #result>
-        <div v-if="scanResult" role="status" class="mx-auto max-w-sm rounded-xl p-4 font-body shadow-lg" :class="scanResult.tone === 'success' ? 'bg-success-container text-on-success-container' : scanResult.tone === 'warning' ? 'bg-warning-container text-on-warning-container' : scanResult.tone === 'error' ? 'bg-error-container text-on-error-container' : 'bg-surface text-on-surface'">
-          <p class="font-headline font-bold">{{ scanResult.tagId }}</p>
-          <p v-if="scanResult.orderId" class="text-sm">{{ scanResult.customerName }} · {{ scanResult.orderId }}</p>
-          <p v-if="scanResult.status" class="text-sm">Status {{ statusLabels[scanResult.status] }}</p>
-          <p class="mt-1 text-sm font-semibold">{{ scanResult.message }}</p>
-        </div>
+        <ScanResultCard v-if="scanResult" :result="scanResult" />
       </template>
     </QrScannerOverlay>
   </ListPageLayout>

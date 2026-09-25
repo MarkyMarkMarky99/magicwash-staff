@@ -48,6 +48,14 @@ export function filterTickets(tickets: readonly JobTicketDto[], filter: StatusFi
   return filter === 'ALL' ? [...tickets] : tickets.filter(ticket => ticket.status.toUpperCase() === filter)
 }
 
+export function pendingOrderTags(tickets: readonly JobTicketDto[]): { tags: string[]; missingTags: number } {
+  const pending = tickets.filter(ticket => ticket.status === 'Pending')
+  return {
+    tags: pending.flatMap(ticket => ticket.laundryItemId === null ? [] : [ticket.laundryItemId]),
+    missingTags: pending.filter(ticket => ticket.laundryItemId === null).length,
+  }
+}
+
 export function countDepartmentStatuses(tickets: readonly JobTicketDto[]): Record<StatusFilter, number> {
   const counts: Record<StatusFilter, number> = { ALL: tickets.length, PENDING: 0, 'IN PROGRESS': 0, COMPLETED: 0 }
   for (const ticket of tickets) {

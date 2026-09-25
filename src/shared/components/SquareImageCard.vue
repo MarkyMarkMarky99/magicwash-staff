@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 
-const props = defineProps<{ imageUrl: string | null; primaryText: string; secondaryText: string }>()
+const props = defineProps<{ imageUrl: string | null; primaryText?: string; secondaryText?: string }>()
 const imageFailed = ref(false)
 watch(() => props.imageUrl, () => { imageFailed.value = false })
 </script>
@@ -15,7 +15,7 @@ watch(() => props.imageUrl, () => { imageFailed.value = false })
       </div>
       <div v-if="$slots.badge" class="absolute left-2 top-2"><slot name="badge" /></div>
     </div>
-    <strong class="mt-2 block truncate font-headline text-sm font-semibold text-on-surface">{{ primaryText }}</strong>
-    <span class="mt-0.5 block truncate font-body text-xs text-on-surface-variant">{{ secondaryText }}</span>
+    <strong v-if="primaryText" class="mt-2 block truncate font-headline text-sm font-semibold text-on-surface">{{ primaryText }}</strong>
+    <span v-if="secondaryText" class="mt-0.5 block truncate font-body text-xs text-on-surface-variant">{{ secondaryText }}</span>
   </article>
 </template>
