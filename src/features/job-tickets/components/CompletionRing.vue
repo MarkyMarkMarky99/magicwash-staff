@@ -6,8 +6,9 @@ const props = defineProps<{ percentage: number; completed: number; total: number
 const id = useId()
 const shown = ref(0)
 const HEAD_LENGTH = 7
-const headStart = computed(() => Math.max(shown.value - HEAD_LENGTH, -HEAD_LENGTH / 2))
-const labelAngle = computed(() => (headStart.value + HEAD_LENGTH / 2) * 3.6)
+const headCenter = computed(() => shown.value - (HEAD_LENGTH / 2) * Math.min(1, shown.value / HEAD_LENGTH, (100 - shown.value) / HEAD_LENGTH))
+const headStart = computed(() => headCenter.value - HEAD_LENGTH / 2)
+const labelAngle = computed(() => headCenter.value * 3.6)
 const labelFlipped = computed(() => labelAngle.value > 90 && labelAngle.value < 270)
 const labelSize = computed(() => props.label.length <= 4 ? 'text-[30px]' : props.label.length <= 6 ? 'text-[22px]' : 'text-[16px]')
 
