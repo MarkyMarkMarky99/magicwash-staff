@@ -1,13 +1,16 @@
 import { z } from 'zod'
-import { orderItemApiContract, orderItemResponseSchema } from '../../../contracts/order-items/order-item-api.schema.js'
+import { orderItemApiContract, orderItemResponseSchema, orderItemUpdateResponseSchema, orderItemQuantityReassignSchema } from '../../../contracts/order-items/order-item-api.schema.js'
 import { getOrderFormRepository } from '../../sheets/OrderForm/OrderForm.repository.js'
 import { orderFormRowSchema } from '../../sheets/OrderForm/OrderForm.db-contract.js'
 import { getOrderItemFormsRepository } from '../../sheets/OrderItemForms/OrderItemForms.repository.js'
 import { orderItemFormsRowSchema } from '../../sheets/OrderItemForms/OrderItemForms.db-contract.js'
 import { Mapper, type ApiRowFromFieldMap } from '../../shared/repositories/base.repository.js'
-import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
+import type { SheetBatchUpdateContract, SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
 import { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
+import { ApiHandler } from '../../shared/http/api-handler.js'
+import type { GatewayModuleRoutes } from '../../shared/http/gateway.types.js'
+import { ok } from '../../shared/http/response.js'
 import { ApiError } from '../../shared/http/api-error.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import {
@@ -16,6 +19,7 @@ import {
   type ServiceListResult,
 } from '../../shared/services/base-crud.service.js'
 import { generateShortId } from '../../shared/utils/id.js'
+import { projectResponse } from '../../shared/services/crud-helpers.js'
 
 type OrderItemFormsDbRow = z.infer<typeof orderItemFormsRowSchema>
 type OrderFormDbRow = z.infer<typeof orderFormRowSchema>
@@ -44,9 +48,12 @@ type OrderItemCreate = z.infer<typeof orderItemApiContract.request.create>
 type OrderItemListResponse = z.infer<typeof orderItemApiContract.response.list>
 type OrderItemDetailResponse = z.infer<typeof orderItemApiContract.response.detail>
 type OrderItemCreateResponse = z.infer<typeof orderItemApiContract.response.create>
+type OrderItemUpdate = z.infer<typeof orderItemApiContract.request.update>
+type OrderItemUpdateResponse = z.infer<typeof orderItemApiContract.response.update>
+type OrderItemRepository = SheetRepositoryContract<OrderItemFormsDbRow> & SheetBatchUpdateContract<OrderItemFormsDbRow>
 
 export interface OrderItemServiceOptions {
-  repository?: SheetRepositoryContract<OrderItemFormsDbRow>
+  repository?: OrderItemRepository
   orderFormRepository?: () => SheetRepositoryContract<OrderFormDbRow>
 }
 
@@ -54,7 +61,7 @@ export function createOrderItemId(): string {
   return generateShortId()
 }
 
-export function createOrderItemRepository(): SheetRepositoryContract<OrderItemFormsDbRow> {
+export function createOrderItemRepository(): OrderItemRepository {
   return {
     read: (query) => getOrderItemFormsRepository().read(query),
     append: (row) =>
@@ -70,6 +77,7 @@ export function createOrderItemRepository(): SheetRepositoryContract<OrderItemFo
         })),
       ),
     update: (keyValue, patch) => getOrderItemFormsRepository().update(keyValue, patch),
+    updateMany: (updates) => getOrderItemFormsRepository().updateMany(updates),
     delete: (keyValue, deletedBy) => getOrderItemFormsRepository().delete(keyValue, deletedBy),
   }
 }
@@ -80,15 +88,15 @@ export class OrderItemService extends BaseCrudService<
   OrderItemApiRow,
   OrderItemListQuery,
   OrderItemCreate,
-  never,
+  OrderItemUpdate,
   OrderItemListResponse,
   OrderItemDetailResponse,
   OrderItemCreateResponse,
-  never,
+  OrderItemUpdateResponse,
   OrderItemFormsDbRow,
   typeof orderItemFieldMap
 > {
-  private readonly writeRepository: SheetRepositoryContract<OrderItemFormsDbRow>
+  private readonly writeRepository: OrderItemRepository
   private readonly orderFormRepository: () => SheetRepositoryContract<OrderFormDbRow>
 
   constructor(input: OrderItemServiceOptions = {}) {
@@ -152,7 +160,49 @@ export class OrderItemService extends BaseCrudService<
     }
     await this.writeRepository.batchAppend(rows)
   }
+
+  override async update(id: string, payload: unknown): Promise<OrderItemUpdateResponse> {
+    const data = parseOrThrow(orderItemApiContract.request.update, payload)
+    const safeId = id.trim()
+    if (safeId === '') throw ApiError.badRequest('id is required')
+    const stored = await this.writeRepository.update(safeId, {
+      quantity: data.quantity,
+      updated_by: data.updatedBy,
+    })
+    return projectResponse<OrderItemUpdateResponse>(
+      mapDbRowToApi(stored, orderItemMapper, {}), orderItemUpdateResponseSchema,
+    )
+  }
+
+  async reassignQuantities(payload: unknown): Promise<{ items: OrderItemUpdateResponse[] }> {
+    const data = parseOrThrow(orderItemQuantityReassignSchema, payload)
+    const stored = await this.writeRepository.updateMany(data.items.map((item) => ({
+      keyValue: item.orderItemId,
+      patch: { quantity: item.quantity, updated_by: data.updatedBy },
+    })))
+    return { items: stored.map((row) => projectResponse<OrderItemUpdateResponse>(
+      mapDbRowToApi(row, orderItemMapper, {}), orderItemUpdateResponseSchema,
+    )) }
+  }
 }
 
 export const orderItemService = new OrderItemService()
-export const orderItemRoutes = createCrudRoutes(orderItemService, orderItemApiContract)
+const crudRoutes = createCrudRoutes(orderItemService, orderItemApiContract)
+export const orderItemRoutes: GatewayModuleRoutes = {
+  collection: crudRoutes.collection,
+  item: new ApiHandler({
+    GET: async (req) => {
+      if (req.params.id === 'reassign-quantities') throw ApiError.notFound('Route not found')
+      return crudRoutes.item!.handleRequest(req)
+    },
+    PATCH: async (req) => {
+      if (req.params.id === 'reassign-quantities') throw ApiError.notFound('Route not found')
+      return crudRoutes.item!.handleRequest(req)
+    },
+    POST: async (req) => {
+      if (req.params.id !== 'reassign-quantities') throw ApiError.notFound('Route not found')
+      return ok(await orderItemService.reassignQuantities(req.body))
+    },
+    DELETE: async (req) => crudRoutes.item!.handleRequest(req),
+  }),
+}

@@ -40,10 +40,11 @@ Sheet: ORDERS_SPREADSHEET_ID, 21 columns, A–U. Registered at
 
 ## OrderItemForms
 
-Sheet: ORDERS_SPREADSHEET_ID, 15 columns, A–O, 23,165 rows. Not registered in `server/sheets/`.
-No registry JSON exists for it (`OrderItem.json` describes a different sheet, `OrderItems`).
-Registration with `writes: { append: true, update: false, delete: false }` is designed but not
-implemented, on branch `feat/register-order-sheets`.
+Sheet: ORDERS_SPREADSHEET_ID, 15 columns, A–O, 23,165 rows. Registered in `server/sheets/`.
+The schema registry contains `OrderItemForms.json` (`OrderItem.json` describes a different sheet, `OrderItems`).
+Its contract uses `writes: { append: true, update: true, delete: false }` and stamps
+`updated_at` on update. The order item API updates quantity and `updated_by`, individually or
+in one atomic batch.
 
 | Column name | Type | Nulls | Notes |
 |---|---|---|---|

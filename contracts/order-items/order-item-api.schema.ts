@@ -40,10 +40,39 @@ export const orderItemCreateSchema = z.object({
   createdBy: z.string().trim().min(1),
 })
 
-export const orderItemUpdateSchema = z.never()
+export const orderItemUpdateSchema = z
+  .object({
+    quantity: z.number().int().positive(),
+    updatedBy: z.string().trim().min(1),
+  })
+  .strict()
+
+export const orderItemQuantityReassignSchema = z
+  .object({
+    items: z
+      .array(
+        z
+          .object({
+            orderItemId: z.string().trim().min(1),
+            quantity: z.number().int().positive(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .refine(
+        (items) => new Set(items.map((item) => item.orderItemId)).size === items.length,
+        { message: 'Each orderItemId may appear only once' },
+      ),
+    updatedBy: z.string().trim().min(1),
+  })
+  .strict()
 
 export const orderItemDetailResponseSchema = orderItemResponseSchema
 export const orderItemCreateResponseSchema = orderItemResponseSchema
+export const orderItemUpdateResponseSchema = orderItemResponseSchema
+export const orderItemQuantityReassignResponseSchema = z.object({
+  items: z.array(orderItemUpdateResponseSchema),
+})
 
 export const orderItemApiContract = {
   query: { list: orderItemListQuerySchema },
@@ -52,5 +81,6 @@ export const orderItemApiContract = {
     list: orderItemResponseSchema,
     detail: orderItemDetailResponseSchema,
     create: orderItemCreateResponseSchema,
+    update: orderItemUpdateResponseSchema,
   },
 } satisfies ModuleApiContract

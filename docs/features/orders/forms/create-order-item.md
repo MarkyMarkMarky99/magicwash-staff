@@ -59,12 +59,10 @@ Purpose:
 1. Component collects the user-filled fields.
 2. `OrderDetailPage` supplies `order_id` from the route param.
 3. Store submits the API-shaped item request through the order service.
-4. Service calls the planned `OrderItemForms` write endpoint with `apiPost`.
+4. Service calls `POST /api/order-items` with `apiPost`.
 5. On success, refetch the detail from the API and `close()` the `item` query.
 
-## Blocker
+## Persistence
 
-⛔ BLOCKED — `OrderItemForms` has no HTTP surface. It is not registered in `server/sheets/`, has no
-registry JSON, no `contracts/` api schema, no `server/modules/` module, and no route. Sheet-layer
-registration with `writes: { append: true, update: false, delete: false }` is designed but not
-implemented, on branch `feat/register-order-sheets`. See Blocker 4 in `overview.md`.
+`OrderItemForms` is registered with append and update. The create endpoint appends items;
+quantity changes use `PATCH /api/order-items/:id` or the batch reassign endpoint.

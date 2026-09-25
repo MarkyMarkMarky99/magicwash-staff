@@ -42,6 +42,9 @@ Blank optional fields submit as `null`.
 
 - `receivedDate` must not be later than `dueDate`.
 - `quantity` accepts integers only.
+- In edit mode, changing status to APPROVED requires a non-null order quantity, at least one
+  item, and equality between the order quantity and sum of stored item quantities. The form
+  shows the reason and blocks that approval while they differ.
 
 ## Edit
 

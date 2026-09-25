@@ -37,10 +37,10 @@ assert.ok(OrderItemService.prototype instanceof BaseCrudService)
 assert.equal(orderItemFormsDbContract.primaryKey, 'id')
 assert.equal(orderItemFormsDbContract.sheetName, 'OrderItemForms')
 assert.equal(orderItemFormsDbContract.spreadsheetId, 'ORDERS_SPREADSHEET_ID')
-assert.deepEqual(orderItemFormsDbContract.audit, { onAppend: ['timestamp'] })
+assert.deepEqual(orderItemFormsDbContract.audit, { onAppend: ['timestamp'], onUpdate: ['updated_at'] })
 assert.deepEqual(orderItemFormsDbContract.writes, {
   append: true,
-  update: false,
+  update: true,
   delete: false,
 })
 assert.equal('valueInput' in orderItemFormsDbContract, false)
@@ -65,7 +65,7 @@ assert.match(createOrderItemId(), /^[0-9a-f]{8}$/)
 
 assert.ok(orderItemRoutes.collection)
 assert.ok(orderItemRoutes.item)
-assert.equal('update' in orderItemApiContract.response, false)
+assert.equal('update' in orderItemApiContract.response, true)
 
 const collectionDelete = await orderItemRoutes.collection.handleRequest({
   method: 'DELETE',
@@ -85,7 +85,7 @@ const itemDelete = await orderItemRoutes.item!.handleRequest({
   params: { id: 'item-1' },
 })
 assert.equal(itemDelete.status, 405)
-assert.equal(itemDelete.headers?.Allow, 'GET')
+assert.equal(itemDelete.headers?.Allow, 'GET, PATCH')
 
 const itemPatch = await orderItemRoutes.item!.handleRequest({
   method: 'PATCH',
@@ -94,8 +94,7 @@ const itemPatch = await orderItemRoutes.item!.handleRequest({
   headers: {},
   params: { id: 'item-1' },
 })
-assert.equal(itemPatch.status, 405)
-assert.equal(itemPatch.headers?.Allow, 'GET')
+assert.equal(itemPatch.status, 422)
 
 process.env.ORDERS_SPREADSHEET_ID = 'order-item-forms-wrapper-test-spreadsheet'
 const formsRepositoryModule = await import(
@@ -107,6 +106,7 @@ const originalMethods = {
   append: formsRepository.append,
   batchAppend: formsRepository.batchAppend,
   update: formsRepository.update,
+  updateMany: formsRepository.updateMany,
   delete: formsRepository.delete,
 }
 const delegatedCalls: Array<{ method: string; value: unknown }> = []
@@ -126,6 +126,10 @@ formsRepository.update = async (key: unknown, patch: unknown) => {
   delegatedCalls.push({ method: 'update', value: [key, patch] })
   return {}
 }
+formsRepository.updateMany = async (updates: unknown) => {
+  delegatedCalls.push({ method: 'updateMany', value: updates })
+  return []
+}
 formsRepository.delete = async (key: unknown, deletedBy: unknown) => {
   delegatedCalls.push({ method: 'delete', value: [key, deletedBy] })
   return {}
@@ -138,12 +142,14 @@ try {
   await wrapped.append({ order_id: 'order-1' })
   await wrapped.batchAppend([{ order_id: 'order-1' }, { order_id: 'order-1' }])
   await wrapped.update('item-1', { quantity: 2 })
+  await wrapped.updateMany([{ keyValue: 'item-1', patch: { quantity: 2 } }])
   await wrapped.delete('item-1', 'staff-1')
 } finally {
   formsRepository.read = originalMethods.read
   formsRepository.append = originalMethods.append
   formsRepository.batchAppend = originalMethods.batchAppend
   formsRepository.update = originalMethods.update
+  formsRepository.updateMany = originalMethods.updateMany
   formsRepository.delete = originalMethods.delete
   if (previousSpreadsheetId === undefined) {
     delete process.env.ORDERS_SPREADSHEET_ID
@@ -154,7 +160,7 @@ try {
 
 assert.deepEqual(
   delegatedCalls.map((call) => call.method),
-  ['read', 'append', 'batchAppend', 'update', 'delete'],
+  ['read', 'append', 'batchAppend', 'update', 'updateMany', 'delete'],
 )
 assert.deepEqual(delegatedCalls[0]!.value, readQuery)
 assert.match(String((delegatedCalls[1]!.value as Record<string, unknown>).id), /^[0-9a-f]{8}$/)

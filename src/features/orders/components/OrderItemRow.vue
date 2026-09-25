@@ -4,7 +4,7 @@ import type { orderItemResponseSchema } from '@contracts/order-items/order-item-
 import BaseDropdown from '@/shared/components/BaseDropdown.vue'
 
 type OrderItem = z.infer<typeof orderItemResponseSchema>
-const props = defineProps<{ item: OrderItem; index: number }>()
+const props = defineProps<{ item: OrderItem; index: number; photoCount: number }>()
 
 const emit = defineEmits<{
   select: [orderItemId: string, itemId: string | null]
@@ -30,7 +30,7 @@ function selectItem(): void {
     <div class="min-w-0 flex-1">
       <p class="truncate font-body text-sm font-medium leading-tight text-on-surface">{{ item.description || 'No description' }}</p>
     </div>
-    <span class="shrink-0 font-label text-[11px] font-semibold text-on-surface-variant">{{ item.quantity ?? '—' }} pcs</span>
+    <span class="shrink-0 font-label text-[11px] font-semibold text-on-surface-variant">{{ item.quantity ?? '—' }} pcs · {{ photoCount }} BEF photos</span>
   </article>
   <BaseDropdown panel-class="w-52 rounded-2xl border border-outline-variant/30 bg-surface-container-lowest py-1 shadow-2xl">
     <template #trigger="{ setTrigger, toggle, triggerAttrs }">

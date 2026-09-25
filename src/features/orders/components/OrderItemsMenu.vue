@@ -1,18 +1,22 @@
 <script setup lang="ts">
 import BaseDropdown from '@/shared/components/BaseDropdown.vue'
 
+defineProps<{ reassigning: boolean; reassignDisabled: boolean }>()
+
 const emit = defineEmits<{
   addItem: []
   openAlbum: []
   openLibrary: []
   registerGarments: []
+  reassignQuantities: []
 }>()
 
-function select(action: 'addItem' | 'openAlbum' | 'openLibrary' | 'registerGarments', close: () => void): void {
+function select(action: 'addItem' | 'openAlbum' | 'openLibrary' | 'registerGarments' | 'reassignQuantities', close: () => void): void {
   close()
   if (action === 'addItem') emit('addItem')
   else if (action === 'openAlbum') emit('openAlbum')
   else if (action === 'openLibrary') emit('openLibrary')
+  else if (action === 'reassignQuantities') emit('reassignQuantities')
   else emit('registerGarments')
 }
 </script>
@@ -41,6 +45,15 @@ function select(action: 'addItem' | 'openAlbum' | 'openLibrary' | 'registerGarme
         >
           <span class="material-symbols-outlined text-[16px] leading-none text-primary" aria-hidden="true">playlist_add</span>
           Add item
+        </button>
+        <button
+          type="button"
+          class="flex w-full items-center gap-2 px-3 py-2 text-left font-body text-[12px] text-on-surface transition-colors hover:bg-surface-container-low focus:bg-surface-container-low focus:outline-none active:bg-surface-container disabled:opacity-50"
+          :disabled="reassignDisabled"
+          @click="select('reassignQuantities', close)"
+        >
+          <span class="material-symbols-outlined text-[16px] leading-none text-primary" aria-hidden="true">sync</span>
+          {{ reassigning ? 'Saving…' : 'Reassign quantities' }}
         </button>
         <button
           type="button"

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { z } from 'zod'
 import { orderItemResponseSchema } from '../../../../../contracts/order-items/order-item-api.schema.js'
 import { orderFormRowSchema } from '../../../../../server/sheets/OrderForm/OrderForm.db-contract.js'
-import type { SheetRepositoryContract } from '../../../../../server/shared/repositories/sheet-repository.contract.js'
+import type { SheetBatchUpdateContract, SheetRepositoryContract } from '../../../../../server/shared/repositories/sheet-repository.contract.js'
 import { ReadQueryDTO } from '../../../../../server/shared/dtos/read-query.dto.js'
 import { ApiError } from '../../../../../server/shared/http/api-error.js'
 import { API_ERROR_CODES } from '../../../../../contracts/shared/api.schema.js'
@@ -12,7 +12,7 @@ type OrderItemFormsDbRow = z.infer<typeof import('../../../../../server/sheets/O
 type OrderFormDbRow = z.infer<typeof orderFormRowSchema>
 type ItemReadRow = Omit<Partial<OrderItemFormsDbRow>, 'id'> & { id?: string | null }
 
-interface FakeItemRepository extends SheetRepositoryContract<OrderItemFormsDbRow> {
+interface FakeItemRepository extends SheetRepositoryContract<OrderItemFormsDbRow>, SheetBatchUpdateContract<OrderItemFormsDbRow> {
   events: string[]
   readRows: Array<ItemReadRow>
   readQueries: Array<unknown>
@@ -39,6 +39,7 @@ function makeItemRepository(): FakeItemRepository {
     },
     async batchAppend(rows: Array<Partial<OrderItemFormsDbRow>>) { repository.events.push('item-batchAppend'); repository.batchAppendRows.push(rows); return rows as OrderItemFormsDbRow[] },
     async update() { throw new Error('not used') },
+    async updateMany() { throw new Error('not used') },
     async delete() { throw new Error('not used') },
   }
   return repository as FakeItemRepository

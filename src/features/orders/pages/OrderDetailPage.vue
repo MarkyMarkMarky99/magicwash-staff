@@ -20,7 +20,7 @@ import CameraOverlay from '@/shared/components/CameraOverlay.vue'
 import DocumentScannerOverlay from '@/features/orders/components/DocumentScannerOverlay.vue'
 import OrderImageSection from '@/features/orders/components/OrderImageSection.vue'
 import { useOrderImageStore } from '@/features/orders/stores/order-image.store'
-import { createLaundryPhoto, listLaundryPhotoTagIds, listLaundryPhotos, uploadLaundryPhoto } from '@/data/laundry-photos/laundry-photo.service'
+import { createLaundryPhoto, listLaundryPhotoTagIds, listLaundryPhotos, uploadLaundryPhoto, type GalleryPhoto } from '@/data/laundry-photos/laundry-photo.service'
 import GarmentRegistrationCamera from '@/features/orders/components/GarmentRegistrationCamera.vue'
 import { canSaveGarment, isDuplicateGarmentTag, validGarmentTag } from '@/features/orders/garment-registration'
 import OrderImageWeightPrompt from '@/features/orders/components/OrderImageWeightPrompt.vue'
@@ -30,6 +30,7 @@ import type { OrderImageType } from '@/features/orders/order-image-labels'
 import { presentationFor } from '@/features/orders/order-status-presentation'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { useOrderStore } from '@/features/orders/stores/order.store'
+import { orderQuantityMismatch } from '@/features/orders/order-quantity-mismatch'
 import { useWorkOrderStore } from '@/data/work-orders/work-order.store'
 import { useCustomerStore } from '@/data/customers/customer.store'
 import { useItemsStore } from '@/data/items/items.store'
@@ -62,6 +63,79 @@ const tagPrintSuccess = ref<string | null>(null)
 const tagPrintError = ref<string | null>(null)
 const tagPrintConfirmOpen = ref(false)
 const orderApprovalNotice = ref<{ message: string, success: boolean } | null>(null)
+const laundryPhotos = ref<GalleryPhoto[]>([])
+const photoCounts = computed(() => {
+  const counts = new Map<string, number>()
+  for (const photo of laundryPhotos.value) {
+    if (photo.orderItemId) counts.set(photo.orderItemId, (counts.get(photo.orderItemId) ?? 0) + 1)
+  }
+  return counts
+})
+const quantityMismatch = computed(() => currentOrder.value === null || orderQuantityMismatch(currentOrder.value.quantity, currentOrder.value.items))
+const reassigning = ref(false)
+const reassignError = ref<string | null>(null)
+const approving = ref(false)
+const approvalError = ref<string | null>(null)
+const canApprove = computed(() => currentOrder.value !== null && currentOrder.value.status !== null && ['PENDING', 'RECEIVED', 'SUBMITTED'].includes(currentOrder.value.status))
+let photoLoadSequence = 0
+
+async function refreshLaundryPhotos(id: string): Promise<void> {
+  const sequence = ++photoLoadSequence
+  try {
+    const photos = await listLaundryPhotos(id, fresh => {
+      if (sequence === photoLoadSequence && id === orderId.value) laundryPhotos.value = fresh
+    })
+    if (sequence === photoLoadSequence && id === orderId.value) laundryPhotos.value = photos
+  } catch {
+    if (sequence === photoLoadSequence && id === orderId.value) laundryPhotos.value = []
+  }
+}
+
+async function reassignQuantities(): Promise<void> {
+  const order = currentOrder.value
+  if (!order || reassigning.value) return
+  const items = order.items.flatMap(item => {
+    const quantity = photoCounts.value.get(item.orderItemId) ?? 0
+    return item.orderItemId && quantity > 0 && quantity !== item.quantity ? [{ orderItemId: item.orderItemId, quantity }] : []
+  })
+  if (items.length === 0) return
+  reassigning.value = true
+  reassignError.value = null
+  try {
+    await orderStore.reassignQuantities({ items, updatedBy: currentActor() })
+    if (orderId.value === order.orderId) await workOrderStore.loadDetail(order.orderId)
+  } catch (reason) {
+    if (orderId.value === order.orderId) reassignError.value = reason instanceof Error ? reason.message : 'Unable to reassign quantities'
+  } finally {
+    reassigning.value = false
+  }
+}
+
+async function approveOrder(): Promise<void> {
+  const order = currentOrder.value
+  if (!order || !canApprove.value || quantityMismatch.value || approving.value) return
+  approving.value = true
+  approvalError.value = null
+  try {
+    const updated = await workOrderStore.update(order.orderId, { status: 'APPROVED' })
+    if (orderId.value !== order.orderId) return
+    const tickets = updated.ticketProvisioning
+    const result = tickets.failure
+      ? tickets.failure.certainty === 'unknown'
+        ? 'Ticket creation could not be confirmed. Check tickets before retrying.'
+        : 'Ticket creation failed.'
+      : 'Ticket creation completed.'
+    orderApprovalNotice.value = {
+      message: `Order saved. ${tickets.ticketsCreated} tickets created. ${result}`,
+      success: !tickets.failure,
+    }
+    await workOrderStore.loadDetail(order.orderId)
+  } catch (reason) {
+    if (orderId.value === order.orderId) approvalError.value = reason instanceof Error ? reason.message : 'Unable to approve order'
+  } finally {
+    approving.value = false
+  }
+}
 const registrationItemId = computed(() => readRegistrationItemId(route.query))
 const isRegistrationOpen = computed(() => orderOverlay.activeOverlay === 'register-garment')
 const registrationItem = computed(() => currentOrder.value?.orderId === orderId.value
@@ -117,6 +191,7 @@ function consumeOrderApprovalNotice(): void {
 }
 
 onActivated(consumeOrderApprovalNotice)
+onActivated(() => { if (orderId.value) void refreshLaundryPhotos(orderId.value) })
 watch(orderId, () => { orderApprovalNotice.value = null })
 let itemFlowSequence = 0
 const customersById = computed(() => new Map(
@@ -176,6 +251,10 @@ const laundryWindow = computed(() => {
 const itemSubmitting = computed(() => itemSubmittingOrderId.value === orderId.value || savingItemOrderId.value === orderId.value)
 const currentItemError = computed(() => itemErrorOrderId.value === orderId.value ? itemError.value : null)
 watch(orderId, (id) => {
+  photoLoadSequence += 1
+  laundryPhotos.value = []
+  reassignError.value = null
+  approvalError.value = null
   selectedImagePreview.value = null
   registrationLoadSequence += 1
   resetRegistration()
@@ -193,7 +272,7 @@ watch(orderId, (id) => {
   if (id) {
     void workOrderStore.loadDetail(id)
     void orderImageStore.loadImages(id)
-    void listLaundryPhotos(id).catch(() => {})
+    void refreshLaundryPhotos(id)
     void loadRegistrationTags(id)
     return
   }
@@ -206,6 +285,7 @@ watch(isRegistrationOpen, open => {
 }, { immediate: true })
 
 onBeforeUnmount(() => {
+  photoLoadSequence += 1
   registrationLoadSequence += 1
   clearRegistrationPhoto()
   setRegistrationWarning(null)
@@ -316,6 +396,7 @@ function saveRegistration(): void {
         pendingRegistrationTags.value.delete(tag)
         existingRegistrationTags.value.add(tag)
         registrationCount.value += 1
+        void refreshLaundryPhotos(targetOrderId)
       }
     })
     .catch(() => {
@@ -474,7 +555,10 @@ function clearItemError() {
 </script>
 
 <template>
-  <AppLayout><ScrollRegion as="main" class="bg-surface pb-8"><div v-if="detailLoading && !currentOrder" class="space-y-4 p-4 animate-pulse"><div class="h-40 rounded-2xl bg-surface-container" /><div class="h-32 rounded-2xl bg-surface-container" /></div><p v-else-if="detailError" class="p-5 text-sm text-error">{{ detailError }}</p><template v-else-if="currentOrder"><div class="space-y-4 p-4"><div v-if="orderApprovalNotice" :role="orderApprovalNotice.success ? 'status' : 'alert'" class="flex items-start gap-2 rounded-xl px-3 py-2 text-sm" :class="orderApprovalNotice.success ? 'bg-success-container text-on-success-container' : 'bg-error-container text-on-error-container'"><span class="flex-1">{{ orderApprovalNotice.message }}</span><button type="button" class="shrink-0 rounded p-0.5" aria-label="Close ticket creation result" @click="orderApprovalNotice = null"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span></button></div><section class="relative overflow-hidden rounded-[20px] border border-mint/25 bg-primary px-5 pb-4 pt-3 text-on-primary shadow-lg"><div class="pointer-events-none absolute -right-[138px] -top-[112px] h-[270px] w-[270px] rounded-full border-[34px] border-mint/[0.17]" /><div class="pointer-events-none absolute -bottom-[21px] right-[38px] h-[42px] w-[42px] rounded-full bg-lime shadow-[-22px_-11px_0_rgba(178,223,38,0.22)]" /><div class="relative flex items-start justify-between gap-3"><p class="font-label text-[9px] font-bold uppercase tracking-[0.18em] text-mint">Order detail</p><BaseBadge class="-mt-1 shrink-0" :label="presentationFor(currentOrder.status).label" size="lg" :uppercase="true" :tone="presentationFor(currentOrder.status).tone" /></div><h1 class="relative mt-1 truncate font-headline text-[26px] font-bold leading-tight tracking-tight">{{ currentCustomerName }}</h1><div class="relative mt-2 border-t border-white/15 pt-2"><template v-if="laundryWindow"><div class="flex items-baseline justify-between gap-3"><p class="font-label text-[9px] font-bold uppercase tracking-[0.14em] text-mint">Laundry window · {{ laundryWindow.span }} days</p><p v-if="laundryWindow.remaining > 0" class="shrink-0 font-headline text-xs font-bold text-lime">{{ laundryWindow.remaining }} days left</p><p v-else-if="laundryWindow.remaining === 0" class="shrink-0 font-headline text-xs font-bold text-lime">Due today</p><p v-else class="shrink-0 rounded-full bg-error px-2 py-0.5 font-headline text-[11px] font-bold text-white">{{ -laundryWindow.remaining }} days overdue</p></div><div class="relative mt-1.5 h-1.5 rounded-full bg-white/20"><div class="h-full rounded-full bg-mint" :style="{ width: laundryWindow.percent + '%' }" /><span class="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-mint bg-primary" :style="{ left: laundryWindow.percent + '%' }" /></div></template><div class="mt-2 flex items-start justify-between gap-3"><div class="min-w-0"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-mint">Pickup</p><p class="mt-0.5 font-headline text-[13px] font-bold">{{ currentOrder.receivedDate ? formatSheetDate(currentOrder.receivedDate) : 'Not set' }}</p></div><div class="min-w-0 text-right"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-mint">Due</p><p class="mt-0.5 font-headline text-[13px] font-bold">{{ currentOrder.dueDate ? formatSheetDate(currentOrder.dueDate) : 'Not set' }}</p></div></div><div class="mt-2 flex items-start justify-between gap-3"><div class="min-w-0"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-mint">Service</p><p class="mt-0.5 truncate font-headline text-[13px] font-bold">{{ serviceTypeLabel(currentOrder.serviceType) ?? '—' }}</p></div><div class="min-w-0 text-right"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-mint">Quantity</p><p class="mt-0.5 font-headline text-[13px] font-bold">{{ currentOrder.quantity ?? '—' }}</p></div></div><div v-if="currentOrder.invoiceNumber" class="mt-2 flex items-start justify-between gap-3"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-mint">Invoice</p><p class="min-w-0 truncate font-headline text-[13px] font-bold">{{ currentOrder.invoiceNumber }}</p></div></div></section><section v-if="currentOrder.note" class="rounded-xl border border-outline-variant/20 bg-surface-container-low px-3 py-3 shadow-sm"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">Note</p><p class="mt-1 whitespace-pre-wrap font-body text-sm leading-relaxed text-on-surface">{{ currentOrder.note }}</p></section><div><ListContainer class="overflow-hidden rounded-2xl shadow-sm" title="Items" icon="checkroom" :count="detailLoading ? undefined : currentOrder.items.length" count-label="items" :loading="detailLoading" :error="detailError ?? undefined" :empty="currentOrder.items.length === 0" empty-text="No items yet" :skeleton-rows="3"><template #actions><OrderItemsMenu @add-item="openItemOverlay" @open-album="openOrderGallery" @open-library="openPhotoLibrary" @register-garments="openUnassignedRegistration" /></template><OrderItemRow v-for="(item, index) in currentOrder.items" :key="item.orderItemId ?? `${currentOrder.orderId}-${index}`" :item="item" :index="index" @select="openItemGallery" @register="openRegistration" /></ListContainer><OrderTagPrintAction :total-count="tagCount" :can-print="canPrintTags" :printing="tagPrinting" :print-success="tagPrintSuccess" :print-error="tagPrintError" @print="openTagPrintConfirm" /></div><div class="-mx-4"><OrderImageSection :images="images" :loading="imagesLoading" :error="imagesError" :upload-error="uploadError" :uploading-count="uploadingCount" @capture="openCapture" @clear-upload-error="orderImageStore.clearUploadError" @preview="openImagePreview" /></div></div></template><p v-else class="p-5 text-sm text-on-surface-variant">Order not found</p></ScrollRegion><OrderImageWeightPrompt :open="isWeightPromptOpen" @submit="submitWeight" @close="orderOverlay.close" /><CameraOverlay :open="isSimpleCameraOpen" @close="orderOverlay.close" @capture="handleCapture" /><DocumentScannerOverlay :open="isDocumentScannerOpen" @close="orderOverlay.close" @capture="handleCapture" /></AppLayout>
+  <AppLayout><ScrollRegion as="main" class="bg-surface pb-8"><div v-if="detailLoading && !currentOrder" class="space-y-4 p-4 animate-pulse"><div class="h-40 rounded-2xl bg-surface-container" /><div class="h-32 rounded-2xl bg-surface-container" /></div><p v-else-if="detailError" class="p-5 text-sm text-error">{{ detailError }}</p><template v-else-if="currentOrder"><div class="space-y-4 p-4"><div v-if="orderApprovalNotice" :role="orderApprovalNotice.success ? 'status' : 'alert'" class="flex items-start gap-2 rounded-xl px-3 py-2 text-sm" :class="orderApprovalNotice.success ? 'bg-success-container text-on-success-container' : 'bg-error-container text-on-error-container'"><span class="flex-1">{{ orderApprovalNotice.message }}</span><button type="button" class="shrink-0 rounded p-0.5" aria-label="Close ticket creation result" @click="orderApprovalNotice = null"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span></button></div><section class="relative overflow-hidden rounded-[20px] border border-mint/25 bg-primary px-5 pb-4 pt-3 text-on-primary shadow-lg"><div class="pointer-events-none absolute -right-[138px] -top-[112px] h-[270px] w-[270px] rounded-full border-[34px] border-mint/[0.17]" /><div class="pointer-events-none absolute -bottom-[21px] right-[38px] h-[42px] w-[42px] rounded-full bg-lime shadow-[-22px_-11px_0_rgba(178,223,38,0.22)]" /><div class="relative flex items-start justify-between gap-3"><p class="font-label text-[9px] font-bold uppercase tracking-[0.18em] text-mint">Order detail</p><BaseBadge class="-mt-1 shrink-0" :label="presentationFor(currentOrder.status).label" size="lg" :uppercase="true" :tone="presentationFor(currentOrder.status).tone" /></div><h1 class="relative mt-1 truncate font-headline text-[26px] font-bold leading-tight tracking-tight">{{ currentCustomerName }}</h1><div class="relative mt-2 border-t border-white/15 pt-2"><template v-if="laundryWindow"><div class="flex items-baseline justify-between gap-3"><p class="font-label text-[9px] font-bold uppercase tracking-[0.14em] text-mint">Laundry window · {{ laundryWindow.span }} days</p><p v-if="laundryWindow.remaining > 0" class="shrink-0 font-headline text-xs font-bold text-lime">{{ laundryWindow.remaining }} days left</p><p v-else-if="laundryWindow.remaining === 0" class="shrink-0 font-headline text-xs font-bold text-lime">Due today</p><p v-else class="shrink-0 rounded-full bg-error px-2 py-0.5 font-headline text-[11px] font-bold text-white">{{ -laundryWindow.remaining }} days overdue</p></div><div class="relative mt-1.5 h-1.5 rounded-full bg-white/20"><div class="h-full rounded-full bg-mint" :style="{ width: laundryWindow.percent + '%' }" /><span class="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-mint bg-primary" :style="{ left: laundryWindow.percent + '%' }" /></div></template><div class="mt-2 flex items-start justify-between gap-3"><div class="min-w-0"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-mint">Pickup</p><p class="mt-0.5 font-headline text-[13px] font-bold">{{ currentOrder.receivedDate ? formatSheetDate(currentOrder.receivedDate) : 'Not set' }}</p></div><div class="min-w-0 text-right"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-mint">Due</p><p class="mt-0.5 font-headline text-[13px] font-bold">{{ currentOrder.dueDate ? formatSheetDate(currentOrder.dueDate) : 'Not set' }}</p></div></div><div class="mt-2 flex items-start justify-between gap-3"><div class="min-w-0"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-mint">Service</p><p class="mt-0.5 truncate font-headline text-[13px] font-bold">{{ serviceTypeLabel(currentOrder.serviceType) ?? '—' }}</p></div><div class="min-w-0 text-right"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-mint">Quantity</p><p class="mt-0.5 font-headline text-[13px] font-bold" :class="quantityMismatch ? 'text-error' : ''">{{ currentOrder.quantity ?? '—' }}</p></div></div><div v-if="currentOrder.invoiceNumber" class="mt-2 flex items-start justify-between gap-3"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-mint">Invoice</p><p class="min-w-0 truncate font-headline text-[13px] font-bold">{{ currentOrder.invoiceNumber }}</p></div></div></section><section v-if="currentOrder.note" class="rounded-xl border border-outline-variant/20 bg-surface-container-low px-3 py-3 shadow-sm"><p class="font-label text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">Note</p><p class="mt-1 whitespace-pre-wrap font-body text-sm leading-relaxed text-on-surface">{{ currentOrder.note }}</p></section><div><ListContainer class="overflow-hidden rounded-2xl shadow-sm" title="Items" icon="checkroom" count-label="" :loading="detailLoading" :error="detailError ?? undefined" :empty="currentOrder.items.length === 0" empty-text="No items yet" :skeleton-rows="3"><template #actions><OrderItemsMenu :reassigning="reassigning" :reassign-disabled="reassigning || detailLoading" @add-item="openItemOverlay" @open-album="openOrderGallery" @open-library="openPhotoLibrary" @register-garments="openUnassignedRegistration" @reassign-quantities="reassignQuantities" /></template><OrderItemRow v-for="(item, index) in currentOrder.items" :key="item.orderItemId ?? `${currentOrder.orderId}-${index}`" :item="item" :index="index" :photo-count="photoCounts.get(item.orderItemId) ?? 0" @select="openItemGallery" @register="openRegistration" /></ListContainer><p v-if="reassignError" role="alert" class="mt-2 text-sm text-error">{{ reassignError }}</p><OrderTagPrintAction :total-count="tagCount" :can-print="canPrintTags" :printing="tagPrinting" :print-success="tagPrintSuccess" :print-error="tagPrintError" @print="openTagPrintConfirm" /></div><div class="-mx-4"><OrderImageSection :images="images" :loading="imagesLoading" :error="imagesError" :upload-error="uploadError" :uploading-count="uploadingCount" @capture="openCapture" @clear-upload-error="orderImageStore.clearUploadError" @preview="openImagePreview" /></div></div></template><p v-else class="p-5 text-sm text-on-surface-variant">Order not found</p></ScrollRegion><OrderImageWeightPrompt :open="isWeightPromptOpen" @submit="submitWeight" @close="orderOverlay.close" /><CameraOverlay :open="isSimpleCameraOpen" @close="orderOverlay.close" @capture="handleCapture" /><DocumentScannerOverlay :open="isDocumentScannerOpen" @close="orderOverlay.close" @capture="handleCapture" />
+  <button v-if="canApprove" type="button" class="absolute bottom-6 right-6 z-40 flex h-16 w-16 items-center justify-center rounded-xl bg-primary font-label text-xs font-bold text-on-primary shadow-lg disabled:opacity-50" :disabled="quantityMismatch || approving || reassigning || detailLoading || itemSubmitting" @click="approveOrder">{{ approving ? 'Saving…' : 'Approve' }}</button>
+  <p v-if="approvalError" role="alert" class="absolute bottom-24 right-6 z-40 max-w-xs rounded-xl bg-error-container p-3 text-sm text-on-error-container">{{ approvalError }}</p>
+  </AppLayout>
   <OrderTagPrintConfirmDialog
     :open="tagPrintConfirmOpen"
     :total-count="tagCount ?? 1"

@@ -22,14 +22,14 @@ export const orderItemFormsRowSchema = z
   })
   .strict()
 
-// Append-only: update stays closed until an edit-item screen is specified, and delete has never
-// been requested. `timestamp` is the created-timestamp role and is stamped by the repository on
-// append; `updated_at` is left unstamped because update is disabled.
+// Append and update; delete has never been requested. Update exists for the order-detail item
+// quantity reassign (quantity recounted from BEF photos). `timestamp` is the created-timestamp role
+// stamped on append; `updated_at` is the updated-timestamp role stamped on update.
 //
 // Measured 2026-08-30 over all 23,165 rows:
-//   - `timestamp` and `updated_at` hold DD/MM/YYYY HH:mm:ss. Appended rows will carry the
-//     project's Bangkok yyyy-MM-dd HH:mm:ss instead — the audit stamp format is not negotiable in
-//     SheetRepository. New rows therefore differ from historical rows in this column.
+//   - `timestamp` and `updated_at` hold DD/MM/YYYY HH:mm:ss. Rows written through the Sheets API
+//     carry the project's Bangkok yyyy-MM-dd HH:mm:ss instead — the audit stamp format is not
+//     negotiable in SheetRepository. Written rows therefore differ from historical rows in both.
 //   - Neither timestamp column is declared in valueInput: their cell type (real Sheets datetime vs
 //     plain text) was not measured, and the request-wide input option is USER_ENTERED regardless.
 //   - `category` (5 spellings) and `service_type` (8 spellings, Thai and English mixed) are free
@@ -49,6 +49,6 @@ export const orderItemFormsDbContract = {
   primaryKey: 'id',
   sheetName: 'OrderItemForms',
   spreadsheetId: 'ORDERS_SPREADSHEET_ID',
-  audit: { onAppend: ['timestamp'] },
-  writes: { append: true, update: false, delete: false },
+  audit: { onAppend: ['timestamp'], onUpdate: ['updated_at'] },
+  writes: { append: true, update: true, delete: false },
 } satisfies SheetContract

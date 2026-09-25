@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { createOrderItem, type OrderItemCreatePayload } from '@/data/order-items/order-item.service'
+import { createOrderItem, updateOrderItem, reassignOrderItemQuantities, type OrderItemCreatePayload, type OrderItemUpdatePayload, type OrderItemQuantityReassignPayload } from '@/data/order-items/order-item.service'
 import { createWorkOrder, type WorkOrderCreateDto, type WorkOrderCreatePayload } from '@/data/work-orders/work-order.service'
 
 function errorMessage(reason: unknown, fallback: string): string {
@@ -35,5 +35,8 @@ export const useOrderStore = defineStore('orders', () => {
     itemErrorOrderId.value = null
   }
 
-  return { itemSubmittingOrderId, itemError, itemErrorOrderId, create, addItem, clearItemError }
+  function updateItem(id: string, payload: OrderItemUpdatePayload) { return updateOrderItem(id, payload) }
+  function reassignQuantities(payload: OrderItemQuantityReassignPayload) { return reassignOrderItemQuantities(payload) }
+
+  return { itemSubmittingOrderId, itemError, itemErrorOrderId, create, addItem, updateItem, reassignQuantities, clearItemError }
 })

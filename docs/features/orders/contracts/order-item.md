@@ -1,7 +1,7 @@
 # Order item — API contract
 
 Module `order-items`. Source: the orders API contract and the contract conventions.
-Sheet: `OrderItemForms` (read + append).
+Sheet: `OrderItemForms` (read + append + update).
 
 ## `GET /api/order-items` — list
 
@@ -68,9 +68,21 @@ Behaviour
 - `createdAt` is stamped by `audit.onAppend`
 - a duplicate generated id surfaces as 500 (`DuplicatePrimaryKeyError`)
 
+## `PATCH /api/order-items/:id` — update quantity
+
+Request: `{ quantity: positive integer, updatedBy: nonempty string }`. Only `quantity` and
+`updated_by` are patched. The sheet stamps `updated_at`. Response: `200 { data: OrderItemResponse }`.
+
+## `POST /api/order-items/reassign-quantities` — batch quantity update
+
+Request: `{ items: [{ orderItemId: nonempty string, quantity: positive integer }], updatedBy: nonempty string }`.
+The items array must be nonempty and IDs unique after trimming. One `updateMany` call patches
+`quantity` and `updated_by` per item atomically. Response: `200 { data: { items: OrderItemResponse[] } }`.
+`GET` and `PATCH` on the reserved `reassign-quantities` item ID return 404.
+
 ## Not available
 
-- `PATCH` / `DELETE` — 405; `writes.update` and `writes.delete` are `false`
+- `DELETE` — 405; `writes.delete` is `false`
 
 ## Notes on `createdAt`
 

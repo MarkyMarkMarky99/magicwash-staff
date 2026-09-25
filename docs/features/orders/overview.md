@@ -24,7 +24,7 @@
 | Sheet | Workbook | Role | Registered in server/sheets/ |
 |---|---|---|---|
 | OrderForm | ORDERS_SPREADSHEET_ID | Order header | yes — `writes: { append: false, update: true, delete: false }` |
-| OrderItemForms | ORDERS_SPREADSHEET_ID | Order line items | no |
+| OrderItemForms | ORDERS_SPREADSHEET_ID | Order line items | yes — append and update |
 | OrderImages | ORDERS_SPREADSHEET_ID | Order photos | no |
 | LaundryPhotos | ORDERS_SPREADSHEET_ID | Before photos | yes — create and reassignment |
 | after | AFTER_PHOTOS_SPREADSHEET_ID | After photos | yes — create and reassignment |
@@ -157,11 +157,8 @@ Verified inventory on 2026-08-30 —
    `/api/orders/:id` 404s with `Route not found`.
 3. There is no create endpoint. `orderApiContract` declares no `request.create`, and
    `OrderForm.writes.append` is `false` (its `update` is `true`, used only by invoice creation).
-4. `OrderItemForms` has no HTTP surface. Backend work in progress on branch
-   `feat/register-order-sheets` will register it in `server/sheets/` as a db-contract + repository
-   with `writes: { append: true, update: false, delete: false }`. That design is not implemented,
-   and it delivers no `contracts/` api schema, no `server/modules/` module, and no route — so the
-   frontend still cannot call anything.
+4. `OrderItemForms` is registered for append and update. The order-items API exposes create,
+   single quantity update, and batch quantity reassignment.
 5. `OrderImages` has no HTTP surface, on the same terms as Blocker 4: sheet-layer registration with
    append is in progress on the same branch, with no contract, module, or route. The existing camera
    path does not write here — `src/composables/usePhotoUpload.js` uploads the binary to Firebase

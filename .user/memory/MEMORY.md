@@ -1,6 +1,6 @@
 # Project memory
 
-- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24.
+- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24; item quantity reassign and detail Approve button merged 2026-09-25.
 
 ## Branches in flight
 
@@ -34,7 +34,8 @@
   - 31 legacy photo ids were stored as numbers by Sheets (user: leave them); a bulk move including one returns 500 although the write lands.
   - Deferred: shared `LiquidGlass` component + `provideGlassBackdrop`; lens code lives in `features/orders` for now.
   - Decide whether the Items menu "Garment album" is retired in favour of the photo library.
-  - Order items show quantity `0` on every row; not investigated.
+  - Quantity-mismatch approval guard is frontend-only by user decision; the API still accepts APPROVED on mismatch.
+  - Registry `OrderItemForms.json` `updated_at` description still says append-only; update now stamps it.
   - `OrderDetailSheet.vue` re-implements the item row and the store's load/sequence logic instead of reusing `OrderItemRow` and `useWorkOrderStore`.
   - Order-detail header is taller than the sheet's; the menu button footprint was reduced but the result is unverified in a browser.
   - `orderImageTypeLabels` and `serviceTypeLabel` still return Thai on the now-English order-detail page; decide whether shared labels follow.
