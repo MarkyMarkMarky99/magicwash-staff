@@ -1,11 +1,10 @@
 # Project memory
 
-- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24; item quantity reassign and detail Approve button merged 2026-09-25.
+- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24; item quantity reassign and detail Approve button merged 2026-09-25; department ring head, tap-to-advance and order Start merged 2026-09-25.
 
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
-- **`feature/department-ring-head`** — department completion ring with a percent pill at the arc head; not browser-verified in motion. Details: `.user/memory/feature-department-ring-head.md`.
 
 ## Pending work
 
@@ -15,6 +14,8 @@
   - Department scan: user to decide instant local result with background POST, plus preloading other departments for the step gate.
   - Department page reload policy undecided (on return, on app focus, interval, or a refresh button); KeepAlive keeps it stale now.
   - Department ring under-counts orders with earlier completions; board endpoint decided, not built. See `.user/memory/department-board-load.md`.
+  - Browser-verify the ring head following the arc when a ticket status changes (tap or Start).
+  - Tablet layout for the department page (2–3 order columns) deferred by user; needs an opt-in wide route flag in `App.vue`.
   - Deferred backend: worklist read (not-done + done-today, cap 2000) and cancel timestamps.
   - Phone Back closes garment registration while uploads are pending; blocking it not decided.
   - Decide whether to remove the old BEF album add-photo path now that registration is proven.
