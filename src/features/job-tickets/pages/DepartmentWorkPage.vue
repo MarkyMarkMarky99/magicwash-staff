@@ -344,7 +344,7 @@ onBeforeRouteLeave(to => {
             :aria-expanded="expandedOrderId === order.orderId"
             @click="expandedOrderId = expandedOrderId === order.orderId ? null : order.orderId"
           >
-            <span class="flex items-start justify-between gap-2 pr-8">
+            <span class="flex items-start justify-between gap-2 pr-11">
               <span class="min-w-0">
                 <strong class="block truncate font-headline text-sm text-primary">{{ order.customerName }}</strong>
                 <span class="block truncate font-label text-xs text-on-surface-variant">{{ order.orderId }} · Due {{ formatSheetDate(order.dueDate) }}</span>
@@ -359,7 +359,7 @@ onBeforeRouteLeave(to => {
               </span>
             </span>
           </button>
-          <button type="button" class="absolute right-4 top-4 z-10 rounded-full text-primary focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40" aria-label="Start all pending" :disabled="startingOrderId !== null || statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Pending') === 0" @click="startOrder(order.orderId)"><span class="material-symbols-outlined" aria-hidden="true">play_arrow</span></button>
+          <button type="button" class="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/25 text-on-surface focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40" aria-label="Start all pending" :disabled="startingOrderId !== null || statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Pending') === 0" @click="startOrder(order.orderId)"><svg viewBox="0 0 24 24" class="h-6 w-6" aria-hidden="true"><path d="M8.5 6v12l9.5-6z" fill="currentColor" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round" /></svg></button>
           <div v-if="expandedOrderId === order.orderId" class="grid grid-cols-2 gap-2 px-4 pb-4 sm:grid-cols-3">
             <button v-for="ticket in order.tickets" :key="ticket.id" type="button" class="min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed" :disabled="ticket.laundryItemId === null" :aria-label="`Advance tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="ticket.laundryItemId && advanceTicket(ticket.laundryItemId, 'tap')">
               <SquareImageCard :image-url="ticket.photoEvidenceUrl">
