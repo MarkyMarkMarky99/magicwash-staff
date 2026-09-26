@@ -28,6 +28,11 @@ Response `200 { data: OrderImageResponse[], meta.pagination: { page, perPage } }
 - `createdAt` — string | null (ISO-with-`Z` or `dd/MM/yyyy HH:mm:ss`, verbatim)
 - `createdBy` — string | null
 
+Each `WEIGHT` image represents one weighing of one bag, with its kg in `quantity`. The order-detail
+hero shows total weight as the sum of non-null `quantity` values across the order's `WEIGHT` images,
+rounded to one decimal. The hero shows quantity, weight, or both when present, and leaves the
+right column empty when neither exists.
+
 ## `GET /api/order-images/:id` — detail
 
 Path
@@ -59,6 +64,8 @@ Behaviour
   `OrderImages.id` column
 - `createdAt` is stamped by `audit.onAppend`
 - `deliveryId` is written when supplied, otherwise left blank
+- WEIGHT capture takes one photo per entered weight and then closes the camera. Another weighing
+  requires opening WEIGHT capture again and entering a new weight.
 
 ## Not available
 

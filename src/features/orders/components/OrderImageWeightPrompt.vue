@@ -56,7 +56,7 @@ watch(() => props.open, (isOpen) => {
   <ConfirmOverlay
     :open="open"
     title="Enter weight"
-    description="Enter the weight before taking photos. This weight will apply to all photos this time."
+    description="Enter the weight for this one photo. One bag per photo."
     confirm-label="Open camera"
     @close="handleClose"
     @confirm="submit"

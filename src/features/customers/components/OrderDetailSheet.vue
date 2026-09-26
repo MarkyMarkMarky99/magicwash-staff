@@ -7,6 +7,7 @@ import { formatSheetDate } from '@/shared/utils/sheet-date'
 import { useDuplicateInvoiceWarning } from '@/shared/composables/use-duplicate-invoice-warning'
 import DetailOverlay from '@/shared/layouts/DetailOverlay.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
+import BaseDropdown from '@/shared/components/BaseDropdown.vue'
 
 const props = defineProps<{
   open: boolean
@@ -125,24 +126,6 @@ function viewPhotos() {
             </div>
           </div>
 
-          <button
-            type="button"
-            class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 font-label text-[12px] font-semibold text-on-primary transition-all hover:bg-primary/90 active:scale-[0.98]"
-            @click="viewPhotos"
-          >
-            <span class="material-symbols-outlined text-[16px] leading-none" aria-hidden="true">photo_library</span>
-            View Photos
-          </button>
-
-          <button
-            type="button"
-            class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 font-label text-[12px] font-semibold text-on-primary transition-all hover:bg-primary/90 active:scale-[0.98]"
-            @click="emit('bookDelivery')"
-          >
-            <span class="material-symbols-outlined text-[16px] leading-none" aria-hidden="true">local_shipping</span>
-            Book Delivery
-          </button>
-
           <div v-if="warningInvoiceNumber" class="flex items-start gap-2 rounded-xl border border-tertiary/30 bg-tertiary-container/20 px-3 py-2.5 text-on-surface">
             <span class="material-symbols-outlined mt-0.5 shrink-0 text-[18px] leading-none text-tertiary" aria-hidden="true">warning</span>
             <p class="font-body text-xs leading-relaxed">
@@ -151,17 +134,7 @@ function viewPhotos() {
             </p>
           </div>
 
-          <button
-            v-if="!awaitingConfirmation"
-            type="button"
-            class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 font-label text-[12px] font-semibold text-on-primary transition-all hover:bg-primary/90 active:scale-[0.98]"
-            @click="handleCreateInvoice"
-          >
-            <span class="material-symbols-outlined text-[16px] leading-none" aria-hidden="true">receipt_long</span>
-            Create Invoice
-          </button>
-
-          <div v-else class="space-y-2 rounded-xl border border-tertiary/30 bg-tertiary-container/20 p-3">
+          <div v-if="awaitingConfirmation" class="space-y-2 rounded-xl border border-tertiary/30 bg-tertiary-container/20 p-3">
             <p class="font-body text-xs leading-relaxed text-on-surface">
               Create another invoice for this order anyway?
             </p>
@@ -182,30 +155,76 @@ function viewPhotos() {
               </button>
             </div>
           </div>
-          <button
-            v-if="canUsePackage"
-            type="button"
-            class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 font-label text-[12px] font-semibold text-on-primary transition-all hover:bg-primary/90 active:scale-[0.98]"
-            @click="emit('usePackage')"
-          >
-            <span class="material-symbols-outlined text-[16px] leading-none" aria-hidden="true">card_membership</span>
-            Use package credit
-          </button>
       </div>
     </template>
 
       <div class="px-4 py-4">
           <div v-if="order" class="space-y-4">
             <ListContainer
-              v-if="items.length > 0"
               :key="order.orderId"
               class="overflow-hidden rounded-2xl"
               title="Items"
               icon="checkroom"
               :count="order.quantity ?? items.length"
               count-label="pcs"
-              collapsible
+              :empty="items.length === 0"
+              empty-text="No items yet"
             >
+              <template #actions>
+                <BaseDropdown panel-class="w-52 rounded-2xl border border-outline-variant/30 bg-surface-container-lowest py-1 shadow-2xl">
+                  <template #trigger="{ open, setTrigger, toggle, triggerAttrs }">
+                    <button
+                      :ref="setTrigger"
+                      v-bind="triggerAttrs"
+                      type="button"
+                      class="relative flex h-[22px] w-[22px] items-center justify-center rounded-full bg-surface-container text-on-surface-variant transition-all after:absolute after:-inset-2 after:content-[''] hover:bg-surface-container-high active:scale-95 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      aria-label="Order actions"
+                      @click.stop="toggle"
+                    >
+                      <span class="material-symbols-outlined text-[14px] leading-none transition-transform" :class="open ? 'rotate-180' : ''" aria-hidden="true">expand_more</span>
+                    </button>
+                  </template>
+
+                  <template #default="{ close }">
+                    <div class="py-1">
+                      <button
+                        type="button"
+                        class="flex w-full items-center gap-2 px-3 py-2 text-left font-body text-[12px] text-on-surface transition-colors hover:bg-surface-container-low focus:bg-surface-container-low focus:outline-none active:bg-surface-container"
+                        @click="close(); viewPhotos()"
+                      >
+                        <span class="material-symbols-outlined text-[16px] leading-none text-primary" aria-hidden="true">photo_library</span>
+                        View Photos
+                      </button>
+                      <button
+                        type="button"
+                        class="flex w-full items-center gap-2 px-3 py-2 text-left font-body text-[12px] text-on-surface transition-colors hover:bg-surface-container-low focus:bg-surface-container-low focus:outline-none active:bg-surface-container"
+                        @click="close(); emit('bookDelivery')"
+                      >
+                        <span class="material-symbols-outlined text-[16px] leading-none text-primary" aria-hidden="true">local_shipping</span>
+                        Book Delivery
+                      </button>
+                      <button
+                        v-if="!awaitingConfirmation"
+                        type="button"
+                        class="flex w-full items-center gap-2 px-3 py-2 text-left font-body text-[12px] text-on-surface transition-colors hover:bg-surface-container-low focus:bg-surface-container-low focus:outline-none active:bg-surface-container"
+                        @click="close(); handleCreateInvoice()"
+                      >
+                        <span class="material-symbols-outlined text-[16px] leading-none text-primary" aria-hidden="true">receipt_long</span>
+                        Create Invoice
+                      </button>
+                      <button
+                        v-if="canUsePackage"
+                        type="button"
+                        class="flex w-full items-center gap-2 px-3 py-2 text-left font-body text-[12px] text-on-surface transition-colors hover:bg-surface-container-low focus:bg-surface-container-low focus:outline-none active:bg-surface-container"
+                        @click="close(); emit('usePackage')"
+                      >
+                        <span class="material-symbols-outlined text-[16px] leading-none text-primary" aria-hidden="true">card_membership</span>
+                        Use package credit
+                      </button>
+                    </div>
+                  </template>
+                </BaseDropdown>
+              </template>
               <ul class="divide-y divide-outline-variant/10">
                 <li
                   v-for="(item, index) in items"
