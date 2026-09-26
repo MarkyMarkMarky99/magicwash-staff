@@ -43,6 +43,10 @@
   - Order-item unit removal is not browser-verified: check the add-item form and that invoice seeding still shows `kg` for wash-dry-fold.
   - `docs/features/orders/` widely still says orders are unimplemented or blocked on `/api/orders`: `flows.md`, `screens.md`, `overview.md`, `data-model.md`, `forms/create-order-item.md`, `contracts/work-order.md`, `list-response-fields.md`.
   - `OrderDetailPage.vue` holds its whole template on one physical line, so diffs there carry no signal.
+  - Browser-verify the hero pcs/kg cell and that WEIGHT capture closes the camera after one photo.
+  - Total weight counts only `imageType` exactly `WEIGHT`; legacy spellings on old rows are not summed.
+  - Order list shows pcs only; user declined adding weight there (would need `totalWeightKg` on the work-order list).
+  - Browser-verify the customer order sheet's Items actions dropdown (replaced the four big buttons and the collapse chevron).
 
 - **Images and gallery**
   - Backfill `Cache-Control` on existing photos after Firebase bucket credentials are available. See `docs/plans/image-pipeline.md`.
