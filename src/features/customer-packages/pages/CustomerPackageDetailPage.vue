@@ -4,9 +4,8 @@ import { storeToRefs } from 'pinia'
 import type { z } from 'zod'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
-import ListContainer from '@/shared/components/ListContainer.vue'
 import CustomerPackageSummaryCard from '../components/CustomerPackageSummaryCard.vue'
-import { formatSheetDateTime, normalizeSheetDate } from '@/shared/utils/sheet-date'
+import { formatSheetDate, normalizeSheetDate } from '@/shared/utils/sheet-date'
 import { customerPackageDetailResponseSchema, packageCreditMovementTypeSchema } from '@contracts/customer-packages/customer-package-api.schema'
 import { getCustomerPackageDetail, getCustomerPackages, type CustomerPackageListItem } from '@/data/customer-packages/customer-package.service'
 import { listWorkOrders, type WorkOrderListDto } from '@/data/work-orders/work-order.service'
@@ -225,7 +224,23 @@ watch([transactionFormOpen, customerPackage, transactionType], ([open, packageVa
     <main v-else-if="error || notFound || !customerPackage" class="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"><p class="font-body text-sm text-on-surface-variant">{{ error ?? 'Customer package not found' }}</p><button type="button" class="rounded-xl bg-primary px-4 py-2 font-label text-xs text-on-primary" @click="loadDetail">Retry</button></main>
     <ScrollRegion v-else as="main" class="bg-surface pb-20">
       <CustomerPackageSummaryCard class="mt-4" :customer-package="customerPackage" :customer-index="customerIndex" />
-      <ListContainer class="mt-3" title="Recent activity" icon="history" count-label="entries"><template #actions><button type="button" class="rounded-full bg-surface-container px-2.5 py-1 font-label text-[9px] font-bold uppercase tracking-wider text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-lime/30" @click="openTransaction">Add transaction</button></template><ol class="divide-y divide-outline-variant/20 px-4"><li v-for="transaction in customerPackage.transactions" :key="transaction.id" class="flex gap-3 py-3"><span class="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-primary" /><div class="min-w-0 flex-1"><p class="font-body text-sm font-semibold text-on-surface">{{ transactionLabels[transaction.type] }}</p><p class="font-body text-xs text-on-surface-variant">{{ transaction.referenceSource ?? 'No reference' }}<template v-if="transaction.referenceId"> · {{ transaction.referenceId }}</template><template v-if="transaction.notes"> · {{ transaction.notes }}</template></p></div><div class="text-right"><p class="font-body text-xs font-semibold" :class="transaction.creditChange > 0 ? 'text-secondary' : 'text-primary'">{{ transaction.creditChange > 0 ? '+' : '' }}{{ transaction.creditChange }}</p><time class="font-body text-[10px] text-on-surface-variant">{{ formatSheetDateTime(transaction.createdAt) }}</time></div></li></ol></ListContainer>
+      <section class="mx-3 mt-5 border-y border-primary" aria-labelledby="package-activity-title">
+        <header class="flex min-h-[55px] items-center justify-between gap-3">
+          <div>
+            <h2 id="package-activity-title" class="font-headline text-[17px] font-extrabold leading-none tracking-tight text-primary">Recent activity</h2>
+            <p class="mt-1 font-label text-[10px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">Credit movements</p>
+          </div>
+          <button type="button" class="shrink-0 rounded py-2 pl-2 font-label text-[10px] font-bold uppercase tracking-[0.075em] text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-lime" @click="openTransaction">Add transaction</button>
+        </header>
+        <ol>
+          <li v-for="transaction in customerPackage.transactions" :key="transaction.id" class="grid min-h-[42px] grid-cols-[50px_minmax(0,1fr)_94px] items-center gap-x-1.5 border-t border-outline-variant">
+            <p class="pr-1 text-right font-body text-base font-bold tabular-nums tracking-tight" :class="transaction.creditChange > 0 ? 'text-success' : 'text-primary'">{{ transaction.creditChange > 0 ? '+' : transaction.creditChange < 0 ? '−' : '' }}{{ Math.abs(transaction.creditChange) }}</p>
+            <p class="min-w-0 truncate border-l border-outline-variant pl-2 font-body text-[13px] font-medium text-on-surface">{{ transactionLabels[transaction.type] }}</p>
+            <time class="text-right font-body text-[11px] text-on-surface-variant">{{ formatSheetDate(transaction.createdAt) }}</time>
+          </li>
+        </ol>
+        <p v-if="customerPackage.transactions.length === 0" class="border-t border-outline-variant py-3 font-body text-[13px] text-on-surface-variant">No activity yet</p>
+      </section>
       <CustomerPackageTransactionForm
         :open="transactionFormOpen"
         :movement-types="transactionTypes"
