@@ -91,8 +91,9 @@ function gvizResponse(text: string, ok = true): Response {
 }
 
 async function gateway() {
-  const module = await import('../../../../api/[...path].js')
-  return module.default as unknown as (
+  const { ApiGateway } = await import('../../../../server/shared/http/api-gateway.js')
+  const { routeRegistry } = await import('../../../../server/api/route-registry.js')
+  return new ApiGateway(routeRegistry, async () => ({ email: 'test@example.com', name: 'Test', role: 'staff' })).handle as unknown as (
     req: unknown,
     res: unknown,
   ) => Promise<unknown> | unknown

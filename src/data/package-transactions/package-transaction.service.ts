@@ -4,6 +4,7 @@ import {
   appendPackageTransactionResponseSchema,
 } from '@contracts/customer-packages/customer-package-api.schema'
 import { invalidate } from '@/shared/api/response-cache'
+import { authFetch } from '@/shared/api/firebase-auth'
 
 type AppendPackageTransactionRequest = z.infer<typeof appendPackageTransactionRequestSchema>
 type AppendPackageTransactionResponse = z.infer<typeof appendPackageTransactionResponseSchema>
@@ -24,7 +25,7 @@ function invalidateTransactionCaches(): void {
 
 export async function appendPackageTransaction(request: AppendPackageTransactionRequest): Promise<AppendPackageTransactionResponse> {
   try {
-    const response = await fetch('/api/package-transactions', {
+    const response = await authFetch('/api/package-transactions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(appendPackageTransactionRequestSchema.parse(request)),

@@ -10,6 +10,7 @@ import {
 } from '@contracts/customer-packages/customer-package-api.schema'
 import { apiGet, apiGetList, ApiError } from '@/shared/api/api-client'
 import { invalidate } from '@/shared/api/response-cache'
+import { authFetch } from '@/shared/api/firebase-auth'
 
 export type CustomerPackageListItem = z.infer<typeof customerPackageListResponseSchema>
 type CustomerPackageDetail = z.infer<typeof customerPackageDetailResponseSchema>
@@ -118,7 +119,7 @@ function invalidateCreateCaches(): void {
 
 export async function createCustomerPackage(request: CreateCustomerPackageRequest): Promise<CreateCustomerPackageResponse> {
   try {
-    const response = await fetch('/api/customer-packages', {
+    const response = await authFetch('/api/customer-packages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(createCustomerPackageRequestSchema.parse(request)),

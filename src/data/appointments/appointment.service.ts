@@ -12,6 +12,7 @@ import {
 import { apiErrorResponseSchema } from '@contracts/shared/api.schema'
 import { apiGet, apiGetList, ApiError, type ListResult } from '@/shared/api/api-client'
 import { invalidate } from '@/shared/api/response-cache'
+import { authFetch } from '@/shared/api/firebase-auth'
 import { normalizeSheetDate } from '@/shared/utils/sheet-date'
 import { currentActor } from '@/shared/config/actor'
 
@@ -110,7 +111,7 @@ async function appointmentWrite<TResponse>(
   options: AppointmentWriteOptions,
 ): Promise<TResponse> {
   const validatedData = options.requestSchema.parse(options.data)
-  const response = await fetch(path, {
+  const response = await authFetch(path, {
     method,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(validatedData),

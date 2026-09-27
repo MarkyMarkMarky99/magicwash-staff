@@ -1,4 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import type { StaffAuthenticator } from '../auth/staff-auth.js'
+import type { StaffMember } from '../auth/staff-list.js'
 import { API_ERROR_CODES } from '../../../contracts/shared/api.schema.js'
 import { ApiError } from './api-error.js'
 import type { ApiHandlerRequest, ApiQueryParams } from './api-handler.js'
@@ -8,7 +10,7 @@ import type { GatewayModuleRoutes, RouteLoader } from './gateway.types.js'
 type RouteRegistry = Record<string, RouteLoader>
 
 export class ApiGateway {
-  constructor(private readonly registry: RouteRegistry) {}
+  constructor(private readonly registry: RouteRegistry, private readonly authenticate: StaffAuthenticator) {}
 
   handleRequest = async (req: VercelRequest): Promise<ApiResult> => {
     try {
@@ -34,6 +36,7 @@ export class ApiGateway {
     }
 
     const loader = this.registry[moduleName]
+    const staff = moduleName === 'orders' ? undefined : await this.authenticate(req)
     let routes: GatewayModuleRoutes
     try {
       routes = await loader()
@@ -47,7 +50,7 @@ export class ApiGateway {
       throw ApiError.notFound('Route not found')
     }
 
-    return handler.handleRequest(toApiRequest(req, segments))
+    return handler.handleRequest(toApiRequest(req, segments, staff))
   }
 }
 
@@ -158,7 +161,7 @@ function parseSegments(path: string | string[], decodeSegments: boolean): string
   })
 }
 
-function toApiRequest(req: VercelRequest, segments: string[]): ApiHandlerRequest {
+function toApiRequest(req: VercelRequest, segments: string[], staff?: StaffMember): ApiHandlerRequest {
   const query = Object.fromEntries(
     Object.entries(req.query ?? {}).filter(([key]) => !isRoutePathQueryKey(key)),
   ) as ApiQueryParams
@@ -169,6 +172,7 @@ function toApiRequest(req: VercelRequest, segments: string[]): ApiHandlerRequest
     body: req.body,
     headers: req.headers,
     params: segments.length === 2 ? { id: segments[1] } : {},
+    staff,
   }
 }
 

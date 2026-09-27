@@ -8,6 +8,7 @@ import type { InvoiceFilter } from './invoice-filter.types'
 import type { InvoiceListItemDto, InvoiceListResponseDto } from './invoices.types'
 import { apiGetList } from '@/shared/api/api-client'
 import { invalidate } from '@/shared/api/response-cache'
+import { authFetch } from '@/shared/api/firebase-auth'
 import { synthesizeNetworkFailureOutcome } from './invoice-outcome.utils'
 
 const INVOICES_ENDPOINT = '/api/invoices'
@@ -64,7 +65,7 @@ export async function getInvoices(filter: InvoiceFilter): Promise<InvoiceListRes
  * outcome an actual network failure already produces.
  */
 export async function createInvoice(request: CreateInvoiceRequest): Promise<CreateInvoiceResponse> {
-  const response = await fetch(INVOICES_ENDPOINT, {
+  const response = await authFetch(INVOICES_ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),

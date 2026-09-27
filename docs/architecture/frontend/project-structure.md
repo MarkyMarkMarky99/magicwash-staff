@@ -45,6 +45,21 @@ application-level pages or development tools when one is needed.
 - The application root may provide data-layer state to shared shell components through typed
   injection keys owned by `src/shared/`; shared code must not import the data layer directly.
 
+#### Staff sign-in
+
+- Staff sign in with Google through Firebase Auth (popup). `src/shared/api/firebase-auth.ts` wraps
+  the Firebase calls and provides `authFetch`, which attaches the Firebase ID token as
+  `Authorization: Bearer`. Every `/api` request goes through it, including services that call
+  `fetch` for outcome handling.
+- `src/data/auth/auth.store.ts` owns the session. After Firebase signs a user in, it calls
+  `GET /api/auth/me`; a 403 (email not on the `Staff` allow-list or inactive) signs the user back
+  out and shows the reason on the login page.
+- The router guard in `src/router/index.js` waits for the first session check, then sends every
+  route without `meta.public` to `/login?redirect=…`. `App.vue` loads the preloaded stores only
+  once signed in, and returns to `/login` when the session ends. `/login` is the only public route.
+- Sign-in does not change actor recording yet: writes still use `currentActor()` (`admin` or
+  `?by=`).
+
 ### Feature Layer
 
 - Owns business-facing workflow functionality.

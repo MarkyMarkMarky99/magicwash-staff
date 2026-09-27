@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import type { StaffMember } from '../auth/staff-list.js'
 import { z } from 'zod'
 import { API_ERROR_CODES, httpMethodSchema } from '../../../contracts/shared/api.schema.js'
 import { ApiError } from './api-error.js'
@@ -18,6 +19,7 @@ export interface ApiHandlerRequest<TQuery extends ApiQueryParams = ApiQueryParam
   body: TBody
   headers: Record<string, string | string[] | undefined>
   params: Record<string, string> // route path params, e.g. /appointments/:id
+  staff?: StaffMember
 }
 
 /** Handles one HTTP method for a single route. */

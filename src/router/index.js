@@ -1,4 +1,5 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { useAuthStore } from '@/data/auth/auth.store'
 import { appointmentRoutes } from '@/features/appointments/routes'
 import { invoiceRoutes } from '@/features/invoices/routes'
 import { customerRoutes } from '@/features/customers/routes'
@@ -46,7 +47,24 @@ if (import.meta.env.DEV) {
   })
 }
 
-export default createRouter({
+routes.push({
+  path: '/login',
+  name: 'login',
+  component: () => import('@/app/auth/LoginPage.vue'),
+  meta: { public: true },
+})
+
+const router = createRouter({
   history: createWebHashHistory(),
   routes,
 })
+
+router.beforeEach(async (to) => {
+  const authStore = useAuthStore()
+  await authStore.ready()
+  if (to.meta.public) return true
+  if (authStore.status === 'signedIn') return true
+  return { name: 'login', query: { redirect: to.fullPath } }
+})
+
+export default router

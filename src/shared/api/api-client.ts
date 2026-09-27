@@ -2,6 +2,7 @@ import type { z } from 'zod'
 import { apiErrorResponseSchema, type apiPaginationMetaSchema } from '@contracts/shared/api.schema'
 import { cachePolicyFor } from '@/shared/config/cache'
 import { readCache, writeCache } from '@/shared/api/response-cache'
+import { authFetch } from '@/shared/api/firebase-auth'
 
 /**
  * The single HTTP boundary for the frontend. It builds the request URL,
@@ -107,7 +108,7 @@ async function fetchFresh<TBody, TValue>(
   if (existing !== undefined) return existing as Promise<TValue>
 
   const request = (async () => {
-    const response = await fetch(url)
+    const response = await authFetch(url)
     if (!response.ok) throw await toApiError(response)
 
     const value = unwrap((await response.json()) as TBody)
@@ -149,7 +150,7 @@ async function apiWrite<TResponse, TRequest extends z.ZodTypeAny>(
   options: WriteOptions<TRequest, TResponse>,
 ): Promise<TResponse> {
   const validatedData = options.requestSchema.parse(options.data)
-  const response = await fetch(path, {
+  const response = await authFetch(path, {
     method,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(validatedData),

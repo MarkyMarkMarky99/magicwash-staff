@@ -5,6 +5,7 @@
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
+- **`feat/staff-google-auth`** — staff Google sign-in (Firebase popup + gateway token check + `Staff` allow-list); pushed for Preview, not yet tested with a real account. Details: `.user/memory/feat-staff-google-auth.md`.
 
 ## Pending work
 

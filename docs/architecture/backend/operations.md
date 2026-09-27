@@ -114,6 +114,15 @@ JSON, schema, and count-mismatch failures and redact the print server URL and Ac
 
 ## Environment and external state
 
+Every API module except `orders` requires a Firebase ID token in the `Authorization: Bearer`
+header. The gateway verifies the token against Firebase's public keys for `FIREBASE_PROJECT_ID`
+and requires a verified email. It then reads the restricted `Staff` tab in
+`STAFF_SPREADSHEET_ID` through the authenticated Sheets API and allows only active `admin` or
+`staff` entries. The parsed staff list is cached for 60 seconds. `orders` remains open for the
+external customer portal. `GET /api/auth/me` returns the authenticated staff email, name, and role.
+
+`FIREBASE_PROJECT_ID` and `STAFF_SPREADSHEET_ID` are server-only environment variables.
+
 Repository getters are lazy, memoized module singletons. Each reads its workbook environment key on
 first use; writable sheets also need `GOOGLE_SERVICE_ACCOUNT_KEY`. Server environment variables
 never use `VITE_` prefixes.

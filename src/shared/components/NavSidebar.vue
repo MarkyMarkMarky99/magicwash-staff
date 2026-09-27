@@ -1,6 +1,7 @@
 <script setup>
 import { useRouter, useRoute } from 'vue-router'
 import { invalidate } from '@/shared/api/response-cache'
+import { signOutUser } from '@/shared/api/firebase-auth'
 import { APP_Z_INDEX_CLASS } from '@/shared/layouts/z-index'
 
 const props = defineProps({
@@ -20,6 +21,11 @@ function navigate(path) {
 function refresh() {
   invalidate()
   window.location.reload()
+}
+
+function logout() {
+  emit('close')
+  void signOutUser()
 }
 </script>
 
@@ -146,6 +152,15 @@ function refresh() {
           >
             <span class="material-symbols-outlined">refresh</span>
             <span>รีเฟรชข้อมูล</span>
+          </button>
+        </li>
+        <li>
+          <button
+            class="w-full flex items-center gap-4 px-5 py-3 text-left hover:bg-black/5 transition-colors"
+            @click="logout"
+          >
+            <span class="material-symbols-outlined">logout</span>
+            <span>ออกจากระบบ</span>
           </button>
         </li>
       </ul>
