@@ -106,23 +106,52 @@ assert.equal(calls[2]?.sortOrder, 'desc')
 const capCalls: Partial<JobTicketListQuery>[] = []
 const capped = await loadDepartmentTickets('Washing', new Date('2026-09-23T03:00:00Z'), async query => {
   capCalls.push(query)
-  const items = Array.from({ length: query.perPage ?? 500 }, (_, index) => ticket(`p${query.page}-${index}`, 'order-soon', 'Pending'))
+  const items = query.status === 'Pending' ? Array.from({ length: query.perPage ?? 500 }, (_, index) => ticket(`p${query.page}-${index}`, 'order-soon', 'Pending')) : []
   return { items, pagination: { page: query.page ?? 1, perPage: query.perPage ?? 500 } }
 })
 assert.equal(capped.tickets.length, MAX_DEPARTMENT_TICKETS)
 assert.equal(capped.truncated, true)
-assert.deepEqual(capCalls.map(call => call.page), [1, 2, 3, 4])
-assert.ok(capCalls.every(call => call.status === 'Pending'))
+assert.deepEqual(capCalls.filter(call => call.status === 'Pending').map(call => call.page), [1, 2, 3, 4])
+assert.deepEqual(capCalls.slice(0, 3).map(call => call.status), ['Pending', 'In Progress', 'Completed'])
 
 const combinedCalls: Partial<JobTicketListQuery>[] = []
 const combinedCap = await loadDepartmentTickets('Washing', new Date('2026-09-23T03:00:00Z'), async query => {
   combinedCalls.push(query)
-  const length = query.status === 'Pending' && query.page === 4 ? 0 : query.perPage ?? 500
+  const length = query.status === 'Pending' && query.page !== 4 ? query.perPage ?? 500
+    : query.status === 'In Progress' && query.page === 1 ? query.perPage ?? 500 : 0
   const items = Array.from({ length }, (_, index) => ticket(`${query.status}-${query.page}-${index}`, 'order-soon', query.status!))
   return { items, pagination: { page: query.page ?? 1, perPage: query.perPage ?? 500 } }
 })
 assert.equal(combinedCap.tickets.length, MAX_DEPARTMENT_TICKETS)
 assert.equal(combinedCap.truncated, true)
-assert.deepEqual(combinedCalls.map(call => call.status), ['Pending', 'Pending', 'Pending', 'Pending', 'In Progress'])
+assert.deepEqual(combinedCap.tickets.map(row => row.status).filter((status, index, statuses) => index === 0 || status !== statuses[index - 1]), ['Pending', 'In Progress'])
+assert.deepEqual(combinedCalls.slice(0, 3).map(call => call.status), ['Pending', 'In Progress', 'Completed'])
+
+const parallelCalls: Partial<JobTicketListQuery>[] = []
+const resolveFirstPages = new Map<JobTicketDto['status'], (items: JobTicketDto[]) => void>()
+const parallelLoad = loadDepartmentTickets('Washing', new Date('2026-09-23T03:00:00Z'), async query => {
+  parallelCalls.push(query)
+  if (query.page === 1) {
+    return await new Promise<Awaited<ReturnType<typeof listJobTickets>>>(resolve => {
+      resolveFirstPages.set(query.status!, items => resolve({ items, pagination: { page: 1, perPage: query.perPage ?? 500 } }))
+    })
+  }
+  const items = query.status === 'Pending' && query.page !== 4
+    ? Array.from({ length: query.perPage ?? 500 }, (_, index) => ticket(`later-${query.page}-${index}`, 'order-soon', 'Pending')) : []
+  return { items, pagination: { page: query.page ?? 1, perPage: query.perPage ?? 500 } }
+})
+assert.deepEqual(parallelCalls.map(call => call.status), ['Pending', 'In Progress', 'Completed'])
+assert.equal(resolveFirstPages.size, 3)
+resolveFirstPages.get('Completed')!([ticket('completed', 'order-soon', 'Completed', '2026-09-23T09:00:00+07:00')])
+resolveFirstPages.get('In Progress')!(Array.from({ length: 500 }, (_, index) => ticket(`progress-${index}`, 'order-soon', 'In Progress')))
+resolveFirstPages.get('Pending')!(Array.from({ length: 500 }, (_, index) => ticket(`pending-${index}`, 'order-soon', 'Pending')))
+const parallelResult = await parallelLoad
+assert.equal(parallelResult.tickets.length, MAX_DEPARTMENT_TICKETS)
+assert.equal(parallelResult.truncated, true)
+assert.equal(parallelResult.tickets[0]?.id, 'pending-0')
+assert.equal(parallelResult.tickets[1499]?.id, 'later-3-499')
+assert.equal(parallelResult.tickets[1500]?.id, 'progress-0')
+assert.equal(parallelResult.tickets[1999]?.id, 'progress-499')
+assert.ok(!parallelResult.tickets.some(row => row.status === 'Completed'))
 
 console.log('department-work.dry-test: OK')

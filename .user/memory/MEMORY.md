@@ -5,6 +5,7 @@
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
+- **`work-20260928`** — clean worktree branch with no commits beyond `main`; delete when its session is done. Details: `.user/memory/work-20260928.md`.
 
 ## Pending work
 
@@ -35,6 +36,10 @@
   - Department page reload policy undecided (on return, on app focus, interval, or a refresh button); KeepAlive keeps it stale now.
   - Department ring under-counts orders with earlier completions; board endpoint decided, not built. See `.user/memory/department-board-load.md`.
   - Browser-verify the ring head following the arc when a ticket status changes (tap or Start).
+  - Browser-check department pages after dropping the per-order detail fetch and parallelising the status loads (pushed 2026-09-28).
+  - Ticket `due_date` goes stale when an order's due date is edited; order update does not rewrite existing tickets.
+  - Completed tab reads 500 rows and keeps only today's; a `completedFrom` API filter was proposed, not built.
+  - Per-department ticket cache (show stored list, refresh in background) proposed, not built.
   - Tablet layout for the department page (2–3 order columns) deferred by user; needs an opt-in wide route flag in `App.vue`.
   - Deferred backend: worklist read (not-done + done-today, cap 2000) and cancel timestamps.
   - Phone Back closes garment registration while uploads are pending; blocking it not decided.

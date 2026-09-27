@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import type { LocationQueryRaw } from 'vue-router'
 import GenericTabs from '@/shared/components/GenericTabs.vue'
@@ -12,8 +12,6 @@ import TicketStatusIcon, { type TicketTapState } from '../components/TicketStatu
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
 import type { JobTicketDto } from '@/data/job-tickets/job-ticket.service'
-import { useWorkOrderStore } from '@/data/work-orders/work-order.store'
-import { getWorkOrder, type WorkOrderDetailDto } from '@/data/work-orders/work-order.service'
 import { useCustomerStore } from '@/data/customers/customer.store'
 import { currentActor } from '@/shared/config/actor'
 import { feedback, primeFeedbackAudio } from '@/shared/utils/scan-feedback'
@@ -25,7 +23,6 @@ import { createTagScanGuard, feedbackOutcomeForScanResult, presentScanResult, ty
 const route = useRoute()
 const router = useRouter()
 const ticketStore = useJobTicketStore()
-const workOrderStore = useWorkOrderStore()
 const customerStore = useCustomerStore()
 const department = computed(() => readDepartment(route.params.department))
 const activeFilter = computed(() => readStatusFilter(route.query.status))
@@ -37,12 +34,7 @@ const pageNotice = ref<ScanDisplay | null>(null)
 const startingOrderId = ref<string | null>(null)
 const tapStates = ref(new Map<string, TicketTapState>())
 const tapTimers = new Map<string, ReturnType<typeof setTimeout>>()
-const orderDetails = shallowRef(new Map<string, WorkOrderDetailDto>())
-const metadataLoading = ref(false)
-const metadataError = ref<string | null>(null)
-const detailPromises = new Map<string, Promise<void>>()
 const runTagScan = createTagScanGuard()
-let pageRequestId = 0
 let latestScanVersion = 0
 let pushedScanner = false
 let replacingLeave = false
@@ -57,19 +49,15 @@ const statusLabels: Record<TicketStatus, string> = {
 const filterLabels = { ALL: 'All', PENDING: 'Pending', 'IN PROGRESS': 'In Progress', COMPLETED: 'Completed' } as const
 const counts = computed(() => countDepartmentStatuses(ticketStore.tickets))
 const tabs = computed(() => statusFilters.map(key => ({ key, label: filterLabels[key], count: counts.value[key] })))
-const listLoading = computed(() => ticketStore.loading || metadataLoading.value)
-const listError = computed(() => ticketStore.error || metadataError.value)
 
 const orderInfo = computed(() => {
-  const listed = new Map(workOrderStore.orders.map(order => [order.orderId, order]))
   const customers = new Map(customerStore.customers.map(customer => [customer.customerId, customer]))
   const info = new Map<string, OrderInfo>()
   for (const ticket of ticketStore.tickets) {
     if (info.has(ticket.orderId)) continue
-    const order = listed.get(ticket.orderId) ?? orderDetails.value.get(ticket.orderId)
-    const customerId = order?.customerId ?? ticket.customerId
+    const customerId = ticket.customerId
     info.set(ticket.orderId, {
-      dueDate: order?.dueDate ?? ticket.dueDate ?? null,
+      dueDate: ticket.dueDate ?? null,
       customerId,
       customerName: (customerId && customers.get(customerId)?.customerName) || customerId || ticket.orderId,
       customerIndex: (customerId && customers.get(customerId)?.customerIndex) || null,
@@ -81,36 +69,9 @@ const visibleTickets = computed(() => sortDepartmentTickets(filterTickets(ticket
 const visibleOrders = computed(() => groupDepartmentOrders(visibleTickets.value, orderInfo.value))
 const allOrders = computed(() => new Map(groupDepartmentOrders(ticketStore.tickets, orderInfo.value).map(order => [order.orderId, order])))
 
-async function loadMissingOrderDetails(requestId: number): Promise<void> {
-  const listed = new Set(workOrderStore.orders.map(order => order.orderId))
-  const missingIds = [...new Set(ticketStore.tickets.map(ticket => ticket.orderId))]
-    .filter(orderId => !listed.has(orderId) && !orderDetails.value.has(orderId))
-  if (missingIds.length === 0) return
-  metadataLoading.value = true
-  const results = await Promise.allSettled(missingIds.map(orderId => {
-    let promise = detailPromises.get(orderId)
-    if (!promise) {
-      promise = getWorkOrder(orderId).then(order => {
-        orderDetails.value = new Map(orderDetails.value).set(orderId, order)
-      }).finally(() => { detailPromises.delete(orderId) })
-      detailPromises.set(orderId, promise)
-    }
-    return promise
-  }))
-  if (requestId !== pageRequestId) return
-  metadataError.value = results.some(result => result.status === 'rejected') ? 'Could not load order details' : null
-  metadataLoading.value = false
-}
-
 async function reload(): Promise<void> {
   const code = department.value?.code
-  if (!code) return
-  const requestId = ++pageRequestId
-  metadataLoading.value = false
-  metadataError.value = null
-  await ticketStore.loadDepartment(code)
-  if (requestId !== pageRequestId || ticketStore.error) return
-  await loadMissingOrderDetails(requestId)
+  if (code) await ticketStore.loadDepartment(code)
 }
 
 watch(() => department.value?.code, code => {
@@ -311,8 +272,8 @@ onBeforeRouteLeave(to => {
       :title="department.label" icon="assignment"
       :count="grouper === 'order' ? visibleOrders.length : visibleTickets.length"
       :count-label="grouper === 'order' ? 'orders' : 'items'"
-      :loading="listLoading" :error="listError"
-      :empty="!listLoading && !listError && visibleTickets.length === 0"
+      :loading="ticketStore.loading" :error="ticketStore.error"
+      :empty="!ticketStore.loading && !ticketStore.error && visibleTickets.length === 0"
       empty-text="No jobs with this status" :skeleton-rows="5"
     >
       <template #actions>
@@ -323,7 +284,7 @@ onBeforeRouteLeave(to => {
       </template>
       <template #error>
         <div class="px-4 py-6 text-center">
-          <p role="alert" class="text-sm text-error">{{ listError }}</p>
+          <p role="alert" class="text-sm text-error">{{ ticketStore.error }}</p>
           <button type="button" class="mt-3 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" @click="reload">Try again</button>
         </div>
       </template>
@@ -372,7 +333,7 @@ onBeforeRouteLeave(to => {
     </ListContainer>
     <ListContainer v-else title="Department not found" icon="error" count-label="orders" empty empty-text="Unknown department" />
 
-    <button v-if="department" type="button" :disabled="listLoading || !!listError" class="absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime disabled:opacity-50" aria-label="Scan tag" @click="openScanner">
+    <button v-if="department" type="button" :disabled="ticketStore.loading || !!ticketStore.error" class="absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime disabled:opacity-50" aria-label="Scan tag" @click="openScanner">
       <span class="material-symbols-outlined" aria-hidden="true">qr_code_scanner</span>
     </button>
 

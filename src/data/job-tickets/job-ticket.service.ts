@@ -52,9 +52,10 @@ export async function loadDepartmentTickets(
   now: Date = new Date(),
   fetchPage: typeof listJobTickets = listJobTickets,
 ): Promise<{ tickets: JobTicketDto[]; truncated: boolean }> {
-  const tickets: JobTicketDto[] = []
   const today = todaySheetDate(now)
-  for (const status of ['Pending', 'In Progress', 'Completed'] as const) {
+  const statuses = ['Pending', 'In Progress', 'Completed'] as const
+  const results = await Promise.all(statuses.map(async status => {
+    const tickets: JobTicketDto[] = []
     let page = 1
     while (tickets.length < MAX_DEPARTMENT_TICKETS) {
       const perPage = Math.min(PAGE_SIZE, MAX_DEPARTMENT_TICKETS - tickets.length)
@@ -65,7 +66,8 @@ export async function loadDepartmentTickets(
       if (selected.reachedOlder || result.items.length < perPage) break
       page += 1
     }
-    if (tickets.length >= MAX_DEPARTMENT_TICKETS) return { tickets, truncated: true }
-  }
-  return { tickets, truncated: false }
+    return tickets
+  }))
+  const combined = results.flat()
+  return { tickets: combined.slice(0, MAX_DEPARTMENT_TICKETS), truncated: combined.length >= MAX_DEPARTMENT_TICKETS }
 }
