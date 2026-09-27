@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { invalidate } from '@/shared/api/response-cache'
 import { onUserChanged, signOutUser } from '@/shared/api/firebase-auth'
 import { APP_Z_INDEX_CLASS } from '@/shared/layouts/z-index'
+import CloseButton from '@/shared/components/CloseButton.vue'
 
 const props = defineProps({
   open: Boolean
@@ -50,11 +51,7 @@ function logout() {
     >
       <div class="bg-primary text-on-primary flex items-center justify-between px-4 py-3">
         <span class="text-lg font-headline font-bold tracking-tight">Menu</span>
-        <button
-          class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
-          aria-label="Close menu"
-          @click="emit('close')"
-        >close</button>
+        <CloseButton label="Close menu" tone="onDark" @click="emit('close')" />
       </div>
 
       <ul class="flex flex-col py-2">

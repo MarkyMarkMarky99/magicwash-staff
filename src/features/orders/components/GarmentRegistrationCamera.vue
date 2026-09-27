@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import CloseButton from '@/shared/components/CloseButton.vue'
 import { startBarcodeScanner } from '@/shared/utils/barcode-scanner'
 import { canVibrate, setSoundEnabled, setVibrationEnabled, soundEnabled, vibrationEnabled } from '@/shared/utils/scan-feedback'
 import { encodeCanvasToJpeg } from '@/utils/imageCompression'
@@ -304,9 +305,7 @@ onBeforeUnmount(() => {
     <div class="absolute inset-x-0 top-0 bg-gradient-to-b from-black/85 to-transparent px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))]">
       <div class="flex items-center gap-2">
         <div class="flex shrink-0 items-center gap-1">
-          <button type="button" class="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 disabled:opacity-40" :disabled="pendingCount > 0" aria-label="Close registration" @click="emit('close')">
-            <span class="material-symbols-outlined" aria-hidden="true">close</span>
-          </button>
+          <CloseButton label="Close registration" tone="onDark" class="disabled:opacity-40" :disabled="pendingCount > 0" @click="emit('close')" />
           <button type="button" class="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white focus-visible:outline-2 focus-visible:outline-white" :class="soundEnabled ? '' : 'opacity-45'" :aria-pressed="soundEnabled" :aria-label="soundEnabled ? 'Turn off sound' : 'Turn on sound'" @click="setSoundEnabled(!soundEnabled)">
             <span class="material-symbols-outlined text-[19px]" aria-hidden="true">{{ soundEnabled ? 'volume_up' : 'volume_off' }}</span>
           </button>

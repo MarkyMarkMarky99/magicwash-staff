@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch, watchEffect } from 'vue'
+import CloseButton from '@/shared/components/CloseButton.vue'
 import { useDocumentDetect } from '@/features/orders/composables/use-document-detect'
 import {
   initialQuadForStill,
@@ -711,14 +712,13 @@ onBeforeUnmount(() => {
         <div class="min-w-0 flex-1">
           <p class="font-label text-[10px] font-bold uppercase tracking-[0.16em] text-mint">Adjust document corners</p>
         </div>
-        <button
-          class="h-11 w-11 shrink-0 rounded-full bg-white/15 flex items-center justify-center active:opacity-80"
-          aria-label="Close"
+        <CloseButton
+          class="shrink-0"
+          label="Close"
+          tone="onDark"
           :disabled="isWarping"
           @click="closeScanner"
-        >
-          <span class="material-symbols-outlined text-2xl">close</span>
-        </button>
+        />
       </div>
 
       <!-- flex-1 + min-h-0: the surface takes every pixel the header, error line
@@ -806,13 +806,7 @@ onBeforeUnmount(() => {
             Manual
           </button>
         </div>
-        <button
-          class="h-11 w-11 rounded-full bg-white/15 flex items-center justify-center active:opacity-80"
-          aria-label="Close camera"
-          @click="closeScanner"
-        >
-          <span class="material-symbols-outlined text-2xl">close</span>
-        </button>
+        <CloseButton label="Close camera" tone="onDark" :disabled="isWarping" @click="closeScanner" />
       </div>
     </div>
 

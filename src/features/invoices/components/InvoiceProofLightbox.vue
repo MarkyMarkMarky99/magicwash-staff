@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import CloseButton from '@/shared/components/CloseButton.vue'
 
 const props = defineProps<{
   open: boolean
@@ -10,7 +11,7 @@ const emit = defineEmits<{
   close: []
 }>()
 
-const closeRef = ref<HTMLButtonElement | null>(null)
+const closeRef = ref<InstanceType<typeof CloseButton> | null>(null)
 let previousActiveElement: Element | null = null
 
 function onKeyDown(event: KeyboardEvent) {
@@ -52,15 +53,7 @@ onBeforeUnmount(() => {
       aria-label="View payment proof"
       @click="emit('close')"
     >
-      <button
-        ref="closeRef"
-        type="button"
-        class="absolute right-4 top-4 text-white/80 transition-all hover:text-white active:scale-95 focus:outline-none"
-        aria-label="Close"
-        @click="emit('close')"
-      >
-        <span class="material-symbols-outlined text-[28px]" aria-hidden="true">close</span>
-      </button>
+      <CloseButton ref="closeRef" class="absolute right-4 top-4 text-white" tone="onDark" @click="emit('close')" />
       <div class="flex max-h-full max-w-full items-center justify-center" @click.stop>
         <img
           :src="url"

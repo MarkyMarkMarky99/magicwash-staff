@@ -77,15 +77,13 @@ function handleSubmit() {
     backdrop="translucent"
     :draggable="false"
     close-button
+    close-button-tone="onDark"
+    close-button-class="text-white"
     :ariaLabel="accessibleOverlayLabel"
     :close-on-backdrop="closeOnBackdrop"
     :panel-class="softKeyboardOpen ? 'form-overlay-panel form-overlay-panel--compact' : 'form-overlay-panel'"
     @close="emit('close')"
   >
-    <template #close-button>
-      <span class="form-overlay-close__glyph" aria-hidden="true">×</span>
-    </template>
-
     <form class="form-overlay" @submit.prevent="handleSubmit">
       <header class="form-overlay__header" :class="{ 'form-overlay__header--compact': softKeyboardOpen }">
         <div class="form-overlay__brand-row">
@@ -308,28 +306,6 @@ function handleSubmit() {
 :global(.form-overlay-panel > button[aria-label="Close"]) {
   top: var(--form-overlay-close-top, 20px);
   right: 20px;
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 50%;
-  background: transparent;
-  transition: none;
-}
-
-:global(.form-overlay-panel > button[aria-label="Close"]:hover) {
-  background: transparent;
-}
-
-:global(.form-overlay-panel > button[aria-label="Close"]:focus-visible) {
-  outline: 3px solid #eab308;
-  outline-offset: 2px;
-}
-
-:global(.form-overlay-close__glyph) {
-  font-size: 23px;
-  line-height: 1;
 }
 
 .sr-only {

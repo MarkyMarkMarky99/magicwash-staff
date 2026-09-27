@@ -17,21 +17,17 @@ const emit = defineEmits<{
     :open="open"
     placement="center"
     size="full"
-    backdrop="none"
+    backdrop="opaque"
     :draggable="false"
     close-button
-    panel-class="lightbox-overlay-panel !h-[calc(100%+2rem)] !max-h-none !w-[calc(100%+2rem)] !max-w-none !rounded-none bg-black/90 text-white shadow-none"
+    close-button-tone="onDark"
+    close-button-class="text-white"
+    panel-class="!rounded-none !bg-transparent text-white !shadow-none"
     :ariaLabel="ariaLabel"
     @close="emit('close')"
   >
-    <ScrollRegion class="flex flex-col items-center justify-center p-4" @click="emit('close')">
+    <ScrollRegion class="flex flex-col items-center justify-center px-4 pb-4 pt-16" @click="emit('close')">
       <slot />
     </ScrollRegion>
   </BaseOverlayFrame>
 </template>
-
-<style>
-.lightbox-overlay-panel > button[aria-label="Close"] {
-  color: #ffffff;
-}
-</style>

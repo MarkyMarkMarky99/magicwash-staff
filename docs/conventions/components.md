@@ -35,6 +35,7 @@ dedicated shared-component refactor.
 
 See [Shared QR scanner overlay](./qr-scanner-overlay.md) for the camera-only overlay API.
 `SquareImageCard.vue` is a generic square image card with nullable image, optional text lines, and an optional badge slot.
+`CloseButton.vue` is the shared 40px round close X for every page and overlay exit. It accepts a `label` (default `Close`) and `tone` (`onLight` by default, or `onDark`). Callers own its position and text colour.
 
 ### Feature Components
 

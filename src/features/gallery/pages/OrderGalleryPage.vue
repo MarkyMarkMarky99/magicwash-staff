@@ -437,7 +437,7 @@ function handleCameraClose() {
       <img v-if="lightbox !== null && allPhotos[lightbox]"
         :src="allPhotos[lightbox].src"
         :alt="allPhotos[lightbox].label || `รูปที่ ${lightbox + 1}`"
-        class="max-w-full max-h-[80dvh] rounded-2xl object-contain"
+        class="max-w-full max-h-[80dvh] object-contain"
         @click.stop
       />
 

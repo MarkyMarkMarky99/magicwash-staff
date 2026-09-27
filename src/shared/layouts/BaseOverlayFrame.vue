@@ -89,6 +89,7 @@ import {
 } from 'vue'
 import { acquirePageScrollLock, releasePageScrollLock } from '@/shared/layouts/use-page-scroll-lock'
 import { useFocusTrap } from '@/shared/layouts/use-focus-trap'
+import CloseButton from '@/shared/components/CloseButton.vue'
 
 type OverlayPlacement = 'bottom' | 'top' | 'left' | 'right' | 'center'
 type OverlayBackdrop = 'opaque' | 'translucent' | 'none'
@@ -101,6 +102,8 @@ const props = withDefaults(
     backdrop: OverlayBackdrop
     draggable: boolean
     closeButton: boolean
+    closeButtonTone?: 'onDark' | 'onLight'
+    closeButtonClass?: string
     panelClass?: string
     ariaLabel: string
     closeOnBackdrop?: boolean
@@ -119,7 +122,7 @@ const CLOSE_THRESHOLD = 80
 const overlayId = Symbol('overlay-frame')
 const frameRef = ref<HTMLElement | null>(null)
 const panelRef = ref<HTMLElement | null>(null)
-const closeButtonRef = ref<HTMLButtonElement | null>(null)
+const closeButtonRef = ref<InstanceType<typeof CloseButton> | null>(null)
 const rendered = ref(false)
 const visible = ref(false)
 const dragging = ref(false)
@@ -410,18 +413,15 @@ onDeactivated(handleDeactivated)
             </div>
           </div>
 
-          <button
-            v-if="closeButton"
-            ref="closeButtonRef"
-            type="button"
-            class="absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full text-on-surface transition-colors hover:bg-surface-container focus:outline-none focus:ring-2 focus:ring-primary/40"
-            aria-label="Close"
-            @click="requestClose"
-          >
-            <slot name="close-button">
-              <span class="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
-            </slot>
-          </button>
+          <slot v-if="closeButton" name="close-button">
+            <CloseButton
+              ref="closeButtonRef"
+              class="absolute right-4 top-4 z-20"
+              :class="closeButtonClass || 'text-on-surface'"
+              :tone="closeButtonTone"
+              @click="requestClose"
+            />
+          </slot>
 
           <div class="flex min-h-0 min-w-0 flex-1 flex-col">
             <slot />

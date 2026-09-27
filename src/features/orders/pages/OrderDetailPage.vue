@@ -585,7 +585,7 @@ function clearItemError() {
       v-if="selectedImagePreview"
       :src="selectedImagePreview.src"
       :alt="selectedImagePreview.alt"
-      class="max-h-[80dvh] max-w-full rounded-2xl object-contain"
+      class="max-h-[80dvh] max-w-full object-contain"
       @click.stop
     >
   </LightboxOverlay>

@@ -5,6 +5,7 @@
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
+- **`feat/shared-close-button`** — shared `CloseButton` at every page/overlay close, plus lightbox on the opaque backdrop with square corners; committed, not browser-verified or merged. Details: `.user/memory/feat-shared-close-button.md`.
 ## Pending work
 
 - **Garment tracking and job tickets**
@@ -110,7 +111,7 @@
   - `ListContainer` collapsible header is a non-focusable `div` without `aria-expanded`; schedule slots now start collapsed when empty.
   - Phone-test ISS-72adcdca: a cache-hit customer-row tap must open only customer detail, while the swipe action still fires.
   - Browser-check ListContainer search, theme consistency, and the order-detail dropdown at the bottom edge.
-  - Give `BaseOverlayFrame` a full-bleed size so `LightboxOverlay` can drop its five `!important` padding overrides; then delete `docs/plans/scroll-region.md` and `docs/plans/overlay-frame.md` when unreferenced.
+  - Delete `docs/plans/scroll-region.md` and `docs/plans/overlay-frame.md` once unreferenced (the lightbox `!important` overrides are gone on `feat/shared-close-button`).
   - Delete sheet test data: `Packages` `ZZTEST01` / `af9f0651`; `OrderForm` `246fde2b`, `cc4d375e`, `f68ae08d`; `LaundryPhotos` `QK0H9DT1`, `a260b2b1`, `1b7649ba`; `AfterPhoto` `0aacd052`.
   - Browser-check the appointment card status badge now sitting in the top-end slot on both the schedule and pending pages.
   - Browser-check swipe cards now opening 4rem per action (`leftActions`/`rightActions`), incl. the AppointmentCard "Swipe to …" label in 4rem.

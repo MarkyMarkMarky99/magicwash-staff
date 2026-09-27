@@ -29,6 +29,8 @@ const emit = defineEmits<{
     backdrop="translucent"
     :draggable="draggable"
     close-button
+    close-button-tone="onDark"
+    close-button-class="text-white"
     :panel-class="`picker-overlay-panel ${panelClass}`"
     :ariaLabel="ariaLabel"
     :close-on-backdrop="closeOnBackdrop"
@@ -44,14 +46,3 @@ const emit = defineEmits<{
     </div>
   </BaseOverlayFrame>
 </template>
-
-<style>
-.picker-overlay-panel > button[aria-label="Close"] {
-  color: #ffffff;
-}
-
-.picker-overlay-panel > button[aria-label="Close"]:hover,
-.picker-overlay-panel > button[aria-label="Close"]:focus-visible {
-  background-color: rgb(255 255 255 / 0.12);
-}
-</style>
