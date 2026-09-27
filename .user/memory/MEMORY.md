@@ -8,6 +8,9 @@
 
 ## Pending work
 
+- **Unpushed on `main`**: local commit updating `close-button.dry-test.ts` to the sticker `CloseButton`; push it together with the next piece of work.
+- `appointment.store.dry-test.ts` fails (2 vs 1) and already failed at `3afaac2`; cause not investigated.
+
 - **Customer detail and visual system** (merged 2026-09-27)
   - Browser-verify create dropdowns open, order swipe "Order detail", and appointment date order; the ui-shots run failed to capture these.
   - Pill shows `0 PACKAGES` while the list is still loading.
@@ -16,7 +19,7 @@
   - Package names are long in the `Packages` sheet itself; user to choose renaming them there or showing `packageCode`.
   - Browser-check customer detail `BottomNavBar` on a phone: floating lime sticker + pop animation, custom section icons, `pb-14` list clearance.
   - Order detail Approve is now `OrderApproveButton` (sticker FAB); only the quantity-mismatch disable shows a reason.
-  - Phone-check the push drawer (open, drag-close, Back) and swipe cards no longer moving on scroll; Codex saw 2 unrelated unit-test failures (CloseButton, appointment store), not checked against main.
+  - Phone-check the push drawer (open, drag-close, Back) and swipe cards no longer moving on scroll.
   - Browser-check `CloseButton` onDark sticker style (lime outline squircle, solid lime + offset shadow when active) on header (menu, back, pending with badge) and the 6 dark-overlay X buttons; hover/focus pop animation.
   - Browser-check the app-wide palette move (mint/tertiary removed, info = logo steel blue): order hero card, document scanner, shared form controls.
   - Browser-check `BaseBadge` two-size standard (sm/lg): `N items` chip grew 9px→11px, lg badges got shorter.

@@ -12,16 +12,18 @@ assert.match(button, /tone: 'onLight'/)
 assert.match(button, /type="button"/)
 assert.match(button, /h-10 w-10/)
 assert.match(button, /rounded-full/)
-assert.match(button, /focus-visible:outline-2/)
+assert.match(button, /focus:ring-lime/)
+assert.match(button, /\.sticker-button:focus/)
 assert.match(button, /:aria-label="label"/)
-assert.match(button, /<span class="material-symbols-outlined" aria-hidden="true">close<\/span>/)
-assert.match(button, /hover:bg-white\/10/)
+assert.match(button, /icon: 'close'/)
+assert.match(button, /close: 'm8 8 12 12M20 8 8 20'/)
+assert.match(button, /\{\{ icon \}\}/)
+assert.match(button, /\.sticker-button:hover/)
 assert.match(button, /hover:bg-black\/5/)
 
 for (const path of [
   'app/auth/LoginPage.vue',
   'shared/layouts/BaseOverlayFrame.vue',
-  'shared/components/NavSidebar.vue',
   'shared/components/QrScannerOverlay.vue',
   'features/orders/components/GarmentRegistrationCamera.vue',
   'features/orders/components/DocumentScannerOverlay.vue',
