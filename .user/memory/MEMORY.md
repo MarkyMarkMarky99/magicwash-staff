@@ -8,11 +8,10 @@
 
 ## Pending work
 
-- **Unpushed on `main`**: `close-button.dry-test.ts` sticker update, and the `CloseButton` position fix (form X fell off the left edge and left a white strip); user to push, then phone-check a form's X sits top-right and the strip is gone.
-- **Unpushed on `main`**: package detail hero card redesign + BaseBadge `lime` tone; phone-check it; low-credit badge threshold (20%) was Claude's pick, not confirmed.
-- **Unpushed on `main`**: smart package Add transaction form (phase 1); browser-check each type. Open: voiding a past credit-add can still drive the balance negative.
+- Phone-check a form's close X sits top-right with no white strip (CloseButton position fix, pushed 2026-09-28).
+- Package detail hero card: low-credit badge threshold (20%) was Claude's pick, not confirmed by user.
+- Package Add transaction form (phase 1): browser-check each type; voiding a past credit-add can still drive the balance negative.
 - Package transfer phase 2 not built: server must write paired −N/+N rows for same-customer packages and define partial-failure handling; the form's Transfer UI exists but Save is disabled.
-- **Unpushed on `main`**: package activity as cards (change │ type/date │ balance, newest first); user approved on screen.
 - `appointment.store.dry-test.ts` fails (2 vs 1) and already failed at `3afaac2`; cause not investigated.
 
 - **Customer detail and visual system** (merged 2026-09-27)
