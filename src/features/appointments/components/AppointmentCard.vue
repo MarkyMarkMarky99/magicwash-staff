@@ -151,7 +151,7 @@ function openMaps() {
           </span>
         </template>
         <template #top-end>
-          <BaseBadge :label="config.label" size="xs" :uppercase="true" :tone="config.tone" />
+          <BaseBadge :label="config.label" size="sm" :uppercase="true" :tone="config.tone" />
         </template>
         <template v-if="appointment.address" #line2>
           {{ appointment.address }}

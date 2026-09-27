@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
+import BaseBadge from '@/shared/components/BaseBadge.vue'
 import InvoiceCustomerCard from '../components/InvoiceCustomerCard.vue'
 import InvoicePaymentsMenu from '../components/InvoicePaymentsMenu.vue'
 import InvoiceProofLightbox from '../components/InvoiceProofLightbox.vue'
@@ -175,24 +176,18 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
               <div class="flex min-w-[112px] shrink-0 flex-col items-end gap-2 pt-0.5">
                 <div class="flex items-center gap-2">
                   <p class="whitespace-nowrap font-label text-[9px] font-bold uppercase tracking-wide text-on-surface-variant">Issued</p>
-                  <span class="inline-flex items-center whitespace-nowrap rounded-full bg-primary/10 px-2.5 py-1 font-headline text-[11px] font-bold text-primary">
-                    {{ formatSheetDate(invoice.issuedDate) }}
-                  </span>
+                  <BaseBadge class="whitespace-nowrap" :label="formatSheetDate(invoice.issuedDate)" size="lg" tone="brand" />
                 </div>
                 <div class="flex items-center gap-2">
                   <p class="whitespace-nowrap font-label text-[9px] font-bold uppercase tracking-wide text-on-surface-variant">Due</p>
-                  <span class="inline-flex items-center whitespace-nowrap rounded-full bg-primary/10 px-2.5 py-1 font-headline text-[11px] font-bold text-primary">
-                    {{ formatSheetDate(invoice.dueDate) }}
-                  </span>
+                  <BaseBadge class="whitespace-nowrap" :label="formatSheetDate(invoice.dueDate)" size="lg" tone="brand" />
                 </div>
                 <div
                   v-if="invoice.billingPeriodStart || invoice.billingPeriodEnd"
                   class="flex items-center gap-2"
                 >
                   <p class="whitespace-nowrap font-label text-[9px] font-bold uppercase tracking-wide text-on-surface-variant">Billing</p>
-                  <span class="inline-flex items-center whitespace-nowrap rounded-full bg-primary/10 px-2.5 py-1 font-headline text-[11px] font-bold text-primary">
-                    {{ formatSheetDate(invoice.billingPeriodStart) }} – {{ formatSheetDate(invoice.billingPeriodEnd) }}
-                  </span>
+                  <BaseBadge class="whitespace-nowrap" :label="`${formatSheetDate(invoice.billingPeriodStart)} – ${formatSheetDate(invoice.billingPeriodEnd)}`" size="lg" tone="brand" />
                 </div>
               </div>
             </section>

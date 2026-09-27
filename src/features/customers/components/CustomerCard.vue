@@ -98,7 +98,7 @@ function openOrderHistory() {
           <BaseBadge
             v-if="customer.customerType"
             :label="customer.customerType"
-            size="xs"
+            size="sm"
             :uppercase="true"
             :tone="TYPE_TONES[customer.customerType] || 'neutral'"
           />

@@ -108,14 +108,14 @@ const noteLineSlot = computed(() => props.showCustomerName ? 'line3' : 'line2')
           </span>
           <BaseBadge
             :label="presentationFor(order.status).label"
-            size="xs"
+            size="sm"
             :uppercase="true"
             :tone="presentationFor(order.status).tone"
           />
           <BaseBadge
             v-if="serviceTypeLabel(order.serviceType)"
             :label="serviceTypeLabel(order.serviceType)!"
-            size="xs"
+            size="sm"
             :uppercase="true"
             tone="brand"
           />

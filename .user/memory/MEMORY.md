@@ -15,6 +15,8 @@
   - Order rows show `—` as line 2 when there is no note; consider hiding the line.
   - Long invoice numbers truncate (`INV20260905-41f3…`).
   - Package names are long in the `Packages` sheet itself; user to choose renaming them there or showing `packageCode`.
+  - Next: replace the top tabs with the shared `BottomNavBar` (built, not yet used anywhere).
+  - Browser-check `BaseBadge` two-size standard (sm/lg): `N items` chip grew 9px→11px, lg badges got shorter.
 
 - **Garment tracking and job tickets**
   - Decide the order status sequence before any swipe-to-advance work.

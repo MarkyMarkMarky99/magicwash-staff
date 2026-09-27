@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import BaseBadge from '@/shared/components/BaseBadge.vue'
 
 const props = defineProps({
   title: { type: String, required: true },
@@ -89,11 +90,7 @@ function toggleCollapsed() {
       </div>
 
       <div class="flex items-center gap-2">
-        <div v-if="count !== undefined" class="flex items-center gap-1.5 bg-surface-container rounded-full px-2.5 py-1">
-          <span class="font-label text-[9px] text-on-surface-variant font-bold uppercase tracking-wider">
-            {{ count }} {{ countLabel }}
-          </span>
-        </div>
+        <BaseBadge v-if="count !== undefined" :label="`${count} ${countLabel}`" size="sm" tone="neutral" :uppercase="true" />
         <button
           v-if="searchable"
           type="button"

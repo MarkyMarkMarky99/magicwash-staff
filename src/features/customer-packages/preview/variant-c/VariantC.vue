@@ -25,7 +25,7 @@ function formatCreditChange(value: number) {
             <div class="flex items-center gap-2">
               <span class="material-symbols-outlined text-primary" aria-hidden="true">person</span>
               <h1 class="truncate font-headline text-lg font-bold text-primary">{{ sourcePackage.customerName }}</h1>
-              <BaseBadge :label="sourcePackage.status" size="md" :uppercase="true" tone="accent" />
+              <BaseBadge :label="sourcePackage.status" size="lg" :uppercase="true" tone="accent" />
             </div>
             <p class="mt-1 text-xs text-on-surface-variant">{{ sourcePackage.customerId }} · {{ sourcePackage.customerPhone || 'No phone on file' }}</p>
             <p v-if="sourcePackage.customerAddress" class="mt-1 text-xs text-on-surface-variant"><span class="material-symbols-outlined mr-1 align-middle text-[14px]" aria-hidden="true">location_on</span>{{ sourcePackage.customerAddress }}</p>

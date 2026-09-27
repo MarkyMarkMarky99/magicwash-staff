@@ -28,7 +28,7 @@ const TYPE_TONES: Record<string, BadgeTone> = {
           <BaseBadge
             v-if="customer.customerType"
             :label="customer.customerType"
-            size="md"
+            size="lg"
             :uppercase="true"
             :tone="TYPE_TONES[customer.customerType] || 'neutral'"
           />

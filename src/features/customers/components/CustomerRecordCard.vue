@@ -47,7 +47,7 @@ defineExpose({ close })
             :key="`${badge.label}-${index}`"
             :label="badge.label"
             :tone="badge.tone"
-            size="xs"
+            size="sm"
             :uppercase="true"
           />
         </span>

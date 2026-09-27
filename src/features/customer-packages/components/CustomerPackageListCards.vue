@@ -30,7 +30,7 @@ const STATUS_TONES: Record<string, BadgeTone> = {
           density="roomy"
         >
           <template #top-end>
-            <BaseBadge :label="item.status" size="md" :tone="STATUS_TONES[item.status] || 'neutral'" />
+            <BaseBadge :label="item.status" size="lg" :tone="STATUS_TONES[item.status] || 'neutral'" />
           </template>
           <template #line3>
             <span class="font-semibold text-primary">{{ item.remainingCredit }}</span> remaining · {{ item.usedCredit }} used · {{ item.totalCredit }} total

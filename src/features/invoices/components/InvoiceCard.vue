@@ -42,13 +42,13 @@ function selectInvoice() {
           <span class="truncate">{{ invoice.invoiceNumber }}</span>
           <BaseBadge
             :label="presentationFor(invoice.status).label"
-            size="xs"
+            size="sm"
             :uppercase="true"
             :tone="presentationFor(invoice.status).tone"
           />
           <BaseBadge
             :label="invoice.billingType === 'CYCLE' ? 'Cycle' : 'Order'"
-            size="xs"
+            size="sm"
             :uppercase="true"
             tone="neutral"
           />

@@ -31,7 +31,7 @@ function openEdit() {
       <template #line1>
         <span class="flex min-w-0 items-center gap-2">
           <span class="truncate">{{ package.name }}</span>
-          <BaseBadge v-if="package.deletedAt !== null" label="เลิกขาย" size="md" tone="danger" />
+          <BaseBadge v-if="package.deletedAt !== null" label="เลิกขาย" size="lg" tone="danger" />
         </span>
       </template>
     </BaseRowCard>

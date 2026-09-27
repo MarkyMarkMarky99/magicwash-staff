@@ -10,3 +10,5 @@
 - Customer appointments store now applies `onFresh` results.
 - Pre-existing failing dry-tests, also failing on `main`: `customer-order-history-race`, `customer-scoped-store-reloads`, `appointment.store`, `form-route-integrations` (editOrder).
 - Codex implement session: `01a0e29b-b482-7481-8dac-c8707fc02ed1`.
+- `BaseBadge` cut to two sizes (sm default, lg) with text-box trim; solid variant for danger; overdue, invoice date chips, `N items` and the `ListContainer` count now use it.
+- Shared `BottomNavBar` added for the customer detail tabs and later pages.

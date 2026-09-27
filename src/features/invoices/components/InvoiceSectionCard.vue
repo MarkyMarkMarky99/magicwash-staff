@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import BaseBadge from '@/shared/components/BaseBadge.vue'
 defineProps<{
   icon: string
   title: string
@@ -15,12 +16,7 @@ defineProps<{
       </span>
 
       <div class="flex shrink-0 items-center gap-2">
-        <span
-          v-if="badge"
-          class="flex h-[22px] shrink-0 items-center whitespace-nowrap rounded-full bg-surface-container px-2.5 font-label text-[9px] font-bold uppercase tracking-wider text-on-surface-variant"
-        >
-          {{ badge }}
-        </span>
+        <BaseBadge v-if="badge" class="h-[22px] whitespace-nowrap" :label="badge" size="lg" tone="neutral" :uppercase="true" />
         <slot name="action" />
       </div>
     </div>
