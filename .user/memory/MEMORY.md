@@ -5,6 +5,7 @@
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
+- **`fix/sidebar-safe-area`** — nav drawer header clears the iPhone status bar; pushed for a phone check on Preview. Details: `.user/memory/fix-sidebar-safe-area.md`.
 
 ## Pending work
 
