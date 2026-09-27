@@ -49,7 +49,7 @@ function logout() {
       class="fixed top-0 left-0 h-full w-[75%] max-w-sm overflow-y-auto bg-surface text-on-surface flex flex-col shadow-2xl"
       :class="APP_Z_INDEX_CLASS.navigation"
     >
-      <div class="bg-primary text-on-primary flex items-center justify-between px-4 py-3">
+      <div class="bg-primary text-on-primary flex items-center justify-between px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))]">
         <span class="text-lg font-headline font-bold tracking-tight">Menu</span>
         <CloseButton label="Close menu" tone="onDark" @click="emit('close')" />
       </div>
