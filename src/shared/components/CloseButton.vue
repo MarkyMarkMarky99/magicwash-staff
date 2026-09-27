@@ -42,12 +42,14 @@ defineExpose({
       class="material-symbols-outlined [font-variation-settings:'FILL'_0,'wght'_600,'GRAD'_0,'opsz'_24]"
       aria-hidden="true"
     >{{ icon }}</span>
+    <slot />
   </button>
 </template>
 
 <style scoped>
 /* onDark: lime outline squircle at rest; solid lime sticker with a hard offset shadow when hovered, focused or pressed. */
 .sticker-button {
+  position: relative;
   display: grid;
   place-items: center;
   width: 40px;
@@ -72,11 +74,19 @@ defineExpose({
   background: var(--color-lime);
   color: var(--color-primary);
   box-shadow: 3px 3px 0 color-mix(in srgb, var(--color-primary) 70%, black);
+  animation: sticker-pop 230ms cubic-bezier(.2, 1.45, .45, 1) both;
 }
 
 .sticker-button:active {
   transform: rotate(-7deg) scale(.92);
   box-shadow: 1px 1px 0 color-mix(in srgb, var(--color-primary) 70%, black);
+  animation: none;
+}
+
+@keyframes sticker-pop {
+  0% { transform: rotate(-7deg) scale(.85); }
+  70% { transform: rotate(-7deg) scale(1.05); }
+  100% { transform: rotate(-7deg) scale(1); }
 }
 
 .sticker-glyph {
@@ -99,8 +109,11 @@ defineExpose({
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sticker-button {
+  .sticker-button,
+  .sticker-button:hover,
+  .sticker-button:focus {
     transition: none;
+    animation: none;
   }
 }
 </style>

@@ -38,19 +38,14 @@ const canGoBack = computed(() => Boolean(route.meta.parent))
       />
 
       <template v-else-if="route.name === 'appointment-schedule'">
-        <button
-          class="relative hover:bg-white/10 rounded-full transition-colors p-1 flex items-center justify-center"
-          aria-label="Pending requests"
-          @click="router.push('/pending')"
-        >
-          <span class="material-symbols-outlined">pending_actions</span>
+        <CloseButton icon="pending_actions" label="Pending requests" tone="onDark" @click="router.push('/pending')">
           <span
             v-if="pendingCount > 0"
-            class="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-error text-on-error text-[9px] font-bold rounded-full flex items-center justify-center px-1 leading-none"
+            class="absolute -top-1.5 -right-1.5 flex h-4 min-w-[16px] rotate-[7deg] items-center justify-center rounded-full bg-error px-1 text-[9px] font-bold leading-none text-on-error"
           >
             {{ pendingCount > 99 ? '99+' : pendingCount }}
           </span>
-        </button>
+        </CloseButton>
       </template>
     </div>
   </header>
