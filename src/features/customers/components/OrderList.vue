@@ -96,7 +96,7 @@ function openOrderDetail(orderId: string, close: () => void) {
           <button
             v-if="isInvoiceActionAvailable(order)"
             type="button"
-            class="shrink-0 p-1 text-primary transition hover:opacity-70 active:scale-95"
+            class="-m-1 flex shrink-0 p-1 text-primary transition hover:opacity-70 active:scale-95"
             aria-label="View invoice"
             @mousedown.stop
             @touchend.stop
@@ -106,7 +106,7 @@ function openOrderDetail(orderId: string, close: () => void) {
           </button>
           <button
             type="button"
-            class="shrink-0 p-1 text-primary transition hover:opacity-70 active:scale-95"
+            class="-m-1 flex shrink-0 p-1 text-primary transition hover:opacity-70 active:scale-95"
             aria-label="View photos"
             @mousedown.stop
             @touchend.stop
