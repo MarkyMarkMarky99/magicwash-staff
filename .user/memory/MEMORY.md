@@ -16,6 +16,7 @@
   - Long invoice numbers truncate (`INV20260905-41f3…`).
   - Package names are long in the `Packages` sheet itself; user to choose renaming them there or showing `packageCode`.
   - Browser-check customer detail `BottomNavBar` (replaced top tabs): lime pill, corner overlap, `pb-10` list clearance.
+  - Order detail Approve is now `OrderApproveButton` (sticker FAB); only the quantity-mismatch disable shows a reason. Bottom-nav "raised bump" prototype awaits user choice.
   - Browser-check `CloseButton` onDark sticker style (lime outline squircle, solid lime + offset shadow when active) on header (menu, back, pending with badge) and the 6 dark-overlay X buttons; hover/focus pop animation.
   - Browser-check the app-wide palette move (mint/tertiary removed, info = logo steel blue): order hero card, document scanner, shared form controls.
   - Browser-check `BaseBadge` two-size standard (sm/lg): `N items` chip grew 9px→11px, lg badges got shorter.
