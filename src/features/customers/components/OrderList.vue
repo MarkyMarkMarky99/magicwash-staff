@@ -66,9 +66,6 @@ function openOrderDetail(orderId: string, close: () => void) {
     <CustomerRecordCard
       v-for="appointment in waitingPickups"
       :key="appointment.appointmentId"
-      icon="local_shipping"
-      tone="warning"
-      icon-label="Waiting pickup"
       :title="formatSheetDate(appointment.appointmentDate)"
       :badges="[{ label: 'Waiting pickup', tone: 'warning' }]"
       :trailing="appointment.timeSlot || '—'"
@@ -77,9 +74,6 @@ function openOrderDetail(orderId: string, close: () => void) {
     <CustomerRecordCard
       v-for="order in orders"
       :key="order.orderId"
-      :icon="presentationFor(order.status).icon"
-      :tone="presentationFor(order.status).tone"
-      icon-label="Order"
       :title="formatSheetDate(order.receivedDate)"
       :badges="[
         { label: presentationFor(order.status).label, tone: presentationFor(order.status).tone },

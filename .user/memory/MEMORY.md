@@ -14,7 +14,7 @@
   - Pill shows `0 PACKAGES` while the list is still loading.
   - Order rows show `—` as line 2 when there is no note; consider hiding the line.
   - Long invoice numbers truncate (`INV20260905-41f3…`).
-  - User to review order status lead icons Codex chose in `customer-order-status-presentation.ts`.
+  - Package names are long in the `Packages` sheet itself; user to choose renaming them there or showing `packageCode`.
 
 - **Garment tracking and job tickets**
   - Decide the order status sequence before any swipe-to-advance work.

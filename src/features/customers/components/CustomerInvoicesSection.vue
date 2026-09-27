@@ -46,9 +46,6 @@ function formatMoney(value: number) {
     <CustomerRecordCard
       v-for="invoice in invoices"
       :key="invoice.invoiceNumber"
-      :icon="invoiceStatusPresentation(invoice.status).icon"
-      :tone="invoiceStatusPresentation(invoice.status).tone"
-      icon-label="Invoice"
       :title="invoice.invoiceNumber"
       :badges="[
         { label: invoiceStatusPresentation(invoice.status).label, tone: invoiceStatusPresentation(invoice.status).tone },

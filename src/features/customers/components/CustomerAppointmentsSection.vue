@@ -11,13 +11,13 @@ import { appointmentCreateRoute } from '@/shared/navigation/form-routes'
 import { formatSheetDate, normalizeSheetDate } from '@/shared/utils/sheet-date'
 import type { BadgeTone } from '@/shared/components/BaseBadge.vue'
 
-const STATUS_PRESENTATION: Record<AppointmentListDto['status'], { icon: string; label: string; tone: BadgeTone }> = {
-  PENDING: { icon: 'schedule', label: 'Pending', tone: 'neutral' },
-  CONFIRMED: { icon: 'event_available', label: 'Confirmed', tone: 'accent' },
-  IN_TRANSIT: { icon: 'local_shipping', label: 'En Route', tone: 'warning' },
-  COMPLETED: { icon: 'task_alt', label: 'Completed', tone: 'success' },
-  CANCELLED: { icon: 'cancel', label: 'Cancelled', tone: 'danger' },
-  NO_SHOW: { icon: 'person_off', label: 'No Show', tone: 'danger' },
+const STATUS_PRESENTATION: Record<AppointmentListDto['status'], { label: string; tone: BadgeTone }> = {
+  PENDING: { label: 'Pending', tone: 'neutral' },
+  CONFIRMED: { label: 'Confirmed', tone: 'accent' },
+  IN_TRANSIT: { label: 'En Route', tone: 'warning' },
+  COMPLETED: { label: 'Completed', tone: 'success' },
+  CANCELLED: { label: 'Cancelled', tone: 'danger' },
+  NO_SHOW: { label: 'No Show', tone: 'danger' },
 }
 
 const props = defineProps<{ customerId: string }>()
@@ -47,9 +47,6 @@ const appointments = computed(() => items.value
     <CustomerRecordCard
       v-for="appointment in appointments"
       :key="appointment.appointmentId"
-      :icon="appointment.vehicle === 'VAN' ? 'local_shipping' : appointment.vehicle === 'MOTORCYCLE' ? 'two_wheeler' : STATUS_PRESENTATION[appointment.status].icon"
-      :tone="STATUS_PRESENTATION[appointment.status].tone"
-      icon-label="Appointment"
       :title="formatSheetDate(appointment.appointmentDate)"
       :badges="[{ label: STATUS_PRESENTATION[appointment.status].label, tone: STATUS_PRESENTATION[appointment.status].tone }]"
       :trailing="appointment.timeSlot"

@@ -2,14 +2,10 @@
 import { ref, useSlots } from 'vue'
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
 import BaseRowCard from '@/shared/components/BaseRowCard.vue'
-import CardLeadingIcon from '@/shared/components/CardLeadingIcon.vue'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import type { BadgeTone } from '@/shared/components/BaseBadge.vue'
 
 withDefaults(defineProps<{
-  icon: string
-  tone: BadgeTone
-  iconLabel: string
   title: string
   badges: { label: string; tone: BadgeTone }[]
   trailing?: string
@@ -43,9 +39,6 @@ defineExpose({ close })
       <slot name="left-panel" :close="close" />
     </template>
     <BaseRowCard :line1="title" :line2="detail" :line3="meta">
-      <template #lead>
-        <CardLeadingIcon :icon="icon" :tone="tone" :label="iconLabel" />
-      </template>
       <template #line1>
         <span class="flex min-w-0 items-center gap-1.5">
           <span class="truncate">{{ title }}</span>

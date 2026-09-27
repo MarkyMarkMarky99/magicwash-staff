@@ -5,6 +5,7 @@ import { customerPackageCreateRoute } from '@/shared/navigation/form-routes'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import CreateDropdownMenu from './CreateDropdownMenu.vue'
 import CustomerRecordCard from './CustomerRecordCard.vue'
+import { formatSheetDate } from '@/shared/utils/sheet-date'
 import type { BadgeTone } from '@/shared/components/BaseBadge.vue'
 import { useCustomerPackagesStore } from '../stores/customer-packages.store'
 
@@ -35,13 +36,10 @@ const STATUS_TONES: Record<string, BadgeTone> = {
     <CustomerRecordCard
       v-for="item in items"
       :key="item.customerPackageId"
-      icon="card_membership"
-      :tone="STATUS_TONES[item.status] || 'neutral'"
-      icon-label="Package"
       :title="item.packageName"
       :badges="[{ label: item.status, tone: STATUS_TONES[item.status] || 'neutral' }]"
       :trailing="`${item.remainingCredit} left`"
-      :detail="`${item.packageCode} · ${item.usedCredit}/${item.totalCredit} used`"
+      :detail="`Start ${item.startDate ? formatSheetDate(item.startDate) : '—'} · Expiry ${item.expiryDate ? formatSheetDate(item.expiryDate) : '—'}`"
       @select="router.push({ name: 'customer-package-detail', params: { customerPackageId: item.customerPackageId } })"
     />
   </ListContainer>
