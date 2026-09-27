@@ -1,12 +1,10 @@
 # Project memory
 
-- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24; item quantity reassign and detail Approve button merged 2026-09-25; department ring head, tap-to-advance and order Start merged 2026-09-25; optional staff Google sign-in merged 2026-09-27.
+- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24; item quantity reassign and detail Approve button merged 2026-09-25; department ring head, tap-to-advance and order Start merged 2026-09-25; optional staff Google sign-in, shared CloseButton and PhotoSwipe PhotoViewer merged 2026-09-27.
 
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
-- **`feat/shared-close-button`** — shared `CloseButton` at every page/overlay close, plus lightbox on the opaque backdrop with square corners; committed, not browser-verified or merged. Details: `.user/memory/feat-shared-close-button.md`.
-- **`feat/photo-viewer`** — PhotoSwipe `PhotoViewer` (swipe, zoom, thumbnail strip) on order detail via `?photo=`; branched from `feat/shared-close-button`, desktop-checked by user, phone test pending. Details: `.user/memory/feat-photo-viewer.md`.
 ## Pending work
 
 - **Garment tracking and job tickets**
@@ -31,6 +29,10 @@
   - Browser-verify the form-routes refactor (merged untested in a browser); unticked to-dos in `docs/plans/form-routes.md`.
 
 - **Order detail UI**
+  - Phone-test `PhotoViewer` (merged 2026-09-27 on order detail, gallery, photo library): pinch/double-tap zoom, pan while zoomed, swipe-down close, thumbnail strip, safe areas.
+  - Browser-check gallery "ย้ายไปรายการอื่น": the item picker must open above `PhotoViewer`.
+  - Browser-check every shared `CloseButton` (forms, sheets, pickers, nav, scanners, invoice proof lightbox).
+  - Deferred by user: close X inside the photo corner (needs a dark disc).
   - Phone-test the order photo library: long-press drag-select, edge auto-scroll, glass refraction (now on Select too), black glass labels, lime selected-tab contrast, and single-request Move to item.
   - Phone-test Register garments without an item, then assigning those photos from the library.
   - Bulk photo reassign (one all-or-nothing request) is pushed but not browser-verified end to end.
@@ -112,7 +114,7 @@
   - `ListContainer` collapsible header is a non-focusable `div` without `aria-expanded`; schedule slots now start collapsed when empty.
   - Phone-test ISS-72adcdca: a cache-hit customer-row tap must open only customer detail, while the swipe action still fires.
   - Browser-check ListContainer search, theme consistency, and the order-detail dropdown at the bottom edge.
-  - Delete `docs/plans/scroll-region.md` and `docs/plans/overlay-frame.md` once unreferenced (the lightbox `!important` overrides are gone on `feat/shared-close-button`).
+  - Delete `docs/plans/scroll-region.md` and `docs/plans/overlay-frame.md` once unreferenced (`LightboxOverlay` is gone).
   - Delete sheet test data: `Packages` `ZZTEST01` / `af9f0651`; `OrderForm` `246fde2b`, `cc4d375e`, `f68ae08d`; `LaundryPhotos` `QK0H9DT1`, `a260b2b1`, `1b7649ba`; `AfterPhoto` `0aacd052`.
   - Browser-check the appointment card status badge now sitting in the top-end slot on both the schedule and pending pages.
   - Browser-check swipe cards now opening 4rem per action (`leftActions`/`rightActions`), incl. the AppointmentCard "Swipe to …" label in 4rem.

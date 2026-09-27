@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
 import PickerOverlay from '@/shared/layouts/PickerOverlay.vue'
-import LightboxOverlay from '@/shared/layouts/LightboxOverlay.vue'
+import PhotoViewer from '@/shared/components/PhotoViewer.vue'
 import { currentActor } from '@/shared/config/actor'
 import { useCloseRoute } from '@/shared/navigation/use-close-route'
 import { getWorkOrder, type WorkOrderDetailDto } from '@/data/work-orders/work-order.service'
@@ -159,10 +159,19 @@ function onTileClick(photo: GalleryPhoto) {
   else openOverlay(PHOTO_QUERY_KEY, photo.id)
 }
 
-const lightboxPhoto = computed(() => {
+const viewerImages = computed(() => sections.value.flatMap(section => section.photos.map(photo => ({
+  id: photo.id,
+  src: photo.imageUrl,
+  alt: photo.notes || section.label,
+}))))
+const activeViewerId = computed(() => {
   const id = firstQueryValue(PHOTO_QUERY_KEY)
-  return id ? photos.value.find(photo => photo.id === id) ?? null : null
+  return id && viewerImages.value.some(image => image.id === id) ? id : null
 })
+
+function changeViewerPhoto(id: string) {
+  void router.replace({ query: replaceQuery({ [PHOTO_QUERY_KEY]: id }) })
+}
 
 const selectedPhotos = computed(() => photos.value.filter(photo => selected.value.has(photo.id)))
 const moveOpen = computed(() => firstQueryValue(MOVE_QUERY_KEY) !== null && selecting.value && selectedPhotos.value.length > 0)
@@ -374,9 +383,7 @@ const subtitle = computed(() => {
       </div>
     </PickerOverlay>
 
-    <LightboxOverlay :open="lightboxPhoto !== null" ariaLabel="Photo" @close="closeOverlay(PHOTO_QUERY_KEY)">
-      <img v-if="lightboxPhoto" :src="lightboxPhoto.imageUrl" alt="" class="max-h-full max-w-full object-contain">
-    </LightboxOverlay>
+    <PhotoViewer :images="viewerImages" :active-id="activeViewerId" @change="changeViewerPhoto" @close="closeOverlay(PHOTO_QUERY_KEY)" />
   </div>
 </template>
 

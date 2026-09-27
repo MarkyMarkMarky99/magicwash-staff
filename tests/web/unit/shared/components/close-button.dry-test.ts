@@ -26,6 +26,7 @@ for (const path of [
   'features/orders/components/GarmentRegistrationCamera.vue',
   'features/orders/components/DocumentScannerOverlay.vue',
   'features/invoices/components/InvoiceProofLightbox.vue',
+  'shared/components/PhotoViewer.vue',
 ]) {
   const caller = source(path)
   assert.match(caller, /import CloseButton from '@\/shared\/components\/CloseButton\.vue'/, path)
@@ -40,7 +41,6 @@ assert.match(frame, /:class="closeButtonClass \|\| 'text-on-surface'"/)
 for (const path of [
   'shared/layouts/DetailOverlay.vue',
   'shared/layouts/PickerOverlay.vue',
-  'shared/layouts/LightboxOverlay.vue',
   'shared/layouts/FormOverlay.vue',
 ]) {
   const overlay = source(path)
@@ -50,7 +50,6 @@ for (const path of [
 
 for (const path of [
   'shared/layouts/PickerOverlay.vue',
-  'shared/layouts/LightboxOverlay.vue',
   'shared/layouts/FormOverlay.vue',
 ]) {
   const overlay = source(path)

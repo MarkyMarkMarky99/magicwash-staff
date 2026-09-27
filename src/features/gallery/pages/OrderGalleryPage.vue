@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { usePhotoUpload } from '@/composables/usePhotoUpload'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import PickerOverlay from '@/shared/layouts/PickerOverlay.vue'
-import LightboxOverlay from '@/shared/layouts/LightboxOverlay.vue'
+import PhotoViewer from '@/shared/components/PhotoViewer.vue'
 import CameraOverlay from '@/shared/components/CameraOverlay.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import { currentActor } from '@/shared/config/actor'
@@ -145,15 +145,31 @@ const allPhotos = computed(() => [
     src: p.imageUrl,
     label: p.notes || null,
     id: p.id,
+    viewerId: p.id,
     isSaved: true,
   })),
   ...images.value.map(p  => ({
     src: p.previewUrl,
     label: null,
     id: null,
+    viewerId: `local-${p.id}`,
     isSaved: false,
   })),
 ])
+
+const viewerImages = computed(() => allPhotos.value.map((photo, i) => ({
+  id: photo.viewerId,
+  src: photo.src,
+  alt: photo.label || `รูปที่ ${i + 1}`,
+})))
+const activeViewerId = computed(() => (
+  lightbox.value === null ? null : allPhotos.value[lightbox.value]?.viewerId ?? null
+))
+
+function changeViewerPhoto(viewerId) {
+  const index = allPhotos.value.findIndex(photo => photo.viewerId === viewerId)
+  if (index >= 0) lightbox.value = index
+}
 
 const currentPhoto = computed(() => (
   lightbox.value === null ? null : allPhotos.value[lightbox.value] ?? null
@@ -429,57 +445,27 @@ function handleCameraClose() {
         </button>
       </div>
 
-    <LightboxOverlay
-      :open="lightbox !== null && Boolean(allPhotos[lightbox])"
-      ariaLabel="ดูรูปภาพ"
-      @close="lightbox = null"
-    >
-      <img v-if="lightbox !== null && allPhotos[lightbox]"
-        :src="allPhotos[lightbox].src"
-        :alt="allPhotos[lightbox].label || `รูปที่ ${lightbox + 1}`"
-        class="max-w-full max-h-[80dvh] object-contain"
-        @click.stop
-      />
-
-      <p v-if="lightbox !== null && allPhotos[lightbox]?.label" class="mt-3 text-white/80 font-body text-sm text-center">
-        {{ allPhotos[lightbox].label }}
-      </p>
-
-      <div v-if="lightbox !== null" class="flex gap-6 mt-4">
+    <PhotoViewer :images="viewerImages" :active-id="activeViewerId" @change="changeViewerPhoto" @close="lightbox = null">
+      <template #footer="{ index }">
+        <p v-if="allPhotos[index]?.label" class="text-center font-body text-sm text-white/80">
+          {{ allPhotos[index].label }}
+        </p>
         <button
-          :disabled="lightbox === 0"
-          @click.stop="lightbox--"
-          class="text-white disabled:opacity-30"
+          v-if="allPhotos[index]?.isSaved"
+          type="button"
+          class="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm text-white"
+          :disabled="reassigning"
+          @click.stop="openReassignPicker"
         >
-          <span class="material-symbols-outlined text-3xl">chevron_left</span>
+          <span class="material-symbols-outlined text-[18px]">swap_horiz</span>
+          ย้ายไปรายการอื่น
         </button>
-        <span class="text-white/60 font-body text-sm self-center">
-          {{ lightbox + 1 }} / {{ allPhotos.length }}
-        </span>
-        <button
-          :disabled="lightbox === allPhotos.length - 1"
-          @click.stop="lightbox++"
-          class="text-white disabled:opacity-30"
-        >
-          <span class="material-symbols-outlined text-3xl">chevron_right</span>
-        </button>
-      </div>
 
-      <button
-        v-if="lightbox !== null && allPhotos[lightbox]?.isSaved"
-        type="button"
-        class="mt-4 flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm text-white"
-        :disabled="reassigning"
-        @click.stop="openReassignPicker"
-      >
-        <span class="material-symbols-outlined text-[18px]">swap_horiz</span>
-        ย้ายไปรายการอื่น
-      </button>
-
-      <p v-if="reassignError" role="alert" class="mt-3 max-w-sm text-center text-sm text-red-200">
-        {{ reassignError }}
-      </p>
-    </LightboxOverlay>
+        <p v-if="reassignError" role="alert" class="max-w-sm text-center text-sm text-red-200">
+          {{ reassignError }}
+        </p>
+      </template>
+    </PhotoViewer>
 
     <PickerOverlay
       :open="showReassignPicker"

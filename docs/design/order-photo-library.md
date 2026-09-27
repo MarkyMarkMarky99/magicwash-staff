@@ -48,5 +48,5 @@ here.
 ## Route state
 
 - `type=AFT` selects After; Before is the default and has no query value. Replace-only filter state.
-- `photo=<id>` opens the photo lightbox and `move=1` opens the item picker. Both are route-owned
+- `photo=<id>` opens the shared `PhotoViewer` (swipe, zoom, thumbnail strip; swiping replaces `photo`) and `move=1` opens the item picker. Both are route-owned
   overlays per `docs/conventions/navigation.md`.

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, ref, useSlots, watch } from 'vue'
 import PhotoSwipe from 'photoswipe'
 import type { SlideData } from 'photoswipe'
 import 'photoswipe/style.css'
@@ -24,6 +24,9 @@ const emit = defineEmits<{
 const FALLBACK_SIZE = { width: 1200, height: 1600 }
 const THUMB_STRIP_SPACE = 96
 const TOP_BAR_SPACE = 64
+const FOOTER_SPACE = 88
+
+const slots = useSlots()
 
 const host = ref<HTMLElement | null>(null)
 const strip = ref<HTMLElement | null>(null)
@@ -79,6 +82,7 @@ async function open(position: number): Promise<void> {
 
   slides = props.images.map(slideFor)
   const hasStrip = props.images.length > 1
+  const bottomSpace = (hasStrip ? THUMB_STRIP_SPACE : TOP_BAR_SPACE) + (slots.footer ? FOOTER_SPACE : 0)
   pswp = new PhotoSwipe({
     dataSource: slides,
     index: position,
@@ -95,7 +99,7 @@ async function open(position: number): Promise<void> {
     tapAction: false,
     bgClickAction: 'close',
     getViewportSizeFn: () => ({ x: host.value?.clientWidth ?? 0, y: host.value?.clientHeight ?? 0 }),
-    padding: { top: TOP_BAR_SPACE, bottom: hasStrip ? THUMB_STRIP_SPACE : TOP_BAR_SPACE, left: 0, right: 0 },
+    padding: { top: TOP_BAR_SPACE, bottom: bottomSpace, left: 0, right: 0 },
   })
   pswp.on('change', () => {
     if (!pswp) return
@@ -161,6 +165,15 @@ onBeforeUnmount(() => {
           <CloseButton class="pointer-events-auto" tone="onDark" @click="close" />
         </div>
         <div
+          v-if="$slots.footer && images[index]"
+          class="photo-viewer-layer pointer-events-none absolute inset-x-0 flex justify-center px-4 text-white"
+          :style="{ bottom: `${images.length > 1 ? THUMB_STRIP_SPACE : 12}px` }"
+        >
+          <div class="pointer-events-auto flex max-w-full flex-col items-center gap-2">
+            <slot name="footer" :image="images[index]" :index="index" />
+          </div>
+        </div>
+        <div
           v-if="images.length > 1"
           ref="strip"
           class="photo-viewer-layer photo-viewer-strip absolute inset-x-0 bottom-0 flex gap-2 overflow-x-auto px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2"
@@ -184,6 +197,10 @@ onBeforeUnmount(() => {
 </template>
 
 <style>
+.photo-viewer {
+  isolation: isolate;
+}
+
 .photo-viewer .pswp {
   position: absolute;
 }
