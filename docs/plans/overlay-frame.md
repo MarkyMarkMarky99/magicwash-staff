@@ -80,8 +80,8 @@ backdrop re-enabling pointer events. The column is already `relative` and `overf
 target covers exactly the app column — header included — and nothing can paint outside it. This does
 not exist today and nothing else in the plan works without it.
 
-The stacking order is not free: `AppHeader:21` is `z-50` and `NavSidebar:39` is `z-50` over a `z-40`
-scrim, so anything below `z-50` opens *underneath* the green header. `BaseDropdown:112` already sits
+The stacking order is not free: `AppHeader` is `z-50` and the route-owned drawer sits behind
+the shell, while overlays mount at `z-[60]` inside the shell so they cover the header. `BaseDropdown:112` already sits
 at `z-[60]`. Write the app's z-scale down somewhere when adding the root, rather than picking a
 number per component as has happened so far.
 

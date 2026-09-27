@@ -1,6 +1,6 @@
 # Project memory
 
-- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24; item quantity reassign and detail Approve button merged 2026-09-25; department ring head, tap-to-advance and order Start merged 2026-09-25; optional staff Google sign-in, shared CloseButton and PhotoSwipe PhotoViewer merged 2026-09-27; customer detail tabs + bottom nav, two-size BaseBadge, central colour palette, lime focus and sticker buttons merged 2026-09-27; iPhone safe-area fixes (drawer header, status-bar-style black + standalone green body, shorter bottom nav) merged 2026-09-27.
+- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24; item quantity reassign and detail Approve button merged 2026-09-25; department ring head, tap-to-advance and order Start merged 2026-09-25; optional staff Google sign-in, shared CloseButton and PhotoSwipe PhotoViewer merged 2026-09-27; customer detail tabs + bottom nav, two-size BaseBadge, central colour palette, lime focus and sticker buttons merged 2026-09-27; iPhone safe-area fixes (drawer header, status-bar-style black + standalone green body, shorter bottom nav) merged 2026-09-27. Push drawer (slide-aside menu, drag to close) and steadier BaseSwipeCard merged 2026-09-28.
 
 ## Branches in flight
 
@@ -16,6 +16,7 @@
   - Package names are long in the `Packages` sheet itself; user to choose renaming them there or showing `packageCode`.
   - Browser-check customer detail `BottomNavBar` on a phone: floating lime sticker + pop animation, custom section icons, `pb-14` list clearance.
   - Order detail Approve is now `OrderApproveButton` (sticker FAB); only the quantity-mismatch disable shows a reason.
+  - Phone-check the push drawer (open, drag-close, Back) and swipe cards no longer moving on scroll; Codex saw 2 unrelated unit-test failures (CloseButton, appointment store), not checked against main.
   - Browser-check `CloseButton` onDark sticker style (lime outline squircle, solid lime + offset shadow when active) on header (menu, back, pending with badge) and the 6 dark-overlay X buttons; hover/focus pop animation.
   - Browser-check the app-wide palette move (mint/tertiary removed, info = logo steel blue): order hero card, document scanner, shared form controls.
   - Browser-check `BaseBadge` two-size standard (sm/lg): `N items` chip grew 9px→11px, lg badges got shorter.
