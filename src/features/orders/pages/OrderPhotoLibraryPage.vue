@@ -294,7 +294,7 @@ const subtitle = computed(() => {
 
     <div class="pointer-events-none absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-black/55 via-black/20 to-transparent" aria-hidden="true" />
     <header class="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 px-4 pt-[max(1rem,env(safe-area-inset-top))]">
-      <div class="min-w-0 text-white [text-shadow:0_1px_8px_rgb(0_0_0/0.35)]">
+      <div class="min-w-0 text-white [text-shadow:0_1px_8px_color-mix(in_srgb,_black_35%,_transparent)]">
         <h1 class="font-headline text-[34px] font-extrabold leading-none tracking-tight">{{ title }}</h1>
         <p class="mt-1 truncate font-body text-sm font-semibold">{{ subtitle }}</p>
       </div>
@@ -350,7 +350,7 @@ const subtitle = computed(() => {
         </span>
         <button
           type="button"
-          class="flex h-full items-center gap-1.5 rounded-full bg-primary px-5 font-body text-[15px] font-semibold text-on-primary shadow-[inset_0_1px_0_rgb(255_255_255/0.35)] disabled:opacity-40"
+          class="flex h-full items-center gap-1.5 rounded-full bg-primary px-5 font-body text-[15px] font-semibold text-on-primary shadow-[inset_0_1px_0_color-mix(in_srgb,_white_35%,_transparent)] disabled:opacity-40"
           :disabled="selected.size === 0 || moving"
           @click="openMovePicker"
         >
@@ -392,13 +392,13 @@ const subtitle = computed(() => {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  color: #111;
-  text-shadow: 0 0 8px rgb(255 255 255 / 0.45);
-  background: rgb(0 0 0 / 0.04);
+  color: var(--color-on-surface);
+  text-shadow: 0 0 8px color-mix(in srgb, white 45%, transparent);
+  background: color-mix(in srgb, black 4%, transparent);
   box-shadow:
-    0 12px 32px rgb(0 0 0 / 0.3),
-    0 2px 6px rgb(0 0 0 / 0.14),
-    inset 0 0 22px rgb(255 255 255 / 0.12);
+    0 12px 32px color-mix(in srgb, black 30%, transparent),
+    0 2px 6px color-mix(in srgb, black 14%, transparent),
+    inset 0 0 22px color-mix(in srgb, white 12%, transparent);
 }
 
 .glass::after {
@@ -408,8 +408,8 @@ const subtitle = computed(() => {
   z-index: -1;
   border-radius: inherit;
   background:
-    radial-gradient(120% 90% at 20% 0%, rgb(255 255 255 / 0.2), rgb(255 255 255 / 0) 55%),
-    linear-gradient(180deg, rgb(255 255 255 / 0.13), rgb(255 255 255 / 0.07));
+    radial-gradient(120% 90% at 20% 0%, color-mix(in srgb, white 20%, transparent), color-mix(in srgb, white 0%, transparent) 55%),
+    linear-gradient(180deg, color-mix(in srgb, white 13%, transparent), color-mix(in srgb, white 7%, transparent));
   pointer-events: none;
 }
 
@@ -423,33 +423,33 @@ const subtitle = computed(() => {
   border-radius: inherit;
   background: conic-gradient(
     from 315deg,
-    rgb(255 255 255 / 0.95),
-    rgb(255 255 255 / 0.18) 50deg,
-    rgb(255 255 255 / 0.04) 110deg,
-    rgb(255 255 255 / 0.55) 180deg,
-    rgb(255 255 255 / 0.1) 240deg,
-    rgb(255 255 255 / 0.04) 290deg,
-    rgb(255 255 255 / 0.95)
+    color-mix(in srgb, white 95%, transparent),
+    color-mix(in srgb, white 18%, transparent) 50deg,
+    color-mix(in srgb, white 4%, transparent) 110deg,
+    color-mix(in srgb, white 55%, transparent) 180deg,
+    color-mix(in srgb, white 10%, transparent) 240deg,
+    color-mix(in srgb, white 4%, transparent) 290deg,
+    color-mix(in srgb, white 95%, transparent)
   );
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask: linear-gradient(black 0 0) content-box, linear-gradient(black 0 0);
   -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  mask: linear-gradient(black 0 0) content-box exclude, linear-gradient(black 0 0);
   pointer-events: none;
 }
 
 .glass-light {
-  color: #111;
+  color: var(--color-on-surface);
   text-shadow: none;
-  background: rgb(255 255 255 / 0.78);
+  background: color-mix(in srgb, white 78%, transparent);
   -webkit-backdrop-filter: blur(12px) saturate(1.8);
   backdrop-filter: blur(12px) saturate(1.8);
 }
 
 .glass-pill {
-  background: rgb(255 255 255 / 0.3);
+  background: color-mix(in srgb, white 30%, transparent);
   box-shadow:
-    0 2px 10px rgb(0 0 0 / 0.14),
-    inset 0 0 14px rgb(255 255 255 / 0.18);
+    0 2px 10px color-mix(in srgb, black 14%, transparent),
+    inset 0 0 14px color-mix(in srgb, white 18%, transparent);
 }
 
 .glass-pill::before {

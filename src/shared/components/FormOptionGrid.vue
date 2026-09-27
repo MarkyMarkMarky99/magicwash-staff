@@ -64,7 +64,7 @@ defineEmits(['update:modelValue'])
   font-family: 'Noto Sans Thai', system-ui, sans-serif;
   font-size: 12px;
   font-weight: 700;
-  color: #234f49;
+  color: var(--color-on-surface);
 }
 
 .option-grid {
@@ -79,12 +79,12 @@ defineEmits(['update:modelValue'])
   justify-content: center;
   min-width: 0;
   padding: 0 12px;
-  color: #073f38;
-  border: 1px solid #a9c9c3;
+  color: var(--color-on-surface);
+  border: 1px solid var(--color-outline-variant);
   border-radius: 10px;
   outline: 0;
-  background: #fff;
-  box-shadow: 0 1px 0 rgba(0, 79, 69, 0.02);
+  background: white;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-primary) 2%, transparent);
   font-family: 'Noto Sans Thai', system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.25;
@@ -105,19 +105,19 @@ defineEmits(['update:modelValue'])
 }
 
 .option-button--unselected:hover:not(:disabled) {
-  border-color: #7eb5ac;
+  border-color: var(--color-outline);
 }
 
 .option-button--selected {
-  color: #fff;
-  border-color: #004f45;
-  background: #004f45;
+  color: white;
+  border-color: var(--color-primary);
+  background: var(--color-primary);
   font-weight: 700;
 }
 
 .option-button:focus-visible {
-  border-color: #007a69;
-  box-shadow: 0 0 0 3px rgba(0, 122, 105, 0.14);
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-secondary) 14%, transparent);
 }
 
 .option-button--disabled {
@@ -138,7 +138,7 @@ defineEmits(['update:modelValue'])
 }
 
 .option-button--unselected .option-icon {
-  color: #5f7772;
+  color: var(--color-on-surface-variant);
 }
 
 .option-label {

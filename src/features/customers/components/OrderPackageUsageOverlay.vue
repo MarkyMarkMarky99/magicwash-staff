@@ -80,7 +80,7 @@ function submit() {
         <FormLabel input-id="order-usage-credits">Credits used</FormLabel>
         <input
           id="order-usage-credits" v-model="creditsUsed" type="number" min="0" step="any" required
-          class="block h-[47px] w-full rounded-[10px] border border-[#a9c9c3] bg-white px-3 font-body text-sm text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          class="block h-[47px] w-full rounded-[10px] border border-outline-variant bg-white px-3 font-body text-sm text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
         >
         <p class="mt-2 font-body text-xs text-on-surface-variant">Enter a positive amount to deduct from the package.</p>
       </section>

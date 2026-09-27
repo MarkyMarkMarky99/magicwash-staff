@@ -30,41 +30,41 @@ function previewImage(image: OrderImageDto): void {
 
 <template>
   <section class="relative overflow-hidden bg-primary px-4 py-5 text-on-primary">
-    <div class="pointer-events-none absolute -bottom-[96px] -left-[104px] h-[220px] w-[220px] rounded-full border-[30px] border-mint/[0.14]" />
-    <div class="pointer-events-none absolute -top-[18px] right-[52px] h-[36px] w-[36px] rounded-full bg-lime shadow-[22px_11px_0_rgba(178,223,38,0.22)]" />
+    <div class="pointer-events-none absolute -bottom-[96px] -left-[104px] h-[220px] w-[220px] rounded-full border-[30px] border-lime/[0.14]" />
+    <div class="pointer-events-none absolute -top-[18px] right-[52px] h-[36px] w-[36px] rounded-full bg-lime shadow-[22px_11px_0_color-mix(in_srgb,_var(--color-lime)_22%,_transparent)]" />
     <div class="relative mb-3 flex items-start justify-between gap-3">
       <div>
-        <p class="font-label text-[9px] font-bold uppercase tracking-widest text-mint">Pickup evidence</p>
+        <p class="font-label text-[9px] font-bold uppercase tracking-widest text-lime">Pickup evidence</p>
         <h2 class="font-headline text-base font-bold">Order photos</h2>
       </div>
       <OrderImageCaptureMenu @capture="emit('capture', $event)" />
     </div>
 
     <div v-if="uploadError" class="relative mb-3 flex items-center justify-between gap-2">
-      <p class="font-body text-sm text-mint">{{ uploadError }}</p>
-      <button type="button" class="font-body text-sm text-mint" @click="emit('clearUploadError')">Close</button>
+      <p class="font-body text-sm text-lime">{{ uploadError }}</p>
+      <button type="button" class="font-body text-sm text-lime" @click="emit('clearUploadError')">Close</button>
     </div>
 
     <div v-if="loading" class="relative flex gap-2">
       <span v-for="index in 3" :key="index" class="h-24 w-24 animate-pulse rounded-xl bg-white/15" />
     </div>
-    <p v-else-if="error" class="relative font-body text-sm text-mint">{{ error }}</p>
+    <p v-else-if="error" class="relative font-body text-sm text-lime">{{ error }}</p>
     <ScrollRegion v-else-if="images.length || uploadingCount > 0" axis="x" sizing="auto" class="relative flex gap-2 pb-1">
       <figure v-for="image in images" :key="image.orderImageId" class="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-white/15">
         <button
           v-if="isDisplayableImagePath(image.imagePath)"
           type="button"
-          class="h-full w-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-mint"
+          class="h-full w-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-lime"
           :aria-label="`View photo ${getOrderImageTypeLabel(image.imageType)}`"
           @click="previewImage(image)"
         >
           <img :src="image.imagePath" :alt="getOrderImageTypeLabel(image.imageType)" class="h-full w-full object-cover">
         </button>
-        <div v-else class="flex h-full items-center justify-center text-mint/70"><span class="material-symbols-outlined">image</span></div>
+        <div v-else class="flex h-full items-center justify-center text-lime/70"><span class="material-symbols-outlined">image</span></div>
         <figcaption class="pointer-events-none absolute inset-x-0 bottom-0 bg-black/60 px-1 py-0.5 text-center font-label text-[9px] font-bold text-white">{{ getOrderImageTypeLabel(image.imageType) }}</figcaption>
       </figure>
       <span v-for="index in uploadingCount" :key="'uploading-' + index" class="h-24 w-24 shrink-0 animate-pulse rounded-xl bg-white/15" />
     </ScrollRegion>
-    <p v-else class="relative rounded-xl border border-dashed border-mint/35 bg-white/5 px-3 py-4 font-body text-sm text-mint/80">No photos for this order yet</p>
+    <p v-else class="relative rounded-xl border border-dashed border-lime/35 bg-white/5 px-3 py-4 font-body text-sm text-lime/80">No photos for this order yet</p>
   </section>
 </template>

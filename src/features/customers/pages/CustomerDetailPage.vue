@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { appendPackageTransactionRequestSchema } from '@contracts/customer-packages/customer-package-api.schema'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
+import BottomNavBar from '@/shared/components/BottomNavBar.vue'
 import {
   appointmentCreateRoute,
   invoiceCreateRoute,
@@ -14,7 +15,6 @@ import { useOrderSheetRoute } from '@/features/customers/composables/useOrderShe
 import OrderDetailSheet from '../components/OrderDetailSheet.vue'
 import OrderHistoryCustomerCard from '../components/OrderHistoryCustomerCard.vue'
 import OrderList from '../components/OrderList.vue'
-import GenericTabs from '@/shared/components/GenericTabs.vue'
 import CustomerPackagesSection from '../components/CustomerPackagesSection.vue'
 import CustomerInvoicesSection from '../components/CustomerInvoicesSection.vue'
 import CustomerAppointmentsSection from '../components/CustomerAppointmentsSection.vue'
@@ -22,7 +22,7 @@ import OrderPackageUsageOverlay from '../components/OrderPackageUsageOverlay.vue
 import { useCustomerPackagesStore } from '../stores/customer-packages.store'
 import { useCustomerInvoicesStore } from '@/data/invoices/customer-invoices.store'
 import { useOrderPackageUsageRoute } from '../composables/useOrderPackageUsageRoute'
-import { CUSTOMER_DETAIL_TABS, resolveCustomerTab } from '../utils/customer-tab'
+import { resolveCustomerTab } from '../utils/customer-tab'
 import { currentActor } from '@/shared/config/actor'
 
 const props = defineProps<{
@@ -33,7 +33,12 @@ const props = defineProps<{
 const router = useRouter()
 const route = useRoute()
 const activeTab = computed(() => resolveCustomerTab(props.tab))
-const tabs = CUSTOMER_DETAIL_TABS.map((key) => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1) }))
+const items = [
+  { key: 'orders', icon: 'local_laundry_service', label: 'Orders' },
+  { key: 'packages', icon: 'confirmation_number', label: 'Packages' },
+  { key: 'invoices', icon: 'description', label: 'Invoices' },
+  { key: 'appointments', icon: 'event', label: 'Appointments' },
+]
 const packagesStore = useCustomerPackagesStore()
 const invoicesStore = useCustomerInvoicesStore()
 const { isOpen: usageOpen, open: openUsage, close: closeUsage } = useOrderPackageUsageRoute()
@@ -141,8 +146,7 @@ watch([activeTab, () => props.customerId, openOrderId], ([tab, id, orderId]) => 
 
 <template>
   <AppLayout>
-    <GenericTabs :tabs="tabs" :active-key="activeTab" @select="selectTab" />
-    <ScrollRegion as="main" class="bg-surface pb-20">
+    <ScrollRegion as="main" class="bg-surface pb-10">
       <p v-if="customerLoading" class="px-4 py-6 text-sm text-on-surface-variant">
         Loading customer...
       </p>
@@ -180,5 +184,6 @@ watch([activeTab, () => props.customerId, openOrderId], ([tab, id, orderId]) => 
       @close="closeUsage"
       @submit="submitUsage"
     />
+    <BottomNavBar :items="items" :active-key="activeTab" ariaLabel="Customer sections" @select="selectTab" />
   </AppLayout>
 </template>

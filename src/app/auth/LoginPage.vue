@@ -30,7 +30,7 @@ watch(status, (value) => {
   <main class="relative flex h-full flex-col items-center justify-center gap-8 bg-primary px-6 text-on-primary">
     <CloseButton class="absolute right-3 top-3" tone="onDark" @click="close" />
     <div class="text-center">
-      <p class="font-label text-[11px] font-bold uppercase tracking-[0.18em] text-mint">Staff sign-in</p>
+      <p class="font-label text-[11px] font-bold uppercase tracking-[0.18em] text-lime">Staff sign-in</p>
       <h1 class="mt-2 font-headline text-3xl font-bold tracking-tight">Magicwash Laundry</h1>
     </div>
 

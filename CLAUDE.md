@@ -19,6 +19,7 @@ implemented behavior, correct the canonical document rather than adding a compet
 - [Contracts and the API/DB boundary](docs/conventions/contracts/README.md)
 - [API contract schemas](docs/conventions/contracts/api.md)
 - [Datetime and cross-runtime code](docs/conventions/datetime.md)
+- [Colors](docs/conventions/colors.md)
 
 ## UI patterns
 

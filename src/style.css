@@ -5,15 +5,10 @@
   --color-primary: #00564b;
   --color-on-primary: #ffffff;
   --color-primary-container: #007a69;
-  --color-on-primary-container: #94e5d5;
   --color-secondary: #007a69;
   --color-on-secondary: #ffffff;
-  --color-secondary-container: #9df5df;
-  --color-on-secondary-container: #007165;
-  --color-tertiary: #703321;
-  --color-on-tertiary: #ffffff;
-  --color-tertiary-container: #8d4a36;
-  --color-on-tertiary-container: #ffcabb;
+  --color-secondary-container: #eef6d3;
+  --color-on-secondary-container: #3f5a06;
   --color-background: #f8fafa;
   --color-on-background: #073f38;
   --color-surface: #f8fafa;
@@ -39,13 +34,12 @@
   --color-on-warning: #ffffff;
   --color-warning-container: #fef3c7;
   --color-on-warning-container: #78350f;
-  --color-info: #1d4ed8;
+  --color-info: #24789c;
   --color-on-info: #ffffff;
-  --color-info-container: #dbeafe;
-  --color-on-info-container: #1e3a8a;
+  --color-info-container: #dcecf3;
+  --color-on-info-container: #0c4a63;
 
   /* Accents carried over from the price-list form, which the app's tone now follows. */
-  --color-mint: #9df5df;
   --color-lime: #b2df26;
 
   /* ── Typography ──

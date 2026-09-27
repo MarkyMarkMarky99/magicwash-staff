@@ -148,23 +148,23 @@ function formatPrice(price: number): string {
   >
     <template #header>
       <header class="relative flex-none overflow-hidden bg-primary text-on-primary">
-        <div v-if="selectionMode === 'item'" class="pointer-events-none absolute -right-[138px] -top-[112px] h-[270px] w-[270px] rounded-full border-[34px] border-mint/[0.17]" aria-hidden="true" />
+        <div v-if="selectionMode === 'item'" class="pointer-events-none absolute -right-[138px] -top-[112px] h-[270px] w-[270px] rounded-full border-[34px] border-lime/[0.17]" aria-hidden="true" />
         <div class="relative px-4" :class="selectionMode === 'item' ? 'pb-3 pt-[calc(1rem+env(safe-area-inset-top))]' : 'pb-4 pt-[calc(1.75rem+env(safe-area-inset-top))]'">
-          <p v-if="selectionMode !== 'item'" class="font-label text-[11px] font-bold text-mint">PRICE LIST</p>
+          <p v-if="selectionMode !== 'item'" class="font-label text-[11px] font-bold text-lime">PRICE LIST</p>
           <h1 class="pr-12 font-headline text-xl font-bold" :class="selectionMode === 'item' ? 'flex h-10 items-center' : 'mt-1'">Select an item</h1>
           <p v-if="selectionMode !== 'item'" class="mt-1 truncate font-body text-xs text-on-primary/80">{{ detail }}</p>
           <label class="relative block" :class="selectionMode === 'item' ? 'mt-2' : 'mt-4'">
             <span class="sr-only">Search items</span>
             <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant" aria-hidden="true">search</span>
             <input v-model="search" type="search" autocomplete="off" :placeholder="selectionMode === 'item' ? 'Search name, code, or category' : 'Search name, code, variant, or service'"
-              class="w-full rounded-xl bg-white pl-10 pr-3 font-body text-sm text-on-surface outline-none focus:ring-2 focus:ring-mint"
+              class="w-full rounded-xl bg-white pl-10 pr-3 font-body text-sm text-on-surface outline-none focus:ring-2 focus:ring-lime"
               :class="selectionMode === 'item' ? 'py-2' : 'py-2.5'">
           </label>
         </div>
         <div v-if="selectionMode === 'item'" class="relative h-4 rounded-t-2xl bg-surface" aria-hidden="true" />
       </header>
 
-      <p v-if="truncated && !loading && !error" class="flex-none bg-amber-50 px-4 py-2 text-xs text-amber-900">This list may be incomplete. Try a more specific search.</p>
+      <p v-if="truncated && !loading && !error" class="flex-none bg-warning-container/50 px-4 py-2 text-xs text-on-warning-container">This list may be incomplete. Try a more specific search.</p>
     </template>
         <section v-if="!loading && !error && categories.length" class="pt-5">
           <h2 class="px-4 font-headline text-lg font-bold text-on-surface">Categories</h2>

@@ -23,7 +23,7 @@ watch(() => props.percentage, value => { shown.value = value })
       <circle cx="50" cy="50" r="43" fill="none" stroke="currentColor" stroke-width="13" stroke-linecap="round" pathLength="100" :stroke-dasharray="`${shown} 100`" class="ring-motion text-secondary" :class="shown > 0 ? 'opacity-100' : 'opacity-0'" />
       <circle cx="50" cy="50" r="43" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round" pathLength="100" :stroke-dasharray="`${HEAD_LENGTH} 100`" :style="{ transform: `rotate(${headStart * 3.6}deg)` }" class="ring-motion text-lime [transform-box:view-box] [transform-origin:50%_50%]" />
     </svg>
-    <span class="absolute inset-[18%] rounded-full bg-surface-container-lowest shadow-[0_2px_10px_rgba(0,0,0,0.12)]" aria-hidden="true" />
+    <span class="absolute inset-[18%] rounded-full bg-surface-container-lowest shadow-[0_2px_10px_color-mix(in_srgb,_black_12%,_transparent)]" aria-hidden="true" />
     <svg viewBox="0 0 100 100" class="absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
       <defs>
         <path :id="`${id}-top`" d="M 27 50 A 23 23 0 0 1 73 50" />

@@ -45,7 +45,7 @@ export const useCustomerPackagePurchaseStore = defineStore('customer-package-pur
     // The invoice is a CYCLE row and the registry requires a period on those,
     // so the package's own dates are what fill it. The form already blocks
     // submit without both, so reaching here empty means something upstream
-    // changed — fail loudly rather than mint an invoice with no period.
+    // changed — fail loudly rather than create an invoice with no period.
     const billingPeriodStart = packageRequest.startDate
     const billingPeriodEnd = packageRequest.expiryDate
     if (!billingPeriodStart || !billingPeriodEnd) {

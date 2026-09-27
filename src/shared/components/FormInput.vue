@@ -63,12 +63,12 @@ defineEmits(['update:modelValue', 'invalid'])
   min-width: 0;
   height: 47px;
   padding: 0 12px;
-  color: #073f38;
-  border: 1px solid #a9c9c3;
+  color: var(--color-on-surface);
+  border: 1px solid var(--color-outline-variant);
   border-radius: 10px;
   outline: 0;
-  background: #fff;
-  box-shadow: 0 1px 0 rgba(0, 79, 69, 0.02);
+  background: white;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-primary) 2%, transparent);
   font-family: 'Noto Sans Thai', system-ui, sans-serif;
   font-size: 14px;
   transition: border-color 150ms, box-shadow 150ms;
@@ -92,11 +92,11 @@ defineEmits(['update:modelValue', 'invalid'])
 }
 
 .form-input::placeholder {
-  color: #5f7772;
+  color: var(--color-on-surface-variant);
 }
 
 .form-input:focus {
-  border-color: #007a69;
-  box-shadow: 0 0 0 3px rgba(0, 122, 105, 0.14);
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-secondary) 14%, transparent);
 }
 </style>

@@ -88,7 +88,7 @@ onMounted(() => {
           <span class="material-symbols-outlined text-[16px]" aria-hidden="true">person_add</span>
         </button>
       </template>
-      <p v-if="truncated" role="status" class="bg-amber-50 px-4 py-2 font-body text-xs text-amber-900">
+      <p v-if="truncated" role="status" class="bg-warning-container/50 px-4 py-2 font-body text-xs text-on-warning-container">
         รายชื่อลูกค้าอาจไม่ครบ เนื่องจากมีมากกว่า 2,000 รายการ
       </p>
       <CustomerCard

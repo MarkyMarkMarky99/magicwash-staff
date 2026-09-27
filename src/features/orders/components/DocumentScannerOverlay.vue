@@ -261,13 +261,16 @@ function drawOutline(): void {
   context.moveTo(projected[0].x, projected[0].y)
   for (const point of projected.slice(1)) context.lineTo(point.x, point.y)
   context.closePath()
-  context.fillStyle = 'rgba(157, 245, 223, 0.15)'
+  const lime = getComputedStyle(document.documentElement).getPropertyValue('--color-lime').trim()
+  context.fillStyle = lime
+  context.globalAlpha = 0.15
   context.fill()
-  context.strokeStyle = '#b2df26'
+  context.globalAlpha = 1
+  context.strokeStyle = lime
   context.lineWidth = 2.5
   context.stroke()
 
-  context.fillStyle = '#9df5df'
+  context.fillStyle = lime
   for (const point of projected) {
     context.beginPath()
     context.arc(point.x, point.y, 4, 0, Math.PI * 2)
@@ -431,8 +434,10 @@ function drawLoupeCropOverlay(
   const previousCorner = extendToEdge(toLoupeSpace(points[(activeCorner + 3) % 4]))
   const nextCorner = extendToEdge(toLoupeSpace(points[(activeCorner + 1) % 4]))
 
+  const colors = getComputedStyle(document.documentElement)
+  const lime = colors.getPropertyValue('--color-lime').trim()
   // Keep the alignment guide thin so it does not obscure the paper edge.
-  context.strokeStyle = '#b2df26'
+  context.strokeStyle = lime
   context.lineWidth = 2
   context.beginPath()
   context.moveTo(previousCorner.x, previousCorner.y)
@@ -454,8 +459,10 @@ function drawLoupeCropOverlay(
     context.stroke()
   }
   // Draw the dark pass first to keep the crosshair legible on pale paper.
-  strokeCrosshair('rgba(35, 79, 73, 0.85)', 3.5)
-  strokeCrosshair('#9df5df', 1.5)
+  context.globalAlpha = 0.85
+  strokeCrosshair(colors.getPropertyValue('--color-on-surface').trim(), 3.5)
+  context.globalAlpha = 1
+  strokeCrosshair(lime, 1.5)
 }
 
 function drawLoupe(): void {
@@ -503,7 +510,7 @@ function drawAdjustPreview(): void {
   canvas.style.width = `${width}px`
   canvas.style.height = `${height}px`
   context.setTransform(dpr, 0, 0, dpr, 0, 0)
-  context.fillStyle = '#000'
+  context.fillStyle = 'black'
   context.fillRect(0, 0, width, height)
   const box = contentBox(still.width, still.height, width, height)
   context.drawImage(still.source, box.offsetX, box.offsetY, still.width * box.scale, still.height * box.scale)
@@ -710,7 +717,7 @@ onBeforeUnmount(() => {
     <div v-if="showAdjustUi" class="absolute inset-0 z-10 flex flex-col bg-black px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
       <div class="flex items-start justify-between gap-3">
         <div class="min-w-0 flex-1">
-          <p class="font-label text-[10px] font-bold uppercase tracking-[0.16em] text-mint">Adjust document corners</p>
+          <p class="font-label text-[10px] font-bold uppercase tracking-[0.16em] text-lime">Adjust document corners</p>
         </div>
         <CloseButton
           class="shrink-0"
@@ -741,8 +748,8 @@ onBeforeUnmount(() => {
         >
           <polygon
             :points="cornerEditor.projectedPoints.value.map((point) => `${point.x},${point.y}`).join(' ')"
-            fill="rgba(157, 245, 223, 0.14)"
-            stroke="#b2df26"
+            class="fill-lime stroke-lime"
+            fill-opacity="0.14"
             stroke-width="2.5"
           />
           <circle
@@ -751,8 +758,7 @@ onBeforeUnmount(() => {
             :cx="point.x"
             :cy="point.y"
             r="8"
-            fill="#9df5df"
-            stroke="#234f49"
+            class="fill-lime stroke-on-surface"
             stroke-width="2"
           />
         </svg>
@@ -767,7 +773,7 @@ onBeforeUnmount(() => {
         />
       </div>
 
-      <p v-if="errorMessage" class="mb-2 text-center font-body text-sm text-mint">{{ errorMessage }}</p>
+      <p v-if="errorMessage" class="mb-2 text-center font-body text-sm text-lime">{{ errorMessage }}</p>
       <div class="flex shrink-0 gap-3">
         <button
           class="flex-1 rounded-full border border-white/35 px-4 py-3 font-body text-sm font-medium text-white active:opacity-80 disabled:opacity-50"
@@ -799,7 +805,7 @@ onBeforeUnmount(() => {
           </button>
           <button
             class="rounded-full px-2 py-1 transition-colors"
-            :class="!autoCaptureEnabled ? 'bg-mint text-primary' : 'text-white/70'"
+            :class="!autoCaptureEnabled ? 'bg-lime text-primary' : 'text-white/70'"
             :aria-pressed="!autoCaptureEnabled"
             @click="autoCaptureEnabled = false"
           >
@@ -812,7 +818,7 @@ onBeforeUnmount(() => {
 
     <p
       v-if="!showAdjustUi && errorMessage"
-      class="absolute left-4 right-4 top-28 z-30 rounded-lg border border-amber-300/50 bg-black/90 px-3 py-2 font-body text-xs leading-5 text-white shadow-xl"
+      class="absolute left-4 right-4 top-28 z-30 rounded-lg border border-warning/50 bg-black/90 px-3 py-2 font-body text-xs leading-5 text-white shadow-xl"
     >
       {{ errorMessage }}
     </p>
@@ -845,7 +851,7 @@ onBeforeUnmount(() => {
               cy="48"
               :r="HOLD_RING_RADIUS"
               fill="none"
-              stroke="#b2df26"
+              class="stroke-lime"
               stroke-width="3"
               stroke-linecap="round"
               :stroke-dasharray="HOLD_RING_CIRCUMFERENCE"

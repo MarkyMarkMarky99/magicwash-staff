@@ -125,8 +125,8 @@ function handleSubmit() {
   height: 100%;
   min-height: 0;
   flex-direction: column;
-  color: #073f38;
-  background: #f7fbfa;
+  color: var(--color-on-surface);
+  background: var(--color-surface);
 }
 
 .form-overlay__header {
@@ -136,7 +136,7 @@ function handleSubmit() {
   flex: 0 0 auto;
   padding: calc(20px + env(safe-area-inset-top)) 20px 19px;
   color: white;
-  background: #00564b;
+  background: var(--color-primary);
   overflow: hidden;
 }
 
@@ -146,7 +146,7 @@ function handleSubmit() {
   right: -138px;
   width: 270px;
   height: 270px;
-  border: 34px solid rgba(157, 245, 223, 0.17);
+  border: 34px solid color-mix(in srgb, var(--color-lime) 17%, transparent);
   border-radius: 50%;
   content: '';
 }
@@ -158,8 +158,8 @@ function handleSubmit() {
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: #b2df26;
-  box-shadow: -22px -11px 0 rgba(178, 223, 38, 0.22);
+  background: var(--color-lime);
+  box-shadow: -22px -11px 0 color-mix(in srgb, var(--color-lime) 22%, transparent);
   content: '';
 }
 
@@ -213,7 +213,7 @@ function handleSubmit() {
   position: relative;
   z-index: 1;
   margin: 18px 0 2px;
-  color: #9df5df;
+  color: var(--color-secondary-container);
   font-family: Manrope, sans-serif;
   font-size: 10px;
   font-weight: 800;
@@ -240,13 +240,13 @@ function handleSubmit() {
   gap: 7px;
   margin: 6px 0 0;
   max-width: 315px;
-  color: #d8eeea;
+  color: var(--color-secondary-container);
   font-size: 12px;
   line-height: 1.4;
 }
 
 .form-overlay__helper b {
-  color: #9df5df;
+  color: var(--color-secondary-container);
   font-size: 14px;
   line-height: 1.15;
 }
@@ -259,20 +259,20 @@ function handleSubmit() {
   z-index: 1;
   flex: 0 0 auto;
   padding: 12px 20px 15px;
-  border-top: 1px solid rgba(170, 202, 196, 0.7);
-  background: rgba(247, 251, 250, 0.96);
-  box-shadow: 0 -5px 18px rgba(0, 79, 69, 0.07);
+  border-top: 1px solid color-mix(in srgb, var(--color-outline-variant) 70%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 96%, transparent);
+  box-shadow: 0 -5px 18px color-mix(in srgb, var(--color-primary) 7%, transparent);
   backdrop-filter: blur(10px);
 }
 
 .form-overlay__submit {
   width: 100%;
   height: 49px;
-  color: #073f38;
-  border: 1px solid #b2df26;
+  color: var(--color-on-surface);
+  border: 1px solid var(--color-lime);
   border-radius: 10px;
-  background: #b2df26;
-  box-shadow: 0 4px 0 #789d0b;
+  background: var(--color-lime);
+  box-shadow: 0 4px 0 var(--color-on-secondary-container);
   font-size: 14px;
   font-weight: 800;
   cursor: pointer;
@@ -285,18 +285,18 @@ function handleSubmit() {
 }
 
 .form-overlay__submit:focus-visible {
-  outline: 3px solid #eab308;
+  outline: 3px solid var(--color-warning);
   outline-offset: 2px;
 }
 
 :global(#overlay-root > div:has(> .form-overlay-panel) > [data-overlay-backdrop]) {
-  background: linear-gradient(145deg, #dcecea 0, #f6faf9 58%, #dbeee9 100%);
+  background: linear-gradient(145deg, var(--color-surface-variant) 0, var(--color-surface) 58%, var(--color-secondary-container) 100%);
 }
 
 :global(.form-overlay-panel) {
-  color: #073f38;
-  background: #f7fbfa;
-  box-shadow: 0 0 0 1px rgba(0, 79, 69, 0.05), 0 12px 44px rgba(0, 66, 59, 0.16);
+  color: var(--color-on-surface);
+  background: var(--color-surface);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 5%, transparent), 0 12px 44px color-mix(in srgb, var(--color-primary) 16%, transparent);
 }
 
 :global(.form-overlay-panel.form-overlay-panel--compact) {

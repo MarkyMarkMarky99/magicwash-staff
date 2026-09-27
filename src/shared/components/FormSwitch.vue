@@ -41,7 +41,7 @@ const descriptionId = useId()
   gap: 13px;
   padding: 0 0 19px;
   margin-bottom: 18px;
-  border-bottom: 1px solid #cfe2de;
+  border-bottom: 1px solid var(--color-outline-variant);
   font-family: 'Noto Sans Thai', system-ui, sans-serif;
 }
 
@@ -52,14 +52,14 @@ const descriptionId = useId()
 
 .form-switch__text strong {
   display: block;
-  color: #073f38;
+  color: var(--color-on-surface);
   font-size: 14px;
 }
 
 .form-switch__text span {
   display: block;
   margin-top: 2px;
-  color: #5f7772;
+  color: var(--color-on-surface-variant);
   font-size: 11px;
   line-height: 1.42;
 }
@@ -71,8 +71,8 @@ const descriptionId = useId()
   height: 28px;
   border: 0;
   border-radius: 20px;
-  background: #b7cac6;
-  box-shadow: inset 0 0 0 1px rgba(0, 79, 69, 0.08);
+  background: var(--color-outline-variant);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 8%, transparent);
 }
 
 .form-switch__control::after {
@@ -83,13 +83,13 @@ const descriptionId = useId()
   height: 22px;
   content: '';
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  background: white;
+  box-shadow: 0 1px 3px color-mix(in srgb, black 25%, transparent);
   transition: 0.18s ease;
 }
 
 .form-switch__control--on {
-  background: #007a69;
+  background: var(--color-secondary);
 }
 
 .form-switch__control--on::after {
@@ -97,7 +97,7 @@ const descriptionId = useId()
 }
 
 .form-switch__control:focus-visible {
-  outline: 3px solid #eab308;
+  outline: 3px solid var(--color-lime);
   outline-offset: 2px;
 }
 

@@ -76,6 +76,6 @@ function formatPrice(price: number): string {
 
 <style scoped>
 .price-on-image {
-  text-shadow: 0 0 2px #fff, 0 0 6px rgba(255, 255, 255, 0.95);
+  text-shadow: 0 0 2px white, 0 0 6px color-mix(in srgb, white 95%, transparent);
 }
 </style>

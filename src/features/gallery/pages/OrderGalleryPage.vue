@@ -461,7 +461,7 @@ function handleCameraClose() {
           ย้ายไปรายการอื่น
         </button>
 
-        <p v-if="reassignError" role="alert" class="max-w-sm text-center text-sm text-red-200">
+        <p v-if="reassignError" role="alert" class="max-w-sm text-center text-sm text-error-container">
           {{ reassignError }}
         </p>
       </template>

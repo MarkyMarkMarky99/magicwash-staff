@@ -21,7 +21,7 @@ const view = computed(() => props.state === 'saving'
 </script>
 
 <template>
-  <span class="flex h-5 items-center gap-1 rounded-full" :class="[view.classes, state === 'failed' ? 'px-2' : 'w-5 justify-center [filter:drop-shadow(0_1px_1.5px_rgba(0,0,0,0.45))]']" :title="view.label">
+  <span class="flex h-5 items-center gap-1 rounded-full" :class="[view.classes, state === 'failed' ? 'px-2' : 'w-5 justify-center [filter:drop-shadow(0_1px_1.5px_color-mix(in_srgb,black_45%,transparent))]']" :title="view.label">
     <span class="material-symbols-outlined text-[16px] leading-none" :class="state === 'saving' ? 'animate-spin' : ''" aria-hidden="true">{{ view.icon }}</span>
     <span v-if="state === 'failed'" class="font-label text-[11px] font-bold leading-none">Failed</span>
     <span v-else class="sr-only">{{ view.label }}</span>

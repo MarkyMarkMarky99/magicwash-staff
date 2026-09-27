@@ -93,14 +93,14 @@ function updateField(field: keyof CustomerCreateFormData, value: string) {
 </template>
 
 <style scoped>
-.customer-create-form { color:#073f38; font-family:'Noto Sans Thai',system-ui,sans-serif; padding-bottom:22px; }
-.unavailable-note { display:flex; gap:10px; margin:0 0 22px; padding:13px 14px; color:#315952; border:1px solid #b7d6d0; border-left:4px solid #007a69; border-radius:10px; background:#edf7f5; }
-.unavailable-note span { color:#007a69; font-size:20px; }
-.unavailable-note strong { display:block; color:#073f38; font-size:13px; }
+.customer-create-form { color:var(--color-on-surface); font-family:'Noto Sans Thai',system-ui,sans-serif; padding-bottom:22px; }
+.unavailable-note { display:flex; gap:10px; margin:0 0 22px; padding:13px 14px; color:var(--color-on-surface-variant); border:1px solid var(--color-outline-variant); border-left:4px solid var(--color-secondary); border-radius:10px; background:var(--color-surface-container-low); }
+.unavailable-note span { color:var(--color-secondary); font-size:20px; }
+.unavailable-note strong { display:block; color:var(--color-on-surface); font-size:13px; }
 .unavailable-note p { margin:3px 0 0; font-size:12px; line-height:1.45; }
 .form-section { min-width:0; margin:0 0 23px; padding:0; border:0; }
-.form-section legend { display:flex; align-items:center; width:100%; margin:0 0 12px; padding:0; color:#00564b; font-size:12px; font-weight:700; letter-spacing:.03em; }
-.form-section legend::after { height:1px; flex:1; margin-left:10px; background:#cae0dc; content:''; }
+.form-section legend { display:flex; align-items:center; width:100%; margin:0 0 12px; padding:0; color:var(--color-primary); font-size:12px; font-weight:700; letter-spacing:.03em; }
+.form-section legend::after { height:1px; flex:1; margin-left:10px; background:var(--color-outline-variant); content:''; }
 .form-section :deep(section) { margin-bottom:15px; }
 .contact-section :deep(section) { margin-bottom:13px; }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; } }

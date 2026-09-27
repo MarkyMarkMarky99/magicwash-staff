@@ -12,3 +12,5 @@
 - Codex implement session: `01a0e29b-b482-7481-8dac-c8707fc02ed1`.
 - `BaseBadge` cut to two sizes (sm default, lg) with text-box trim; solid variant for danger; overdue, invoice date chips, `N items` and the `ListContainer` count now use it.
 - Shared `BottomNavBar` added for the customer detail tabs and later pages.
+- Customer detail sections switch from `BottomNavBar` (Orders / Packages / Invoices / Appointments); active item = lime pill + lime label.
+- App-wide palette cleanup: rule in `docs/conventions/colors.md`; only literal colour left is `GlassLens.vue` displacement grey.

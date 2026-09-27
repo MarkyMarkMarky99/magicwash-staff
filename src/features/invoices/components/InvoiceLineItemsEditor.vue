@@ -213,30 +213,30 @@ function removeLine(index: number) {
   min-width: 0;
   height: 47px;
   padding: 0 12px;
-  color: #073f38;
-  border: 1px solid #a9c9c3;
+  color: var(--color-on-surface);
+  border: 1px solid var(--color-outline-variant);
   border-radius: 10px;
   outline: 0;
-  background: #fff;
-  box-shadow: 0 1px 0 rgba(0, 79, 69, 0.02);
+  background: white;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-primary) 2%, transparent);
   font-family: 'Noto Sans Thai', system-ui, sans-serif;
   font-size: 14px;
   transition: border-color 150ms, box-shadow 150ms;
 }
 
 .invoice-line-control::placeholder {
-  color: #5f7772;
+  color: var(--color-on-surface-variant);
 }
 
 .invoice-line-control:focus {
-  border-color: #007a69;
-  box-shadow: 0 0 0 3px rgba(0, 122, 105, 0.14);
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-secondary) 14%, transparent);
 }
 
 .invoice-line-select {
   padding-right: 27px;
   appearance: none;
-  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%2300564b' stroke-width='1.7' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 11px center;
+  background: linear-gradient(45deg, transparent 50%, var(--color-primary) 50%) no-repeat right 17px center / 6px 6px, linear-gradient(135deg, var(--color-primary) 50%, transparent 50%) no-repeat right 11px center / 6px 6px; background-color:white;
 }
 
 input.invoice-line-control[type='number'] {
