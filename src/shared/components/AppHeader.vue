@@ -4,14 +4,14 @@ import { useRouter, useRoute } from 'vue-router'
 import logoUrl from '../../assets/logo.png'
 import { appointmentPendingCountKey } from '@/shared/appointment-pending-count'
 import { useGoBack } from '@/shared/composables/use-go-back'
+import { useNavDrawer } from '@/shared/composables/use-nav-drawer'
 import { APP_Z_INDEX_CLASS } from '@/shared/layouts/z-index'
-import NavSidebar from './NavSidebar.vue'
 import CloseButton from './CloseButton.vue'
 
 const router = useRouter()
 const route  = useRoute()
 const pendingCount = inject(appointmentPendingCountKey, ref(0))
-const sidebarOpen = ref(false)
+const { toggle: toggleDrawer } = useNavDrawer()
 const { goBack } = useGoBack()
 
 const canGoBack = computed(() => Boolean(route.meta.parent))
@@ -24,7 +24,7 @@ const canGoBack = computed(() => Boolean(route.meta.parent))
     :class="APP_Z_INDEX_CLASS.header"
   >
     <div class="flex items-center gap-2">
-      <CloseButton icon="menu" label="Open menu" tone="onDark" @click="sidebarOpen = true" />
+      <CloseButton icon="menu" label="Open menu" tone="onDark" @click="toggleDrawer" />
       <img :src="logoUrl" alt="Magicwash Laundry" class="h-9 w-9 object-contain" />
       <h1 class="text-lg font-headline font-bold tracking-tight">Magicwash Laundry</h1>
     </div>
@@ -49,6 +49,4 @@ const canGoBack = computed(() => Boolean(route.meta.parent))
       </template>
     </div>
   </header>
-
-  <NavSidebar :open="sidebarOpen" @close="sidebarOpen = false" />
 </template>

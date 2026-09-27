@@ -60,12 +60,9 @@ Order UI today lives in `src/features/customers/`:
 
 ## Navigation
 
-- `NavSidebar.vue` items are hardcoded `<li><button>` blocks, in order: Appointments `/` (`home`),
-  Customers `/customers` (`group`), Customer packages `/customer-packages` (`redeem`),
-  Invoices `/invoices` (`receipt_long`), รายการราคา `/price-list` (`sell`),
-  แจ้งปัญหา `/issue-reports` (`bug_report`). There is no Orders item.
-- Planned entry, placed directly after Customers: label `Orders`, icon `local_laundry_service`,
-  path `/orders`, active check `route.path.startsWith('/orders')`, same hardcoded block shape
+- `NavSidebar.vue` is a route-owned drawer behind the app shell. Its items are hardcoded
+  `<li><button>` blocks; the Orders entry follows Customers and uses
+  `route.path.startsWith('/orders')` for its active state.
 
 ## Detail composition
 

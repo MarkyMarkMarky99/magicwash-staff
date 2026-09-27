@@ -3,13 +3,12 @@ import { onScopeDispose, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { invalidate } from '@/shared/api/response-cache'
 import { onUserChanged, signOutUser } from '@/shared/api/firebase-auth'
-import { APP_Z_INDEX_CLASS } from '@/shared/layouts/z-index'
-import CloseButton from '@/shared/components/CloseButton.vue'
+import { useNavDrawer } from '@/shared/composables/use-nav-drawer'
 
-const props = defineProps({
+defineProps({
   open: Boolean
 })
-const emit = defineEmits(['close'])
+const { close } = useNavDrawer()
 
 const router = useRouter()
 const route = useRoute()
@@ -17,8 +16,8 @@ const signedIn = ref(false)
 onScopeDispose(onUserChanged((user) => { signedIn.value = user !== null }))
 
 function navigate(path) {
-  router.push(path)
-  emit('close')
+  // Replace the pushed menu entry so Back returns to the page beneath it.
+  void router.replace(path)
 }
 
 /** Drop every cached response and reload; clearing alone does not refetch a rendered page. */
@@ -28,30 +27,19 @@ function refresh() {
 }
 
 function logout() {
-  emit('close')
+  close()
   void signOutUser()
 }
 </script>
 
 <template>
-  <Transition name="backdrop">
-    <div
-      v-if="open"
-      class="fixed inset-0 bg-black/40"
-      :class="APP_Z_INDEX_CLASS.navigationScrim"
-      @click="emit('close')"
-    />
-  </Transition>
-
-  <Transition name="slide">
-    <nav
-      v-if="open"
-      class="fixed top-0 left-0 h-full w-[75%] max-w-sm overflow-y-auto bg-surface text-on-surface flex flex-col shadow-2xl"
-      :class="APP_Z_INDEX_CLASS.navigation"
-    >
+  <nav
+    class="absolute inset-y-0 left-0 flex h-full w-[calc(min(78%,320px)+40px)] flex-col overflow-y-auto bg-surface text-on-surface"
+    :inert="!open"
+    :aria-hidden="!open"
+  >
       <div class="bg-primary text-on-primary flex items-center justify-between px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))]">
-        <span class="text-lg font-headline font-bold tracking-tight">Menu</span>
-        <CloseButton label="Close menu" tone="onDark" @click="emit('close')" />
+        <span class="flex h-10 items-center text-lg font-headline font-bold tracking-tight">Menu</span>
       </div>
 
       <ul class="flex flex-col py-2">
@@ -173,26 +161,5 @@ function logout() {
           </button>
         </li>
       </ul>
-    </nav>
-  </Transition>
+  </nav>
 </template>
-
-<style scoped>
-.backdrop-enter-active,
-.backdrop-leave-active {
-  transition: opacity 0.25s ease;
-}
-.backdrop-enter-from,
-.backdrop-leave-to {
-  opacity: 0;
-}
-
-.slide-enter-active,
-.slide-leave-active {
-  transition: transform 0.25s ease;
-}
-.slide-enter-from,
-.slide-leave-to {
-  transform: translateX(-100%);
-}
-</style>

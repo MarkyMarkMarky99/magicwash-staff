@@ -5,6 +5,7 @@
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
+- **`feat/push-drawer`** — nav drawer now sits behind the app shell; opening slides the shell right with rounded corners (`?menu=1`, route-owned). Checked on desktop + Android dev; iPhone Preview pending. Details: `.user/memory/feat-push-drawer.md`.
 
 ## Pending work
 
