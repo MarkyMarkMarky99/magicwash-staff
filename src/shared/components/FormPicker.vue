@@ -251,10 +251,12 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
             @click="selectOption(option)"
             @keydown="handleOptionKeydown($event, option, index)"
           >
-            <span class="picker__option-text">
-              <span class="picker__option-label">{{ option.label }}</span>
-              <span v-if="option.description" class="picker__option-description">{{ option.description }}</span>
-            </span>
+            <slot name="option" :option="option">
+              <span class="picker__option-text">
+                <span class="picker__option-label">{{ option.label }}</span>
+                <span v-if="option.description" class="picker__option-description">{{ option.description }}</span>
+              </span>
+            </slot>
             <span v-if="option.value === modelValue" class="material-symbols-outlined picker__option-check" aria-hidden="true">check</span>
           </button>
         </ScrollRegion>

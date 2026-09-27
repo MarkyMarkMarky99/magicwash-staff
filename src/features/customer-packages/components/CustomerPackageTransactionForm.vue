@@ -1,109 +1,176 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { z } from 'zod'
-import FormInput from '@/shared/components/FormInput.vue'
+import BaseBadge from '@/shared/components/BaseBadge.vue'
 import FormLabel from '@/shared/components/FormLabel.vue'
 import FormPicker from '@/shared/components/FormPicker.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
-import type { packageCreditMovementTypeSchema } from '@contracts/customer-packages/customer-package-api.schema'
+import { formatSheetDate } from '@/shared/utils/sheet-date'
+import { serviceTypeLabel } from '@/shared/utils/service-type-labels'
+import type { WorkOrderListDto } from '@/data/work-orders/work-order.service'
+import type { CustomerPackageListItem } from '@/data/customer-packages/customer-package.service'
+import type { customerPackageDetailResponseSchema, packageCreditMovementTypeSchema } from '@contracts/customer-packages/customer-package-api.schema'
 
 type TransactionType = z.infer<typeof packageCreditMovementTypeSchema>
+type PackageTransaction = z.infer<typeof customerPackageDetailResponseSchema>['transactions'][number]
 
 const props = withDefaults(defineProps<{
   open: boolean
   movementTypes: readonly TransactionType[]
   movementType: TransactionType
-  creditChange: string
-  referenceSource: string
-  referenceId: string
+  credits: string
+  adjustmentDirection: 'ADD' | 'DEDUCT'
+  selectedOrderId: string
+  selectedTransactionId: string
+  selectedTargetPackageId: string
+  orders: WorkOrderListDto[]
+  ordersLoading: boolean
+  ordersError: string
+  targetPackages: CustomerPackageListItem[]
+  targetPackagesLoading: boolean
+  targetPackagesError: string
+  transactions: PackageTransaction[]
+  remainingCredit: number
   notes: string
-  validationHint?: string | null
-  isValidationInvalid?: boolean
   result?: string | null
   resultTone?: 'success' | 'error'
   isSubmitting?: boolean
   isSubmitDisabled?: boolean
 }>(), {
-  validationHint: null,
-  isValidationInvalid: false,
-  result: null,
-  resultTone: 'success',
-  isSubmitting: false,
-  isSubmitDisabled: false,
+  result: null, resultTone: 'success', isSubmitting: false, isSubmitDisabled: false,
 })
 
 const emit = defineEmits<{
   close: []
   submit: []
   'update:movementType': [value: TransactionType]
-  'update:creditChange': [value: string]
-  'update:referenceSource': [value: string]
-  'update:referenceId': [value: string]
+  'update:credits': [value: string]
+  'update:adjustmentDirection': [value: 'ADD' | 'DEDUCT']
+  'update:selectedOrderId': [value: string]
+  'update:selectedTransactionId': [value: string]
+  'update:selectedTargetPackageId': [value: string]
   'update:notes': [value: string]
 }>()
 
-function movementLabel(movementType: TransactionType): string {
-  return movementType.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+function movementLabel(type: TransactionType): string {
+  return type.toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
-const movementTypeOptions = computed(() => props.movementTypes.map((type) => ({
-  value: type,
-  label: movementLabel(type),
+const movementTypeOptions = computed(() => props.movementTypes.map((type) => ({ value: type, label: movementLabel(type) })))
+const orderOptions = computed(() => props.orders.map((order) => {
+  const date = formatSheetDate(order.receivedDate)
+  const service = serviceTypeLabel(order.serviceType)
+  return { value: order.orderId, label: [date, service].filter(Boolean).join(' · '), date, service, quantity: order.quantity }
+}))
+const transactionOptions = computed(() => props.transactions
+  .filter((transaction) => transaction.type !== 'PURCHASE' && transaction.type !== 'VOID'
+    && !props.transactions.some((item) => item.type === 'VOID' && item.referenceId === transaction.id))
+  .map((transaction) => ({
+    value: transaction.id,
+    label: `${movementLabel(transaction.type as TransactionType)} · ${formatSheetDate(transaction.createdAt)} · ${transaction.creditChange > 0 ? '+' : ''}${transaction.creditChange} credits`,
+  })))
+const targetPackageOptions = computed(() => props.targetPackages.map((item) => ({
+  value: item.customerPackageId, label: item.packageName, remainingCredit: item.remainingCredit,
 })))
+const selectedTransaction = computed(() => props.transactions.find((item) => item.id === props.selectedTransactionId))
+const deductingCredits = computed(() => props.movementType === 'USAGE'
+  || (props.movementType === 'ADJUSTMENT' && props.adjustmentDirection === 'DEDUCT')
+  || props.movementType === 'TRANSFER')
+const creditsOverBalance = computed(() => /^\d+$/.test(props.credits)
+  && Number.isSafeInteger(Number(props.credits))
+  && Number(props.credits) > props.remainingCredit)
+function orderOption(option: unknown): { date: string; service: string | null; quantity: number | null } {
+  return option as { date: string; service: string | null; quantity: number | null }
+}
+function targetOption(option: unknown): { label: string; remainingCredit: number } {
+  return option as { label: string; remainingCredit: number }
+}
+const reversalText = computed(() => {
+  const change = selectedTransaction.value?.creditChange
+  if (change === undefined) return 'Select a transaction to reverse'
+  const reversed = -change
+  return `Reverses ${change > 0 ? '+' : ''}${change} credits → ${reversed > 0 ? '+' : ''}${reversed}`
+})
 </script>
 
 <template>
   <FormOverlay
-    :open="open"
-    eyebrow="Package activity"
-    title="Add transaction"
+    :open="open" eyebrow="Package activity" title="Add transaction"
     helper-text="Record a credit movement against this package."
-    submit-label="Save transaction"
-    :is-submitting="isSubmitting"
-    :is-submit-disabled="isSubmitDisabled"
-    :close-on-backdrop="false"
-    @close="emit('close')"
-    @submit="emit('submit')"
+    submit-label="Save transaction" :is-submitting="isSubmitting"
+    :is-submit-disabled="isSubmitDisabled" :close-on-backdrop="false"
+    @close="emit('close')" @submit="emit('submit')"
   >
     <div class="space-y-5 pb-6">
-      <section class="rounded-xl border border-outline-variant/30 bg-surface-container-low px-4 py-3">
-        <p class="font-label text-[10px] font-bold uppercase tracking-[0.12em] text-primary">Credit movement</p>
-        <p class="mt-1 font-body text-xs leading-5 text-on-surface-variant">Choose why the customer’s available package credit is changing.</p>
+      <FormPicker
+        id="customer-package-transaction-type" :model-value="movementType"
+        label="Transaction type" :options="movementTypeOptions" :searchable="false"
+        @update:model-value="emit('update:movementType', $event as TransactionType)"
+      />
+
+      <FormPicker
+        v-if="movementType === 'USAGE' || movementType === 'REFUND'"
+        id="customer-package-order" :model-value="selectedOrderId"
+        label="Order" placeholder="Select an order" search-placeholder="Search orders"
+        :options="orderOptions" :loading="ordersLoading" :error="ordersError"
+        empty-text="No orders for this customer"
+        @update:model-value="emit('update:selectedOrderId', $event)"
+      >
+        <template #option="{ option }">
+          <span class="flex min-w-0 flex-1 items-center justify-between gap-2">
+            <span class="flex min-w-0 items-center gap-2">
+              <span>{{ orderOption(option).date }}</span>
+              <BaseBadge v-if="orderOption(option).service" :label="orderOption(option).service!" size="sm" tone="brand" />
+            </span>
+            <span v-if="orderOption(option).quantity != null" class="shrink-0 text-xs text-on-surface-variant">{{ orderOption(option).quantity }} pcs</span>
+          </span>
+        </template>
+      </FormPicker>
+      <FormPicker
+        v-else-if="movementType === 'VOID'" id="customer-package-void-transaction"
+        :model-value="selectedTransactionId" label="Transaction to void"
+        placeholder="Select a transaction" :options="transactionOptions"
+        empty-text="No transactions to reverse"
+        @update:model-value="emit('update:selectedTransactionId', $event)"
+      />
+      <FormPicker
+        v-else-if="movementType === 'TRANSFER'" id="customer-package-target"
+        :model-value="selectedTargetPackageId" label="Transfer to package"
+        placeholder="Select a package" :options="targetPackageOptions"
+        :loading="targetPackagesLoading" :error="targetPackagesError"
+        empty-text="No other active packages"
+        @update:model-value="emit('update:selectedTargetPackageId', $event)"
+      >
+        <template #option="{ option }">
+          <span class="flex min-w-0 flex-1 items-center justify-between gap-2">
+            <span class="min-w-0">{{ targetOption(option).label }}</span>
+            <span class="shrink-0 text-xs text-on-surface-variant">{{ targetOption(option).remainingCredit }} left</span>
+          </span>
+        </template>
+      </FormPicker>
+
+      <section v-if="movementType === 'EXPIRE' || movementType === 'VOID'" class="rounded-xl border border-outline-variant/30 bg-surface-container-low px-4 py-3 font-body text-sm text-on-surface">
+        {{ movementType === 'EXPIRE' ? (remainingCredit > 0 ? `Removes all ${remainingCredit} remaining credits` : 'No credits left to expire') : reversalText }}
+      </section>
+      <section v-else class="space-y-3">
+        <div v-if="movementType === 'ADJUSTMENT'" class="space-y-2">
+          <FormLabel input-id="customer-package-adjustment-add">Direction</FormLabel>
+          <div class="flex rounded-xl border border-outline-variant bg-surface-container-low p-1" role="group" aria-label="Adjustment direction">
+            <button v-for="direction in (['ADD', 'DEDUCT'] as const)" :id="`customer-package-adjustment-${direction.toLowerCase()}`" :key="direction" type="button" class="flex-1 rounded-lg px-3 py-2 font-label text-sm" :class="adjustmentDirection === direction ? 'bg-primary text-on-primary' : 'text-on-surface-variant'" :aria-pressed="adjustmentDirection === direction" @click="emit('update:adjustmentDirection', direction)">{{ direction === 'ADD' ? 'Add' : 'Deduct' }}</button>
+          </div>
+        </div>
+        <div>
+          <FormLabel input-id="customer-package-credits">Credits</FormLabel>
+          <input id="customer-package-credits" :value="credits" type="number" inputmode="numeric" min="1" step="1" :max="deductingCredits ? remainingCredit : undefined" placeholder="1" class="block h-[47px] w-full min-w-0 rounded-[10px] border border-outline-variant bg-white px-3 font-body text-sm text-on-surface shadow-[0_1px_0_color-mix(in_srgb,_var(--color-primary)_2%,_transparent)] outline-none placeholder:text-on-surface-variant focus:border-lime focus:shadow-[0_0_0_3px_color-mix(in_srgb,_var(--color-lime)_14%,_transparent)]" @input="emit('update:credits', ($event.target as HTMLInputElement).value)">
+          <p v-if="deductingCredits" class="mt-1 font-body text-xs" :class="creditsOverBalance ? 'text-error' : 'text-on-surface-variant'">{{ creditsOverBalance ? `Only ${remainingCredit} credits available` : `${remainingCredit} credits available` }}</p>
+        </div>
+        <p v-if="movementType === 'TRANSFER'" class="font-body text-xs text-on-surface-variant">Transfers can't be saved yet.</p>
       </section>
 
-      <section class="space-y-3">
-        <FormPicker
-          id="customer-package-transaction-type"
-          :model-value="movementType"
-          label="Transaction type"
-          :options="movementTypeOptions"
-          :searchable="false"
-          @update:model-value="emit('update:movementType', $event as TransactionType)"
-        />
-
-        <section>
-          <FormLabel input-id="customer-package-credit-change">Credit change</FormLabel>
-          <input
-            id="customer-package-credit-change"
-            :value="creditChange"
-            type="number"
-            step="any"
-            placeholder="For example, -1 or 1"
-            class="block h-[47px] w-full min-w-0 rounded-[10px] border border-outline-variant bg-white px-3 font-body text-sm text-on-surface shadow-[0_1px_0_color-mix(in_srgb,_var(--color-primary)_2%,_transparent)] outline-none placeholder:text-on-surface-variant focus:border-lime focus:shadow-[0_0_0_3px_color-mix(in_srgb,_var(--color-lime)_14%,_transparent)]"
-            @input="emit('update:creditChange', ($event.target as HTMLInputElement).value)"
-          >
-        </section>
-        <p v-if="validationHint" class="font-body text-xs leading-5" :class="isValidationInvalid ? 'text-error' : 'text-on-surface-variant'">{{ validationHint }}</p>
+      <section class="border-t border-outline-variant/25 pt-5">
+        <FormTextarea id="customer-package-transaction-notes" :model-value="notes" :label="movementType === 'ADJUSTMENT' ? 'Notes (required)' : 'Notes'" placeholder="Add context for this transaction" @update:model-value="emit('update:notes', $event)" />
       </section>
-
-      <section class="space-y-3 border-t border-outline-variant/25 pt-5">
-        <p class="font-label text-[10px] font-bold uppercase tracking-[0.12em] text-primary">Reference details <span class="normal-case font-medium tracking-normal text-on-surface-variant">(optional)</span></p>
-        <FormInput id="customer-package-reference-source" :model-value="referenceSource" label="Reference source" placeholder="For example, service order" @update:model-value="emit('update:referenceSource', $event)" />
-        <FormInput id="customer-package-reference-id" :model-value="referenceId" label="Reference ID" placeholder="Order or document number" @update:model-value="emit('update:referenceId', $event)" />
-        <FormTextarea id="customer-package-transaction-notes" :model-value="notes" label="Notes" placeholder="Add context for this adjustment" @update:model-value="emit('update:notes', $event)" />
-      </section>
-
       <p v-if="result" class="rounded-xl px-4 py-3 font-body text-sm leading-5" :class="resultTone === 'error' ? 'bg-error-container text-on-error-container' : 'bg-secondary-container text-on-secondary-container'" role="status" aria-live="polite">{{ result }}</p>
     </div>
   </FormOverlay>

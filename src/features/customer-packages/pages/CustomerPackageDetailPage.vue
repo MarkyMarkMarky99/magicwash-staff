@@ -6,9 +6,10 @@ import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import CustomerPackageSummaryCard from '../components/CustomerPackageSummaryCard.vue'
-import { formatSheetDateTime } from '@/shared/utils/sheet-date'
+import { formatSheetDateTime, normalizeSheetDate } from '@/shared/utils/sheet-date'
 import { customerPackageDetailResponseSchema, packageCreditMovementTypeSchema } from '@contracts/customer-packages/customer-package-api.schema'
-import { getCustomerPackageDetail } from '@/data/customer-packages/customer-package.service'
+import { getCustomerPackageDetail, getCustomerPackages, type CustomerPackageListItem } from '@/data/customer-packages/customer-package.service'
+import { listWorkOrders, type WorkOrderListDto } from '@/data/work-orders/work-order.service'
 import { appendPackageTransaction } from '@/data/package-transactions/package-transaction.service'
 import CustomerPackageTransactionForm from '../components/CustomerPackageTransactionForm.vue'
 import { useCustomerPackageTransactionRoute } from '../composables/useCustomerPackageTransactionRoute'
@@ -26,11 +27,21 @@ const submittingTransaction = ref(false)
 const transactionResult = ref<string | null>(null)
 const transactionRetryBlocked = ref(false)
 const transactionType = ref<TransactionType>('USAGE')
-const creditChange = ref('')
-const referenceSource = ref('')
-const referenceId = ref('')
+const credits = ref('')
+const adjustmentDirection = ref<'ADD' | 'DEDUCT'>('ADD')
+const selectedOrderId = ref('')
+const selectedTransactionId = ref('')
+const selectedTargetPackageId = ref('')
+const orders = ref<WorkOrderListDto[]>([])
+const ordersLoading = ref(false)
+const ordersError = ref('')
+const targetPackages = ref<CustomerPackageListItem[]>([])
+const targetPackagesLoading = ref(false)
+const targetPackagesError = ref('')
 const transactionNotes = ref('')
 let latestRequest = 0
+let latestOrdersRequest = 0
+let latestTargetsRequest = 0
 const { isOpen: transactionFormOpen, open: openTransactionRoute, close: closeTransactionRoute } = useCustomerPackageTransactionRoute()
 
 const transactionTypes: readonly TransactionType[] = packageCreditMovementTypeSchema.options
@@ -43,16 +54,99 @@ const customerIndex = computed(() => {
   const customerId = customerPackage.value?.customerId
   return customers.value.find((customer) => customer.customerId === customerId)?.customerIndex ?? null
 })
-const signHint = computed(() => transactionType.value === 'USAGE'
-  ? 'Usage must be a negative credit change.'
-  : transactionType.value === 'REFUND' ? 'Refund must be a positive credit change.' : '')
-const signInvalid = computed(() => {
-  const value = Number(creditChange.value)
-  return !Number.isFinite(value) || value === 0
-    || (transactionType.value === 'USAGE' && value >= 0)
-    || (transactionType.value === 'REFUND' && value <= 0)
+const selectedTransaction = computed(() => customerPackage.value?.transactions.find(
+  (item) => item.id === selectedTransactionId.value && item.type !== 'PURCHASE' && item.type !== 'VOID'
+    && !customerPackage.value?.transactions.some((transaction) => transaction.type === 'VOID' && transaction.referenceId === item.id),
+))
+const validCredits = computed(() => /^\d+$/.test(credits.value) && Number.isSafeInteger(Number(credits.value)) && Number(credits.value) > 0)
+const canSubmit = computed(() => {
+  if (!customerPackage.value || transactionRetryBlocked.value || transactionType.value === 'TRANSFER') return false
+  if (transactionType.value === 'EXPIRE') return customerPackage.value.remainingCredit > 0
+  if (transactionType.value === 'VOID') return !!selectedTransaction.value && selectedTransaction.value.creditChange !== 0
+  if (!validCredits.value) return false
+  if ((transactionType.value === 'USAGE' || (transactionType.value === 'ADJUSTMENT' && adjustmentDirection.value === 'DEDUCT'))
+    && Number(credits.value) > customerPackage.value.remainingCredit) return false
+  if (transactionType.value === 'ADJUSTMENT') return !!transactionNotes.value.trim()
+  return !!orders.value.find((order) => order.orderId === selectedOrderId.value)
 })
-const submitDisabled = computed(() => signInvalid.value || transactionRetryBlocked.value)
+const submitDisabled = computed(() => !canSubmit.value)
+
+async function loadOrders() {
+  const packageValue = customerPackage.value
+  if (!packageValue) return
+  const requestId = ++latestOrdersRequest
+  orders.value = []
+  ordersLoading.value = true
+  ordersError.value = ''
+  try {
+    const all: WorkOrderListDto[] = []
+    let page = 1
+    while (true) {
+      const result = await listWorkOrders({ customerId: packageValue.customerId, page, perPage: 500, sortBy: 'receivedDate', sortOrder: 'desc' })
+      if (requestId !== latestOrdersRequest) return
+      all.push(...result.items)
+      if (all.length >= result.pagination.total || result.items.length === 0) break
+      page += 1
+    }
+    orders.value = all.sort((a, b) => (normalizeSheetDate(b.receivedDate) ?? '').localeCompare(normalizeSheetDate(a.receivedDate) ?? ''))
+  } catch {
+    if (requestId === latestOrdersRequest) ordersError.value = 'Unable to load orders'
+  } finally {
+    if (requestId === latestOrdersRequest) ordersLoading.value = false
+  }
+}
+
+async function loadTargetPackages() {
+  const packageValue = customerPackage.value
+  if (!packageValue) return
+  const requestId = ++latestTargetsRequest
+  targetPackages.value = []
+  targetPackagesLoading.value = true
+  targetPackagesError.value = ''
+  try {
+    const all: CustomerPackageListItem[] = []
+    let page = 1
+    while (true) {
+      const result = await getCustomerPackages({ customerId: packageValue.customerId, status: 'ACTIVE', page, perPage: 100, keyword: '', packageCode: null, sortBy: 'startDate', sortOrder: 'desc' })
+      if (requestId !== latestTargetsRequest) return
+      all.push(...result.items)
+      if (result.items.length < 100) break
+      page += 1
+    }
+    targetPackages.value = all.filter((item) => item.customerPackageId !== packageValue.customerPackageId)
+  } catch {
+    if (requestId === latestTargetsRequest) targetPackagesError.value = 'Unable to load packages'
+  } finally {
+    if (requestId === latestTargetsRequest) targetPackagesLoading.value = false
+  }
+}
+
+function changeTransactionType(type: TransactionType) {
+  transactionType.value = type
+  credits.value = ''
+  adjustmentDirection.value = 'ADD'
+  selectedOrderId.value = ''
+  selectedTransactionId.value = ''
+  selectedTargetPackageId.value = ''
+  transactionNotes.value = ''
+  transactionResult.value = null
+}
+
+function createPayload() {
+  const packageValue = customerPackage.value!
+  const type = transactionType.value
+  const transaction = selectedTransaction.value
+  const creditChange = type === 'EXPIRE' ? -packageValue.remainingCredit
+    : type === 'VOID' ? -(transaction?.creditChange ?? 0)
+      : type === 'USAGE' || (type === 'ADJUSTMENT' && adjustmentDirection.value === 'DEDUCT')
+        ? -Number(credits.value) : Number(credits.value)
+  return {
+    customerPackageId: packageValue.customerPackageId, type, creditChange,
+    referenceSource: type === 'USAGE' || type === 'REFUND' ? 'ORDER' : type === 'VOID' ? 'PackageTransactions' : null,
+    referenceId: type === 'USAGE' || type === 'REFUND' ? selectedOrderId.value : type === 'VOID' ? selectedTransactionId.value : null,
+    notes: transactionNotes.value.trim() || null, createdBy: readActor(),
+  }
+}
 
 // Read at submit time because KeepAlive cannot make window.location.hash reactive.
 function readActor(): string {
@@ -80,11 +174,7 @@ async function submitTransaction() {
   if (!customerPackage.value || submitDisabled.value || submittingTransaction.value) return
   submittingTransaction.value = true
   transactionResult.value = null
-  const result = await appendPackageTransaction({
-    customerPackageId: customerPackage.value.customerPackageId, type: transactionType.value, creditChange: Number(creditChange.value),
-    referenceSource: referenceSource.value.trim() || null, referenceId: referenceId.value.trim() || null,
-    notes: transactionNotes.value.trim() || null, createdBy: readActor(),
-  })
+  const result = await appendPackageTransaction(createPayload())
   submittingTransaction.value = false
   if (result.kind === 'created') {
     transactionResult.value = 'Transaction added. Refreshing package activity…'
@@ -104,9 +194,11 @@ async function submitTransaction() {
 }
 function resetTransactionForm() {
   transactionType.value = 'USAGE'
-  creditChange.value = ''
-  referenceSource.value = ''
-  referenceId.value = ''
+  credits.value = ''
+  adjustmentDirection.value = 'ADD'
+  selectedOrderId.value = ''
+  selectedTransactionId.value = ''
+  selectedTargetPackageId.value = ''
   transactionNotes.value = ''
   transactionResult.value = null
   transactionRetryBlocked.value = false
@@ -120,6 +212,11 @@ function closeTransactionForm() {
   closeTransactionRoute()
 }
 watch(() => props.customerPackageId, () => { void loadDetail() }, { immediate: true })
+watch([transactionFormOpen, customerPackage, transactionType], ([open, packageValue, type]) => {
+  if (!open || !packageValue) return
+  if (type === 'USAGE' || type === 'REFUND') void loadOrders()
+  if (type === 'TRANSFER') void loadTargetPackages()
+})
 </script>
 
 <template>
@@ -133,22 +230,32 @@ watch(() => props.customerPackageId, () => { void loadDetail() }, { immediate: t
         :open="transactionFormOpen"
         :movement-types="transactionTypes"
         :movement-type="transactionType"
-        :credit-change="creditChange"
-        :reference-source="referenceSource"
-        :reference-id="referenceId"
+        :credits="credits"
+        :adjustment-direction="adjustmentDirection"
+        :selected-order-id="selectedOrderId"
+        :selected-transaction-id="selectedTransactionId"
+        :selected-target-package-id="selectedTargetPackageId"
+        :orders="orders"
+        :orders-loading="ordersLoading"
+        :orders-error="ordersError"
+        :target-packages="targetPackages"
+        :target-packages-loading="targetPackagesLoading"
+        :target-packages-error="targetPackagesError"
+        :transactions="customerPackage.transactions"
+        :remaining-credit="customerPackage.remainingCredit"
         :notes="transactionNotes"
-        :validation-hint="signHint"
-        :is-validation-invalid="signInvalid"
         :result="transactionResult"
         :result-tone="transactionRetryBlocked ? 'error' : 'success'"
         :is-submitting="submittingTransaction"
         :is-submit-disabled="submitDisabled"
         @close="closeTransactionForm"
         @submit="submitTransaction"
-        @update:movement-type="transactionType = $event"
-        @update:credit-change="creditChange = $event"
-        @update:reference-source="referenceSource = $event"
-        @update:reference-id="referenceId = $event"
+        @update:movement-type="changeTransactionType"
+        @update:credits="credits = $event"
+        @update:adjustment-direction="adjustmentDirection = $event"
+        @update:selected-order-id="selectedOrderId = $event"
+        @update:selected-transaction-id="selectedTransactionId = $event"
+        @update:selected-target-package-id="selectedTargetPackageId = $event"
         @update:notes="transactionNotes = $event"
       />
     </ScrollRegion>
