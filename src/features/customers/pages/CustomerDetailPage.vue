@@ -18,6 +18,7 @@ import OrderList from '../components/OrderList.vue'
 import CustomerPackagesSection from '../components/CustomerPackagesSection.vue'
 import CustomerInvoicesSection from '../components/CustomerInvoicesSection.vue'
 import CustomerAppointmentsSection from '../components/CustomerAppointmentsSection.vue'
+import CustomerSectionIcon from '../components/CustomerSectionIcon.vue'
 import OrderPackageUsageOverlay from '../components/OrderPackageUsageOverlay.vue'
 import { useCustomerPackagesStore } from '../stores/customer-packages.store'
 import { useCustomerInvoicesStore } from '@/data/invoices/customer-invoices.store'
@@ -146,7 +147,7 @@ watch([activeTab, () => props.customerId, openOrderId], ([tab, id, orderId]) => 
 
 <template>
   <AppLayout>
-    <ScrollRegion as="main" class="bg-surface pb-10">
+    <ScrollRegion as="main" class="bg-surface pb-14">
       <p v-if="customerLoading" class="px-4 py-6 text-sm text-on-surface-variant">
         Loading customer...
       </p>
@@ -184,6 +185,8 @@ watch([activeTab, () => props.customerId, openOrderId], ([tab, id, orderId]) => 
       @close="closeUsage"
       @submit="submitUsage"
     />
-    <BottomNavBar :items="items" :active-key="activeTab" ariaLabel="Customer sections" @select="selectTab" />
+    <BottomNavBar :items="items" :active-key="activeTab" ariaLabel="Customer sections" @select="selectTab">
+      <template #icon="{ item }"><CustomerSectionIcon :name="item.key" /></template>
+    </BottomNavBar>
   </AppLayout>
 </template>
