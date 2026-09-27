@@ -8,7 +8,7 @@
 
 ## Pending work
 
-- **Unpushed on `main`**: local commit updating `close-button.dry-test.ts` to the sticker `CloseButton`; push it together with the next piece of work.
+- **Unpushed on `main`**: `close-button.dry-test.ts` sticker update, and the `CloseButton` position fix (form X fell off the left edge and left a white strip); user to push, then phone-check a form's X sits top-right and the strip is gone.
 - `appointment.store.dry-test.ts` fails (2 vs 1) and already failed at `3afaac2`; cause not investigated.
 
 - **Customer detail and visual system** (merged 2026-09-27)
@@ -20,6 +20,7 @@
   - Browser-check customer detail `BottomNavBar` on a phone: floating lime sticker + pop animation, custom section icons, `pb-14` list clearance.
   - Order detail Approve is now `OrderApproveButton` (sticker FAB); only the quantity-mismatch disable shows a reason.
   - Phone-check the push drawer (open, drag-close, Back) and swipe cards no longer moving on scroll.
+  - Deferred by user: the push drawer's rounded corner sits below the iOS status bar because status-bar-style `black` keeps the page under it; reaching the top edge needs `black-translucent` plus a new height fix.
   - Browser-check `CloseButton` onDark sticker style (lime outline squircle, solid lime + offset shadow when active) on header (menu, back, pending with badge) and the 6 dark-overlay X buttons; hover/focus pop animation.
   - Browser-check the app-wide palette move (mint/tertiary removed, info = logo steel blue): order hero card, document scanner, shared form controls.
   - Browser-check `BaseBadge` two-size standard (sm/lg): `N items` chip grew 9px→11px, lg badges got shorter.

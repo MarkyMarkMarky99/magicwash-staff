@@ -48,8 +48,13 @@ defineExpose({
 
 <style scoped>
 /* onDark: lime outline squircle at rest; solid lime sticker with a hard offset shadow when hovered, focused or pressed. */
+@layer components {
+  .sticker-button {
+    position: relative;
+  }
+}
+
 .sticker-button {
-  position: relative;
   display: grid;
   place-items: center;
   width: 40px;
