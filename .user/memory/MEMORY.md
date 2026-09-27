@@ -1,6 +1,6 @@
 # Project memory
 
-- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24; item quantity reassign and detail Approve button merged 2026-09-25; department ring head, tap-to-advance and order Start merged 2026-09-25; optional staff Google sign-in, shared CloseButton and PhotoSwipe PhotoViewer merged 2026-09-27; customer detail tabs + bottom nav, two-size BaseBadge, central colour palette, lime focus and sticker buttons merged 2026-09-27; iPhone safe-area fixes (drawer header, status-bar-style black, shorter bottom nav) merged 2026-09-27.
+- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24; item quantity reassign and detail Approve button merged 2026-09-25; department ring head, tap-to-advance and order Start merged 2026-09-25; optional staff Google sign-in, shared CloseButton and PhotoSwipe PhotoViewer merged 2026-09-27; customer detail tabs + bottom nav, two-size BaseBadge, central colour palette, lime focus and sticker buttons merged 2026-09-27; iPhone safe-area fixes (drawer header, status-bar-style black + standalone green body, shorter bottom nav) merged 2026-09-27.
 
 ## Branches in flight
 

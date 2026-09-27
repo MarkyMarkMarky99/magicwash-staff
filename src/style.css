@@ -68,6 +68,13 @@ html, body {
   font-family: "Noto Sans Thai", Inter, sans-serif;
 }
 
+/* iOS home-screen app paints the status-bar area with the body colour, not theme-color. */
+@media (display-mode: standalone) {
+  html, body {
+    background-color: var(--color-primary);
+  }
+}
+
 #app {
   height: 100%;
 }
