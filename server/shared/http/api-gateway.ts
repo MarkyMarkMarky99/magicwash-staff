@@ -36,7 +36,7 @@ export class ApiGateway {
     }
 
     const loader = this.registry[moduleName]
-    const staff = moduleName === 'orders' ? undefined : await this.authenticate(req)
+    const staff = moduleName === 'auth' ? await this.authenticate(req) : undefined
     let routes: GatewayModuleRoutes
     try {
       routes = await loader()

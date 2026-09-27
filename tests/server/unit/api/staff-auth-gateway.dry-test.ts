@@ -13,12 +13,22 @@ const request = (path: string, authorization?: string) => ({
 
 function gateway(authenticate: StaffAuthenticator) {
   return new ApiGateway({
-    sample: async () => ({ collection: new ApiHandler({ GET: (req) => ({ status: 200, body: req.staff }) }) }),
-    orders: async () => ({ collection: new ApiHandler({ GET: () => ({ status: 200, body: 'open' }) }) }),
+    auth: async () => ({
+      collection: new ApiHandler({}),
+      item: new ApiHandler({ GET: (req) => ({ status: 200, body: req.staff }) }),
+    }),
+    sample: async () => ({
+      collection: new ApiHandler({ GET: (req) => ({ status: 200, body: req.staff }) }),
+    }),
+    orders: async () => ({
+      collection: new ApiHandler({ GET: (req) => ({ status: 200, body: req.staff }) }),
+    }),
   }, authenticate)
 }
 
+let authCalls = 0
 const fakeAuth: StaffAuthenticator = async (req) => {
+  authCalls += 1
   const token = req.headers.authorization
   if (token === undefined || token === 'Bearer bad') throw ApiError.unauthorized()
   if (token === 'Bearer unlisted' || token === 'Bearer inactive') throw ApiError.forbidden()
@@ -26,27 +36,32 @@ const fakeAuth: StaffAuthenticator = async (req) => {
 }
 
 const api = gateway(fakeAuth)
+for (const path of ['/api/sample', '/api/orders']) {
+  const result = await api.handleRequest(request(path))
+  assert.equal(result.status, 200)
+  assert.equal(result.body, undefined)
+}
+assert.equal(authCalls, 0)
+
 for (const token of [undefined, 'Bearer bad']) {
-  const result = await api.handleRequest(request('/api/sample', token))
+  const result = await api.handleRequest(request('/api/auth/me', token))
   assert.equal(result.status, 401)
 }
 for (const token of ['Bearer unlisted', 'Bearer inactive']) {
-  const result = await api.handleRequest(request('/api/sample', token))
+  const result = await api.handleRequest(request('/api/auth/me', token))
   assert.equal(result.status, 403)
 }
-const allowed = await api.handleRequest(request('/api/sample', 'Bearer good'))
+const allowed = await api.handleRequest(request('/api/auth/me', 'Bearer good'))
 assert.equal(allowed.status, 200)
 assert.deepEqual(allowed.body, staff)
-const open = await api.handleRequest(request('/api/orders'))
-assert.equal(open.status, 200)
-assert.equal(open.body, 'open')
+assert.equal(authCalls, 5)
 
 const previousProjectId = process.env.FIREBASE_PROJECT_ID
 process.env.FIREBASE_PROJECT_ID = 'magicwashlaundry-a50ca'
 try {
   const realGateway = gateway(authenticateStaff)
-  assert.equal((await realGateway.handleRequest(request('/api/sample'))).status, 401)
-  assert.equal((await realGateway.handleRequest(request('/api/sample', 'Bearer bad'))).status, 401)
+  assert.equal((await realGateway.handleRequest(request('/api/auth/me'))).status, 401)
+  assert.equal((await realGateway.handleRequest(request('/api/auth/me', 'Bearer bad'))).status, 401)
 } finally {
   if (previousProjectId === undefined) delete process.env.FIREBASE_PROJECT_ID
   else process.env.FIREBASE_PROJECT_ID = previousProjectId

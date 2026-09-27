@@ -1,7 +1,8 @@
 <script setup>
+import { onScopeDispose, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { invalidate } from '@/shared/api/response-cache'
-import { signOutUser } from '@/shared/api/firebase-auth'
+import { onUserChanged, signOutUser } from '@/shared/api/firebase-auth'
 import { APP_Z_INDEX_CLASS } from '@/shared/layouts/z-index'
 
 const props = defineProps({
@@ -11,6 +12,8 @@ const emit = defineEmits(['close'])
 
 const router = useRouter()
 const route = useRoute()
+const signedIn = ref(false)
+onScopeDispose(onUserChanged((user) => { signedIn.value = user !== null }))
 
 function navigate(path) {
   router.push(path)
@@ -156,11 +159,20 @@ function logout() {
         </li>
         <li>
           <button
+            v-if="signedIn"
             class="w-full flex items-center gap-4 px-5 py-3 text-left hover:bg-black/5 transition-colors"
             @click="logout"
           >
             <span class="material-symbols-outlined">logout</span>
             <span>ออกจากระบบ</span>
+          </button>
+          <button
+            v-else
+            class="w-full flex items-center gap-4 px-5 py-3 text-left hover:bg-black/5 transition-colors"
+            @click="navigate('/login')"
+          >
+            <span class="material-symbols-outlined">login</span>
+            <span>เข้าสู่ระบบ</span>
           </button>
         </li>
       </ul>

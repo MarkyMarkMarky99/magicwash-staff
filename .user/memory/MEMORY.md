@@ -1,12 +1,10 @@
 # Project memory
 
-- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24; item quantity reassign and detail Approve button merged 2026-09-25; department ring head, tap-to-advance and order Start merged 2026-09-25.
+- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24; item quantity reassign and detail Approve button merged 2026-09-25; department ring head, tap-to-advance and order Start merged 2026-09-25; optional staff Google sign-in merged 2026-09-27.
 
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
-- **`feat/staff-google-auth`** — staff Google sign-in (Firebase popup + gateway token check + `Staff` allow-list); pushed for Preview, not yet tested with a real account. Details: `.user/memory/feat-staff-google-auth.md`.
-
 ## Pending work
 
 - **Garment tracking and job tickets**
@@ -86,7 +84,10 @@
   - Clean sheet data: the blank customer row, dirty Orders rows, LaundryPhotos ordering, and page-walks using non-unique sort keys.
 
 - **Auth, UX, and documentation**
-  - Decide API authentication and actor identity before launch, while retaining `?by=` as an override.
+  - Staff Google sign-in merged 2026-09-27 as optional: only `/api/auth/me` checks the token; no route or page is gated yet.
+  - Still undecided by user: gating pages/API, actor from the signed-in staff instead of `admin`/`?by=`, Firebase Storage rules.
+  - Vercel Preview hosts are not Firebase Authorized domains, so sign-in fails on Preview (`auth/unauthorized-domain`).
+  - 5 server dry-tests reported failing (invoice workflows x2, sheet metadata x2, order-item contract export); not checked against pre-auth `main`.
   - Fix screenshot-upload accessibility states, failed-upload handling, and staff-safe Firebase errors.
   - Align the customer-packages form with `docs/design/patterns/forms.md`.
   - Fix `docs/conventions/naming.md`: composables are kebab-case, not `usePascalCase.ts`.

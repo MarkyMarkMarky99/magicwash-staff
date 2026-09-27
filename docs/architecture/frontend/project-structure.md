@@ -54,9 +54,10 @@ application-level pages or development tools when one is needed.
 - `src/data/auth/auth.store.ts` owns the session. After Firebase signs a user in, it calls
   `GET /api/auth/me`; a 403 (email not on the `Staff` allow-list or inactive) signs the user back
   out and shows the reason on the login page.
-- The router guard in `src/router/index.js` waits for the first session check, then sends every
-  route without `meta.public` to `/login?redirect=…`. `App.vue` loads the preloaded stores only
-  once signed in, and returns to `/login` when the session ends. `/login` is the only public route.
+- Sign-in is optional: no route requires it. `/login` is reached from the nav menu, which shows
+  "เข้าสู่ระบบ" when signed out and "ออกจากระบบ" when signed in. The login page has a close button,
+  and after signing in it leaves the same way (history back, or `/` without history); a
+  `?redirect=` app path takes precedence.
 - Sign-in does not change actor recording yet: writes still use `currentActor()` (`admin` or
   `?by=`).
 

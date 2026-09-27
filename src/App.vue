@@ -1,18 +1,12 @@
 <script setup lang="ts">
-import { provide, watch } from 'vue'
+import { onMounted, provide } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '@/data/auth/auth.store'
 import { useAppointmentStore } from '@/data/appointments/appointment.store'
 import { useCustomerStore } from '@/data/customers/customer.store'
 import { usePriceListStore } from '@/data/price-list/price-list.store'
 import { appointmentPendingCountKey } from '@/shared/appointment-pending-count'
 import { APP_Z_INDEX_CLASS } from '@/shared/layouts/z-index'
 
-const route = useRoute()
-const router = useRouter()
-const authStore = useAuthStore()
-const { status: authStatus } = storeToRefs(authStore)
 const appointmentStore = useAppointmentStore()
 const customerStore = useCustomerStore()
 const priceListStore = usePriceListStore()
@@ -21,15 +15,11 @@ const { pendingCount } = storeToRefs(appointmentStore)
 provide(appointmentPendingCountKey, pendingCount)
 
 // Keep the schedule and pending badge ready from the same backend-backed store.
-watch(authStatus, (value) => {
-  if (value === 'signedIn') {
-    void appointmentStore.loadInitial()
-    void customerStore.loadCustomers()
-    void priceListStore.load()
-  } else if (value === 'signedOut' && route.matched.length > 0 && !route.meta.public) {
-    void router.replace({ name: 'login', query: { redirect: route.fullPath } })
-  }
-}, { immediate: true })
+onMounted(() => {
+  void appointmentStore.loadInitial()
+  void customerStore.loadCustomers()
+  void priceListStore.load()
+})
 </script>
 
 <template>
