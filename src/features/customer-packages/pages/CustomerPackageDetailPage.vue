@@ -53,6 +53,11 @@ const customerIndex = computed(() => {
   const customerId = customerPackage.value?.customerId
   return customers.value.find((customer) => customer.customerId === customerId)?.customerIndex ?? null
 })
+// Newest first: the ledger arrives oldest to newest.
+const recentTransactions = computed(() => [...(customerPackage.value?.transactions ?? [])].reverse())
+const changeColumnClass = computed(() => customerPackage.value?.transactions.some((transaction) => Math.abs(transaction.creditChange) >= 100)
+  ? 'grid-cols-[44px_minmax(0,1fr)_58px]'
+  : 'grid-cols-[36px_minmax(0,1fr)_58px]')
 const selectedTransaction = computed(() => customerPackage.value?.transactions.find(
   (item) => item.id === selectedTransactionId.value && item.type !== 'PURCHASE' && item.type !== 'VOID'
     && !customerPackage.value?.transactions.some((transaction) => transaction.type === 'VOID' && transaction.referenceId === item.id),
@@ -224,22 +229,25 @@ watch([transactionFormOpen, customerPackage, transactionType], ([open, packageVa
     <main v-else-if="error || notFound || !customerPackage" class="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"><p class="font-body text-sm text-on-surface-variant">{{ error ?? 'Customer package not found' }}</p><button type="button" class="rounded-xl bg-primary px-4 py-2 font-label text-xs text-on-primary" @click="loadDetail">Retry</button></main>
     <ScrollRegion v-else as="main" class="bg-surface pb-20">
       <CustomerPackageSummaryCard class="mt-4" :customer-package="customerPackage" :customer-index="customerIndex" />
-      <section class="mx-3 mt-5 border-y border-primary" aria-labelledby="package-activity-title">
-        <header class="flex min-h-[55px] items-center justify-between gap-3">
-          <div>
-            <h2 id="package-activity-title" class="font-headline text-[17px] font-extrabold leading-none tracking-tight text-primary">Recent activity</h2>
-            <p class="mt-1 font-label text-[10px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">Credit movements</p>
+      <section class="mx-3 mt-5" aria-labelledby="package-activity-title">
+        <header class="mb-2.5 flex items-center justify-between gap-3">
+          <div class="border-l-4 border-lime pl-2.5">
+            <h2 id="package-activity-title" class="font-headline text-[17px] font-extrabold tracking-[-0.03em] text-primary">Package activity</h2>
+            <p class="mt-[3px] font-label text-[9px] font-bold uppercase leading-none tracking-[0.1em] text-on-surface-variant">Credit movements</p>
           </div>
-          <button type="button" class="shrink-0 rounded py-2 pl-2 font-label text-[10px] font-bold uppercase tracking-[0.075em] text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-lime" @click="openTransaction">Add transaction</button>
+          <button type="button" class="min-h-[34px] shrink-0 rounded px-1 font-label text-[10px] font-extrabold uppercase tracking-[0.04em] text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-lime" @click="openTransaction">Add transaction</button>
         </header>
-        <ol>
-          <li v-for="transaction in customerPackage.transactions" :key="transaction.id" class="grid min-h-[42px] grid-cols-[50px_minmax(0,1fr)_94px] items-center gap-x-1.5 border-t border-outline-variant">
-            <p class="pr-1 text-right font-body text-base font-bold tabular-nums tracking-tight" :class="transaction.creditChange > 0 ? 'text-success' : 'text-primary'">{{ transaction.creditChange > 0 ? '+' : transaction.creditChange < 0 ? '−' : '' }}{{ Math.abs(transaction.creditChange) }}</p>
-            <p class="min-w-0 truncate border-l border-outline-variant pl-2 font-body text-[13px] font-medium text-on-surface">{{ transactionLabels[transaction.type] }}</p>
-            <time class="text-right font-body text-[11px] text-on-surface-variant">{{ formatSheetDate(transaction.createdAt) }}</time>
+        <ol class="grid gap-2">
+          <li v-for="transaction in recentTransactions" :key="transaction.id" class="grid items-center gap-2 rounded-[14px] bg-white px-3 py-2.5 shadow-[0_1px_0_rgba(7,63,56,0.05)]" :class="changeColumnClass">
+            <p class="flex items-center justify-end self-stretch border-r border-outline-variant pr-1.5 font-[Manrope,sans-serif] text-[17px] font-extrabold tracking-[-0.06em] tabular-nums" :class="transaction.creditChange > 0 ? 'text-success' : 'text-primary'">{{ transaction.creditChange > 0 ? '+' : transaction.creditChange < 0 ? '−' : '' }}{{ Math.abs(transaction.creditChange) }}</p>
+            <div class="min-w-0">
+              <p class="truncate font-body text-sm font-extrabold leading-tight tracking-[-0.015em] text-on-surface">{{ transactionLabels[transaction.type] }}</p>
+              <p class="mt-[3px] font-label text-[10px] font-semibold text-on-surface-variant">{{ formatSheetDate(transaction.createdAt) }}</p>
+            </div>
+            <p class="text-right font-label text-[11px] font-semibold leading-tight text-on-surface-variant"><span class="block font-[Manrope,sans-serif] text-[15px] font-bold leading-none tracking-[-0.04em] tabular-nums">{{ transaction.remainingCredit }}</span>credits</p>
           </li>
         </ol>
-        <p v-if="customerPackage.transactions.length === 0" class="border-t border-outline-variant py-3 font-body text-[13px] text-on-surface-variant">No activity yet</p>
+        <p v-if="customerPackage.transactions.length === 0" class="rounded-[14px] bg-white px-3 py-3 font-body text-[13px] text-on-surface-variant">No activity yet</p>
       </section>
       <CustomerPackageTransactionForm
         :open="transactionFormOpen"
