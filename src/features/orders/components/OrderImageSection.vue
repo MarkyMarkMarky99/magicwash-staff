@@ -15,16 +15,16 @@ defineProps<{
 const emit = defineEmits<{
   capture: [imageType: OrderImageType]
   clearUploadError: []
-  preview: [imagePath: string, alt: string]
+  preview: [orderImageId: string]
 }>()
 
 function isDisplayableImagePath(imagePath: string | null): imagePath is string {
   return typeof imagePath === 'string' && /^https?:\/\//i.test(imagePath)
 }
 
-function previewImage(imagePath: string | null, imageType: string | null): void {
-  if (!isDisplayableImagePath(imagePath)) return
-  emit('preview', imagePath, getOrderImageTypeLabel(imageType))
+function previewImage(image: OrderImageDto): void {
+  if (!isDisplayableImagePath(image.imagePath)) return
+  emit('preview', image.orderImageId)
 }
 </script>
 
@@ -56,7 +56,7 @@ function previewImage(imagePath: string | null, imageType: string | null): void 
           type="button"
           class="h-full w-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-mint"
           :aria-label="`View photo ${getOrderImageTypeLabel(image.imageType)}`"
-          @click="previewImage(image.imagePath, image.imageType)"
+          @click="previewImage(image)"
         >
           <img :src="image.imagePath" :alt="getOrderImageTypeLabel(image.imageType)" class="h-full w-full object-cover">
         </button>

@@ -6,7 +6,7 @@ import type { z } from 'zod'
 import { orderItemCreateSchema } from '@contracts/order-items/order-item-api.schema'
 import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
-import LightboxOverlay from '@/shared/layouts/LightboxOverlay.vue'
+import PhotoViewer, { type PhotoViewerImage } from '@/shared/components/PhotoViewer.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import { formatSheetDate, normalizeSheetDate, sheetDateDaysBetween, todaySheetDate } from '@/shared/utils/sheet-date'
@@ -26,7 +26,7 @@ import { canSaveGarment, isDuplicateGarmentTag, validGarmentTag } from '@/featur
 import OrderImageWeightPrompt from '@/features/orders/components/OrderImageWeightPrompt.vue'
 import { useOrderOverlayRoute } from '@/features/orders/composables/use-order-overlay-route'
 import { imageTypeToOverlay, overlayToImageType, readOrderImageWeight, readRegistrationItemId } from '@/features/orders/composables/use-order-overlay-route'
-import type { OrderImageType } from '@/features/orders/order-image-labels'
+import { getOrderImageTypeLabel, type OrderImageType } from '@/features/orders/order-image-labels'
 import { presentationFor } from '@/features/orders/order-status-presentation'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { useOrderStore } from '@/features/orders/stores/order.store'
@@ -58,7 +58,16 @@ const totalWeightKg = computed(() => orderTotalWeightKg(images.value))
 const orderId = computed(() => String(route.params.orderId ?? ''))
 const orderOverlay = reactive(useOrderOverlayRoute())
 const selectedPriceListItem = ref<ItemDto | null>(null)
-const selectedImagePreview = ref<{ src: string, alt: string } | null>(null)
+const PHOTO_QUERY_KEY = 'photo'
+const viewerImages = computed<PhotoViewerImage[]>(() => images.value.flatMap(image => /^https?:\/\//i.test(image.imagePath ?? '')
+  ? [{ id: image.orderImageId, src: image.imagePath as string, alt: getOrderImageTypeLabel(image.imageType) }]
+  : []))
+const activePhotoId = computed(() => {
+  const value = route.query[PHOTO_QUERY_KEY]
+  const id = Array.isArray(value) ? value[0] : value
+  return typeof id === 'string' && viewerImages.value.some(image => image.id === id) ? id : null
+})
+let pushedPhotoViewer = false
 const savingItemOrderId = ref<string | null>(null)
 const tagPrinting = ref(false)
 const tagPrintSuccess = ref<string | null>(null)
@@ -258,7 +267,6 @@ watch(orderId, (id) => {
   laundryPhotos.value = []
   reassignError.value = null
   approvalError.value = null
-  selectedImagePreview.value = null
   registrationLoadSequence += 1
   resetRegistration()
   existingRegistrationTags.value = new Set()
@@ -433,8 +441,25 @@ function openCapture(imageType: OrderImageType): void {
   orderOverlay.open(imageTypeToOverlay[imageType])
 }
 
-function openImagePreview(src: string, alt: string): void {
-  selectedImagePreview.value = { src, alt }
+function openImagePreview(orderImageId: string): void {
+  pushedPhotoViewer = true
+  void router.push({ query: { ...route.query, [PHOTO_QUERY_KEY]: orderImageId } })
+}
+
+function changePhoto(orderImageId: string): void {
+  void router.replace({ query: { ...route.query, [PHOTO_QUERY_KEY]: orderImageId } })
+}
+
+function closePhotoViewer(): void {
+  if (route.query[PHOTO_QUERY_KEY] === undefined) return
+  if (pushedPhotoViewer) {
+    pushedPhotoViewer = false
+    router.back()
+    return
+  }
+  const query = { ...route.query }
+  delete query[PHOTO_QUERY_KEY]
+  void router.replace({ query })
 }
 
 function openItemOverlay(): void {
@@ -576,19 +601,7 @@ function clearItemError() {
     @close="closeTagPrintConfirm"
     @confirm="handlePrintTags"
   />
-  <LightboxOverlay
-    :open="selectedImagePreview !== null"
-    :ariaLabel="selectedImagePreview?.alt ?? 'View order photo'"
-    @close="selectedImagePreview = null"
-  >
-    <img
-      v-if="selectedImagePreview"
-      :src="selectedImagePreview.src"
-      :alt="selectedImagePreview.alt"
-      class="max-h-[80dvh] max-w-full object-contain"
-      @click.stop
-    >
-  </LightboxOverlay>
+  <PhotoViewer :images="viewerImages" :active-id="activePhotoId" @change="changePhoto" @close="closePhotoViewer" />
   <PriceListItemPicker
     v-if="selectedPriceListItem === null"
     selection-mode="item"

@@ -6,6 +6,7 @@
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 - **`feat/shared-close-button`** — shared `CloseButton` at every page/overlay close, plus lightbox on the opaque backdrop with square corners; committed, not browser-verified or merged. Details: `.user/memory/feat-shared-close-button.md`.
+- **`feat/photo-viewer`** — PhotoSwipe `PhotoViewer` (swipe, zoom, thumbnail strip) on order detail via `?photo=`; branched from `feat/shared-close-button`, desktop-checked by user, phone test pending. Details: `.user/memory/feat-photo-viewer.md`.
 ## Pending work
 
 - **Garment tracking and job tickets**

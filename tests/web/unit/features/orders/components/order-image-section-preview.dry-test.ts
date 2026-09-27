@@ -11,18 +11,21 @@ const detailPageSource = readFileSync(
   'utf8',
 )
 
-test('order image thumbnails emit a preview request for displayable images', () => {
-  assert.match(imageSectionSource, /preview: \[imagePath: string, alt: string\]/)
-  assert.match(imageSectionSource, /<button[\s\S]*v-if="isDisplayableImagePath\(image\.imagePath\)"[\s\S]*@click="previewImage\(image\.imagePath, image\.imageType\)"/)
+test('order image thumbnails emit the image id for displayable images', () => {
+  assert.match(imageSectionSource, /preview: \[orderImageId: string\]/)
+  assert.match(imageSectionSource, /<button[\s\S]*v-if="isDisplayableImagePath\(image\.imagePath\)"[\s\S]*@click="previewImage\(image\)"/)
+  assert.match(imageSectionSource, /emit\('preview', image\.orderImageId\)/)
 })
 
-test('the order detail page opens the shared lightbox for the selected image', () => {
-  assert.match(detailPageSource, /import LightboxOverlay from '@\/shared\/layouts\/LightboxOverlay\.vue'/)
+test('the order detail page opens the shared photo viewer from the photo query', () => {
+  assert.match(detailPageSource, /import PhotoViewer, \{ type PhotoViewerImage \} from '@\/shared\/components\/PhotoViewer\.vue'/)
+  assert.doesNotMatch(detailPageSource, /LightboxOverlay/)
   assert.match(detailPageSource, /<OrderImageSection[^>]*@preview="openImagePreview"/)
-  assert.match(detailPageSource, /<LightboxOverlay[\s\S]*:open="selectedImagePreview !== null"[\s\S]*@close="selectedImagePreview = null"/)
-  assert.match(detailPageSource, /:src="selectedImagePreview\.src"/)
+  assert.match(detailPageSource, /<PhotoViewer :images="viewerImages" :active-id="activePhotoId" @change="changePhoto" @close="closePhotoViewer" \/>/)
+  assert.match(detailPageSource, /const PHOTO_QUERY_KEY = 'photo'/)
 })
 
-test('changing orders closes an image preview from the previous order', () => {
-  assert.match(detailPageSource, /watch\(orderId, \(id\) => \{\s*selectedImagePreview\.value = null/)
+test('swiping replaces the photo query and closing leaves no viewer entry in history', () => {
+  assert.match(detailPageSource, /function changePhoto[\s\S]*?router\.replace\(\{ query: \{ \.\.\.route\.query, \[PHOTO_QUERY_KEY\]: orderImageId \} \}\)/)
+  assert.match(detailPageSource, /function closePhotoViewer[\s\S]*?router\.back\(\)[\s\S]*?router\.replace\(\{ query \}\)/)
 })

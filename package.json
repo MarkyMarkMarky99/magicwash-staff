@@ -19,6 +19,7 @@
     "barcode-detector": "^3.2.2",
     "firebase": "^12.13.0",
     "jose": "^6.2.12",
+    "photoswipe": "^5.4.4",
     "pinia": "^3.0.4",
     "scanic": "1.6.0",
     "vue": "^3.5.30",
