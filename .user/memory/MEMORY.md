@@ -5,7 +5,16 @@
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
+- **`feat/customer-tab-create-menus`** — customer detail APPOINTMENTS tab, per-tab create dropdowns, one `CustomerRecordCard`; committed, not browser-verified. Details: `.user/memory/feat-customer-tab-create-menus.md`.
+
 ## Pending work
+
+- **Customer detail tabs** (`feat/customer-tab-create-menus`)
+  - Browser-verify create dropdowns open, order swipe "Order detail", and appointment date order; the ui-shots run failed to capture these.
+  - Pill shows `0 PACKAGES` while the list is still loading.
+  - Order rows show `—` as line 2 when there is no note; consider hiding the line.
+  - Long invoice numbers truncate (`INV20260905-41f3…`).
+  - User to review order status lead icons Codex chose in `customer-order-status-presentation.ts`.
 
 - **Garment tracking and job tickets**
   - Decide the order status sequence before any swipe-to-advance work.
@@ -108,7 +117,7 @@
   - Browser-verify appointment creation without a customer location in Preview.
   - `src/features/orders/utils/order-price-list-items.ts` has no caller since Orders moved to Items, but keeps a unit test; decide whether to delete both.
   - `output/price-list-images/generated/*.jpg` are committed generated artifacts; decide whether they belong in the repo or `.gitignore`.
-  - Four allowlisted cross-feature imports remain, all UI that knows domain fields, with no legal home under the current rule. Accepted for now; reopen only when a third feature needs one of them.
+  - Two allowlisted cross-feature imports remain (`PriceListItemPicker` in invoices and orders), UI that knows domain fields, with no legal home under the current rule. Accepted for now; reopen only when a third feature needs it.
   - Placement rule settled 2026-09-16: UI folders (`src/shared/components`, `layouts`) stay generic and must not know domain fields; non-UI folders under `src/shared/` may hold cross-feature business rules. Rejected and not to be re-proposed: `src/shared/components/<domain>/`, a new `src/ui/<domain>/` layer, and moving the per-feature status-presentation modules to `src/shared/utils/`.
   - Appointment date strip opens at day 1 instead of centering today; a `scrollTo` attempt hid the strip, so diagnose in a real browser first.
   - `ListContainer` collapsible header is a non-focusable `div` without `aria-expanded`; schedule slots now start collapsed when empty.
@@ -118,4 +127,4 @@
   - Delete sheet test data: `Packages` `ZZTEST01` / `af9f0651`; `OrderForm` `246fde2b`, `cc4d375e`, `f68ae08d`; `LaundryPhotos` `QK0H9DT1`, `a260b2b1`, `1b7649ba`; `AfterPhoto` `0aacd052`.
   - Browser-check the appointment card status badge now sitting in the top-end slot on both the schedule and pending pages.
   - Browser-check swipe cards now opening 4rem per action (`leftActions`/`rightActions`), incl. the AppointmentCard "Swipe to …" label in 4rem.
-  - Customer pages are meant to be view-only; decide whether to drop New Order, Schedule Pickup, Book Delivery, Create Invoice, package usage and Buy package there.
+  - User kept New Order, Schedule Pickup, New Package and Create Invoice on customer detail as per-tab dropdowns (2026-09-27); Book Delivery and package usage in the order sheet still undecided.

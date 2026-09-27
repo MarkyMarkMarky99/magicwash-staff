@@ -10,8 +10,6 @@ const specifierPattern = /(?:\bfrom\s*|\bimport\s*\(\s*|^\s*import\s+)['"]([^'"\
 // home, keyed by importing file and specifier so it survives line moves. Shrink
 // this list as the borrowed code moves; never grow it.
 const knownViolations = new Set([
-  'features/customers/components/CustomerInvoicesSection.vue -> @/features/invoices/components/InvoiceCard.vue',
-  'features/customers/components/CustomerPackagesSection.vue -> @/features/customer-packages/components/CustomerPackageListCards.vue',
   'features/invoices/pages/InvoiceCreatePage.vue -> @/features/price-list/components/PriceListItemPicker.vue',
   'features/orders/pages/OrderDetailPage.vue -> @/features/price-list/components/PriceListItemPicker.vue',
 ])

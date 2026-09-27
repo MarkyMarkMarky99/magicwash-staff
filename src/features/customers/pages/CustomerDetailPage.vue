@@ -8,7 +8,6 @@ import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import {
   appointmentCreateRoute,
   invoiceCreateRoute,
-  orderCreateRoute,
 } from '@/shared/navigation/form-routes'
 import { useCustomerOrderHistoryStore } from '../stores/customer-order-history.store'
 import { useOrderSheetRoute } from '@/features/customers/composables/useOrderSheetRoute'
@@ -18,11 +17,12 @@ import OrderList from '../components/OrderList.vue'
 import GenericTabs from '@/shared/components/GenericTabs.vue'
 import CustomerPackagesSection from '../components/CustomerPackagesSection.vue'
 import CustomerInvoicesSection from '../components/CustomerInvoicesSection.vue'
+import CustomerAppointmentsSection from '../components/CustomerAppointmentsSection.vue'
 import OrderPackageUsageOverlay from '../components/OrderPackageUsageOverlay.vue'
 import { useCustomerPackagesStore } from '../stores/customer-packages.store'
 import { useCustomerInvoicesStore } from '@/data/invoices/customer-invoices.store'
 import { useOrderPackageUsageRoute } from '../composables/useOrderPackageUsageRoute'
-import { resolveCustomerTab } from '../utils/customer-tab'
+import { CUSTOMER_DETAIL_TABS, resolveCustomerTab } from '../utils/customer-tab'
 import { currentActor } from '@/shared/config/actor'
 
 const props = defineProps<{
@@ -33,11 +33,7 @@ const props = defineProps<{
 const router = useRouter()
 const route = useRoute()
 const activeTab = computed(() => resolveCustomerTab(props.tab))
-const tabs = [
-  { key: 'orders', label: 'Orders' },
-  { key: 'packages', label: 'Packages' },
-  { key: 'invoices', label: 'Invoices' },
-]
+const tabs = CUSTOMER_DETAIL_TABS.map((key) => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1) }))
 const packagesStore = useCustomerPackagesStore()
 const invoicesStore = useCustomerInvoicesStore()
 const { isOpen: usageOpen, open: openUsage, close: closeUsage } = useOrderPackageUsageRoute()
@@ -118,11 +114,6 @@ function openOrder(orderId: string) {
   openSheet(orderId)
 }
 
-function createOrder() {
-  if (!customer.value) return
-  router.push(orderCreateRoute({ customerId: customer.value.customerId }))
-}
-
 function bookDelivery() {
   const order = selectedOrder.value
   if (!customer.value || !order) return
@@ -159,10 +150,11 @@ watch([activeTab, () => props.customerId, openOrderId], ([tab, id, orderId]) => 
         Unable to load customer details.
       </p>
 
-      <OrderHistoryCustomerCard v-if="customer" :customer="customer" @create-order="createOrder" />
-      <OrderList v-if="activeTab === 'orders'" @select-order="openOrder" />
+      <OrderHistoryCustomerCard v-if="customer" :customer="customer" />
+      <OrderList v-if="activeTab === 'orders'" :customer-id="customerId" @select-order="openOrder" />
       <CustomerPackagesSection v-else-if="activeTab === 'packages'" :customer-id="customerId" />
-      <CustomerInvoicesSection v-else :customer-id="customerId" />
+      <CustomerInvoicesSection v-else-if="activeTab === 'invoices'" :customer-id="customerId" />
+      <CustomerAppointmentsSection v-else :customer-id="customerId" />
     </ScrollRegion>
 
     <OrderDetailSheet

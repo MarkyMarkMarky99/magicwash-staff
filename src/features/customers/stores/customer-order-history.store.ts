@@ -64,12 +64,6 @@ export const useCustomerOrderHistoryStore = defineStore('customer-order-history'
     loadedCustomerId = customerId
   }
 
-  async function refresh() {
-    if (activeCustomerId !== null) {
-      await load(activeCustomerId, true)
-    }
-  }
-
   return {
     customer,
     orders,
@@ -82,6 +76,5 @@ export const useCustomerOrderHistoryStore = defineStore('customer-order-history'
     appointmentsError,
     waitingPickups,
     load,
-    refresh,
   }
 })

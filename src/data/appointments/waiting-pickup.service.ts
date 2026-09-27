@@ -10,10 +10,14 @@ export type AppointmentListDto = z.infer<typeof appointmentListResponseSchema>
 
 const APPOINTMENTS_ENDPOINT = '/api/appointments'
 
-export async function listAppointmentsByCustomer(customerId: string): Promise<AppointmentListDto[]> {
+export async function listAppointmentsByCustomer(
+  customerId: string,
+  onFresh?: (items: AppointmentListDto[]) => void,
+): Promise<AppointmentListDto[]> {
   const { items } = await apiGetList<AppointmentListDto>(APPOINTMENTS_ENDPOINT, {
     query: { customerId, perPage: MAX_APPOINTMENTS_PER_PAGE },
     querySchema: appointmentListQuerySchema,
+    onFresh: (result) => onFresh?.(result.items),
   })
   return items
 }

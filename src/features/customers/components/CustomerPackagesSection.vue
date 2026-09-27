@@ -3,32 +3,46 @@ import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { customerPackageCreateRoute } from '@/shared/navigation/form-routes'
 import ListContainer from '@/shared/components/ListContainer.vue'
-import CustomerPackageListCards from '@/features/customer-packages/components/CustomerPackageListCards.vue'
+import CreateDropdownMenu from './CreateDropdownMenu.vue'
+import CustomerRecordCard from './CustomerRecordCard.vue'
+import type { BadgeTone } from '@/shared/components/BaseBadge.vue'
 import { useCustomerPackagesStore } from '../stores/customer-packages.store'
 
 const props = defineProps<{ customerId: string }>()
 const router = useRouter()
 const { items, loading, error } = storeToRefs(useCustomerPackagesStore())
+const STATUS_TONES: Record<string, BadgeTone> = {
+  ACTIVE: 'accent',
+  INACTIVE: 'neutral',
+  EXPIRED: 'accent',
+  CANCELLED: 'danger',
+}
 </script>
 
 <template>
   <ListContainer
-    title="Packages" icon="card_membership" :count="items.length" count-label="packages"
+    title="Packages" icon="card_membership" count-label="packages"
     :loading="loading" :error="error" :empty="items.length === 0" empty-text="No packages" :skeleton-rows="4"
   >
     <template #actions>
-      <button
-        type="button"
-        class="-my-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10 active:bg-primary/20 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        aria-label="Buy a package"
-        @click.stop="router.push(customerPackageCreateRoute({ customerId: props.customerId }))"
-      >
-        <span class="material-symbols-outlined text-[16px]" aria-hidden="true">add_shopping_cart</span>
-      </button>
+      <CreateDropdownMenu
+        :label="`${items.length} packages`"
+        aria-label="Create package"
+        :items="[{ key: 'package', label: 'New Package' }]"
+        @select="router.push(customerPackageCreateRoute({ customerId: props.customerId }))"
+      />
     </template>
-    <CustomerPackageListCards
-      :items="items"
-      @select="router.push({ name: 'customer-package-detail', params: { customerPackageId: $event.customerPackageId } })"
+    <CustomerRecordCard
+      v-for="item in items"
+      :key="item.customerPackageId"
+      icon="card_membership"
+      :tone="STATUS_TONES[item.status] || 'neutral'"
+      icon-label="Package"
+      :title="item.packageName"
+      :badges="[{ label: item.status, tone: STATUS_TONES[item.status] || 'neutral' }]"
+      :trailing="`${item.remainingCredit} left`"
+      :detail="`${item.packageCode} · ${item.usedCredit}/${item.totalCredit} used`"
+      @select="router.push({ name: 'customer-package-detail', params: { customerPackageId: item.customerPackageId } })"
     />
   </ListContainer>
 </template>
