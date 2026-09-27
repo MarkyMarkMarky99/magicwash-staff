@@ -9,6 +9,7 @@
 ## Pending work
 
 - **Unpushed on `main`**: `close-button.dry-test.ts` sticker update, and the `CloseButton` position fix (form X fell off the left edge and left a white strip); user to push, then phone-check a form's X sits top-right and the strip is gone.
+- **Unpushed on `main`**: package detail hero card redesign + BaseBadge `lime` tone; phone-check it; low-credit badge threshold (20%) was Claude's pick, not confirmed.
 - `appointment.store.dry-test.ts` fails (2 vs 1) and already failed at `3afaac2`; cause not investigated.
 
 - **Customer detail and visual system** (merged 2026-09-27)

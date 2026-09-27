@@ -1,5 +1,5 @@
 <script setup lang="ts">
-export type BadgeTone = 'neutral' | 'brand' | 'accent' | 'info' | 'warning' | 'success' | 'danger'
+export type BadgeTone = 'neutral' | 'brand' | 'accent' | 'lime' | 'info' | 'warning' | 'success' | 'danger'
 export type BadgeSize = 'sm' | 'lg'
 export type BadgeVariant = 'soft' | 'solid'
 
@@ -23,6 +23,7 @@ const TONE_CLASSES: Record<BadgeTone, string> = {
   neutral: 'bg-surface-container text-on-surface-variant',
   brand: 'bg-primary/10 text-primary',
   accent: 'bg-secondary-container text-on-secondary-container',
+  lime: 'bg-lime text-primary',
   info: 'bg-info-container text-on-info-container',
   warning: 'bg-warning-container text-on-warning-container',
   success: 'bg-success-container text-on-success-container',

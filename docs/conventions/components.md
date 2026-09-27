@@ -34,7 +34,7 @@ Do not add similar feature dependencies to shared components; remove this except
 dedicated shared-component refactor.
 
 See [Shared QR scanner overlay](./qr-scanner-overlay.md) for the camera-only overlay API.
-`BaseBadge.vue` has sizes `sm` (dense list rows and counts) and `lg` (headers, hero statuses, and date chips), tones neutral, brand, accent, info, warning, success, and danger, and a solid variant for danger only.
+`BaseBadge.vue` has sizes `sm` (dense list rows and counts) and `lg` (headers, hero statuses, and date chips), tones neutral, brand, accent, lime (solid lime with dark green text, for statuses on dark brand surfaces), info, warning, success, and danger, and a solid variant for danger only.
 `SquareImageCard.vue` is a generic square image card with nullable image, optional text lines, and an optional badge slot.
 `DropdownPillTrigger.vue` is the shared pill button with an open-state chevron for `BaseDropdown`'s trigger slot; it takes `label`, optional `ariaLabel` (falls back to `label`), and the trigger slot values `open`, `setTrigger`, `toggle`, `triggerAttrs`.
 `BottomNavBar.vue` is the shared bottom navigation bar: a brand-green bar with rounded top corners, equal-width icon-over-label buttons, and a safe-area bottom inset. It takes `items` (`{ key, label, icon }[]`, Material Symbols names), `activeKey`, and `ariaLabel`, and emits `select(key)`; the active item gets a filled icon and `aria-current="page"`. It overlaps the content above it by 24px (`-mt-6`) so that content shows behind its rounded corners; the scroll area above needs at least that much bottom padding. It does not navigate: place it as the last child of `AppLayout`'s column, and the caller owns the route change. The active item sits on a lime pill.

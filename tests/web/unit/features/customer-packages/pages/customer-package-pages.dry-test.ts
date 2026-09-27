@@ -19,22 +19,22 @@ assert.match(detail, /CustomerPackageSummaryCard/, 'detail must render the packa
 assert.match(detail, /:customer-package="customerPackage"/, 'detail must pass the loaded package to its summary card')
 assert.match(preview, /CustomerPackageSummaryCard/, 'preview must reuse the package summary card')
 assert.match(preview, /:customer-package="sourcePackage"/, 'preview must pass its fixture package to the summary card')
-for (const field of ['remainingCredit', 'totalCredit', 'packageCode', 'packageName']) {
+for (const field of ['customerName', 'packageName', 'remainingCredit', 'totalCredit', 'expiryDate']) {
   assert.match(summaryCard, new RegExp(`\\b${field}\\b`), `summary card must render ${field}`)
 }
-assert.doesNotMatch(summaryCard, /usedCredit/, 'summary card must not show used credit')
+for (const noise of ['usedCredit', 'packageCode', 'packageEligibleService', 'customerPhone', 'customerAddress', 'customerId']) {
+  assert.doesNotMatch(summaryCard, new RegExp(`\\b${noise}\\b`), `summary card must not show ${noise}`)
+}
 assert.match(summaryCard, /role="progressbar"/, 'summary card must expose its credit balance as progress')
 assert.match(summaryCard, /aria-valuenow="creditBalancePercent"/, 'progress must expose its current balance')
 assert.match(summaryCard, /totalCredit\s*<=\s*0\) return 0/, 'zero total credit must produce a safe zero balance')
 assert.match(summaryCard, /Math\.min\(100, Math\.max\(0/, 'credit balance must be clamped to progress bounds')
-assert.match(summaryCard, /bg-on-surface\/45/, 'progress track must be darker than the primary card')
-assert.match(summaryCard, /packageEligibleService\.trim\(\)/, 'eligible service must preserve catalog text after trimming')
-assert.doesNotMatch(summaryCard, /serviceTypeLabel/, 'eligible service must not coerce unrestricted catalog text through service-type labels')
-assert.match(summaryCard, /replace\(\/_\/g, ' '\)/, 'eligible service must not display underscores')
 assert.match(summaryCard, /serviceDay\?\.trim\(\) \|\| 'Flexible'/, 'missing pickup day must remain Flexible')
 assert.match(summaryCard, /timeSlot\?\.trim\(\) \|\| 'By appointment'/, 'missing pickup time must remain By appointment')
-assert.match(summaryCard, /text-2xl/, 'package title must carry the primary visual weight')
-assert.match(summaryCard, /text-\[26px\]/, 'remaining credit must remain subordinate to the package title')
+assert.match(summaryCard, /tone: 'lime'/, 'an active package must use the lime status badge')
+assert.match(summaryCard, /status === 'EXPIRED'\) return \{ label: 'Expired', tone: 'danger', variant: 'solid' \}/, 'an expired package must use the solid danger badge')
+assert.match(detail, /:customer-index="customerIndex"/, 'detail must pass the customer index resolved from the customer store')
+assert.doesNotMatch(detail, /customerPhone|customerAddress/, 'detail must not show customer phone or address')
 assert.match(detail, /ListContainer/, 'detail must render its transaction timeline with ListContainer')
 assert.match(detail, /<template #actions><button[^>]*@click="openTransaction"/, 'add transaction must be an action in the activity ListContainer')
 assert.match(detail, /CustomerPackageTransactionForm/, 'detail page must render the transaction form boundary')
