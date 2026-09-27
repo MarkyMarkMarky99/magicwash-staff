@@ -148,7 +148,7 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
         <p class="text-sm text-on-surface-variant">{{ error }}</p>
         <button
           type="button"
-          class="rounded-xl bg-primary px-4 py-2 font-label text-[12px] font-semibold text-on-primary transition-all hover:bg-primary/90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+          class="rounded-xl bg-primary px-4 py-2 font-label text-[12px] font-semibold text-on-primary transition-all hover:bg-primary/90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime/60"
           @click="loadInvoice"
         >
           Retry
@@ -195,7 +195,7 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
             <section class="rounded-2xl border border-outline-variant/20 bg-surface-container-low p-3">
               <button
                 type="button"
-                class="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 font-label text-[13px] font-bold text-on-primary shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-wait disabled:opacity-60 disabled:active:scale-100"
+                class="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 font-label text-[13px] font-bold text-on-primary shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime/60 disabled:cursor-wait disabled:opacity-60 disabled:active:scale-100"
                 :disabled="printing"
                 :aria-busy="printing"
                 @click="handlePrint"

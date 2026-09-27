@@ -116,8 +116,8 @@ defineEmits(['update:modelValue'])
 }
 
 .option-button:focus-visible {
-  border-color: var(--color-secondary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-secondary) 14%, transparent);
+  border-color: var(--color-lime);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-lime) 14%, transparent);
 }
 
 .option-button--disabled {

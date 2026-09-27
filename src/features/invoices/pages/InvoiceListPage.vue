@@ -125,7 +125,7 @@ function openInvoice(invoiceNumber: string) {
     >
       <button
         type="button"
-        class="inline-flex h-9 items-center gap-1 rounded-full px-3 font-label text-xs font-bold text-primary transition-colors hover:bg-primary/10 disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        class="inline-flex h-9 items-center gap-1 rounded-full px-3 font-label text-xs font-bold text-primary transition-colors hover:bg-primary/10 disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
         :disabled="loading || page <= 1"
         @click="updateFilter({ page: page - 1 })"
       >
@@ -135,7 +135,7 @@ function openInvoice(invoiceNumber: string) {
       <span class="font-label text-xs font-bold text-on-surface-variant">Page {{ page }} of {{ totalPages }}</span>
       <button
         type="button"
-        class="inline-flex h-9 items-center gap-1 rounded-full px-3 font-label text-xs font-bold text-primary transition-colors hover:bg-primary/10 disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        class="inline-flex h-9 items-center gap-1 rounded-full px-3 font-label text-xs font-bold text-primary transition-colors hover:bg-primary/10 disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
         :disabled="loading || page >= totalPages"
         @click="updateFilter({ page: page + 1 })"
       >

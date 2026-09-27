@@ -82,7 +82,7 @@ function removeLine(index: number) {
         </button>
         <button
           type="button"
-          class="-my-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10 active:bg-primary/20 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          class="-my-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10 active:bg-primary/20 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
           aria-label="Add line"
           @click.stop="emit('addLine')"
         >
@@ -229,8 +229,8 @@ function removeLine(index: number) {
 }
 
 .invoice-line-control:focus {
-  border-color: var(--color-secondary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-secondary) 14%, transparent);
+  border-color: var(--color-lime);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-lime) 14%, transparent);
 }
 
 .invoice-line-select {

@@ -59,7 +59,7 @@ function removeRow(index: number) {
           :value="row.label"
           type="text"
           placeholder="Label, e.g. Member discount"
-          class="h-9 flex-1 min-w-0 rounded-lg bg-surface-container px-3 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-primary"
+          class="h-9 flex-1 min-w-0 rounded-lg bg-surface-container px-3 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-lime"
           @input="updateRow(index, { label: ($event.target as HTMLInputElement).value })"
         >
 
@@ -83,7 +83,7 @@ function removeRow(index: number) {
           type="number"
           step="any"
           placeholder="-10"
-          class="h-9 w-24 shrink-0 rounded-lg bg-surface-container px-3 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-primary"
+          class="h-9 w-24 shrink-0 rounded-lg bg-surface-container px-3 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-lime"
           @input="updateRow(index, { value: ($event.target as HTMLInputElement).value })"
         >
       </div>

@@ -177,7 +177,7 @@ function viewPhotos() {
                       :ref="setTrigger"
                       v-bind="triggerAttrs"
                       type="button"
-                      class="relative flex h-[22px] w-[22px] items-center justify-center rounded-full bg-surface-container text-on-surface-variant transition-all after:absolute after:-inset-2 after:content-[''] hover:bg-surface-container-high active:scale-95 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      class="relative flex h-[22px] w-[22px] items-center justify-center rounded-full bg-surface-container text-on-surface-variant transition-all after:absolute after:-inset-2 after:content-[''] hover:bg-surface-container-high active:scale-95 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
                       aria-label="Order actions"
                       @click.stop="toggle"
                     >

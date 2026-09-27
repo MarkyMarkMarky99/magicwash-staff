@@ -16,6 +16,7 @@ The palette is built from the brand's deep green and the logo (`src/assets/logo.
 - Shadows follow the same rule: use a token colour with opacity, e.g.
   `shadow-[0_-4px_16px_color-mix(in_srgb,var(--color-on-surface)_12%,transparent)]`, or a Tailwind
   shadow utility.
+- Focus indicators use `lime` (rings, outlines, focus borders, and the icon colour of dark round buttons).
 - SVG presentation attributes (`fill`, `stroke`) cannot read `var()`; colour SVG with classes such as
   `fill-lime` / `stroke-on-surface`. Canvas reads the token with `getComputedStyle` and applies
   opacity through `globalAlpha`.

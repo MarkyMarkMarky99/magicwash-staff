@@ -90,7 +90,7 @@ function choosePhoto() {
 .photo-card__copy strong { color:var(--ink); font-size:13px; }
 .photo-card__copy span { margin-top:3px; color:var(--quiet); font-size:11px; }
 .photo-action { flex:0 0 auto; padding:7px 9px; border:1px solid var(--color-outline); border-radius:8px; color:var(--teal); background:var(--color-surface-container-lowest); font:700 11px var(--font-body); cursor:pointer; }
-.photo-action:focus-visible { outline:3px solid var(--color-primary-container); outline-offset:2px; }
+.photo-action:focus-visible { outline:3px solid var(--color-lime); outline-offset:2px; }
 .fieldset { margin:0; padding:0; border:0; }
 .section-label { display:flex; align-items:center; gap:10px; margin:0 0 12px; color:var(--teal); font:700 12px var(--font-headline); letter-spacing:.03em; }
 .section-label::after { content:""; height:1px; flex:1; background:var(--line); }

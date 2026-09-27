@@ -141,7 +141,7 @@ defineExpose({ snapCard })
     }"
     :class="[
       'relative bg-surface-container-lowest',
-      pressable ? 'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-primary' : '',
+      pressable ? 'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-lime' : '',
     ].join(' ')"
     :role="pressable ? 'button' : undefined"
     :tabindex="pressable ? 0 : undefined"

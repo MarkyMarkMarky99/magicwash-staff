@@ -313,12 +313,12 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
 }
 
 .picker__trigger:focus {
-  border-color: var(--color-secondary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-secondary) 14%, transparent);
+  border-color: var(--color-lime);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-lime) 14%, transparent);
 }
 
 .picker__search:focus {
-  border-bottom-color: var(--color-secondary);
+  border-bottom-color: var(--color-lime);
 }
 
 .picker__icon {
@@ -376,7 +376,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
 }
 
 .picker__option:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--color-secondary);
+  box-shadow: inset 0 0 0 2px var(--color-lime);
 }
 
 .picker__option-text {

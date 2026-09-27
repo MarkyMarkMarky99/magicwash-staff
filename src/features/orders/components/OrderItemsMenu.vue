@@ -28,7 +28,7 @@ function select(action: 'addItem' | 'openAlbum' | 'openLibrary' | 'registerGarme
         :ref="setTrigger"
         v-bind="triggerAttrs"
         type="button"
-        class="relative -my-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full text-primary transition-colors after:absolute after:-inset-1.5 after:content-[''] hover:bg-primary/10 active:bg-primary/20 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        class="relative -my-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full text-primary transition-colors after:absolute after:-inset-1.5 after:content-[''] hover:bg-primary/10 active:bg-primary/20 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
         aria-label="Manage items"
         @click.stop="toggle"
       >

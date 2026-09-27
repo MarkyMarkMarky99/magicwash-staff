@@ -317,19 +317,19 @@ onBeforeRouteLeave(to => {
     >
       <template #actions>
         <div class="flex rounded-full bg-surface-container p-0.5 font-label text-[10px]">
-          <button type="button" class="flex items-center gap-1 rounded-full px-2 py-1 focus-visible:outline-2 focus-visible:outline-primary" :class="grouper === 'item' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'" :aria-pressed="grouper === 'item'" aria-label="By item" @click="changeGrouper('item')"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">grid_view</span><span class="hidden sm:inline">By item</span></button>
-          <button type="button" class="flex items-center gap-1 rounded-full px-2 py-1 focus-visible:outline-2 focus-visible:outline-primary" :class="grouper === 'order' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'" :aria-pressed="grouper === 'order'" aria-label="By order" @click="changeGrouper('order')"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">view_agenda</span><span class="hidden sm:inline">By order</span></button>
+          <button type="button" class="flex items-center gap-1 rounded-full px-2 py-1 focus-visible:outline-2 focus-visible:outline-lime" :class="grouper === 'item' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'" :aria-pressed="grouper === 'item'" aria-label="By item" @click="changeGrouper('item')"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">grid_view</span><span class="hidden sm:inline">By item</span></button>
+          <button type="button" class="flex items-center gap-1 rounded-full px-2 py-1 focus-visible:outline-2 focus-visible:outline-lime" :class="grouper === 'order' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'" :aria-pressed="grouper === 'order'" aria-label="By order" @click="changeGrouper('order')"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">view_agenda</span><span class="hidden sm:inline">By order</span></button>
         </div>
       </template>
       <template #error>
         <div class="px-4 py-6 text-center">
           <p role="alert" class="text-sm text-error">{{ listError }}</p>
-          <button type="button" class="mt-3 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" @click="reload">Try again</button>
+          <button type="button" class="mt-3 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" @click="reload">Try again</button>
         </div>
       </template>
 
       <div v-if="grouper === 'item'" class="grid grid-cols-2 gap-2 p-4 sm:grid-cols-3">
-        <button v-for="ticket in visibleTickets" :key="ticket.id" type="button" class="min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed" :disabled="ticket.laundryItemId === null" :aria-label="`Advance tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="ticket.laundryItemId && advanceTicket(ticket.laundryItemId, 'tap')">
+        <button v-for="ticket in visibleTickets" :key="ticket.id" type="button" class="min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-lime disabled:cursor-not-allowed" :disabled="ticket.laundryItemId === null" :aria-label="`Advance tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="ticket.laundryItemId && advanceTicket(ticket.laundryItemId, 'tap')">
           <SquareImageCard :image-url="ticket.photoEvidenceUrl">
             <template #badge><TicketStatusIcon :status="ticket.status" :state="tapStates.get(ticket.id)" /></template>
           </SquareImageCard>
@@ -340,7 +340,7 @@ onBeforeRouteLeave(to => {
         <div class="relative rounded-2xl border border-outline-variant/30 bg-surface-container-low">
           <button
             type="button"
-            class="w-full rounded-2xl p-4 text-left focus-visible:outline-2 focus-visible:outline-primary"
+            class="w-full rounded-2xl p-4 text-left focus-visible:outline-2 focus-visible:outline-lime"
             :aria-expanded="expandedOrderId === order.orderId"
             @click="expandedOrderId = expandedOrderId === order.orderId ? null : order.orderId"
           >
@@ -359,9 +359,9 @@ onBeforeRouteLeave(to => {
               </span>
             </span>
           </button>
-          <button type="button" class="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/25 text-on-surface focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-40" aria-label="Start all pending" :disabled="startingOrderId !== null || statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Pending') === 0" @click="startOrder(order.orderId)"><svg viewBox="0 0 24 24" class="h-6 w-6" aria-hidden="true"><path d="M8.5 6v12l9.5-6z" fill="currentColor" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round" /></svg></button>
+          <button type="button" class="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/25 text-on-surface focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-40" aria-label="Start all pending" :disabled="startingOrderId !== null || statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Pending') === 0" @click="startOrder(order.orderId)"><svg viewBox="0 0 24 24" class="h-6 w-6" aria-hidden="true"><path d="M8.5 6v12l9.5-6z" fill="currentColor" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round" /></svg></button>
           <div v-if="expandedOrderId === order.orderId" class="grid grid-cols-2 gap-2 px-4 pb-4 sm:grid-cols-3">
-            <button v-for="ticket in order.tickets" :key="ticket.id" type="button" class="min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed" :disabled="ticket.laundryItemId === null" :aria-label="`Advance tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="ticket.laundryItemId && advanceTicket(ticket.laundryItemId, 'tap')">
+            <button v-for="ticket in order.tickets" :key="ticket.id" type="button" class="min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-lime disabled:cursor-not-allowed" :disabled="ticket.laundryItemId === null" :aria-label="`Advance tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="ticket.laundryItemId && advanceTicket(ticket.laundryItemId, 'tap')">
               <SquareImageCard :image-url="ticket.photoEvidenceUrl">
                 <template #badge><TicketStatusIcon :status="ticket.status" :state="tapStates.get(ticket.id)" /></template>
               </SquareImageCard>
@@ -372,7 +372,7 @@ onBeforeRouteLeave(to => {
     </ListContainer>
     <ListContainer v-else title="Department not found" icon="error" count-label="orders" empty empty-text="Unknown department" />
 
-    <button v-if="department" type="button" :disabled="listLoading || !!listError" class="absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50" aria-label="Scan tag" @click="openScanner">
+    <button v-if="department" type="button" :disabled="listLoading || !!listError" class="absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime disabled:opacity-50" aria-label="Scan tag" @click="openScanner">
       <span class="material-symbols-outlined" aria-hidden="true">qr_code_scanner</span>
     </button>
 

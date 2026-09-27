@@ -6,6 +6,7 @@ import { appointmentPendingCountKey } from '@/shared/appointment-pending-count'
 import { useGoBack } from '@/shared/composables/use-go-back'
 import { APP_Z_INDEX_CLASS } from '@/shared/layouts/z-index'
 import NavSidebar from './NavSidebar.vue'
+import CloseButton from './CloseButton.vue'
 
 const router = useRouter()
 const route  = useRoute()
@@ -23,21 +24,18 @@ const canGoBack = computed(() => Boolean(route.meta.parent))
     :class="APP_Z_INDEX_CLASS.header"
   >
     <div class="flex items-center gap-2">
-      <button
-        class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
-        aria-label="Open menu"
-        @click="sidebarOpen = true"
-      >menu</button>
+      <CloseButton icon="menu" label="Open menu" tone="onDark" @click="sidebarOpen = true" />
       <img :src="logoUrl" alt="Magicwash Laundry" class="h-9 w-9 object-contain" />
       <h1 class="text-lg font-headline font-bold tracking-tight">Magicwash Laundry</h1>
     </div>
     <div class="flex items-center gap-2">
-      <button
+      <CloseButton
         v-if="canGoBack"
-        class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
-        aria-label="Go back"
+        icon="arrow_back"
+        label="Go back"
+        tone="onDark"
         @click="goBack"
-      >arrow_back</button>
+      />
 
       <template v-else-if="route.name === 'appointment-schedule'">
         <button

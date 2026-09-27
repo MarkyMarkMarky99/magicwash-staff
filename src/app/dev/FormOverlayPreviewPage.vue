@@ -183,7 +183,7 @@ async function submitPreview() {
 .sample-form textarea:focus,
 .sample-form select:focus,
 .preview-card__open:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--color-secondary) 25%, transparent);
+  outline: 3px solid color-mix(in srgb, var(--color-lime) 25%, transparent);
   outline-offset: 2px;
 }
 </style>

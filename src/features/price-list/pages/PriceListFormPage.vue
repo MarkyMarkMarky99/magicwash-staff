@@ -320,7 +320,7 @@ onMounted(async () => {
 label { display:block; margin-bottom:6px; font-size:12px; font-weight:700; color:var(--color-on-surface); }
 .required { color:var(--teal-2); }
 .control { display:block; width:100%; min-width:0; height:47px; padding:0 12px; color:var(--ink); border:1px solid var(--color-outline-variant); border-radius:10px; outline:0; background:white; font-size:14px; box-shadow:0 1px 0 color-mix(in srgb, var(--color-primary) 2%, transparent); }
-.control:focus { border-color:var(--teal-2); box-shadow:0 0 0 3px color-mix(in srgb, var(--color-secondary) 14%, transparent); }
+.control:focus { border-color:var(--lime); box-shadow:0 0 0 3px color-mix(in srgb, var(--color-lime) 14%, transparent); }
 select.control { padding-right:27px; background:linear-gradient(45deg, transparent 50%, var(--color-primary) 50%) no-repeat right 17px center / 6px 6px, linear-gradient(135deg, var(--color-primary) 50%, transparent 50%) no-repeat right 11px center / 6px 6px; background-color:white; appearance:none; }
 .item-name { margin-bottom:23px; }
 .price-panel { margin:2px 0 22px; padding:18px; border:1px solid var(--teal); border-radius:16px; background:var(--ink); }

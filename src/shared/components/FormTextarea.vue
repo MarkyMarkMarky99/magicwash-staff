@@ -22,7 +22,7 @@ defineEmits(['update:modelValue'])
       <textarea
         :id="id"
         :value="modelValue"
-        class="w-full h-32 p-4 rounded-xl bg-surface-container border border-outline-variant/30 focus:border-primary focus:ring-1 focus:ring-primary focus:bg-surface-container-lowest font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 resize-none transition-colors"
+        class="w-full h-32 p-4 rounded-xl bg-surface-container border border-outline-variant/30 focus:border-lime focus:ring-1 focus:ring-lime focus:bg-surface-container-lowest font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 resize-none transition-colors"
         :placeholder="placeholder"
         @input="$emit('update:modelValue', $event.target.value)"
       />

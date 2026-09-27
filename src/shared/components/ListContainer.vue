@@ -94,7 +94,7 @@ function toggleCollapsed() {
         <button
           v-if="searchable"
           type="button"
-          class="-my-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          class="-my-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
           :class="searchOpen || keywordInput ? 'bg-primary/10 text-primary' : 'text-primary hover:bg-primary/10 active:bg-primary/20'"
           :aria-label="searchOpen ? 'ปิดการค้นหา' : 'ค้นหา'"
           :aria-expanded="searchOpen"

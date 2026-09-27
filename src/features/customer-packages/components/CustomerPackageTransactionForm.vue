@@ -90,7 +90,7 @@ const movementTypeOptions = computed(() => props.movementTypes.map((type) => ({
             type="number"
             step="any"
             placeholder="For example, -1 or 1"
-            class="block h-[47px] w-full min-w-0 rounded-[10px] border border-outline-variant bg-white px-3 font-body text-sm text-on-surface shadow-[0_1px_0_color-mix(in_srgb,_var(--color-primary)_2%,_transparent)] outline-none placeholder:text-on-surface-variant focus:border-secondary focus:shadow-[0_0_0_3px_color-mix(in_srgb,_var(--color-secondary)_14%,_transparent)]"
+            class="block h-[47px] w-full min-w-0 rounded-[10px] border border-outline-variant bg-white px-3 font-body text-sm text-on-surface shadow-[0_1px_0_color-mix(in_srgb,_var(--color-primary)_2%,_transparent)] outline-none placeholder:text-on-surface-variant focus:border-lime focus:shadow-[0_0_0_3px_color-mix(in_srgb,_var(--color-lime)_14%,_transparent)]"
             @input="emit('update:creditChange', ($event.target as HTMLInputElement).value)"
           >
         </section>

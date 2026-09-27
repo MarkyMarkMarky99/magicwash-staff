@@ -285,7 +285,7 @@ function handleSubmit() {
 }
 
 .form-overlay__submit:focus-visible {
-  outline: 3px solid var(--color-warning);
+  outline: 3px solid var(--color-lime);
   outline-offset: 2px;
 }
 

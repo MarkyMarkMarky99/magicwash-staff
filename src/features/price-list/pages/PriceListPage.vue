@@ -250,7 +250,7 @@ onMounted(() => {
               v-for="tab in subcategoryTabs"
               :key="tab.key"
               type="button"
-              class="flex w-[88px] shrink-0 flex-col items-center gap-1.5 rounded-xl border p-2 text-center transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              class="flex w-[88px] shrink-0 flex-col items-center gap-1.5 rounded-xl border p-2 text-center transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
               :class="tab.key === (filter.subcategory ?? 'ALL') ? 'border-primary bg-primary text-on-primary' : 'border-outline-variant/30 bg-surface-container-low text-on-surface'"
               :aria-pressed="tab.key === (filter.subcategory ?? 'ALL')"
               :aria-label="`${tab.label} ${tab.count} รายการ`"
@@ -292,7 +292,7 @@ onMounted(() => {
       <template #actions>
         <button
           type="button"
-          class="-my-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10 active:bg-primary/20 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          class="-my-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10 active:bg-primary/20 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
           aria-label="เพิ่มรายการราคา"
           @click="openCreate"
         >
