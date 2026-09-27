@@ -1,17 +1,20 @@
 <script setup lang="ts">
 export type BadgeTone = 'neutral' | 'brand' | 'accent' | 'info' | 'warning' | 'success' | 'danger'
-export type BadgeSize = 'xs' | 'sm' | 'md' | 'lg'
+export type BadgeSize = 'sm' | 'lg'
+export type BadgeVariant = 'soft' | 'solid'
 
 const props = withDefaults(
   defineProps<{
     label: string
     tone?: BadgeTone
     size?: BadgeSize
+    variant?: BadgeVariant
     uppercase?: boolean
   }>(),
   {
     tone: 'neutral',
-    size: 'xs',
+    size: 'sm',
+    variant: 'soft',
     uppercase: false,
   }
 )
@@ -27,10 +30,8 @@ const TONE_CLASSES: Record<BadgeTone, string> = {
 }
 
 const SIZE_CLASSES: Record<BadgeSize, string> = {
-  xs: 'px-1.5 py-px text-[9px]',
-  sm: 'px-2 py-px text-[9px]',
-  md: 'px-2 py-1 text-[10px]',
-  lg: 'px-2.5 py-1 text-[10px]',
+  sm: 'px-2 py-0.5 text-[9px] leading-none [text-box:trim-both_cap_alphabetic]',
+  lg: 'px-2.5 py-1 text-[11px] leading-none [text-box:trim-both_cap_alphabetic]',
 }
 </script>
 
@@ -38,7 +39,9 @@ const SIZE_CLASSES: Record<BadgeSize, string> = {
   <span
     class="inline-flex shrink-0 items-center rounded-full font-label font-bold"
     :class="[
-      TONE_CLASSES[props.tone],
+      props.tone === 'danger' && props.variant === 'solid'
+        ? 'bg-error text-on-error'
+        : TONE_CLASSES[props.tone],
       SIZE_CLASSES[props.size],
       props.uppercase ? 'uppercase tracking-wide' : '',
     ]"

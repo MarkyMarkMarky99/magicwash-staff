@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
+import BaseBadge from '@/shared/components/BaseBadge.vue'
 import InvoiceCustomerCard from '../components/InvoiceCustomerCard.vue'
 import InvoicePaymentsMenu from '../components/InvoicePaymentsMenu.vue'
 import InvoiceProofLightbox from '../components/InvoiceProofLightbox.vue'
@@ -28,11 +29,11 @@ const printError = ref<string | null>(null)
 let latestRequest = 0
 
 const statusStyles: Record<string, { badge: string; icon: string }> = {
-  DRAFT: { badge: 'bg-gray-100 text-gray-600', icon: 'draft' },
-  UNPAID: { badge: 'bg-amber-100 text-amber-700', icon: 'schedule' },
+  DRAFT: { badge: 'bg-surface-container text-on-surface-variant', icon: 'draft' },
+  UNPAID: { badge: 'bg-warning-container text-on-warning-container', icon: 'schedule' },
   OVERDUE: { badge: 'bg-error-container text-on-error-container', icon: 'event_busy' },
-  PARTIALLY_PAID: { badge: 'bg-blue-100 text-blue-700', icon: 'donut_large' },
-  PAID: { badge: 'bg-green-100 text-green-700', icon: 'task_alt' },
+  PARTIALLY_PAID: { badge: 'bg-info-container text-on-info-container', icon: 'donut_large' },
+  PAID: { badge: 'bg-success-container text-on-success-container', icon: 'task_alt' },
   CANCELLED: { badge: 'bg-error-container text-on-error-container', icon: 'cancel' },
   VOID: { badge: 'bg-error-container text-on-error-container', icon: 'block' },
 }
@@ -53,7 +54,7 @@ const isReadOnlyFooterVisible = computed(() => {
 })
 
 function statusStyle(status: string) {
-  return statusStyles[status] ?? { badge: 'bg-gray-100 text-gray-600', icon: 'receipt_long' }
+  return statusStyles[status] ?? { badge: 'bg-surface-container text-on-surface-variant', icon: 'receipt_long' }
 }
 
 function statusLabel(status: string) {
@@ -147,7 +148,7 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
         <p class="text-sm text-on-surface-variant">{{ error }}</p>
         <button
           type="button"
-          class="rounded-xl bg-primary px-4 py-2 font-label text-[12px] font-semibold text-on-primary transition-all hover:bg-primary/90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+          class="rounded-xl bg-primary px-4 py-2 font-label text-[12px] font-semibold text-on-primary transition-all hover:bg-primary/90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime/60"
           @click="loadInvoice"
         >
           Retry
@@ -175,24 +176,18 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
               <div class="flex min-w-[112px] shrink-0 flex-col items-end gap-2 pt-0.5">
                 <div class="flex items-center gap-2">
                   <p class="whitespace-nowrap font-label text-[9px] font-bold uppercase tracking-wide text-on-surface-variant">Issued</p>
-                  <span class="inline-flex items-center whitespace-nowrap rounded-full bg-primary/10 px-2.5 py-1 font-headline text-[11px] font-bold text-primary">
-                    {{ formatSheetDate(invoice.issuedDate) }}
-                  </span>
+                  <BaseBadge class="whitespace-nowrap" :label="formatSheetDate(invoice.issuedDate)" size="lg" tone="brand" />
                 </div>
                 <div class="flex items-center gap-2">
                   <p class="whitespace-nowrap font-label text-[9px] font-bold uppercase tracking-wide text-on-surface-variant">Due</p>
-                  <span class="inline-flex items-center whitespace-nowrap rounded-full bg-primary/10 px-2.5 py-1 font-headline text-[11px] font-bold text-primary">
-                    {{ formatSheetDate(invoice.dueDate) }}
-                  </span>
+                  <BaseBadge class="whitespace-nowrap" :label="formatSheetDate(invoice.dueDate)" size="lg" tone="brand" />
                 </div>
                 <div
                   v-if="invoice.billingPeriodStart || invoice.billingPeriodEnd"
                   class="flex items-center gap-2"
                 >
                   <p class="whitespace-nowrap font-label text-[9px] font-bold uppercase tracking-wide text-on-surface-variant">Billing</p>
-                  <span class="inline-flex items-center whitespace-nowrap rounded-full bg-primary/10 px-2.5 py-1 font-headline text-[11px] font-bold text-primary">
-                    {{ formatSheetDate(invoice.billingPeriodStart) }} – {{ formatSheetDate(invoice.billingPeriodEnd) }}
-                  </span>
+                  <BaseBadge class="whitespace-nowrap" :label="`${formatSheetDate(invoice.billingPeriodStart)} – ${formatSheetDate(invoice.billingPeriodEnd)}`" size="lg" tone="brand" />
                 </div>
               </div>
             </section>
@@ -200,7 +195,7 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
             <section class="rounded-2xl border border-outline-variant/20 bg-surface-container-low p-3">
               <button
                 type="button"
-                class="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 font-label text-[13px] font-bold text-on-primary shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-wait disabled:opacity-60 disabled:active:scale-100"
+                class="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 font-label text-[13px] font-bold text-on-primary shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime/60 disabled:cursor-wait disabled:opacity-60 disabled:active:scale-100"
                 :disabled="printing"
                 :aria-busy="printing"
                 @click="handlePrint"
@@ -214,7 +209,7 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
               </button>
               <p
                 v-if="printSuccess"
-                class="mt-2 rounded-xl bg-green-100 px-3 py-2 font-body text-xs text-green-800"
+                class="mt-2 rounded-xl bg-success-container px-3 py-2 font-body text-xs text-on-success-container"
                 role="status"
               >
                 {{ printSuccess }}
@@ -255,7 +250,7 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
                   <div v-if="item.adjustments.length" class="mt-2 space-y-1 border-l-2 border-outline-variant/30 pl-3">
                     <div v-for="(adjustment, adjustmentIndex) in item.adjustments" :key="`${adjustment.label}-${adjustmentIndex}`" class="flex items-start justify-between gap-3">
                       <span class="font-body text-[11px] leading-relaxed text-on-surface-variant">{{ adjustment.label }}</span>
-                      <span class="shrink-0 font-body text-[11px]" :class="(adjustment.value ?? 0) < 0 ? 'text-green-700' : 'text-on-surface-variant'">
+                      <span class="shrink-0 font-body text-[11px]" :class="(adjustment.value ?? 0) < 0 ? 'text-on-success-container' : 'text-on-surface-variant'">
                         {{ formatAdjustment(adjustment) }}
                       </span>
                     </div>
@@ -283,28 +278,28 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
                 <template v-if="invoice.adjustments.length">
                   <div v-for="(adjustment, index) in invoice.adjustments" :key="`${adjustment.label}-${index}`" class="flex items-center justify-between gap-3 py-0.5">
                     <span class="font-body text-[13px] leading-snug text-on-surface-variant">{{ adjustment.label }}</span>
-                    <span class="shrink-0 font-body text-[13px]" :class="(adjustment.value ?? 0) < 0 ? 'text-green-700' : 'text-on-surface'">
+                    <span class="shrink-0 font-body text-[13px]" :class="(adjustment.value ?? 0) < 0 ? 'text-on-success-container' : 'text-on-surface'">
                       {{ formatAdjustment(adjustment) }}
                     </span>
                   </div>
                 </template>
                 <div v-else class="flex items-center justify-between gap-3 py-0.5">
                   <span class="font-body text-[13px] leading-snug text-on-surface-variant">Adjustments</span>
-                  <span class="shrink-0 font-body text-[13px]" :class="invoice.adjustmentTotal < 0 ? 'text-green-700' : 'text-on-surface'">
+                  <span class="shrink-0 font-body text-[13px]" :class="invoice.adjustmentTotal < 0 ? 'text-on-success-container' : 'text-on-surface'">
                     {{ formatMoney(invoice.adjustmentTotal) }}
                   </span>
                 </div>
 
                 <div class="flex items-center justify-between gap-3 py-0.5">
                   <span class="font-body text-[13px] leading-snug text-on-surface-variant">Paid</span>
-                  <span class="shrink-0 font-body text-[13px]" :class="invoice.paidAmount > 0 ? 'text-green-700' : 'text-on-surface'">
+                  <span class="shrink-0 font-body text-[13px]" :class="invoice.paidAmount > 0 ? 'text-on-success-container' : 'text-on-surface'">
                     {{ formatMoney(invoice.paidAmount > 0 ? -invoice.paidAmount : invoice.paidAmount) }}
                   </span>
                 </div>
 
                 <div class="mt-2 flex items-center justify-between gap-3 border-t border-outline-variant/25 pt-2">
                   <span class="font-headline text-[14px] font-bold leading-snug text-on-surface">Total due</span>
-                  <span class="shrink-0 font-headline text-[18px] font-bold" :class="invoice.balanceDue > 0 ? 'text-error' : 'text-green-700'">
+                  <span class="shrink-0 font-headline text-[18px] font-bold" :class="invoice.balanceDue > 0 ? 'text-error' : 'text-on-success-container'">
                     {{ formatMoney(invoice.balanceDue) }}
                   </span>
                 </div>

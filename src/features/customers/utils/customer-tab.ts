@@ -1,4 +1,4 @@
-export const CUSTOMER_DETAIL_TABS = ['orders', 'packages', 'invoices'] as const
+export const CUSTOMER_DETAIL_TABS = ['orders', 'packages', 'invoices', 'appointments'] as const
 
 export type CustomerDetailTab = typeof CUSTOMER_DETAIL_TABS[number]
 

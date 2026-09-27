@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-import { appointmentCreateRoute } from '@/shared/navigation/form-routes'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import type { CustomerDetailDto } from '@/data/customers/customer.service'
 
@@ -9,7 +7,6 @@ import type { BadgeTone } from '@/shared/components/BaseBadge.vue'
 defineProps<{
   customer: CustomerDetailDto
 }>()
-const emit = defineEmits<{ createOrder: [] }>()
 
 const TYPE_TONES: Record<string, BadgeTone> = {
   Regular: 'neutral',
@@ -17,11 +14,6 @@ const TYPE_TONES: Record<string, BadgeTone> = {
   Corporate: 'warning',
 }
 
-const router = useRouter()
-
-function openNewBooking(customer: CustomerDetailDto) {
-  router.push(appointmentCreateRoute({ customerId: customer.customerId }))
-}
 </script>
 
 <template>
@@ -36,7 +28,7 @@ function openNewBooking(customer: CustomerDetailDto) {
           <BaseBadge
             v-if="customer.customerType"
             :label="customer.customerType"
-            size="md"
+            size="lg"
             :uppercase="true"
             :tone="TYPE_TONES[customer.customerType] || 'neutral'"
           />
@@ -52,24 +44,6 @@ function openNewBooking(customer: CustomerDetailDto) {
         </p>
       </div>
 
-      <div class="flex shrink-0 flex-col gap-2">
-        <button
-          type="button"
-          class="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-on-primary shadow-sm transition hover:opacity-90"
-          @click="emit('createOrder')"
-        >
-          <span class="material-symbols-outlined text-[16px]" aria-hidden="true">post_add</span>
-          New Order
-        </button>
-        <button
-          type="button"
-          class="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-on-primary shadow-sm transition hover:opacity-90"
-          @click="openNewBooking(customer)"
-        >
-          <span class="material-symbols-outlined text-[16px]" aria-hidden="true">calendar_add_on</span>
-          Schedule Pickup
-        </button>
-      </div>
     </div>
   </section>
 </template>

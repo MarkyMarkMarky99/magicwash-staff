@@ -60,7 +60,7 @@ function formatPrice(price: number): string {
             v-for="option in options"
             :key="option.id"
             type="button"
-            class="flex min-h-14 w-full items-center gap-3 border-b border-outline-variant/20 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-surface-container-low focus-visible:relative focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-primary"
+            class="flex min-h-14 w-full items-center gap-3 border-b border-outline-variant/20 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-surface-container-low focus-visible:relative focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-lime"
             :aria-label="`เลือกราคา ${formatPrice(option.price)} บาท${hasDifferentServices ? ` ${serviceTypeLabel(option.serviceType)}` : ''}${!option.active ? ' ปิดใช้งาน' : ''}${needsDisambiguation(option) ? ` รหัสราคา ${option.id}` : ''}`"
             @click="emit('select', option.id)"
           >

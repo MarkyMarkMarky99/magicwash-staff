@@ -1,11 +1,24 @@
 # Project memory
 
-- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24; item quantity reassign and detail Approve button merged 2026-09-25; department ring head, tap-to-advance and order Start merged 2026-09-25; optional staff Google sign-in, shared CloseButton and PhotoSwipe PhotoViewer merged 2026-09-27.
+- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24; item quantity reassign and detail Approve button merged 2026-09-25; department ring head, tap-to-advance and order Start merged 2026-09-25; optional staff Google sign-in, shared CloseButton and PhotoSwipe PhotoViewer merged 2026-09-27; customer detail tabs + bottom nav, two-size BaseBadge, central colour palette, lime focus and sticker buttons merged 2026-09-27.
 
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
+
 ## Pending work
+
+- **Customer detail and visual system** (merged 2026-09-27)
+  - Browser-verify create dropdowns open, order swipe "Order detail", and appointment date order; the ui-shots run failed to capture these.
+  - Pill shows `0 PACKAGES` while the list is still loading.
+  - Order rows show `—` as line 2 when there is no note; consider hiding the line.
+  - Long invoice numbers truncate (`INV20260905-41f3…`).
+  - Package names are long in the `Packages` sheet itself; user to choose renaming them there or showing `packageCode`.
+  - Browser-check customer detail `BottomNavBar` on a phone: floating lime sticker + pop animation, custom section icons, `pb-14` list clearance.
+  - Order detail Approve is now `OrderApproveButton` (sticker FAB); only the quantity-mismatch disable shows a reason.
+  - Browser-check `CloseButton` onDark sticker style (lime outline squircle, solid lime + offset shadow when active) on header (menu, back, pending with badge) and the 6 dark-overlay X buttons; hover/focus pop animation.
+  - Browser-check the app-wide palette move (mint/tertiary removed, info = logo steel blue): order hero card, document scanner, shared form controls.
+  - Browser-check `BaseBadge` two-size standard (sm/lg): `N items` chip grew 9px→11px, lg badges got shorter.
 
 - **Garment tracking and job tickets**
   - Decide the order status sequence before any swipe-to-advance work.
@@ -108,7 +121,7 @@
   - Browser-verify appointment creation without a customer location in Preview.
   - `src/features/orders/utils/order-price-list-items.ts` has no caller since Orders moved to Items, but keeps a unit test; decide whether to delete both.
   - `output/price-list-images/generated/*.jpg` are committed generated artifacts; decide whether they belong in the repo or `.gitignore`.
-  - Four allowlisted cross-feature imports remain, all UI that knows domain fields, with no legal home under the current rule. Accepted for now; reopen only when a third feature needs one of them.
+  - Two allowlisted cross-feature imports remain (`PriceListItemPicker` in invoices and orders), UI that knows domain fields, with no legal home under the current rule. Accepted for now; reopen only when a third feature needs it.
   - Placement rule settled 2026-09-16: UI folders (`src/shared/components`, `layouts`) stay generic and must not know domain fields; non-UI folders under `src/shared/` may hold cross-feature business rules. Rejected and not to be re-proposed: `src/shared/components/<domain>/`, a new `src/ui/<domain>/` layer, and moving the per-feature status-presentation modules to `src/shared/utils/`.
   - Appointment date strip opens at day 1 instead of centering today; a `scrollTo` attempt hid the strip, so diagnose in a real browser first.
   - `ListContainer` collapsible header is a non-focusable `div` without `aria-expanded`; schedule slots now start collapsed when empty.
@@ -118,4 +131,4 @@
   - Delete sheet test data: `Packages` `ZZTEST01` / `af9f0651`; `OrderForm` `246fde2b`, `cc4d375e`, `f68ae08d`; `LaundryPhotos` `QK0H9DT1`, `a260b2b1`, `1b7649ba`; `AfterPhoto` `0aacd052`.
   - Browser-check the appointment card status badge now sitting in the top-end slot on both the schedule and pending pages.
   - Browser-check swipe cards now opening 4rem per action (`leftActions`/`rightActions`), incl. the AppointmentCard "Swipe to …" label in 4rem.
-  - Customer pages are meant to be view-only; decide whether to drop New Order, Schedule Pickup, Book Delivery, Create Invoice, package usage and Buy package there.
+  - User kept New Order, Schedule Pickup, New Package and Create Invoice on customer detail as per-tab dropdowns (2026-09-27); Book Delivery and package usage in the order sheet still undecided.

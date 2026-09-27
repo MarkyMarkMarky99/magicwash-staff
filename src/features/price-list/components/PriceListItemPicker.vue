@@ -7,6 +7,7 @@ import PickerOverlay from '@/shared/layouts/PickerOverlay.vue'
 import DetailOverlay from '@/shared/layouts/DetailOverlay.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import ImageOrIcon from '@/shared/components/ImageOrIcon.vue'
+import CloseButton from '@/shared/components/CloseButton.vue'
 import { serviceTypeLabel, serviceTypeLabelEn } from '@/shared/utils/service-type-labels'
 import { groupItemTypes, groupVariants } from '../utils/price-list-picker-groups'
 import { comparePriceListCategories, defaultItemCategory, defaultItemSubcategory } from '../utils/price-list-display'
@@ -148,30 +149,30 @@ function formatPrice(price: number): string {
   >
     <template #header>
       <header class="relative flex-none overflow-hidden bg-primary text-on-primary">
-        <div v-if="selectionMode === 'item'" class="pointer-events-none absolute -right-[138px] -top-[112px] h-[270px] w-[270px] rounded-full border-[34px] border-mint/[0.17]" aria-hidden="true" />
+        <div v-if="selectionMode === 'item'" class="pointer-events-none absolute -right-[138px] -top-[112px] h-[270px] w-[270px] rounded-full border-[34px] border-lime/[0.17]" aria-hidden="true" />
         <div class="relative px-4" :class="selectionMode === 'item' ? 'pb-3 pt-[calc(1rem+env(safe-area-inset-top))]' : 'pb-4 pt-[calc(1.75rem+env(safe-area-inset-top))]'">
-          <p v-if="selectionMode !== 'item'" class="font-label text-[11px] font-bold text-mint">PRICE LIST</p>
+          <p v-if="selectionMode !== 'item'" class="font-label text-[11px] font-bold text-lime">PRICE LIST</p>
           <h1 class="pr-12 font-headline text-xl font-bold" :class="selectionMode === 'item' ? 'flex h-10 items-center' : 'mt-1'">Select an item</h1>
           <p v-if="selectionMode !== 'item'" class="mt-1 truncate font-body text-xs text-on-primary/80">{{ detail }}</p>
           <label class="relative block" :class="selectionMode === 'item' ? 'mt-2' : 'mt-4'">
             <span class="sr-only">Search items</span>
             <span class="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant" aria-hidden="true">search</span>
             <input v-model="search" type="search" autocomplete="off" :placeholder="selectionMode === 'item' ? 'Search name, code, or category' : 'Search name, code, variant, or service'"
-              class="w-full rounded-xl bg-white pl-10 pr-3 font-body text-sm text-on-surface outline-none focus:ring-2 focus:ring-mint"
+              class="w-full rounded-xl bg-white pl-10 pr-3 font-body text-sm text-on-surface outline-none focus:ring-2 focus:ring-lime"
               :class="selectionMode === 'item' ? 'py-2' : 'py-2.5'">
           </label>
         </div>
         <div v-if="selectionMode === 'item'" class="relative h-4 rounded-t-2xl bg-surface" aria-hidden="true" />
       </header>
 
-      <p v-if="truncated && !loading && !error" class="flex-none bg-amber-50 px-4 py-2 text-xs text-amber-900">This list may be incomplete. Try a more specific search.</p>
+      <p v-if="truncated && !loading && !error" class="flex-none bg-warning-container/50 px-4 py-2 text-xs text-on-warning-container">This list may be incomplete. Try a more specific search.</p>
     </template>
         <section v-if="!loading && !error && categories.length" class="pt-5">
           <h2 class="px-4 font-headline text-lg font-bold text-on-surface">Categories</h2>
           <ScrollRegion axis="x" sizing="auto" class="mt-3 px-4">
             <div class="flex w-max gap-3 pb-2 pr-4">
               <button v-for="name in [null, ...categories]" :key="name ?? 'all'" type="button"
-                class="flex w-[76px] shrink-0 flex-col items-center gap-2 text-center focus-visible:rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                class="flex w-[76px] shrink-0 flex-col items-center gap-2 text-center focus-visible:rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime"
                 :aria-pressed="category === name" @click="selectCategory(name)">
                 <span class="flex h-[72px] w-[72px] items-center justify-center rounded-full border-2 transition-colors"
                   :class="category === name ? 'border-primary bg-primary text-on-primary' : 'border-transparent bg-surface-container-low text-primary'">
@@ -188,7 +189,7 @@ function formatPrice(price: number): string {
           <ScrollRegion axis="x" sizing="auto" class="mt-3 px-4">
             <div class="flex w-max gap-2 pb-2 pr-4">
               <button v-for="name in [null, ...subcategories]" :key="name ?? 'all'" type="button"
-                class="shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                class="shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime"
                 :class="subcategory === name ? 'bg-primary text-on-primary' : 'bg-surface-container-low text-on-surface'"
                 :aria-pressed="subcategory === name" @click="subcategory = name">{{ name ?? 'All' }}</button>
             </div>
@@ -197,7 +198,7 @@ function formatPrice(price: number): string {
 
         <div v-if="selectionMode === 'item' || (!loading && !error && typeGroups.length)" class="flex items-center justify-between gap-3 px-4 pt-5">
           <h2 v-if="!loading && !error && typeGroups.length" class="font-headline text-lg font-bold text-on-surface">Items</h2>
-          <button v-if="selectionMode === 'item'" type="button" :disabled="!category || !subcategory" class="ml-auto font-label text-xs font-bold tracking-wide text-primary focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40" @click="emit('create', category, subcategory)">NEW ITEM</button>
+          <button v-if="selectionMode === 'item'" type="button" :disabled="!category || !subcategory" class="ml-auto font-label text-xs font-bold tracking-wide text-primary focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime disabled:cursor-not-allowed disabled:opacity-40" @click="emit('create', category, subcategory)">NEW ITEM</button>
         </div>
         <div v-if="loading" class="grid grid-cols-2 gap-3 p-4" aria-busy="true" aria-label="Loading price list items">
           <div v-for="n in 6" :key="n" class="overflow-hidden rounded-2xl bg-surface-container-low">
@@ -212,7 +213,7 @@ function formatPrice(price: number): string {
         <div v-else-if="typeGroups.length === 0" class="px-6 py-16 text-center text-sm text-on-surface-variant">No matching items found.</div>
         <div v-else class="grid grid-cols-2 gap-x-3 gap-y-5 p-4 pt-3">
           <button v-for="group in typeGroups" :key="group.key" type="button"
-            class="min-w-0 rounded-xl text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+            class="min-w-0 rounded-xl text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime"
             :aria-label="`Select ${group.itemType} ${group.items[0]?.displayNameTh}${selectionMode === 'item' ? ` ${group.items[0]?.itemCode}` : ''} to add an item`" @click="openType(group)">
             <span class="relative block aspect-square overflow-hidden rounded-xl bg-surface-container-low">
               <ImageOrIcon :image-url="imageFor(group.items)" icon="checkroom" fit="contain"
@@ -231,9 +232,7 @@ function formatPrice(price: number): string {
   <DetailOverlay v-if="selectionMode !== 'item'" :open="open && sheetOpen" :ariaLabel="selectedType?.itemType ?? 'Select a price option'" @close="closeSheet">
     <template #header>
       <header class="flex items-center gap-3 border-b border-outline-variant/20 px-4 pb-2 pr-14 pt-0.5">
-        <button v-if="step === 'price'" type="button" class="rounded-full p-2 text-primary" aria-label="Back to variants" @click="backToVariants">
-          <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-        </button>
+        <CloseButton v-if="step === 'price'" icon="arrow_back" label="Back to variants" tone="onLight" class="text-primary" @click="backToVariants" />
         <div class="min-w-0 flex-1">
           <p class="truncate text-xs text-on-surface-variant">{{ selectedType?.category }} · {{ selectedType?.subcategory }}</p>
           <h2 class="truncate font-headline text-lg font-bold">{{ selectedType?.itemType }}</h2>
@@ -244,7 +243,7 @@ function formatPrice(price: number): string {
           <div v-if="step === 'variant'" key="variant" class="space-y-3 p-4">
             <p class="font-label text-xs font-bold text-on-surface-variant">Select a variant or size</p>
             <button v-for="variant in variants" :key="variant.key" type="button"
-              class="flex w-full items-center gap-3 rounded-2xl border border-outline-variant/30 p-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+              class="flex w-full items-center gap-3 rounded-2xl border border-outline-variant/30 p-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime"
               @click="chooseVariant(variant.key)">
               <ImageOrIcon :image-url="imageFor(variant.items)" icon="checkroom" fit="contain"
                 class="h-16 w-16 rounded-xl bg-surface-container-low" />
@@ -258,7 +257,7 @@ function formatPrice(price: number): string {
           <div v-else key="price" class="space-y-3 p-4">
             <p class="font-label text-xs font-bold text-on-surface-variant">Select a service and price · {{ selectedVariantKey || 'General' }}</p>
             <button v-for="item in priceOptions" :key="item.id" type="button"
-              class="w-full rounded-2xl border border-outline-variant/30 bg-surface p-4 text-left shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+              class="w-full rounded-2xl border border-outline-variant/30 bg-surface p-4 text-left shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime"
               :aria-label="`Select ${item.displayNameTh} ${serviceTypeLabelEn(item.serviceType)} for ${formatPrice(item.price)}`"
               @click="selectOption(item)">
               <span class="flex items-start justify-between gap-3">

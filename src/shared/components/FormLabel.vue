@@ -19,6 +19,6 @@ defineProps<{
   font-family: 'Noto Sans Thai', system-ui, sans-serif;
   font-size: 12px;
   font-weight: 700;
-  color: #234f49;
+  color: var(--color-on-surface);
 }
 </style>

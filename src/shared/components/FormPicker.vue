@@ -278,12 +278,12 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
   min-width: 0;
   height: 47px;
   padding: 0 12px;
-  color: #073f38;
-  border: 1px solid #a9c9c3;
+  color: var(--color-on-surface);
+  border: 1px solid var(--color-outline-variant);
   border-radius: 10px;
   outline: 0;
-  background: #fff;
-  box-shadow: 0 1px 0 rgba(0, 79, 69, 0.02);
+  background: white;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-primary) 2%, transparent);
   font-family: inherit;
   font-size: 14px;
   text-align: left;
@@ -296,12 +296,12 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
   min-width: 0;
   height: 40px;
   padding: 0 12px;
-  color: #073f38;
+  color: var(--color-on-surface);
   border: 0;
-  border-bottom: 1px solid #dceae7;
+  border-bottom: 1px solid var(--color-surface-variant);
   border-radius: 0;
   outline: 0;
-  background: #fff;
+  background: white;
   font-family: inherit;
   font-size: 14px;
   transition: border-color 150ms;
@@ -309,21 +309,21 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
 
 .picker__trigger--placeholder,
 .picker__search::placeholder {
-  color: #5f7772;
+  color: var(--color-on-surface-variant);
 }
 
 .picker__trigger:focus {
-  border-color: #007a69;
-  box-shadow: 0 0 0 3px rgba(0, 122, 105, 0.14);
+  border-color: var(--color-lime);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-lime) 14%, transparent);
 }
 
 .picker__search:focus {
-  border-bottom-color: #007a69;
+  border-bottom-color: var(--color-lime);
 }
 
 .picker__icon {
   flex: 0 0 auto;
-  color: #5f7772;
+  color: var(--color-on-surface-variant);
   font-size: 20px;
 }
 
@@ -333,10 +333,10 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
   overflow: hidden;
   width: 100%;
   margin-top: 6px;
-  border: 1px solid #cfe2de;
+  border: 1px solid var(--color-outline-variant);
   border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 12px 28px rgba(0, 79, 69, 0.18);
+  background: white;
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--color-primary) 18%, transparent);
 }
 
 .picker__options {
@@ -353,7 +353,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
   gap: 8px;
   min-width: 0;
   padding: 9px 10px;
-  color: #073f38;
+  color: var(--color-on-surface);
   border: 0;
   border-radius: 8px;
   outline: 0;
@@ -366,17 +366,17 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
 }
 
 .picker__option--unselected:hover:not(:disabled) {
-  background: #f1f7f6;
+  background: var(--color-surface-container-low);
 }
 
 .picker__option--selected {
-  color: #004f45;
-  background: #e6f2f0;
+  color: var(--color-primary);
+  background: var(--color-surface-container);
   font-weight: 600;
 }
 
 .picker__option:focus-visible {
-  box-shadow: inset 0 0 0 2px #007a69;
+  box-shadow: inset 0 0 0 2px var(--color-lime);
 }
 
 .picker__option-text {
@@ -388,7 +388,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
 
 .picker__option-check {
   flex: 0 0 auto;
-  color: #007a69;
+  color: var(--color-secondary);
   font-size: 18px;
 }
 
@@ -406,7 +406,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
 
 .picker__option-description {
   margin-top: 2px;
-  color: #5f7772;
+  color: var(--color-on-surface-variant);
   font-size: 12px;
   font-weight: 400;
 }
@@ -414,11 +414,11 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleDocument
 .picker__message {
   margin: 0;
   padding: 12px;
-  color: #5f7772;
+  color: var(--color-on-surface-variant);
   font-size: 14px;
 }
 
 .picker__message--error {
-  color: #b42318;
+  color: var(--color-error);
 }
 </style>

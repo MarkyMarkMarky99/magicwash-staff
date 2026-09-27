@@ -19,7 +19,7 @@ function selectItem(): void {
 <template>
   <div class="relative">
   <article
-    class="flex cursor-pointer items-center gap-3 py-2 pl-4 pr-14 transition-colors hover:bg-surface-container-low active:bg-surface-container focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+    class="flex cursor-pointer items-center gap-3 py-2 pl-4 pr-14 transition-colors hover:bg-surface-container-low active:bg-surface-container focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-lime"
     role="button"
     tabindex="0"
     :aria-label="`Open garment album${item.description ? ` ${item.description}` : ` item ${index + 1}`}`"

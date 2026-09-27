@@ -19,7 +19,7 @@ const hasExtraFilter = computed(() => Boolean(props.filter.customerId || props.f
 <template>
   <button
     type="button"
-    class="-my-0.5 inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-full px-2 transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+    class="-my-0.5 inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-full px-2 transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
     :class="props.open || hasExtraFilter
       ? 'bg-primary/10 text-primary'
       : 'text-primary hover:bg-primary/10 active:bg-primary/20'"

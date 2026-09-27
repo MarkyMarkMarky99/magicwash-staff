@@ -341,8 +341,8 @@ async function copyLiffUrl(invoiceNumber: string) {
 <template>
   <AppLayout>
   <ScrollRegion as="main" class="bg-surface pb-24">
-    <div v-if="warningInvoiceNumber" class="mx-4 mt-4 flex items-start gap-2 rounded-xl border border-tertiary/30 bg-tertiary-container/20 px-3 py-2.5 text-on-surface">
-      <span class="material-symbols-outlined mt-0.5 shrink-0 text-[18px] leading-none text-tertiary" aria-hidden="true">warning</span>
+    <div v-if="warningInvoiceNumber" class="mx-4 mt-4 flex items-start gap-2 rounded-xl border border-warning/30 bg-warning-container/20 px-3 py-2.5 text-on-surface">
+      <span class="material-symbols-outlined mt-0.5 shrink-0 text-[18px] leading-none text-warning" aria-hidden="true">warning</span>
       <p class="font-body text-sm leading-relaxed">
         This order already has invoice <span class="font-semibold">{{ warningInvoiceNumber }}</span>.
         You can still create another invoice.
@@ -474,14 +474,14 @@ async function copyLiffUrl(invoiceNumber: string) {
            carries), driven by the same shared policy function as above. -->
       <section
         v-else-if="result.kind === 'items_write_failed' && !canRetry"
-        class="space-y-3 rounded-2xl border border-tertiary/40 bg-tertiary-container/15 p-5"
+        class="space-y-3 rounded-2xl border border-warning/40 bg-warning-container/15 p-5"
       >
         <div class="flex items-center gap-2">
-          <span class="material-symbols-outlined text-[24px] text-tertiary" aria-hidden="true">help</span>
+          <span class="material-symbols-outlined text-[24px] text-warning" aria-hidden="true">help</span>
           <h1 class="font-headline text-base font-bold text-on-surface">Outcome unconfirmed</h1>
         </div>
         <p class="font-body text-sm text-on-surface-variant">{{ result.message }}</p>
-        <p class="font-body text-xs font-semibold text-tertiary">
+        <p class="font-body text-xs font-semibold text-warning">
           We could not confirm whether the line items were written. Check InvoiceItems for
           <span class="font-semibold text-on-surface">{{ invoiceNumber }}</span> before resubmitting —
           do not just try again, or you may double every line item.
@@ -493,10 +493,10 @@ async function copyLiffUrl(invoiceNumber: string) {
 
       <section
         v-else-if="result.kind === 'invoice_write_failed'"
-        class="space-y-3 rounded-2xl border border-tertiary/40 bg-tertiary-container/15 p-5"
+        class="space-y-3 rounded-2xl border border-warning/40 bg-warning-container/15 p-5"
       >
         <div class="flex items-center gap-2">
-          <span class="material-symbols-outlined text-[24px] text-tertiary" aria-hidden="true">warning</span>
+          <span class="material-symbols-outlined text-[24px] text-warning" aria-hidden="true">warning</span>
           <h1 class="font-headline text-base font-bold text-on-surface">Needs a person to fix this</h1>
         </div>
         <p class="font-body text-sm text-on-surface-variant">
@@ -525,7 +525,7 @@ async function copyLiffUrl(invoiceNumber: string) {
           money is correct. Only the note on order <span class="font-semibold text-on-surface">{{ result.sourceOrderId }}</span>
           pointing back to it didn't save.
         </p>
-        <p class="font-body text-xs font-semibold text-tertiary">
+        <p class="font-body text-xs font-semibold text-warning">
           Do not resubmit — that would bill this order twice. Tell an admin to link
           {{ result.sourceOrderId }} to {{ result.invoiceNumber }} by hand.
         </p>

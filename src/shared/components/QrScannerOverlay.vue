@@ -105,10 +105,10 @@ onBeforeUnmount(stopCamera)
       <div class="absolute inset-x-0 top-0 bg-gradient-to-b from-black/85 to-transparent px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))]">
         <div class="flex items-center gap-2">
           <CloseButton label="Close scanner" tone="onDark" @click="emit('close')" />
-          <button type="button" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-white focus-visible:outline-2 focus-visible:outline-white" :class="soundEnabled ? '' : 'opacity-45'" :aria-pressed="soundEnabled" :aria-label="soundEnabled ? 'Turn off sound' : 'Turn on sound'" @click="setSoundEnabled(!soundEnabled)">
+          <button type="button" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-white focus-visible:outline-2 focus-visible:outline-lime" :class="soundEnabled ? '' : 'opacity-45'" :aria-pressed="soundEnabled" :aria-label="soundEnabled ? 'Turn off sound' : 'Turn on sound'" @click="setSoundEnabled(!soundEnabled)">
             <span class="material-symbols-outlined text-[19px]" aria-hidden="true">{{ soundEnabled ? 'volume_up' : 'volume_off' }}</span>
           </button>
-          <button v-if="vibrationAvailable" type="button" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-white focus-visible:outline-2 focus-visible:outline-white" :class="vibrationEnabled ? '' : 'opacity-45'" :aria-pressed="vibrationEnabled" :aria-label="vibrationEnabled ? 'Turn off vibration' : 'Turn on vibration'" @click="setVibrationEnabled(!vibrationEnabled)">
+          <button v-if="vibrationAvailable" type="button" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-white focus-visible:outline-2 focus-visible:outline-lime" :class="vibrationEnabled ? '' : 'opacity-45'" :aria-pressed="vibrationEnabled" :aria-label="vibrationEnabled ? 'Turn off vibration' : 'Turn on vibration'" @click="setVibrationEnabled(!vibrationEnabled)">
             <span class="material-symbols-outlined text-[19px]" aria-hidden="true">{{ vibrationEnabled ? 'vibration' : 'mobile_off' }}</span>
           </button>
           <h2 class="ml-auto min-w-0 truncate text-right font-headline text-sm font-bold">{{ title }}</h2>

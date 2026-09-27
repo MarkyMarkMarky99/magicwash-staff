@@ -52,6 +52,7 @@ Do not present a current-page length as the collection total.
 
 - Detail rows are semantic buttons or links with visible keyboard focus. Create
   actions use the `ListContainer` `actions` slot and have an accessible name.
+  List create actions use a dropdown built on `BaseDropdown` with the shared `DropdownPillTrigger`.
 - Test route parsing/serialization, active deep-link filters, pagination
   reachability, loading/error/empty states, and keyboard activation.
 - Review at narrow mobile width and with keyboard-only navigation.

@@ -15,7 +15,7 @@ const emit = defineEmits<{
 <template>
   <button
     type="button"
-    class="w-full px-4 py-3 text-left transition-colors hover:bg-surface-container-low focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+    class="w-full px-4 py-3 text-left transition-colors hover:bg-surface-container-low focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime"
     @click="emit('select', props.report.issueReportId)"
   >
     <div class="flex items-start justify-between gap-3">

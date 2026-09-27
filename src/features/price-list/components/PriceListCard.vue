@@ -59,7 +59,7 @@ function formatPrice(price: number): string {
   >
     <template #left-panel="{ snapped }">
       <div class="absolute inset-0 flex items-center justify-end bg-primary/80 text-on-primary">
-        <button type="button" class="flex min-h-11 w-16 shrink-0 items-center justify-center gap-1 font-label text-xs font-bold focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-white" :class="snapped === 'left' ? '' : 'pointer-events-none'" :tabindex="snapped === 'left' ? 0 : -1" :aria-hidden="snapped !== 'left'" :aria-label="`แก้ไขราคา ${item.displayNameTh}`" @click="emit('open', props.itemCode)">
+        <button type="button" class="flex min-h-11 w-16 shrink-0 items-center justify-center gap-1 font-label text-xs font-bold focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-lime" :class="snapped === 'left' ? '' : 'pointer-events-none'" :tabindex="snapped === 'left' ? 0 : -1" :aria-hidden="snapped !== 'left'" :aria-label="`แก้ไขราคา ${item.displayNameTh}`" @click="emit('open', props.itemCode)">
           <span class="material-symbols-outlined text-[18px]" aria-hidden="true">edit</span>แก้ไข
         </button>
       </div>
@@ -76,6 +76,6 @@ function formatPrice(price: number): string {
 
 <style scoped>
 .price-on-image {
-  text-shadow: 0 0 2px #fff, 0 0 6px rgba(255, 255, 255, 0.95);
+  text-shadow: 0 0 2px white, 0 0 6px color-mix(in srgb, white 95%, transparent);
 }
 </style>

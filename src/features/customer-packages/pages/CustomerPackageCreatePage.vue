@@ -209,9 +209,9 @@ async function submitForm() {
     <div v-else-if="result" class="space-y-4 pb-5">
       <section v-if="result.kind === 'created'" class="rounded-2xl bg-secondary-container/20 p-5"><h2 class="font-headline font-bold">Customer package created</h2><p class="mt-2 font-body text-sm">{{ result.customerPackageId }} · {{ result.packageCode }} · {{ result.openingCredit }} opening credit</p><p class="font-body text-xs text-on-surface-variant">Transaction {{ result.transactionId }} · {{ result.createdAt }}</p></section>
       <section v-else-if="result.kind === 'validation_error'" class="rounded-2xl bg-error-container/20 p-5"><h2 class="font-headline font-bold">Fix these fields</h2><p v-for="issue in result.issues" :key="issue.path" class="font-body text-sm">{{ issue.path }}: {{ issue.message }}</p></section>
-      <section v-else-if="result.kind === 'catalog_read_failed'" class="rounded-2xl bg-tertiary-container/20 p-5"><h2 class="font-headline font-bold">Package catalog unavailable</h2><p class="font-body text-sm">{{ result.packageCode }} · {{ result.message }}</p></section>
-      <section v-else-if="result.kind === 'opening_transaction_write_failed'" class="rounded-2xl bg-tertiary-container/20 p-5"><h2 class="font-headline font-bold">Outcome needs reconciliation</h2><p class="font-body text-sm">{{ result.customerPackageId }} · {{ result.message }} · {{ result.certainty }}</p></section>
-      <section v-else-if="result.kind === 'package_write_failed'" class="rounded-2xl bg-tertiary-container/20 p-5"><h2 class="font-headline font-bold">Package write failed after opening transaction</h2><p class="font-body text-sm">{{ result.customerPackageId }} · {{ result.transactionId }} · {{ result.openingCredit }} · {{ result.message }} · {{ result.certainty }}</p></section>
+      <section v-else-if="result.kind === 'catalog_read_failed'" class="rounded-2xl bg-warning-container/20 p-5"><h2 class="font-headline font-bold">Package catalog unavailable</h2><p class="font-body text-sm">{{ result.packageCode }} · {{ result.message }}</p></section>
+      <section v-else-if="result.kind === 'opening_transaction_write_failed'" class="rounded-2xl bg-warning-container/20 p-5"><h2 class="font-headline font-bold">Outcome needs reconciliation</h2><p class="font-body text-sm">{{ result.customerPackageId }} · {{ result.message }} · {{ result.certainty }}</p></section>
+      <section v-else-if="result.kind === 'package_write_failed'" class="rounded-2xl bg-warning-container/20 p-5"><h2 class="font-headline font-bold">Package write failed after opening transaction</h2><p class="font-body text-sm">{{ result.customerPackageId }} · {{ result.transactionId }} · {{ result.openingCredit }} · {{ result.message }} · {{ result.certainty }}</p></section>
       <button type="button" class="w-full rounded-xl bg-primary px-4 py-2.5 font-label text-xs text-on-primary" @click="result = null">Back to form</button>
       <button type="button" class="w-full rounded-xl bg-surface-container px-4 py-2.5 font-label text-xs text-primary" @click="closeForm">Close</button>
     </div>
@@ -230,7 +230,7 @@ async function submitForm() {
         :error="customersError ?? ''"
         empty-text="ไม่พบลูกค้า"
       />
-      <p v-if="!autoInvoice && customersTruncated" role="status" class="-mt-2 font-body text-xs text-amber-800">
+      <p v-if="!autoInvoice && customersTruncated" role="status" class="-mt-2 font-body text-xs text-on-warning-container">
         รายชื่อลูกค้าอาจไม่ครบ เนื่องจากมีมากกว่า 2,000 รายการ
       </p>
       <FormPicker

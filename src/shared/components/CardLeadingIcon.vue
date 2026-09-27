@@ -10,11 +10,11 @@ defineProps({
 const TONE_CLASSES = {
   brand: 'bg-primary/10 text-primary border-outline-variant/10',
   neutral: 'bg-surface-container text-on-surface-variant border-outline-variant/20',
-  accent: 'bg-teal-50 text-teal-700 border-teal-100',
-  info: 'bg-blue-50 text-blue-700 border-blue-100',
-  warning: 'bg-amber-50 text-amber-700 border-amber-100',
-  success: 'bg-green-50 text-green-700 border-green-100',
-  danger: 'bg-red-50 text-red-700 border-red-100',
+  accent: 'bg-secondary-container/50 text-on-secondary-container border-outline-variant',
+  info: 'bg-info-container/50 text-on-info-container border-info/20',
+  warning: 'bg-warning-container/50 text-on-warning-container border-warning/20',
+  success: 'bg-success-container/50 text-on-success-container border-success/20',
+  danger: 'bg-error-container/50 text-on-error-container border-error/20',
 }
 
 const SIZE_CLASSES = {

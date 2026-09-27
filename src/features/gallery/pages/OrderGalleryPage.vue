@@ -352,7 +352,7 @@ function handleCameraClose() {
             type="button"
             role="tab"
             :aria-selected="tab.key === type"
-            class="flex-none border-b-2 px-3 pb-1.5 pt-1 font-label text-[11px] font-semibold tracking-wider transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
+            class="flex-none border-b-2 px-3 pb-1.5 pt-1 font-label text-[11px] font-semibold tracking-wider transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-lime"
             :class="tab.key === type ? 'border-white text-on-primary' : 'border-transparent text-on-primary/70'"
             @click="switchType(tab.key)"
           >
@@ -386,7 +386,7 @@ function handleCameraClose() {
               v-for="(photo, i) in fetchedPhotos"
               :key="photo.id"
               @click="lightbox = i"
-              class="aspect-square overflow-hidden rounded-[3px] bg-surface-variant focus:outline-none focus:ring-2 focus:ring-primary"
+              class="aspect-square overflow-hidden rounded-[3px] bg-surface-variant focus:outline-none focus:ring-2 focus:ring-lime"
             >
               <img
                 :src="photo.imageUrl"
@@ -399,7 +399,7 @@ function handleCameraClose() {
               v-for="(img, i) in images"
               :key="img.id"
               @click="lightbox = fetchedPhotos.length + i"
-              class="relative aspect-square overflow-hidden rounded-[3px] bg-surface-variant focus:outline-none focus:ring-2 focus:ring-primary"
+              class="relative aspect-square overflow-hidden rounded-[3px] bg-surface-variant focus:outline-none focus:ring-2 focus:ring-lime"
             >
               <div
                 v-if="img.status === 'error'"
@@ -461,7 +461,7 @@ function handleCameraClose() {
           ย้ายไปรายการอื่น
         </button>
 
-        <p v-if="reassignError" role="alert" class="max-w-sm text-center text-sm text-red-200">
+        <p v-if="reassignError" role="alert" class="max-w-sm text-center text-sm text-error-container">
           {{ reassignError }}
         </p>
       </template>

@@ -14,6 +14,13 @@ export const useCustomerAppointmentsStore = defineStore('customer-appointments',
   let loadedCustomerId: string | null = null
   let requestId = 0
 
+  function applyResult(result: AppointmentListDto[], id: number, customerId: string): void {
+    if (id !== requestId || activeCustomerId !== customerId) return
+    items.value = result
+    loadedCustomerId = customerId
+    error.value = null
+  }
+
   async function load(customerId: string, force = false): Promise<void> {
     if (!force && loadedCustomerId === customerId) return
     const id = ++requestId
@@ -24,13 +31,13 @@ export const useCustomerAppointmentsStore = defineStore('customer-appointments',
     loading.value = true
     error.value = null
     try {
-      const result = await listAppointmentsByCustomer(customerId)
-      if (id !== requestId || activeCustomerId !== customerId) return
-      items.value = result
-      loadedCustomerId = customerId
+      const result = await listAppointmentsByCustomer(customerId, (fresh) =>
+        applyResult(fresh, id, customerId),
+      )
+      applyResult(result, id, customerId)
     } catch {
       if (id !== requestId || activeCustomerId !== customerId) return
-      error.value = 'Unable to load waiting pickups'
+      error.value = 'Unable to load appointments'
     } finally {
       if (id === requestId && activeCustomerId === customerId) loading.value = false
     }

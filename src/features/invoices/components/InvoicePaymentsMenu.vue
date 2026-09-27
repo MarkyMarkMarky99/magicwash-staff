@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import BaseDropdown from '@/shared/components/BaseDropdown.vue'
+import DropdownPillTrigger from '@/shared/components/DropdownPillTrigger.vue'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { formatSheetDateTime } from '@/shared/utils/sheet-date'
 import type { InvoiceDetailDto } from '@/data/invoices/invoice-detail.service'
@@ -78,16 +79,13 @@ function statusLabel(status: InvoiceDetailDto['payments'][number]['status']) {
     panel-class="w-64 rounded-2xl border border-outline-variant/30 bg-surface-container-lowest py-1 shadow-2xl"
   >
     <template #trigger="{ open, setTrigger, toggle, triggerAttrs }">
-      <button
-        :ref="setTrigger"
-        v-bind="triggerAttrs"
-        type="button"
-        class="relative flex h-[22px] items-center gap-1 whitespace-nowrap rounded-full bg-surface-container px-2.5 pr-1.5 font-label text-[9px] font-bold uppercase tracking-wider text-on-surface-variant transition-all after:absolute after:-inset-2 after:content-[''] hover:bg-surface-container-high active:scale-95 focus:outline-none"
-        @click="toggle"
-      >
-        {{ payments.length }} payments
-        <span class="material-symbols-outlined text-[14px] leading-none transition-transform" :class="open ? 'rotate-180' : ''" aria-hidden="true">expand_more</span>
-      </button>
+      <DropdownPillTrigger
+        :label="`${payments.length} payments`"
+        :open="open"
+        :set-trigger="setTrigger"
+        :toggle="toggle"
+        :trigger-attrs="triggerAttrs"
+      />
     </template>
 
     <template #default>

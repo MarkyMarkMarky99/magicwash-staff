@@ -126,15 +126,15 @@ function viewPhotos() {
             </div>
           </div>
 
-          <div v-if="warningInvoiceNumber" class="flex items-start gap-2 rounded-xl border border-tertiary/30 bg-tertiary-container/20 px-3 py-2.5 text-on-surface">
-            <span class="material-symbols-outlined mt-0.5 shrink-0 text-[18px] leading-none text-tertiary" aria-hidden="true">warning</span>
+          <div v-if="warningInvoiceNumber" class="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning-container/20 px-3 py-2.5 text-on-surface">
+            <span class="material-symbols-outlined mt-0.5 shrink-0 text-[18px] leading-none text-warning" aria-hidden="true">warning</span>
             <p class="font-body text-xs leading-relaxed">
               This order already has invoice <span class="font-semibold">{{ warningInvoiceNumber }}</span>.
               You can still create another invoice.
             </p>
           </div>
 
-          <div v-if="awaitingConfirmation" class="space-y-2 rounded-xl border border-tertiary/30 bg-tertiary-container/20 p-3">
+          <div v-if="awaitingConfirmation" class="space-y-2 rounded-xl border border-warning/30 bg-warning-container/20 p-3">
             <p class="font-body text-xs leading-relaxed text-on-surface">
               Create another invoice for this order anyway?
             </p>
@@ -177,7 +177,7 @@ function viewPhotos() {
                       :ref="setTrigger"
                       v-bind="triggerAttrs"
                       type="button"
-                      class="relative flex h-[22px] w-[22px] items-center justify-center rounded-full bg-surface-container text-on-surface-variant transition-all after:absolute after:-inset-2 after:content-[''] hover:bg-surface-container-high active:scale-95 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      class="relative flex h-[22px] w-[22px] items-center justify-center rounded-full bg-surface-container text-on-surface-variant transition-all after:absolute after:-inset-2 after:content-[''] hover:bg-surface-container-high active:scale-95 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
                       aria-label="Order actions"
                       @click.stop="toggle"
                     >

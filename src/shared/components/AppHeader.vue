@@ -6,6 +6,7 @@ import { appointmentPendingCountKey } from '@/shared/appointment-pending-count'
 import { useGoBack } from '@/shared/composables/use-go-back'
 import { APP_Z_INDEX_CLASS } from '@/shared/layouts/z-index'
 import NavSidebar from './NavSidebar.vue'
+import CloseButton from './CloseButton.vue'
 
 const router = useRouter()
 const route  = useRoute()
@@ -23,36 +24,28 @@ const canGoBack = computed(() => Boolean(route.meta.parent))
     :class="APP_Z_INDEX_CLASS.header"
   >
     <div class="flex items-center gap-2">
-      <button
-        class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
-        aria-label="Open menu"
-        @click="sidebarOpen = true"
-      >menu</button>
+      <CloseButton icon="menu" label="Open menu" tone="onDark" @click="sidebarOpen = true" />
       <img :src="logoUrl" alt="Magicwash Laundry" class="h-9 w-9 object-contain" />
       <h1 class="text-lg font-headline font-bold tracking-tight">Magicwash Laundry</h1>
     </div>
     <div class="flex items-center gap-2">
-      <button
+      <CloseButton
         v-if="canGoBack"
-        class="material-symbols-outlined hover:bg-white/10 rounded-full transition-colors p-1"
-        aria-label="Go back"
+        icon="arrow_back"
+        label="Go back"
+        tone="onDark"
         @click="goBack"
-      >arrow_back</button>
+      />
 
       <template v-else-if="route.name === 'appointment-schedule'">
-        <button
-          class="relative hover:bg-white/10 rounded-full transition-colors p-1 flex items-center justify-center"
-          aria-label="Pending requests"
-          @click="router.push('/pending')"
-        >
-          <span class="material-symbols-outlined">pending_actions</span>
+        <CloseButton icon="pending_actions" label="Pending requests" tone="onDark" @click="router.push('/pending')">
           <span
             v-if="pendingCount > 0"
-            class="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-error text-on-error text-[9px] font-bold rounded-full flex items-center justify-center px-1 leading-none"
+            class="absolute -top-1.5 -right-1.5 flex h-4 min-w-[16px] rotate-[7deg] items-center justify-center rounded-full bg-error px-1 text-[9px] font-bold leading-none text-on-error"
           >
             {{ pendingCount > 99 ? '99+' : pendingCount }}
           </span>
-        </button>
+        </CloseButton>
       </template>
     </div>
   </header>
