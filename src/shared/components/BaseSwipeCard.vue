@@ -17,10 +17,14 @@ const wrapRef = ref(null)
 const snapped  = ref('none')
 
 let startX         = 0
+let startY         = 0
+let lockX          = 0
+let axis           = 'pending' // 'pending' until the finger passes DRAG_SLOP, then 'x' (swipe) or 'y' (page scroll)
 let startTranslate = 0
 let startSnapped    = 'none'
 let maxMovement     = 0
 const TAP_THRESHOLD = 8
+const DRAG_SLOP = 10
 const ACTION_WIDTH_REM = 4
 
 onUnmounted(() => {
@@ -58,6 +62,8 @@ function snapCard(direction) {
 function resolve(dx) {
   if (props.disabled) return
 
+  if (axis === 'y') return
+
   if (snapped.value !== 'none') { snapCard('none'); return }
 
   if (props.swipeable) {
@@ -70,18 +76,36 @@ function resolve(dx) {
   if (startSnapped === 'none' && Math.max(maxMovement, Math.abs(dx)) <= TAP_THRESHOLD) emit('tap')
 }
 
-function onTouchStart(e) {
-  if (props.disabled) return
-  startX         = e.touches[0].clientX
+function beginGesture(x, y) {
+  startX         = x
+  startY         = y
+  axis           = 'pending'
   if (props.swipeable) startTranslate = getTranslate()
   startSnapped   = snapped.value
   maxMovement    = 0
 }
+function moveGesture(x, y) {
+  const dx = x - startX
+  const dy = y - startY
+  maxMovement = Math.max(maxMovement, Math.hypot(dx, dy))
+  if (axis === 'pending') {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < DRAG_SLOP) return
+    axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
+    lockX = x
+  }
+  if (axis === 'x' && props.swipeable) setTranslate(startTranslate + x - lockX)
+}
+function gestureDx(x) {
+  return axis === 'x' ? x - lockX : x - startX
+}
+
+function onTouchStart(e) {
+  if (props.disabled) return
+  beginGesture(e.touches[0].clientX, e.touches[0].clientY)
+}
 function onTouchMove(e) {
   if (props.disabled) return
-  const dx = e.touches[0].clientX - startX
-  maxMovement = Math.max(maxMovement, Math.abs(dx))
-  if (props.swipeable) setTranslate(startTranslate + dx)
+  moveGesture(e.touches[0].clientX, e.touches[0].clientY)
 }
 function onTouchEnd(e) {
   // A touch that ends on this card has already been interpreted as a tap or a
@@ -94,8 +118,9 @@ function onTouchEnd(e) {
   // in the swipe-revealed side panels are unaffected: they are separate
   // elements outside this card, and a tap on them is its own touch
   // interaction with its own touchstart/touchend, not this one.
+  if (axis === 'y') return
   if (e.cancelable) e.preventDefault()
-  resolve(e.changedTouches[0].clientX - startX)
+  resolve(gestureDx(e.changedTouches[0].clientX))
 }
 
 let onMouseMove = null
@@ -103,19 +128,12 @@ let onMouseUp   = null
 
 function onMouseDown(e) {
   if (props.disabled) return
-  startX         = e.clientX
-  if (props.swipeable) startTranslate = getTranslate()
-  startSnapped   = snapped.value
-  maxMovement    = 0
-  onMouseMove = (ev) => {
-    const dx = ev.clientX - startX
-    maxMovement = Math.max(maxMovement, Math.abs(dx))
-    if (props.swipeable) setTranslate(startTranslate + dx)
-  }
+  beginGesture(e.clientX, e.clientY)
+  onMouseMove = (ev) => moveGesture(ev.clientX, ev.clientY)
   onMouseUp   = (ev) => {
     document.removeEventListener('mousemove', onMouseMove)
     document.removeEventListener('mouseup',   onMouseUp)
-    resolve(ev.clientX - startX)
+    resolve(gestureDx(ev.clientX))
   }
   document.addEventListener('mousemove', onMouseMove)
   document.addEventListener('mouseup',   onMouseUp)
@@ -160,7 +178,7 @@ defineExpose({ snapCard })
       <div
         ref="cardRef"
         :class="[
-          'swipe-card relative z-10 bg-surface-container-lowest transition-colors',
+          'swipe-card relative z-10 touch-pan-y bg-surface-container-lowest transition-colors',
           disabled
             ? 'cursor-wait bg-surface-container'
             : `${swipeable || pressable ? 'hover:bg-surface-container-low' : ''} ${swipeable ? 'cursor-grab active:cursor-grabbing' : pressable ? 'cursor-pointer' : ''}`,

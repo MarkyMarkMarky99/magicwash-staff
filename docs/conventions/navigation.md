@@ -42,8 +42,8 @@ using a path plus route metadata. The navigation drawer uses `?menu=1`; other ov
 Derive route-owned open state from the route. Close with `router.back()` only for an entry pushed by
 the current page; on a deep link or refresh, remove the route-owned state with `router.replace`.
 Navigation away from an open route-owned overlay also uses `router.replace`. The drawer lives
-behind the app column in `App.vue`; opening pushes `?menu=1`, Back closes it, and menu links
-replace that entry with their destination.
+behind the app column in `App.vue`; opening pushes `?menu=1`, tapping or dragging the shifted
+shell left closes it, Back closes it, and menu links replace that entry with their destination.
 
 Filter query state is replace-only; it is not an overlay-dismiss pattern.
 
