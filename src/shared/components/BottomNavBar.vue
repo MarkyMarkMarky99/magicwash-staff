@@ -18,7 +18,7 @@ const emit = defineEmits<{
 
 <template>
   <nav
-    class="relative z-10 -mt-6 shrink-0 rounded-t-3xl bg-primary px-2 pt-3 pb-[max(0.375rem,env(safe-area-inset-bottom))] text-on-primary shadow-[0_-4px_16px_color-mix(in_srgb,_black_12%,_transparent)]"
+    class="relative z-10 -mt-6 shrink-0 rounded-t-3xl bg-primary px-2 pt-2 pb-[max(0.375rem,calc(env(safe-area-inset-bottom)-0.75rem))] text-on-primary shadow-[0_-4px_16px_color-mix(in_srgb,_black_12%,_transparent)]"
     :aria-label="ariaLabel"
   >
     <ul class="flex items-stretch">
