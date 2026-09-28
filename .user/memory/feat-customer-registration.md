@@ -7,4 +7,6 @@
 - Open: no tests for the POST route response, form validation rendering, or an empty label pool.
 - Browser-tested OK 2026-09-29 (incl. 10-digit phone input, English labels, no date field); Phone column set to text in the sheet by user.
 - Deferred by user: duplicate-phone check misses legacy phones that lost their leading 0, and numeric GViz Phone values.
+- Open: shared FormTextarea restyled to match FormInput; browser-check the 8 other forms that use it before merge.
+- Noted, not fixed: FormOverlay helper text shows a stray bullet dot.
 - Next: merge.

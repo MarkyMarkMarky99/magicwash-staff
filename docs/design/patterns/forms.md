@@ -18,6 +18,7 @@ Prefer shared controls:
 - `FormTextarea`
 - `FormOptionGrid`
 - `FormSwitch`
+- `FormToggleInput` for an optional text field that stays hidden until its switch is on
 - `FormLabel`
 
 Create feature-specific controls only for specialized interactions.

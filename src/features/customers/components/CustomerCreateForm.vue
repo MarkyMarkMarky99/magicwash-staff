@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import FormInput from '@/shared/components/FormInput.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
+import FormToggleInput from '@/shared/components/FormToggleInput.vue'
 import { currentActor } from '@/shared/config/actor'
 import { formatPhoneDisplay, nextPhoneDigits } from '../utils/phone-format'
+import SocialLogo from './SocialLogo.vue'
 
 export type CustomerCreateFormData = {
   customerName: string
@@ -40,7 +42,6 @@ function onPhoneInput(value: string) {
 <template>
   <div class="customer-create-form">
     <fieldset class="form-section" :disabled="disabled">
-      <legend>Customer details</legend>
       <FormInput
         id="customer-name"
         :model-value="modelValue.customerName"
@@ -70,13 +71,15 @@ function onPhoneInput(value: string) {
         placeholder="House no., street, subdistrict, district, province"
         @update:model-value="updateField('address', $event)"
       />
-    </fieldset>
-
-    <fieldset class="form-section contact-section" :disabled="disabled">
-      <legend>Social media</legend>
-      <FormInput id="facebook" :model-value="modelValue.facebook" label="Facebook" placeholder="Profile name or URL" @update:model-value="updateField('facebook', $event)" />
-      <FormInput id="line-id" :model-value="modelValue.lineId" label="LINE ID" placeholder="e.g. somjai.laundry" @update:model-value="updateField('lineId', $event)" />
-      <FormInput id="whatsapp" :model-value="modelValue.whatsapp" label="WhatsApp" placeholder="e.g. +66812345678" @update:model-value="updateField('whatsapp', $event)" />
+      <FormToggleInput id="facebook" :model-value="modelValue.facebook" label="Facebook" description="Profile name or link" input-label="Facebook profile" placeholder="Profile name or URL" @update:model-value="updateField('facebook', $event)">
+        <template #icon><SocialLogo brand="facebook" /></template>
+      </FormToggleInput>
+      <FormToggleInput id="line-id" :model-value="modelValue.lineId" label="LINE" description="Customer's LINE ID" input-label="LINE ID" placeholder="e.g. somjai.laundry" @update:model-value="updateField('lineId', $event)">
+        <template #icon><SocialLogo brand="line" /></template>
+      </FormToggleInput>
+      <FormToggleInput id="whatsapp" :model-value="modelValue.whatsapp" label="WhatsApp" description="Number with country code" input-label="WhatsApp number" placeholder="e.g. +66812345678" @update:model-value="updateField('whatsapp', $event)">
+        <template #icon><SocialLogo brand="whatsapp" /></template>
+      </FormToggleInput>
     </fieldset>
 
   </div>
@@ -86,9 +89,7 @@ function onPhoneInput(value: string) {
 .customer-create-form { color:var(--color-on-surface); font-family:'Noto Sans Thai',system-ui,sans-serif; padding-bottom:22px; }
 .field-error { margin:-8px 0 15px; color:var(--color-error); font-size:12px; }
 .form-section { min-width:0; margin:0 0 23px; padding:0; border:0; }
-.form-section legend { display:flex; align-items:center; width:100%; margin:0 0 12px; padding:0; color:var(--color-primary); font-size:12px; font-weight:700; letter-spacing:.03em; }
-.form-section legend::after { height:1px; flex:1; margin-left:10px; background:var(--color-outline-variant); content:''; }
 .form-section :deep(section) { margin-bottom:15px; }
-.contact-section :deep(section) { margin-bottom:13px; }
+.form-section :deep(section.pb-4) { padding-bottom:0; }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; } }
 </style>
