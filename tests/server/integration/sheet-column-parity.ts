@@ -9,6 +9,7 @@
 import { requireEnv } from '../../../server/shared/utils/env.js'
 import { appointmentsDbContract } from '../../../server/sheets/Appointments/Appointments.db-contract.js'
 import { afterPhotoDbContract } from '../../../server/sheets/AfterPhoto/AfterPhoto.db-contract.js'
+import { customerIdMappingDbContract } from '../../../server/sheets/CustomerIDMapping/CustomerIDMapping.db-contract.js'
 import { customersDbContract } from '../../../server/sheets/Customers/Customers.db-contract.js'
 import { invoiceItemsDbContract } from '../../../server/sheets/InvoiceItems/InvoiceItems.db-contract.js'
 import { invoicesDbContract } from '../../../server/sheets/Invoices/Invoices.db-contract.js'
@@ -115,6 +116,12 @@ const readableSheets: readonly ReadableSheet[] = [
     sheetName: paymentsDbContract.sheetName,
     spreadsheetIdEnv: paymentsDbContract.spreadsheetId!,
     rowSchema: paymentsDbContract.row,
+  },
+  {
+    name: 'CustomerIDMapping',
+    sheetName: customerIdMappingDbContract.sheetName,
+    spreadsheetIdEnv: customerIdMappingDbContract.spreadsheetId!,
+    rowSchema: customerIdMappingDbContract.row,
   },
   {
     name: 'Customers',

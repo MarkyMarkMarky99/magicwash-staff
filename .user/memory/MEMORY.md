@@ -113,12 +113,12 @@
   - Clean sheet data: the blank customer row, dirty Orders rows, LaundryPhotos ordering, and page-walks using non-unique sort keys.
 
 - **Customers and registration**
-  - Next: register `CustomerIDMapping` read-only via the `add-sheet` skill; registration then needs label-allocation locking before Customers writes open.
-  - Customers sheet: 1 row has a blank `CustomerIndex` and 19 `CustomerIndex` values are duplicated; user has not decided a fix.
+  - Registration not built: user to decide label-allocation locking, who picks the 3-letter label, duplicate-phone policy, and LINE notify.
+  - Dirty data, fix undecided: Customers has 1 blank and 19 duplicated `CustomerIndex`; CustomerIDMapping lacks 302 customers, has 5 orphan ids and 2 ids mangled to `2.50E+33`/`2.63E+53`.
+  - `column-order.dry-test.ts` fails on `main`: it expects `update: false` for OrderItemForms/OrderImages writes.
 
 - **Auth, UX, and documentation**
-  - Staff Google sign-in merged 2026-09-27 as optional: only `/api/auth/me` checks the token; no route or page is gated yet.
-  - Still undecided by user: gating pages/API, actor from the signed-in staff instead of `admin`/`?by=`, Firebase Storage rules.
+  - Staff sign-in is optional (only `/api/auth/me` checks the token); user still to decide page/API gating, signed-in actor instead of `admin`/`?by=`, and Firebase Storage rules.
   - Vercel Preview hosts are not Firebase Authorized domains, so sign-in fails on Preview (`auth/unauthorized-domain`).
   - 5 server dry-tests reported failing (invoice workflows x2, sheet metadata x2, order-item contract export); not checked against pre-auth `main`.
   - Fix screenshot-upload accessibility states, failed-upload handling, and staff-safe Firebase errors.

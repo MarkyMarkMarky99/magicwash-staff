@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { appointmentsDbContract } from '../../../../server/sheets/Appointments/Appointments.db-contract.js'
 import { afterPhotoDbContract } from '../../../../server/sheets/AfterPhoto/AfterPhoto.db-contract.js'
+import { customerIdMappingDbContract } from '../../../../server/sheets/CustomerIDMapping/CustomerIDMapping.db-contract.js'
 import { customersDbContract } from '../../../../server/sheets/Customers/Customers.db-contract.js'
 import { customerPackageViewDbContract } from '../../../../server/sheets/CustomerPackageView/CustomerPackageView.db-contract.js'
 import { invoicesDbContract } from '../../../../server/sheets/Invoices/Invoices.db-contract.js'
@@ -137,6 +138,12 @@ const tests: ColumnOrderTest[] = [
       DeletedBy: 'Q',
       Vehicle: 'R',
     },
+    primaryKeyColumn: 'A',
+  },
+  {
+    name: 'CustomerIDMapping',
+    contract: customerIdMappingDbContract,
+    expected: { CustomerLabel: 'A', CustomerID: 'B' },
     primaryKeyColumn: 'A',
   },
   {
