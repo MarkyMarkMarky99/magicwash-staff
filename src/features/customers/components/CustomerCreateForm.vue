@@ -73,8 +73,8 @@ function onPhoneInput(value: string) {
       <FormInput
         id="customer-location"
         :model-value="modelValue.location"
-        label="Pickup / drop-off point"
-        placeholder="e.g. Condo A, Building 2"
+        label="Location"
+        placeholder="e.g. 13.6896, 100.4079 or Condo A, Building 2"
         @update:model-value="updateField('location', $event)"
       />
     </fieldset>
