@@ -7,16 +7,12 @@ export function useOrderSheetRoute() {
   const route = useRoute()
   const router = useRouter()
 
-  // The URL is the single source of truth for which order sheet is open.
   const openOrderId = computed<string | null>(() => {
     const raw = route.query[QUERY_KEY]
     const value = Array.isArray(raw) ? raw[0] : raw
     return typeof value === 'string' && value.trim() ? value.trim() : null
   })
 
-  // True only when THIS page pushed the current sheet entry. A deep link or a
-  // refresh lands on the sheet with no entry of ours behind it, and calling
-  // router.back() there would leave the app entirely.
   let pushedByUs = false
 
   watch(openOrderId, (value) => {

@@ -3,11 +3,6 @@ import { computed } from 'vue'
 import { customerTypeSchema } from '@contracts/customers/customer-api.schema'
 import GenericTabs from '@/shared/components/GenericTabs.vue'
 
-/**
- * Customer type tabs. Presentational: counts are computed by the page from the
- * full in-memory list and passed in; this component only owns the tab layout
- * (an "All" tab plus one per contract customer type) and emits the selection.
- */
 const props = defineProps<{
   activeType: string
   counts: Record<string, number>

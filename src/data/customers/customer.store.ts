@@ -8,7 +8,6 @@ import {
 import { onCacheInvalidated } from '@/shared/api/response-cache'
 
 export const useCustomerStore = defineStore('customers', () => {
-  // The list is replaced wholesale, so shallowRef avoids per-customer proxies.
   const customers = shallowRef<CustomerListDto[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -23,6 +22,10 @@ export const useCustomerStore = defineStore('customers', () => {
     truncated.value = result.truncated
     loaded.value = !result.truncated
     error.value = null
+  }
+
+  function addCustomer(customer: CustomerListDto): void {
+    customers.value = [customer, ...customers.value.filter((item) => item.customerId !== customer.customerId)]
   }
 
   async function loadCustomers(force = false): Promise<void> {
@@ -52,5 +55,5 @@ export const useCustomerStore = defineStore('customers', () => {
   })
   onScopeDispose(stopInvalidationListener)
 
-  return { customers, loading, error, loaded, truncated, loadCustomers }
+  return { customers, loading, error, loaded, truncated, loadCustomers, addCustomer }
 })

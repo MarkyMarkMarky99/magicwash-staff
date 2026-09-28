@@ -4,8 +4,6 @@ import type { LocationQuery, LocationQueryRaw } from 'vue-router'
 import type { z } from 'zod'
 import { customerTypeSchema } from '@contracts/customers/customer-api.schema'
 
-/** The URL query is the filter source of truth; default values are omitted. */
-
 type CustomerType = z.infer<typeof customerTypeSchema>
 
 export interface CustomerFilter {

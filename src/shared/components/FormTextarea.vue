@@ -22,7 +22,7 @@ defineEmits(['update:modelValue'])
       <textarea
         :id="id"
         :value="modelValue"
-        class="w-full h-32 p-4 rounded-xl bg-surface-container border border-outline-variant/30 focus:border-lime focus:ring-1 focus:ring-lime focus:bg-surface-container-lowest font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 resize-none transition-colors"
+        class="form-textarea"
         :placeholder="placeholder"
         @input="$emit('update:modelValue', $event.target.value)"
       />
@@ -35,3 +35,33 @@ defineEmits(['update:modelValue'])
     </div>
   </section>
 </template>
+
+<style scoped>
+.form-textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 128px;
+  padding: 12px;
+  color: var(--color-on-surface);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: 10px;
+  outline: 0;
+  background: white;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-primary) 2%, transparent);
+  font-family: 'Noto Sans Thai', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: none;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+
+.form-textarea::placeholder {
+  color: var(--color-on-surface-variant);
+}
+
+.form-textarea:focus {
+  border-color: var(--color-lime);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-lime) 14%, transparent);
+}
+</style>
