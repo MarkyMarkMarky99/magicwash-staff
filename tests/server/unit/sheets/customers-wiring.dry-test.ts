@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { customerIdMappingDbContract } from '../../../../server/sheets/CustomerIDMapping/CustomerIDMapping.db-contract.js'
+import { customersDbContract } from '../../../../server/sheets/Customers/Customers.db-contract.js'
 
 interface FetchCall {
   url: string
@@ -72,7 +74,7 @@ async function productionCustomersRepository() {
   return getCustomersRepository()
 }
 
-test('Customers service wiring maps rows, folds detail ids, and preserves write failure', async () => {
+test('Customers service wiring maps rows, folds detail ids, and declares registration writes', async () => {
   process.env.CUSTOMERS_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 
   const body = gvizBody(
@@ -125,23 +127,8 @@ test('Customers service wiring maps rows, folds detail ids, and preserves write 
     },
   )
 
-  await withMockFetch(
-    async () => response(body),
-    async (calls) => {
-      const service = await productionCustomerService()
-
-      await assert.rejects(
-        () =>
-          service.create({
-            customerName: 'TR',
-            phone: '1234567890',
-            updatedBy: 'test-user',
-          }),
-        /append is not supported by sheet 'Customers'/,
-      )
-      assert.equal(calls.length, 0)
-    },
-  )
+  assert.deepEqual(customersDbContract.writes, { append: true, update: false, delete: false })
+  assert.deepEqual(customerIdMappingDbContract.writes, { append: false, update: true, delete: false })
 
   await withMockFetch(
     async () => response(body),

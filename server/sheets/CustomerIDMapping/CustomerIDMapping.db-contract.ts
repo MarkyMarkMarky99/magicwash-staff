@@ -11,5 +11,5 @@ export const customerIdMappingDbContract = {
   primaryKey: 'CustomerLabel',
   sheetName: 'CustomerIDMapping',
   spreadsheetId: 'CUSTOMERS_SPREADSHEET_ID',
-  writes: { append: false, update: false, delete: false },
+  writes: { append: false, update: true, delete: false },
 } satisfies SheetContract

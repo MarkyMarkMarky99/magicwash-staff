@@ -18,6 +18,8 @@ export type CustomerCreateFormData = {
 
 const props = defineProps<{
   modelValue: CustomerCreateFormData
+  phoneError?: string | null
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -31,15 +33,7 @@ function updateField(field: keyof CustomerCreateFormData, value: string) {
 
 <template>
   <div class="customer-create-form">
-    <aside class="unavailable-note" role="status">
-      <span class="material-symbols-outlined" aria-hidden="true">info</span>
-      <div>
-        <strong>ยังบันทึกลูกค้าใหม่ไม่ได้</strong>
-        <p>หน้านี้ใช้กรอกและตรวจข้อมูลได้ แต่ระบบหลังบ้านสำหรับสร้างลูกค้ายังไม่พร้อมใช้งาน</p>
-      </div>
-    </aside>
-
-    <fieldset class="form-section">
+    <fieldset class="form-section" :disabled="disabled">
       <legend>ข้อมูลลูกค้า</legend>
       <FormInput
         id="customer-name"
@@ -56,8 +50,11 @@ function updateField(field: keyof CustomerCreateFormData, value: string) {
         type="tel"
         placeholder="เช่น 0812345678"
         autocomplete="tel"
+        :aria-invalid="Boolean(phoneError)"
+        :aria-describedby="phoneError ? 'customer-phone-error' : undefined"
         @update:model-value="updateField('phone', $event)"
       />
+      <p v-if="phoneError" id="customer-phone-error" class="field-error" role="alert">{{ phoneError }}</p>
       <FormTextarea
         id="customer-address"
         :model-value="modelValue.address"
@@ -81,7 +78,7 @@ function updateField(field: keyof CustomerCreateFormData, value: string) {
       />
     </fieldset>
 
-    <fieldset class="form-section contact-section">
+    <fieldset class="form-section contact-section" :disabled="disabled">
       <legend>ช่องทางติดต่อ</legend>
       <FormInput id="facebook" :model-value="modelValue.facebook" label="Facebook" placeholder="ชื่อโปรไฟล์หรือ URL" @update:model-value="updateField('facebook', $event)" />
       <FormInput id="line-id" :model-value="modelValue.lineId" label="LINE ID" placeholder="เช่น somjai.laundry" @update:model-value="updateField('lineId', $event)" />
@@ -94,10 +91,7 @@ function updateField(field: keyof CustomerCreateFormData, value: string) {
 
 <style scoped>
 .customer-create-form { color:var(--color-on-surface); font-family:'Noto Sans Thai',system-ui,sans-serif; padding-bottom:22px; }
-.unavailable-note { display:flex; gap:10px; margin:0 0 22px; padding:13px 14px; color:var(--color-on-surface-variant); border:1px solid var(--color-outline-variant); border-left:4px solid var(--color-secondary); border-radius:10px; background:var(--color-surface-container-low); }
-.unavailable-note span { color:var(--color-secondary); font-size:20px; }
-.unavailable-note strong { display:block; color:var(--color-on-surface); font-size:13px; }
-.unavailable-note p { margin:3px 0 0; font-size:12px; line-height:1.45; }
+.field-error { margin:-8px 0 15px; color:var(--color-error); font-size:12px; }
 .form-section { min-width:0; margin:0 0 23px; padding:0; border:0; }
 .form-section legend { display:flex; align-items:center; width:100%; margin:0 0 12px; padding:0; color:var(--color-primary); font-size:12px; font-weight:700; letter-spacing:.03em; }
 .form-section legend::after { height:1px; flex:1; margin-left:10px; background:var(--color-outline-variant); content:''; }

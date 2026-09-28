@@ -3,8 +3,11 @@ import { customerApiContract } from '../../../contracts/customers/customer-api.s
 import { BaseCrudService } from '../../shared/services/base-crud.service.js'
 import type { ApiRowFromFieldMap } from '../../shared/repositories/base.repository.js'
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
+import { ApiHandler } from '../../shared/http/api-handler.js'
+import { created, okPaged } from '../../shared/http/response.js'
 import { getCustomersRepository } from '../../sheets/Customers/Customers.repository.js'
 import { customersRowSchema } from '../../sheets/Customers/Customers.db-contract.js'
+import { CustomerRegistrationService } from './customer-registration.service.js'
 
 type CustomerDbRow = z.infer<typeof customersRowSchema>
 
@@ -60,4 +63,15 @@ export const customerService: CustomerService = new BaseCrudService({
   fieldMap: customerFieldMap,
 })
 
-export const customerRoutes = createCrudRoutes(customerService, customerApiContract)
+export const customerRegistrationService = new CustomerRegistrationService()
+const crudRoutes = createCrudRoutes(customerService, customerApiContract)
+export const customerRoutes = {
+  ...crudRoutes,
+  collection: new ApiHandler({
+    GET: async (req) => {
+      const { items, pagination } = await customerService.list(req.query)
+      return okPaged(items, pagination)
+    },
+    POST: async (req) => created(await customerRegistrationService.create(req.body)),
+  }),
+}

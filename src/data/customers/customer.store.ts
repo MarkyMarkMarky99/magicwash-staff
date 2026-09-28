@@ -24,6 +24,10 @@ export const useCustomerStore = defineStore('customers', () => {
     error.value = null
   }
 
+  function addCustomer(customer: CustomerListDto): void {
+    customers.value = [customer, ...customers.value.filter((item) => item.customerId !== customer.customerId)]
+  }
+
   async function loadCustomers(force = false): Promise<void> {
     if (loaded.value && !force) return
     if (loadPromise) return loadPromise
@@ -51,5 +55,5 @@ export const useCustomerStore = defineStore('customers', () => {
   })
   onScopeDispose(stopInvalidationListener)
 
-  return { customers, loading, error, loaded, truncated, loadCustomers }
+  return { customers, loading, error, loaded, truncated, loadCustomers, addCustomer }
 })

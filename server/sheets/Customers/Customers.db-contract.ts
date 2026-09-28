@@ -37,5 +37,5 @@ export const customersDbContract = {
     onAppend: [],
     onUpdate: ['UpdatedAt'],
   },
-  writes: { append: false, update: false, delete: false },
+  writes: { append: true, update: false, delete: false },
 } satisfies SheetContract
