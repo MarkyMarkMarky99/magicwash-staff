@@ -2,13 +2,13 @@
 import FormInput from '@/shared/components/FormInput.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import { currentActor } from '@/shared/config/actor'
+import { formatPhoneDisplay, nextPhoneDigits } from '../utils/phone-format'
 
 export type CustomerCreateFormData = {
   customerName: string
   phone: string
   address: string
   location: string
-  registeredDate: string
   facebook: string
   lineId: string
   whatsapp: string
@@ -29,61 +29,62 @@ const emit = defineEmits<{
 function updateField(field: keyof CustomerCreateFormData, value: string) {
   emit('update:modelValue', { ...props.modelValue, [field]: value, updatedBy: currentActor() })
 }
+
+function onPhoneInput(value: string) {
+  const digits = nextPhoneDigits(props.modelValue.phone, value)
+  const input = document.getElementById('customer-phone')
+  if (input instanceof HTMLInputElement) input.value = formatPhoneDisplay(digits)
+  updateField('phone', digits)
+}
 </script>
 
 <template>
   <div class="customer-create-form">
     <fieldset class="form-section" :disabled="disabled">
-      <legend>ข้อมูลลูกค้า</legend>
+      <legend>Customer details</legend>
       <FormInput
         id="customer-name"
         :model-value="modelValue.customerName"
-        label="ชื่อลูกค้า *"
-        placeholder="เช่น คุณสมใจ ใจดี"
+        label="Customer name *"
+        placeholder="e.g. Somjai Jaidee"
         autocomplete="name"
         @update:model-value="updateField('customerName', $event)"
       />
       <FormInput
         id="customer-phone"
-        :model-value="modelValue.phone"
-        label="เบอร์โทรศัพท์ *"
+        :model-value="formatPhoneDisplay(modelValue.phone)"
+        label="Phone *"
         type="tel"
-        placeholder="เช่น 0812345678"
+        inputmode="numeric"
+        placeholder="081-234-5678"
         autocomplete="tel"
         :aria-invalid="Boolean(phoneError)"
         :aria-describedby="phoneError ? 'customer-phone-error' : undefined"
-        @update:model-value="updateField('phone', $event)"
+        @update:model-value="onPhoneInput"
       />
       <p v-if="phoneError" id="customer-phone-error" class="field-error" role="alert">{{ phoneError }}</p>
       <FormTextarea
         id="customer-address"
         :model-value="modelValue.address"
-        label="ที่อยู่"
-        placeholder="บ้านเลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด"
+        label="Address"
+        placeholder="House no., street, subdistrict, district, province"
         @update:model-value="updateField('address', $event)"
       />
       <FormInput
         id="customer-location"
         :model-value="modelValue.location"
-        label="จุดรับ-ส่ง / พิกัด"
-        placeholder="เช่น คอนโด A อาคาร 2"
+        label="Pickup / drop-off point"
+        placeholder="e.g. Condo A, Building 2"
         @update:model-value="updateField('location', $event)"
-      />
-      <FormInput
-        id="registered-date"
-        :model-value="modelValue.registeredDate"
-        label="วันที่ลงทะเบียน"
-        type="date"
-        @update:model-value="updateField('registeredDate', $event)"
       />
     </fieldset>
 
     <fieldset class="form-section contact-section" :disabled="disabled">
-      <legend>ช่องทางติดต่อ</legend>
-      <FormInput id="facebook" :model-value="modelValue.facebook" label="Facebook" placeholder="ชื่อโปรไฟล์หรือ URL" @update:model-value="updateField('facebook', $event)" />
-      <FormInput id="line-id" :model-value="modelValue.lineId" label="LINE ID" placeholder="เช่น somjai.laundry" @update:model-value="updateField('lineId', $event)" />
-      <FormInput id="whatsapp" :model-value="modelValue.whatsapp" label="WhatsApp" placeholder="เช่น +66812345678" @update:model-value="updateField('whatsapp', $event)" />
-      <FormInput id="email" :model-value="modelValue.email" label="อีเมล" type="email" placeholder="name@example.com" autocomplete="email" @update:model-value="updateField('email', $event)" />
+      <legend>Contact channels</legend>
+      <FormInput id="facebook" :model-value="modelValue.facebook" label="Facebook" placeholder="Profile name or URL" @update:model-value="updateField('facebook', $event)" />
+      <FormInput id="line-id" :model-value="modelValue.lineId" label="LINE ID" placeholder="e.g. somjai.laundry" @update:model-value="updateField('lineId', $event)" />
+      <FormInput id="whatsapp" :model-value="modelValue.whatsapp" label="WhatsApp" placeholder="e.g. +66812345678" @update:model-value="updateField('whatsapp', $event)" />
+      <FormInput id="email" :model-value="modelValue.email" label="Email" type="email" placeholder="name@example.com" autocomplete="email" @update:model-value="updateField('email', $event)" />
     </fieldset>
 
   </div>

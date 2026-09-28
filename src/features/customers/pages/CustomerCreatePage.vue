@@ -25,7 +25,6 @@ const customer = reactive<CustomerCreateFormData>({
   phone: '',
   address: '',
   location: '',
-  registeredDate: '',
   facebook: '',
   lineId: '',
   whatsapp: '',
@@ -41,10 +40,9 @@ function updateCustomer(value: CustomerCreateFormData) {
 
 const parsed = computed(() => customerCreateSchema.safeParse({
   customerName: customer.customerName.trim(),
-  phone: customer.phone.trim(),
+  phone: customer.phone,
   address: customer.address.trim() || null,
   location: customer.location.trim() || null,
-  registeredDate: customer.registeredDate || null,
   facebook: customer.facebook.trim() || null,
   lineId: customer.lineId.trim() || null,
   whatsapp: customer.whatsapp.trim() || null,
@@ -66,9 +64,9 @@ async function submit() {
     await router.replace({ name: 'customer-detail', params: { customerId: created.customerId } })
   } catch (error) {
     if (error instanceof ApiError && error.status === 409 && error.message === 'duplicate_phone') {
-      phoneError.value = 'เบอร์โทรศัพท์นี้มีลูกค้าใช้งานอยู่แล้ว'
+      phoneError.value = 'This phone number already belongs to a customer'
     } else {
-      formError.value = error instanceof Error ? error.message : 'บันทึกข้อมูลลูกค้าไม่สำเร็จ'
+      formError.value = error instanceof Error ? error.message : 'Could not save the customer'
     }
   } finally {
     saving.value = false
@@ -80,9 +78,9 @@ async function submit() {
   <FormOverlay
     :open="true"
     eyebrow="CUSTOMERS / NEW RECORD"
-    title="เพิ่มลูกค้าใหม่"
-    helper-text="กรอกข้อมูลลูกค้าเพื่อลงทะเบียน"
-    submit-label="บันทึกข้อมูลลูกค้า"
+    title="New customer"
+    helper-text="Enter the customer details to register"
+    submit-label="Save customer"
     :is-submitting="saving"
     :is-submit-disabled="!canSubmit"
     :close-on-backdrop="false"

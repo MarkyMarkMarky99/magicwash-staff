@@ -10,7 +10,7 @@ type CustomerRow = z.infer<typeof customersRowSchema>
 type MappingRow = z.infer<typeof customerIdMappingRowSchema>
 
 const fixedNow = new Date('2026-09-29T17:30:00.000Z')
-const request = { customerName: 'Somjai', phone: '081-234-5678', updatedBy: 'staff' }
+const request = { customerName: 'Somjai', phone: '0812345678', updatedBy: 'staff' }
 
 function setup(customerRows: Array<Partial<CustomerRow>> = [], mappingRows: Array<Partial<MappingRow>> = []) {
   const events: string[] = []
@@ -63,7 +63,7 @@ async function successPath() {
 
 async function duplicatePhone() {
   const fake = setup([
-    { Phone: '0812345678', DeletedAt: '' },
+    { Phone: '081-234-5678', DeletedAt: '' },
   ], [{ CustomerLabel: 'ABC', CustomerID: '' }])
   await assert.rejects(() => fake.service.create(request), (error: unknown) => {
     assert.ok(error instanceof ApiError)
@@ -78,6 +78,16 @@ async function duplicatePhone() {
   ], [{ CustomerLabel: 'ABC', CustomerID: null }])
   await deleted.service.create(request)
   assert.equal(deleted.appended.length, 1)
+}
+
+async function rejectsFormattedPhone() {
+  const fake = setup()
+  await assert.rejects(() => fake.service.create({ ...request, phone: '081-234-5678' }), (error: unknown) => {
+    assert.ok(error instanceof ApiError)
+    assert.equal(error.status, 422)
+    return true
+  })
+  assert.deepEqual(fake.events, [])
 }
 
 async function randomFreeLabel() {
@@ -132,7 +142,8 @@ async function keepLabelOnUnknownAppend() {
 
 await successPath()
 await duplicatePhone()
+await rejectsFormattedPhone()
 await randomFreeLabel()
 await releaseOnRejectedAppend()
 await keepLabelOnUnknownAppend()
-console.log('5 customer registration dry tests passed')
+console.log('6 customer registration dry tests passed')

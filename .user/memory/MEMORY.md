@@ -5,7 +5,7 @@
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
-- **`feat/customer-registration`** — new-customer registration built and committed; needs a live-sheet browser test before merge. Details: `.user/memory/feat-customer-registration.md`.
+- **`feat/customer-registration`** — new-customer registration built and committed; browser-tested, ready to merge. Details: `.user/memory/feat-customer-registration.md`.
 - **`work-20260928`** — clean worktree branch with no commits beyond `main`; delete when its session is done. Details: `.user/memory/work-20260928.md`.
 
 ## Pending work

@@ -8,11 +8,11 @@ export const preferredContactMethodSchema = z.enum(['Line', 'Messenger'])
 
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a valid YYYY-MM-DD date')
 
-const phoneSchema = z.string()
+const phoneSchema = z.string().regex(/^[0-9]{10}$/, 'phone must be exactly 10 digits')
 
 export const customerCreateSchema = z.object({
   customerName: z.string().min(1),
-  phone: phoneSchema.min(1),
+  phone: phoneSchema,
   address: z.string().nullish(),
   location: z.string().nullish(),
   registeredDate: isoDateSchema.nullish(),
