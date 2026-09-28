@@ -129,8 +129,9 @@ first use; writable sheets also need `GOOGLE_SERVICE_ACCOUNT_KEY`. Server enviro
 never use `VITE_` prefixes.
 
 The Google Sheets schema registry at `G:\My Drive\Magicwash\Database\GoogleSheets\*.json` is
-read-only. The live sheet is authoritative when it conflicts with a stale registry; never rewrite
-the registry to match code. Do not alter the separate Python project's similarly named environment
+read-only and is the single source of truth, shared by other projects. When the live sheet
+conflicts with it, stop and have the user update the registry; never rewrite the registry to match
+code. Do not alter the separate Python project's similarly named environment
 variables or spreadsheet bindings.
 
 ## Backend verification

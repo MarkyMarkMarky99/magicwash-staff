@@ -104,7 +104,6 @@
   - Fill real prices for the 33 inactive price-list rows with `price: 0`.
   - Add a `BaseSwipeCard` action to add a price to an existing item.
   - No Items edit UI exists; `PATCH /api/items/:id` is implemented and tested but unreachable from the app.
-  - Test item `ITM-0099` / `2e6b91d2` is retained inactive in `Items`; delete it with the other sheet test data.
   - Decide between `CANCELLED` and `VOID` before changing the invoice contract.
   - Decide whether to renumber the four legacy uuid-shaped invoice numbers; they are referenced as `invoiceId` on customer-package rows.
   - Invoice reads now assemble from `Invoices`/`InvoiceItems`/`Payments` in memory; revisit at ~2-3k invoices.
@@ -112,6 +111,10 @@
   - Confirm whether the LIFF portal still reads `InvoicesView`; if not, the Apps Script sync can go.
   - Customer-package pager is still deferred; `okPaged` carries no total, invoices use `paginatedBody`.
   - Clean sheet data: the blank customer row, dirty Orders rows, LaundryPhotos ordering, and page-walks using non-unique sort keys.
+
+- **Customers and registration**
+  - Next: register `CustomerIDMapping` read-only via the `add-sheet` skill; registration then needs label-allocation locking before Customers writes open.
+  - Customers sheet: 1 row has a blank `CustomerIndex` and 19 `CustomerIndex` values are duplicated; user has not decided a fix.
 
 - **Auth, UX, and documentation**
   - Staff Google sign-in merged 2026-09-27 as optional: only `/api/auth/me` checks the token; no route or page is gated yet.
@@ -141,7 +144,7 @@
   - Phone-test ISS-72adcdca: a cache-hit customer-row tap must open only customer detail, while the swipe action still fires.
   - Browser-check ListContainer search, theme consistency, and the order-detail dropdown at the bottom edge.
   - Delete `docs/plans/scroll-region.md` and `docs/plans/overlay-frame.md` once unreferenced (`LightboxOverlay` is gone).
-  - Delete sheet test data: `Packages` `ZZTEST01` / `af9f0651`; `OrderForm` `246fde2b`, `cc4d375e`, `f68ae08d`; `LaundryPhotos` `QK0H9DT1`, `a260b2b1`, `1b7649ba`; `AfterPhoto` `0aacd052`.
+  - Delete sheet test data: `Items` `ITM-0099` / `2e6b91d2`; `Packages` `ZZTEST01` / `af9f0651`; `OrderForm` `246fde2b`, `cc4d375e`, `f68ae08d`; `LaundryPhotos` `QK0H9DT1`, `a260b2b1`, `1b7649ba`; `AfterPhoto` `0aacd052`.
   - Browser-check the appointment card status badge now sitting in the top-end slot on both the schedule and pending pages.
   - Browser-check swipe cards now opening 4rem per action (`leftActions`/`rightActions`), incl. the AppointmentCard "Swipe to …" label in 4rem.
   - User kept New Order, Schedule Pickup, New Package and Create Invoice on customer detail as per-tab dropdowns (2026-09-27); Book Delivery and package usage in the order sheet still undecided.
