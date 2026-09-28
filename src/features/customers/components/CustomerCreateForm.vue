@@ -62,6 +62,7 @@ function onPhoneInput(value: string) {
         @update:model-value="onPhoneInput"
       />
       <p v-if="phoneError" id="customer-phone-error" class="field-error" role="alert">{{ phoneError }}</p>
+      <FormInput id="email" :model-value="modelValue.email" label="Email" type="email" placeholder="name@example.com" autocomplete="email" @update:model-value="updateField('email', $event)" />
       <FormTextarea
         id="customer-address"
         :model-value="modelValue.address"
@@ -72,11 +73,10 @@ function onPhoneInput(value: string) {
     </fieldset>
 
     <fieldset class="form-section contact-section" :disabled="disabled">
-      <legend>Contact channels</legend>
+      <legend>Social media</legend>
       <FormInput id="facebook" :model-value="modelValue.facebook" label="Facebook" placeholder="Profile name or URL" @update:model-value="updateField('facebook', $event)" />
       <FormInput id="line-id" :model-value="modelValue.lineId" label="LINE ID" placeholder="e.g. somjai.laundry" @update:model-value="updateField('lineId', $event)" />
       <FormInput id="whatsapp" :model-value="modelValue.whatsapp" label="WhatsApp" placeholder="e.g. +66812345678" @update:model-value="updateField('whatsapp', $event)" />
-      <FormInput id="email" :model-value="modelValue.email" label="Email" type="email" placeholder="name@example.com" autocomplete="email" @update:model-value="updateField('email', $event)" />
     </fieldset>
 
   </div>
