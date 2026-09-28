@@ -8,13 +8,11 @@ import { customersRowSchema } from '../../sheets/Customers/Customers.db-contract
 
 type CustomerDbRow = z.infer<typeof customersRowSchema>
 
-/** `Line` maps to the API's `lineId` field. */
 export const customerFieldMap = {
   Timestamp: 'timestamp',
   CustomerID: 'customerId',
   CustomerIndex: 'customerIndex',
   CustomerName: 'customerName',
-  // Phone passes through as stored text; reads do not normalize it.
   Phone: 'phone',
   Address: 'address',
   Location: 'location',

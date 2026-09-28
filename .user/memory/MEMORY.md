@@ -5,6 +5,7 @@
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
+- **`feat/customer-registration`** — new-customer registration; comments stripped from customer files, design not started. Details: `.user/memory/feat-customer-registration.md`.
 - **`work-20260928`** — clean worktree branch with no commits beyond `main`; delete when its session is done. Details: `.user/memory/work-20260928.md`.
 
 ## Pending work
@@ -113,7 +114,6 @@
   - Clean sheet data: the blank customer row, dirty Orders rows, LaundryPhotos ordering, and page-walks using non-unique sort keys.
 
 - **Customers and registration**
-  - Registration not built: user to decide label-allocation locking, who picks the 3-letter label, duplicate-phone policy, and LINE notify.
   - Dirty data, fix undecided: Customers has 1 blank and 19 duplicated `CustomerIndex`; CustomerIDMapping lacks 302 customers, has 5 orphan ids and 2 ids mangled to `2.50E+33`/`2.63E+53`.
   - `column-order.dry-test.ts` fails on `main`: it expects `update: false` for OrderItemForms/OrderImages writes.
 

@@ -1,7 +1,6 @@
 import { z } from 'zod'
 import type { SheetContract } from '../../shared/contracts/sheet-contract.js'
 
-/** KEY ORDER = physical CustomerIDMapping sheet column order. */
 export const customerIdMappingRowSchema = z.object({
   CustomerLabel: z.string(),
   CustomerID: z.string().nullable(),

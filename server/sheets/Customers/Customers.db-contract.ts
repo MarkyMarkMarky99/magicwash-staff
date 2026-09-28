@@ -5,7 +5,6 @@ const customerTypeSchema = z.enum(['Member', 'Regular', 'Corporate'])
 const customerSourceSchema = z.enum(['Facebook Ads', 'Google Ads'])
 const preferredContactMethodSchema = z.enum(['Line', 'Messenger'])
 
-/** KEY ORDER = physical Customers sheet column order. */
 export const customersRowSchema = z.object({
   Timestamp: z.string(),
   CustomerID: z.string(),
@@ -38,7 +37,5 @@ export const customersDbContract = {
     onAppend: [],
     onUpdate: ['UpdatedAt'],
   },
-  // Writes are disabled. Enable only when CustomerIndex allocation,
-  // duplicate-phone checks, locking, and LINE notifications are implemented here.
   writes: { append: false, update: false, delete: false },
 } satisfies SheetContract

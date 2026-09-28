@@ -6,10 +6,6 @@ import {
 } from '@contracts/customers/customer-api.schema'
 import { apiGet, apiGetList } from '@/shared/api/api-client'
 
-/** Returns contract-derived camelCase DTOs without local mapping. */
-
-// DTO/query types derived from the shared contract, next to their consumer —
-// not a frontend-owned copy.
 export type CustomerListDto = z.infer<typeof customerListResponseSchema>
 export type CustomerDetailDto = z.infer<typeof customerDetailResponseSchema>
 

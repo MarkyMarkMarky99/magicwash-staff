@@ -7,11 +7,6 @@ export type WaitingPickupAppointment = z.infer<typeof appointmentListResponseSch
 const BANGKOK_TIME_ZONE = 'Asia/Bangkok'
 const ACTIVE_PICKUP_STATUSES = new Set(['CONFIRMED', 'IN_TRANSIT'])
 
-/**
- * Waiting-pickup filtering stays client-side because the list contract has no
- * deletedAt or date-range query. Soft-deleted rows may appear; this helper is
- * not a deletion-correctness boundary.
- */
 export function filterWaitingPickups(
   appointments: readonly WaitingPickupAppointment[],
   now: Date = new Date(),

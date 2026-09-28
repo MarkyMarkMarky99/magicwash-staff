@@ -2,32 +2,20 @@ import { z } from 'zod'
 import { API_PAGINATION_DEFAULTS } from '../shared/api.schema.js'
 import type { ModuleApiContract } from '../shared/module-api-contract.js'
 
-/**
- * The customers API ↔ frontend contract: request/query/response schemas and the
- * API-facing enums they share. The DB-side contract lives in
- * `server/sheets/Customers/Customers.db-contract.ts` and never crosses this
- * boundary. The module declares DB-to-API mapping in its service wiring.
- */
-
 export const customerTypeSchema = z.enum(['Member', 'Regular', 'Corporate'])
 export const customerSourceSchema = z.enum(['Facebook Ads', 'Google Ads'])
 export const preferredContactMethodSchema = z.enum(['Line', 'Messenger'])
 
 const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a valid YYYY-MM-DD date')
 
-// phone is exposed and accepted as a string so the leading 0 of Thai numbers
-// (0812345678) survives. It is stored as text and returned as-is — the sheet
-// already holds the padded string, so no read-time normalization is needed.
 const phoneSchema = z.string()
 
-// Create: client sends business fields only; the server owns the identity and
-// metadata columns. There is no CreatedBy column, so the actor rides on updatedBy.
 export const customerCreateSchema = z.object({
   customerName: z.string().min(1),
   phone: phoneSchema.min(1),
   address: z.string().nullish(),
   location: z.string().nullish(),
-  registeredDate: isoDateSchema.nullish(), // omit to default to today
+  registeredDate: isoDateSchema.nullish(),
   facebook: z.string().nullish(),
   lineId: z.string().nullish(),
   whatsapp: z.string().nullish(),
@@ -37,7 +25,6 @@ export const customerCreateSchema = z.object({
   updatedBy: z.string().min(1),
 })
 
-// Update: PATCH — every mutable field optional, updatedBy required, at least one change.
 export const customerUpdateSchema = z
   .object({
     customerName: z.string().min(1).optional(),
@@ -58,16 +45,11 @@ export const customerUpdateSchema = z
     { message: 'At least one updatable field is required' },
   )
 
-// customerIndex is the default list order; registeredDate is the one alternate sort.
 export const customerSortFieldSchema = z.enum(['customerIndex', 'registeredDate'])
 
-// The customer list is small and the UI filters/paginates in memory, so the
-// endpoint returns everything in one shot: the cap is generous and the default
-// page size equals it.
 export const MAX_CUSTOMERS_PER_PAGE = 2000
 
 export const customerListQuerySchema = z.object({
-  // Free-text search across customerIndex / customerName / address.
   keyword: z.string().default(''),
   customerType: customerTypeSchema.nullable().optional().default(null),
   page: z.coerce.number().int().positive().default(API_PAGINATION_DEFAULTS.page),
@@ -81,10 +63,6 @@ export const customerListQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).default('asc'),
 })
 
-// Responses drive the projection (key order = DTO key order). list is the
-// lightweight subset; detail adds contact + registration fields. source,
-// scheduledDays, preferredContactMethod, lastVisitDate, and audit columns are
-// absent from these response schemas.
 export const customerListResponseSchema = z.object({
   customerId: z.string(),
   customerIndex: z.string(),
@@ -106,14 +84,6 @@ export const customerDetailResponseSchema = customerListResponseSchema.extend({
 export const customerCreateResponseSchema = customerDetailResponseSchema
 export const customerUpdateResponseSchema = customerDetailResponseSchema
 
-/**
- * The module API contract bundle (nested `query` / `request` / `response`)
- * consumed by the service wiring. The individual schemas above stay exported and
- * remain the source of truth; this bundle just groups them into the standard
- * `ModuleApiContract` shape so every module wires the same way. Named
- * `customerApiContract` to mirror the DB side (`customerDbContract`) and the
- * composed `customerContract`.
- */
 export const customerApiContract = {
   query: {
     list: customerListQuerySchema,

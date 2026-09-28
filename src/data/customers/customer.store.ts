@@ -8,7 +8,6 @@ import {
 import { onCacheInvalidated } from '@/shared/api/response-cache'
 
 export const useCustomerStore = defineStore('customers', () => {
-  // The list is replaced wholesale, so shallowRef avoids per-customer proxies.
   const customers = shallowRef<CustomerListDto[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
