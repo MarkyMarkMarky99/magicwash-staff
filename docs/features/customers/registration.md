@@ -35,5 +35,6 @@ Random choice from ~17,000 free labels makes two concurrent registrations pickin
 
 - `CustomerCreatePage.vue` posts the form; submit stays disabled while the payload fails `customerCreateSchema` or a save is in flight.
 - The form has no registration date field; the server sets `RegisteredDate` to today (Bangkok).
+- The form has no location field until a map picker exists; the API still accepts `location`.
 - On 409 `duplicate_phone`, show the error on the phone field.
 - On success, add the customer to the customer store and open the customer's detail page.

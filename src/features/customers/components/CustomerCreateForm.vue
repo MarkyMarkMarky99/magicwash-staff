@@ -8,7 +8,6 @@ export type CustomerCreateFormData = {
   customerName: string
   phone: string
   address: string
-  location: string
   facebook: string
   lineId: string
   whatsapp: string
@@ -69,13 +68,6 @@ function onPhoneInput(value: string) {
         label="Address"
         placeholder="House no., street, subdistrict, district, province"
         @update:model-value="updateField('address', $event)"
-      />
-      <FormInput
-        id="customer-location"
-        :model-value="modelValue.location"
-        label="Location"
-        placeholder="e.g. 13.6896, 100.4079 or Condo A, Building 2"
-        @update:model-value="updateField('location', $event)"
       />
     </fieldset>
 
