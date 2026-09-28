@@ -107,6 +107,18 @@ function focusInput() {
   box-shadow: none;
 }
 
+.form-toggle-input .form-toggle-input__stage :deep(.form-input:-webkit-autofill) {
+  -webkit-text-fill-color: var(--color-on-surface);
+  box-shadow: inset 0 0 0 100px white;
+  caret-color: var(--color-on-surface);
+}
+
+.form-toggle-input .form-toggle-input__stage :deep(.form-input:autofill) {
+  -webkit-text-fill-color: var(--color-on-surface);
+  box-shadow: inset 0 0 0 100px white;
+  caret-color: var(--color-on-surface);
+}
+
 .form-toggle-input__stage :deep(.form-label) {
   position: absolute;
   width: 1px;

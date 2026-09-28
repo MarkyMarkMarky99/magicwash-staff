@@ -79,6 +79,7 @@ async function submit() {
     title="New customer"
     helper-text="Enter the customer details to register"
     submit-label="Save customer"
+    submitting-label="Saving..."
     :is-submitting="saving"
     :is-submit-disabled="!canSubmit"
     :close-on-backdrop="false"
