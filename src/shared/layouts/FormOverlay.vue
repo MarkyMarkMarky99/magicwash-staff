@@ -131,7 +131,7 @@ function handleSubmit() {
 
 .form-overlay__header {
   position: relative;
-  height: calc(166px + env(safe-area-inset-top));
+  height: calc(182px + env(safe-area-inset-top));
   transition: height 150ms ease;
   flex: 0 0 auto;
   padding: calc(20px + env(safe-area-inset-top)) 20px 19px;
@@ -154,7 +154,7 @@ function handleSubmit() {
 .form-overlay__header::after {
   position: absolute;
   right: 38px;
-  bottom: -21px;
+  bottom: -5px;
   width: 42px;
   height: 42px;
   border-radius: 50%;
@@ -197,7 +197,7 @@ function handleSubmit() {
   width: 86px;
   height: 43px;
   align-items: center;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .form-overlay__brand-mark img {
@@ -252,7 +252,17 @@ function handleSubmit() {
 }
 
 .form-overlay__body {
+  position: relative;
+  z-index: 1;
+  margin-top: -16px;
   padding: 21px 20px 0;
+  border-radius: 16px 16px 0 0;
+  background: var(--color-surface);
+}
+
+.form-overlay__header--compact + .form-overlay__body {
+  margin-top: 0;
+  border-radius: 0;
 }
 
 .form-overlay__footer {
