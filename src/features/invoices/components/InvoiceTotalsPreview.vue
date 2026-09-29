@@ -16,21 +16,17 @@ function formatCurrency(value: number) {
 </script>
 
 <template>
-  <section class="space-y-2 rounded-2xl bg-primary-container/10 border border-primary/20 p-4">
-    <div class="flex items-center justify-between">
-      <p class="font-body text-sm text-on-surface-variant">
+  <section class="rounded-[20px] border border-lime/25 bg-primary px-5 py-4 text-on-primary shadow-lg">
+    <div v-if="itemsTotal !== invoiceTotal" class="mb-3 flex items-center justify-between border-b border-white/15 pb-3">
+      <p class="font-body text-xs font-semibold text-on-primary/80">
         {{ itemCount }} line{{ itemCount === 1 ? '' : 's' }} · subtotal
       </p>
-      <p class="font-body text-sm font-medium text-on-surface">{{ formatCurrency(itemsTotal) }}</p>
+      <p class="font-body text-sm font-semibold tabular-nums">{{ formatCurrency(itemsTotal) }}</p>
     </div>
 
-    <div class="flex items-center justify-between border-t border-outline-variant/20 pt-2">
-      <p class="font-headline text-sm font-bold text-primary">Total due</p>
-      <p class="font-headline text-lg font-bold text-primary">{{ formatCurrency(invoiceTotal) }}</p>
+    <div class="flex items-end justify-between gap-3">
+      <p class="font-label text-[9px] font-bold uppercase tracking-[0.18em] text-lime">Total due</p>
+      <p class="font-headline text-[26px] font-extrabold leading-8 tracking-tight tabular-nums">{{ formatCurrency(invoiceTotal) }}</p>
     </div>
-
-    <p class="font-body text-[11px] text-on-surface-variant/70">
-      Preview only — the server recalculates every total when the invoice is created.
-    </p>
   </section>
 </template>

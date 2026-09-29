@@ -4,6 +4,7 @@
 
 ## Branches in flight
 
+- **`feat/invoice-form-overlay`** — invoice create as `FormOverlay` with swipe line cards; WIP, not browser-verified. Details: `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 - **`work-20260928`** — clean worktree branch with no commits beyond `main`; delete when its session is done. Details: `.user/memory/work-20260928.md`.
 

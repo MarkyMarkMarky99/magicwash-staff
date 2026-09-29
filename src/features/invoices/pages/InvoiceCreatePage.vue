@@ -10,8 +10,7 @@ import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import type { CreateInvoiceRequest, CreateInvoiceResponse } from '@contracts/invoices/invoice-api.schema'
 import { computeInvoiceLine, computeInvoiceTotal, roundMoney } from '@shared/utils/invoice-calculator'
-import AppLayout from '@/shared/layouts/AppLayout.vue'
-import ScrollRegion from '@/shared/components/ScrollRegion.vue'
+import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import FormInput from '@/shared/components/FormInput.vue'
 import { useCloseRoute } from '@/shared/navigation/use-close-route'
 import {
@@ -339,9 +338,21 @@ async function copyLiffUrl(invoiceNumber: string) {
 </script>
 
 <template>
-  <AppLayout>
-  <ScrollRegion as="main" class="bg-surface pb-24">
-    <div v-if="warningInvoiceNumber" class="mx-4 mt-4 flex items-start gap-2 rounded-xl border border-warning/30 bg-warning-container/20 px-3 py-2.5 text-on-surface">
+  <FormOverlay
+    :open="true"
+    eyebrow="INVOICES / NEW INVOICE"
+    :title="customer?.customerName || 'New invoice'"
+    :helper-text="[`#${invoiceNumber}`, customer?.phone].filter(Boolean).join(' · ')"
+    submit-label="Create invoice"
+    submitting-label="Creating invoice…"
+    :is-submitting="submitting"
+    :is-submit-disabled="!isValid || result !== null"
+    :close-on-backdrop="false"
+    @close="close"
+    @submit="handleSubmit"
+  >
+  <div class="space-y-5 pb-6">
+    <div v-if="warningInvoiceNumber" class="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning-container/20 px-3 py-2.5 text-on-surface">
       <span class="material-symbols-outlined mt-0.5 shrink-0 text-[18px] leading-none text-warning" aria-hidden="true">warning</span>
       <p class="font-body text-sm leading-relaxed">
         This order already has invoice <span class="font-semibold">{{ warningInvoiceNumber }}</span>.
@@ -351,7 +362,7 @@ async function copyLiffUrl(invoiceNumber: string) {
 
     <div v-if="contextLoading" class="flex flex-col items-center gap-3 px-6 py-16 text-center">
       <span class="material-symbols-outlined animate-spin text-[40px] text-primary" aria-hidden="true">progress_activity</span>
-      <h1 class="font-headline text-base font-bold text-on-surface">Loading order</h1>
+      <h2 class="font-headline text-base font-bold text-on-surface">Loading order</h2>
       <p class="max-w-xs font-body text-sm text-on-surface-variant">
         Restoring the customer and order selected from order history.
       </p>
@@ -359,7 +370,7 @@ async function copyLiffUrl(invoiceNumber: string) {
 
     <div v-else-if="contextError" class="flex flex-col items-center gap-3 px-6 py-16 text-center">
       <span class="material-symbols-outlined text-[40px] text-error" aria-hidden="true">error</span>
-      <h1 class="font-headline text-base font-bold text-on-surface">Could not load this order</h1>
+      <h2 class="font-headline text-base font-bold text-on-surface">Could not load this order</h2>
       <p class="max-w-xs font-body text-sm text-on-surface-variant">{{ contextError }}</p>
       <div class="mt-2 flex gap-2">
         <button
@@ -381,7 +392,7 @@ async function copyLiffUrl(invoiceNumber: string) {
 
     <div v-else-if="!order || !customer" class="flex flex-col items-center gap-3 px-6 py-16 text-center">
       <span class="material-symbols-outlined text-[40px] text-on-surface-variant/50" aria-hidden="true">receipt_long</span>
-      <h1 class="font-headline text-base font-bold text-on-surface">No order selected</h1>
+      <h2 class="font-headline text-base font-bold text-on-surface">No order selected</h2>
       <p class="max-w-xs font-body text-sm text-on-surface-variant">
         Open a customer's order history and choose "Create Invoice" on the order you want to bill.
       </p>
@@ -395,13 +406,13 @@ async function copyLiffUrl(invoiceNumber: string) {
     </div>
 
     <!-- Result state: submitted, show one of the six distinct outcomes. -->
-    <div v-else-if="result" class="space-y-4 px-4 pt-5">
+    <div v-else-if="result" class="space-y-4">
       <section
         v-if="isInvoicePersisted(result)"
         class="space-y-3 rounded-2xl border border-secondary/30 bg-secondary-container/15 p-5 text-center"
       >
         <span class="material-symbols-outlined text-[36px] text-secondary" aria-hidden="true">task_alt</span>
-        <h1 class="font-headline text-base font-bold text-on-surface">Invoice created</h1>
+        <h2 class="font-headline text-base font-bold text-on-surface">Invoice created</h2>
         <p v-if="result.kind === 'created'" class="font-body text-sm text-on-surface-variant">
           {{ result.invoiceNumber }} · {{ result.itemCount }} line{{ result.itemCount === 1 ? '' : 's' }}
         </p>
@@ -438,7 +449,7 @@ async function copyLiffUrl(invoiceNumber: string) {
       >
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-[24px] text-error" aria-hidden="true">error</span>
-          <h1 class="font-headline text-base font-bold text-on-surface">Fix these fields and resubmit</h1>
+          <h2 class="font-headline text-base font-bold text-on-surface">Fix these fields and resubmit</h2>
         </div>
         <p class="font-body text-xs text-on-surface-variant">Nothing was written — this invoice was never created.</p>
         <ul class="space-y-1.5">
@@ -457,7 +468,7 @@ async function copyLiffUrl(invoiceNumber: string) {
       >
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-[24px] text-error" aria-hidden="true">error</span>
-          <h1 class="font-headline text-base font-bold text-on-surface">Nothing was saved</h1>
+          <h2 class="font-headline text-base font-bold text-on-surface">Nothing was saved</h2>
         </div>
         <p class="font-body text-sm text-on-surface-variant">{{ result.message }}</p>
         <p class="font-body text-xs text-on-surface-variant">Safe to try again — no invoice or line items were written.</p>
@@ -478,7 +489,7 @@ async function copyLiffUrl(invoiceNumber: string) {
       >
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-[24px] text-warning" aria-hidden="true">help</span>
-          <h1 class="font-headline text-base font-bold text-on-surface">Outcome unconfirmed</h1>
+          <h2 class="font-headline text-base font-bold text-on-surface">Outcome unconfirmed</h2>
         </div>
         <p class="font-body text-sm text-on-surface-variant">{{ result.message }}</p>
         <p class="font-body text-xs font-semibold text-warning">
@@ -497,7 +508,7 @@ async function copyLiffUrl(invoiceNumber: string) {
       >
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-[24px] text-warning" aria-hidden="true">warning</span>
-          <h1 class="font-headline text-base font-bold text-on-surface">Needs a person to fix this</h1>
+          <h2 class="font-headline text-base font-bold text-on-surface">Needs a person to fix this</h2>
         </div>
         <p class="font-body text-sm text-on-surface-variant">
           The {{ result.itemCount }} line item{{ result.itemCount === 1 ? '' : 's' }} for
@@ -518,7 +529,7 @@ async function copyLiffUrl(invoiceNumber: string) {
       >
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-[24px] text-secondary" aria-hidden="true">task_alt</span>
-          <h1 class="font-headline text-base font-bold text-on-surface">Invoice created — one link is stale</h1>
+          <h2 class="font-headline text-base font-bold text-on-surface">Invoice created — one link is stale</h2>
         </div>
         <p class="font-body text-sm text-on-surface-variant">
           <span class="font-semibold text-on-surface">{{ result.invoiceNumber }}</span> is fully recorded and the
@@ -540,35 +551,22 @@ async function copyLiffUrl(invoiceNumber: string) {
 
     </div>
 
-    <form v-else class="space-y-5 px-4 py-5" @submit.prevent="handleSubmit">
-      <header class="space-y-1 border-b border-outline-variant/40 pb-3 text-center">
-        <p class="font-headline text-xl font-bold tracking-tight text-on-surface">#{{ invoiceNumber }}</p>
-      </header>
-
-      <section class="space-y-1 rounded-2xl bg-surface-container-low px-4 py-3">
-        <p class="font-label text-[10px] uppercase tracking-wide text-on-surface-variant">Billing</p>
-        <p class="font-headline text-sm font-bold text-on-surface">{{ customer.customerName }}</p>
-        <p class="font-body text-xs text-on-surface-variant">
-          {{ customer.customerId }}<template v-if="customer.phone"> · {{ customer.phone }}</template>
-        </p>
-        <p v-if="customer.address" class="font-body text-xs text-on-surface-variant">{{ customer.address }}</p>
-        <p class="mt-1 font-body text-xs text-on-surface-variant">Order <span class="font-semibold text-on-surface">{{ order.orderId }}</span></p>
-      </section>
-
-      <section class="grid grid-cols-2 gap-3">
-        <FormInput id="invoice-issued-date" v-model="issuedDate" type="date" label="Issued date" icon="event" />
-        <FormInput id="invoice-due-date" v-model="dueDate" type="date" label="Due date" icon="event_available" :min="minDueDate" />
-      </section>
+    <template v-else>
+      <div class="grid grid-cols-2 gap-3">
+        <FormInput id="invoice-issued-date" v-model="issuedDate" type="date" label="Issued date" />
+        <FormInput id="invoice-due-date" v-model="dueDate" type="date" label="Due date" :min="minDueDate" />
+      </div>
 
       <InvoiceLineItemsEditor
         v-model="items"
+        :line-totals="lineCalculations.map((calc) => calc.netTotal)"
         @add-line="addLine"
         @pick-from-price-list="openPriceListPicker"
       />
 
       <InvoiceAdjustmentsEditor
         v-model="invoiceAdjustments"
-        label="Invoice-level adjustments"
+        label="Invoice adjustments"
         @add="addInvoiceAdjustment"
       />
 
@@ -577,17 +575,9 @@ async function copyLiffUrl(invoiceNumber: string) {
         :items-total="itemsTotal"
         :invoice-total="invoiceTotal"
       />
-
-      <button
-        type="submit"
-        class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 font-label text-[13px] font-semibold text-on-primary transition-all disabled:opacity-40"
-        :disabled="!isValid || submitting"
-      >
-        <span v-if="submitting" class="material-symbols-outlined animate-spin text-[18px]" aria-hidden="true">progress_activity</span>
-        {{ submitting ? 'Creating invoice…' : 'Create invoice' }}
-      </button>
-    </form>
-  </ScrollRegion>
+    </template>
+  </div>
+  </FormOverlay>
 
   <PriceListItemPicker
     :open="priceListPickerOpen"
@@ -600,5 +590,4 @@ async function copyLiffUrl(invoiceNumber: string) {
     @retry="priceListStore.load(true)"
     @select="handlePriceListSelect"
   />
-  </AppLayout>
 </template>

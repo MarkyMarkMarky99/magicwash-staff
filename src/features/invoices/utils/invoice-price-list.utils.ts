@@ -17,7 +17,7 @@ export function toLineItemFormRow(
   const line = createEmptyLineItemRow()
   const serviceLabel = serviceTypePresentation[item.serviceType].label
   line.description = `${item.displayNameTh} (${serviceLabel} / ${item.serviceType})`
-  const unit = item.unit ?? ''
+  const unit = item.unit?.trim() || 'piece'
   const unitOption = invoiceUnitOptionFor(unit)
   line.unit = unit
   line.unitOption = unitOption

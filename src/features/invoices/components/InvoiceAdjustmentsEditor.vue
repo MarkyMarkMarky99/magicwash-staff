@@ -30,28 +30,32 @@ function removeRow(index: number) {
 
 <template>
   <section class="space-y-2">
-    <div class="flex items-center justify-between">
-      <h3 class="font-label text-[11px] font-bold uppercase tracking-wide text-on-surface-variant">
+    <div class="flex items-center justify-between gap-3">
+      <h3
+        v-if="compact"
+        class="font-label text-[11px] font-bold uppercase tracking-wide text-on-surface-variant"
+      >
         {{ label }}
       </h3>
+      <h2
+        v-else
+        class="border-l-4 border-lime pl-2.5 font-headline text-[17px] font-extrabold tracking-[-0.03em] text-primary"
+      >
+        {{ label }}
+      </h2>
       <button
         type="button"
-        class="flex items-center gap-1 rounded-full bg-surface-container px-2.5 py-1 font-label text-[11px] font-semibold text-primary transition-colors hover:bg-surface-container-high"
+        class="min-h-[34px] shrink-0 rounded px-1 font-label text-[10px] font-extrabold uppercase tracking-[0.04em] text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-lime"
         @click="emit('add')"
       >
-        <span class="material-symbols-outlined text-[14px]" aria-hidden="true">add</span>
         Add adjustment
       </button>
     </div>
 
-    <p v-if="modelValue.length === 0" class="font-body text-xs text-on-surface-variant/70">
-      No adjustments — the full amount applies as-is.
-    </p>
-
     <div
       v-for="(row, index) in modelValue"
       :key="row.key"
-      class="flex items-start gap-2 rounded-xl border border-outline-variant/25 bg-surface-container-lowest p-2.5"
+      class="flex items-start gap-2 rounded-[14px] bg-white p-2.5 shadow-[0_1px_0_rgba(7,63,56,0.05)]"
       :class="compact ? '' : 'sm:items-center'"
     >
       <div class="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
