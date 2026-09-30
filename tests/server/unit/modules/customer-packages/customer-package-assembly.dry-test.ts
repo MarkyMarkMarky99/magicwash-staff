@@ -67,7 +67,7 @@ const assembled = assembleCustomerPackageRow({
     expiry_date: '  2026-08-31  ', deleted_at: null, notes: '  padded  ', service_day: '', time_slot: '', invoice_id: '',
   },
   ledger,
-  catalogRow: { package_code: 'GOLD', name: 'Historical Gold', eligible_service: 'wash', deleted_at: '2026-01-01' },
+  catalogRow: { package_code: 'GOLD', name: 'Historical Gold', eligible_service: 'WASH', deleted_at: '2026-01-01' },
   customerRow: { CustomerID: 'customer-1', CustomerName: '  Padded Customer  ', Phone: ' ', Address: '' },
   today: '2026-08-01',
 } as never)

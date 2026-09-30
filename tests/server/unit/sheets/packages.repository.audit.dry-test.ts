@@ -86,7 +86,7 @@ const appendCalls: Call[] = []
 const appended = await repository({ calls: appendCalls }).append({
   package_code: 'PKG-10',
   name: 'Ten credits',
-  eligible_service: 'wash_iron',
+  eligible_service: 'WSIR',
   included_credit: 10,
   price: 100,
   created_by: 'staff-1',
@@ -95,7 +95,7 @@ const appended = await repository({ calls: appendCalls }).append({
 assert.deepEqual(appendCall(appendCalls).values, [[
   'PKG-10',
   'Ten credits',
-  'wash_iron',
+  'WSIR',
   10,
   100,
   '',
@@ -125,7 +125,7 @@ const updated = await repository({
   readRange: [[
     'PKG-10',
     'Updated name',
-    'wash_iron',
+    'WSIR',
     10,
     100,
     '',

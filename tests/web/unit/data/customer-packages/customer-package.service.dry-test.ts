@@ -108,7 +108,7 @@ const detailWithNumericPhone = {
   customerAddress: null,
   packageCode: 'PACKAGE-1',
   packageName: 'Package One',
-  packageEligibleService: 'Laundry',
+  packageEligibleService: 'WSIR',
   startDate: '2026-08-25',
   expiryDate: null,
   status: 'ACTIVE',

@@ -58,7 +58,7 @@ const rows: PackageRow[] = [
   [
     'PKG-RETIRED',
     'Retired package',
-    'pressing',
+    'IRON',
     5,
     75,
     '',
@@ -204,7 +204,7 @@ try {
   const invalidCreate = await packageRoutes.collection.handleRequest(request('POST', {
     packageCode: 'PKG-INVALID',
     name: 'Invalid',
-    eligibleService: 'wash',
+    eligibleService: 'WASH',
     includedCredit: 1,
     price: 10,
     createdBy: 'staff-1',
@@ -216,7 +216,7 @@ try {
   const createdResult = await packageRoutes.collection.handleRequest(request('POST', {
     packageCode: 'PKG-NEW',
     name: 'New package',
-    eligibleService: 'wash_iron',
+    eligibleService: 'WSIR',
     includedCredit: 20,
     price: 200,
     createdBy: 'staff-3',

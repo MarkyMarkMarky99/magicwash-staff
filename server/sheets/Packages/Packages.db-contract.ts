@@ -1,11 +1,12 @@
 import { z } from 'zod'
 import type { SheetContract } from '../../shared/contracts/sheet-contract.js'
+import { serviceTypeSchema } from '../../../contracts/shared/service-type.schema.js'
 
 /** KEY ORDER = physical Packages sheet column order. */
 export const packagesRowSchema = z.object({
   package_code: z.string(),
   name: z.string(),
-  eligible_service: z.string(),
+  eligible_service: serviceTypeSchema,
   included_credit: z.number(),
   price: z.number(),
   notes: z.string().nullable(),
