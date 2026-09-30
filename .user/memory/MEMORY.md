@@ -5,7 +5,7 @@
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
-- **`work-20260928`** — clean worktree branch with no commits beyond `main`; delete when its session is done. Details: `.user/memory/work-20260928.md`.
+- **`feat/invoice-form-overlay`** — design-only work (invoice create as a form overlay with swipeable line cards), 1 commit ahead of `main`; kept by owner, not for merge yet.
 
 ## Pending work
 
