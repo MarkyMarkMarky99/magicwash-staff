@@ -16,7 +16,6 @@ import { invoicesDbContract } from '../../../server/sheets/Invoices/Invoices.db-
 import { paymentsDbContract } from '../../../server/sheets/Payments/Payments.db-contract.js'
 import { ordersViewDbContract } from '../../../server/sheets/OrdersView/OrdersView.db-contract.js'
 import { invoicesViewDbContract } from '../../../server/sheets/InvoicesView/InvoicesView.db-contract.js'
-import { customerPackageViewDbContract } from '../../../server/sheets/CustomerPackageView/CustomerPackageView.db-contract.js'
 import { laundryPhotosDbContract } from '../../../server/sheets/LaundryPhotos/LaundryPhotos.db-contract.js'
 import { orderFormDbContract } from '../../../server/sheets/OrderForm/OrderForm.db-contract.js'
 import { orderItemFormsDbContract } from '../../../server/sheets/OrderItemForms/OrderItemForms.db-contract.js'
@@ -140,12 +139,6 @@ const readableSheets: readonly ReadableSheet[] = [
     sheetName: invoicesViewDbContract.sheetName,
     spreadsheetIdEnv: invoicesViewDbContract.spreadsheetId!,
     rowSchema: invoicesViewDbContract.row,
-  },
-  {
-    name: 'CustomerPackageView',
-    sheetName: customerPackageViewDbContract.sheetName,
-    spreadsheetIdEnv: customerPackageViewDbContract.spreadsheetId!,
-    rowSchema: customerPackageViewDbContract.row,
   },
   {
     name: 'LaundryPhotos',

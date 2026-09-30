@@ -117,7 +117,7 @@ async function productionInvoiceService() {
 /** The service the API actually serves `/api/customer-packages` with. */
 async function productionCustomerPackageService() {
   const { customerPackageReadService } = await import(
-    '../../../../server/modules/customer-packages/customer-package-view.module.js'
+    '../../../../server/modules/customer-packages/customer-package.module.js'
   )
   return customerPackageReadService
 }
@@ -744,7 +744,7 @@ test('customer-package write wiring preserves field maps, shared singletons, and
     packageTransactionsRepositoryModule,
     packagesRepositoryModule,
   ] = await Promise.all([
-    import('../../../../server/modules/customer-packages/customer-package-view.module.js'),
+    import('../../../../server/modules/customer-packages/customer-package.module.js'),
     import('../../../../server/modules/customer-packages/customer-package-purchase.service.js'),
     import('../../../../server/modules/customer-packages/package-transaction.service.js'),
     import('../../../../server/modules/customer-packages/package-transaction.module.js'),

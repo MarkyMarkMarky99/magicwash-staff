@@ -21,7 +21,7 @@ export const routeRegistry = {
       (module) => module.laundryTagPrintRoutes,
     ),
   'customer-packages': (): ReturnType<RouteLoader> =>
-    import('../modules/customer-packages/customer-package-view.module.js').then(
+    import('../modules/customer-packages/customer-package.module.js').then(
       (module) => module.customerPackageRoutes,
     ),
   'package-transactions': (): ReturnType<RouteLoader> =>

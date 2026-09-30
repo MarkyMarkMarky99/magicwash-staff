@@ -3,7 +3,6 @@ import { appointmentsDbContract } from '../../../../server/sheets/Appointments/A
 import { afterPhotoDbContract } from '../../../../server/sheets/AfterPhoto/AfterPhoto.db-contract.js'
 import { customerIdMappingDbContract } from '../../../../server/sheets/CustomerIDMapping/CustomerIDMapping.db-contract.js'
 import { customersDbContract } from '../../../../server/sheets/Customers/Customers.db-contract.js'
-import { customerPackageViewDbContract } from '../../../../server/sheets/CustomerPackageView/CustomerPackageView.db-contract.js'
 import { invoicesDbContract } from '../../../../server/sheets/Invoices/Invoices.db-contract.js'
 import { invoiceItemsDbContract } from '../../../../server/sheets/InvoiceItems/InvoiceItems.db-contract.js'
 import { invoicesViewDbContract } from '../../../../server/sheets/InvoicesView/InvoicesView.db-contract.js'
@@ -316,32 +315,6 @@ const tests: ColumnOrderTest[] = [
       grandTotal: 'O',
       paidAmount: 'P',
       balanceDue: 'Q',
-    },
-    primaryKeyColumn: 'A',
-  },
-  {
-    name: 'CustomerPackageView',
-    contract: customerPackageViewDbContract,
-    expected: {
-      customerPackageId: 'A',
-      customerId: 'B',
-      customerName: 'C',
-      customerPhone: 'D',
-      customerAddress: 'E',
-      packageCode: 'F',
-      packageName: 'G',
-      packageEligibleService: 'H',
-      startDate: 'I',
-      expiryDate: 'J',
-      status: 'K',
-      serviceDay: 'L',
-      timeSlot: 'M',
-      invoiceId: 'N',
-      notes: 'O',
-      remainingCredit: 'P',
-      usedCredit: 'Q',
-      totalCredit: 'R',
-      transactionsJson: 'S',
     },
     primaryKeyColumn: 'A',
   },

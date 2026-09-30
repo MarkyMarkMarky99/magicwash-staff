@@ -1,11 +1,10 @@
 # Project memory
 
-- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24; item quantity reassign and detail Approve button merged 2026-09-25; department ring head, tap-to-advance and order Start merged 2026-09-25; optional staff Google sign-in, shared CloseButton and PhotoSwipe PhotoViewer merged 2026-09-27; customer detail tabs + bottom nav, two-size BaseBadge, central colour palette, lime focus and sticker buttons merged 2026-09-27; iPhone safe-area fixes (drawer header, status-bar-style black + standalone green body, shorter bottom nav) merged 2026-09-27. Push drawer (slide-aside menu, drag to close) and steadier BaseSwipeCard merged 2026-09-28. Customer registration (10-digit phone, social toggles via shared FormToggleInput, restyled FormTextarea, rounded FormOverlay body) merged 2026-09-29.
+- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24; item quantity reassign and detail Approve button merged 2026-09-25; department ring head, tap-to-advance and order Start merged 2026-09-25; optional staff Google sign-in, shared CloseButton and PhotoSwipe PhotoViewer merged 2026-09-27; customer detail tabs + bottom nav, two-size BaseBadge, central colour palette, lime focus and sticker buttons merged 2026-09-27; iPhone safe-area fixes (drawer header, status-bar-style black + standalone green body, shorter bottom nav) merged 2026-09-27. Push drawer (slide-aside menu, drag to close) and steadier BaseSwipeCard merged 2026-09-28. Customer registration (10-digit phone, social toggles via shared FormToggleInput, restyled FormTextarea, rounded FormOverlay body) merged 2026-09-29. Package eligible service → WSIR/IRON/DRCL/WASH codes and retired CustomerPackageView code removed, merged 2026-09-30.
 
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
-- **`feat/package-service-type`** — `Packages.eligible_service` now uses the WSIR/IRON/DRCL/WASH enum; sheet migrated, awaiting merge. Details: `.user/memory/feat-package-service-type.md`.
 - **`work-20260928`** — clean worktree branch with no commits beyond `main`; delete when its session is done. Details: `.user/memory/work-20260928.md`.
 
 ## Pending work
@@ -14,6 +13,7 @@
 - Package detail hero card: low-credit badge threshold (20%) was Claude's pick, not confirmed by user.
 - Package Add transaction form (phase 1): browser-check each type; voiding a past credit-add can still drive the balance negative.
 - Package transfer phase 2 not built: server must write paired −N/+N rows for same-customer packages and define partial-failure handling; the form's Transfer UI exists but Save is disabled.
+- Packages: cards show the raw service code (`WSIR`) not the Thai label; package form service picker not browser-checked; retired `appscript/MagicwashPortal/CustomerPackageView*` files and the live `CustomerPackageView` sheet await owner's delete decision.
 - `appointment.store.dry-test.ts` fails (2 vs 1) and already failed at `3afaac2`; cause not investigated.
 - **Customer detail and visual system** (merged 2026-09-27)
   - Browser-verify create dropdowns open, order swipe "Order detail", and appointment date order; the ui-shots run failed to capture these.
@@ -25,7 +25,7 @@
   - Order detail Approve is now `OrderApproveButton` (sticker FAB); only the quantity-mismatch disable shows a reason.
   - Phone-check the push drawer (open, drag-close, Back) and swipe cards no longer moving on scroll.
   - Deferred by user: the push drawer's rounded corner sits below the iOS status bar because status-bar-style `black` keeps the page under it; reaching the top edge needs `black-translucent` plus a new height fix.
-  - Browser-check `CloseButton` onDark sticker style (lime outline squircle, solid lime + offset shadow when active) on header (menu, back, pending with badge) and the 6 dark-overlay X buttons; hover/focus pop animation.
+  - Browser-check `CloseButton` onDark sticker style (lime outline squircle, solid lime + offset shadow when active) on header (menu, back, pending with badge) and the 6 dark-overlay X buttons; hover/focus pop animation; also check every shared `CloseButton` placement (forms, sheets, pickers, nav, scanners, invoice proof lightbox).
   - Browser-check the app-wide palette move (mint/tertiary removed, info = logo steel blue): order hero card, document scanner, shared form controls.
   - Browser-check `BaseBadge` two-size standard (sm/lg): `N items` chip grew 9px→11px, lg badges got shorter.
 
@@ -57,7 +57,6 @@
 - **Order detail UI**
   - Phone-test `PhotoViewer` (merged 2026-09-27 on order detail, gallery, photo library): pinch/double-tap zoom, pan while zoomed, swipe-down close, thumbnail strip, safe areas.
   - Browser-check gallery "ย้ายไปรายการอื่น": the item picker must open above `PhotoViewer`.
-  - Browser-check every shared `CloseButton` (forms, sheets, pickers, nav, scanners, invoice proof lightbox).
   - Deferred by user: close X inside the photo corner (needs a dark disc).
   - Phone-test the order photo library: long-press drag-select, edge auto-scroll, glass refraction (now on Select too), black glass labels, lime selected-tab contrast, and single-request Move to item.
   - Phone-test Register garments without an item, then assigning those photos from the library.

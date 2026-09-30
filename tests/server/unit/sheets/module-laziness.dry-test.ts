@@ -21,7 +21,7 @@ const modulePaths = [
   '../../../../server/modules/customers/customer.module.js',
   '../../../../server/modules/appointments/appointment.module.js',
   '../../../../server/modules/invoices/invoice.module.js',
-  '../../../../server/modules/customer-packages/customer-package-view.module.js',
+  '../../../../server/modules/customer-packages/customer-package.module.js',
   '../../../../server/modules/customer-packages/package-transaction.module.js',
   '../../../../server/modules/price-list/price-list.module.js',
   '../../../../server/modules/issue-reports/issue-report.module.js',

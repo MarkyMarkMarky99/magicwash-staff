@@ -41,12 +41,8 @@ export const createCustomerPackagePackageWriteFailedSchema = z.object({ kind: z.
 export const createCustomerPackageResponseSchema = z.discriminatedUnion('kind', [createCustomerPackageSuccessSchema, createCustomerPackageValidationErrorSchema, createCustomerPackageCatalogReadFailedSchema, createCustomerPackageOpeningTransactionFailedSchema, createCustomerPackagePackageWriteFailedSchema])
 
 /**
- * Customer packages READ contract, backing the `CustomerPackageView` portal sheet.
- *
- * Field semantics are documented once, in the schema registry:
- *   G:\My Drive\Magicwash\Database\GoogleSheets\CustomerPackageView.json
- * Read it there rather than restating it here. Comments below cover only
- * mechanics of this codebase that the registry cannot describe.
+ * Customer packages READ contract for API responses assembled from
+ * CustomerPackages, PackageTransactions, Packages, and Customers.
  */
 
 export const customerPackageStatusSchema = z.enum([
@@ -68,9 +64,8 @@ export const packageTransactionSchema = z.object({
 })
 
 /**
- * Key order is load-bearing: GViz binds columns by position, so this must list
- * all 19 sheet columns in sheet order. `transactionsJson` is decoded before the
- * row reaches this schema, hence `transactions` as an array.
+ * The API row combines customer package, transaction, catalog, and customer data.
+ * `transactions` contains the assembled transaction history.
  */
 export const customerPackagePortalRowSchema = z.object({
   customerPackageId: z.string(),
@@ -100,7 +95,7 @@ export const customerPackageListResponseSchema = customerPackagePortalRowSchema.
 
 export const customerPackageDetailResponseSchema = customerPackagePortalRowSchema
 
-/** Flat columns only — GViz cannot sort inside the serialized ledger cell. */
+/** Sort fields available on assembled customer package rows. */
 export const customerPackageSortFieldSchema = z.enum([
   'customerPackageId',
   'startDate',
