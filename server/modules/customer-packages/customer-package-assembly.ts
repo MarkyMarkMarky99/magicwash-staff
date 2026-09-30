@@ -28,6 +28,9 @@ export interface CustomerPackageLedger {
   entries: PackageTransactionApiRow[]
   remainingCredit: number
   usedCredit: number
+  transferredOutCredit: number
+  expiredCredit: number
+  overageBilledCredit: number
   totalCredit: number
 }
 
@@ -57,11 +60,23 @@ export function buildLedger(rows: Array<Partial<PackageTransactionsDbRow>>): Cus
 
   let running = 0
   let used = 0
+  let transferredOut = 0
+  let expired = 0
+  let overageBilled = 0
+  const usageIds = new Set(rows.filter((row) => row.type === 'USAGE').map((row) => row.id))
+  const overageSettleIds = new Set(rows.filter((row) => row.type === 'ADJUSTMENT' && row.reference_source === 'Invoices').map((row) => row.id))
   const entries: PackageTransactionApiRow[] = []
   for (const item of sorted) {
     const change = toNumber(item.row.credit_change)
     running += change
-    if (change < 0) used += -change
+    if (item.row.type === 'USAGE') used -= change
+    if ((item.row.type === 'VOID' || item.row.type === 'ADJUSTMENT')
+      && item.row.reference_source === 'PackageTransactions' && usageIds.has(item.row.reference_id ?? undefined)) used -= change
+    if (item.row.type === 'TRANSFER' && change < 0) transferredOut -= change
+    if (item.row.type === 'EXPIRE' && change < 0) expired -= change
+    if (item.row.type === 'ADJUSTMENT' && item.row.reference_source === 'Invoices') overageBilled += change
+    if ((item.row.type === 'VOID' || item.row.type === 'ADJUSTMENT')
+      && item.row.reference_source === 'PackageTransactions' && overageSettleIds.has(item.row.reference_id ?? undefined)) overageBilled += change
     entries.push({
       id: toRequiredString(item.row.id),
       type: item.row.type!,
@@ -73,7 +88,8 @@ export function buildLedger(rows: Array<Partial<PackageTransactionsDbRow>>): Cus
       createdAt: item.stamp,
     })
   }
-  return { entries, remainingCredit: running, usedCredit: used, totalCredit: running + used }
+  return { entries, remainingCredit: running, usedCredit: used, transferredOutCredit: transferredOut,
+    expiredCredit: expired, overageBilledCredit: overageBilled, totalCredit: running + used + transferredOut + expired - overageBilled }
 }
 
 export function resolveStatus(input: { deletedAt: unknown; startDate: string | null; expiryDate: string | null; today: string }): 'INACTIVE' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED' {
@@ -88,7 +104,7 @@ export function assembleCustomerPackageRow(input: { pkg: Partial<CustomerPackage
   const expiryDate = normalizeSheetDate(input.pkg.expiry_date)
   return {
     customerPackageId: toRequiredString(input.pkg.id), customerId: toRequiredString(input.pkg.customer_id), customerName: toRequiredString(input.customerRow?.CustomerName), customerPhone: toNullableString(input.customerRow?.Phone), customerAddress: toNullableString(input.customerRow?.Address), packageCode: toRequiredString(input.pkg.package_code), packageName: toRequiredString(input.catalogRow?.name), packageEligibleService: toRequiredString(input.catalogRow?.eligible_service), startDate, expiryDate,
-    status: resolveStatus({ deletedAt: input.pkg.deleted_at, startDate, expiryDate, today: input.today }), serviceDay: toNullableString(input.pkg.service_day), timeSlot: toNullableString(input.pkg.time_slot), invoiceId: toNullableString(input.pkg.invoice_id), notes: toNullableString(input.pkg.notes), remainingCredit: input.ledger.remainingCredit, usedCredit: input.ledger.usedCredit, totalCredit: input.ledger.totalCredit, transactions: input.ledger.entries,
+    status: resolveStatus({ deletedAt: input.pkg.deleted_at, startDate, expiryDate, today: input.today }), serviceDay: toNullableString(input.pkg.service_day), timeSlot: toNullableString(input.pkg.time_slot), invoiceId: toNullableString(input.pkg.invoice_id), notes: toNullableString(input.pkg.notes), remainingCredit: input.ledger.remainingCredit, usedCredit: input.ledger.usedCredit, transferredOutCredit: input.ledger.transferredOutCredit, expiredCredit: input.ledger.expiredCredit, overageBilledCredit: input.ledger.overageBilledCredit, totalCredit: input.ledger.totalCredit, transactions: input.ledger.entries,
   }
 }
 

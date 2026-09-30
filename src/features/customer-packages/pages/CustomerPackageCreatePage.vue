@@ -9,7 +9,7 @@ import FormPicker from '@/shared/components/FormPicker.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import { useCloseRoute } from '@/shared/navigation/use-close-route'
-import { addSheetDateDays, todaySheetDate } from '@/shared/utils/sheet-date'
+import { addSheetDateDays, addSheetDateMonth, todaySheetDate } from '@/shared/utils/sheet-date'
 import { useCustomerStore } from '@/data/customers/customer.store'
 import { getCustomerById, type CustomerDetailDto } from '@/data/customers/customer.service'
 import { usePackageStore } from '@/data/packages/package.store'
@@ -19,6 +19,8 @@ import {
   createCustomerPackageResponseSchema,
 } from '@contracts/customer-packages/customer-package-api.schema'
 import { createCustomerPackage } from '@/data/customer-packages/customer-package.service'
+import { getCustomerPackageDetail } from '@/data/customer-packages/customer-package.service'
+import { getRenewalTransfers, transferRenewalCredits } from '@/data/customer-packages/package-renewal.service'
 import { canResumePackagePurchase, useCustomerPackagePurchaseStore } from '../stores/customer-package-purchase.store'
 import { currentActor } from '@/shared/config/actor'
 
@@ -29,6 +31,7 @@ type CreateCustomerPackageResponse = z.infer<typeof createCustomerPackageRespons
 const route = useRoute()
 const router = useRouter()
 const sourceCustomerId = queryString(route.query.customerId)
+const renewalFrom = queryString(route.query.renewalFrom)
 const hasCustomerQuery = route.query.customerId !== undefined
 const fallback = sourceCustomerId
   ? { name: 'customer-detail', params: { customerId: sourceCustomerId, tab: 'packages' } }
@@ -89,8 +92,25 @@ const purchaseMessage = computed(() => {
 })
 
 watch(startDate, (value) => {
-  expiryDate.value = addSheetDateDays(value, 30)
+  expiryDate.value = renewalFrom ? addSheetDateDays(addSheetDateMonth(value), -1) : addSheetDateDays(value, 30)
 })
+
+async function finishRenewal(newPackageId: string) {
+  if (!renewalFrom) returnAfterSave()
+  else {
+    try {
+      const old = await getCustomerPackageDetail(renewalFrom)
+      const pending = await getRenewalTransfers(renewalFrom)
+      if (!old) throw new Error('Original package could not be read after purchase')
+      if (old.remainingCredit > 0 || pending.transfers.some((item) => item.newPackageId === newPackageId && item.pending)) {
+        await transferRenewalCredits(renewalFrom, newPackageId, currentActor())
+      }
+      returnAfterSave()
+    } catch (reason) {
+      formError.value = `Package created, but carry-over transfer needs staff attention: ${reason instanceof Error ? reason.message : String(reason)}`
+    }
+  }
+}
 
 function queryString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
@@ -130,6 +150,17 @@ onMounted(async () => {
     return
   }
   customerId.value = sourceCustomerId
+  if (renewalFrom) {
+    try {
+      const old = await getCustomerPackageDetail(renewalFrom)
+      if (!old || old.customerId !== sourceCustomerId || !old.expiryDate) throw new Error('Original package does not match this customer or has no expiry')
+      packageCode.value = old.packageCode
+      startDate.value = addSheetDateDays(old.expiryDate, 1)
+      expiryDate.value = addSheetDateDays(addSheetDateMonth(startDate.value), -1)
+      serviceDay.value = (customerPackageServiceDaySchema.safeParse(old.serviceDay).data ?? '') as typeof serviceDay.value
+      timeSlot.value = (customerPackageTimeSlotSchema.safeParse(old.timeSlot).data ?? '') as typeof timeSlot.value
+    } catch (reason) { formError.value = reason instanceof Error ? reason.message : 'Unable to load original package'; return }
+  }
   if (autoInvoice.value) {
     try {
       customer.value = await getCustomerById(sourceCustomerId)
@@ -146,10 +177,10 @@ onMounted(async () => {
 
 async function submitForm() {
   if (autoInvoice.value) {
-    if (!sourceCustomerId || attempt.value?.submitting) return
+    if (!sourceCustomerId || attempt.value?.submitting || submitting.value) return
     if (attempt.value) {
       await purchaseStore.resume(sourceCustomerId)
-      if (purchaseStore.attempts[sourceCustomerId]?.packageResult?.kind === 'created') returnAfterSave()
+      if (purchaseStore.attempts[sourceCustomerId]?.packageResult?.kind === 'created') await finishRenewal(purchaseStore.attempts[sourceCustomerId].packageResult.customerPackageId)
       return
     }
     const packageItem = activePackages.value.find((item) => item.packageCode === packageCode.value)
@@ -157,7 +188,7 @@ async function submitForm() {
     formError.value = null
     try {
       await purchaseStore.start(customer.value, packageItem, createPayload())
-      if (purchaseStore.attempts[sourceCustomerId]?.packageResult?.kind === 'created') returnAfterSave()
+      if (purchaseStore.attempts[sourceCustomerId]?.packageResult?.kind === 'created') await finishRenewal(purchaseStore.attempts[sourceCustomerId].packageResult.customerPackageId)
     } catch (reason) {
       formError.value = reason instanceof Error ? reason.message : 'Unable to start package purchase'
     }
@@ -185,13 +216,14 @@ async function submitForm() {
     title="Create customer package"
     :submit-label="autoInvoice ? (attempt ? 'Retry remaining step' : 'Buy package') : 'Create package'"
     :is-submitting="submitting || Boolean(attempt?.submitting)"
-    :is-submit-disabled="autoInvoice && attempt ? !purchaseRetryAllowed : !valid || Boolean(result)"
+    :is-submit-disabled="submitting || Boolean(attempt?.submitting) || (autoInvoice && attempt ? !purchaseRetryAllowed : !valid || Boolean(result))"
     :close-on-backdrop="false"
     @close="closeForm"
     @submit="submitForm"
   >
     <div v-if="autoInvoice && attempt" class="space-y-4 pb-5">
       <p role="status" class="font-body text-sm">{{ purchaseMessage }}</p>
+      <p v-if="formError" role="alert" class="font-body text-sm text-error">{{ formError }}</p>
       <p class="break-all font-body text-sm">Invoice: {{ attempt.invoiceResult?.kind === 'created' ? attempt.invoiceResult.invoiceNumber : attempt.invoiceRequest.invoiceNumber }}</p>
       <p v-if="attempt.packageResult?.kind === 'created'" class="font-body text-sm">
         Package: {{ attempt.packageResult.customerPackageId }} · {{ attempt.packageResult.openingCredit }} credits
@@ -204,6 +236,7 @@ async function submitForm() {
         type="button" class="w-full rounded-xl bg-surface-container px-4 py-2.5 font-label text-xs text-primary"
         @click="purchaseStore.clear(customerId)"
       >Back to form</button>
+      <button v-if="renewalFrom && attempt.packageResult?.kind === 'created' && formError" type="button" class="w-full rounded-xl bg-primary px-4 py-2.5 font-label text-xs text-on-primary" @click="finishRenewal(attempt.packageResult.customerPackageId)">Complete carry-over transfer</button>
       <button type="button" class="w-full rounded-xl bg-surface-container px-4 py-2.5 font-label text-xs text-primary" @click="closeForm">Close</button>
     </div>
     <div v-else-if="result" class="space-y-4 pb-5">

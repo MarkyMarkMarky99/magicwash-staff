@@ -28,6 +28,12 @@ export const routeRegistry = {
     import('../modules/customer-packages/package-transaction.module.js').then(
       (module) => module.packageTransactionRoutes,
     ),
+  'order-credit-usage': (): ReturnType<RouteLoader> =>
+    import('../modules/customer-packages/order-credit-usage.module.js').then((module) => module.orderCreditUsageRoutes),
+  'package-billing': (): ReturnType<RouteLoader> =>
+    import('../modules/customer-packages/package-billing.module.js').then((module) => module.packageBillingRoutes),
+  'package-renewal': (): ReturnType<RouteLoader> =>
+    import('../modules/customer-packages/package-renewal.module.js').then((module) => module.packageRenewalRoutes),
   'price-list': (): ReturnType<RouteLoader> =>
     import('../modules/price-list/price-list.module.js').then((module) => module.priceListRoutes),
   items: (): ReturnType<RouteLoader> =>

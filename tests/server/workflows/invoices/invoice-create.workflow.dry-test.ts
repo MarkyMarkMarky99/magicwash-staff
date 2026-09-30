@@ -21,7 +21,7 @@ const { InvoiceService } = await import('../../../../server/modules/invoices/inv
 
 function baseRequest(): CreateInvoiceRequest {
   return {
-    invoiceNumber: 'INV-0001',
+    invoiceNumber: 'INV260900000001',
     sourceOrderId: 'ORD-0001',
     issuedDate: '2026-07-29',
     dueDate: '2026-08-12',

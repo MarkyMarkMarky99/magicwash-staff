@@ -89,12 +89,20 @@ export const invoiceLineInputSchema = z
     unit: z.string().trim().min(1).optional(),
     quantity: z.number().positive(),
     unitPrice: z.number(),
+    sourceOrderId: z.string().trim().min(1).optional(),
+    sourceItemId: z.string().trim().min(1).optional(),
+    serviceType: z.string().trim().min(1).optional(),
+    packageOverageId: z.string().trim().min(1).optional(),
+    packageFeeId: z.string().trim().min(1).optional(),
     adjustments: z.array(invoiceAdjustmentInputSchema).default([]),
   })
   .strict()
   .refine((line) => isValidItemQuantity(line.quantity, line.unit), {
     message: 'kg quantity must use at most one decimal place; other units require a whole number',
     path: ['quantity'],
+  })
+  .refine((line) => (line.sourceOrderId === undefined) === (line.sourceItemId === undefined), {
+    message: 'sourceOrderId and sourceItemId must both be present', path: ['sourceItemId'],
   })
 
 export type InvoiceLineInput = z.infer<typeof invoiceLineInputSchema>

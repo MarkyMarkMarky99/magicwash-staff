@@ -23,6 +23,8 @@ import { invoiceItemsRowSchema } from '../../sheets/InvoiceItems/InvoiceItems.db
 import { getPaymentsRepository } from '../../sheets/Payments/Payments.repository.js'
 import { paymentsRowSchema } from '../../sheets/Payments/Payments.db-contract.js'
 import { getOrderFormRepository } from '../../sheets/OrderForm/OrderForm.repository.js'
+import { MAX_ORDER_ITEMS_PER_PAGE, orderItemResponseSchema } from '../../../contracts/order-items/order-item-api.schema.js'
+import { orderItemService } from '../order-items/order-item.module.js'
 import { orderFormRowSchema } from '../../sheets/OrderForm/OrderForm.db-contract.js'
 import { syncInvoiceView as defaultSyncInvoiceView } from './invoice-view-sync-client.js'
 import type { InvoiceViewSyncResult } from './invoice-view-sync-client.js'
@@ -130,7 +132,10 @@ export interface InvoiceItemWriter {
   batchAppend(rows: Array<Partial<InvoiceItemsDbRow>>): Promise<unknown[]>
 }
 export interface InvoiceItemReader {
-  read(): Promise<Array<Partial<InvoiceItemsDbRow>>>
+  read(query?: ReadQueryDTO<Partial<InvoiceItemsDbRow>>): Promise<Array<Partial<InvoiceItemsDbRow>>>
+}
+export interface InvoiceOrderItemPort {
+  listByOrderId(orderId: string): Promise<Array<z.infer<typeof orderItemResponseSchema>>>
 }
 export interface PaymentReader {
   read(): Promise<Array<Partial<PaymentsDbRow>>>
@@ -362,6 +367,8 @@ export interface InvoiceServiceOptions {
   invoiceItemReader?: () => InvoiceItemReader
   paymentRepository?: () => PaymentReader
   orderFormRepository?: () => OrderFormWriter
+  orderFormReader?: () => ReturnType<typeof getOrderFormRepository>
+  orderItemPort?: InvoiceOrderItemPort
   invoiceViewRepository?: InvoiceViewReader
   syncInvoiceView?: ViewSyncFn
   generateItemId?: () => string
@@ -388,6 +395,8 @@ export class InvoiceService {
   private readonly invoiceItemReader: () => InvoiceItemReader
   private readonly paymentRepository: () => PaymentReader
   private readonly orderFormRepository: () => OrderFormWriter
+  private readonly orderFormReader: () => ReturnType<typeof getOrderFormRepository>
+  private readonly orderItemPort: InvoiceOrderItemPort
   private readonly syncInvoiceView: ViewSyncFn
   private readonly generateItemId: () => string
   private readonly now: () => Date
@@ -402,23 +411,15 @@ export class InvoiceService {
     this.paymentRepository = options.paymentRepository ?? getPaymentsRepository
 
     this.orderFormRepository = options.orderFormRepository ?? getOrderFormRepository
+    this.orderFormReader = options.orderFormReader ?? getOrderFormRepository
+    this.orderItemPort = options.orderItemPort ?? { listByOrderId: async (orderId) => {
+      const result = await orderItemService.list({ orderId, page: 1, perPage: MAX_ORDER_ITEMS_PER_PAGE })
+      return result.items
+    } }
 
     this.syncInvoiceView = options.syncInvoiceView ?? defaultSyncInvoiceView
     this.generateItemId = options.generateItemId ?? defaultGenerateItemId
     this.now = options.now ?? (() => new Date())
-  }
-
-  private async invoiceNumberAlreadyUsed(invoiceNumber: string): Promise<boolean> {
-    try {
-      // Compare exact keys here rather than using a GViz equality filter;
-      // that builder strips apostrophes from filter values.
-      const rows = await this.invoiceRepository().read({ select: ['invoice_number'] })
-      return rows.some((row) => row.invoice_number === invoiceNumber)
-    } catch {
-      // The preflight is advisory; header append retains duplicate validation
-      // so a failed read must never block invoice creation.
-      return false
-    }
   }
 
   async create(payload: unknown): Promise<CreateInvoiceResponse> {
@@ -435,10 +436,56 @@ export class InvoiceService {
 
     const request = parsed.data
 
-    if (await this.invoiceNumberAlreadyUsed(request.invoiceNumber)) {
+    const sourced = request.items.filter((line) => line.sourceItemId)
+    const packageSkus = request.items.flatMap((line) => [
+      line.packageFeeId ? `PKG-FEE:${line.packageFeeId}` : null,
+      line.packageOverageId ? `PKG-OVERAGE:${line.packageOverageId}` : null,
+    ].filter((sku): sku is string => !!sku))
+    // Header preflight is advisory for unsourced invoices. Sourced lines need
+    // invoice statuses to enforce the duplicate-item check.
+    const invoiceHeaders = await this.invoiceRepository().read(sourced.length || packageSkus.length ? undefined : { select: ['invoice_number'] })
+      .catch((error: unknown) => { if (sourced.length || packageSkus.length) throw error; return [] })
+    if (invoiceHeaders.some((row) => row.invoice_number === request.invoiceNumber)) {
       return {
         kind: 'validation_error',
         issues: [{ path: 'invoiceNumber', message: 'invoice number is already in use' }],
+      }
+    }
+
+    if (packageSkus.length) {
+      const existing = (await Promise.all([...new Set(packageSkus)].map((sku) => this.invoiceItemReader().read({ where: { sku } })))).flat()
+      if (new Set(packageSkus).size !== packageSkus.length || existing.some((line) => invoiceHeaders.some((header) => header.invoice_number === line.invoice_number
+        && header.status !== 'VOID' && header.status !== 'CANCELLED'))) {
+        return { kind: 'validation_error', issues: [{ path: 'items', message: 'Package fee or overage is already on an active invoice' }] }
+      }
+    }
+
+    if (sourced.length) {
+      const seenSourceItems = new Set<string>()
+      const sourceOrderIds = [...new Set(sourced.map((line) => line.sourceOrderId!))]
+      const [orderItems, orders, invoiceItems] = await Promise.all([
+        Promise.all(sourceOrderIds.map((id) => this.orderItemPort.listByOrderId(id))).then((rows) => rows.flat()),
+        Promise.all(sourceOrderIds.map((id) => this.orderFormReader().read({ where: { id } }))).then((rows) => rows.flat()),
+        Promise.all(sourceOrderIds.map((source_order_id) => this.invoiceItemReader().read({ where: { source_order_id } }))).then((rows) => rows.flat()),
+      ])
+      const activeInvoices = new Set(invoiceHeaders.filter((row) => row.status !== 'VOID' && row.status !== 'CANCELLED').map((row) => row.invoice_number))
+      for (const [index, line] of request.items.entries()) {
+        if (!line.sourceItemId) continue
+        if (seenSourceItems.has(line.sourceItemId)) return { kind: 'validation_error', issues: [{ path: `items.${index}.sourceItemId`, message: 'Order item appears twice on this invoice' }] }
+        seenSourceItems.add(line.sourceItemId)
+        const source = orderItems.find((row) => row.orderItemId === line.sourceItemId)
+        const order = orders.find((row) => row.id === line.sourceOrderId)
+        const duplicate = invoiceItems.some((row) => row.source_item_id === line.sourceItemId && activeInvoices.has(row.invoice_number))
+        const legacyOrderInvoice = invoiceItems.some((row) => row.source_order_id === line.sourceOrderId
+          && !row.source_item_id && activeInvoices.has(row.invoice_number)
+          && !invoiceItems.some((other) => other.source_order_id === line.sourceOrderId
+            && other.invoice_number === row.invoice_number && !!other.source_item_id))
+        if (!source || source.orderId !== line.sourceOrderId || !order || order.customer_id !== request.customer.customerCode
+          || (request.sourceOrderId && line.sourceOrderId !== request.sourceOrderId)
+          || (line.serviceType && line.serviceType !== order.service_type) || duplicate || legacyOrderInvoice) {
+          return { kind: 'validation_error', issues: [{ path: `items.${index}.sourceItemId`, message: duplicate || legacyOrderInvoice
+            ? 'Order item is already on an active invoice' : 'Order item does not belong to this customer and order' }] }
+        }
       }
     }
 
@@ -458,11 +505,12 @@ export class InvoiceService {
       item_no: index + 1, // 1-based, derived from array position — never client-sent
       // Package purchases have no source order. Order invoices fan out the
       // single sourceOrderId onto every line.
-      source_order_id: request.sourceOrderId ?? null,
-      // Always null — no per-item traceability, only
-      // per-order via sourceOrderId above.
-      source_item_id: null,
-      service_type: null,
+      source_order_id: item.sourceOrderId ?? request.sourceOrderId ?? null,
+      // Sourced lines retain their order item for duplicate billing checks.
+      source_item_id: item.sourceItemId ?? null,
+      sku: item.packageOverageId ? `PKG-OVERAGE:${item.packageOverageId}`
+        : item.packageFeeId ? `PKG-FEE:${item.packageFeeId}` : null,
+      service_type: item.serviceType ?? null,
       description: item.description,
       quantity: item.quantity,
       unit: item.unit ?? null,

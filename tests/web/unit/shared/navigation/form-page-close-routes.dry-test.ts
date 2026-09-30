@@ -21,7 +21,7 @@ for (const [path, fallback] of pages) {
 
 assert.match(source(pages[0][0]), /rescheduleAppointment[\s\S]*router\.back\(\)/)
 assert.match(source(pages[2][0]), /packageStore\.(?:update|create)[\s\S]*router\.push\('\/packages'\)/)
-assert.match(source(pages[3][0]), /priceListStore\.(?:update|create)[\s\S]*router\.push\('\/price-list'\)/)
+assert.match(source(pages[3][0]), /priceListStore\.(?:update|create)[\s\S]*router\.push\(\{ name: 'price-list'/)
 assert.match(source(pages[4][0]), /issueReportStore\.create[\s\S]*router\.replace\(\{ name: 'issue-reports' \}\)/)
 const itemCreatePage = source('features/price-list/pages/PriceListItemCreatePage.vue')
 const itemCreateFlow = source('features/price-list/composables/use-item-create-form.ts')

@@ -45,6 +45,8 @@ It applies `fieldMap` and `jsonColumns` to map database rows to API DTOs and pro
 
 Named services orchestrate writes that span more than one sheet.
 
+Package credit usage, monthly bill preparation, overage closure, and renewal transfers use named services in `server/modules/customer-packages/`. They read the relevant sheet repositories and keep staff initiated ledger writes outside the generic transaction route. Invoice creation validates each sourced line against OrderItemForms, OrderForm, InvoiceItems, and Invoices before appending invoice rows.
+
 `InvoiceService` in `server/modules/invoices/invoice.service.ts` reads `Invoices`, `InvoiceItems`, and `Payments` in parallel and assembles invoice DTOs in memory. It writes `Invoices`, `InvoiceItems`, and `OrderForm`, then triggers an `InvoicesView` resync for external portal compatibility.
 
 Sheet repositories use database column names only and have no public API-shape knowledge.

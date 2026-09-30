@@ -52,6 +52,13 @@ export class PackageTransactionService {
     const parsed = appendPackageTransactionRequestSchema.safeParse(payload)
     if (!parsed.success) return { kind: 'validation_error', issues: issues(parsed.error) }
     const request = parsed.data
+    if (request.type === 'USAGE') return { kind: 'validation_error', issues: [{ path: 'type', message: 'Use order credit confirmation for USAGE' }] }
+    if (request.type === 'TRANSFER' || (request.type === 'ADJUSTMENT' && request.referenceSource === 'Invoices')) return { kind: 'validation_error', issues: [{ path: 'type', message: 'Use the package renewal or billing action for this movement' }] }
+    if (request.type === 'ADJUSTMENT' && request.referenceSource === 'PackageTransactions') {
+      const transactions = await this.transactionRepository().read({ where: { customer_package_id: request.customerPackageId } })
+      const original = transactions.find((row) => row.id === request.referenceId && row.customer_package_id === request.customerPackageId)
+      if (!original) return { kind: 'validation_error', issues: [{ path: 'referenceId', message: 'Referenced transaction not found on this package' }] }
+    }
     let rows: Array<Partial<CustomerPackagesDbRow>>
     try { rows = await this.packageRepository().read(ReadQueryDTO.fromId(request.customerPackageId)) }
     catch (error) { return { kind: 'package_lookup_failed', customerPackageId: request.customerPackageId, message: error instanceof Error ? error.message : String(error) } }

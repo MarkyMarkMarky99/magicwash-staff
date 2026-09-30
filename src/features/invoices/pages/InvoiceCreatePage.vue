@@ -22,6 +22,9 @@ import {
   type LineItemFormRow,
 } from '../types/invoice-create.types'
 import { createInvoice } from '@/data/invoices/invoice.service'
+import { getPackageBillPreview, settlePackageOverage, type BillLine, type PackageBillPreview } from '@/data/customer-packages/package-billing.service'
+import { getCustomerById } from '@/data/customers/customer.service'
+import { currentActor } from '@/shared/config/actor'
 import { generateInvoiceNumber } from '@/data/invoices/invoice-number.utils'
 import { canRetryInvoiceOutcome, isInvoicePersisted, synthesizeNetworkFailureOutcome } from '@/data/invoices/invoice-outcome.utils'
 import InvoiceLineItemsEditor from '../components/InvoiceLineItemsEditor.vue'
@@ -57,6 +60,27 @@ const { close } = useCloseRoute(contextFallback)
 
 const order = ref<InvoiceCreateOrder | null>(null)
 const customer = ref<InvoiceCreateCustomer | null>(null)
+const packageBill = ref<PackageBillPreview | null>(null)
+const packageId = readRouteId(route.query.customerPackageId)
+const overageError = ref<string | null>(null)
+const overageSettling = ref(false)
+async function retryOverageAdjustment() {
+  if (!packageId || !result.value || !isInvoicePersisted(result.value) || overageSettling.value) return
+  overageSettling.value = true
+  try { await settlePackageOverage(packageId, result.value.invoiceNumber, currentActor()); overageError.value = null }
+  catch (reason) { overageError.value = reason instanceof Error ? reason.message : 'Overage adjustment needs staff attention' }
+  finally { overageSettling.value = false }
+}
+async function settlePendingOverage() {
+  if (!packageId || !packageBill.value?.pendingOverage || overageSettling.value) return
+  overageSettling.value = true
+  try {
+    await settlePackageOverage(packageId, packageBill.value.pendingOverage.invoiceNumber, currentActor())
+    overageError.value = null
+    packageBill.value = await getPackageBillPreview(packageId)
+  } catch (reason) { overageError.value = reason instanceof Error ? reason.message : 'Overage adjustment needs staff attention' }
+  finally { overageSettling.value = false }
+}
 const contextLoading = ref(false)
 const contextError = ref<string | null>(null)
 let contextRequestId = 0
@@ -163,7 +187,7 @@ const invoiceTotal = computed(() =>
 )
 
 const isValid = computed(() => {
-  if (!order.value || !customer.value) return false
+  if ((!order.value && !packageBill.value) || !customer.value) return false
   if (!invoiceNumber.value.trim() || !issuedDate.value || !dueDate.value) return false
   if (dueDate.value <= issuedDate.value) return false
   if (items.value.length === 0) return false
@@ -177,11 +201,12 @@ const isValid = computed(() => {
 })
 
 const requestPayload = computed<CreateInvoiceRequest | null>(() => {
-  if (!order.value || !customer.value) return null
+  if ((!order.value && !packageBill.value) || !customer.value) return null
 
   return {
     invoiceNumber: invoiceNumber.value.trim(),
-    sourceOrderId: order.value.orderId,
+    ...(packageBill.value ? { billingType: 'CYCLE' as const, billingPeriodStart: packageBill.value.billingPeriodStart,
+      billingPeriodEnd: packageBill.value.billingPeriodEnd } : { sourceOrderId: order!.value!.orderId }),
     issuedDate: issuedDate.value,
     dueDate: dueDate.value,
     customer: {
@@ -197,6 +222,9 @@ const requestPayload = computed<CreateInvoiceRequest | null>(() => {
       quantity: Number(item.quantity) || 0,
       unitPrice: Number(item.unitPrice) || 0,
       adjustments: toRealAdjustments(item.adjustments),
+      ...(item.sourceOrderId ? { sourceOrderId: item.sourceOrderId, sourceItemId: item.sourceItemId, serviceType: item.serviceType } : {}),
+      ...(item.packageOverageId ? { packageOverageId: item.packageOverageId } : {}),
+      ...(item.packageFeeId ? { packageFeeId: item.packageFeeId } : {}),
     })),
   }
 })
@@ -224,6 +252,9 @@ function initializeForm(currentOrder: InvoiceCreateOrder) {
         quantity: item.quantity != null ? String(item.quantity) : '1',
         unitPrice: '',
         adjustments: [],
+        sourceOrderId: currentOrder.orderId,
+        sourceItemId: item.orderItemId,
+        serviceType: currentOrder.serviceType ?? undefined,
       }
     })
     : [createSyntheticPlaceholderLine()]
@@ -238,6 +269,28 @@ async function syncCreateContext() {
   const requestId = ++contextRequestId
   const customerId = readRouteId(route.query.customerId)
   const orderId = readRouteId(route.query.orderId)
+
+  if (packageId && customerId && !orderId) {
+    contextLoading.value = true
+    contextError.value = null
+    try {
+      const [bill, selectedCustomer] = await Promise.all([getPackageBillPreview(packageId), getCustomerById(customerId)])
+      if (requestId !== contextRequestId) return
+      if (bill.customerId !== customerId) throw new Error('Package does not belong to this customer')
+      packageBill.value = bill
+      customer.value = selectedCustomer
+      order.value = null
+      items.value = [...(bill.feeLine ? [bill.feeLine] : []), ...(bill.overageLine ? [bill.overageLine] : []), ...bill.cashLines].map((line: BillLine) => ({
+        key: crypto.randomUUID(), description: line.description, unit: line.unit,
+        unitOption: 'custom' as const, quantity: String(line.quantity), unitPrice: String(line.unitPrice), adjustments: [],
+        sourceOrderId: line.sourceOrderId, sourceItemId: line.sourceItemId, serviceType: line.serviceType,
+        packageOverageId: line.packageOverageId,
+        packageFeeId: line.packageFeeId,
+      }))
+    } catch (reason) { contextError.value = reason instanceof Error ? reason.message : 'Unable to load package bill' }
+    finally { if (requestId === contextRequestId) contextLoading.value = false }
+    return
+  }
 
   contextError.value = null
   if (!customerId || !orderId
@@ -277,7 +330,7 @@ async function syncCreateContext() {
 }
 
 watch(
-  [() => route.query.customerId, () => route.query.orderId],
+  [() => route.query.customerId, () => route.query.orderId, () => route.query.customerPackageId],
   () => {
     void syncCreateContext()
   },
@@ -298,6 +351,10 @@ async function handleSubmit() {
   result.value = null
   try {
     result.value = await createInvoice(requestPayload.value)
+    if (isInvoicePersisted(result.value) && packageId && items.value.some((item) => item.packageOverageId === packageId)) {
+      try { await settlePackageOverage(packageId, result.value.invoiceNumber, currentActor()) }
+      catch (reason) { overageError.value = reason instanceof Error ? reason.message : 'Overage adjustment needs staff attention' }
+    }
   } catch {
     // A network-level failure (not a modeled `kind`) — see
     // `synthesizeNetworkFailureOutcome`'s doc comment for why this is always
@@ -313,6 +370,7 @@ function resetForRetry() {
 }
 
 function backToOrderHistory() {
+  if (packageId) { void router.push({ name: 'customer-package-detail', params: { customerPackageId: packageId } }); return }
   const customerId = order.value?.customerId.trim() ?? readRouteId(route.query.customerId)
   if (customerId) {
     router.push({ name: 'customer-detail', params: { customerId, tab: 'orders' } })
@@ -341,6 +399,29 @@ async function copyLiffUrl(invoiceNumber: string) {
 <template>
   <AppLayout>
   <ScrollRegion as="main" class="bg-surface pb-24">
+    <div v-if="packageBill?.unpricedItems.length" class="mx-4 mt-4 rounded-xl border border-warning/30 bg-warning-container/20 px-3 py-2.5 font-body text-sm text-on-surface" role="alert">
+      Some order items need a DEFAULT price before billing:
+      <span v-for="item in packageBill.unpricedItems" :key="item.sourceItemId" class="block">{{ item.sourceItemId }} · {{ item.reason }}</span>
+    </div>
+    <div v-if="packageBill?.feeAlreadyInvoiced" class="mx-4 mt-4 rounded-xl border border-outline-variant/30 bg-surface-container-low px-3 py-2.5 font-body text-sm text-on-surface" role="status">
+      Package fee line omitted because invoice {{ packageBill.feeInvoiceNumber }} already bills it.
+    </div>
+    <div v-if="packageBill?.alreadyInvoicedOrders.length" class="mx-4 mt-4 rounded-xl border border-outline-variant/30 bg-surface-container-low px-3 py-2.5 font-body text-sm text-on-surface" role="status">
+      Already invoiced orders: <span v-for="orderInfo in packageBill.alreadyInvoicedOrders" :key="orderInfo.orderId" class="block">{{ orderInfo.orderId }} · {{ orderInfo.invoiceNumber }}</span>
+    </div>
+    <div v-if="packageBill?.coveredByManualUsage.length" class="mx-4 mt-4 rounded-xl border border-outline-variant/30 bg-surface-container-low px-3 py-2.5 font-body text-sm text-on-surface" role="status">
+      Covered by manual usage; cash items from these orders are not billed automatically. Add any cash-only item, such as a suit, by hand:
+      <span v-for="orderInfo in packageBill.coveredByManualUsage" :key="orderInfo.orderId" class="block">{{ orderInfo.orderId }} · {{ orderInfo.credits }} credits</span>
+    </div>
+    <div v-if="packageBill?.pendingOverage" class="mx-4 mt-4 rounded-xl border border-warning/30 bg-warning-container/20 px-3 py-2.5 font-body text-sm text-on-surface" role="alert">
+      Overage {{ packageBill.pendingOverage.credits }} credits was billed on {{ packageBill.pendingOverage.invoiceNumber }}; adjustment is pending.
+      <button type="button" class="ml-2 font-label font-bold text-primary" :disabled="overageSettling" @click="settlePendingOverage">Settle existing invoice</button>
+      <p v-if="overageError" class="text-error">{{ overageError }}</p>
+    </div>
+    <div v-if="packageBill?.creditOrdersWithoutUsage.length" class="mx-4 mt-4 rounded-xl border border-warning/30 bg-warning-container/20 px-3 py-2.5 font-body text-sm text-on-surface" role="alert">
+      Record package usage for these orders before billing:
+      <span v-for="order in packageBill.creditOrdersWithoutUsage" :key="order.orderId" class="block">{{ order.orderId }} · {{ order.totalCredits }} credits</span>
+    </div>
     <div v-if="warningInvoiceNumber" class="mx-4 mt-4 flex items-start gap-2 rounded-xl border border-warning/30 bg-warning-container/20 px-3 py-2.5 text-on-surface">
       <span class="material-symbols-outlined mt-0.5 shrink-0 text-[18px] leading-none text-warning" aria-hidden="true">warning</span>
       <p class="font-body text-sm leading-relaxed">
@@ -379,7 +460,7 @@ async function copyLiffUrl(invoiceNumber: string) {
       </div>
     </div>
 
-    <div v-else-if="!order || !customer" class="flex flex-col items-center gap-3 px-6 py-16 text-center">
+    <div v-else-if="(!order && !packageBill) || !customer" class="flex flex-col items-center gap-3 px-6 py-16 text-center">
       <span class="material-symbols-outlined text-[40px] text-on-surface-variant/50" aria-hidden="true">receipt_long</span>
       <h1 class="font-headline text-base font-bold text-on-surface">No order selected</h1>
       <p class="max-w-xs font-body text-sm text-on-surface-variant">
@@ -409,6 +490,8 @@ async function copyLiffUrl(invoiceNumber: string) {
         <p v-if="result.kind === 'created'" class="font-headline text-xl font-bold text-primary">
           ฿{{ result.invoiceTotal.toLocaleString('en-US', { minimumFractionDigits: 2 }) }}
         </p>
+        <p v-if="overageError" role="alert" class="font-body text-sm text-error">Invoice saved, but overage needs attention: {{ overageError }}</p>
+        <button v-if="overageError" type="button" class="rounded-xl bg-primary px-4 py-2 font-label text-xs text-on-primary" :disabled="overageSettling" @click="retryOverageAdjustment">Retry overage adjustment</button>
 
         <div class="flex items-center gap-2 rounded-xl bg-surface-container px-3 py-2 text-left">
           <span class="min-w-0 flex-1 truncate font-body text-xs text-on-surface-variant">{{ liffUrl(result.invoiceNumber) }}</span>
@@ -424,7 +507,7 @@ async function copyLiffUrl(invoiceNumber: string) {
 
         <div class="flex flex-col gap-2 pt-2">
           <button type="button" class="rounded-xl bg-primary px-4 py-2.5 font-label text-[12px] font-semibold text-on-primary" @click="backToOrderHistory">
-            Back to order history
+            {{ packageId ? 'Back to package' : 'Back to order history' }}
           </button>
           <button type="button" class="rounded-xl bg-surface-container px-4 py-2.5 font-label text-[12px] font-semibold text-primary" @click="goToInvoiceList">
             View invoices
@@ -552,7 +635,8 @@ async function copyLiffUrl(invoiceNumber: string) {
           {{ customer.customerId }}<template v-if="customer.phone"> · {{ customer.phone }}</template>
         </p>
         <p v-if="customer.address" class="font-body text-xs text-on-surface-variant">{{ customer.address }}</p>
-        <p class="mt-1 font-body text-xs text-on-surface-variant">Order <span class="font-semibold text-on-surface">{{ order.orderId }}</span></p>
+        <p v-if="order" class="mt-1 font-body text-xs text-on-surface-variant">Order <span class="font-semibold text-on-surface">{{ order.orderId }}</span></p>
+        <p v-else-if="packageBill" class="mt-1 font-body text-xs text-on-surface-variant">{{ packageBill.billingPeriodStart }} – {{ packageBill.billingPeriodEnd }} · {{ packageBill.usedCredit }} credits used · {{ packageBill.allowance }} allowance · {{ packageBill.carriedIn }} carried in · {{ packageBill.carriedOut }} carried out</p>
       </section>
 
       <section class="grid grid-cols-2 gap-3">

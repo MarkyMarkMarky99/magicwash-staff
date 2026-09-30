@@ -20,6 +20,23 @@ export const appendPackageTransactionRequestSchema = z.object({
   message: 'REFUND creditChange must be positive', path: ['creditChange'],
 })
 
+export const orderCreditUsageRequestSchema = z.object({
+  customerPackageId: z.string().trim().min(1),
+  orderId: z.string().trim().min(1),
+  createdBy: z.string().trim().min(1),
+  manualCredits: z.number().finite().positive().optional(),
+}).strict()
+
+export const orderCreditUsagePreviewSchema = z.object({
+  customerPackageId: z.string(), orderId: z.string(), balance: z.number(), totalCredits: z.number(),
+  alreadyUsed: z.boolean(),
+  items: z.array(z.object({
+    sourceItemId: z.string(), itemId: z.string().nullable(), description: z.string().nullable(),
+    quantity: z.number(), unit: z.string().nullable(), creditsPerUnit: z.number().nullable(),
+    credits: z.number().nullable(), noRateReason: z.string().nullable(),
+  })),
+})
+
 export const appendPackageTransactionSuccessSchema = z.object({ kind: z.literal('created'), transactionId: z.string(), customerPackageId: z.string(), customerId: z.string(), type: packageCreditMovementTypeSchema, creditChange: z.number(), createdAt: z.string() })
 export const appendPackageTransactionValidationErrorSchema = z.object({ kind: z.literal('validation_error'), issues: z.array(z.object({ path: z.string(), message: z.string() })) })
 export const appendPackageTransactionPackageNotFoundSchema = z.object({ kind: z.literal('package_not_found'), customerPackageId: z.string() })
@@ -85,6 +102,9 @@ export const customerPackagePortalRowSchema = z.object({
   notes: z.string().nullable(),
   remainingCredit: z.number(),
   usedCredit: z.number(),
+  transferredOutCredit: z.number().default(0),
+  expiredCredit: z.number().default(0),
+  overageBilledCredit: z.number().default(0),
   totalCredit: z.number(),
   transactions: z.array(packageTransactionSchema),
 })

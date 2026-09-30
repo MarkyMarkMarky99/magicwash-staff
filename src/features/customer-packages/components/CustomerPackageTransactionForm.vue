@@ -10,6 +10,7 @@ import { formatSheetDate } from '@/shared/utils/sheet-date'
 import { serviceTypeLabel } from '@/shared/utils/service-type-labels'
 import type { WorkOrderListDto } from '@/data/work-orders/work-order.service'
 import type { CustomerPackageListItem } from '@/data/customer-packages/customer-package.service'
+import type { OrderCreditUsagePreview } from '@/data/customer-packages/order-credit-usage.service'
 import type { customerPackageDetailResponseSchema, packageCreditMovementTypeSchema } from '@contracts/customer-packages/customer-package-api.schema'
 
 type TransactionType = z.infer<typeof packageCreditMovementTypeSchema>
@@ -32,6 +33,9 @@ const props = withDefaults(defineProps<{
   targetPackagesError: string
   transactions: PackageTransaction[]
   remainingCredit: number
+  usagePreview: OrderCreditUsagePreview | null
+  usageLoading: boolean
+  usageError: string
   notes: string
   result?: string | null
   resultTone?: 'success' | 'error'
@@ -74,9 +78,7 @@ const targetPackageOptions = computed(() => props.targetPackages.map((item) => (
   value: item.customerPackageId, label: item.packageName, remainingCredit: item.remainingCredit,
 })))
 const selectedTransaction = computed(() => props.transactions.find((item) => item.id === props.selectedTransactionId))
-const deductingCredits = computed(() => props.movementType === 'USAGE'
-  || (props.movementType === 'ADJUSTMENT' && props.adjustmentDirection === 'DEDUCT')
-  || props.movementType === 'TRANSFER')
+const deductingCredits = computed(() => props.movementType === 'TRANSFER')
 const creditsOverBalance = computed(() => /^\d+$/.test(props.credits)
   && Number.isSafeInteger(Number(props.credits))
   && Number(props.credits) > props.remainingCredit)
@@ -153,7 +155,23 @@ const reversalText = computed(() => {
       <section v-if="movementType === 'EXPIRE' || movementType === 'VOID'" class="rounded-xl border border-outline-variant/30 bg-surface-container-low px-4 py-3 font-body text-sm text-on-surface">
         {{ movementType === 'EXPIRE' ? (remainingCredit > 0 ? `Removes all ${remainingCredit} remaining credits` : 'No credits left to expire') : reversalText }}
       </section>
+      <section v-else-if="movementType === 'USAGE'" class="space-y-3 rounded-xl border border-outline-variant/30 bg-surface-container-low px-4 py-3 font-body text-sm">
+        <p v-if="usageLoading">Calculating order credits…</p>
+        <p v-if="usageError" class="text-error">{{ usageError }}</p>
+        <template v-if="usagePreview">
+          <p v-for="item in usagePreview.items" :key="item.sourceItemId">{{ item.description || item.itemId || item.sourceItemId }} · {{ item.quantity }} {{ item.unit || '' }} · {{ item.credits == null ? item.noRateReason + ' (manual total)' : item.credits + ' credits (' + item.creditsPerUnit + '/unit)' }}</p>
+          <div v-if="usagePreview.items.some((item) => !!item.noRateReason)">
+            <FormLabel input-id="customer-package-manual-credits">Credits for this order</FormLabel>
+            <input id="customer-package-manual-credits" :value="credits" type="number" inputmode="decimal" min="0" step="any" class="block h-[47px] w-full min-w-0 rounded-[10px] border border-outline-variant bg-white px-3 font-body text-sm text-on-surface" @input="emit('update:credits', ($event.target as HTMLInputElement).value)" />
+          </div>
+          <p class="font-semibold">Total {{ usagePreview.items.some((item) => !!item.noRateReason) ? credits || '—' : usagePreview.totalCredits }} credits · Balance {{ usagePreview.balance }} → {{ usagePreview.balance - (usagePreview.items.some((item) => !!item.noRateReason) ? Number(credits) : usagePreview.totalCredits) }}</p>
+          <p v-if="usagePreview.alreadyUsed" class="text-error">Usage for this order was already recorded.</p>
+        </template>
+      </section>
       <section v-else class="space-y-3">
+        <FormPicker v-if="movementType === 'ADJUSTMENT'" id="customer-package-correction-usage" :model-value="selectedTransactionId"
+          label="Original usage (if correcting)" placeholder="Select usage to correct" :options="transactions.filter((item) => item.type === 'USAGE').map((item) => ({ value: item.id, label: `${formatSheetDate(item.createdAt)} · ${item.creditChange} credits · ${item.referenceId || ''}` }))"
+          @update:model-value="emit('update:selectedTransactionId', $event)" />
         <div v-if="movementType === 'ADJUSTMENT'" class="space-y-2">
           <FormLabel input-id="customer-package-adjustment-add">Direction</FormLabel>
           <div class="flex rounded-xl border border-outline-variant bg-surface-container-low p-1" role="group" aria-label="Adjustment direction">
@@ -162,7 +180,7 @@ const reversalText = computed(() => {
         </div>
         <div>
           <FormLabel input-id="customer-package-credits">Credits</FormLabel>
-          <input id="customer-package-credits" :value="credits" type="number" inputmode="numeric" min="1" step="1" :max="deductingCredits ? remainingCredit : undefined" placeholder="1" class="block h-[47px] w-full min-w-0 rounded-[10px] border border-outline-variant bg-white px-3 font-body text-sm text-on-surface shadow-[0_1px_0_color-mix(in_srgb,_var(--color-primary)_2%,_transparent)] outline-none placeholder:text-on-surface-variant focus:border-lime focus:shadow-[0_0_0_3px_color-mix(in_srgb,_var(--color-lime)_14%,_transparent)]" @input="emit('update:credits', ($event.target as HTMLInputElement).value)">
+          <input id="customer-package-credits" :value="credits" type="number" inputmode="decimal" min="0.01" step="any" :max="deductingCredits ? remainingCredit : undefined" placeholder="1" class="block h-[47px] w-full min-w-0 rounded-[10px] border border-outline-variant bg-white px-3 font-body text-sm text-on-surface shadow-[0_1px_0_color-mix(in_srgb,_var(--color-primary)_2%,_transparent)] outline-none placeholder:text-on-surface-variant focus:border-lime focus:shadow-[0_0_0_3px_color-mix(in_srgb,_var(--color-lime)_14%,_transparent)]" @input="emit('update:credits', ($event.target as HTMLInputElement).value)">
           <p v-if="deductingCredits" class="mt-1 font-body text-xs" :class="creditsOverBalance ? 'text-error' : 'text-on-surface-variant'">{{ creditsOverBalance ? `Only ${remainingCredit} credits available` : `${remainingCredit} credits available` }}</p>
         </div>
         <p v-if="movementType === 'TRANSFER'" class="font-body text-xs text-on-surface-variant">Transfers can't be saved yet.</p>

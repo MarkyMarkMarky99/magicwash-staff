@@ -1,23 +1,20 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import type { z } from 'zod'
-import type { appendPackageTransactionRequestSchema } from '@contracts/customer-packages/customer-package-api.schema'
 import { useCustomerPackagesByCustomerStore } from '@/data/customer-packages/customer-packages-by-customer.store'
-import { appendPackageTransaction } from '@/data/package-transactions/package-transaction.service'
-
-type TransactionRequest = z.infer<typeof appendPackageTransactionRequestSchema>
+import { confirmOrderCreditUsage } from '@/data/customer-packages/order-credit-usage.service'
 
 export const useCustomerPackagesStore = defineStore('customer-detail-packages', () => {
   const dataStore = useCustomerPackagesByCustomerStore()
   const { items, loading, error } = storeToRefs(dataStore)
   const submittingUsage = ref(false)
 
-  async function recordUsage(request: TransactionRequest) {
+  async function recordUsage(customerPackageId: string, orderId: string, createdBy: string, manualCredits?: number) {
     if (submittingUsage.value) return null
     submittingUsage.value = true
     try {
-      return await appendPackageTransaction(request)
+      await confirmOrderCreditUsage(customerPackageId, orderId, createdBy, manualCredits)
+      return true
     } finally {
       submittingUsage.value = false
     }

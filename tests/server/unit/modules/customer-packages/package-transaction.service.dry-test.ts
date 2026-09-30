@@ -4,7 +4,7 @@ import { PackageTransactionService } from '../../../../../server/modules/custome
 
 type Row = Record<string, unknown>
 
-function createService(input: { parentRows?: Row[]; readError?: Error; appendError?: Error } = {}) {
+function createService(input: { parentRows?: Row[]; transactionRows?: Row[]; readError?: Error; appendError?: Error } = {}) {
   const calls: string[] = []
   const appended: Row[] = []
   const service = new PackageTransactionService({
@@ -16,6 +16,8 @@ function createService(input: { parentRows?: Row[]; readError?: Error; appendErr
       },
     }) as never,
     transactionRepository: () => ({
+      read: async (query?: { where?: Record<string, unknown> }) => (input.transactionRows ?? []).filter((row) =>
+        Object.entries(query?.where ?? {}).every(([key, value]) => row[key] === value)),
       append: async (row: Row) => {
         calls.push('ledger.append')
         appended.push(row)
@@ -28,7 +30,21 @@ function createService(input: { parentRows?: Row[]; readError?: Error; appendErr
   return { service, calls, appended }
 }
 
-const request = { customerPackageId: 'package-1', type: 'USAGE', creditChange: -2, createdBy: 'staff-1' }
+const request = { customerPackageId: 'package-1', type: 'REFUND', creditChange: 2, createdBy: 'staff-1' }
+
+{
+  const { service } = createService({ transactionRows: [{ id: 'transfer-1', customer_package_id: 'package-1', type: 'TRANSFER' }] })
+  assert.equal((await service.append({ ...request, type: 'ADJUSTMENT', creditChange: 1,
+    referenceSource: 'PackageTransactions', referenceId: 'transfer-1' })).kind, 'created')
+  assert.equal((await service.append({ ...request, type: 'ADJUSTMENT', creditChange: 1,
+    referenceSource: 'PackageTransactions', referenceId: 'missing' })).kind, 'validation_error')
+}
+
+{
+  const { service, calls } = createService()
+  assert.equal((await service.append({ ...request, type: 'USAGE', creditChange: -2 })).kind, 'validation_error')
+  assert.deepEqual(calls, [])
+}
 
 {
   const { service, calls, appended } = createService()
@@ -36,7 +52,7 @@ const request = { customerPackageId: 'package-1', type: 'USAGE', creditChange: -
   assert.deepEqual(calls, ['parent.read', 'ledger.append'])
   assert.deepEqual(result, {
     kind: 'created', transactionId: 'transaction-1', customerPackageId: 'package-1', customerId: 'parent-customer',
-    type: 'USAGE', creditChange: -2, createdAt: '2026-08-25 12:00:00',
+    type: 'REFUND', creditChange: 2, createdAt: '2026-08-25 12:00:00',
   })
   assert.equal(appended[0]?.customer_id, 'parent-customer')
   assert.equal('status' in result, false)

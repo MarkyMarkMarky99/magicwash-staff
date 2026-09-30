@@ -5,7 +5,7 @@ import type { customerPackageListResponseSchema } from '@contracts/customer-pack
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import FormLabel from '@/shared/components/FormLabel.vue'
 import FormPicker from '@/shared/components/FormPicker.vue'
-import FormTextarea from '@/shared/components/FormTextarea.vue'
+import type { OrderCreditUsagePreview } from '@/data/customer-packages/order-credit-usage.service'
 
 type CustomerPackage = z.infer<typeof customerPackageListResponseSchema>
 
@@ -17,40 +17,45 @@ const props = defineProps<{
   error: string | null
   submitting: boolean
   retryBlocked: boolean
+  preview: OrderCreditUsagePreview | null
+  previewLoading: boolean
 }>()
 const emit = defineEmits<{
   close: []
-  submit: [value: { customerPackageId: string; creditsUsed: number; notes: string }]
+  submit: [value: { customerPackageId: string; manualCredits?: number }]
+  'select-package': [packageId: string]
 }>()
 const packageId = ref('')
-const creditsUsed = ref('')
-const notes = ref('')
+const manualCredits = ref('')
+const hasNoRate = computed(() => props.preview?.items.some((item) => !!item.noRateReason) ?? false)
+const usageCredits = computed(() => hasNoRate.value ? Number(manualCredits.value) : props.preview?.totalCredits ?? 0)
+const validUsageCredits = computed(() => (!hasNoRate.value || manualCredits.value.trim() !== '')
+  && Number.isFinite(usageCredits.value) && usageCredits.value > 0)
 const packageOptions = computed(() => props.packages.map((item) => ({
   value: item.customerPackageId,
   label: `${item.packageName} · ${item.remainingCredit} remaining`,
 })))
-const submitDisabled = computed(() => props.loading || props.retryBlocked
+const submitDisabled = computed(() => props.loading || props.submitting || props.retryBlocked
   || !props.packages.some((item) => item.customerPackageId === packageId.value)
-  || !Number.isFinite(Number(creditsUsed.value)) || Number(creditsUsed.value) <= 0)
+  || props.previewLoading || props.preview?.customerPackageId !== packageId.value
+  || !validUsageCredits.value || props.preview.alreadyUsed)
+
+watch(() => props.preview, (preview) => { manualCredits.value = preview && preview.totalCredits > 0 ? String(preview.totalCredits) : '' })
 
 watch(() => props.open, (open) => {
   if (!open) return
   packageId.value = props.packages.length === 1 ? props.packages[0].customerPackageId : ''
-  creditsUsed.value = ''
-  notes.value = ''
 }, { immediate: true })
 
 watch(() => props.packages, (items) => {
   if (items.length === 1) packageId.value = items[0].customerPackageId
   else if (!items.some((item) => item.customerPackageId === packageId.value)) packageId.value = ''
 })
+watch(packageId, (value) => emit('select-package', value))
 
 function submit() {
   if (submitDisabled.value || props.submitting) return
-  emit('submit', {
-    customerPackageId: packageId.value, creditsUsed: Number(creditsUsed.value),
-    notes: notes.value,
-  })
+  emit('submit', { customerPackageId: packageId.value, ...(hasNoRate.value ? { manualCredits: usageCredits.value } : {}) })
 }
 </script>
 
@@ -76,15 +81,18 @@ function submit() {
         <p v-if="loading" class="mt-2 text-sm text-on-surface-variant">Loading packages…</p>
         <p v-else-if="packages.length === 0" class="mt-2 text-sm text-on-surface-variant">No active packages</p>
       </section>
-      <section>
-        <FormLabel input-id="order-usage-credits">Credits used</FormLabel>
-        <input
-          id="order-usage-credits" v-model="creditsUsed" type="number" min="0" step="any" required
-          class="block h-[47px] w-full rounded-[10px] border border-outline-variant bg-white px-3 font-body text-sm text-on-surface focus:border-lime focus:outline-none focus:ring-2 focus:ring-lime/20"
-        >
-        <p class="mt-2 font-body text-xs text-on-surface-variant">Enter a positive amount to deduct from the package.</p>
+      <section class="space-y-2 rounded-xl bg-surface-container-low px-4 py-3 font-body text-sm">
+        <p v-if="previewLoading">Calculating order credits…</p>
+        <template v-if="preview">
+          <p v-for="item in preview.items" :key="item.sourceItemId">{{ item.description || item.sourceItemId }} · {{ item.quantity }} {{ item.unit || '' }} · {{ item.credits == null ? item.noRateReason + ' (manual total)' : item.credits + ' credits (' + item.creditsPerUnit + '/unit)' }}</p>
+          <div v-if="hasNoRate">
+            <FormLabel input-id="order-usage-manual-credits">Credits for this order</FormLabel>
+            <input id="order-usage-manual-credits" v-model="manualCredits" type="number" inputmode="decimal" min="0" step="any" class="block h-[47px] w-full rounded-[10px] border border-outline-variant bg-white px-3 font-body text-sm text-on-surface" />
+          </div>
+          <p class="font-semibold">Total {{ hasNoRate ? manualCredits || '—' : preview.totalCredits }} credits · Balance {{ preview.balance }} → {{ preview.balance - usageCredits }}</p>
+          <p v-if="preview.alreadyUsed" class="text-error">Usage for this order was already recorded.</p>
+        </template>
       </section>
-      <FormTextarea id="order-usage-notes" v-model="notes" label="Notes (optional)" />
       <p v-if="error" role="alert" class="rounded-xl bg-error-container px-4 py-3 font-body text-sm text-on-error-container">{{ error }}</p>
     </fieldset>
   </FormOverlay>

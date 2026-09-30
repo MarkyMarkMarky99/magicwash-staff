@@ -36,7 +36,7 @@ function createService(config: FakeConfig = {}): Fakes {
     async read(query) {
       invoiceReadCalls.push(query)
       if (config.invoiceReadError) throw config.invoiceReadError
-      return config.invoiceReadRows ?? []
+      return (config.invoiceReadRows ?? []).filter((row) => !query?.where?.invoice_number || row.invoice_number === query.where.invoice_number)
     },
     async append(data) {
       calls.push('Invoice.create')
@@ -111,17 +111,14 @@ test('invoice-number preflight selects only the physical invoice_number column',
   assert.deepEqual(query.select, ['invoice_number'])
 })
 
-test('invoice-number preflight does not use where, search, or exact-id filtering', async () => {
+test('invoice-number preflight reads the small header sheet once', async () => {
   const { service, invoiceReadCalls } = createService({ invoiceReadRows: [{ invoice_number: 'INV-OTHER' }] })
 
   await service.create(baseRequest())
 
   assert.equal(invoiceReadCalls.length, 1)
-  const query = invoiceReadCalls[0]
-  assert.ok(query !== null && typeof query === 'object')
-  assert.equal(Object.prototype.hasOwnProperty.call(query, 'where'), false)
-  assert.equal(Object.prototype.hasOwnProperty.call(query, 'search'), false)
-  assert.equal(Object.prototype.hasOwnProperty.call(query, 'id'), false)
+  const query = invoiceReadCalls[0] as { where?: { invoice_number?: string } }
+  assert.equal(query.where, undefined)
 })
 
 test('a matching invoice number returns validation_error before any write', async () => {

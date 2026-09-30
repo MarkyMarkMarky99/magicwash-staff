@@ -139,6 +139,15 @@ export function addSheetDateDays(value: string, days: number): string {
   return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}-${String(next.getUTCDate()).padStart(2, '0')}`
 }
 
+export function addSheetDateMonth(value: string): string {
+  const parsed = parseIsoDate(value)
+  if (!parsed) return value
+  const firstNext = new Date(Date.UTC(parsed.year, parsed.month, 1))
+  const lastNext = new Date(Date.UTC(parsed.year, parsed.month + 1, 0)).getUTCDate()
+  firstNext.setUTCDate(Math.min(parsed.day, lastNext))
+  return `${firstNext.getUTCFullYear()}-${String(firstNext.getUTCMonth() + 1).padStart(2, '0')}-${String(firstNext.getUTCDate()).padStart(2, '0')}`
+}
+
 // Calendar weekday numbering uses Sunday=0.
 export function getSheetDateCalendar(value: unknown): SheetDateCalendar | null {
   const normalized = normalizeSheetDate(value)

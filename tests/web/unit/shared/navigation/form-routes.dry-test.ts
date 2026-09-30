@@ -9,6 +9,7 @@ import {
   appointmentCreateRoute,
   customerPackageCreateRoute,
   invoiceCreateRoute,
+  packageInvoiceCreateRoute,
   orderCreateRoute,
   orderEditRoute,
   priceListItemCreateRoute,
@@ -43,6 +44,10 @@ assert.deepEqual(invoiceCreateRoute({ customerId: 'C-1', orderId: 'O-2' }), {
   name: INVOICE_CREATE_ROUTE_NAME,
   query: { customerId: 'C-1', orderId: 'O-2' },
 })
+assert.deepEqual(packageInvoiceCreateRoute('C-1', 'P-2'), {
+  name: INVOICE_CREATE_ROUTE_NAME,
+  query: { customerId: 'C-1', customerPackageId: 'P-2' },
+})
 assert.deepEqual(priceListItemCreateRoute(), {
   name: PRICE_LIST_ITEM_CREATE_ROUTE_NAME,
   query: {},
@@ -56,4 +61,4 @@ assert.deepEqual(priceListItemCreateRoute({ orderId: 'O-2', category: 'CLOTHING'
   query: { orderId: 'O-2', category: 'CLOTHING', subcategory: 'Tops' },
 })
 
-console.log('10 form-route builder dry tests passed')
+console.log('11 form-route builder dry tests passed')

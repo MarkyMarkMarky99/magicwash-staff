@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
-import { appendPackageTransactionRequestSchema } from '@contracts/customer-packages/customer-package-api.schema'
+import { getOrderCreditUsage, type OrderCreditUsagePreview } from '@/data/customer-packages/order-credit-usage.service'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import BottomNavBar from '@/shared/components/BottomNavBar.vue'
@@ -45,6 +45,9 @@ const invoicesStore = useCustomerInvoicesStore()
 const { isOpen: usageOpen, open: openUsage, close: closeUsage } = useOrderPackageUsageRoute()
 const usageErrors = ref<Record<string, string>>({})
 const blockedUsageOrders = ref(new Set<string>())
+const usagePreview = ref<OrderCreditUsagePreview | null>(null)
+const usagePreviewLoading = ref(false)
+let latestUsagePreview = 0
 const activePackages = computed(() => packagesStore.items.filter(
   (item) => item.status === 'ACTIVE' && item.customerId === props.customerId,
 ))
@@ -64,6 +67,7 @@ const sheetOpen = computed(() => selectedOrder.value !== null)
 const usageOrderKey = computed(() => JSON.stringify([props.customerId, openOrderId.value]))
 const usageRetryBlocked = computed(() => blockedUsageOrders.value.has(usageOrderKey.value))
 const usageError = computed(() => usageErrors.value[usageOrderKey.value] ?? packagesStore.error)
+watch(usageOrderKey, () => { latestUsagePreview += 1; usagePreview.value = null; usagePreviewLoading.value = false })
 
 function selectTab(tab: string) {
   router.replace({ name: 'customer-detail', params: { customerId: props.customerId, tab: resolveCustomerTab(tab) } })
@@ -75,39 +79,41 @@ function usePackage() {
   openUsage()
 }
 
-async function submitUsage(value: { customerPackageId: string; creditsUsed: number; notes: string }) {
+async function loadUsagePreview(packageId: string) {
+  delete usageErrors.value[usageOrderKey.value]
+  usagePreview.value = null
+  const requestId = ++latestUsagePreview
+  if (!packageId || !selectedOrder.value) { usagePreviewLoading.value = false; return }
+  usagePreviewLoading.value = true
+  try {
+    const preview = await getOrderCreditUsage(packageId, selectedOrder.value.orderId)
+    if (requestId === latestUsagePreview) usagePreview.value = preview
+  } catch (reason) {
+    if (requestId === latestUsagePreview) usageErrors.value[usageOrderKey.value] = reason instanceof Error ? reason.message : 'Unable to calculate credits'
+  } finally { if (requestId === latestUsagePreview) usagePreviewLoading.value = false }
+}
+
+async function submitUsage(value: { customerPackageId: string; manualCredits?: number }) {
   const order = selectedOrder.value
   if (!order || usageRetryBlocked.value || packagesStore.submittingUsage || packagesStore.loading) return
   const key = usageOrderKey.value
   if (!activePackages.value.some((item) => item.customerPackageId === value.customerPackageId)
-    || !Number.isFinite(value.creditsUsed) || value.creditsUsed <= 0) {
-    usageErrors.value[key] = 'Select an active package and enter a positive credit amount.'
-    return
-  }
-  const parsed = appendPackageTransactionRequestSchema.safeParse({
-    customerPackageId: value.customerPackageId, type: 'USAGE', creditChange: -value.creditsUsed,
-    referenceSource: 'ORDER', referenceId: order.orderId.trim(),
-    notes: value.notes.trim() || null, createdBy: actor.value,
-  })
-  if (!parsed.success) {
-    usageErrors.value[key] = parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join(', ')
+    || usagePreview.value?.customerPackageId !== value.customerPackageId
+    || (value.manualCredits ?? usagePreview.value.totalCredits) <= 0 || usagePreview.value.alreadyUsed) {
+    usageErrors.value[key] = 'Select an eligible package and review positive order credits.'
     return
   }
   delete usageErrors.value[key]
-  const result = await packagesStore.recordUsage(parsed.data)
-  if (!result) return
-  if (result.kind === 'created') {
+  try {
+    const result = await packagesStore.recordUsage(value.customerPackageId, order.orderId.trim(), actor.value, value.manualCredits)
+    if (!result) return
     blockedUsageOrders.value.add(key)
     await packagesStore.load(props.customerId, true)
     if (usageOrderKey.value === key && activeTab.value === 'orders' && usageOpen.value) closeUsage()
     blockedUsageOrders.value.delete(key)
-  } else if (result.kind === 'validation_error') {
-    usageErrors.value[key] = result.issues.map((issue) => `${issue.path}: ${issue.message}`).join(', ')
-  } else if (result.kind === 'transaction_write_failed' && result.certainty === 'unknown') {
+  } catch (reason) {
     blockedUsageOrders.value.add(key)
-    usageErrors.value[key] = 'This write may already have gone through. Retry is blocked. Verify package activity and reconcile the outcome before recording more usage for this order.'
-  } else {
-    usageErrors.value[key] = result.kind === 'package_not_found' ? 'Package was not found.' : result.message
+    usageErrors.value[key] = `Check package activity before retrying: ${reason instanceof Error ? reason.message : String(reason)}`
   }
 }
 
@@ -181,7 +187,10 @@ watch([activeTab, () => props.customerId, openOrderId], ([tab, id, orderId]) => 
       :error="usageError"
       :submitting="packagesStore.submittingUsage"
       :retry-blocked="usageRetryBlocked"
+      :preview="usagePreview"
+      :preview-loading="usagePreviewLoading"
       @close="closeUsage"
+      @select-package="loadUsagePreview"
       @submit="submitUsage"
     />
     <BottomNavBar :items="items" :active-key="activeTab" ariaLabel="Customer sections" @select="selectTab">

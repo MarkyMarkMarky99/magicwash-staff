@@ -71,6 +71,9 @@ const SHEET_HEADERS = [
   'notes',
   'remainingCredit',
   'usedCredit',
+  'transferredOutCredit',
+  'expiredCredit',
+  'overageBilledCredit',
   'totalCredit',
   'transactions',
 ] as const

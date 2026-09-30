@@ -34,10 +34,13 @@ assert.deepEqual(ledger, {
   ],
   remainingCredit: 7,
   usedCredit: 3,
+  transferredOutCredit: 0,
+  expiredCredit: 0,
+  overageBilledCredit: 0,
   totalCredit: 10,
 })
 assert.ok(ledger.entries.every((entry) => !entry.createdAt.includes('T') && !entry.createdAt.includes('+07:00')))
-assert.deepEqual(buildLedger([] as never), { entries: [], remainingCredit: 0, usedCredit: 0, totalCredit: 0 })
+assert.deepEqual(buildLedger([] as never), { entries: [], remainingCredit: 0, usedCredit: 0, transferredOutCredit: 0, expiredCredit: 0, overageBilledCredit: 0, totalCredit: 0 })
 assert.deepEqual(
   buildLedger([
     { id: 'b', credit_change: -12, created_at: '2026-08-01 00:00:00', type: 'USAGE' },
@@ -50,9 +53,29 @@ assert.deepEqual(
     ],
     remainingCredit: -2,
     usedCredit: 12,
+    transferredOutCredit: 0,
+    expiredCredit: 0,
+    overageBilledCredit: 0,
     totalCredit: 10,
   },
 )
+const settledOverage = buildLedger([
+  { id: 'purchase', type: 'PURCHASE', credit_change: 1 },
+  { id: 'usage', type: 'USAGE', credit_change: -1.5 },
+  { id: 'settle', type: 'ADJUSTMENT', reference_source: 'Invoices', credit_change: 0.5 },
+] as never)
+assert.equal(settledOverage.remainingCredit, 0)
+assert.equal(settledOverage.usedCredit, 1.5)
+assert.equal(settledOverage.overageBilledCredit, 0.5)
+assert.equal(settledOverage.totalCredit, 1)
+const voidedSettlement = buildLedger([
+  { id: 'purchase', type: 'PURCHASE', credit_change: 1 },
+  { id: 'usage', type: 'USAGE', credit_change: -1.5 },
+  { id: 'settle', type: 'ADJUSTMENT', reference_source: 'Invoices', credit_change: 0.5 },
+  { id: 'void', type: 'VOID', reference_source: 'PackageTransactions', reference_id: 'settle', credit_change: -0.5 },
+] as never)
+assert.equal(voidedSettlement.overageBilledCredit, 0)
+assert.equal(voidedSettlement.totalCredit, 1)
 
 const grouped = groupTransactionsByPackage([
   { id: 'kept', customer_package_id: ' package-1 ' },

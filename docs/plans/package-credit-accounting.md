@@ -1,6 +1,6 @@
 # Package credits as a monthly subscription
 
-Status: Plan. Owner decisions recorded 2026-09-30; reviewed by gpt-6-sol (accountant + engineer roles). Nothing implemented yet.
+Status: Phases 1 and 2 implemented. Phases 3 and 4 implemented with the billing timing and data-model limits listed below. Owner decisions recorded 2026-09-30; reviewed by gpt-6-sol (accountant + engineer roles).
 Repo: C:/MagicwashGemini/webapp-vue. Registry (schema source of truth, owner edits only):
 G:/My Drive/Magicwash/Database/GoogleSheets/*.json
 
@@ -100,6 +100,16 @@ G:/My Drive/Magicwash/Database/GoogleSheets/*.json
 4. Renewal helper (staff button): create next month's package + TRANSFER positive leftover; pending-work view for
    half-written TRANSFER or package creation (purchase writes PURCHASE before the package row,
    customer-package-purchase.service.ts:66).
+
+## Implementation progress and open decisions
+
+- Phase 1: CREDIT PriceList create and browse flow completed earlier.
+- Phase 2: server preview and confirmation, duplicate and eligibility guards, negative balance, correction reference, and per-item UI completed.
+- Phase 3: CYCLE draft, fee, overage, uninvoiced DEFAULT-price item lines, source ownership and duplicate guards, and invoice-referenced overage adjustment completed. The helper currently prepares one package period at a time. The plan's prepaid mixed invoice requires a decision about which package owns the invoice period and fee when prior-month items are billed with next-month service.
+- Phase 4: renewal purchase, positive carry-over transfer, and one-sided transfer repair completed. Failed purchases remain in the existing purchase retry and error flow.
+- The Customers schema has Member, Regular, and Corporate types but no PERSONAL marker. The PERSONAL cash-price uplift needs an authoritative classification source before it can be applied automatically.
+- Invoice creation has no persisted attachment or detail field for the credit usage summary. The bill form previews allowance, use, carry-in, and transfer-out; persisting that summary needs an owner-selected location.
+- The invoice editor permits changing an overage line. The ledger only closes it when its saved amount still equals the current negative balance times 25 THB; the owner must decide how a deliberately partial or edited overage bill should affect the credit counter.
 
 ## Things from today's code that still matter
 

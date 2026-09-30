@@ -25,6 +25,11 @@ export interface LineItemFormRow {
   quantity: string
   unitPrice: string
   adjustments: AdjustmentFormRow[]
+  sourceOrderId?: string
+  sourceItemId?: string
+  serviceType?: string
+  packageOverageId?: string
+  packageFeeId?: string
   // Form-local marker for the blank row seeded when the order had zero items.
   syntheticPlaceholder?: true
 }

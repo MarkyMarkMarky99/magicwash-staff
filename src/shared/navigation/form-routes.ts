@@ -69,6 +69,10 @@ export function invoiceCreateRoute(context: InvoiceCreateRouteContext): RouteLoc
   }
 }
 
+export function packageInvoiceCreateRoute(customerId: string, customerPackageId: string): RouteLocationRaw {
+  return { name: INVOICE_CREATE_ROUTE_NAME, query: { customerId, customerPackageId } }
+}
+
 export function priceListItemCreateRoute(context: PriceListItemCreateRouteContext = {}): RouteLocationRaw {
   return {
     name: PRICE_LIST_ITEM_CREATE_ROUTE_NAME,
