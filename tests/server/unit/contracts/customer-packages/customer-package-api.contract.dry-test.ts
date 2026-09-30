@@ -52,7 +52,7 @@ for (const option of createCustomerPackageResponseSchema.options) {
   }
 }
 
-/** The API-facing fields corresponding to the live CustomerPackageView sheet. */
+/** The API-facing fields assembled from customer package source sheets. */
 const SHEET_HEADERS = [
   'customerPackageId',
   'customerId',

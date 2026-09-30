@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url'
 
 import { appointmentsDbContract } from '../../../../server/sheets/Appointments/Appointments.db-contract.js'
 import { afterPhotoDbContract } from '../../../../server/sheets/AfterPhoto/AfterPhoto.db-contract.js'
-import { customerPackageViewDbContract } from '../../../../server/sheets/CustomerPackageView/CustomerPackageView.db-contract.js'
 import { customerIdMappingDbContract } from '../../../../server/sheets/CustomerIDMapping/CustomerIDMapping.db-contract.js'
 import { customersDbContract } from '../../../../server/sheets/Customers/Customers.db-contract.js'
 import { invoiceItemsDbContract } from '../../../../server/sheets/InvoiceItems/InvoiceItems.db-contract.js'
@@ -24,13 +23,12 @@ import { issueReportsDbContract } from '../../../../server/sheets/IssueReports/I
 import { itemsDbContract } from '../../../../server/sheets/Items/Items.db-contract.js'
 import { jobTicketsDbContract } from '../../../../server/sheets/JobTickets/JobTickets.db-contract.js'
 
-const expectedSheetCount = 21
+const expectedSheetCount = 20
 const expectedSheetDirectories = [
   'AfterPhoto',
   'Appointments',
   'CustomerPackages',
   'CustomerIDMapping',
-  'CustomerPackageView',
   'Customers',
   'InvoiceItems',
   'Invoices',
@@ -73,12 +71,6 @@ const bindings = [
     contract: customerPackagesDbContract,
     expectedSpreadsheetId: 'LAUNDRY_PACKAGES_SPREADSHEET_ID',
     expectedSheetName: 'CustomerPackages',
-  },
-  {
-    name: 'CustomerPackageView',
-    contract: customerPackageViewDbContract,
-    expectedSpreadsheetId: 'PORTAL_SPREADSHEET_ID',
-    expectedSheetName: 'CustomerPackageView',
   },
   {
     name: 'CustomerIDMapping',

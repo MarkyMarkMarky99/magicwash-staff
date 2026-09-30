@@ -5,6 +5,8 @@
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
+- **`chore/drop-customer-package-view`** — removes the retired `CustomerPackageView` sheet code and renames the live route module; awaiting merge. Details: `.user/memory/chore-drop-customer-package-view.md`.
+- **`feat/package-service-type`** — `Packages.eligible_service` now uses the WSIR/IRON/DRCL/WASH enum; sheet migrated, awaiting merge. Details: `.user/memory/feat-package-service-type.md`.
 - **`work-20260928`** — clean worktree branch with no commits beyond `main`; delete when its session is done. Details: `.user/memory/work-20260928.md`.
 
 ## Pending work
@@ -24,7 +26,7 @@
   - Order detail Approve is now `OrderApproveButton` (sticker FAB); only the quantity-mismatch disable shows a reason.
   - Phone-check the push drawer (open, drag-close, Back) and swipe cards no longer moving on scroll.
   - Deferred by user: the push drawer's rounded corner sits below the iOS status bar because status-bar-style `black` keeps the page under it; reaching the top edge needs `black-translucent` plus a new height fix.
-  - Browser-check `CloseButton` onDark sticker style (lime outline squircle, solid lime + offset shadow when active) on header (menu, back, pending with badge) and the 6 dark-overlay X buttons; hover/focus pop animation.
+  - Browser-check `CloseButton` onDark sticker style (lime outline squircle, solid lime + offset shadow when active) on header (menu, back, pending with badge) and the 6 dark-overlay X buttons; hover/focus pop animation; also check every shared `CloseButton` placement (forms, sheets, pickers, nav, scanners, invoice proof lightbox).
   - Browser-check the app-wide palette move (mint/tertiary removed, info = logo steel blue): order hero card, document scanner, shared form controls.
   - Browser-check `BaseBadge` two-size standard (sm/lg): `N items` chip grew 9px→11px, lg badges got shorter.
 
@@ -56,7 +58,6 @@
 - **Order detail UI**
   - Phone-test `PhotoViewer` (merged 2026-09-27 on order detail, gallery, photo library): pinch/double-tap zoom, pan while zoomed, swipe-down close, thumbnail strip, safe areas.
   - Browser-check gallery "ย้ายไปรายการอื่น": the item picker must open above `PhotoViewer`.
-  - Browser-check every shared `CloseButton` (forms, sheets, pickers, nav, scanners, invoice proof lightbox).
   - Deferred by user: close X inside the photo corner (needs a dark disc).
   - Phone-test the order photo library: long-press drag-select, edge auto-scroll, glass refraction (now on Select too), black glass labels, lime selected-tab contrast, and single-request Move to item.
   - Phone-test Register garments without an item, then assigning those photos from the library.
@@ -131,7 +132,6 @@
   - Update list-page documentation that still describes deleted header search (`SEARCHABLE_ROUTES` / `meta.searchable`).
   - Fix 2 real defects in `persistent-cache.ts` and 12 source comments that contradict the code. See `.user/memory/stale-comments-and-defects.md`.
   - Resume held comment-cleanup decisions after a canonical cache convention exists; verify each finding before acting. See `.user/memory/doc-comment-docs-work.md`.
-  - `agent-docs/` drafts are non-canonical; do not use them as authority for source comments or rules.
 
 - **Verification and cleanup**
   - Browser-verify appointment creation without a customer location in Preview.
@@ -144,7 +144,7 @@
   - Phone-test ISS-72adcdca: a cache-hit customer-row tap must open only customer detail, while the swipe action still fires.
   - Browser-check ListContainer search, theme consistency, and the order-detail dropdown at the bottom edge.
   - Delete `docs/plans/scroll-region.md` and `docs/plans/overlay-frame.md` once unreferenced (`LightboxOverlay` is gone).
-  - Delete sheet test data: `Items` `ITM-0099` / `2e6b91d2`; `Packages` `ZZTEST01` / `af9f0651`; `OrderForm` `246fde2b`, `cc4d375e`, `f68ae08d`; `LaundryPhotos` `QK0H9DT1`, `a260b2b1`, `1b7649ba`; `AfterPhoto` `0aacd052`.
+  - Delete sheet test data: `Items` `ITM-0099` / `2e6b91d2`; `OrderForm` `246fde2b`, `cc4d375e`, `f68ae08d`; `LaundryPhotos` `QK0H9DT1`, `a260b2b1`, `1b7649ba`; `AfterPhoto` `0aacd052`.
   - Browser-check the appointment card status badge now sitting in the top-end slot on both the schedule and pending pages.
   - Browser-check swipe cards now opening 4rem per action (`leftActions`/`rightActions`), incl. the AppointmentCard "Swipe to …" label in 4rem.
   - User kept New Order, Schedule Pickup, New Package and Create Invoice on customer detail as per-tab dropdowns (2026-09-27); Book Delivery and package usage in the order sheet still undecided.

@@ -37,10 +37,6 @@ for (const exportName of requiredExports) {
   }
 }
 
-if ('customerPackageViewApiContract' in customerPackageApi) {
-  throw new Error('customerPackageViewApiContract must not remain exported')
-}
-
 const { customerPackageApiContract } = customerPackageApi
 
 if ('request' in customerPackageApiContract) {
