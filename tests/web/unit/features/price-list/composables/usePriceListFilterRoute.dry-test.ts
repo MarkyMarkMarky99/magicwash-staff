@@ -40,20 +40,20 @@ function createComposableContext(query: Record<string, unknown> = {}) {
 }
 
 test('defaults to clothing with all subcategories and services', () => {
-  assert.deepEqual(defaultPriceListFilter, { category: 'CLOTHING', subcategory: null, serviceType: null })
+  assert.deepEqual(defaultPriceListFilter, { view: 'PRICE', category: 'CLOTHING', subcategory: null, serviceType: null })
 })
 
 test('converts a category query to the corresponding filter', () => {
-  assert.deepEqual(filterFromQuery({ category: 'CLOTHING' }), { category: 'CLOTHING', subcategory: null, serviceType: null })
-  assert.deepEqual(filterFromQuery({ category: 'Clothing' }), { category: 'CLOTHING', subcategory: null, serviceType: null })
-  assert.deepEqual(filterFromQuery({ category: 'ALL' }), { category: 'ALL', subcategory: null, serviceType: null })
+  assert.deepEqual(filterFromQuery({ category: 'CLOTHING' }), { view: 'PRICE', category: 'CLOTHING', subcategory: null, serviceType: null })
+  assert.deepEqual(filterFromQuery({ category: 'Clothing' }), { view: 'PRICE', category: 'CLOTHING', subcategory: null, serviceType: null })
+  assert.deepEqual(filterFromQuery({ category: 'ALL' }), { view: 'PRICE', category: 'ALL', subcategory: null, serviceType: null })
 })
 
 test('converts subcategory and serviceType queries to the corresponding filter', () => {
-  assert.deepEqual(filterFromQuery({ serviceType: 'DRCL' }), { category: 'CLOTHING', subcategory: null, serviceType: 'DRCL' })
+  assert.deepEqual(filterFromQuery({ serviceType: 'DRCL' }), { view: 'PRICE', category: 'CLOTHING', subcategory: null, serviceType: 'DRCL' })
   assert.deepEqual(
     filterFromQuery({ category: 'CLOTHING', subcategory: 'Shirts', serviceType: 'IRON' }),
-    { category: 'CLOTHING', subcategory: 'Shirts', serviceType: 'IRON' },
+    { view: 'PRICE', category: 'CLOTHING', subcategory: 'Shirts', serviceType: 'IRON' },
   )
 })
 
@@ -64,11 +64,20 @@ test('converts a missing, null, or empty category query to clothing', () => {
   assert.deepEqual(filterFromQuery({ serviceType: '', subcategory: '' }), defaultPriceListFilter)
 })
 
+test('round trips the credit view through the route query', () => {
+  assert.deepEqual(filterFromQuery({ view: 'CREDIT', category: 'ALL' }), {
+    view: 'CREDIT', category: 'ALL', subcategory: null, serviceType: null,
+  })
+  assert.deepEqual(filterToQuery({ view: 'CREDIT', category: 'ALL', subcategory: null, serviceType: null }), {
+    category: 'ALL', view: 'CREDIT',
+  })
+})
+
 test('writes an explicit category and only selected optional dimensions', () => {
-  assert.deepEqual(filterToQuery({ category: 'CLOTHING', subcategory: null, serviceType: null }), { category: 'CLOTHING' })
-  assert.deepEqual(filterToQuery({ category: 'ALL', subcategory: null, serviceType: 'WASH' }), { category: 'ALL', serviceType: 'WASH' })
+  assert.deepEqual(filterToQuery({ view: 'PRICE', category: 'CLOTHING', subcategory: null, serviceType: null }), { category: 'CLOTHING' })
+  assert.deepEqual(filterToQuery({ view: 'PRICE', category: 'ALL', subcategory: null, serviceType: 'WASH' }), { category: 'ALL', serviceType: 'WASH' })
   assert.deepEqual(
-    filterToQuery({ category: 'CLOTHING', subcategory: 'Shirts', serviceType: 'WASH' }),
+    filterToQuery({ view: 'PRICE', category: 'CLOTHING', subcategory: 'Shirts', serviceType: 'WASH' }),
     { category: 'CLOTHING', subcategory: 'Shirts', serviceType: 'WASH' },
   )
 })
@@ -76,11 +85,11 @@ test('writes an explicit category and only selected optional dimensions', () => 
 test('derives its computed filter from the current route query', () => {
   const { route, composable } = createComposableContext({ category: 'shirts' })
 
-  assert.deepEqual(composable.filter.value, { category: 'SHIRTS', subcategory: null, serviceType: null })
+  assert.deepEqual(composable.filter.value, { view: 'PRICE', category: 'SHIRTS', subcategory: null, serviceType: null })
 
   route.query = { category: 'trousers', subcategory: 'Pants', serviceType: 'DRCL' }
 
-  assert.deepEqual(composable.filter.value, { category: 'TROUSERS', subcategory: 'Pants', serviceType: 'DRCL' })
+  assert.deepEqual(composable.filter.value, { view: 'PRICE', category: 'TROUSERS', subcategory: 'Pants', serviceType: 'DRCL' })
 
   route.query = {}
 

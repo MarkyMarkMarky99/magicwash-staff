@@ -37,6 +37,14 @@ const SHEET_HEADERS = [
   'image_url',
 ]
 
+const ITEM_HEADERS = [
+  'id', 'item_code', 'category', 'subcategory', 'itemtype', 'variant',
+  'display_name_th', 'display_name_en', 'active', 'image_url',
+]
+const itemRows: SheetRow[] = [
+  ['i1b2c3d4', 'ITM-0012', 'tops', 'shirt', 'wash', null, 'เสื้อเชิ้ต', null, true, null],
+]
+
 const sheetRows: SheetRow[] = [
   [
     'a1b2c3d4',
@@ -71,8 +79,8 @@ function jsonResponse(body: unknown, status = 200): Response {
   })
 }
 
-function gvizResponse(rows: SheetRow[]): Response {
-  const columns = SHEET_HEADERS.map((_header, index) => ({
+function gvizResponse(rows: SheetRow[], headers = SHEET_HEADERS): Response {
+  const columns = headers.map((_header, index) => ({
     id: String.fromCharCode(65 + index),
   }))
   const tableRows = rows.map((row) => ({
@@ -202,6 +210,7 @@ async function withMockSheets(run: (calls: FetchCall[]) => Promise<void>): Promi
       return jsonResponse({ access_token: 'price-list-test-access-token', expires_in: 3600 })
     }
     if (call.url.includes('/gviz/tq')) {
+      if (new URL(call.url).searchParams.get('sheet') === 'Items') return gvizResponse(itemRows, ITEM_HEADERS)
       return gvizResponse(rowsForGviz(call.url))
     }
 
@@ -219,10 +228,11 @@ async function withMockSheets(run: (calls: FetchCall[]) => Promise<void>): Promi
       const body = JSON.parse(String(init.body)) as { values?: SheetRow[] }
       assert.ok(Array.isArray(body.values))
       assert.equal(body.values.length, 1)
+      const rowNumber = sheetRows.length + 2
       sheetRows.push([...body.values[0]!])
       return jsonResponse({
         spreadsheetId: process.env.PRICE_LIST_SPREADSHEET_ID,
-        updates: { updatedRows: 1, updatedRange: 'PriceList!A2:Q2', updatedData: { values: body.values } },
+        updates: { updatedRows: 1, updatedRange: `PriceList!A${rowNumber}:Q${rowNumber}`, updatedData: { values: body.values } },
       })
     }
     if (init?.method === 'POST' && path.endsWith('/values:batchUpdate')) {
@@ -249,9 +259,8 @@ async function withMockSheets(run: (calls: FetchCall[]) => Promise<void>): Promi
 }
 
 await withMockSheets(async (calls) => {
-  const blockedCreateBodies = [
+  const invalidCreateBodies = [
     createPayload,
-    suppliedItemCodePayload,
     { ...createPayload, id: 'client-id' },
     { ...createPayload, itemCode: 'ITEM-9999' },
     (() => {
@@ -263,15 +272,30 @@ await withMockSheets(async (calls) => {
     { ...createPayload, price: -1 },
   ]
 
-  for (const body of blockedCreateBodies) {
+  for (const body of invalidCreateBodies) {
     const before = calls.length
     assertApiError(
       await priceListRoutes.collection.handleRequest(request('POST', body)),
-      405,
-      'METHOD_NOT_ALLOWED',
+      422,
+      'VALIDATION_ERROR',
     )
-    assert.equal(calls.length, before)
+    if (body !== createPayload) assert.equal(calls.length, before)
   }
+
+  const beforeUnknownWritePosts = calls.filter((call) => call.init?.method === 'POST' && call.url.includes('sheets.googleapis.com')).length
+  assertApiError(
+    await priceListRoutes.collection.handleRequest(request('POST', { ...suppliedItemCodePayload, itemCode: 'ITM-9999' })),
+    404,
+    'NOT_FOUND',
+  )
+  assert.equal(calls.filter((call) => call.init?.method === 'POST' && call.url.includes('sheets.googleapis.com')).length, beforeUnknownWritePosts)
+
+  const created = dataOf(await priceListRoutes.collection.handleRequest(request('POST', {
+    ...suppliedItemCodePayload, itemCode: 'ITM-0012', priceGroup: 'CREDIT', unit: 'piece', price: 2,
+  })))
+  assert.equal(created.itemCode, 'ITM-0012')
+  assert.equal(created.priceGroup, 'CREDIT')
+  assert.equal(created.price, 2)
 
   for (const body of [
     { active: false, id: 'changed-id' },
@@ -335,7 +359,7 @@ await withMockSheets(async (calls) => {
 
   const collectionDelete = await priceListRoutes.collection.handleRequest(request('DELETE'))
   assert.equal(collectionDelete.status, 405)
-  assert.equal(collectionDelete.headers?.Allow, 'GET')
+  assert.equal(collectionDelete.headers?.Allow, 'GET, POST')
   const itemDelete = await priceListRoutes.item!.handleRequest(
     request('DELETE', undefined, { id: 'a1b2c3d4' }),
   )

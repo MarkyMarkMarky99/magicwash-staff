@@ -14,6 +14,7 @@ import PriceListServiceFilter from '../components/PriceListServiceFilter.vue'
 import PriceListServicePanel from '../components/PriceListServicePanel.vue'
 import { usePriceListFilterRoute } from '../composables/usePriceListFilterRoute'
 import { comparePriceListCategories } from '../utils/price-list-display'
+import { rowsForPriceListView } from '../utils/price-list-view'
 import type { PriceListDto } from '@/data/price-list/price-list.service'
 
 defineOptions({ name: 'PriceListPage' })
@@ -36,6 +37,7 @@ const listError = computed(() => {
 const search = ref('')
 const serviceFilterOpen = ref(false)
 const { filter, updateFilter } = usePriceListFilterRoute()
+const visibleItems = computed(() => rowsForPriceListView(items.value, filter.value.view))
 const selectedCode = computed(() => {
   const raw = route.query.itemCode
   const value = Array.isArray(raw) ? raw[0] : raw
@@ -63,8 +65,7 @@ watch(selectedCode, (code) => {
 
 const itemGroups = computed(() => {
   const groups = new Map<string, typeof items.value>()
-  for (const item of items.value) {
-    if (!item.active) continue
+  for (const item of visibleItems.value) {
     const group = groups.get(item.itemCode)
     if (group) group.push(item)
     else groups.set(item.itemCode, [item])
@@ -85,7 +86,9 @@ watch([selectedCode, selectedGroup, loaded], ([code, group, isLoaded]) => {
 
 const categoryTabs = computed(() => {
   const counts = new Map<string, number>()
-  for (const item of items.value) counts.set(item.category.toUpperCase(), 0)
+  for (const item of items.value.filter((row) => filter.value.view === 'CREDIT' ? row.priceGroup === 'CREDIT' : row.priceGroup !== 'CREDIT')) {
+    counts.set(item.category.toUpperCase(), 0)
+  }
   for (const group of itemGroups.value) {
     for (const category of new Set(group.items.map((item) => item.category.toUpperCase()))) {
       counts.set(category, (counts.get(category) ?? 0) + 1)
@@ -174,6 +177,11 @@ function selectCategory(key: string) {
   updateFilter({ category: key, subcategory: null })
 }
 
+function selectView(key: string) {
+  if (key !== 'PRICE' && key !== 'CREDIT') return
+  updateFilter({ view: key, subcategory: null })
+}
+
 function selectSubcategory(key: string) {
   if (!subcategoryTabs.value.some((tab) => tab.key === key)) return
   updateFilter({ subcategory: key === 'ALL' ? null : key })
@@ -184,10 +192,10 @@ function selectService(value: string | null) {
 }
 
 function openCreate() {
-  const category = items.value.find((item) => item.category.toUpperCase() === filter.value.category)?.category
+  const category = visibleItems.value.find((item) => item.category.toUpperCase() === filter.value.category)?.category
   void router.push({
     name: 'price-list-create',
-    query: category ? { category } : {},
+    query: { ...(category ? { category } : {}), ...(filter.value.view === 'CREDIT' ? { view: 'CREDIT' } : {}) },
   })
 }
 
@@ -220,7 +228,7 @@ async function openEdit(id: string) {
   const query = { ...route.query }
   delete query.itemCode
   await router.replace({ name: 'price-list', query })
-  await router.push({ name: 'price-list-edit', params: { id } })
+  await router.push({ name: 'price-list-edit', params: { id }, query: filter.value.view === 'CREDIT' ? { view: 'CREDIT' } : {} })
 }
 
 watch(() => [route.name, route.query.category] as const, ([name, category]) => {
@@ -237,6 +245,11 @@ onMounted(() => {
 <template>
   <ListPageLayout :embedded="props.embedded">
     <template #filters>
+      <GenericTabs
+        :tabs="[{ key: 'PRICE', label: 'รายการราคา' }, { key: 'CREDIT', label: 'ราคาเครดิต' }]"
+        :active-key="filter.view"
+        @select="selectView"
+      />
       <GenericTabs
         :tabs="categoryTabs"
         :active-key="filter.category"
@@ -268,7 +281,7 @@ onMounted(() => {
     </template>
 
     <ListContainer
-      title="รายการราคา"
+      :title="filter.view === 'CREDIT' ? 'ราคาเครดิต' : 'รายการราคา'"
       icon="sell"
       count-label="รายการ"
       searchable

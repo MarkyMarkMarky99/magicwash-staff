@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import ImageContentCard from '@/shared/components/ImageContentCard.vue'
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
 import type { PriceListDto } from '@/data/price-list/price-list.service'
+import { priceListValueLabel } from '../utils/price-list-view'
 
 const props = defineProps<{
   itemCode: string
@@ -16,6 +17,9 @@ const emit = defineEmits<{
 const item = computed(() => props.items[0])
 const imageUrl = computed(() => props.items.find((entry) => entry.imageUrl)?.imageUrl ?? null)
 const priceLabel = computed(() => {
+  if (props.items[0]?.priceGroup === 'CREDIT') {
+    return [...new Set(props.items.map(priceListValueLabel))].join(' · ')
+  }
   const prices = props.items.map((entry) => entry.price)
   const lowest = Math.min(...prices)
   const highest = Math.max(...prices)

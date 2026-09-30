@@ -12,6 +12,7 @@ export type PriceListFormState = {
   displayNameTh: string
   displayNameEn: string
   serviceType: PriceListCreatePayload['serviceType']
+  priceGroup: 'DEFAULT' | 'CREDIT'
   unit: string
   price: string | number
   creditEligible: boolean
@@ -64,11 +65,11 @@ export function createPriceListPayload(
   mode: PriceListCreateMode,
 ): PriceListCreatePayload {
   const fields = priceListFields(form)
-  if (mode === 'new') return { ...fields, priceGroup: 'DEFAULT' }
+  if (mode === 'new') return { ...fields, priceGroup: form.priceGroup }
 
   const itemCode = form.itemCode.trim()
   if (itemCode === '') throw new Error('กรุณาเลือกรายการเดิม')
-  return { ...fields, itemCode, priceGroup: 'DEFAULT' }
+  return { ...fields, itemCode, priceGroup: form.priceGroup }
 }
 
 export function updatePriceListPayload(form: PriceListFormState): PriceListUpdatePayload {

@@ -36,6 +36,7 @@ const item = reactive<PriceListFormState>({
   displayNameTh: '',
   displayNameEn: '',
   serviceType: 'WSIR',
+  priceGroup: 'DEFAULT',
   unit: '',
   price: '',
   creditEligible: false,
@@ -109,6 +110,7 @@ function fillForm(source: (typeof items.value)[number]) {
   item.displayNameTh = source.displayNameTh
   item.displayNameEn = source.displayNameEn ?? ''
   item.serviceType = source.serviceType
+  item.priceGroup = source.priceGroup === 'CREDIT' ? 'CREDIT' : 'DEFAULT'
   item.unit = source.unit ?? ''
   item.price = String(source.price)
   item.creditEligible = source.creditEligible
@@ -142,7 +144,7 @@ async function submitForm() {
     } else {
       await priceListStore.create(createPriceListPayload(item, createMode.value))
     }
-    await router.push('/price-list')
+    await router.push({ name: 'price-list', query: route.query.view === 'CREDIT' ? { view: 'CREDIT' } : {} })
   } catch (reason) {
     formError.value = reason instanceof Error ? reason.message : 'Unable to save price list item'
   } finally {
@@ -154,6 +156,7 @@ onMounted(async () => {
   if (!props.id) {
     const category = route.query.category
     if (typeof category === 'string' && category) item.category = category
+    if (route.query.view === 'CREDIT') item.priceGroup = 'CREDIT'
   }
   await priceListStore.load()
   if (props.id) {
@@ -264,8 +267,9 @@ onMounted(async () => {
         <section class="price-panel" aria-labelledby="price-heading">
           <div class="price-title"><h2 id="price-heading">ราคาตามบริการ</h2><span>กำหนดราคาและหน่วยคิดราคาสำหรับบริการนี้</span></div>
           <div class="price-grid">
+            <FormPicker v-if="!isEdit" id="price-group" v-model="item.priceGroup" class="price-field price-field--service" label="กลุ่มราคา" :options="[{ value: 'DEFAULT', label: 'ราคาปกติ' }, { value: 'CREDIT', label: 'ราคาเครดิต' }]" :searchable="false" />
             <FormPicker id="service-type" v-model="item.serviceType" class="price-field price-field--service" label="บริการ *" :options="servicePickerOptions" :searchable="false" />
-            <div class="price-field"><label for="price">ราคา *</label><div class="money"><input id="price" v-model="item.price" class="control" inputmode="decimal" type="number" min="0" step="any"><span>บาท</span></div></div>
+            <div class="price-field"><label for="price">{{ item.priceGroup === 'CREDIT' ? 'เครดิต *' : 'ราคา *' }}</label><div class="money"><input id="price" v-model="item.price" class="control" inputmode="decimal" type="number" min="0" step="any"><span>{{ item.priceGroup === 'CREDIT' ? 'เครดิต' : 'บาท' }}</span></div></div>
             <div class="price-field"><label for="unit">หน่วยคิดราคา</label><input id="unit" v-model="item.unit" class="control" placeholder="เช่น piece, kg"></div>
           </div>
         </section>

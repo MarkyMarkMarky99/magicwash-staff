@@ -1,6 +1,11 @@
 # Price list browse
 
-The staff price-list page shows one entry per `itemCode` with at least one active price row, including
+The staff price-list page has route-owned normal and "ราคาเครดิต" views. The normal view excludes
+`CREDIT` price rows from cards, counts, ranges, and the price sheet. The credit view shows only
+active `CREDIT` rows and displays each rate as credits per its stored unit. A create action opened
+from the credit view preselects the `CREDIT` group.
+
+The selected view shows one entry per `itemCode` with at least one active price row, including
 codes with only one active price row. Inactive rows never appear in browse cards or their price sheet.
 The category tabs use names from the loaded rows. ALL comes first, followed by CLOTHING, BEDDING,
 HOUSEHOLD, OTHERS when present, then any other categories. Opening a URL without a category replaces
@@ -12,15 +17,16 @@ original value as its filter key. The row is hidden for category ALL or when the
 has no subcategories.
 Changing category resets subcategory to ALL. Search, category, subcategory, and service filters
 include a code when any of its active price rows matches. Tab counts count active item codes from
-the full loaded collection, independently of search and service filters. Categories with no active
+the full loaded collection within the selected view, independently of search and service filters. Categories with no active
 rows remain available as zero-count tabs, so an explicit `category=CLOTHING` still selects CLOTHING
 even when that category has no active prices. Its empty state explains that no active items exist.
 The price sheet shows every active price row for that code, with a match for the selected service
 placed first. Main cards use a two-column image-led grid with the generic `ImageContentCard`.
 The picker uses its own contained-image card markup. The shared image frame slightly crops source-photo margins
-so photos fill the card edge. Both a single price and a minimum–maximum range across active rows
-appear as text at the top right of the image, with a light text shadow for contrast and no
-background panel. Equal prices display once. The card has no separate status line.
+so photos fill the card edge. Normal prices appear as a single value or a minimum–maximum range
+across active rows. Credit cards list their distinct credit amounts with each stored unit. The
+value appears at the top right of the image, with a light text shadow and no background panel.
+Equal prices display once. The card has no separate status line.
 
 Every main-list card uses `BaseSwipeCard`: swiping left reveals Edit underneath the card.
 `leftActions` and `rightActions` set the revealed width to 4rem per action button on the matching

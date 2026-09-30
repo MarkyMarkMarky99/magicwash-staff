@@ -13,6 +13,7 @@ const form = {
   displayNameTh: 'หมอนหนุน',
   displayNameEn: '',
   serviceType: 'WSIR' as const,
+  priceGroup: 'DEFAULT' as const,
   unit: '',
   price: '0',
   creditEligible: false,
@@ -43,6 +44,15 @@ assert.equal('itemCode' in createPriceListPayload({ ...form, itemCode: '' }, 'ne
 assert.deepEqual(
   createPriceListPayload(form, 'existing'),
   { itemCode: 'ITM-0010', ...expectedFields, priceGroup: 'DEFAULT' },
+)
+
+assert.deepEqual(
+  createPriceListPayload({ ...form, priceGroup: 'CREDIT' }, 'existing'),
+  { itemCode: 'ITM-0010', ...expectedFields, priceGroup: 'CREDIT' },
+)
+assert.deepEqual(
+  createPriceListPayload({ ...form, itemCode: '', priceGroup: 'CREDIT' }, 'new'),
+  { ...expectedFields, priceGroup: 'CREDIT' },
 )
 
 assert.deepEqual(updatePriceListPayload(form), expectedFields)

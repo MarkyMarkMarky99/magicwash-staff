@@ -5,7 +5,7 @@
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
-- **`feat/package-credit`** — monthly-subscription package credits; plan at `docs/plans/package-credit-accounting.md`, phase 1 (PriceList CREDIT rows) next. Details: `.user/memory/feat-package-credit.md`.
+- **`feat/package-credit`** — monthly-subscription package credits; plan at `docs/plans/package-credit-accounting.md`, phase 1 (PriceList CREDIT rows) built, awaiting Preview test. Details: `.user/memory/feat-package-credit.md`.
 - **`feat/invoice-form-overlay`** — design-only work (invoice create as a form overlay with swipeable line cards), 1 commit ahead of `main`; kept by owner, not for merge yet.
 
 ## Pending work

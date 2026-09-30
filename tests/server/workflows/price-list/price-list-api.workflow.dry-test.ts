@@ -341,7 +341,7 @@ try {
 
   const collectionDeleteResponse = await invoke({ method: 'DELETE' })
   assert.equal(collectionDeleteResponse.statusCode, 405)
-  assert.equal(collectionDeleteResponse.headers.Allow, 'GET')
+  assert.equal(collectionDeleteResponse.headers.Allow, 'GET, POST')
 
   const itemDeleteResponse = await invoke({
     method: 'DELETE',

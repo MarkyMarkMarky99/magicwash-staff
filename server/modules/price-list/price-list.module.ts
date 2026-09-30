@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { priceListApiContract } from '../../../contracts/price-list/price-list-api.schema.js'
 import { generateShortId } from '../../../shared/utils/id.js'
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
+import { ApiError } from '../../shared/http/api-error.js'
 import type {
   ApiRowFromFieldMap,
   RepositoryTransformer,
@@ -9,6 +10,7 @@ import type {
 import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
 import { BaseCrudService } from '../../shared/services/base-crud.service.js'
 import { getPriceListRepository } from '../../sheets/PriceList/PriceList.repository.js'
+import { getItemsRepository } from '../../sheets/Items/Items.repository.js'
 import { priceListRowSchema } from '../../sheets/PriceList/PriceList.db-contract.js'
 
 type PriceListDbRow = z.infer<typeof priceListRowSchema>
@@ -67,9 +69,14 @@ type PriceListService = BaseCrudService<
 const priceListRepository: SheetRepositoryContract<PriceListDbRow> = {
   read: (query) => getPriceListRepository().read(query),
   append: async (row) => {
+    const itemCode = row.item_code
+    if (!itemCode) throw ApiError.validation('itemCode is required for a price row')
+    const items = await getItemsRepository().read()
+    if (!items.some((item) => item.item_code === itemCode)) {
+      throw ApiError.notFound(`Item '${itemCode}' not found`)
+    }
     const existingRows = await getPriceListRepository().read()
     const id = nextPriceListId(existingRows)
-    const itemCode = row.item_code ?? nextPriceListItemCode(existingRows)
 
     return getPriceListRepository().append({
       ...withPriceListNullableDefaults(row),
@@ -90,14 +97,8 @@ export const priceListService: PriceListService = new BaseCrudService({
   transformer: createPriceListTransformer(),
 })
 
-// Items owns item creation; retain the shared schemas for existing form consumers.
-export const priceListRoutes = createCrudRoutes(priceListService, {
-  ...priceListApiContract,
-  response: {
-    list: priceListApiContract.response.list,
-    update: priceListApiContract.response.update,
-  },
-})
+// Items owns item codes; price creation only adds rows to an existing item.
+export const priceListRoutes = createCrudRoutes(priceListService, priceListApiContract)
 
 const GVIZ_DATE_PATTERN = /^Date\((\d{4}),(\d{1,2}),(\d{1,2})(?:,[^)]+)?\)$/
 const PRICE_LIST_NULLABLE_COLUMNS = [
@@ -159,27 +160,6 @@ function nextPriceListId(rows: Array<Partial<PriceListDbRow>>): string {
 
 function createPriceListId(): string {
   return generateShortId()
-}
-
-function nextPriceListItemCode(rows: Array<Partial<PriceListDbRow>>): string {
-  let maximum = 0
-  for (const row of rows) {
-    if (typeof row.item_code !== 'string') {
-      continue
-    }
-
-    const match = /^ITM-(\d+)$/.exec(row.item_code)
-    if (match === null) {
-      continue
-    }
-
-    const suffix = Number(match[1])
-    if (Number.isSafeInteger(suffix)) {
-      maximum = Math.max(maximum, suffix)
-    }
-  }
-
-  return `ITM-${String(maximum + 1).padStart(4, '0')}`
 }
 
 function normalizePriceListDate(value: unknown): unknown {

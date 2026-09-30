@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import DetailOverlay from '@/shared/layouts/DetailOverlay.vue'
 import { serviceTypeLabel } from '@/shared/utils/service-type-labels'
 import type { PriceListDto } from '@/data/price-list/price-list.service'
+import { priceListValueLabel } from '../utils/price-list-view'
 
 const props = defineProps<{
   open: boolean
@@ -61,14 +62,14 @@ function formatPrice(price: number): string {
             :key="option.id"
             type="button"
             class="flex min-h-14 w-full items-center gap-3 border-b border-outline-variant/20 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-surface-container-low focus-visible:relative focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-lime"
-            :aria-label="`เลือกราคา ${formatPrice(option.price)} บาท${hasDifferentServices ? ` ${serviceTypeLabel(option.serviceType)}` : ''}${!option.active ? ' ปิดใช้งาน' : ''}${needsDisambiguation(option) ? ` รหัสราคา ${option.id}` : ''}`"
+            :aria-label="`เลือกราคา ${option.priceGroup === 'CREDIT' ? priceListValueLabel(option) : `${formatPrice(option.price)} บาท`}${hasDifferentServices ? ` ${serviceTypeLabel(option.serviceType)}` : ''}${!option.active ? ' ปิดใช้งาน' : ''}${needsDisambiguation(option) ? ` รหัสราคา ${option.id}` : ''}`"
             @click="emit('select', option.id)"
           >
             <span class="min-w-0 flex-1">
-              <strong class="block font-headline text-lg font-bold tabular-nums text-primary">฿{{ formatPrice(option.price) }}</strong>
+              <strong class="block font-headline text-lg font-bold tabular-nums text-primary">{{ priceListValueLabel(option) }}</strong>
               <span v-if="hasDifferentServices || hasDifferentUnits || needsDisambiguation(option) || !option.active" class="block font-body text-xs text-on-surface-variant">
                 <template v-if="hasDifferentServices">{{ serviceTypeLabel(option.serviceType) }}</template>
-                <template v-if="hasDifferentUnits">{{ hasDifferentServices ? ' · ' : '' }}ต่อ {{ option.unit }}</template>
+                <template v-if="hasDifferentUnits && option.priceGroup !== 'CREDIT'">{{ hasDifferentServices ? ' · ' : '' }}ต่อ {{ option.unit }}</template>
                 <template v-if="needsDisambiguation(option)">{{ hasDifferentServices || hasDifferentUnits ? ' · ' : '' }}เริ่ม {{ option.effectiveFrom }}<template v-if="option.effectiveTo"> ถึง {{ option.effectiveTo }}</template> · {{ option.creditEligible ? 'เครดิตได้' : 'ไม่รับเครดิต' }} · {{ option.priceGroup }} · #{{ option.id }}</template>
                 <template v-if="!option.active">{{ hasDifferentServices || hasDifferentUnits || needsDisambiguation(option) ? ' · ' : '' }}ปิดใช้งาน</template>
               </span>

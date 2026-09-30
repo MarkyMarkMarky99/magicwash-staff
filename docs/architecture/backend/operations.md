@@ -52,9 +52,9 @@ Creates assign an eight-character lowercase alphanumeric `id`, the next `ITM-###
 largest numeric suffix currently readable in Items, nullable fields as null, and `active=true` by
 default. Client-provided `id` and `itemCode` are rejected. The read-then-append code allocation
 has a cross-instance race because Sheets provides no atomic sequence operation; callers must not
-assume concurrent creates receive distinct codes. `POST /api/price-list` is deliberately disabled
-with 405 and `Allow: GET`; PriceList GET and PATCH remain available. This stops new PriceList rows
-from allocating item codes independently of Items while preserving its physical sheet structure.
+assume concurrent creates receive distinct codes. `POST /api/price-list` adds a price row only for
+an existing `Items.item_code`; it does not allocate item codes. Missing codes are rejected, and
+PriceList GET and PATCH remain available.
 Items serializes nullable write fields as empty cells so PATCH with null clears an existing value;
 its response transformer returns those blank optional fields as null.
 

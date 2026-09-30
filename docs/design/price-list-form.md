@@ -13,6 +13,11 @@ arrive through the route query but have no visible or editable inputs. Closing a
 returns to its item picker. The save action is disabled until the route context and required item
 details are valid; the form stays unavailable while the item is saving.
 
-Price groups are not editable in this form yet. New price rows use `DEFAULT`; update payloads omit
-`priceGroup` so editing an existing row preserves its stored group. The API and sheet still retain
-the `priceGroup` field until a separate group-pricing workflow is designed.
+Creating a price row offers `DEFAULT` and `CREDIT` price groups. The credit view preselects
+`CREDIT`. A `CREDIT` row's amount label and suffix say เครดิต; its amount is credits per
+stored unit rather than baht. Editing preserves the stored group because update payloads omit
+`priceGroup`. The API still accepts a free string for the group.
+
+PriceList creation adds a price row only when `itemCode` already exists in Items. The existing
+"new item" form mode omits `itemCode` and cannot save through PriceList POST; item creation
+belongs to the Items workflow.

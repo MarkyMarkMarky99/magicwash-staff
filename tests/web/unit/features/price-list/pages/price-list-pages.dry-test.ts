@@ -14,7 +14,9 @@ assert.match(form, /displayNameTh[\s\S]*itemCode|itemCode[\s\S]*displayNameTh/)
 assert.match(form, /displayNameEn[\s\S]*itemCode|itemCode[\s\S]*displayNameEn/)
 assert.match(form, /subcategory[\s\S]*itemType|itemType[\s\S]*subcategory/)
 assert.match(form, /serviceType/)
-assert.doesNotMatch(form, /priceGroup|price-group/)
+assert.match(form, /v-if="!isEdit" id="price-group"/)
+assert.match(form, /route\.query\.view === 'CREDIT'/)
+assert.match(form, /item\.priceGroup === 'CREDIT' \? 'เครดิต' : 'บาท'/)
 assert.match(form, /unit/)
 assert.match(form, /price/)
 assert.match(form, /truncated/)
@@ -33,6 +35,8 @@ if (existsSync(new URL(`../../../../../../${statusTabs}`, import.meta.url))) {
 }
 
 assert.match(list, /PriceListCard/)
+assert.match(list, /rowsForPriceListView\(items\.value, filter\.value\.view\)/)
+assert.match(list, /ราคาเครดิต/)
 assert.match(list, /truncated|error/i)
 
 console.log('price-list-pages.dry-test: OK')
