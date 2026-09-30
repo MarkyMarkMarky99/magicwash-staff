@@ -35,7 +35,7 @@ assert.deepEqual(Object.keys(packageCreateRequestSchema.shape), [
 const createRequest = packageCreateRequestSchema.parse({
   packageCode: 'WASH_10',
   name: 'Wash ten credits',
-  eligibleService: 'wash',
+  eligibleService: 'WASH',
   includedCredit: 10,
   price: 100,
   createdBy: 'staff-1',

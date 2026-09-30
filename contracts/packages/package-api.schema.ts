@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { API_PAGINATION_DEFAULTS } from '../shared/api.schema.js'
+import { serviceTypeSchema } from '../shared/service-type.schema.js'
 import type { ModuleApiContract } from '../shared/module-api-contract.js'
 
 /** Sortable API fields. Each must map to a physical Packages column. */
@@ -18,7 +19,7 @@ export const packageSortFieldSchema = z.enum([
 export const packageListQuerySchema = z.object({
   keyword: z.string().default(''),
   packageCode: z.string().trim().min(1).nullable().optional().default(null),
-  eligibleService: z.string().trim().min(1).nullable().optional().default(null),
+  eligibleService: serviceTypeSchema.nullable().optional().default(null),
   page: z.coerce.number().int().positive().default(API_PAGINATION_DEFAULTS.page),
   perPage: z.coerce.number().int().positive().max(200).default(API_PAGINATION_DEFAULTS.perPage),
   sortBy: packageSortFieldSchema.default('packageCode'),
@@ -32,7 +33,7 @@ export const packageListQuerySchema = z.object({
 export const packageResponseSchema = z.object({
   packageCode: z.string(),
   name: z.string(),
-  eligibleService: z.string(),
+  eligibleService: serviceTypeSchema,
   includedCredit: z.number(),
   price: z.number(),
   notes: z.string().nullable(),
@@ -48,7 +49,7 @@ export const packageResponseSchema = z.object({
 export const packageCreateRequestSchema = z.object({
   packageCode: z.string().trim().min(1).regex(/^[A-Za-z0-9_-]+$/),
   name: z.string().trim().min(1),
-  eligibleService: z.string().trim().min(1),
+  eligibleService: serviceTypeSchema,
   includedCredit: z.number().int().nonnegative(),
   price: z.number().nonnegative(),
   notes: z.string().trim().min(1).nullable().default(null),
@@ -61,7 +62,7 @@ export const packageCreateRequestSchema = z.object({
  */
 export const packageUpdateRequestSchema = z.object({
   name: z.string().trim().min(1).optional(),
-  eligibleService: z.string().trim().min(1).optional(),
+  eligibleService: serviceTypeSchema.optional(),
   includedCredit: z.number().int().nonnegative().optional(),
   price: z.number().nonnegative().optional(),
   notes: z.string().trim().min(1).nullable().optional(),

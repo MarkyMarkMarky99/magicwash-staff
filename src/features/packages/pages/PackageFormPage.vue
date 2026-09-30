@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import FormInput from '@/shared/components/FormInput.vue'
+import FormPicker from '@/shared/components/FormPicker.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormSwitch from '@/shared/components/FormSwitch.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
@@ -10,6 +11,7 @@ import { useCloseRoute } from '@/shared/navigation/use-close-route'
 import type { PackageDto } from '@/data/packages/package.service'
 import { usePackageStore } from '@/data/packages/package.store'
 import { currentActor } from '@/shared/config/actor'
+import { serviceTypeOptions } from '@/shared/utils/service-type-labels'
 
 defineOptions({ name: 'PackageFormPage' })
 const props = defineProps<{ packageCode?: string }>()
@@ -18,12 +20,13 @@ const { close } = useCloseRoute({ name: 'package-list' })
 const packageStore = usePackageStore()
 const { items, error: storeError } = storeToRefs(packageStore)
 const isEdit = computed(() => Boolean(props.packageCode))
-const form = reactive({ packageCode: '', name: '', eligibleService: '', includedCredit: '', price: '', notes: '' })
+const servicePickerOptions = serviceTypeOptions.map((service) => ({ value: service.value, label: service.label }))
+const form = reactive({ packageCode: '', name: '', eligibleService: '' as PackageDto['eligibleService'] | '', includedCredit: '', price: '', notes: '' })
 const isActive = ref(true)
 const formError = ref<string | null>(null)
 const initializing = ref(true)
 const submitting = ref(false)
-const valid = computed(() => (isEdit.value || form.packageCode.trim() !== '') && form.name.trim() !== '' && form.eligibleService.trim() !== '' && form.includedCredit !== '' && Number.isInteger(Number(form.includedCredit)) && Number(form.includedCredit) >= 0 && form.price !== '' && Number.isFinite(Number(form.price)) && Number(form.price) >= 0)
+const valid = computed(() => (isEdit.value || form.packageCode.trim() !== '') && form.name.trim() !== '' && form.eligibleService !== '' && form.includedCredit !== '' && Number.isInteger(Number(form.includedCredit)) && Number(form.includedCredit) >= 0 && form.price !== '' && Number.isFinite(Number(form.price)) && Number(form.price) >= 0)
 
 function fillForm(source: PackageDto) {
   form.packageCode = source.packageCode
@@ -36,7 +39,7 @@ function fillForm(source: PackageDto) {
 }
 
 function businessFields() {
-  return { name: form.name.trim(), eligibleService: form.eligibleService.trim(), includedCredit: Number(form.includedCredit), price: Number(form.price), notes: form.notes.trim() === '' ? null : form.notes.trim() }
+  return { name: form.name.trim(), eligibleService: form.eligibleService as PackageDto['eligibleService'], includedCredit: Number(form.includedCredit), price: Number(form.price), notes: form.notes.trim() === '' ? null : form.notes.trim() }
 }
 
 async function submitForm() {
@@ -67,7 +70,7 @@ onMounted(async () => {
     <div class="space-y-4 pb-4">
       <FormInput v-if="!isEdit" id="package-code" v-model="form.packageCode" label="รหัสแพ็กเกจ *" />
       <FormInput id="package-name" v-model="form.name" label="ชื่อแพ็กเกจ *" />
-      <FormInput id="package-eligible-service" v-model="form.eligibleService" label="บริการที่ใช้ได้ *" />
+      <FormPicker id="package-eligible-service" v-model="form.eligibleService" label="บริการที่ใช้ได้ *" :options="servicePickerOptions" :searchable="false" />
       <FormInput id="package-included-credit" v-model="form.includedCredit" type="number" label="จำนวนเครดิต *" min="0" />
       <FormInput id="package-price" v-model="form.price" type="number" label="ราคา *" min="0" step="any" inputmode="decimal" />
       <FormTextarea id="package-notes" v-model="form.notes" label="หมายเหตุ" />

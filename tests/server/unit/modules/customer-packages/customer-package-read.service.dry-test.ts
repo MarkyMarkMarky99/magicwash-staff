@@ -35,8 +35,8 @@ function createService(input: { packages?: Row[]; transactions?: Row[]; catalog?
         { id: 't3', customer_package_id: 'package-3', credit_change: -2, type: 'USAGE', created_at: '2026-08-03 00:00:00' },
       ]) as never,
       catalogRepository: repository('catalog', input.catalog ?? [
-        { package_code: 'GOLD', name: 'Gold package', eligible_service: 'wash' },
-        { package_code: 'SILVER', name: 'Silver package', eligible_service: 'iron', deleted_at: '2026-01-01' },
+        { package_code: 'GOLD', name: 'Gold package', eligible_service: 'WASH' },
+        { package_code: 'SILVER', name: 'Silver package', eligible_service: 'IRON', deleted_at: '2026-01-01' },
       ]) as never,
       customerRepository: repository('customers', input.customers ?? [
         { CustomerID: 'customer-1', CustomerName: 'Anne' },

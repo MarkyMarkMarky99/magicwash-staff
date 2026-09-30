@@ -9,7 +9,7 @@ export const CUSTOMER_PACKAGES = [
     customerAddress: 'กรุงเทพมหานคร',
     packageCode: 'PKG-WF-10',
     packageName: 'Wash & Fold 10',
-    packageEligibleService: 'WASH_FOLD',
+    packageEligibleService: 'WASH',
     startDate: '2026-08-01',
     expiryDate: '2026-10-29',
     status: 'ACTIVE',

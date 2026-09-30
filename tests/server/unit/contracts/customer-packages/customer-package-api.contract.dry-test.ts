@@ -142,7 +142,7 @@ const overspentRow = {
   customerAddress: null,
   packageCode: 'SILVER',
   packageName: 'Wash-and-Iron Silver 40 Credits',
-  packageEligibleService: 'wash_iron',
+  packageEligibleService: 'WSIR',
   startDate: '2026-06-08',
   expiryDate: '2026-07-08',
   status: 'EXPIRED',
