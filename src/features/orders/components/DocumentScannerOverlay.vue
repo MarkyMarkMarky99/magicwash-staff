@@ -622,9 +622,9 @@ async function useAdjustedDocument(): Promise<void> {
       WARP_TIMEOUT_MS,
       'WarpTimeout',
     )
+    // The parent closes the scanner after one photo; staying in 'warping' keeps the
+    // camera from restarting before `open` turns false and teardownScanner() runs.
     emit('capture', file)
-    releaseCapturedStill()
-    scannerStage.value = 'viewfinder'
   } catch (error) {
     // Preserve the captured still and corners after a warp failure so the user can retry.
     errorMessage.value = `Failed to adjust document · ${errorDetails(error)}`
