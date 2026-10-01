@@ -66,6 +66,8 @@ Behaviour
 - `deliveryId` is written when supplied, otherwise left blank
 - WEIGHT capture takes one photo per entered weight and then closes the camera. Another weighing
   requires opening WEIGHT capture again and entering a new weight.
+- DOCUMENT capture saves one photo per "Use this photo" and then closes the scanner. Another
+  document requires opening DOCUMENT capture again.
 
 ## Not available
 

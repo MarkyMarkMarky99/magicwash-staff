@@ -534,7 +534,7 @@ async function handleCapture(file: File): Promise<void> {
     weightCaptureSubmitted = true
   }
   const capture = orderImageStore.captureImage({ orderId: targetOrderId, imageType, file, quantity })
-  if (imageType === 'WEIGHT') orderOverlay.close()
+  if (imageType === 'WEIGHT' || imageType === 'DOCUMENT') orderOverlay.close()
   await capture
 }
 async function addItem(payload: z.infer<typeof itemPayloadSchema>) {
