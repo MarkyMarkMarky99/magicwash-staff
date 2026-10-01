@@ -6,6 +6,7 @@ import {
   scaleQuad,
 } from '@/features/orders/utils/quad-projection'
 import type { Point, Quad } from '@/features/orders/utils/quad-projection'
+import { DETECTION_OPTIONS, loadDocumentScanner } from '@/features/orders/utils/document-scanner-model'
 
 const DETECT_INTERVAL_MS = 100
 const ML_INPUT_SIZE = 224
@@ -23,11 +24,7 @@ export type TemporalQuadState = {
 
 type DetectionRegion = { x: number, y: number, width: number, height: number }
 
-const DETECTION_OPTIONS = {
-  detector: 'ml' as const,
-  mode: 'detect' as const,
-  ml: { assetBaseUrl: '/scanic-ml/' },
-}
+let bitmapDownscaleUnsupported = false
 
 export type LetterboxLayout = {
   scale: number,
@@ -127,8 +124,6 @@ function errorName(error: unknown): string {
   return error instanceof Error && error.name ? error.name : 'UnknownError'
 }
 
-type ScannerInstance = InstanceType<typeof import('scanic').Scanner>
-
 function cornersToQuad(corners: {
   topLeft: Point,
   topRight: Point,
@@ -144,8 +139,6 @@ export function useDocumentDetect(getVideo: () => HTMLVideoElement | null, activ
   const detectError = ref('')
   const scanicLoadState = ref('loading')
   const detectionStatus = ref('waiting')
-  let scanner: ScannerInstance | null = null
-  let scannerPromise: Promise<ScannerInstance> | null = null
   let workCanvas: HTMLCanvasElement | null = null
   let workContext: CanvasRenderingContext2D | null = null
   let timer: ReturnType<typeof window.setTimeout> | null = null
@@ -155,24 +148,6 @@ export function useDocumentDetect(getVideo: () => HTMLVideoElement | null, activ
   function publishDetection(detected: Quad | null, frameLongSide: number): void {
     temporalState = updateTemporalQuad(temporalState, detected, frameLongSide)
     quad.value = temporalState.quad
-  }
-
-  async function loadScanner(): Promise<ScannerInstance> {
-    if (scanner) return scanner
-    if (!scannerPromise) {
-      scanicLoadState.value = 'loading'
-      scannerPromise = import('scanic').then(async ({ Scanner }) => {
-        const initializedScanner = new Scanner(DETECTION_OPTIONS)
-        await initializedScanner.initialize()
-        scanner = initializedScanner
-        scanicLoadState.value = 'ready'
-        return initializedScanner
-      }).catch((error) => {
-        scanicLoadState.value = errorName(error)
-        throw error
-      })
-    }
-    return scannerPromise
   }
 
   function isCurrent(token: number): boolean {
@@ -207,13 +182,48 @@ export function useDocumentDetect(getVideo: () => HTMLVideoElement | null, activ
       }
       workContext.fillStyle = 'black'
       workContext.fillRect(0, 0, ML_INPUT_SIZE, ML_INPUT_SIZE)
-      workContext.drawImage(
-        video,
-        0, 0, video.videoWidth, video.videoHeight,
-        layout.offsetX, layout.offsetY, layout.drawWidth, layout.drawHeight,
-      )
+      let drewBitmap = false
+      if (!bitmapDownscaleUnsupported && typeof createImageBitmap === 'function') {
+        let bitmap: ImageBitmap | null = null
+        try {
+          bitmap = await createImageBitmap(video, {
+            resizeWidth: Math.max(1, Math.round(layout.drawWidth)),
+            resizeHeight: Math.max(1, Math.round(layout.drawHeight)),
+            resizeQuality: 'high',
+          })
+        } catch {
+          bitmapDownscaleUnsupported = true
+        }
+        if (bitmap) {
+          try {
+            if (!isCurrent(token)) return
+            workContext.drawImage(bitmap, layout.offsetX, layout.offsetY, layout.drawWidth, layout.drawHeight)
+            drewBitmap = true
+          } finally {
+            bitmap.close()
+          }
+        }
+      } else {
+        bitmapDownscaleUnsupported = true
+      }
+      if (!drewBitmap) {
+        if (!isCurrent(token)) return
+        workContext.drawImage(
+          video,
+          0, 0, video.videoWidth, video.videoHeight,
+          layout.offsetX, layout.offsetY, layout.drawWidth, layout.drawHeight,
+        )
+      }
 
-      const activeScanner = await loadScanner()
+      scanicLoadState.value = 'loading'
+      let activeScanner: Awaited<ReturnType<typeof loadDocumentScanner>>
+      try {
+        activeScanner = await loadDocumentScanner()
+      } catch (error) {
+        scanicLoadState.value = errorName(error)
+        throw error
+      }
+      scanicLoadState.value = 'ready'
       if (!isCurrent(token)) return
 
       detectStartedAt = performance.now()
