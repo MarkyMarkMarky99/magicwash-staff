@@ -7,8 +7,6 @@
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — design-only work (invoice create as a form overlay with swipeable line cards), 1 commit ahead of `main`; kept by owner, not for merge yet.
 - **`feat/package-credit`** — monthly-subscription package credits, phases 1–4 built, awaiting owner test on Preview. Details on that branch: `.user/memory/feat-package-credit.md`.
-- **`fix/document-scanner-quality`** — scanner fix stacked on the lab commit; superseded by the merged port, owner to confirm deletion.
-- **`diag/document-scanner-lab`** — temporary `#/dev/document-scanner-lab` measurement page; never merge, owner to keep for re-measuring or delete.
 
 ## Pending work
 
