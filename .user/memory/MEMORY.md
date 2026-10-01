@@ -6,6 +6,10 @@
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — design-only work (invoice create as a form overlay with swipeable line cards), 1 commit ahead of `main`; kept by owner, not for merge yet.
+- **`feat/package-credit`** — monthly-subscription package credits, phases 1–4 built, awaiting owner test on Preview. Details on that branch: `.user/memory/feat-package-credit.md`.
+- **`fix/document-scanner-capture`** — clean port of the scanner sharpness/speed fix onto `main`; awaiting owner merge approval. Details: `.user/memory/fix-document-scanner-capture.md`.
+- **`fix/document-scanner-quality`** — the same fix stacked on the lab commit, used for phone measurement; delete once the capture branch merges.
+- **`diag/document-scanner-lab`** — temporary `#/dev/document-scanner-lab` measurement page; never merge, keep for re-measuring or delete.
 
 ## Pending work
 
@@ -18,16 +22,14 @@
 - **Customer detail and visual system** (merged 2026-09-27)
   - Browser-verify create dropdowns open, order swipe "Order detail", and appointment date order; the ui-shots run failed to capture these.
   - Pill shows `0 PACKAGES` while the list is still loading.
-  - Order rows show `—` as line 2 when there is no note; consider hiding the line.
-  - Long invoice numbers truncate (`INV20260905-41f3…`).
+  - Order rows show `—` as line 2 when there is no note; long invoice numbers truncate (`INV20260905-41f3…`).
   - Package names are long in the `Packages` sheet itself; user to choose renaming them there or showing `packageCode`.
   - Browser-check customer detail `BottomNavBar` on a phone: floating lime sticker + pop animation, custom section icons, `pb-14` list clearance.
   - Order detail Approve is now `OrderApproveButton` (sticker FAB); only the quantity-mismatch disable shows a reason.
   - Phone-check the push drawer (open, drag-close, Back) and swipe cards no longer moving on scroll.
   - Deferred by user: the push drawer's rounded corner sits below the iOS status bar because status-bar-style `black` keeps the page under it; reaching the top edge needs `black-translucent` plus a new height fix.
   - Browser-check `CloseButton` onDark sticker style (lime outline squircle, solid lime + offset shadow when active) on header (menu, back, pending with badge) and the 6 dark-overlay X buttons; hover/focus pop animation; also check every shared `CloseButton` placement (forms, sheets, pickers, nav, scanners, invoice proof lightbox).
-  - Browser-check the app-wide palette move (mint/tertiary removed, info = logo steel blue): order hero card, document scanner, shared form controls.
-  - Browser-check `BaseBadge` two-size standard (sm/lg): `N items` chip grew 9px→11px, lg badges got shorter.
+  - Browser-check the palette move (mint/tertiary removed, info = steel blue) and `BaseBadge` sm/lg sizes on order hero card, scanner, form controls.
 
 - **Garment tracking and job tickets**
   - Decide the order status sequence before any swipe-to-advance work.
@@ -78,7 +80,6 @@
 
 - **Images and gallery**
   - Backfill `Cache-Control` on existing photos after Firebase bucket credentials are available. See `docs/plans/image-pipeline.md`.
-  - Review real document scans and decide whether the scanner output is acceptable before changing order-image compression.
   - Fix gallery `created_by`: it is read only from `?by=`, and the frontend fallback can fail silently.
   - Deferred: preloading the image files themselves on order detail; only photo metadata is prefetched. Decide once photo counts per order are known.
   - Move `usePhotoUpload.js` into the gallery feature and decide where legacy photo capture belongs.

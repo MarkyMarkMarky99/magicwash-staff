@@ -9,6 +9,7 @@ import { APP_Z_INDEX_CLASS } from '@/shared/layouts/z-index'
 import { useNavDrawer } from '@/shared/composables/use-nav-drawer'
 import { useRoute, useRouter } from 'vue-router'
 import NavSidebar from '@/shared/components/NavSidebar.vue'
+import { preloadDocumentScanner } from '@/features/orders/utils/document-scanner-model'
 
 const appointmentStore = useAppointmentStore()
 const customerStore = useCustomerStore()
@@ -142,6 +143,7 @@ provide(appointmentPendingCountKey, pendingCount)
 // Keep the schedule and pending badge ready from the same backend-backed store.
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
+  preloadDocumentScanner()
   void appointmentStore.loadInitial()
   void customerStore.loadCustomers()
   void priceListStore.load()

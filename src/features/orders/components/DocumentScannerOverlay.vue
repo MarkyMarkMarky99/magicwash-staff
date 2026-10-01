@@ -10,7 +10,7 @@ import {
 import { useHoldStillCapture } from '@/features/orders/composables/use-hold-still-capture'
 import { enhanceDocument } from '@/features/orders/utils/document-enhance'
 import type { DocumentFilterMode } from '@/features/orders/utils/document-enhance'
-import { contentBox, fitScale, projectQuad } from '@/features/orders/utils/quad-projection'
+import { contentBox, projectQuad } from '@/features/orders/utils/quad-projection'
 import type { Point, Quad } from '@/features/orders/utils/quad-projection'
 
 
@@ -552,9 +552,8 @@ function capturePhoto(): void {
   showShutterFlash()
 
   try {
-    const scale = fitScale(video.videoWidth, video.videoHeight, DOCUMENT_MAX_DIMENSION)
-    const stillWidth = Math.max(1, Math.round(video.videoWidth * scale))
-    const stillHeight = Math.max(1, Math.round(video.videoHeight * scale))
+    const stillWidth = video.videoWidth
+    const stillHeight = video.videoHeight
     const canvas = document.createElement('canvas')
     canvas.width = stillWidth
     canvas.height = stillHeight
@@ -582,8 +581,8 @@ function capturePhoto(): void {
 
 function autoCapturePhoto(): void {
   if (!canCapture.value) return
-  navigator.vibrate?.(30)
   capturePhoto()
+  if (scannerStage.value === 'adjusting') navigator.vibrate?.(30)
 }
 
 async function createWarpedDocumentFile(still: CapturedStill, corners: Quad): Promise<File> {
