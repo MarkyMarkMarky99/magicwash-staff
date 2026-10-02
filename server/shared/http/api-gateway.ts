@@ -26,7 +26,7 @@ export class ApiGateway {
 
   private dispatch = async (req: VercelRequest): Promise<ApiResult> => {
     const segments = parsePath(req)
-    if (segments.length === 0 || segments.length > 2) {
+    if (segments.length === 0 || segments.length > 3) {
       throw ApiError.notFound('Route not found')
     }
 
@@ -45,7 +45,9 @@ export class ApiGateway {
       return internalErrorResult()
     }
 
-    const handler = segments.length === 1 ? routes.collection : routes.item
+    const handler = segments.length === 3
+      ? routes.nestedItem?.path === segments[1] ? routes.nestedItem.handler : undefined
+      : segments.length === 1 ? routes.collection : routes.item
     if (!handler) {
       throw ApiError.notFound('Route not found')
     }
@@ -171,7 +173,7 @@ function toApiRequest(req: VercelRequest, segments: string[], staff?: StaffMembe
     query,
     body: req.body,
     headers: req.headers,
-    params: segments.length === 2 ? { id: segments[1] } : {},
+    params: segments.length >= 2 ? { id: segments.at(-1)! } : {},
     staff,
   }
 }

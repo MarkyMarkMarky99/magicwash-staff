@@ -22,6 +22,13 @@ The persistence layer reads and writes Google Sheets through two separate transp
 
 It uses unauthenticated GViz for reads and the authenticated Google Sheets API for writes.
 
+Portal live projections use module-owned whole-sheet GViz readers with selected columns
+located by database contract key order. Only `server/modules/portal/` caches those reads:
+60 seconds per sheet after a successful read, sharing concurrent in-flight requests.
+Other modules continue reading live through their repositories. GViz suppresses minority
+cell types in mixed columns; the portal source parity check reports these losses against
+an explicitly captured grid-reader baseline rather than recovering missing values.
+
 ## Structure
 
 Each physical sheet has two files under `server/sheets/<Sheet>/`.

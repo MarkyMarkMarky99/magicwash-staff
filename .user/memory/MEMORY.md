@@ -93,7 +93,8 @@
   - Reduce page-load latency, in this order: `App.vue:8` (prefetches appointments on every mount), then HTTP cache headers on `/api/*`. Measured 2026-09-08: GViz 0.49s · prod warm 0.82s · prod cold 1.65s. Fewer reads beats smaller ones.
   - Customers are fetched in full on purpose (real customers are under a thousand); `listCustomers` caps at 2000 and sets `truncated`. Do not add a customers pager.
   - `GVizQueryBuilder` supports only equality-AND; no `IN`/`OR`. Any feature needing a multi-id read must adapt in its own layer, not widen the shared builder.
-  - `/api/orders`, `OrdersView`, `InvoicesView` and the invoice view sync stay in the backend for the external portal; the frontend must not use them.
+  - Portal: webapp-react still reads the Portal views; switch it to `GET /api/portal/customers/:id`, then retire the Apps Script view sync.
+  - Owner: deploy the `MagicwashAppointment` `now()` fix with clasp; decide the 5 Portal-only invoices and 4 day/month-swapped `Appointments.CreatedAt` rows.
   - Normalize GViz `Date(...)` values reaching photo modules according to `docs/conventions/datetime.md`.
   - Consolidate datetime helpers in a dedicated pass; `SheetRepository` is shared by every module.
   - App-wide GViz read normalization is deferred by the user; do not start or re-propose it. See `.user/memory/gviz-read-normalization.md`.
@@ -108,7 +109,6 @@
   - Decide whether to renumber the four legacy uuid-shaped invoice numbers; they are referenced as `invoiceId` on customer-package rows.
   - Confirm `OVERDUE` outranks `PARTIALLY_PAID` in derived invoice status.
   - Browser-verify payment review (verify and reject) on a real PENDING slip; only Record payment was user-tested.
-  - Confirm whether the LIFF portal still reads `InvoicesView`; if not, the Apps Script sync can go.
   - Customer-package pager is still deferred; `okPaged` carries no total, invoices use `paginatedBody`.
   - Clean sheet data: the blank customer row, dirty Orders rows, LaundryPhotos ordering, and page-walks using non-unique sort keys.
 - **Customers and registration**
