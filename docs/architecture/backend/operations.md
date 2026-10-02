@@ -62,6 +62,40 @@ Legacy dirty cells must not become 500 responses. JSON view columns listed in `j
 to their API fields with `[]` for malformed arrays and `null` for malformed objects; correct a
 wrong materialized view in its Apps Script source rather than guessing in the API or frontend.
 
+## Live portal reads
+
+`server/modules/portal/` exposes read-only `GET /api/portal/orders` and
+`GET /api/portal/invoices` in the normal success envelope, without pagination.
+Every request reads the existing source repositories via `readSourceRows()` and assembles the Apps Script
+OrdersView / InvoiceViewSync projections; it never reads or writes a materialized view.
+Orders accept optional `customerId` and `orderId`; invoices accept `customerId` and
+`invoiceNumber`. Filters use exact string equality and preserve source invoice/order row order.
+
+The contracts in `contracts/portal/` preserve React GViz field order, scalar values,
+and JSON text, including blank source cells as empty strings inside nested JSON.
+Orders copy physical OrderForm column S (`invoice_id`) to `invoiceNumber` and
+`received_date` to `createdAt`. `syncedAt` is the request assembly date in Asia/Bangkok,
+matching the live view's date-cell precision rather than its historical sync time;
+the envelope `meta.timestamp` provides a full response timestamp.
+These opt-in authenticated Sheets grid reads preserve mixed cell types (notably
+numeric item IDs that GViz drops), blank strings, and native Date objects. They
+require the existing `GOOGLE_SERVICE_ACCOUNT_KEY` and source workbook IDs.
+Source headers must match the existing database contracts. Normal repository
+`read()` and existing orders/invoices endpoints retain their GViz transport.
+Top-level text columns stringify numeric identifiers as the live view's GViz
+response does; nested JSON retains their original numeric cell values.
+React's declared date columns become YYYY-MM-DD; native billing-period dates retain
+GViz `Date(...)` values because React does not convert those columns. Native dates
+inside JSON become UTC ISO strings, as Apps Script JSON.stringify serializes Date objects.
+
+Invoice calculations deliberately belong to this module rather than the existing
+InvoiceService: source `net_total` drives subtotal, invoice adjustments round at each
+step, item adjustments keep an unrounded per-unit running amount, and only VERIFIED
+payments affect paidAmount. All non-deleted payments remain visible. DRAFT and other
+non-ISSUED statuses pass through, and cancellation does not zero the computed balance,
+matching InvoiceViewSync.js. Deleted invoices are omitted. Historical materialized-view
+row order, stale rows, and stale calculated values are not reconstructible from live sources.
+
 ## Sheets writes and certainty
 
 Schema key order is physical column order for GViz reads; never reorder it cosmetically. Append

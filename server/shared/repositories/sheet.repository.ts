@@ -43,6 +43,7 @@ import {
 import { DuplicateRowKeyError, findRowNumberByKey, findRowNumbersByKeys } from './sheet-row-lookup.js'
 import { verifyRowIdentity } from './sheet-row-identity.js'
 import { formatBangkokTimestamp } from '../utils/bangkok-timestamp.js'
+import type { SheetSourceValue } from './sheet-grid-values.js'
 
 type WriteOperation = 'append' | 'update'
 type PreparedRow = {
@@ -590,6 +591,21 @@ export class SheetRepository<TDbRow extends object>
 
     verifyRowIdentity(storedRow, this.contract.primaryKey, expectedKey)
     return storedRow as TDbRow
+  }
+
+  async readSourceRows(): Promise<Record<string, SheetSourceValue>[]> {
+    if (!this.contract.spreadsheetId) throw new Error('Source reads require a spreadsheetId environment variable name')
+    const client = this.sheetsApiClient ?? new SheetsApiClient({
+      spreadsheetId: requireEnv(this.contract.spreadsheetId), sheetName: this.contract.sheetName,
+    })
+    const fields = Object.keys(this.columns)
+    const lastColumn = this.columns[fields.at(-1)!]
+    const rows = await client.readSourceCells(`A1:${lastColumn}`)
+    const headers = rows[0] ?? []
+    for (const [index, field] of fields.entries()) {
+      if (headers[index] !== field) throw new Error(`Source header mismatch in ${this.contract.sheetName} column ${this.columns[field]}`)
+    }
+    return rows.slice(1).map((row) => Object.fromEntries(fields.map((field, index) => [field, row[index] ?? ''])))
   }
 
   async updateMany(updates: ReadonlyArray<SheetRowUpdate<TDbRow>>): Promise<TDbRow[]> {

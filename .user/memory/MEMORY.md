@@ -7,6 +7,7 @@
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — design-only work (invoice create as a form overlay with swipeable line cards), 1 commit ahead of `main`; kept by owner, not for merge yet.
 - **`feat/package-credit`** — monthly-subscription package credits, phases 1–4 built, awaiting owner test on Preview. Details on that branch: `.user/memory/feat-package-credit.md`.
+- **`feat/portal-live-endpoints`** — live `/api/portal/orders` + `/api/portal/invoices` matching the Portal views; webapp-react not switched yet. Details: `.user/memory/feat-portal-live-endpoints.md`.
 
 ## Pending work
 
@@ -108,7 +109,6 @@
   - Decide whether to renumber the four legacy uuid-shaped invoice numbers; they are referenced as `invoiceId` on customer-package rows.
   - Confirm `OVERDUE` outranks `PARTIALLY_PAID` in derived invoice status.
   - Browser-verify payment review (verify and reject) on a real PENDING slip; only Record payment was user-tested.
-  - Confirm whether the LIFF portal still reads `InvoicesView`; if not, the Apps Script sync can go.
   - Customer-package pager is still deferred; `okPaged` carries no total, invoices use `paginatedBody`.
   - Clean sheet data: the blank customer row, dirty Orders rows, LaundryPhotos ordering, and page-walks using non-unique sort keys.
 - **Customers and registration**
