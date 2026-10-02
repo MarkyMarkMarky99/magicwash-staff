@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
-import type { LocationQueryRaw } from 'vue-router'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
+import type { LocationQueryRaw, RouteLocationNormalized } from 'vue-router'
 import GenericTabs from '@/shared/components/GenericTabs.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import QrScannerOverlay from '@/shared/components/QrScannerOverlay.vue'
 import SquareImageCard from '@/shared/components/SquareImageCard.vue'
 import StickerFab from '@/shared/components/StickerFab.vue'
+import CloseButton from '@/shared/components/CloseButton.vue'
+import AdvanceConfirmDialog from '../components/AdvanceConfirmDialog.vue'
 import CompletionRing from '../components/CompletionRing.vue'
 import ScanResultCard from '../components/ScanResultCard.vue'
 import TicketStatusIcon, { type TicketTapState } from '../components/TicketStatusIcon.vue'
@@ -17,9 +19,9 @@ import { useCustomerStore } from '@/data/customers/customer.store'
 import { currentActor } from '@/shared/config/actor'
 import { feedback, primeFeedbackAudio } from '@/shared/utils/scan-feedback'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
-import { countDepartmentStatuses, filterTickets, groupDepartmentOrders, readDepartment, readGrouper, readStatusFilter, sortDepartmentTickets, statusFilters } from '../department-work'
-import type { Grouper, OrderInfo, TicketStatus } from '../department-work'
-import { createTagScanGuard, feedbackOutcomeForScanResult, presentScanResult, presentStartOrderResult, type ScanDisplay } from '../scan-result'
+import { advanceSummary, countDepartmentStatuses, filterTickets, groupDepartmentOrders, readDepartment, readGrouper, readStatusFilter, resolveScanTag, restoreScanQueue, sortDepartmentTickets, statusFilters, statusForFilter, toggleTicketSelection } from '../department-work'
+import type { AdvanceStatus, Grouper, OrderInfo, ScanQueueEntry, TicketStatus } from '../department-work'
+import { presentStartOrderResult, type ScanDisplay } from '../scan-result'
 
 const route = useRoute()
 const router = useRouter()
@@ -27,16 +29,22 @@ const ticketStore = useJobTicketStore()
 const customerStore = useCustomerStore()
 const department = computed(() => readDepartment(route.params.department))
 const activeFilter = computed(() => readStatusFilter(route.query.status))
+const fromStatus = computed(() => statusForFilter(activeFilter.value))
 const grouper = computed(() => readGrouper(route.query.group))
-const scannerOpen = computed(() => department.value !== null && route.query.scan === '1')
+const scannerOpen = computed(() => department.value !== null && fromStatus.value !== null && route.query.scan === '1')
 const expandedOrderId = ref<string | null>(null)
 const scanResult = ref<ScanDisplay | null>(null)
 const pageNotice = ref<ScanDisplay | null>(null)
 const syncingOrderIds = ref(new Set<string>())
 const tapStates = ref(new Map<string, TicketTapState>())
 const tapTimers = new Map<string, ReturnType<typeof setTimeout>>()
-const runTagScan = createTagScanGuard()
-let latestScanVersion = 0
+const selectedTicketIds = ref(new Set<string>())
+const scanQueue = ref<ScanQueueEntry[]>([])
+const submitting = ref(false)
+const confirmIntent = ref<'action' | 'scanner' | 'navigation' | null>(null)
+let pendingDestination: RouteLocationNormalized | null = null
+let bypassGuard = false
+let restoredQueueKey = ''
 let pushedScanner = false
 let replacingLeave = false
 let noticeTimer: ReturnType<typeof setTimeout> | undefined
@@ -77,7 +85,6 @@ async function reload(): Promise<void> {
 
 watch(() => department.value?.code, code => {
   expandedOrderId.value = null
-  latestScanVersion += 1
   scanResult.value = null
   dismissPageNotice()
   clearTapStates()
@@ -102,9 +109,8 @@ function changeGrouper(value: Grouper): void {
 }
 
 function openScanner(): void {
-  if (!department.value || scannerOpen.value) return
+  if (!department.value || !fromStatus.value || scannerOpen.value) return
   void primeFeedbackAudio()
-  latestScanVersion += 1
   scanResult.value = null
   void router.push({ query: { ...route.query, scan: '1' } }).then(() => {
     pushedScanner = scannerOpen.value
@@ -113,7 +119,10 @@ function openScanner(): void {
 
 function closeScanner(): void {
   if (!scannerOpen.value) return
-  latestScanVersion += 1
+  if (scanQueue.value.length && !bypassGuard) {
+    confirmIntent.value = 'scanner'
+    return
+  }
   scanResult.value = null
   if (pushedScanner) {
     pushedScanner = false
@@ -154,54 +163,130 @@ function clearTapStates(): void {
   tapStates.value = new Map()
 }
 
-async function advanceTicket(value: string, source: 'scan' | 'tap'): Promise<boolean> {
-  let advanced = false
-  await runTagScan(value, async () => {
-    const code = department.value?.code
-    if (!code) return
-    const version = source === 'scan' ? ++latestScanVersion : latestScanVersion
-    const ticket = ticketStore.tickets.find(row => row.laundryItemId !== null && row.laundryItemId === value)
-    const context = {
-      title: value,
-      orderId: ticket?.orderId,
-      customerName: ticket ? orderInfo.value.get(ticket.orderId)?.customerName : undefined,
+function queueKey(code: string, status: AdvanceStatus): string {
+  return `department-work:scan-queue:${code}:${status}`
+}
+
+function setScanQueue(queue: ScanQueueEntry[]): void {
+  scanQueue.value = queue
+  const code = department.value?.code
+  const status = fromStatus.value
+  if (!code || !status) return
+  try {
+    if (queue.length) localStorage.setItem(queueKey(code, status), JSON.stringify(queue))
+    else localStorage.removeItem(queueKey(code, status))
+  } catch { /* storage unavailable */ }
+}
+
+function clearPending(): void {
+  selectedTicketIds.value = new Set()
+  setScanQueue([])
+}
+
+watch([() => department.value?.code, fromStatus, () => ticketStore.loading], ([code, status, loading]) => {
+  if (loading) {
+    restoredQueueKey = ''
+    return
+  }
+  if (!code || !status) return
+  const key = queueKey(code, status)
+  if (key === restoredQueueKey) return
+  restoredQueueKey = key
+  try { setScanQueue(restoreScanQueue(JSON.parse(localStorage.getItem(key) ?? 'null'), ticketStore.tickets, status, code)) }
+  catch { setScanQueue([]) }
+}, { immediate: true })
+
+function toggleTicket(ticket: JobTicketDto): void {
+  if (submitting.value || tapStates.value.get(ticket.id) === 'saving') return
+  const next = toggleTicketSelection(selectedTicketIds.value, ticket, fromStatus.value)
+  if (next.size + scanQueue.value.filter(entry => !next.has(entry.ticketId)).length > 200) {
+    showPageNotice({ title: 'Selection full', message: 'Send up to 200 jobs at a time', tone: 'warning' })
+    return
+  }
+  selectedTicketIds.value = next
+}
+
+function handleScan(value: string): void {
+  const status = fromStatus.value
+  if (!status || submitting.value) return
+  const code = department.value?.code
+  if (!code) return
+  const result = resolveScanTag(value, ticketStore.tickets, status, scanQueue.value, code)
+  if (result.entry && pendingTickets.value.length >= 200) {
+    feedback('failure')
+    scanResult.value = { title: value, message: 'Send up to 200 jobs at a time', tone: 'error' }
+    return
+  }
+  if (result.entry) setScanQueue([...scanQueue.value, result.entry])
+  feedback(result.entry ? 'success' : 'failure')
+  scanResult.value = { title: value, message: result.message, tone: result.entry ? 'success' : 'error' }
+}
+
+const pendingTickets = computed(() => {
+  const entries = new Map<string, { ticketId: string; orderId: string }>()
+  for (const ticket of ticketStore.tickets) {
+    if (selectedTicketIds.value.has(ticket.id)) entries.set(ticket.id, { ticketId: ticket.id, orderId: ticket.orderId })
+  }
+  for (const entry of scanQueue.value) entries.set(entry.ticketId, { ticketId: entry.ticketId, orderId: entry.orderId })
+  return [...entries.values()]
+})
+
+function continueAfterConfirm(): void {
+  const intent = confirmIntent.value
+  const destination = pendingDestination
+  confirmIntent.value = null
+  pendingDestination = null
+  if (intent === 'scanner') {
+    bypassGuard = true
+    closeScanner()
+    setTimeout(() => { bypassGuard = false }, 0)
+  } else if (intent === 'navigation' && destination) {
+    bypassGuard = true
+    void router.replace(destination).finally(() => { bypassGuard = false })
+  }
+}
+
+function discardConfirmed(): void {
+  clearPending()
+  continueAfterConfirm()
+}
+
+async function sendConfirmed(): Promise<void> {
+  const code = department.value?.code
+  const status = fromStatus.value
+  if (!code || !status || !pendingTickets.value.length || submitting.value) return
+  const entries = pendingTickets.value.slice(0, 200)
+  submitting.value = true
+  for (const entry of entries) setTapState(entry.ticketId, 'saving')
+  try {
+    const response = await ticketStore.advanceTickets({ department: code, fromStatus: status, tickets: entries,
+      scannedBy: currentActor(Array.isArray(route.query.by) ? route.query.by[0] : route.query.by) })
+    for (const entry of entries) setTapState(entry.ticketId, null)
+    if (response.kind === 'completed') {
+      clearPending()
+      for (const entry of [...response.blocked, ...response.skipped]) setTapState(entry.ticketId, 'failed')
+      showPageNotice({ title: 'Jobs updated', message: advanceSummary(response, status), tone: response.blocked.length || response.skipped.length ? 'warning' : 'success' })
+      continueAfterConfirm()
+    } else if (response.certainty === 'unknown') {
+      clearPending()
+      showPageNotice({ title: 'Could not save', message: 'Could not save. Check the jobs before sending again', tone: 'error' })
+      confirmIntent.value = null
+      pendingDestination = null
+      await reload()
+    } else {
+      for (const entry of entries) setTapState(entry.ticketId, 'failed')
+      showPageNotice({ title: 'Could not save', message: 'Could not save. Try again', tone: 'error' })
+      confirmIntent.value = null
+      pendingDestination = null
     }
-    if (source === 'scan') scanResult.value = { ...context, message: 'Saving…', tone: 'loading' }
-    const ticketId = ticket?.id
-    if (ticketId) setTapState(ticketId, 'saving')
-    try {
-      const response = await ticketStore.scan({
-        laundryItemId: value,
-        department: code,
-        scannedBy: currentActor(Array.isArray(route.query.by) ? route.query.by[0] : route.query.by),
-      })
-      advanced = response.kind === 'advanced'
-      if (ticketId) setTapState(ticketId, advanced || response.kind === 'already_completed' ? null : 'failed')
-      const presentation = presentScanResult(response)
-      if (source === 'scan' && scannerOpen.value && department.value?.code === code) {
-        feedback(feedbackOutcomeForScanResult(response))
-      }
-      if (department.value?.code === code) {
-        const result: ScanDisplay = {
-          ...context,
-          status: response.kind === 'advanced' || response.kind === 'not_advanceable' ? response.status
-            : response.kind === 'already_completed' ? 'Completed' : undefined,
-          ...presentation,
-        }
-        if (source === 'scan' && version === latestScanVersion && scannerOpen.value) scanResult.value = result
-        if (source === 'tap' && !advanced && response.kind !== 'already_completed') showPageNotice(result)
-      }
-    } catch {
-      if (ticketId) setTapState(ticketId, 'failed')
-      if (source === 'scan' && scannerOpen.value && department.value?.code === code) feedback('failure')
-      if (department.value?.code === code) {
-        const result: ScanDisplay = { ...context, message: 'Connection failed. Scan again', tone: 'error' }
-        if (source === 'scan' && version === latestScanVersion && scannerOpen.value) scanResult.value = result
-        if (source === 'tap') showPageNotice(result)
-      }
-    }
-  })
-  return advanced
+  } catch {
+    for (const entry of entries) setTapState(entry.ticketId, 'failed')
+    showPageNotice({ title: 'Connection failed', message: 'Connection failed. Try again', tone: 'error' })
+    confirmIntent.value = null
+    pendingDestination = null
+  } finally {
+    submitting.value = false
+  }
 }
 
 async function startOrder(orderId: string): Promise<void> {
@@ -249,11 +334,28 @@ function statusCount(tickets: readonly JobTicketDto[], status: TicketStatus): nu
 
 watch(scannerOpen, open => {
   if (!open) {
-    latestScanVersion += 1
     pushedScanner = false
     scanResult.value = null
   }
 })
+
+watch(fromStatus, () => {
+  selectedTicketIds.value = new Set()
+})
+
+function guardPending(to: RouteLocationNormalized): boolean | void {
+  if (bypassGuard || submitting.value) return submitting.value ? false : undefined
+  if (!selectedTicketIds.value.size && !scanQueue.value.length) return
+  const statusChanged = readStatusFilter(to.query.status) !== activeFilter.value
+  const departmentChanged = readDepartment(to.params.department)?.code !== department.value?.code
+  const scannerClosing = scannerOpen.value && to.query.scan !== '1'
+  if (!statusChanged && !departmentChanged && !scannerClosing && to.name === route.name) return
+  confirmIntent.value = scannerClosing && !statusChanged && !departmentChanged && to.name === route.name ? 'scanner' : 'navigation'
+  pendingDestination = confirmIntent.value === 'navigation' ? to : null
+  return false
+}
+
+onBeforeRouteUpdate(to => guardPending(to))
 
 onBeforeUnmount(() => {
   dismissPageNotice()
@@ -261,6 +363,8 @@ onBeforeUnmount(() => {
 })
 
 onBeforeRouteLeave(to => {
+  const pending = guardPending(to)
+  if (pending === false) return false
   if (!scannerOpen.value || replacingLeave) return
   replacingLeave = true
   pushedScanner = false
@@ -302,10 +406,11 @@ onBeforeRouteLeave(to => {
       </template>
 
       <div v-if="grouper === 'item'" class="grid grid-cols-2 gap-2 p-4 sm:grid-cols-3">
-        <button v-for="ticket in visibleTickets" :key="ticket.id" type="button" class="min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-lime disabled:cursor-not-allowed" :disabled="ticket.laundryItemId === null" :aria-label="`Advance tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="ticket.laundryItemId && tapStates.get(ticket.id) !== 'saving' && advanceTicket(ticket.laundryItemId, 'tap')">
+        <button v-for="ticket in visibleTickets" :key="ticket.id" type="button" class="relative min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-lime" :class="selectedTicketIds.has(ticket.id) ? 'ring-4 ring-lime' : ''" :aria-pressed="selectedTicketIds.has(ticket.id)" :aria-label="`Select tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="toggleTicket(ticket)">
           <SquareImageCard :image-url="ticket.photoEvidenceUrl">
             <template #badge><TicketStatusIcon :status="ticket.status" :state="tapStates.get(ticket.id)" /></template>
           </SquareImageCard>
+          <span v-if="selectedTicketIds.has(ticket.id)" class="material-symbols-outlined absolute bottom-2 right-2 rounded-full bg-lime p-1 text-primary" aria-hidden="true">check</span>
         </button>
       </div>
 
@@ -334,10 +439,11 @@ onBeforeRouteLeave(to => {
           </button>
           <button type="button" class="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/25 text-on-surface focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-40" :aria-label="syncingOrderIds.has(order.orderId) ? 'Syncing' : 'Start all pending'" :disabled="syncingOrderIds.has(order.orderId) || statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Pending') === 0" @click="startOrder(order.orderId)"><span v-if="syncingOrderIds.has(order.orderId)" class="material-symbols-outlined animate-spin text-[22px]" aria-hidden="true">sync</span><svg v-else viewBox="0 0 24 24" class="h-6 w-6" aria-hidden="true"><path d="M8.5 6v12l9.5-6z" fill="currentColor" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round" /></svg></button>
           <div v-if="expandedOrderId === order.orderId" class="grid grid-cols-2 gap-2 px-4 pb-4 sm:grid-cols-3">
-            <button v-for="ticket in order.tickets" :key="ticket.id" type="button" class="min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-lime disabled:cursor-not-allowed" :disabled="ticket.laundryItemId === null" :aria-label="`Advance tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="ticket.laundryItemId && tapStates.get(ticket.id) !== 'saving' && advanceTicket(ticket.laundryItemId, 'tap')">
+            <button v-for="ticket in order.tickets" :key="ticket.id" type="button" class="relative min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-lime" :class="selectedTicketIds.has(ticket.id) ? 'ring-4 ring-lime' : ''" :aria-pressed="selectedTicketIds.has(ticket.id)" :aria-label="`Select tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="toggleTicket(ticket)">
               <SquareImageCard :image-url="ticket.photoEvidenceUrl">
                 <template #badge><TicketStatusIcon :status="ticket.status" :state="tapStates.get(ticket.id)" /></template>
               </SquareImageCard>
+              <span v-if="selectedTicketIds.has(ticket.id)" class="material-symbols-outlined absolute bottom-2 right-2 rounded-full bg-lime p-1 text-primary" aria-hidden="true">check</span>
             </button>
           </div>
         </div>
@@ -345,18 +451,21 @@ onBeforeRouteLeave(to => {
     </ListContainer>
     <ListContainer v-else title="Department not found" icon="error" count-label="orders" empty empty-text="Unknown department" />
 
-    <StickerFab v-if="department" class="absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-5 z-10" label="Scan" aria-label="Scan tag" :disabled="ticketStore.loading || !!ticketStore.error" @click="openScanner">
-      <span class="material-symbols-outlined" style="font-size: 36px; font-variation-settings: 'wght' 600" aria-hidden="true">qr_code_scanner</span>
+    <CloseButton v-if="selectedTicketIds.size && fromStatus" class="absolute bottom-[max(2.25rem,env(safe-area-inset-bottom)+1rem)] right-28 z-10 bg-surface" label="Clear selection" @click="selectedTicketIds = new Set()" />
+    <StickerFab v-if="department && fromStatus" class="absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-5 z-10" :label="selectedTicketIds.size ? `${fromStatus === 'Pending' ? 'Start' : 'Complete'} ${selectedTicketIds.size}` : 'Scan'" :aria-label="selectedTicketIds.size ? 'Review selected jobs' : 'Scan tag'" :disabled="ticketStore.loading || !!ticketStore.error || submitting" :saving="submitting" @click="selectedTicketIds.size ? confirmIntent = 'action' : openScanner()">
+      <span class="material-symbols-outlined" style="font-size: 36px; font-variation-settings: 'wght' 600" aria-hidden="true">{{ selectedTicketIds.size ? 'check' : 'qr_code_scanner' }}</span>
     </StickerFab>
 
     <div v-if="pageNotice && !scannerOpen" class="pointer-events-none absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-4 right-20 z-20">
       <div class="pointer-events-auto"><ScanResultCard :result="pageNotice" dismissible @dismiss="dismissPageNotice" /></div>
     </div>
 
-    <QrScannerOverlay :open="scannerOpen" :title="department?.label ?? ''" @close="closeScanner" @scan="value => void advanceTicket(value, 'scan')">
+    <QrScannerOverlay :open="scannerOpen" :title="department?.label ?? ''" @close="closeScanner" @scan="handleScan">
       <template #result>
+        <p class="mb-2 font-label text-sm font-bold">{{ scanQueue.length }} queued</p>
         <ScanResultCard v-if="scanResult" :result="scanResult" />
       </template>
     </QrScannerOverlay>
+    <AdvanceConfirmDialog v-if="confirmIntent && !submitting"title="Send job updates?" :message="`${pendingTickets.length} jobs are ready to ${fromStatus === 'Pending' ? 'start' : 'complete'}.`" :count="pendingTickets.length" :send-label="`Send ${pendingTickets.length}`" :show-cancel="true" @send="sendConfirmed" @discard="discardConfirmed" @cancel="confirmIntent = null; pendingDestination = null" />
   </ListPageLayout>
 </template>

@@ -2,11 +2,61 @@ import type { z } from 'zod'
 import { jobTicketDepartmentSchema, jobTicketStatusSchema } from '@contracts/job-tickets/job-ticket-api.schema'
 import type { JobTicketDto } from '@/data/job-tickets/job-ticket.service'
 import { normalizeSheetDate } from '@/shared/utils/sheet-date'
+import { normalizeGarmentTagId } from '@/shared/utils/garment-tag-id'
+import type { JobTicketAdvanceResult } from '@/data/job-tickets/job-ticket.service'
+import { departmentLabels } from './scan-result'
 
 export type Department = Extract<z.infer<typeof jobTicketDepartmentSchema>, 'Washing' | 'DryCleaning' | 'Ironing' | 'Packaging'>
 export type TicketStatus = z.infer<typeof jobTicketStatusSchema>
 export type StatusFilter = 'ALL' | 'PENDING' | 'IN PROGRESS' | 'COMPLETED'
 export type Grouper = 'item' | 'order'
+export type AdvanceStatus = 'Pending' | 'In Progress'
+export type ScanQueueEntry = { ticketId: string; orderId: string; tag: string }
+
+export function statusForFilter(filter: StatusFilter): AdvanceStatus | null {
+  return filter === 'PENDING' ? 'Pending' : filter === 'IN PROGRESS' ? 'In Progress' : null
+}
+
+export function toggleTicketSelection(selected: ReadonlySet<string>, ticket: JobTicketDto, status: AdvanceStatus | null): Set<string> {
+  const next = new Set(selected)
+  if (!status || !ticket.id || !ticket.laundryItemId || ticket.status !== status) return next
+  if (next.has(ticket.id)) next.delete(ticket.id)
+  else next.add(ticket.id)
+  return next
+}
+
+export function resolveScanTag(value: string, tickets: readonly JobTicketDto[], status: AdvanceStatus, queue: readonly ScanQueueEntry[], department: Department): { entry?: ScanQueueEntry; message: string } {
+  const tag = normalizeGarmentTagId(value)
+  const matching = tickets.filter(ticket => ticket.id && ticket.department === department && ticket.laundryItemId === tag)
+  const ticket = matching.find(row => row.status === status)
+  if (!ticket) return { message: matching.length ? 'Not in this tab' : 'No job for this tag' }
+  if (queue.some(entry => entry.ticketId === ticket.id)) return { message: 'Already queued' }
+  return { entry: { ticketId: ticket.id, orderId: ticket.orderId, tag: tag! }, message: 'Queued' }
+}
+
+export function restoreScanQueue(value: unknown, tickets: readonly JobTicketDto[], status: AdvanceStatus, department: Department): ScanQueueEntry[] {
+  if (!Array.isArray(value)) return []
+  const valid = new Map(tickets.filter(ticket => ticket.id && ticket.status === status && ticket.department === department).map(ticket => [ticket.id, ticket]))
+  const restored: ScanQueueEntry[] = []
+  for (const entry of value) {
+    if (restored.length >= 200) break
+    if (!entry || typeof entry !== 'object' || typeof entry.ticketId !== 'string') continue
+    const ticket = valid.get(entry.ticketId)
+    if (ticket && ticket.laundryItemId && !restored.some(item => item.ticketId === ticket.id)) {
+      restored.push({ ticketId: ticket.id, orderId: ticket.orderId, tag: ticket.laundryItemId })
+    }
+  }
+  return restored
+}
+
+export function advanceSummary(result: Extract<JobTicketAdvanceResult, { kind: 'completed' }>, status: AdvanceStatus): string {
+  const blockers = [...new Set(result.blocked.map(ticket => departmentLabels[ticket.blockedByDepartment]))]
+  return [
+    `${result.advanced.length} ${status === 'Pending' ? 'started' : 'completed'}`,
+    `${result.blocked.length} blocked${blockers.length ? ` by ${blockers.join(', ')}` : ''}`,
+    `${result.skipped.length} skipped`,
+  ].join(' · ')
+}
 
 export interface OrderInfo {
   dueDate: string | null

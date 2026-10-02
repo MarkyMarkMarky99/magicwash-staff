@@ -99,6 +99,20 @@ try {
   assert.equal(store.tickets[0]?.status, 'In Progress')
   assert.equal(store.tickets[0]?.startedAt, '2026-09-23 10:00:00')
   assert.equal(store.tickets[0]?.scannedBy, 'staff-2')
+  const advancePayload = { department: 'Washing', fromStatus: 'In Progress', tickets: [{ ticketId: row.id, orderId: 'order-1' }], scannedBy: 'staff-3' } as const
+  rawResponse = { kind: 'completed', advanced: [{ ticketId: row.id, laundryItemId: 9305753, status: 'Completed', startedAt: '2026-09-23 10:00:00', completedAt: '2026-09-23 11:00:00' }], blocked: [{ ticketId: 'ticket-2', laundryItemId: 9305754, blockedByDepartment: 'DryCleaning' }], skipped: [] }
+  const advanced = await store.advanceTickets(advancePayload)
+  assert.equal(requests.at(-1)?.url, '/api/job-tickets/advance')
+  assert.deepEqual(requests.at(-1)?.body, advancePayload)
+  assert.equal(advanced.kind, 'completed')
+  if (advanced.kind === 'completed') {
+    assert.equal(advanced.advanced[0]?.laundryItemId, '09305753')
+    assert.equal(advanced.blocked[0]?.laundryItemId, '09305754')
+  }
+  assert.equal(store.tickets[0]?.status, 'Completed')
+  assert.equal(store.tickets[0]?.completedAt, '2026-09-23 11:00:00')
+  assert.equal(store.tickets[0]?.scannedBy, 'staff-3')
+  rawResponse = null
   assert.deepEqual(presentStartOrderResult(started), {
     tone: 'error', message: '1 advanced · 1 blocked · 1 skipped without tag · Blocked by Dry Cleaning',
   })
@@ -119,7 +133,7 @@ try {
     assert.deepEqual(presentStartOrderResult(failed), { tone: 'error', message })
   }
   await assert.rejects(() => startJobTicketOrder({ ...startPayload, orderId: ' ' }))
-  assert.equal(requests.length, 12)
+  assert.equal(requests.length, 13)
   store.$dispose()
 
   const guard = createTagScanGuard()

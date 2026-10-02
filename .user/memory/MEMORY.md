@@ -1,6 +1,6 @@
 # Project memory
 
-- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24; item quantity reassign and detail Approve button merged 2026-09-25; department ring head, tap-to-advance and order Start merged 2026-09-25; optional staff Google sign-in, shared CloseButton and PhotoSwipe PhotoViewer merged 2026-09-27; customer detail tabs + bottom nav, two-size BaseBadge, central colour palette, lime focus and sticker buttons merged 2026-09-27; iPhone safe-area fixes (drawer header, status-bar-style black + standalone green body, shorter bottom nav) merged 2026-09-27. Push drawer (slide-aside menu, drag to close) and steadier BaseSwipeCard merged 2026-09-28. Customer registration (10-digit phone, social toggles via shared FormToggleInput, restyled FormTextarea, rounded FormOverlay body) merged 2026-09-29. Package eligible service → WSIR/IRON/DRCL/WASH codes and retired CustomerPackageView code removed, merged 2026-09-30. Document scanner sharpness/speed fix and one-photo-per-capture merged 2026-10-02. Department order Start as one batched, non-blocking request and shared `StickerFab` (Approve + Scan) merged 2026-10-02.
+- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24; item quantity reassign and detail Approve button merged 2026-09-25; department ring head, tap-to-advance and order Start merged 2026-09-25; optional staff Google sign-in, shared CloseButton and PhotoSwipe PhotoViewer merged 2026-09-27; customer detail tabs + bottom nav, two-size BaseBadge, central colour palette, lime focus and sticker buttons merged 2026-09-27; iPhone safe-area fixes (drawer header, status-bar-style black + standalone green body, shorter bottom nav) merged 2026-09-27. Push drawer (slide-aside menu, drag to close) and steadier BaseSwipeCard merged 2026-09-28. Customer registration (10-digit phone, social toggles via shared FormToggleInput, restyled FormTextarea, rounded FormOverlay body) merged 2026-09-29. Package eligible service → WSIR/IRON/DRCL/WASH codes and retired CustomerPackageView code removed, merged 2026-09-30. Document scanner sharpness/speed fix and one-photo-per-capture merged 2026-10-02. Department order Start as one batched, non-blocking request and shared `StickerFab` (Approve + Scan) merged 2026-10-02. Department select/scan-queue + confirm, sent as one advance batch, merged 2026-10-02.
 
 ## Branches in flight
 
@@ -30,11 +30,11 @@
 
 - **Garment tracking and job tickets**
   - Scan FAB sits below the screen edge on some phones; cause unknown, awaiting the user's device/browser details.
-  - Order Start batch: a scanner read can still double-advance a garment the batch is writing; overlapping Start notices share one slot.
-  - `/scan` still reads-then-writes without a re-check, so two devices can race; owner to decide before adding a guard.
+  - Overlapping order Start notices share one page-notice slot; the later replaces the earlier.
+  - `/api/job-tickets/scan` and its service have no caller since batch advance; delete in a later pass.
+  - `AdvanceConfirmDialog` raises `#overlay-root` z-index while open; replace once a shared confirm dialog exists.
   - Decide the order status sequence before any swipe-to-advance work.
   - Persist tag ids at print time and add a single-tag reprint flow before real use.
-  - Department scan: user to decide instant local result with background POST, plus preloading other departments for the step gate.
   - Department page reload policy undecided (on return, on app focus, interval, or a refresh button); KeepAlive keeps it stale now.
   - Department ring under-counts orders with earlier completions; board endpoint decided, not built. See `.user/memory/department-board-load.md`.
   - Browser-verify the ring head following the arc when a ticket status changes (tap or Start).

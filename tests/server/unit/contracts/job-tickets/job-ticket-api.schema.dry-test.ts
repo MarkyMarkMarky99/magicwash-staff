@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import {
   jobTicketApiContract,
+  jobTicketAdvanceRequestSchema,
+  jobTicketAdvanceResponseSchema,
   jobTicketListQuerySchema,
   jobTicketResponseSchema,
   jobTicketScanRequestSchema,
@@ -61,5 +63,16 @@ assert.deepEqual(jobTicketStartOrderResponseSchema.parse({
 }).kind, 'write_failed')
 assert.throws(() => jobTicketStartOrderResponseSchema.parse({ kind: 'completed', advanced: [], blocked: [], skippedWithoutTag: -1 }))
 assert.throws(() => jobTicketStartOrderResponseSchema.parse({ kind: 'write_failed', certainty: 'maybe', blocked: [], skippedWithoutTag: 0 }))
+
+const advanceRequest = { department: 'Washing', fromStatus: 'Pending', tickets: [{ ticketId: ' one ', orderId: ' order ' }], scannedBy: ' staff ' }
+assert.deepEqual(jobTicketAdvanceRequestSchema.parse(advanceRequest).tickets, [{ ticketId: 'one', orderId: 'order' }])
+assert.throws(() => jobTicketAdvanceRequestSchema.parse({ ...advanceRequest, tickets: [] }))
+assert.equal(jobTicketAdvanceRequestSchema.parse({ ...advanceRequest, tickets: Array(200).fill(advanceRequest.tickets[0]) }).tickets.length, 200)
+assert.throws(() => jobTicketAdvanceRequestSchema.parse({ ...advanceRequest, tickets: Array(201).fill(advanceRequest.tickets[0]) }))
+assert.throws(() => jobTicketAdvanceRequestSchema.parse({ ...advanceRequest, fromStatus: 'Completed' }))
+assert.throws(() => jobTicketAdvanceRequestSchema.parse({ ...advanceRequest, tickets: [{ ticketId: ' ', orderId: 'order' }] }))
+assert.equal(jobTicketAdvanceResponseSchema.parse({ kind: 'completed', advanced: [{ ticketId: 'one', laundryItemId: null, status: 'Completed', startedAt: null, completedAt: null }], blocked: [], skipped: [] }).kind, 'completed')
+assert.equal(jobTicketAdvanceResponseSchema.parse({ kind: 'write_failed', certainty: 'unknown', blocked: [], skipped: [{ ticketId: 'two', reason: 'status_changed' }] }).kind, 'write_failed')
+assert.throws(() => jobTicketAdvanceResponseSchema.parse({ kind: 'write_failed', certainty: 'maybe', blocked: [], skipped: [] }))
 
 console.log('job-ticket API contract dry test passed')

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import type { ApiHandlerRequest } from '../../../../../server/shared/http/api-handler.js'
 import {
   jobTicketFieldMap,
+  jobTicketAdvanceService,
   jobTicketRoutes,
   jobTicketScanService,
   jobTicketStartService,
@@ -36,6 +37,8 @@ const startMethods = jobTicketStartService as unknown as {
   startOrder: (payload: unknown) => Promise<unknown>
 }
 const originalStart = startMethods.startOrder
+const advanceMethods = jobTicketAdvanceService as unknown as { advance: (payload: unknown) => Promise<unknown> }
+const originalAdvance = advanceMethods.advance
 try {
   scanMethods.scan = async () => ({
     kind: 'blocked', laundryItemId: 'tag-1', department: 'Washing', blockedByDepartment: 'Tagging',
@@ -67,11 +70,19 @@ try {
   startMethods.startOrder = async () => ({ kind: 'write_failed', certainty: 'unknown', blocked: [], skippedWithoutTag: 0 })
   assert.equal((await jobTicketRoutes.item!.handleRequest(request('start-order'))).status, 500)
 
+  advanceMethods.advance = async () => ({ kind: 'completed', advanced: [], blocked: [], skipped: [] })
+  assert.equal((await jobTicketRoutes.item!.handleRequest(request('advance'))).status, 200)
+  advanceMethods.advance = async () => ({ kind: 'write_failed', certainty: 'rejected', blocked: [], skipped: [] })
+  assert.equal((await jobTicketRoutes.item!.handleRequest(request('advance'))).status, 502)
+  advanceMethods.advance = async () => ({ kind: 'write_failed', certainty: 'unknown', blocked: [], skipped: [] })
+  assert.equal((await jobTicketRoutes.item!.handleRequest(request('advance'))).status, 500)
+
   const missing = await jobTicketRoutes.item!.handleRequest(request('other'))
   assert.equal(missing.status, 404)
 } finally {
   scanMethods.scan = originalScan
   startMethods.startOrder = originalStart
+  advanceMethods.advance = originalAdvance
 }
 
 console.log('job-ticket module dry test passed')

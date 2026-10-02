@@ -77,6 +77,14 @@ The unwrapped response has two outcomes:
 - `write_failed` — 502 for a rejected write or 500 for an unknown write outcome, with `certainty`,
   `blocked`, and `skippedWithoutTag`; no advanced entries are reported
 
+## `POST /api/job-tickets/advance`
+
+The request names a department, a source status of `Pending` or `In Progress`, a non-empty staff actor, and 1–200 ticket and order ID pairs. IDs and actor are trimmed. Repeated ticket IDs are processed once. The service reads each distinct order once and checks only tickets from that order. Missing or deleted tickets and department mismatches are skipped as `not_found`; tickets whose status changed are skipped as `status_changed`. The lowest incomplete earlier step for the same order and garment blocks an update, and the response names its department.
+
+Eligible Pending tickets move to In Progress; eligible In Progress tickets move to Completed. The existing start time is retained, or stamped if missing. Completion stamps the completion time. Staff is recorded for the scan and update. Eligible tickets are written in one batch.
+
+The unwrapped response is `completed` with HTTP 200, or `write_failed` with HTTP 502 for a rejected write and HTTP 500 for an uncertain write. Completed responses list advanced ticket IDs, nullable garment IDs, new statuses, and nullable start and completion times, plus blocked and skipped entries. Failed writes report certainty, blocked entries, and skipped entries without claiming advancement.
+
 ## Provisioning
 
 Tickets are provisioned after a work-order status write succeeds with `APPROVED`. The service reads

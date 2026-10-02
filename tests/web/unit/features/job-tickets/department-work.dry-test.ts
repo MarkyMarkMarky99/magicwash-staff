@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import type { JobTicketDto, JobTicketListQuery } from '@/data/job-tickets/job-ticket.service'
 import { completedTodayFromPage, listJobTickets, loadDepartmentTickets, MAX_DEPARTMENT_TICKETS } from '@/data/job-tickets/job-ticket.service'
-import { completionPercentage, countDepartmentStatuses, filterTickets, groupDepartmentOrders, readDepartment, readGrouper, readStatusFilter, sortDepartmentTickets } from '@/features/job-tickets/department-work'
+import { advanceSummary, completionPercentage, countDepartmentStatuses, filterTickets, groupDepartmentOrders, readDepartment, readGrouper, readStatusFilter, resolveScanTag, restoreScanQueue, sortDepartmentTickets, statusForFilter, toggleTicketSelection } from '@/features/job-tickets/department-work'
 import { normalizeGarmentTagId } from '@/shared/utils/garment-tag-id'
 
 function ticket(id: string, orderId: string, status: JobTicketDto['status'], completedAt: string | null = null): JobTicketDto {
@@ -22,6 +22,21 @@ assert.equal(readStatusFilter('CANCELLED'), 'ALL')
 assert.equal(readStatusFilter('IN PROGRESS'), 'IN PROGRESS')
 assert.equal(readGrouper('item'), 'item')
 assert.equal(readGrouper('unknown'), 'order')
+assert.equal(statusForFilter('ALL'), null)
+assert.equal(statusForFilter('PENDING'), 'Pending')
+const selectionTicket = ticket('tag-a', 'order-1', 'Pending')
+const selected = toggleTicketSelection(new Set<string>(), selectionTicket, 'Pending')
+assert.deepEqual([...selected], ['tag-a'])
+assert.deepEqual([...toggleTicketSelection(selected, selectionTicket, 'Pending')], [])
+assert.deepEqual([...toggleTicketSelection(selected, selectionTicket, 'In Progress')], ['tag-a'])
+assert.deepEqual([...toggleTicketSelection(new Set<string>(), { ...selectionTicket, laundryItemId: null }, 'Pending')], [])
+const scanTickets = [selectionTicket, ticket('tag-b', 'order-1', 'Completed')]
+assert.deepEqual(resolveScanTag('tag-a', scanTickets, 'Pending', [], 'Washing'), { entry: { ticketId: 'tag-a', orderId: 'order-1', tag: 'tag-a' }, message: 'Queued' })
+assert.equal(resolveScanTag('tag-b', scanTickets, 'Pending', [], 'Washing').message, 'Not in this tab')
+assert.equal(resolveScanTag('missing', scanTickets, 'Pending', [], 'Washing').message, 'No job for this tag')
+assert.equal(resolveScanTag('tag-a', scanTickets, 'Pending', [{ ticketId: 'tag-a', orderId: 'order-1', tag: 'tag-a' }], 'Washing').message, 'Already queued')
+assert.deepEqual(restoreScanQueue([{ ticketId: 'tag-a' }, { ticketId: 'tag-a' }, { ticketId: 'tag-b' }, { ticketId: 'missing' }], scanTickets, 'Pending', 'Washing'), [{ ticketId: 'tag-a', orderId: 'order-1', tag: 'tag-a' }])
+assert.equal(advanceSummary({ kind: 'completed', advanced: [{ ticketId: 'tag-a', laundryItemId: 'tag-a', status: 'In Progress', startedAt: null, completedAt: null }], blocked: [{ ticketId: 'tag-b', laundryItemId: null, blockedByDepartment: 'Washing' }], skipped: [{ ticketId: 'other', reason: 'not_found' }] }, 'Pending'), '1 started · 1 blocked by Washing · 1 skipped')
 
 const tickets = [ticket('tag-a', 'order-late', 'Pending'), ticket('tag-b', 'order-soon', 'Completed'), ticket('tag-c', 'order-soon', 'In Progress')]
 const orderInfo = new Map([
