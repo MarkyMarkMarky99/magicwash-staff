@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict'
 import { createPinia, setActivePinia } from 'pinia'
 import type { JobTicketDto, JobTicketScanResult } from '@/data/job-tickets/job-ticket.service'
-import { scanJobTicket } from '@/data/job-tickets/job-ticket.service'
+import { scanJobTicket, startJobTicketOrder } from '@/data/job-tickets/job-ticket.service'
 import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
 import { completionPercentage, countDepartmentStatuses } from '@/features/job-tickets/department-work'
-import { createTagScanGuard, feedbackOutcomeForScanResult, presentScanResult } from '@/features/job-tickets/scan-result'
+import { createTagScanGuard, feedbackOutcomeForScanResult, presentScanResult, presentStartOrderResult } from '@/features/job-tickets/scan-result'
 
 const row: JobTicketDto = {
   id: 'WSH-order-1-tag-1', orderId: 'order-1', laundryItemId: 'tag-1', scope: 'ITEM', serviceType: 'WASH',
@@ -78,7 +78,48 @@ try {
   assert.deepEqual(await scanJobTicket(payload), { kind: 'blocked', laundryItemId: '09305753', department: 'Washing', blockedByDepartment: 'DryCleaning' })
   rawResponse = null
   await assert.rejects(() => scanJobTicket({ ...payload, scannedBy: ' ' }))
-  assert.equal(requests.length, 9)
+  store.tickets = [{ ...row, status: 'Pending', startedAt: null, scannedBy: null }]
+  const startPayload = { orderId: 'order-1', department: 'Washing', scannedBy: 'staff-2' } as const
+  responseStatus = 200
+  rawResponse = {
+    kind: 'completed',
+    advanced: [{ ticketId: row.id, laundryItemId: 9305753, status: 'In Progress', startedAt: '2026-09-23 10:00:00' }],
+    blocked: [{ ticketId: 'ticket-2', laundryItemId: 9305754, blockedByDepartment: 'DryCleaning' }],
+    skippedWithoutTag: 1,
+  }
+  const started = await store.startOrder(startPayload)
+  assert.equal(requests.at(-1)?.url, '/api/job-tickets/start-order')
+  assert.deepEqual(requests.at(-1)?.body, startPayload)
+  assert.deepEqual(started, {
+    kind: 'completed',
+    advanced: [{ ticketId: row.id, laundryItemId: '09305753', status: 'In Progress', startedAt: '2026-09-23 10:00:00' }],
+    blocked: [{ ticketId: 'ticket-2', laundryItemId: '09305754', blockedByDepartment: 'DryCleaning' }],
+    skippedWithoutTag: 1,
+  })
+  assert.equal(store.tickets[0]?.status, 'In Progress')
+  assert.equal(store.tickets[0]?.startedAt, '2026-09-23 10:00:00')
+  assert.equal(store.tickets[0]?.scannedBy, 'staff-2')
+  assert.deepEqual(presentStartOrderResult(started), {
+    tone: 'error', message: '1 advanced · 1 blocked · 1 skipped without tag · Blocked by Dry Cleaning',
+  })
+  assert.deepEqual(presentStartOrderResult({ kind: 'completed', advanced: [], blocked: [], skippedWithoutTag: 1 }), {
+    tone: 'warning', message: '0 advanced · 0 blocked · 1 skipped without tag',
+  })
+  assert.deepEqual(presentStartOrderResult({ kind: 'completed', advanced: [], blocked: [], skippedWithoutTag: 0 }), {
+    tone: 'success', message: '0 advanced · 0 blocked · 0 skipped without tag',
+  })
+  for (const [certainty, status, message] of [
+    ['rejected', 502, 'Could not save. Try again'],
+    ['unknown', 500, 'Could not save. Check the order before starting again'],
+  ] as const) {
+    responseStatus = status
+    rawResponse = { kind: 'write_failed', certainty, blocked: [], skippedWithoutTag: 0 }
+    const failed = await startJobTicketOrder(startPayload)
+    assert.equal(failed.kind, 'write_failed')
+    assert.deepEqual(presentStartOrderResult(failed), { tone: 'error', message })
+  }
+  await assert.rejects(() => startJobTicketOrder({ ...startPayload, orderId: ' ' }))
+  assert.equal(requests.length, 12)
   store.$dispose()
 
   const guard = createTagScanGuard()

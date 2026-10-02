@@ -7,6 +7,7 @@
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — design-only work (invoice create as a form overlay with swipeable line cards), 1 commit ahead of `main`; kept by owner, not for merge yet.
 - **`feat/package-credit`** — monthly-subscription package credits, phases 1–4 built, awaiting owner test on Preview. Details on that branch: `.user/memory/feat-package-credit.md`.
+- **`fix/department-scan-order-scope`** — order Start as one batched, non-blocking request; pushed for owner test on Preview. Details: `.user/memory/fix-department-scan-order-scope.md`.
 
 ## Pending work
 

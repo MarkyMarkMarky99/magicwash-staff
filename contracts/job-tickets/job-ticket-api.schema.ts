@@ -63,6 +63,38 @@ export const jobTicketScanRequestSchema = z.object({
   scannedBy: z.string().trim().min(1),
 })
 
+export const jobTicketStartOrderRequestSchema = z.object({
+  orderId: z.string().trim().min(1),
+  department: jobTicketDepartmentSchema,
+  scannedBy: z.string().trim().min(1),
+})
+
+const jobTicketStartOrderBlockedSchema = z.object({
+  ticketId: z.string(),
+  laundryItemId: z.string(),
+  blockedByDepartment: jobTicketDepartmentSchema,
+})
+
+export const jobTicketStartOrderResponseSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('completed'),
+    advanced: z.array(z.object({
+      ticketId: z.string(),
+      laundryItemId: z.string(),
+      status: z.literal('In Progress'),
+      startedAt: z.string().nullable(),
+    })),
+    blocked: z.array(jobTicketStartOrderBlockedSchema),
+    skippedWithoutTag: z.number().int().min(0),
+  }),
+  z.object({
+    kind: z.literal('write_failed'),
+    certainty: z.enum(['rejected', 'unknown']),
+    blocked: z.array(jobTicketStartOrderBlockedSchema),
+    skippedWithoutTag: z.number().int().min(0),
+  }),
+])
+
 export const jobTicketScanResponseSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('advanced'),

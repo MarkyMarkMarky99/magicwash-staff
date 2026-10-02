@@ -1,6 +1,6 @@
 import type { z } from 'zod'
 import type { jobTicketDepartmentSchema } from '@contracts/job-tickets/job-ticket-api.schema'
-import type { JobTicketScanResult } from '@/data/job-tickets/job-ticket.service'
+import type { JobTicketScanResult, JobTicketStartOrderResult } from '@/data/job-tickets/job-ticket.service'
 import type { FeedbackOutcome } from '@/shared/utils/scan-feedback'
 
 export type ScanTone = 'loading' | 'success' | 'warning' | 'error'
@@ -10,13 +10,28 @@ export function feedbackOutcomeForScanResult(result: JobTicketScanResult): Feedb
   return result.kind === 'advanced' ? 'success' : 'failure'
 }
 
-const departmentLabels: Record<z.infer<typeof jobTicketDepartmentSchema>, string> = {
+export const departmentLabels: Record<z.infer<typeof jobTicketDepartmentSchema>, string> = {
   Tagging: 'Tagging',
   Washing: 'Washing',
   DryCleaning: 'Dry Cleaning',
   Ironing: 'Ironing',
   Packaging: 'Packaging',
   Logistics: 'Logistics',
+}
+
+export function presentStartOrderResult(result: JobTicketStartOrderResult): { tone: Exclude<ScanTone, 'loading'>; message: string } {
+  if (result.kind === 'write_failed') return {
+    tone: 'error',
+    message: result.certainty === 'rejected'
+      ? 'Could not save. Try again'
+      : 'Could not save. Check the order before starting again',
+  }
+  const departments = [...new Set(result.blocked.map(ticket => departmentLabels[ticket.blockedByDepartment]))]
+  return {
+    tone: result.blocked.length ? 'error' : result.skippedWithoutTag ? 'warning' : 'success',
+    message: `${result.advanced.length} advanced · ${result.blocked.length} blocked · ${result.skippedWithoutTag} skipped without tag`
+      + (departments.length ? ` · Blocked by ${departments.join(', ')}` : ''),
+  }
 }
 
 const statusLabels: Record<Extract<JobTicketScanResult, { kind: 'not_advanceable' }>['status'], string> = {

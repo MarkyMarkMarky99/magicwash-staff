@@ -4,6 +4,7 @@ import {
   jobTicketFieldMap,
   jobTicketRoutes,
   jobTicketScanService,
+  jobTicketStartService,
 } from '../../../../../server/modules/job-tickets/job-ticket.module.js'
 import { routeRegistry } from '../../../../../server/api/route-registry.js'
 
@@ -31,6 +32,10 @@ const scanMethods = jobTicketScanService as unknown as {
   scan: (payload: unknown) => Promise<unknown>
 }
 const originalScan = scanMethods.scan
+const startMethods = jobTicketStartService as unknown as {
+  startOrder: (payload: unknown) => Promise<unknown>
+}
+const originalStart = startMethods.startOrder
 try {
   scanMethods.scan = async () => ({
     kind: 'blocked', laundryItemId: 'tag-1', department: 'Washing', blockedByDepartment: 'Tagging',
@@ -53,10 +58,20 @@ try {
   })
   assert.equal((await jobTicketRoutes.item!.handleRequest(request('scan'))).status, 500)
 
+  startMethods.startOrder = async () => ({ kind: 'completed', advanced: [], blocked: [], skippedWithoutTag: 0 })
+  const started = await jobTicketRoutes.item!.handleRequest(request('start-order'))
+  assert.equal(started.status, 200)
+  assert.equal((started.body as { kind: string }).kind, 'completed')
+  startMethods.startOrder = async () => ({ kind: 'write_failed', certainty: 'rejected', blocked: [], skippedWithoutTag: 0 })
+  assert.equal((await jobTicketRoutes.item!.handleRequest(request('start-order'))).status, 502)
+  startMethods.startOrder = async () => ({ kind: 'write_failed', certainty: 'unknown', blocked: [], skippedWithoutTag: 0 })
+  assert.equal((await jobTicketRoutes.item!.handleRequest(request('start-order'))).status, 500)
+
   const missing = await jobTicketRoutes.item!.handleRequest(request('other'))
   assert.equal(missing.status, 404)
 } finally {
   scanMethods.scan = originalScan
+  startMethods.startOrder = originalStart
 }
 
 console.log('job-ticket module dry test passed')

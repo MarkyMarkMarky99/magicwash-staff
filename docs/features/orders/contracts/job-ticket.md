@@ -60,6 +60,23 @@ The response is an unwrapped discriminated union:
 `not_found` is reserved for a garment that has no ticket for the requested department. A cancelled
 ticket returns `not_advanceable` with status `Cancelled`, so it remains resolvable in history.
 
+## `POST /api/job-tickets/start-order`
+
+The request accepts a non-empty `orderId`, `department`, and non-empty `scannedBy` staff actor.
+The service reads the order's tickets once. It starts Pending tickets in the requested department
+that have a garment tag and whose lower `stepNo` tickets for the same order and tag are all
+`Completed`. Blocker checks use only tickets from that order. Pending tickets without tags are
+counted as skipped. Eligible tickets are written together in one batch; an existing `startedAt`
+is retained.
+
+The unwrapped response has two outcomes:
+
+- `completed` — 200, with `advanced` entries containing ticket id, garment tag, `In Progress`
+  status, and nullable start time; `blocked` entries containing ticket id, garment tag, and blocking
+  department; and a non-negative `skippedWithoutTag` count
+- `write_failed` — 502 for a rejected write or 500 for an unknown write outcome, with `certainty`,
+  `blocked`, and `skippedWithoutTag`; no advanced entries are reported
+
 ## Provisioning
 
 Tickets are provisioned after a work-order status write succeeds with `APPROVED`. The service reads
