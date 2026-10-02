@@ -14,6 +14,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   proof: [url: string]
+  review: [paymentId: string]
 }>()
 
 function formatMoney(value: number | null) {
@@ -117,6 +118,16 @@ function statusLabel(status: InvoiceDetailDto['payments'][number]['status']) {
             <span class="shrink-0 font-headline text-[12px] font-bold text-on-surface">{{ formatMoney(payment.amount) }}</span>
           </span>
         </div>
+
+        <button
+          v-if="payment.status === 'PENDING' && payment.paymentId"
+          type="button"
+          class="mx-3 mb-2 flex w-[calc(100%-1.5rem)] items-center justify-center gap-1.5 rounded-lg bg-warning-container py-1.5 font-label text-[11px] font-bold text-on-warning-container transition-colors hover:bg-warning-container/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-lime/60"
+          @click="emit('review', payment.paymentId)"
+        >
+          <span class="material-symbols-outlined text-[14px] leading-none" aria-hidden="true">fact_check</span>
+          ตรวจสอบรายการนี้
+        </button>
       </li>
       </ul>
     </template>

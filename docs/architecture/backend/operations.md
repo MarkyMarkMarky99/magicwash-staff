@@ -102,6 +102,13 @@ the invoice number to the shop print service. `PRINT_SERVER_URL`, `CF_ACCESS_CLI
 `CF_ACCESS_CLIENT_SECRET` are server-only environment variables; Cloudflare Access credentials must
 never be exposed to browser code or API responses.
 
+Payments are a ledger. `POST /api/payments` appends a staff-recorded payment as `VERIFIED`, so it
+counts toward the invoice at once; an invoice's paid amount, balance and `PAID` status are derived
+from `VERIFIED` rows, never set on the invoice. `PATCH /api/payments/:paymentId` reviews only a
+`PENDING` row (for example a slip the verifier could not read): `VERIFY` fills the amount and sets
+`VERIFIED`, `REJECT` sets `FAILED` and requires a note. Staff notes are appended to the existing
+note. Rows are never deleted, and any non-`PENDING` row is final (409).
+
 Laundry tag printing uses the collection endpoint POST /api/laundry-tag-prints.
 The order detail page sends the customerIndex, the order header quantity (or staff-adjusted tag count), and one
 sequence/tagId pair per physical piece. The backend validates and forwards the

@@ -12,6 +12,8 @@ export const routeRegistry = {
     import('../modules/orders/order.module.js').then((module) => module.orderRoutes),
   invoices: (): ReturnType<RouteLoader> =>
     import('../modules/invoices/invoice.module.js').then((module) => module.invoiceRoutes),
+  payments: (): ReturnType<RouteLoader> =>
+    import('../modules/payments/payment.module.js').then((module) => module.paymentRoutes),
   'invoice-prints': (): ReturnType<RouteLoader> =>
     import('../modules/invoice-prints/invoice-print.module.js').then(
       (module) => module.invoicePrintRoutes,

@@ -6,6 +6,8 @@ export const ORDER_EDIT_ROUTE_NAME = 'order-edit'
 export const CUSTOMER_PACKAGE_CREATE_ROUTE_NAME = 'customer-package-create'
 export const INVOICE_CREATE_ROUTE_NAME = 'invoice-create'
 export const PRICE_LIST_ITEM_CREATE_ROUTE_NAME = 'price-list-item-create'
+export const INVOICE_PAYMENT_CREATE_ROUTE_NAME = 'invoice-payment-create'
+export const INVOICE_PAYMENT_REVIEW_ROUTE_NAME = 'invoice-payment-review'
 
 interface AppointmentCreateRouteContext {
   customerId: string
@@ -66,6 +68,20 @@ export function invoiceCreateRoute(context: InvoiceCreateRouteContext): RouteLoc
       customerId: context.customerId,
       orderId: context.orderId,
     },
+  }
+}
+
+export function invoicePaymentCreateRoute(invoiceNumber: string): RouteLocationRaw {
+  return {
+    name: INVOICE_PAYMENT_CREATE_ROUTE_NAME,
+    query: { invoiceNumber },
+  }
+}
+
+export function invoicePaymentReviewRoute(invoiceNumber: string, paymentId: string): RouteLocationRaw {
+  return {
+    name: INVOICE_PAYMENT_REVIEW_ROUTE_NAME,
+    query: { invoiceNumber, paymentId },
   }
 }
 

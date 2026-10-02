@@ -1,6 +1,6 @@
 # Project memory
 
-- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24; item quantity reassign and detail Approve button merged 2026-09-25; department ring head, tap-to-advance and order Start merged 2026-09-25; optional staff Google sign-in, shared CloseButton and PhotoSwipe PhotoViewer merged 2026-09-27; customer detail tabs + bottom nav, two-size BaseBadge, central colour palette, lime focus and sticker buttons merged 2026-09-27; iPhone safe-area fixes (drawer header, status-bar-style black + standalone green body, shorter bottom nav) merged 2026-09-27. Push drawer (slide-aside menu, drag to close) and steadier BaseSwipeCard merged 2026-09-28. Customer registration (10-digit phone, social toggles via shared FormToggleInput, restyled FormTextarea, rounded FormOverlay body) merged 2026-09-29. Package eligible service → WSIR/IRON/DRCL/WASH codes and retired CustomerPackageView code removed, merged 2026-09-30. Document scanner sharpness/speed fix and one-photo-per-capture merged 2026-10-02. Department order Start as one batched, non-blocking request and shared `StickerFab` (Approve + Scan) merged 2026-10-02. Department select/scan-queue + confirm, sent as one advance batch, merged 2026-10-02.
+- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24; item quantity reassign and detail Approve button merged 2026-09-25; department ring head, tap-to-advance and order Start merged 2026-09-25; optional staff Google sign-in, shared CloseButton and PhotoSwipe PhotoViewer merged 2026-09-27; customer detail tabs + bottom nav, two-size BaseBadge, central colour palette, lime focus and sticker buttons merged 2026-09-27; iPhone safe-area fixes (drawer header, status-bar-style black + standalone green body, shorter bottom nav) merged 2026-09-27. Push drawer (slide-aside menu, drag to close) and steadier BaseSwipeCard merged 2026-09-28. Customer registration (10-digit phone, social toggles via shared FormToggleInput, restyled FormTextarea, rounded FormOverlay body) merged 2026-09-29. Package eligible service → WSIR/IRON/DRCL/WASH codes and retired CustomerPackageView code removed, merged 2026-09-30. Document scanner sharpness/speed fix and one-photo-per-capture merged 2026-10-02. Department order Start as one batched, non-blocking request and shared `StickerFab` (Approve + Scan) merged 2026-10-02. Department select/scan-queue + confirm, sent as one advance batch, merged 2026-10-02. Invoice Record payment form + PENDING slip review (verify/reject) and the Print / Record payment footer merged 2026-10-02.
 
 ## Branches in flight
 
@@ -53,7 +53,6 @@
 - **Forms and navigation**
   - Remove dead CSS `.invoice-line-select` in `InvoiceLineItemsEditor.vue`.
   - Pre-existing defect: some forms `push` on exit, so Back re-opens the form after save. See `.user/memory/form-exit-history.md`.
-  - Agreed rule: a form is a temporary layer — after leaving it by any button, no form entry may remain in history.
   - Browser-verify the form-routes refactor (merged untested in a browser); unticked to-dos in `docs/plans/form-routes.md`.
 
 - **Order detail UI**
@@ -107,8 +106,8 @@
   - No Items edit UI exists; `PATCH /api/items/:id` is implemented and tested but unreachable from the app.
   - Decide between `CANCELLED` and `VOID` before changing the invoice contract.
   - Decide whether to renumber the four legacy uuid-shaped invoice numbers; they are referenced as `invoiceId` on customer-package rows.
-  - Invoice reads now assemble from `Invoices`/`InvoiceItems`/`Payments` in memory; revisit at ~2-3k invoices.
-  - Confirm payment-status rules: only `VERIFIED` payments count, and `OVERDUE` outranks `PARTIALLY_PAID`.
+  - Confirm `OVERDUE` outranks `PARTIALLY_PAID` in derived invoice status.
+  - Browser-verify payment review (verify and reject) on a real PENDING slip; only Record payment was user-tested.
   - Confirm whether the LIFF portal still reads `InvoicesView`; if not, the Apps Script sync can go.
   - Customer-package pager is still deferred; `okPaged` carries no total, invoices use `paginatedBody`.
   - Clean sheet data: the blank customer row, dirty Orders rows, LaundryPhotos ordering, and page-walks using non-unique sort keys.

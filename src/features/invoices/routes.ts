@@ -1,5 +1,9 @@
 import type { RouteRecordRaw } from 'vue-router'
-import { INVOICE_CREATE_ROUTE_NAME } from '@/shared/navigation/form-routes'
+import {
+  INVOICE_CREATE_ROUTE_NAME,
+  INVOICE_PAYMENT_CREATE_ROUTE_NAME,
+  INVOICE_PAYMENT_REVIEW_ROUTE_NAME,
+} from '@/shared/navigation/form-routes'
 
 export const invoiceRoutes: RouteRecordRaw[] = [
   {
@@ -11,6 +15,18 @@ export const invoiceRoutes: RouteRecordRaw[] = [
     path: '/invoices/create',
     name: INVOICE_CREATE_ROUTE_NAME,
     component: () => import('./pages/InvoiceCreatePage.vue'),
+    meta: { parent: 'invoice-list' },
+  },
+  {
+    path: '/invoices/payments/create',
+    name: INVOICE_PAYMENT_CREATE_ROUTE_NAME,
+    component: () => import('./pages/InvoicePaymentFormPage.vue'),
+    meta: { parent: 'invoice-list' },
+  },
+  {
+    path: '/invoices/payments/review',
+    name: INVOICE_PAYMENT_REVIEW_ROUTE_NAME,
+    component: () => import('./pages/InvoicePaymentReviewPage.vue'),
     meta: { parent: 'invoice-list' },
   },
   {
