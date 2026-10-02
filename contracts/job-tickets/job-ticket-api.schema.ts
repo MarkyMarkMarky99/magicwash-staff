@@ -69,6 +69,48 @@ export const jobTicketStartOrderRequestSchema = z.object({
   scannedBy: z.string().trim().min(1),
 })
 
+export const jobTicketAdvanceRequestSchema = z.object({
+  department: jobTicketDepartmentSchema,
+  fromStatus: z.enum(['Pending', 'In Progress']),
+  tickets: z.array(z.object({
+    ticketId: z.string().trim().min(1),
+    orderId: z.string().trim().min(1),
+  })).min(1).max(200),
+  scannedBy: z.string().trim().min(1),
+})
+
+const jobTicketAdvanceBlockedSchema = z.object({
+  ticketId: z.string(),
+  laundryItemId: z.string().nullable(),
+  blockedByDepartment: jobTicketDepartmentSchema,
+})
+
+const jobTicketAdvanceSkippedSchema = z.object({
+  ticketId: z.string(),
+  reason: z.enum(['not_found', 'status_changed']),
+})
+
+export const jobTicketAdvanceResponseSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('completed'),
+    advanced: z.array(z.object({
+      ticketId: z.string(),
+      laundryItemId: z.string().nullable(),
+      status: z.enum(['In Progress', 'Completed']),
+      startedAt: z.string().nullable(),
+      completedAt: z.string().nullable(),
+    })),
+    blocked: z.array(jobTicketAdvanceBlockedSchema),
+    skipped: z.array(jobTicketAdvanceSkippedSchema),
+  }),
+  z.object({
+    kind: z.literal('write_failed'),
+    certainty: z.enum(['rejected', 'unknown']),
+    blocked: z.array(jobTicketAdvanceBlockedSchema),
+    skipped: z.array(jobTicketAdvanceSkippedSchema),
+  }),
+])
+
 const jobTicketStartOrderBlockedSchema = z.object({
   ticketId: z.string(),
   laundryItemId: z.string(),

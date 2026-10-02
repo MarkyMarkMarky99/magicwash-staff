@@ -1,6 +1,7 @@
 import type { z } from 'zod'
 import {
   jobTicketApiContract,
+  jobTicketAdvanceResponseSchema,
   jobTicketScanResponseSchema,
   jobTicketStartOrderResponseSchema,
 } from '../../../contracts/job-tickets/job-ticket-api.schema.js'
@@ -14,6 +15,7 @@ import { ApiHandler } from '../../shared/http/api-handler.js'
 import type { GatewayModuleRoutes } from '../../shared/http/gateway.types.js'
 import type { ApiResult } from '../../shared/http/response.js'
 import { JobTicketScanService } from './job-ticket-scan.service.js'
+import { JobTicketAdvanceService } from './job-ticket-advance.service.js'
 import { JobTicketStartService } from './job-ticket-start.service.js'
 
 type JobTicketDbRow = z.infer<typeof jobTicketsRowSchema>
@@ -50,6 +52,7 @@ type JobTicketUpdate = z.infer<typeof jobTicketApiContract.request.update>
 type JobTicketResponse = z.infer<typeof jobTicketApiContract.response.list>
 type JobTicketScanResponse = z.infer<typeof jobTicketScanResponseSchema>
 type JobTicketStartOrderResponse = z.infer<typeof jobTicketStartOrderResponseSchema>
+type JobTicketAdvanceResponse = z.infer<typeof jobTicketAdvanceResponseSchema>
 
 export const jobTicketService = new BaseCrudService<
   JobTicketApiRow,
@@ -71,6 +74,7 @@ export const jobTicketService = new BaseCrudService<
 
 export const jobTicketScanService = new JobTicketScanService()
 export const jobTicketStartService = new JobTicketStartService()
+export const jobTicketAdvanceService = new JobTicketAdvanceService()
 
 const crudRoutes = createCrudRoutes(jobTicketService, jobTicketApiContract)
 
@@ -94,13 +98,17 @@ export const jobTicketRoutes: GatewayModuleRoutes = {
   item: new ApiHandler({
     GET: async (req) => crudRoutes.item!.handleRequest(req),
     PATCH: async (req) => crudRoutes.item!.handleRequest(req),
-    POST: async (req): Promise<ApiResult<JobTicketScanResponse | JobTicketStartOrderResponse>> => {
+    POST: async (req): Promise<ApiResult<JobTicketScanResponse | JobTicketStartOrderResponse | JobTicketAdvanceResponse>> => {
       if (req.params.id === 'scan') {
         const response = await jobTicketScanService.scan(req.body)
         return { status: statusForScan(response), body: response }
       }
       if (req.params.id === 'start-order') {
         const response = await jobTicketStartService.startOrder(req.body)
+        return { status: response.kind === 'completed' ? 200 : response.certainty === 'rejected' ? 502 : 500, body: response }
+      }
+      if (req.params.id === 'advance') {
+        const response = await jobTicketAdvanceService.advance(req.body)
         return { status: response.kind === 'completed' ? 200 : response.certainty === 'rejected' ? 502 : 500, body: response }
       }
       throw ApiError.notFound('Route not found')
