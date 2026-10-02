@@ -5,6 +5,8 @@ import {
   jobTicketResponseSchema,
   jobTicketScanRequestSchema,
   jobTicketScanResponseSchema,
+  jobTicketStartOrderRequestSchema,
+  jobTicketStartOrderResponseSchema,
   jobTicketUpdateSchema,
 } from '../../../../../contracts/job-tickets/job-ticket-api.schema.js'
 
@@ -44,5 +46,20 @@ assert.deepEqual(jobTicketScanResponseSchema.parse({
   kind: 'not_advanceable', ticketId: 'ticket-1', status: 'Cancelled',
 }), { kind: 'not_advanceable', ticketId: 'ticket-1', status: 'Cancelled' })
 assert.throws(() => jobTicketScanResponseSchema.parse({ kind: 'write_failed', ticketId: 'ticket-1', certainty: 'maybe' }))
+assert.deepEqual(jobTicketStartOrderRequestSchema.parse({ orderId: ' order-1 ', department: 'Washing', scannedBy: ' staff-1 ' }), {
+  orderId: 'order-1', department: 'Washing', scannedBy: 'staff-1',
+})
+assert.throws(() => jobTicketStartOrderRequestSchema.parse({ orderId: ' ', department: 'Washing', scannedBy: 'staff-1' }))
+assert.deepEqual(jobTicketStartOrderResponseSchema.parse({
+  kind: 'completed',
+  advanced: [{ ticketId: 'ticket-1', laundryItemId: 'tag-1', status: 'In Progress', startedAt: null }],
+  blocked: [{ ticketId: 'ticket-2', laundryItemId: 'tag-2', blockedByDepartment: 'DryCleaning' }],
+  skippedWithoutTag: 1,
+}).kind, 'completed')
+assert.deepEqual(jobTicketStartOrderResponseSchema.parse({
+  kind: 'write_failed', certainty: 'unknown', blocked: [], skippedWithoutTag: 0,
+}).kind, 'write_failed')
+assert.throws(() => jobTicketStartOrderResponseSchema.parse({ kind: 'completed', advanced: [], blocked: [], skippedWithoutTag: -1 }))
+assert.throws(() => jobTicketStartOrderResponseSchema.parse({ kind: 'write_failed', certainty: 'maybe', blocked: [], skippedWithoutTag: 0 }))
 
 console.log('job-ticket API contract dry test passed')

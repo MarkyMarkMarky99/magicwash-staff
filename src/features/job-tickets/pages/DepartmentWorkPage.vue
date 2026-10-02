@@ -6,6 +6,7 @@ import GenericTabs from '@/shared/components/GenericTabs.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import QrScannerOverlay from '@/shared/components/QrScannerOverlay.vue'
 import SquareImageCard from '@/shared/components/SquareImageCard.vue'
+import StickerFab from '@/shared/components/StickerFab.vue'
 import CompletionRing from '../components/CompletionRing.vue'
 import ScanResultCard from '../components/ScanResultCard.vue'
 import TicketStatusIcon, { type TicketTapState } from '../components/TicketStatusIcon.vue'
@@ -16,9 +17,9 @@ import { useCustomerStore } from '@/data/customers/customer.store'
 import { currentActor } from '@/shared/config/actor'
 import { feedback, primeFeedbackAudio } from '@/shared/utils/scan-feedback'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
-import { countDepartmentStatuses, filterTickets, groupDepartmentOrders, pendingOrderTags, readDepartment, readGrouper, readStatusFilter, sortDepartmentTickets, statusFilters } from '../department-work'
+import { countDepartmentStatuses, filterTickets, groupDepartmentOrders, readDepartment, readGrouper, readStatusFilter, sortDepartmentTickets, statusFilters } from '../department-work'
 import type { Grouper, OrderInfo, TicketStatus } from '../department-work'
-import { createTagScanGuard, feedbackOutcomeForScanResult, presentScanResult, type ScanDisplay } from '../scan-result'
+import { createTagScanGuard, feedbackOutcomeForScanResult, presentScanResult, presentStartOrderResult, type ScanDisplay } from '../scan-result'
 
 const route = useRoute()
 const router = useRouter()
@@ -31,7 +32,7 @@ const scannerOpen = computed(() => department.value !== null && route.query.scan
 const expandedOrderId = ref<string | null>(null)
 const scanResult = ref<ScanDisplay | null>(null)
 const pageNotice = ref<ScanDisplay | null>(null)
-const startingOrderId = ref<string | null>(null)
+const syncingOrderIds = ref(new Set<string>())
 const tapStates = ref(new Map<string, TicketTapState>())
 const tapTimers = new Map<string, ReturnType<typeof setTimeout>>()
 const runTagScan = createTagScanGuard()
@@ -153,7 +154,7 @@ function clearTapStates(): void {
   tapStates.value = new Map()
 }
 
-async function advanceTicket(value: string, source: 'scan' | 'tap' | 'start'): Promise<boolean> {
+async function advanceTicket(value: string, source: 'scan' | 'tap'): Promise<boolean> {
   let advanced = false
   await runTagScan(value, async () => {
     const code = department.value?.code
@@ -204,26 +205,37 @@ async function advanceTicket(value: string, source: 'scan' | 'tap' | 'start'): P
 }
 
 async function startOrder(orderId: string): Promise<void> {
-  if (startingOrderId.value !== null) return
+  if (syncingOrderIds.value.has(orderId)) return
   const departmentCode = department.value?.code
   if (!departmentCode) return
   const tickets = allOrders.value.get(orderId)?.tickets ?? []
   if (!tickets.some(ticket => ticket.status === 'Pending')) return
-  startingOrderId.value = orderId
+  syncingOrderIds.value = new Set([...syncingOrderIds.value, orderId])
   dismissPageNotice()
-  const { tags, missingTags } = pendingOrderTags(tickets)
-  let advanced = 0
-  let failed = 0
+  const pendingIds = tickets.filter(ticket => ticket.status === 'Pending').map(ticket => ticket.id)
+  for (const ticketId of pendingIds) setTapState(ticketId, 'saving')
   try {
-    for (const tag of tags) {
-      if (department.value?.code !== departmentCode) return
-      if (await advanceTicket(tag, 'start')) advanced += 1
-      else failed += 1
-    }
+    const response = await ticketStore.startOrder({
+      orderId,
+      department: departmentCode,
+      scannedBy: currentActor(Array.isArray(route.query.by) ? route.query.by[0] : route.query.by),
+    })
     if (department.value?.code !== departmentCode) return
-    showPageNotice({ title: orderId, message: `${advanced} advanced · ${failed} blocked or failed · ${missingTags} skipped without tag`, tone: failed ? 'error' : missingTags ? 'warning' : 'success' })
+    for (const ticketId of pendingIds) setTapState(ticketId, null)
+    const failedIds = response.kind === 'write_failed' ? pendingIds : response.blocked.map(ticket => ticket.ticketId)
+    for (const ticketId of failedIds) setTapState(ticketId, 'failed')
+    showPageNotice({ title: orderId, ...presentStartOrderResult(response) })
+  } catch {
+    if (department.value?.code !== departmentCode) return
+    for (const ticketId of pendingIds) setTapState(ticketId, 'failed')
+    showPageNotice({ title: orderId, message: 'Connection failed. Try again', tone: 'error' })
   } finally {
-    startingOrderId.value = null
+    for (const ticketId of pendingIds) {
+      if (tapStates.value.get(ticketId) === 'saving') setTapState(ticketId, null)
+    }
+    const next = new Set(syncingOrderIds.value)
+    next.delete(orderId)
+    syncingOrderIds.value = next
   }
 }
 
@@ -290,7 +302,7 @@ onBeforeRouteLeave(to => {
       </template>
 
       <div v-if="grouper === 'item'" class="grid grid-cols-2 gap-2 p-4 sm:grid-cols-3">
-        <button v-for="ticket in visibleTickets" :key="ticket.id" type="button" class="min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-lime disabled:cursor-not-allowed" :disabled="ticket.laundryItemId === null" :aria-label="`Advance tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="ticket.laundryItemId && advanceTicket(ticket.laundryItemId, 'tap')">
+        <button v-for="ticket in visibleTickets" :key="ticket.id" type="button" class="min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-lime disabled:cursor-not-allowed" :disabled="ticket.laundryItemId === null" :aria-label="`Advance tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="ticket.laundryItemId && tapStates.get(ticket.id) !== 'saving' && advanceTicket(ticket.laundryItemId, 'tap')">
           <SquareImageCard :image-url="ticket.photoEvidenceUrl">
             <template #badge><TicketStatusIcon :status="ticket.status" :state="tapStates.get(ticket.id)" /></template>
           </SquareImageCard>
@@ -320,9 +332,9 @@ onBeforeRouteLeave(to => {
               </span>
             </span>
           </button>
-          <button type="button" class="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/25 text-on-surface focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-40" aria-label="Start all pending" :disabled="startingOrderId !== null || statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Pending') === 0" @click="startOrder(order.orderId)"><svg viewBox="0 0 24 24" class="h-6 w-6" aria-hidden="true"><path d="M8.5 6v12l9.5-6z" fill="currentColor" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round" /></svg></button>
+          <button type="button" class="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/25 text-on-surface focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-40" :aria-label="syncingOrderIds.has(order.orderId) ? 'Syncing' : 'Start all pending'" :disabled="syncingOrderIds.has(order.orderId) || statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Pending') === 0" @click="startOrder(order.orderId)"><span v-if="syncingOrderIds.has(order.orderId)" class="material-symbols-outlined animate-spin text-[22px]" aria-hidden="true">sync</span><svg v-else viewBox="0 0 24 24" class="h-6 w-6" aria-hidden="true"><path d="M8.5 6v12l9.5-6z" fill="currentColor" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round" /></svg></button>
           <div v-if="expandedOrderId === order.orderId" class="grid grid-cols-2 gap-2 px-4 pb-4 sm:grid-cols-3">
-            <button v-for="ticket in order.tickets" :key="ticket.id" type="button" class="min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-lime disabled:cursor-not-allowed" :disabled="ticket.laundryItemId === null" :aria-label="`Advance tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="ticket.laundryItemId && advanceTicket(ticket.laundryItemId, 'tap')">
+            <button v-for="ticket in order.tickets" :key="ticket.id" type="button" class="min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-lime disabled:cursor-not-allowed" :disabled="ticket.laundryItemId === null" :aria-label="`Advance tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="ticket.laundryItemId && tapStates.get(ticket.id) !== 'saving' && advanceTicket(ticket.laundryItemId, 'tap')">
               <SquareImageCard :image-url="ticket.photoEvidenceUrl">
                 <template #badge><TicketStatusIcon :status="ticket.status" :state="tapStates.get(ticket.id)" /></template>
               </SquareImageCard>
@@ -333,9 +345,9 @@ onBeforeRouteLeave(to => {
     </ListContainer>
     <ListContainer v-else title="Department not found" icon="error" count-label="orders" empty empty-text="Unknown department" />
 
-    <button v-if="department" type="button" :disabled="ticketStore.loading || !!ticketStore.error" class="absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime disabled:opacity-50" aria-label="Scan tag" @click="openScanner">
-      <span class="material-symbols-outlined" aria-hidden="true">qr_code_scanner</span>
-    </button>
+    <StickerFab v-if="department" class="absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-5 z-10" label="Scan" aria-label="Scan tag" :disabled="ticketStore.loading || !!ticketStore.error" @click="openScanner">
+      <span class="material-symbols-outlined" style="font-size: 36px; font-variation-settings: 'wght' 600" aria-hidden="true">qr_code_scanner</span>
+    </StickerFab>
 
     <div v-if="pageNotice && !scannerOpen" class="pointer-events-none absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-4 right-20 z-20">
       <div class="pointer-events-auto"><ScanResultCard :result="pageNotice" dismissible @dismiss="dismissPageNotice" /></div>
