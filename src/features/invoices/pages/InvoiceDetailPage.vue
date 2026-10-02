@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onActivated, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
@@ -15,8 +16,10 @@ import type { InvoiceDetailDto } from '@/data/invoices/invoice-detail.service'
 import { printInvoice } from '@/data/invoices/invoice-print.service'
 import { ApiError } from '@/shared/api/api-client'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
+import { invoicePaymentCreateRoute, invoicePaymentReviewRoute } from '@/shared/navigation/form-routes'
 
 const props = defineProps<{ invoiceNumber: string }>()
+const router = useRouter()
 
 const invoice = ref<InvoiceDetailDto | null>(null)
 const loading = ref(true)
@@ -28,38 +31,10 @@ const printSuccess = ref<string | null>(null)
 const printError = ref<string | null>(null)
 let latestRequest = 0
 
-const statusStyles: Record<string, { badge: string; icon: string }> = {
-  DRAFT: { badge: 'bg-surface-container text-on-surface-variant', icon: 'draft' },
-  UNPAID: { badge: 'bg-warning-container text-on-warning-container', icon: 'schedule' },
-  OVERDUE: { badge: 'bg-error-container text-on-error-container', icon: 'event_busy' },
-  PARTIALLY_PAID: { badge: 'bg-info-container text-on-info-container', icon: 'donut_large' },
-  PAID: { badge: 'bg-success-container text-on-success-container', icon: 'task_alt' },
-  CANCELLED: { badge: 'bg-error-container text-on-error-container', icon: 'cancel' },
-  VOID: { badge: 'bg-error-container text-on-error-container', icon: 'block' },
-}
-
-const statusLabels: Record<string, string> = {
-  DRAFT: 'Draft',
-  UNPAID: 'Unpaid',
-  OVERDUE: 'Overdue',
-  PARTIALLY_PAID: 'Partially paid',
-  PAID: 'Paid',
-  CANCELLED: 'Cancelled',
-  VOID: 'Void',
-}
-
-const isReadOnlyFooterVisible = computed(() => {
+const canRecordPayment = computed(() => {
   const status = invoice.value?.status
-  return status !== undefined && status !== 'DRAFT'
+  return status !== undefined && status !== 'DRAFT' && status !== 'CANCELLED' && status !== 'VOID'
 })
-
-function statusStyle(status: string) {
-  return statusStyles[status] ?? { badge: 'bg-surface-container text-on-surface-variant', icon: 'receipt_long' }
-}
-
-function statusLabel(status: string) {
-  return statusLabels[status] ?? status
-}
 
 function formatMoney(value: number | null) {
   if (value === null || !Number.isFinite(value)) return '—'
@@ -76,15 +51,19 @@ function formatAdjustment(adjustment: { calculation: string | null, value: numbe
   return formatMoney(adjustment.value)
 }
 
-async function loadInvoice() {
+// A silent reload keeps the current invoice on screen; it refreshes payments and
+// balance after returning from the payment form.
+async function loadInvoice(silent = false) {
   const requestId = ++latestRequest
-  loading.value = true
-  error.value = null
-  notFound.value = false
-  invoice.value = null
-  proofUrl.value = null
-  printSuccess.value = null
-  printError.value = null
+  if (!silent) {
+    loading.value = true
+    error.value = null
+    notFound.value = false
+    invoice.value = null
+    proofUrl.value = null
+    printSuccess.value = null
+    printError.value = null
+  }
 
   try {
     const result = await getInvoiceDetail(props.invoiceNumber)
@@ -95,7 +74,7 @@ async function loadInvoice() {
     }
     invoice.value = result
   } catch (loadError) {
-    if (requestId !== latestRequest) return
+    if (requestId !== latestRequest || silent) return
     if (loadError instanceof InvalidInvoiceNumberError) {
       notFound.value = true
       return
@@ -132,7 +111,23 @@ async function handlePrint() {
   }
 }
 
-watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
+watch(() => props.invoiceNumber, () => loadInvoice(), { immediate: true })
+
+let activatedBefore = false
+onActivated(() => {
+  if (activatedBefore && invoice.value) void loadInvoice(true)
+  activatedBefore = true
+})
+
+function openRecordPayment() {
+  if (!invoice.value) return
+  void router.push(invoicePaymentCreateRoute(invoice.value.invoiceNumber))
+}
+
+function openPaymentReview(paymentId: string) {
+  if (!invoice.value) return
+  void router.push(invoicePaymentReviewRoute(invoice.value.invoiceNumber, paymentId))
+}
 </script>
 
 <template>
@@ -149,7 +144,7 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
         <button
           type="button"
           class="rounded-xl bg-primary px-4 py-2 font-label text-[12px] font-semibold text-on-primary transition-all hover:bg-primary/90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime/60"
-          @click="loadInvoice"
+          @click="loadInvoice()"
         >
           Retry
         </button>
@@ -190,37 +185,6 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
                   <BaseBadge class="whitespace-nowrap" :label="`${formatSheetDate(invoice.billingPeriodStart)} – ${formatSheetDate(invoice.billingPeriodEnd)}`" size="lg" tone="brand" />
                 </div>
               </div>
-            </section>
-
-            <section class="rounded-2xl border border-outline-variant/20 bg-surface-container-low p-3">
-              <button
-                type="button"
-                class="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 font-label text-[13px] font-bold text-on-primary shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime/60 disabled:cursor-wait disabled:opacity-60 disabled:active:scale-100"
-                :disabled="printing"
-                :aria-busy="printing"
-                @click="handlePrint"
-              >
-                <span
-                  class="material-symbols-outlined text-[20px] leading-none"
-                  :class="{ 'animate-spin': printing }"
-                  aria-hidden="true"
-                >{{ printing ? 'progress_activity' : 'print' }}</span>
-                <span>{{ printing ? 'กำลังส่งไปยังเครื่องพิมพ์…' : 'พิมพ์ใบแจ้งหนี้' }}</span>
-              </button>
-              <p
-                v-if="printSuccess"
-                class="mt-2 rounded-xl bg-success-container px-3 py-2 font-body text-xs text-on-success-container"
-                role="status"
-              >
-                {{ printSuccess }}
-              </p>
-              <p
-                v-else-if="printError"
-                class="mt-2 rounded-xl bg-error-container px-3 py-2 font-body text-xs text-on-error-container"
-                role="alert"
-              >
-                {{ printError }}
-              </p>
             </section>
 
             <InvoiceCustomerCard :customer="invoice.customer" />
@@ -266,6 +230,7 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
                   :payments="invoice.payments"
                   :suspended="proofUrl !== null"
                   @proof="proofUrl = $event"
+                  @review="openPaymentReview"
                 />
               </template>
 
@@ -308,15 +273,45 @@ watch(() => props.invoiceNumber, loadInvoice, { immediate: true })
           </div>
         </ScrollRegion>
 
-        <footer v-if="isReadOnlyFooterVisible" class="z-40 flex-none border-t border-outline-variant/20 bg-surface px-4 pb-4 pt-3">
-          <div class="flex h-14 w-full items-center justify-between gap-3 rounded-2xl bg-primary px-4 text-left text-on-primary shadow-md">
-            <span class="flex min-w-0 items-center gap-2.5">
-              <span class="material-symbols-outlined shrink-0 text-[20px] leading-none" aria-hidden="true">{{ statusStyle(invoice.status).icon }}</span>
-              <span class="truncate font-headline text-[14px] font-bold">{{ statusLabel(invoice.status) }}</span>
-            </span>
-            <span class="shrink-0 font-headline text-[15px] font-bold">
-              {{ formatMoney(invoice.status === 'PAID' ? invoice.paidAmount : invoice.balanceDue) }}
-            </span>
+        <footer class="z-40 flex-none border-t border-outline-variant/20 bg-surface px-4 pb-4 pt-3">
+          <p
+            v-if="printSuccess"
+            class="mb-2 rounded-xl bg-success-container px-3 py-2 font-body text-xs text-on-success-container"
+            role="status"
+          >
+            {{ printSuccess }}
+          </p>
+          <p
+            v-else-if="printError"
+            class="mb-2 rounded-xl bg-error-container px-3 py-2 font-body text-xs text-on-error-container"
+            role="alert"
+          >
+            {{ printError }}
+          </p>
+          <div class="flex w-full gap-2.5">
+            <button
+              type="button"
+              class="flex h-[49px] min-w-0 flex-1 basis-0 items-center justify-center gap-2 rounded-[10px] bg-primary px-3 text-on-primary shadow-[0_4px_0_color-mix(in_srgb,var(--color-primary)_55%,black)] transition-all hover:bg-primary/90 active:translate-y-[2px] active:shadow-[0_2px_0_color-mix(in_srgb,var(--color-primary)_55%,black)] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime/60 disabled:cursor-wait disabled:opacity-60"
+              :disabled="printing"
+              :aria-busy="printing"
+              @click="handlePrint"
+            >
+              <span
+                class="material-symbols-outlined shrink-0 text-[20px] leading-none"
+                :class="{ 'animate-spin': printing }"
+                aria-hidden="true"
+              >{{ printing ? 'progress_activity' : 'print' }}</span>
+              <span class="truncate font-headline text-[14px] font-extrabold">{{ printing ? 'Printing…' : 'Print' }}</span>
+            </button>
+            <button
+              v-if="canRecordPayment"
+              type="button"
+              class="flex h-[49px] min-w-0 flex-1 basis-0 items-center justify-center gap-2 rounded-[10px] border border-lime bg-lime px-3 text-on-surface shadow-[0_4px_0_var(--color-on-secondary-container)] transition-all hover:brightness-95 active:translate-y-[2px] active:shadow-[0_2px_0_var(--color-on-secondary-container)] focus:outline-none focus-visible:ring-2 focus-visible:ring-lime/60 focus-visible:ring-offset-2"
+              @click="openRecordPayment"
+            >
+              <span class="material-symbols-outlined shrink-0 text-[20px] leading-none" aria-hidden="true">payments</span>
+              <span class="truncate font-headline text-[14px] font-extrabold">Record payment</span>
+            </button>
           </div>
         </footer>
       </template>

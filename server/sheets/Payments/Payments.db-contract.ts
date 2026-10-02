@@ -38,5 +38,5 @@ export const paymentsDbContract = {
   primaryKey: 'payment_id',
   sheetName: 'Payments',
   spreadsheetId: 'INVOICES_SPREADSHEET_ID',
-  writes: { append: false, update: false, delete: false },
+  writes: { append: true, update: true, delete: false },
 } satisfies SheetContract

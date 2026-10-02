@@ -3,8 +3,8 @@ import { paymentsDbContract } from '../../../../server/sheets/Payments/Payments.
 
 assert.deepEqual(
   paymentsDbContract.writes,
-  { append: false, update: false, delete: false },
-  'Payments must remain read-only until its write semantics are designed',
+  { append: true, update: true, delete: false },
+  'Payments allows ledger appends and staff review of PENDING entries, never deletes',
 )
 
 console.log('payments-capabilities.dry-test: OK')
