@@ -49,6 +49,7 @@ function groupRows(rows: SourceRow[], field: string): Map<string, SourceRow[]> {
 
 export function assemblePortalOrders(orders: SourceRow[], items: SourceRow[], now: Date) {
   const groups = groupRows(items, 'order_id')
+  const syncedAt = formatBangkokTimestamp(now).slice(0, 10)
   return orders.filter((order) => number(order.quantity) > 0).map((order) => ({
     orderId: viewCell(order.id),
     customerId: viewCell(order.customer_id),
@@ -73,7 +74,7 @@ export function assemblePortalOrders(orders: SourceRow[], items: SourceRow[], no
       service_type: jsonCell(item.service_type),
       special_instructions: jsonCell(item.special_instructions),
     }))),
-    syncedAt: formatBangkokTimestamp(now).slice(0, 10),
+    syncedAt,
     createdAt: viewDate(order.received_date),
   }))
 }

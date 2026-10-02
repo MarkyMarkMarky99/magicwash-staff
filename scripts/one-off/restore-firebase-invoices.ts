@@ -1,3 +1,4 @@
+// Historical record, already run 2026-10-03; readSourceRows has since been removed, so it no longer runs.
 // One-off: restore invoices that exist in the Portal InvoicesView but are missing from the
 // Invoices / InvoiceItems / Payments sheets. Firestore export is the primary source; the Portal
 // row is the fallback and the parity oracle.

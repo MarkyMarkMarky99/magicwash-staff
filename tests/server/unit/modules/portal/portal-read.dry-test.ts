@@ -100,6 +100,8 @@ let reads = 0
 let liveOrders = orders
 const reader = (rows: () => SourceRow[]) => () => ({ read: async () => { reads++; return rows() } })
 const service = new PortalService({
+  customers: reader(() => []), appointments: reader(() => []), customerPackages: reader(() => []),
+  packages: reader(() => []), packageTransactions: reader(() => []),
   orders: reader(() => liveOrders), orderItems: reader(() => orderItems),
   invoices: reader(() => [invoice]), invoiceItems: reader(() => items), payments: reader(() => payments),
 }, () => now)
@@ -111,6 +113,7 @@ const beforeInvalid = reads
 await assert.rejects(service.orders({ customerId: ['C'] }))
 await assert.rejects(service.invoices({ invoiceNumber: 123 }))
 assert.equal(reads, beforeInvalid)
+assert.equal((await service.orders({ customerId: '' })).length, 0)
 liveOrders = [{ id: 'new', quantity: 1 }]
 assert.equal((await service.orders({}))[0]!.orderId, 'new')
 const routes = createPortalRoutes(service)

@@ -49,3 +49,27 @@ export const portalInvoicesApi = {
     }),
   },
 } satisfies ModuleApiContract
+
+export const portalCustomerIdSchema = z.string().min(1)
+
+const profileSchema = z.object({
+  customerId: cell, customerIndex: cell, customerName: cell, phone: cell, address: cell, location: cell,
+  registeredDate: cell, facebook: cell, lineId: cell, whatsapp: cell, email: cell, customerType: cell,
+  source: cell, scheduledDays: cell, lastVisitDate: cell, preferredContactMethod: cell,
+})
+const appointmentSchema = z.object({
+  appointmentId: cell, customerId: cell, appointmentType: cell, appointmentDate: cell, timeSlot: cell,
+  status: cell, pickupOrderId: cell, deliveryOrderId: cell, notes: cell, deletedAt: cell, createdAt: cell,
+})
+export const portalPackageSchema = z.object({
+  customerPackageId: z.string(), customerId: z.string(), customerName: z.string(),
+  customerPhone: z.string().nullable(), customerAddress: z.string().nullable(),
+  packageCode: z.string(), packageName: z.string(), packageEligibleService: z.string(),
+  startDate: z.string().nullable(), expiryDate: z.string().nullable(), status: z.enum(['INACTIVE', 'ACTIVE', 'EXPIRED', 'CANCELLED']),
+  serviceDay: z.string().nullable(), timeSlot: z.string().nullable(), invoiceId: z.string().nullable(), notes: z.string().nullable(),
+  remainingCredit: z.number(), usedCredit: z.number(), totalCredit: z.number(), transactionsJson: z.string(),
+})
+export const portalCustomerResponseSchema = z.object({
+  customer: profileSchema, orders: z.array(portalOrdersApi.response.list), invoices: z.array(portalInvoicesApi.response.list),
+  appointments: z.array(appointmentSchema), packages: z.array(portalPackageSchema),
+})

@@ -1,5 +1,4 @@
 import { getGoogleAccessToken } from './google-auth.js'
-import { parseSheetGridValues, type SheetSourceValue } from './sheet-grid-values.js'
 
 export const SHEETS_API_TIMEOUT_MS = 15_000
 
@@ -291,15 +290,6 @@ export class SheetsApiClient {
     }
 
     return values
-  }
-
-  async readSourceCells(range: string): Promise<SheetSourceValue[][]> {
-    requireNonEmpty(range, 'range')
-    const url = new URL(`${SHEETS_API_BASE_URL}/${encodeURIComponent(this.spreadsheetId)}`)
-    url.searchParams.set('ranges', `'${this.sheetName.replaceAll("'", "''")}'!${range}`)
-    url.searchParams.set('fields', 'properties(timeZone),sheets(data(rowData(values(effectiveValue,formattedValue,effectiveFormat(numberFormat(type))))))')
-    const body = await this.requestJson('readSourceCells', 'GET', url.toString(), undefined, false)
-    return parseSheetGridValues(body)
   }
 
   async readRanges(ranges: readonly string[], options?: SheetsApiReadOptions): Promise<SheetsApiValues[]> {

@@ -22,13 +22,12 @@ The persistence layer reads and writes Google Sheets through two separate transp
 
 It uses unauthenticated GViz for reads and the authenticated Google Sheets API for writes.
 
-Portal live projections use the opt-in `SheetRepository.readSourceRows()` instead:
-authenticated grid reads preserve each effective cell type, empty strings, and native
-dates, including numeric values in mixed-type columns that GViz suppresses. The
-reader validates physical headers against the existing contract, reconstructs date
-instants using the workbook timezone, and does not cache rows. Normal `read()` remains
-GViz-based. Grid transport and boundary parsing live in `sheets-api.client.ts` and
-`sheet-grid-values.ts`; portal projection rules remain in `server/modules/portal/`.
+Portal live projections use module-owned whole-sheet GViz readers with selected columns
+located by database contract key order. Only `server/modules/portal/` caches those reads:
+60 seconds per sheet after a successful read, sharing concurrent in-flight requests.
+Other modules continue reading live through their repositories. GViz suppresses minority
+cell types in mixed columns; the portal source parity check reports these losses against
+an explicitly captured grid-reader baseline rather than recovering missing values.
 
 ## Structure
 

@@ -65,9 +65,21 @@ wrong materialized view in its Apps Script source rather than guessing in the AP
 ## Live portal reads
 
 `server/modules/portal/` exposes read-only `GET /api/portal/orders` and
-`GET /api/portal/invoices` in the normal success envelope, without pagination.
-Every request reads the existing source repositories via `readSourceRows()` and assembles the Apps Script
-OrdersView / InvoiceViewSync projections; it never reads or writes a materialized view.
+`GET /api/portal/invoices`, plus `GET /api/portal/customers/:customerId`, in the normal
+success envelope, without pagination. The customer route returns `{ customer, orders,
+invoices, appointments, packages }` or 404 for a missing customer. Customer and appointment
+projections preserve React GViz scalar/date formats; appointments include every matching
+row. Packages port CustomerPackageViewBuild.js, including transaction JSON, running credits,
+and status computed at request time. The gateway supports an explicitly registered nested
+item path for this route; other three-segment paths return 404.
+
+The module reads each whole source sheet once through unauthenticated GViz, selecting only
+required columns derived from database contract key order. All needed sheets load in parallel.
+A module-local singleton caches each sheet for 60 seconds after completion and shares one
+in-flight read across callers. Failures are not cached; the cache clock is injectable in tests.
+Customer and identity filters apply before assembly, with related items/payments restricted
+to those parents. It assembles the Apps Script OrdersView / InvoiceViewSync projections;
+it never reads or writes a materialized view.
 Orders accept optional `customerId` and `orderId`; invoices accept `customerId` and
 `invoiceNumber`. Filters use exact string equality and preserve source invoice/order row order.
 
@@ -77,13 +89,14 @@ Orders copy physical OrderForm column S (`invoice_id`) to `invoiceNumber` and
 `received_date` to `createdAt`. `syncedAt` is the request assembly date in Asia/Bangkok,
 matching the live view's date-cell precision rather than its historical sync time;
 the envelope `meta.timestamp` provides a full response timestamp.
-These opt-in authenticated Sheets grid reads preserve mixed cell types (notably
-numeric item IDs that GViz drops), blank strings, and native Date objects. They
-require the existing `GOOGLE_SERVICE_ACCOUNT_KEY` and source workbook IDs.
-Source headers must match the existing database contracts. Normal repository
-`read()` and existing orders/invoices endpoints retain their GViz transport.
+GViz date/datetime cells become native Date objects for their Bangkok wall-clock time;
+numbers stay numbers and null source cells become empty strings for assembly. GViz can
+coerce mixed-column values to strings or suppress minority types entirely. The integration
+source parity check accepts the captured old-reader JSON baseline and reports every selected
+column's differences and nonblank-to-empty losses, excluding rows blank across all selected
+columns for alignment. Such losses are not repaired. Normal repository reads remain live.
 Top-level text columns stringify numeric identifiers as the live view's GViz
-response does; nested JSON retains their original numeric cell values.
+response does; nested JSON retains numeric values that GViz returns.
 React's declared date columns become YYYY-MM-DD; native billing-period dates retain
 GViz `Date(...)` values because React does not convert those columns. Native dates
 inside JSON become UTC ISO strings, as Apps Script JSON.stringify serializes Date objects.
