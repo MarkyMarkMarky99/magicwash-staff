@@ -6,6 +6,7 @@ import GenericTabs from '@/shared/components/GenericTabs.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import QrScannerOverlay from '@/shared/components/QrScannerOverlay.vue'
 import SquareImageCard from '@/shared/components/SquareImageCard.vue'
+import StickerFab from '@/shared/components/StickerFab.vue'
 import CompletionRing from '../components/CompletionRing.vue'
 import ScanResultCard from '../components/ScanResultCard.vue'
 import TicketStatusIcon, { type TicketTapState } from '../components/TicketStatusIcon.vue'
@@ -344,9 +345,9 @@ onBeforeRouteLeave(to => {
     </ListContainer>
     <ListContainer v-else title="Department not found" icon="error" count-label="orders" empty empty-text="Unknown department" />
 
-    <button v-if="department" type="button" :disabled="ticketStore.loading || !!ticketStore.error" class="absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-5 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime disabled:opacity-50" aria-label="Scan tag" @click="openScanner">
-      <span class="material-symbols-outlined" aria-hidden="true">qr_code_scanner</span>
-    </button>
+    <StickerFab v-if="department" class="absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-5 z-10" label="Scan" aria-label="Scan tag" :disabled="ticketStore.loading || !!ticketStore.error" @click="openScanner">
+      <span class="material-symbols-outlined" style="font-size: 36px; font-variation-settings: 'wght' 600" aria-hidden="true">qr_code_scanner</span>
+    </StickerFab>
 
     <div v-if="pageNotice && !scannerOpen" class="pointer-events-none absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-4 right-20 z-20">
       <div class="pointer-events-auto"><ScanResultCard :result="pageNotice" dismissible @dismiss="dismissPageNotice" /></div>
