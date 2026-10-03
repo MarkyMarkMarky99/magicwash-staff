@@ -41,6 +41,12 @@ assert.deepEqual(dailyMinutes(rows, 'a', ['2026-10-03', '2026-10-04']), [12, 9])
 assert.deepEqual(rankStaff(rows, ['2026-10-04']), [{ staffId: 'b', minutes: 30 }, { staffId: 'a', minutes: 9 }])
 assert.deepEqual(rankStaff(rows, ['2026-10-01']), [])
 
+assert.deepEqual(summarizeDay([
+  row({ id: 'e', minutes: 6 }),
+  row({ id: 'adj', type: 'ADJUSTMENT', minutes: -6 }),
+], 'a', '2026-10-04'), { minutes: 0, jobs: 1, byDepartment: [{ department: 'Ironing', jobs: 1, minutes: 0 }] })
+assert.equal(summarizeDay([row({ type: 'VOID', minutes: -6 })], 'a', '2026-10-04').jobs, -1)
+
 assert.equal(averageWorkedDay([0, 10, 0, 20]), 15)
 assert.equal(averageWorkedDay([0, 0]), 0)
 

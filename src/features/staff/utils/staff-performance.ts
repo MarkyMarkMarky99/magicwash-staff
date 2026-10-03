@@ -19,7 +19,6 @@ export interface StaffTotal {
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-/** `count` consecutive yyyy-MM-dd days ending at `lastDay`, oldest first. */
 export function daysEndingAt(lastDay: string, count: number): string[] {
   const end = Date.parse(`${lastDay}T00:00:00Z`)
   return Array.from({ length: count }, (_value, index) =>
@@ -30,7 +29,6 @@ function dayOf(row: WorkTransactionDto): string {
   return row.createdAt.slice(0, 10)
 }
 
-/** Sums one staff member's minutes and completed jobs for one day; corrections lower both. */
 export function summarizeDay(rows: readonly WorkTransactionDto[], staffId: string, day: string): DaySummary {
   const shares = new Map<string, DepartmentShare>()
   let minutes = 0
@@ -49,11 +47,12 @@ export function summarizeDay(rows: readonly WorkTransactionDto[], staffId: strin
   return {
     minutes,
     jobs,
-    byDepartment: [...shares.values()].filter((share) => share.minutes !== 0).sort((a, b) => b.minutes - a.minutes),
+    byDepartment: [...shares.values()]
+      .filter((share) => share.minutes !== 0 || share.jobs !== 0)
+      .sort((a, b) => b.minutes - a.minutes),
   }
 }
 
-/** Minutes per day for one staff member, in the order of `days`. */
 export function dailyMinutes(rows: readonly WorkTransactionDto[], staffId: string, days: readonly string[]): number[] {
   const byDay = new Map<string, number>(days.map((day) => [day, 0]))
   for (const row of rows) {
@@ -63,7 +62,6 @@ export function dailyMinutes(rows: readonly WorkTransactionDto[], staffId: strin
   return days.map((day) => byDay.get(day)!)
 }
 
-/** Every staff member with minutes in `days`, highest first. */
 export function rankStaff(rows: readonly WorkTransactionDto[], days: readonly string[]): StaffTotal[] {
   const inPeriod = new Set(days)
   const totals = new Map<string, number>()
@@ -77,7 +75,6 @@ export function rankStaff(rows: readonly WorkTransactionDto[], days: readonly st
     .sort((a, b) => b.minutes - a.minutes || a.staffId.localeCompare(b.staffId))
 }
 
-/** Average over the days that have any minutes; 0 when none do. */
 export function averageWorkedDay(minutesPerDay: readonly number[]): number {
   const worked = minutesPerDay.filter((minutes) => minutes > 0)
   return worked.length === 0 ? 0 : Math.round(worked.reduce((sum, minutes) => sum + minutes, 0) / worked.length)

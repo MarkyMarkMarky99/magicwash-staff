@@ -4,8 +4,10 @@
 built from WorkTransactions. The staff list opens it for every row except a pending one, which
 still opens the edit form. Admins also get an Edit link to that form.
 
-The page reads `GET /api/work-transactions` once for the last 14 Bangkok days (today included) and
-computes everything in `src/features/staff/utils/staff-performance.ts`. Minutes and job counts
+The page reads `GET /api/work-transactions` for the last 14 Bangkok days (today included) every
+time it is shown (the endpoint is in `NEVER_CACHE`; a new Bangkok day moves the period), and
+computes everything in `src/features/staff/utils/staff-performance.ts`. Until that read succeeds
+the results area shows a loading line or the error with Retry, never empty results. Minutes and job counts
 include correction rows: a VOID lowers both, an ADJUSTMENT changes minutes only. The name and
 details come from the prefetched staff list.
 
