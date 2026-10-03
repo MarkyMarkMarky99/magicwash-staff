@@ -181,6 +181,12 @@ in-flight read cannot repopulate the cache after invalidation.
 staffId, email, name, and role. The staff module receives the verified email and, when listed, the
 active StaffMember. Other modules continue dispatching without authentication or staff identity.
 
+`GET /api/work-transactions?from=yyyy-MM-dd&to=yyyy-MM-dd` is public. It reads the whole
+WorkTransactions tab once and returns every row whose `created_at` falls in the inclusive Bangkok-day
+period (shorter than 62 days). Each row carries `department`, derived from the job ticket id prefix
+(`IRN-`, `WSH-`, …; null when unknown), and `staffId`, the worker credited: the row's own
+`created_by` for EARN, and the same ticket's EARN `created_by` for ADJUSTMENT and VOID.
+
 | Route | Authorization | Result |
 | --- | --- | --- |
 | `GET /api/staff/me` | Valid token | Own row including pending/inactive rows; 404 if absent |

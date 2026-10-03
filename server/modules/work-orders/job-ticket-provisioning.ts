@@ -83,6 +83,12 @@ const departmentPrefixes: Record<JobTicketDepartment, string> = {
   Logistics: 'LOG',
 }
 
+export function departmentForJobTicketId(jobTicketId: string): JobTicketDepartment | null {
+  const prefix = jobTicketId.split('-', 1)[0]
+  const departments = Object.keys(departmentPrefixes) as JobTicketDepartment[]
+  return departments.find((department) => departmentPrefixes[department] === prefix) ?? null
+}
+
 export function buildJobTicketId(
   orderId: string,
   laundryItemId: string,

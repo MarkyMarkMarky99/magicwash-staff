@@ -8,11 +8,11 @@
 - Order approval stamps `JobTickets.work_minutes` from the department's active EASY rate (blank if missing/unreadable).
 - Completing tickets appends one EARN row per ticket (minutes = `work_minutes`, created_by = StaffId) in one batch; old tickets without `work_minutes` earn nothing silently.
 - A failed EARN write returns `scoreFailed` and the department page shows "Score not saved … Tell an admin"; no backfill.
+- Staff profile page `/staff/:staffId` (Day/Week, WHOOP-style dark) reads public `GET /api/work-transactions`; not browser-tested; design canvas: claude.ai/artifact/NACQydNrsqjzx31RrK6tsX.
 
 ## Next
 
 - Merge to `main` (started_at rewrite fixed on this branch).
-- Owner decision: 511 JobTickets rows already hold `started_at` as `Date(...)` text; repair script not written.
 - Accepted risk: two simultaneous completions of one ticket can write two EARNs; fix with a VOID row.
 - Before KPI drives pay: server must take the actor from the token, not the client body.
 - Future: supervisor-created tickets with custom `work_minutes`; KPI report screen.

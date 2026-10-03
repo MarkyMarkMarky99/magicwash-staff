@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import GenericTabs from '@/shared/components/GenericTabs.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
-import { staffEditRoute } from '@/shared/navigation/form-routes'
+import { staffEditRoute, staffProfileRoute } from '@/shared/navigation/form-routes'
 import { useAuthStore } from '@/data/auth/auth.store'
 import { useStaffStore } from '@/data/staff/staff.store'
 import StaffCard from '../components/StaffCard.vue'
@@ -49,8 +49,10 @@ const visibleStaff = computed(() =>
 const listLoading = computed(() => loading.value && !loaded.value)
 const listError = computed(() => (loaded.value ? null : error.value))
 
-function openEdit(staffId: string): void {
-  void router.push(staffEditRoute(staffId))
+// A row still waiting for approval opens the form, where the admin approves it.
+function openStaff(staffId: string): void {
+  const row = items.value.find((item) => item.staffId === staffId)
+  void router.push(row && staffStanding(row) === 'pending' ? staffEditRoute(staffId) : staffProfileRoute(staffId))
 }
 
 // This page stays cached, so it must not react to sign-out while another route is showing.
@@ -91,7 +93,7 @@ onActivated(() => {
       :empty="!listLoading && !listError && visibleStaff.length === 0"
       empty-text="ไม่พบพนักงาน"
     >
-      <StaffCard v-for="member in visibleStaff" :key="member.email" :staff="member" @select="openEdit" />
+      <StaffCard v-for="member in visibleStaff" :key="member.email" :staff="member" @select="openStaff" />
     </ListContainer>
   </ListPageLayout>
 </template>
