@@ -71,7 +71,7 @@ assert.equal(jobTicketAdvanceRequestSchema.parse({ ...advanceRequest, tickets: A
 assert.throws(() => jobTicketAdvanceRequestSchema.parse({ ...advanceRequest, tickets: Array(201).fill(advanceRequest.tickets[0]) }))
 assert.throws(() => jobTicketAdvanceRequestSchema.parse({ ...advanceRequest, fromStatus: 'Completed' }))
 assert.throws(() => jobTicketAdvanceRequestSchema.parse({ ...advanceRequest, tickets: [{ ticketId: ' ', orderId: 'order' }] }))
-assert.equal(jobTicketAdvanceResponseSchema.parse({ kind: 'completed', advanced: [{ ticketId: 'one', laundryItemId: null, status: 'Completed', startedAt: null, completedAt: null }], blocked: [], skipped: [] }).kind, 'completed')
+assert.equal(jobTicketAdvanceResponseSchema.parse({ kind: 'completed', advanced: [{ ticketId: 'one', laundryItemId: null, status: 'Completed', startedAt: null, completedAt: null }], blocked: [], skipped: [], scoreFailed: 0 }).kind, 'completed')
 assert.equal(jobTicketAdvanceResponseSchema.parse({ kind: 'write_failed', certainty: 'unknown', blocked: [], skipped: [{ ticketId: 'two', reason: 'status_changed' }] }).kind, 'write_failed')
 assert.throws(() => jobTicketAdvanceResponseSchema.parse({ kind: 'write_failed', certainty: 'maybe', blocked: [], skipped: [] }))
 

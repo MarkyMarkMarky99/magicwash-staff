@@ -2,13 +2,17 @@ import type { z } from 'zod'
 import { jobTicketAdvanceRequestSchema, jobTicketAdvanceResponseSchema } from '../../../contracts/job-tickets/job-ticket-api.schema.js'
 import { jobTicketsRowSchema } from '../../sheets/JobTickets/JobTickets.db-contract.js'
 import { getJobTicketsRepository } from '../../sheets/JobTickets/JobTickets.repository.js'
+import { workTransactionsRowSchema } from '../../sheets/WorkTransactions/WorkTransactions.db-contract.js'
+import { getWorkTransactionsRepository } from '../../sheets/WorkTransactions/WorkTransactions.repository.js'
 import type { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import type { SheetRowUpdate } from '../../shared/repositories/sheet-repository.contract.js'
 import { classifySheetWriteFailure } from '../../shared/repositories/write-failure.js'
 import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
+import { generateShortId } from '../../shared/utils/id.js'
 
 type JobTicketDbRow = z.infer<typeof jobTicketsRowSchema>
+type WorkTransactionsDbRow = z.infer<typeof workTransactionsRowSchema>
 export type JobTicketAdvanceResponse = z.infer<typeof jobTicketAdvanceResponseSchema>
 
 export interface JobTicketAdvanceRepository {
@@ -16,17 +20,24 @@ export interface JobTicketAdvanceRepository {
   updateMany(updates: ReadonlyArray<SheetRowUpdate<JobTicketDbRow>>): Promise<unknown>
 }
 
+export interface WorkTransactionAppender {
+  batchAppend(rows: Array<Partial<WorkTransactionsDbRow>>): Promise<unknown>
+}
+
 export interface JobTicketAdvanceServiceOptions {
   repository?: () => JobTicketAdvanceRepository
+  workTransactionRepository?: () => WorkTransactionAppender
   now?: () => Date
 }
 
 export class JobTicketAdvanceService {
   private readonly repository: () => JobTicketAdvanceRepository
+  private readonly workTransactionRepository: () => WorkTransactionAppender
   private readonly now: () => Date
 
   constructor(input: JobTicketAdvanceServiceOptions = {}) {
     this.repository = input.repository ?? getJobTicketsRepository
+    this.workTransactionRepository = input.workTransactionRepository ?? getWorkTransactionsRepository
     this.now = input.now ?? (() => new Date())
   }
 
@@ -48,6 +59,7 @@ export class JobTicketAdvanceService {
     const skipped: Extract<JobTicketAdvanceResponse, { kind: 'completed' }>['skipped'] = []
     const advanced: Extract<JobTicketAdvanceResponse, { kind: 'completed' }>['advanced'] = []
     const updates: SheetRowUpdate<JobTicketDbRow>[] = []
+    const completed: Array<{ ticketId: string; workMinutes: JobTicketDbRow['work_minutes'] | undefined }> = []
     const timestamp = formatBangkokTimestamp(this.now())
 
     for (const entry of requested) {
@@ -80,15 +92,33 @@ export class JobTicketAdvanceService {
         ...(status === 'Completed' ? { completed_at: completedAt } : {}),
         scanned_by: request.scannedBy, updated_by: request.scannedBy,
       } })
+      if (status === 'Completed') completed.push({ ticketId: entry.ticketId, workMinutes: ticket.work_minutes })
       advanced.push({ ticketId: entry.ticketId, laundryItemId: ticket.laundry_item_id ?? null, status, startedAt, completedAt })
     }
 
-    if (updates.length === 0) return { kind: 'completed', advanced, blocked, skipped }
+    if (updates.length === 0) return { kind: 'completed', advanced, blocked, skipped, scoreFailed: 0 }
     try {
       await repository.updateMany(updates)
     } catch (error) {
       return { kind: 'write_failed', certainty: classifySheetWriteFailure(error).certainty, blocked, skipped }
     }
-    return { kind: 'completed', advanced, blocked, skipped }
+    const earnRows: Array<Partial<WorkTransactionsDbRow>> = []
+    let scoreFailed = 0
+    for (const ticket of completed) {
+      if (typeof ticket.workMinutes !== 'number' || !Number.isFinite(ticket.workMinutes)) continue
+      earnRows.push({
+        id: generateShortId(), job_ticket_id: ticket.ticketId, type: 'EARN',
+        minutes: ticket.workMinutes, notes: null, created_by: request.scannedBy,
+      })
+    }
+    if (earnRows.length > 0) {
+      try {
+        await this.workTransactionRepository().batchAppend(earnRows)
+      } catch (error) {
+        console.error('Failed to append WorkTransactions', error)
+        scoreFailed += earnRows.length
+      }
+    }
+    return { kind: 'completed', advanced, blocked, skipped, scoreFailed }
   }
 }

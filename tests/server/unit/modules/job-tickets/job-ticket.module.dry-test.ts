@@ -70,7 +70,7 @@ try {
   startMethods.startOrder = async () => ({ kind: 'write_failed', certainty: 'unknown', blocked: [], skippedWithoutTag: 0 })
   assert.equal((await jobTicketRoutes.item!.handleRequest(request('start-order'))).status, 500)
 
-  advanceMethods.advance = async () => ({ kind: 'completed', advanced: [], blocked: [], skipped: [] })
+  advanceMethods.advance = async () => ({ kind: 'completed', advanced: [], blocked: [], skipped: [], scoreFailed: 0 })
   assert.equal((await jobTicketRoutes.item!.handleRequest(request('advance'))).status, 200)
   advanceMethods.advance = async () => ({ kind: 'write_failed', certainty: 'rejected', blocked: [], skipped: [] })
   assert.equal((await jobTicketRoutes.item!.handleRequest(request('advance'))).status, 502)

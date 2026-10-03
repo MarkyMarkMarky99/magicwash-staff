@@ -36,7 +36,11 @@ assert.equal(resolveScanTag('tag-b', scanTickets, 'Pending', [], 'Washing').mess
 assert.equal(resolveScanTag('missing', scanTickets, 'Pending', [], 'Washing').message, 'No job for this tag')
 assert.equal(resolveScanTag('tag-a', scanTickets, 'Pending', [{ ticketId: 'tag-a', orderId: 'order-1', tag: 'tag-a' }], 'Washing').message, 'Already queued')
 assert.deepEqual(restoreScanQueue([{ ticketId: 'tag-a' }, { ticketId: 'tag-a' }, { ticketId: 'tag-b' }, { ticketId: 'missing' }], scanTickets, 'Pending', 'Washing'), [{ ticketId: 'tag-a', orderId: 'order-1', tag: 'tag-a' }])
-assert.equal(advanceSummary({ kind: 'completed', advanced: [{ ticketId: 'tag-a', laundryItemId: 'tag-a', status: 'In Progress', startedAt: null, completedAt: null }], blocked: [{ ticketId: 'tag-b', laundryItemId: null, blockedByDepartment: 'Washing' }], skipped: [{ ticketId: 'other', reason: 'not_found' }] }, 'Pending'), '1 started · 1 blocked by Washing · 1 skipped')
+for (const scoreFailed of [1, 3]) {
+  assert.equal(advanceSummary({ kind: 'completed', advanced: [], blocked: [], skipped: [], scoreFailed }, 'In Progress'),
+    `0 completed · 0 blocked · 0 skipped · Score not saved for ${scoreFailed} job${scoreFailed === 1 ? '' : 's'}. Tell an admin.`)
+}
+assert.equal(advanceSummary({ kind: 'completed', advanced: [{ ticketId: 'tag-a', laundryItemId: 'tag-a', status: 'In Progress', startedAt: null, completedAt: null }], blocked: [{ ticketId: 'tag-b', laundryItemId: null, blockedByDepartment: 'Washing' }], skipped: [{ ticketId: 'other', reason: 'not_found' }], scoreFailed: 0 }, 'Pending'), '1 started · 1 blocked by Washing · 1 skipped')
 
 const tickets = [ticket('tag-a', 'order-late', 'Pending'), ticket('tag-b', 'order-soon', 'Completed'), ticket('tag-c', 'order-soon', 'In Progress')]
 const orderInfo = new Map([

@@ -55,6 +55,7 @@ export function advanceSummary(result: Extract<JobTicketAdvanceResult, { kind: '
     `${result.advanced.length} ${status === 'Pending' ? 'started' : 'completed'}`,
     `${result.blocked.length} blocked${blockers.length ? ` by ${blockers.join(', ')}` : ''}`,
     `${result.skipped.length} skipped`,
+    ...(result.scoreFailed > 0 ? [`Score not saved for ${result.scoreFailed} job${result.scoreFailed === 1 ? '' : 's'}. Tell an admin.`] : []),
   ].join(' · ')
 }
 
