@@ -25,6 +25,8 @@ import { packageTransactionsDbContract } from '../../../../server/sheets/Package
 import { packagesDbContract } from '../../../../server/sheets/Packages/Packages.db-contract.js'
 import { issueReportsDbContract } from '../../../../server/sheets/IssueReports/IssueReports.db-contract.js'
 import { jobTicketsDbContract } from '../../../../server/sheets/JobTickets/JobTickets.db-contract.js'
+import { workTransactionsDbContract } from '../../../../server/sheets/WorkTransactions/WorkTransactions.db-contract.js'
+import { workRatesDbContract } from '../../../../server/sheets/WorkRates/WorkRates.db-contract.js'
 import { deriveGVizColumns } from '../../../../server/shared/repositories/utils/gviz-query.builder.js'
 
 interface SheetContractLike {
@@ -40,6 +42,24 @@ interface ColumnOrderTest {
 }
 
 const tests: ColumnOrderTest[] = [
+  {
+    name: 'WorkTransactions',
+    contract: workTransactionsDbContract,
+    expected: {
+      id: 'A', job_ticket_id: 'B', type: 'C', minutes: 'D', notes: 'E',
+      created_at: 'F', created_by: 'G',
+    },
+    primaryKeyColumn: 'A',
+  },
+  {
+    name: 'WorkRates',
+    contract: workRatesDbContract,
+    expected: {
+      id: 'A', department: 'B', level: 'C', name_th: 'D', minutes: 'E', active: 'F',
+      notes: 'G', created_at: 'H', created_by: 'I', updated_at: 'J', updated_by: 'K',
+    },
+    primaryKeyColumn: 'A',
+  },
   {
     name: 'AfterPhoto',
     contract: afterPhotoDbContract,

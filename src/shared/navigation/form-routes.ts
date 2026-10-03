@@ -10,6 +10,7 @@ export const INVOICE_PAYMENT_CREATE_ROUTE_NAME = 'invoice-payment-create'
 export const INVOICE_PAYMENT_REVIEW_ROUTE_NAME = 'invoice-payment-review'
 export const STAFF_REGISTER_ROUTE_NAME = 'staff-register'
 export const STAFF_EDIT_ROUTE_NAME = 'staff-edit'
+export const STAFF_PROFILE_ROUTE_NAME = 'staff-profile'
 
 interface AppointmentCreateRouteContext {
   customerId: string
@@ -104,4 +105,8 @@ export function staffRegisterRoute(): RouteLocationRaw {
 
 export function staffEditRoute(staffId: string): RouteLocationRaw {
   return { name: STAFF_EDIT_ROUTE_NAME, params: { staffId } }
+}
+
+export function staffProfileRoute(staffId: string): RouteLocationRaw {
+  return { name: STAFF_PROFILE_ROUTE_NAME, params: { staffId } }
 }

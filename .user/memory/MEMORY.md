@@ -5,8 +5,18 @@
 ## Branches in flight
 
 - `work` — retained initial cloud checkout branch; details: `.user/memory/work.md`.
+- **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
+- **`feat/invoice-form-overlay`** — design-only work (invoice create as a form overlay with swipeable line cards), 1 commit ahead of `main`; kept by owner, not for merge yet.
+- **`feat/package-credit`** — monthly-subscription package credits, phases 1–4 built, awaiting owner test on Preview. Details on that branch: `.user/memory/feat-package-credit.md`.
 
 ## Pending work
+
+- **Staff KPI (WorkTransactions / WorkRates, merged 2026-10-04)**
+  - Browser-check the staff profile page `/staff/:staffId` (Day date strip, Week leaderboard); only unit-tested.
+  - Accepted risk: two simultaneous completions of one ticket can write two EARNs; correct with a VOID row.
+  - Before KPI drives pay: server must take the actor from the token, not the client body.
+  - Future: supervisor-created tickets with custom `work_minutes`; Month view; Attendance for efficiency %.
+  - Design canvas for the profile: claude.ai/artifact/NACQydNrsqjzx31RrK6tsX.
 
 - Phone-check a form's close X sits top-right with no white strip (CloseButton position fix, pushed 2026-09-28).
 - Package detail hero card: low-credit badge threshold (20%) was Claude's pick, not confirmed by user.

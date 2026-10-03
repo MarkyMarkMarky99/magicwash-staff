@@ -22,8 +22,10 @@ import { packagesDbContract } from '../../../../server/sheets/Packages/Packages.
 import { issueReportsDbContract } from '../../../../server/sheets/IssueReports/IssueReports.db-contract.js'
 import { itemsDbContract } from '../../../../server/sheets/Items/Items.db-contract.js'
 import { jobTicketsDbContract } from '../../../../server/sheets/JobTickets/JobTickets.db-contract.js'
+import { workTransactionsDbContract } from '../../../../server/sheets/WorkTransactions/WorkTransactions.db-contract.js'
+import { workRatesDbContract } from '../../../../server/sheets/WorkRates/WorkRates.db-contract.js'
 
-const expectedSheetCount = 20
+const expectedSheetCount = 22
 const expectedSheetDirectories = [
   'AfterPhoto',
   'Appointments',
@@ -45,9 +47,23 @@ const expectedSheetDirectories = [
   'Packages',
   'Payments',
   'PriceList',
+  'WorkRates',
+  'WorkTransactions',
 ] as const
 
 const bindings = [
+  {
+    name: 'WorkTransactions',
+    contract: workTransactionsDbContract,
+    expectedSpreadsheetId: 'WORK_SPREADSHEET_ID',
+    expectedSheetName: 'WorkTransactions',
+  },
+  {
+    name: 'WorkRates',
+    contract: workRatesDbContract,
+    expectedSpreadsheetId: 'WORK_SPREADSHEET_ID',
+    expectedSheetName: 'WorkRates',
+  },
   {
     name: 'AfterPhoto',
     contract: afterPhotoDbContract,

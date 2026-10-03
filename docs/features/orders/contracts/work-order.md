@@ -86,6 +86,7 @@ service reads LaundryPhotos, OrderItemForms, and existing JobTickets, builds eve
 item-scoped department ticket, and uses one batch append. Existing garment/department pairs are
 not appended again, so a repeated approval can fill tickets for a garment tagged later.
 
+Each new ticket's `work_minutes` is taken from its department's active EASY row in WorkRates, or left blank when none exists or WorkRates cannot be read (approval still succeeds).
 The status write is not rolled back if provisioning fails. A rejected append confirms that no
 ticket batch landed. An unknown append outcome must not be retried automatically because the batch
 may have landed even though its response could not be confirmed.

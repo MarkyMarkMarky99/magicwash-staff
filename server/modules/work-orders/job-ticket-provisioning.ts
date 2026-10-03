@@ -1,3 +1,12 @@
+import type { z } from 'zod'
+import { workRatesRowSchema } from '../../sheets/WorkRates/WorkRates.db-contract.js'
+
+type WorkRatesDbRow = z.infer<typeof workRatesRowSchema>
+
+export interface WorkRateReader {
+  read(): Promise<Array<Partial<WorkRatesDbRow>>>
+}
+
 export type RoutableServiceType = 'WSIR' | 'IRON' | 'DRCL' | 'WASH'
 export type JobTicketDepartment =
   | 'Tagging'
@@ -44,6 +53,7 @@ export interface ProvisionedJobTicketRow {
   status: 'Pending'
   photo_evidence_url: string | null
   created_by: string
+  work_minutes: number | null
 }
 
 export interface UnroutableGarment {
@@ -73,6 +83,12 @@ const departmentPrefixes: Record<JobTicketDepartment, string> = {
   Logistics: 'LOG',
 }
 
+export function departmentForJobTicketId(jobTicketId: string): JobTicketDepartment | null {
+  const prefix = jobTicketId.split('-', 1)[0]
+  const departments = Object.keys(departmentPrefixes) as JobTicketDepartment[]
+  return departments.find((department) => departmentPrefixes[department] === prefix) ?? null
+}
+
 export function buildJobTicketId(
   orderId: string,
   laundryItemId: string,
@@ -81,10 +97,31 @@ export function buildJobTicketId(
   return `${departmentPrefixes[department]}-${orderId}-${laundryItemId}`
 }
 
+export async function readWorkMinutesByDepartment(
+  repository: () => WorkRateReader,
+): Promise<Map<JobTicketDepartment, number>> {
+  try {
+    const rows = await repository().read()
+    const minutesByDepartment = new Map<JobTicketDepartment, number>()
+    for (const row of rows) {
+      if (row.active === true && row.level === 'EASY'
+        && typeof row.minutes === 'number' && Number.isFinite(row.minutes)
+        && typeof row.department === 'string' && !minutesByDepartment.has(row.department)) {
+        minutesByDepartment.set(row.department, row.minutes)
+      }
+    }
+    return minutesByDepartment
+  } catch (error) {
+    console.error('Failed to read WorkRates', error)
+    return new Map()
+  }
+}
+
 export function buildJobTickets(
   order: JobTicketProvisioningOrder,
   garments: readonly JobTicketProvisioningGarment[],
   existingTickets: readonly ExistingJobTicket[],
+  minutesByDepartment: ReadonlyMap<JobTicketDepartment, number>,
 ): JobTicketProvisioningResult {
   const occupiedPairs = new Set(
     existingTickets.map((ticket) => `${ticket.laundryItemId}\u0000${ticket.department}`),
@@ -138,6 +175,7 @@ export function buildJobTickets(
         status: 'Pending',
         photo_evidence_url: photosByTag.get(garment.laundryItemId) ?? null,
         created_by: order.createdBy,
+        work_minutes: minutesByDepartment.get(department) ?? null,
       })
     }
   }

@@ -10,6 +10,7 @@ import { parseOrThrow } from '../../shared/http/validate.js'
 import type { SheetRowUpdate } from '../../shared/repositories/sheet-repository.contract.js'
 import { classifySheetWriteFailure } from '../../shared/repositories/write-failure.js'
 import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
+import { hasStartedAt } from './job-ticket-started-at.js'
 
 type JobTicketDbRow = z.infer<typeof jobTicketsRowSchema>
 export type JobTicketStartOrderResponse = z.infer<typeof jobTicketStartOrderResponseSchema>
@@ -71,7 +72,7 @@ export class JobTicketStartService {
       updates.push({
         keyValue: ticket.id,
         patch: {
-          status: 'In Progress', started_at: startedAt,
+          status: 'In Progress', ...(hasStartedAt(ticket.started_at) ? {} : { started_at: startedAt }),
           scanned_by: request.scannedBy, updated_by: request.scannedBy,
         },
       })

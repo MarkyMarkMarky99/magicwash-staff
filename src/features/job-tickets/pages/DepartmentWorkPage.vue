@@ -265,7 +265,7 @@ async function sendConfirmed(): Promise<void> {
     if (response.kind === 'completed') {
       clearPending()
       for (const entry of [...response.blocked, ...response.skipped]) setTapState(entry.ticketId, 'failed')
-      showPageNotice({ title: 'Jobs updated', message: advanceSummary(response, status), tone: response.blocked.length || response.skipped.length ? 'warning' : 'success' })
+      showPageNotice({ title: 'Jobs updated', message: advanceSummary(response, status), tone: response.blocked.length || response.skipped.length || response.scoreFailed > 0 ? 'warning' : 'success' })
       continueAfterConfirm()
     } else if (response.certainty === 'unknown') {
       clearPending()

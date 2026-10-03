@@ -136,6 +136,7 @@ const itemPort: OrderItemPort = {
 }
 
 const service = new WorkOrderService({
+  workRateRepository: () => ({ async read() { return [] } }),
   orderFormRepository: () => orderRepository,
   orderItemPort: itemPort,
 })

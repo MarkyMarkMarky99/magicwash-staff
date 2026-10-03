@@ -103,6 +103,7 @@ export const jobTicketAdvanceResponseSchema = z.discriminatedUnion('kind', [
     })),
     blocked: z.array(jobTicketAdvanceBlockedSchema),
     skipped: z.array(jobTicketAdvanceSkippedSchema),
+    scoreFailed: z.number().int().min(0),
   }),
   z.object({
     kind: z.literal('write_failed'),

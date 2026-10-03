@@ -18,17 +18,32 @@ function orderRow(overrides: Partial<OrderFormRow> = {}): OrderFormRow {
   }
 }
 
-function createService(appendError?: Error) {
+function createService(appendError?: Error, workRateError?: Error) {
   const orderRepository: SheetRepositoryContract<OrderFormRow> = {
     async read() { return [orderRow()] },
     async append(row) { return orderRow(row) },
     async batchAppend(rows) { return rows.map((row) => orderRow(row)) },
-    async update(_id, patch) { return orderRow({ ...patch, status: 'APPROVED' }) },
+    async update(_id, patch) { return orderRow(patch) },
     async delete() { return orderRow() },
   }
   const appendCalls: Array<Array<Record<string, unknown>>> = []
+  const workRateCalls = { getters: 0, reads: 0 }
   const service = new WorkOrderService({
     orderFormRepository: () => orderRepository,
+    workRateRepository: () => {
+      workRateCalls.getters += 1
+      return {
+        async read(...args) {
+          workRateCalls.reads += 1
+          assert.deepEqual(args, [])
+          if (workRateError) throw workRateError
+          return [
+            { department: 'Washing', active: true, level: 'EASY', minutes: 12 },
+            { department: 'Ironing', active: true, level: 'EASY', minutes: 5 },
+          ]
+        },
+      }
+    },
     laundryPhotoRepository: () => ({
       async read() {
         return [
@@ -51,7 +66,7 @@ function createService(appendError?: Error) {
       },
     }),
   })
-  return { service, appendCalls }
+  return { service, appendCalls, workRateCalls }
 }
 
 const successful = createService()
@@ -63,6 +78,8 @@ assert.deepEqual(response.ticketProvisioning, {
   ticketsCreated: 4, skippedGarments: [], failure: null,
 })
 assert.equal(successful.appendCalls.length, 1)
+assert.deepEqual(successful.workRateCalls, { getters: 1, reads: 1 })
+assert.deepEqual(successful.appendCalls[0]?.map((row) => row.work_minutes), [5, null, 12, null])
 assert.deepEqual(successful.appendCalls[0]?.map((row) => [row.laundry_item_id, row.department]), [
   ['tag-1', 'Ironing'], ['tag-1', 'Packaging'], ['tag-2', 'Washing'], ['tag-2', 'Packaging'],
 ])
@@ -82,5 +99,32 @@ for (const [error, certainty] of [
   })
   assert.equal(result.status, 'APPROVED')
 }
+
+const originalConsoleError = console.error
+const loggedErrors: unknown[][] = []
+console.error = (...args) => { loggedErrors.push(args) }
+try {
+  const readError = new Error('WorkRates unavailable')
+  const failedRates = createService(undefined, readError)
+  const result = await failedRates.service.update('order-1', { status: 'APPROVED', updatedBy: 'staff-2' })
+  assert.deepEqual(result, response)
+  assert.deepEqual(failedRates.workRateCalls, { getters: 1, reads: 1 })
+  assert.equal(failedRates.appendCalls.length, 1)
+  assert.deepEqual(failedRates.appendCalls[0], successful.appendCalls[0]?.map((row) => ({
+    ...row, work_minutes: null,
+  })))
+  assert.deepEqual(loggedErrors, [['Failed to read WorkRates', readError]])
+} finally {
+  console.error = originalConsoleError
+}
+
+const nonApproved = createService()
+const nonApprovedResponse = await nonApproved.service.update('order-1', { status: 'RECEIVED', updatedBy: 'staff-2' })
+assert.equal(nonApprovedResponse.status, 'RECEIVED')
+assert.deepEqual(nonApprovedResponse.ticketProvisioning, {
+  ticketsCreated: 0, skippedGarments: [], failure: null,
+})
+assert.deepEqual(nonApproved.workRateCalls, { getters: 0, reads: 0 })
+assert.equal(nonApproved.appendCalls.length, 0)
 
 console.log('work-order ticket provisioning dry test passed')

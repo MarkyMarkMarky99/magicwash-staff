@@ -132,6 +132,7 @@ const events: string[] = []
 const orderRepository = makeOrderRepository(events)
 const writer = makeWriter(events)
 const service = new WorkOrderService({
+  workRateRepository: () => ({ async read() { return [] } }),
   orderFormRepository: () => orderRepository,
   orderItemWriter: writer,
 })
@@ -176,6 +177,7 @@ const failingOrderRepository = makeOrderRepository(failingEvents)
 const failingWriter = makeWriter(failingEvents)
 failingWriter.shouldFail = true
 const failingService = new WorkOrderService({
+  workRateRepository: () => ({ async read() { return [] } }),
   orderFormRepository: () => failingOrderRepository,
   orderItemWriter: failingWriter,
 })
@@ -198,6 +200,7 @@ const emptyEvents: string[] = []
 const emptyOrderRepository = makeOrderRepository(emptyEvents)
 const emptyWriter = makeWriter(emptyEvents)
 const emptyService = new WorkOrderService({
+  workRateRepository: () => ({ async read() { return [] } }),
   orderFormRepository: () => emptyOrderRepository,
   orderItemWriter: emptyWriter,
 })
@@ -213,6 +216,7 @@ const headerFailureRepository = makeOrderRepository(headerFailureEvents)
 headerFailureRepository.shouldFailAppend = true
 const headerFailureWriter = makeWriter(headerFailureEvents)
 const headerFailureService = new WorkOrderService({
+  workRateRepository: () => ({ async read() { return [] } }),
   orderFormRepository: () => headerFailureRepository,
   orderItemWriter: headerFailureWriter,
 })

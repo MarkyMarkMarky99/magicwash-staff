@@ -9,6 +9,7 @@ import type { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import { classifySheetWriteFailure } from '../../shared/repositories/write-failure.js'
 import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
+import { hasStartedAt } from './job-ticket-started-at.js'
 
 type JobTicketDbRow = z.infer<typeof jobTicketsRowSchema>
 export type JobTicketScanResponse = z.infer<typeof jobTicketScanResponseSchema>
@@ -80,7 +81,7 @@ export class JobTicketScanService {
     try {
       await this.repository().update(ticket.id, {
         status: nextStatus,
-        started_at: startedAt,
+        ...(hasStartedAt(ticket.started_at) ? {} : { started_at: startedAt }),
         ...(nextStatus === 'Completed' ? { completed_at: completedAt } : {}),
         scanned_by: request.scannedBy,
         updated_by: request.scannedBy,

@@ -49,7 +49,7 @@ assert.deepEqual(await mixed.service.startOrder(payload), {
 assert.deepEqual(mixed.reads, [{ where: { order_id: 'order-1' } }])
 assert.deepEqual(mixed.batches, [[
   { keyValue: 'ticket-1', patch: { status: 'In Progress', started_at: '2026-09-23 10:00:00', scanned_by: 'staff-1', updated_by: 'staff-1' } },
-  { keyValue: 'ticket-2', patch: { status: 'In Progress', started_at: '2026-09-22 09:00:00', scanned_by: 'staff-1', updated_by: 'staff-1' } },
+  { keyValue: 'ticket-2', patch: { status: 'In Progress', scanned_by: 'staff-1', updated_by: 'staff-1' } },
 ]])
 
 const blocked = serviceWith([
