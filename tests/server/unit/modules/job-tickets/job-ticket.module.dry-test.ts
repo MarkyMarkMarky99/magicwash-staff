@@ -16,7 +16,7 @@ assert.deepEqual(jobTicketFieldMap, {
   special_instructions: 'specialInstructions', notes: 'notes', status: 'status',
   started_at: 'startedAt', completed_at: 'completedAt', scanned_by: 'scannedBy',
   photo_evidence_url: 'photoEvidenceUrl', created_at: 'createdAt', created_by: 'createdBy',
-  updated_at: 'updatedAt', updated_by: 'updatedBy', deleted_at: 'deletedAt', deleted_by: 'deletedBy',
+  updated_at: 'updatedAt', updated_by: 'updatedBy', deleted_at: 'deletedAt', deleted_by: 'deletedBy', work_minutes: 'workMinutes',
 })
 assert.equal(typeof routeRegistry['job-tickets'], 'function')
 assert.strictEqual((await routeRegistry['job-tickets']()).collection, jobTicketRoutes.collection)

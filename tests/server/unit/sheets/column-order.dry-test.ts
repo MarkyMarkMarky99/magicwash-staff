@@ -224,7 +224,7 @@ const tests: ColumnOrderTest[] = [
       department: 'F', step_no: 'G', customer_id: 'H', order_name: 'I', due_date: 'J',
       special_instructions: 'K', notes: 'L', status: 'M', started_at: 'N', completed_at: 'O',
       scanned_by: 'P', photo_evidence_url: 'Q', created_at: 'R', created_by: 'S',
-      updated_at: 'T', updated_by: 'U', deleted_at: 'V', deleted_by: 'W',
+      updated_at: 'T', updated_by: 'U', deleted_at: 'V', deleted_by: 'W', work_minutes: 'X',
     },
     primaryKeyColumn: 'A',
   },

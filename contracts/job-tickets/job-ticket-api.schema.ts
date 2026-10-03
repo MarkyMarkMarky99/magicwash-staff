@@ -55,6 +55,7 @@ export const jobTicketResponseSchema = z.object({
   updatedBy: z.string().nullable(),
   deletedAt: z.string().nullable(),
   deletedBy: z.string().nullable(),
+  workMinutes: z.number().nullable(),
 })
 
 export const jobTicketScanRequestSchema = z.object({

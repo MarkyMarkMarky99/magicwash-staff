@@ -44,6 +44,7 @@ export const jobTicketFieldMap = {
   updated_by: 'updatedBy',
   deleted_at: 'deletedAt',
   deleted_by: 'deletedBy',
+  work_minutes: 'workMinutes',
 } as const satisfies Record<keyof JobTicketDbRow & string, string>
 
 type JobTicketApiRow = ApiRowFromFieldMap<JobTicketDbRow, typeof jobTicketFieldMap>

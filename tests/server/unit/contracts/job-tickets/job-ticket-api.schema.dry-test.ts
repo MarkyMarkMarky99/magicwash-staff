@@ -36,7 +36,7 @@ const row = {
   orderName: 'Order one', dueDate: '2026-09-30', specialInstructions: null, notes: null,
   status: 'Pending', startedAt: null, completedAt: null, scannedBy: null,
   photoEvidenceUrl: null, createdAt: '2026-09-23 10:00:00', createdBy: 'staff-1',
-  updatedAt: null, updatedBy: null, deletedAt: null, deletedBy: null,
+  updatedAt: null, updatedBy: null, deletedAt: null, deletedBy: null, workMinutes: null,
 }
 assert.deepEqual(jobTicketResponseSchema.parse(row), row)
 assert.equal(jobTicketApiContract.response.detail, jobTicketResponseSchema)

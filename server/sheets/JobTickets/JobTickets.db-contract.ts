@@ -38,6 +38,7 @@ export const jobTicketsRowSchema = z
     updated_by: z.string().nullable(),
     deleted_at: z.string().nullable(),
     deleted_by: z.string().nullable(),
+    work_minutes: z.number().nullable(),
   })
   .strict()
 

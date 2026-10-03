@@ -141,7 +141,7 @@ test('JobTickets service wiring maps all physical columns', async () => {
   const body = sheetGvizBody(jobTicketsRowSchema, [
     'WSH-order-1-tag-1', 'order-1', 'tag-1', 'ITEM', 'WSIR', 'Washing', 1,
     'customer-1', 'Order one', '2026-09-30', 'Delicate', 'Rush', 'Pending', null, null,
-    null, null, '2026-09-23 10:00:00', 'staff-1', null, null, null, null,
+    null, null, '2026-09-23 10:00:00', 'staff-1', null, null, null, null, 4,
   ])
 
   await withMockFetch(
@@ -177,6 +177,7 @@ test('JobTickets service wiring maps all physical columns', async () => {
         updatedBy: null,
         deletedAt: null,
         deletedBy: null,
+        workMinutes: 4,
       })
     },
   )
