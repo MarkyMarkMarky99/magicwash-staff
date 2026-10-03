@@ -11,10 +11,10 @@ let rows = [['new@example.com', 'New', '', false, 'new-id', '', '', '', '']] as 
 let reads = 0
 let delayed: Promise<SheetsApiValues> | undefined
 SheetsApiClient.prototype.readRange = async function (range, options) {
-  assert.equal(range, 'A:D')
+  assert.equal(range, 'A:I')
   assert.equal(options?.valueRenderOption, 'UNFORMATTED_VALUE')
   reads += 1
-  return delayed ?? [headers.slice(0, 4), ...rows.map((row) => row.slice(0, 4))]
+  return delayed ?? [headers, ...rows]
 }
 const service = new StaffService({
   readRange: async (range) => range === '1:1' ? [headers] : rows,
@@ -37,6 +37,7 @@ try {
   assert.equal(reads, 1)
   await service.update('new-id', 'admin@example.com', { role: 'staff', active: true })
   assert.equal((await getStaffList()).get('new@example.com')?.role, 'staff')
+  assert.equal((await getStaffList()).get('new@example.com')?.staffId, 'new-id')
   assert.equal(reads, 2)
   await service.register('another@example.com', { name: 'Another', phone: '001', address: 'Home' })
   await getStaffList()
@@ -54,7 +55,7 @@ try {
   delayed = undefined
   rows = [['new@example.com', 'Approved', 'admin', true, 'new-id', '', '', '', '']]
   assert.equal((await getStaffList()).get('new@example.com')?.role, 'admin')
-  finishOldRead([headers.slice(0, 4), ['old@example.com', 'Old', 'staff', true]])
+  finishOldRead([headers, ['old@example.com', 'Old', 'staff', true, 'old-id']])
   await staleRead
   const fresh = await getStaffList()
   assert.equal(fresh.get('new@example.com')?.name, 'Approved')

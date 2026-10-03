@@ -2,13 +2,13 @@
 
 A Google account that is not on the `Staff` allow-list registers itself, then waits for an admin to approve it. Admins approve and maintain staff from a list. There is no self-edit after registration: only admins change a staff row.
 
-Backend contract: `contracts/staff/staff-api.schema.ts`. Routes: `GET /api/staff/me`, `POST /api/staff`, and admin-only `GET /api/staff`, `GET /api/staff/:staffId`, `PATCH /api/staff/:staffId`. All staff GETs bypass the response cache (`/api/staff` is in `NEVER_CACHE`), so an approval is visible on the next read.
+Backend contract: `contracts/staff/staff-api.schema.ts`. Routes: `GET /api/staff/me`, `POST /api/staff`, public `GET /api/staff`, and admin-only `GET /api/staff/:staffId`, `PATCH /api/staff/:staffId`. The public list returns every row in the existing response, including pending/inactive rows and all columns; a supplied invalid token still returns 401. The app prefetches it at load to map StaffIds to names. All staff GETs bypass the response cache (`/api/staff` is in `NEVER_CACHE`), so an approval is visible on the next read.
 
 ## Login states
 
 `auth.store.ts` drives them; `LoginPage.vue` renders them. See `docs/architecture/frontend/project-structure.md` for the sequence.
 
-- `GET /api/auth/me` succeeds: `signedIn`.
+- `GET /api/auth/me` succeeds: `signedIn`; the response includes `staffId`. The login reader reads A:I. Frontend writes record the signed-in StaffId as actor, or `unknown` when signed out; `?by=` is ignored.
 - 403 then `GET /api/staff/me` returns 404: `unregistered`. Signing in navigates (replace) to `/staff/register`. Opening `/login` while still unregistered shows a register button and a logout button instead of redirecting, so Back from the form cannot loop.
 - 403 then a row with `role = null` or `active = false`: `pending`. The login page shows "ลงทะเบียนแล้ว รอผู้ดูแลอนุมัติ" and a logout button. A pending user is never `signedIn`.
 - 403 then a row that is active with a role: contradictory, treated as an error and signed out.
@@ -37,7 +37,7 @@ Route names and builders live in `src/shared/navigation/form-routes.ts`.
 
 ## Access
 
-Only an admin (`status = signedIn` and `staff.role = admin`) sees the nav entry, the list, and the edit form. The list and edit pages replace themselves with `/` for anyone else once the session check settles; the backend independently answers 403.
+Only an admin (`status = signedIn` and `staff.role = admin`) sees the nav entry, the list, and the edit form. The list and edit pages replace themselves with `/` for anyone else once the session check settles; the backend independently answers 403 for admin-only detail and edit requests.
 
 ## List
 

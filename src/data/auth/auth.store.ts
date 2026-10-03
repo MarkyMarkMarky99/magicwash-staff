@@ -1,9 +1,9 @@
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { User } from 'firebase/auth'
 import { getCurrentStaff, type StaffSession } from './auth.service'
 import { getMyStaff, type StaffDto } from '@/data/staff/staff.service'
-import { useStaffStore } from '@/data/staff/staff.store'
+import { setSignedInStaffId } from '@/shared/config/actor'
 import { ApiError } from '@/shared/api/api-client'
 import { onUserChanged, signInWithGoogle, signOutUser } from '@/shared/api/firebase-auth'
 
@@ -18,6 +18,7 @@ const CANCELLED_SIGN_IN_CODES = new Set(['auth/popup-closed-by-user', 'auth/canc
 export const useAuthStore = defineStore('auth', () => {
   const status = ref<AuthStatus>('loading')
   const staff = ref<StaffSession | null>(null)
+  watch(staff, () => setSignedInStaffId(staff.value?.staffId ?? null), { immediate: true, flush: 'sync' })
   const pendingStaff = ref<StaffDto | null>(null)
   const email = ref<string | null>(null)
   const error = ref<string | null>(null)
@@ -43,13 +44,13 @@ export const useAuthStore = defineStore('auth', () => {
       staff.value = null
       pendingStaff.value = null
       email.value = null
-      useStaffStore().reset()
       status.value = 'signedOut'
       resolveReady()
       return
     }
 
     email.value = user.email
+    staff.value = null
     status.value = 'loading'
     try {
       const session = await getCurrentStaff()

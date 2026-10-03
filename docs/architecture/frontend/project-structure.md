@@ -65,8 +65,8 @@ application-level pages or development tools when one is needed.
   "เข้าสู่ระบบ" when signed out and "ออกจากระบบ" when signed in. The login page has a close button,
   and after signing in it leaves the same way (history back, or `/` without history); a
   `?redirect=` app path takes precedence.
-- Sign-in does not change actor recording yet: writes still use `currentActor()` (`admin` or
-  `?by=`).
+- Writes use `currentActor()` to record the signed-in StaffId, or `unknown` when signed out;
+  `?by=` is ignored. The app prefetches the public staff list at load to map StaffIds to names.
 
 ### Feature Layer
 

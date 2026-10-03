@@ -168,8 +168,9 @@ JSON, schema, and count-mismatch failures and redact the print server URL and Ac
 
 ## Environment and external state
 
-The `auth` and `staff` modules require a Firebase ID token in the `Authorization: Bearer`
-header. Token verification uses Firebase's public keys for `FIREBASE_PROJECT_ID` and requires
+The `auth` module and staff identity routes require a Firebase ID token in the
+`Authorization: Bearer` header. `GET /api/staff` is public when no header is supplied;
+a supplied token is still verified and an invalid token returns 401. Token verification uses Firebase's public keys for `FIREBASE_PROJECT_ID` and requires
 a verified email, normalized by trimming and lowercasing. Missing or invalid tokens return 401.
 The restricted `Staff` tab in `STAFF_SPREADSHEET_ID` is read through the authenticated Sheets
 API, never GViz. The active allowlist includes only `admin` and `staff` roles and is cached
@@ -177,14 +178,14 @@ for 60 seconds. Successful staff POST and PATCH invalidate that instance's cache
 in-flight read cannot repopulate the cache after invalidation.
 
 `GET /api/auth/me` still requires an active allowlist entry (403 otherwise) and returns its
-email, name, and role. The staff module receives the verified email and, when listed, the
+staffId, email, name, and role. The staff module receives the verified email and, when listed, the
 active StaffMember. Other modules continue dispatching without authentication or staff identity.
 
 | Route | Authorization | Result |
 | --- | --- | --- |
 | `GET /api/staff/me` | Valid token | Own row including pending/inactive rows; 404 if absent |
 | `POST /api/staff` | Valid token | Register own verified email; 201, or 409 for any existing email |
-| `GET /api/staff` | Active admin | All rows with nonempty Email, including rows with blank StaffId |
+| `GET /api/staff` | Public; supplied tokens must be valid | Every row in the existing list response, with all columns and no role/active filtering; rows with nonempty Email include blank StaffIds |
 | `GET /api/staff/:staffId` | Active admin | Staff row, or 404 |
 | `PATCH /api/staff/:staffId` | Active admin | Updated row, or 404; own role/active fields return 409 |
 
@@ -199,12 +200,15 @@ reads with `UNFORMATTED_VALUE`, coercing text cells with `String()`. StartDate n
 use whole days from the Google Sheets epoch (1899-12-30) with UTC arithmetic; valid
 `yyyy-MM-dd` strings are preserved, and other values become empty strings. Read rows are
 mapped directly without strict response-schema parsing so a bad cell cannot break all staff
-reads and patches. Request bodies remain schema-validated. Login continues reading only A:D. Staff writes use `RAW` for every cell so phone numbers retain leading zeroes;
+reads and patches. Request bodies remain schema-validated. The login reader reads A:I. Staff writes use `RAW` for every cell so phone numbers retain leading zeroes;
 Active is a native boolean. Registration appends a full-width row with an unprefixed
 `generateShortId()`, blank Role/Position/StartDate, and Active false. PATCH writes only the
 provided columns. Rows with empty Email are absent; legacy owner rows with empty StaffId
 remain visible but cannot be addressed by an empty ID. Duplicate email lookup is
 case-insensitive; Sheets provides no atomic unique-email constraint across concurrent requests.
+
+The app prefetches the staff list at load to map StaffIds to names. Frontend writes record
+the signed-in StaffId as actor, or `unknown` when signed out; `?by=` is ignored.
 
 `FIREBASE_PROJECT_ID` and `STAFF_SPREADSHEET_ID` are server-only environment variables.
 

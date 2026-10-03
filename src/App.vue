@@ -5,6 +5,7 @@ import { useAppointmentStore } from '@/data/appointments/appointment.store'
 import { useAuthStore } from '@/data/auth/auth.store'
 import { useCustomerStore } from '@/data/customers/customer.store'
 import { usePriceListStore } from '@/data/price-list/price-list.store'
+import { useStaffStore } from '@/data/staff/staff.store'
 import { appointmentPendingCountKey } from '@/shared/appointment-pending-count'
 import { staffAdminKey } from '@/shared/staff-admin'
 import { APP_Z_INDEX_CLASS } from '@/shared/layouts/z-index'
@@ -15,6 +16,7 @@ import { preloadDocumentScanner } from '@/features/orders/utils/document-scanner
 
 const appointmentStore = useAppointmentStore()
 const customerStore = useCustomerStore()
+const staffStore = useStaffStore()
 const priceListStore = usePriceListStore()
 const authStore = useAuthStore()
 const { pendingCount } = storeToRefs(appointmentStore)
@@ -152,6 +154,7 @@ onMounted(() => {
   void authStore.ready()
   void appointmentStore.loadInitial()
   void customerStore.loadCustomers()
+  void staffStore.load()
   void priceListStore.load()
 })
 

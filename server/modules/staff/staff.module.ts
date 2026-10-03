@@ -18,10 +18,7 @@ function requireAdmin(req: ApiHandlerRequest): string {
 export function createStaffRoutes(service: StaffService): GatewayModuleRoutes {
   return {
     collection: new ApiHandler({
-      GET: async (req) => {
-        requireAdmin(req)
-        return ok(await service.list())
-      },
+      GET: async () => ok(await service.list()),
       POST: async (req) => created(await service.register(requireIdentity(req), req.body)),
     }),
     item: new ApiHandler({

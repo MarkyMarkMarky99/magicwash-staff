@@ -23,7 +23,7 @@ The persistence layer reads and writes Google Sheets through two separate transp
 General repositories use unauthenticated GViz for reads and the authenticated Google Sheets API
 for writes. The restricted Staff tab uses authenticated SheetsApiClient reads and writes;
 its module service resolves columns by live header name and writes with RAW. The login
-allowlist reader also uses authenticated Sheets API reads, limited to A:D.
+allowlist reader also uses authenticated Sheets API reads, limited to A:I.
 
 Portal live projections use module-owned whole-sheet GViz readers with selected columns
 located by database contract key order. Only `server/modules/portal/` caches those reads:

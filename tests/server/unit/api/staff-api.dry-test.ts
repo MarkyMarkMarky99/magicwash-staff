@@ -60,7 +60,7 @@ const gateway = new ApiGateway({ staff: async () => routes }, async () => {
   const email = token.slice('Bearer '.length).trim().toLowerCase()
   const listed = rows.find((row) => String(row[0]).toLowerCase() === email && row[3] === true)
   const role = listed?.[2]
-  return { email, staff: role === 'admin' || role === 'staff' ? { email, name: String(listed![1]), role } : undefined }
+  return { email, staff: role === 'admin' || role === 'staff' ? { staffId: String(listed![4] ?? '').trim(), email, name: String(listed![1]), role } : undefined }
 })
 const call = (method: string, path: string, email?: string, body?: unknown) => gateway.handleRequest({
   method, url: path, query: {}, headers: email ? { authorization: `Bearer ${email}` } : {}, body,
@@ -73,6 +73,12 @@ try {
   const realIdentityGateway = new ApiGateway({ staff: async () => routes }, async () => {
     throw new Error('Staff requests must not require the allowlist authenticator')
   })
+  assert.equal((await realIdentityGateway.handleRequest({
+    method: 'GET', url: '/api/staff', query: {}, headers: {},
+  } as VercelRequest)).status, 200)
+  assert.equal((await realIdentityGateway.handleRequest({
+    method: 'GET', url: '/api/staff', query: {}, headers: { authorization: 'Bearer bad' },
+  } as VercelRequest)).status, 401)
   for (const authorization of [undefined, 'Bearer bad']) {
     assert.equal((await realIdentityGateway.handleRequest({
       method: 'GET', url: '/api/staff/me', query: {},
@@ -85,7 +91,7 @@ try {
 }
 
 for (const [method, path] of [
-  ['GET', '/api/staff/me'], ['POST', '/api/staff'], ['GET', '/api/staff'],
+  ['GET', '/api/staff/me'], ['POST', '/api/staff'],
   ['GET', '/api/staff/worker-id'], ['PATCH', '/api/staff/worker-id'],
 ]) {
   assert.equal((await call(method!, path!)).status, 401)
@@ -134,11 +140,13 @@ assert.equal(staffSchema.parse(data(await call('GET', '/api/staff/me', 'inactive
 assert.equal(staffSchema.parse(data(await call('GET', '/api/staff/me', 'worker@example.com'))).phone, '812345678')
 
 for (const email of ['worker@example.com', 'new@example.com', 'inactive@example.com', 'unlisted@example.com']) {
-  for (const [method, path] of [['GET', '/api/staff'], ['GET', '/api/staff/worker-id'], ['PATCH', '/api/staff/worker-id']]) {
+  assert.equal((await call('GET', '/api/staff', email)).status, 200)
+  for (const [method, path] of [['GET', '/api/staff/worker-id'], ['PATCH', '/api/staff/worker-id']]) {
     assert.equal((await call(method!, path!, email, { name: 'Changed' })).status, 403)
   }
 }
-const listResult = await call('GET', '/api/staff', 'admin@example.com')
+assert.equal((await call('GET', '/api/staff', 'bad')).status, 401)
+const listResult = await call('GET', '/api/staff')
 assert.equal(listResult.status, 200)
 const list = (data(listResult) as unknown[]).map((row) => staffSchema.parse(row))
 assert.equal(list.length, 5)
@@ -146,6 +154,8 @@ assert.equal(list[0]!.staffId, '')
 assert.equal(list[0]!.startDate, '2026-01-01')
 assert.equal(list[1]!.startDate, '2026-01-01')
 assert.equal(list.find((row) => row.staffId === 'inactive-id')!.startDate, '')
+assert.equal(list.find((row) => row.staffId === 'inactive-id')!.active, false)
+assert.deepEqual(list.find((row) => row.staffId === newStaff.staffId), newStaff)
 assert.equal((await call('GET', '/api/staff/missing', 'admin@example.com')).status, 404)
 assert.equal((await call('PATCH', '/api/staff/missing', 'admin@example.com', { active: true })).status, 404)
 assert.equal((await call('PATCH', '/api/staff/absent-id', 'admin@example.com', { active: true })).status, 404)

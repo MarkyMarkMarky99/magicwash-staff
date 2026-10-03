@@ -2,22 +2,18 @@
 
 ## Status
 
-- Staff self-registration + admin approval built; commit `4f3eef8`; not pushed.
-- Owner browser-tested 2026-10-03: register → pending → admin approves at `/staff` → login works.
+- Staff self-registration + admin approval built (`4f3eef8`); owner browser-tested 2026-10-03.
+- Actor now records the signed-in StaffId (`unknown` when signed out, `?by=` ignored); not browser-tested yet.
+- Staff list (`GET /api/staff`) is public and prefetched in `App.vue`; `useStaffStore().nameOf(id)` maps id → name.
+- Not pushed.
 - Owner's own row: StaffId `b8624701`, role admin.
-- Sheet `Staff` (cols A–I): service account `magicwash-staff-writer@…` is Editor; registry `Staff.json` updated.
 - Feature doc: `docs/features/staff/registration.md`; backend: `docs/architecture/backend/operations.md` (auth section).
 
-## Next task: replace hardcoded `admin` actor
+## Next
 
-- Source of the fallback: `src/shared/config/actor.ts` (`currentActor(override)` → `?by=` or `'admin'`).
-- 14 callers: grep `config/actor` under `src/` (appointments, work-orders, customers, customer-packages, packages, gallery, orders, job-tickets).
-- Signed-in staff is available in `useAuthStore()` (`staff`, `status`); only `signedIn` users have a usable identity.
-- Open decision for owner: record **StaffId** (Claude's recommendation) or **Name**.
-  - StaffId: stable and unique, matches planned attendance records; UI maps id → name, falling back to the raw value for old rows (`admin`, names).
-  - Name: simpler, readable in the sheet, but history breaks when a name is edited.
-- Open question: keep `?by=` (AppSheet deep links) as an override, or drop it.
-- Open question: client-sent actor vs server deriving it from the token; other modules are still unauthenticated, so server-side needs gating first.
+- Browser-check: signed-in write records StaffId; signed-out write records `unknown`.
+- No screen displays actors by name yet; use `nameOf` when work history / attendance screens are built.
+- Deferred to a later round: server-owned invoice and payment writes still record `'admin'` (`server/shared/config/actor.ts`); needs actor from the client or token gating.
 - Never rename existing actor columns (`createdBy`, `scannedBy`, …); change only what is written.
 
 ## Known

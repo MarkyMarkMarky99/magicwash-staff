@@ -9,7 +9,7 @@ export const useStaffStore = defineStore('staff', () => {
   const loaded = ref(false)
   let requestId = 0
 
-  /** Always re-reads: the list is admin-only, small, and never served from cache. */
+  /** Always re-reads: the list is public, small, and never served from cache. */
   async function load(): Promise<void> {
     const id = ++requestId
     loading.value = true
@@ -27,6 +27,10 @@ export const useStaffStore = defineStore('staff', () => {
     }
   }
 
+  function nameOf(value: string | null | undefined): string {
+    return items.value.find((item) => item.staffId === value)?.name ?? value ?? ''
+  }
+
   function upsert(row: StaffDto): void {
     items.value = items.value.some((item) => item.staffId === row.staffId)
       ? items.value.map((item) => (item.staffId === row.staffId ? row : item))
@@ -41,5 +45,5 @@ export const useStaffStore = defineStore('staff', () => {
     error.value = null
   }
 
-  return { items, loading, error, loaded, load, upsert, reset }
+  return { items, loading, error, loaded, load, nameOf, upsert, reset }
 })
