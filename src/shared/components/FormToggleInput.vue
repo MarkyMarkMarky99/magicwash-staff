@@ -1,28 +1,32 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import FormInput from './FormInput.vue'
 import FormSwitch from './FormSwitch.vue'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   id: string
   label: string
   inputLabel: string
   description?: string
   modelValue: string
+  enabled?: boolean
   placeholder?: string
   type?: string
   inputmode?: string
   autocomplete?: string
-}>()
+}>(), { enabled: undefined })
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
+  'update:enabled': [value: boolean]
 }>()
 
-const open = ref(props.modelValue !== '')
+const localOpen = ref(props.modelValue !== '')
+const open = computed(() => props.enabled ?? localOpen.value)
 
 function toggle(value: boolean) {
-  open.value = value
+  localOpen.value = value
+  emit('update:enabled', value)
   if (!value) emit('update:modelValue', '')
 }
 

@@ -7,6 +7,7 @@ import FormInput from '@/shared/components/FormInput.vue'
 import FormOptionGrid from '@/shared/components/FormOptionGrid.vue'
 import FormPicker from '@/shared/components/FormPicker.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
+import FormToggleInput from '@/shared/components/FormToggleInput.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import { useCloseRoute } from '@/shared/navigation/use-close-route'
 import { addSheetDateDays, todaySheetDate } from '@/shared/utils/sheet-date'
@@ -38,8 +39,9 @@ const customerStore = useCustomerStore()
 const packageStore = usePackageStore()
 const purchaseStore = useCustomerPackagePurchaseStore()
 const customer = ref<CustomerDetailDto | null>(null)
-const autoInvoice = computed(() => sourceCustomerId !== '')
+const invoiceAlreadyCreated = ref(false)
 const attempt = computed(() => purchaseStore.attempts[sourceCustomerId])
+const autoInvoice = computed(() => Boolean(sourceCustomerId) && (!invoiceAlreadyCreated.value || Boolean(attempt.value)))
 const purchaseRetryAllowed = computed(() => attempt.value ? canResumePackagePurchase(attempt.value) : false)
 const {
   customers,
@@ -69,13 +71,13 @@ const customerOptions = computed(() => customers.value.map((item) => ({
 const packageOptions = computed(() => activePackages.value.map((item) => ({
   value: item.packageCode,
   label: `${item.packageCode} — ${item.name}`,
-  description: `${item.includedCredit} เครดิต · ${item.price}`,
+  description: `${item.includedCredit} credits · ${item.price}`,
 })))
 const serviceDayOptions = serviceDays.map((day) => ({ value: day, label: day }))
 const timeSlotOptions = timeSlots.map((slot) => ({ value: slot, label: slot }))
 const valid = computed(() => Boolean(customerId.value.trim() && packageCode.value.trim()
   && startDate.value && expiryDate.value && expiryDate.value >= startDate.value
-  && (!autoInvoice.value || (customer.value?.customerId === sourceCustomerId
+  && (!sourceCustomerId || (customer.value?.customerId === sourceCustomerId
     && activePackages.value.some((item) => item.packageCode === packageCode.value)))))
 const purchaseMessage = computed(() => {
   const current = attempt.value
@@ -86,6 +88,10 @@ const purchaseMessage = computed(() => {
   if (outcome.kind === 'created') return 'Invoice and customer package created.'
   if (outcome.kind === 'validation_error') return outcome.issues.map((issue) => `${issue.path}: ${issue.message}`).join(', ')
   return 'message' in outcome ? outcome.message : 'Some records may already have been saved. Check this invoice before continuing.'
+})
+
+watch(invoiceAlreadyCreated, (value) => {
+  if (!value) invoiceId.value = ''
 })
 
 watch(startDate, (value) => {
@@ -100,7 +106,7 @@ function createPayload() {
   return {
     customerId: customerId.value.trim(),
     packageCode: packageCode.value.trim(),
-    invoiceId: invoiceId.value.trim() || null,
+    invoiceId: autoInvoice.value ? null : invoiceId.value.trim() || null,
     startDate: startDate.value || null,
     expiryDate: expiryDate.value || null,
     serviceDay: serviceDay.value || null,
@@ -130,7 +136,7 @@ onMounted(async () => {
     return
   }
   customerId.value = sourceCustomerId
-  if (autoInvoice.value) {
+  if (sourceCustomerId) {
     try {
       customer.value = await getCustomerById(sourceCustomerId)
     } catch (reason) {
@@ -183,6 +189,7 @@ async function submitForm() {
   <FormOverlay
     :open="true"
     title="Create customer package"
+    submitting-label="Saving…"
     :submit-label="autoInvoice ? (attempt ? 'Retry remaining step' : 'Buy package') : 'Create package'"
     :is-submitting="submitting || Boolean(attempt?.submitting)"
     :is-submit-disabled="autoInvoice && attempt ? !purchaseRetryAllowed : !valid || Boolean(result)"
@@ -217,39 +224,34 @@ async function submitForm() {
     </div>
 
     <div v-else class="space-y-4 pb-5">
-      <p v-if="autoInvoice" class="font-body text-sm font-semibold">{{ customer?.customerName || customerId }}</p>
+      <p v-if="sourceCustomerId" class="font-body text-sm font-semibold">{{ customer?.customerName || customerId }}</p>
       <FormPicker
         v-else
         id="customer-package-customer"
         v-model="customerId"
-        label="ลูกค้า *"
+        label="Customer *"
         :options="customerOptions"
-        placeholder="เลือกลูกค้า"
-        search-placeholder="ค้นหาลูกค้า"
+        placeholder="Select a customer"
+        search-placeholder="Search customers"
         :loading="customersLoading"
         :error="customersError ?? ''"
-        empty-text="ไม่พบลูกค้า"
+        empty-text="No customers found"
       />
-      <p v-if="!autoInvoice && customersTruncated" role="status" class="-mt-2 font-body text-xs text-on-warning-container">
-        รายชื่อลูกค้าอาจไม่ครบ เนื่องจากมีมากกว่า 2,000 รายการ
+      <p v-if="!sourceCustomerId && customersTruncated" role="status" class="-mt-2 font-body text-xs text-on-warning-container">
+        The customer list may be incomplete because there are more than 2,000 customers.
       </p>
       <FormPicker
         id="customer-package-code"
         v-model="packageCode"
-        label="แพ็กเกจ *"
+        label="Package *"
         :options="packageOptions"
         :searchable="false"
-        placeholder="เลือกแพ็กเกจ"
-        search-placeholder="ค้นหาแพ็กเกจ"
+        placeholder="Select a package"
+        search-placeholder="Search packages"
         :loading="packagesLoading"
         :error="packagesError ?? ''"
-        empty-text="ไม่พบแพ็กเกจ"
+        empty-text="No packages found"
       />
-      <FormInput v-if="!autoInvoice" id="customer-package-invoice" v-model="invoiceId" label="Invoice ID" />
-      <p v-else class="font-body text-xs text-on-surface-variant">
-        An invoice will be created automatically before the package is added.
-        <template v-if="packageCode">Price: {{ activePackages.find((item) => item.packageCode === packageCode)?.price }}</template>
-      </p>
       <div class="grid grid-cols-2 gap-3">
         <FormInput id="customer-package-start" v-model="startDate" type="date" label="Start date" />
         <FormInput id="customer-package-expiry" v-model="expiryDate" type="date" label="Expiry date" />
@@ -258,6 +260,21 @@ async function submitForm() {
       <FormOptionGrid :model-value="timeSlot" label="Time slot" :options="timeSlotOptions" variant="compact" @update:model-value="timeSlot = timeSlot === $event ? '' : $event" />
       <FormTextarea id="customer-package-notes" v-model="notes" label="Notes" />
       <p v-if="formError" class="font-body text-sm text-error">{{ formError }}</p>
+      <fieldset :disabled="submitting">
+        <FormToggleInput
+          id="customer-package-invoice"
+          v-model="invoiceId"
+          v-model:enabled="invoiceAlreadyCreated"
+          label="Invoice already created"
+          input-label="Invoice number"
+          description="Enter the invoice number, or leave it blank."
+          placeholder="Invoice number (optional)"
+        />
+      </fieldset>
+      <p v-if="autoInvoice" class="font-body text-xs text-on-surface-variant">
+        An invoice will be created automatically before the package is added.
+        <template v-if="packageCode">Price: {{ activePackages.find((item) => item.packageCode === packageCode)?.price }}</template>
+      </p>
     </div>
   </FormOverlay>
 </template>

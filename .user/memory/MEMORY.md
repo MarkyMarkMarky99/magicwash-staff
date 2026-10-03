@@ -1,12 +1,10 @@
 # Project memory
 
-- Branch: `main`; garment tag tracking merged 2026-09-23; order photo library, customer order card and item-less garment registration merged 2026-09-24; item quantity reassign and detail Approve button merged 2026-09-25; department ring head, tap-to-advance and order Start merged 2026-09-25; optional staff Google sign-in, shared CloseButton and PhotoSwipe PhotoViewer merged 2026-09-27; customer detail tabs + bottom nav, two-size BaseBadge, central colour palette, lime focus and sticker buttons merged 2026-09-27; iPhone safe-area fixes (drawer header, status-bar-style black + standalone green body, shorter bottom nav) merged 2026-09-27. Push drawer (slide-aside menu, drag to close) and steadier BaseSwipeCard merged 2026-09-28. Customer registration (10-digit phone, social toggles via shared FormToggleInput, restyled FormTextarea, rounded FormOverlay body) merged 2026-09-29. Package eligible service → WSIR/IRON/DRCL/WASH codes and retired CustomerPackageView code removed, merged 2026-09-30. Document scanner sharpness/speed fix and one-photo-per-capture merged 2026-10-02. Department order Start as one batched, non-blocking request and shared `StickerFab` (Approve + Scan) merged 2026-10-02. Department select/scan-queue + confirm, sent as one advance batch, merged 2026-10-02. Invoice Record payment form + PENDING slip review (verify/reject) and the Print / Record payment footer merged 2026-10-02. Staff self-registration + admin approval and signed-in StaffId actor (public prefetched staff list) merged 2026-10-03. Issue reports record the signed-in StaffId (typed name input removed) merged 2026-10-04.
+- Branch: `main`; awaiting verification of the customer package invoice deployment in Vercel.
 
 ## Branches in flight
 
-- **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
-- **`feat/invoice-form-overlay`** — design-only work (invoice create as a form overlay with swipeable line cards), 1 commit ahead of `main`; kept by owner, not for merge yet.
-- **`feat/package-credit`** — monthly-subscription package credits, phases 1–4 built, awaiting owner test on Preview. Details on that branch: `.user/memory/feat-package-credit.md`.
+- `work` — retained initial cloud checkout branch; details: `.user/memory/work.md`.
 
 ## Pending work
 
