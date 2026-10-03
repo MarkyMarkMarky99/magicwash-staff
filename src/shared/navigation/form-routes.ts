@@ -8,6 +8,8 @@ export const INVOICE_CREATE_ROUTE_NAME = 'invoice-create'
 export const PRICE_LIST_ITEM_CREATE_ROUTE_NAME = 'price-list-item-create'
 export const INVOICE_PAYMENT_CREATE_ROUTE_NAME = 'invoice-payment-create'
 export const INVOICE_PAYMENT_REVIEW_ROUTE_NAME = 'invoice-payment-review'
+export const STAFF_REGISTER_ROUTE_NAME = 'staff-register'
+export const STAFF_EDIT_ROUTE_NAME = 'staff-edit'
 
 interface AppointmentCreateRouteContext {
   customerId: string
@@ -94,4 +96,12 @@ export function priceListItemCreateRoute(context: PriceListItemCreateRouteContex
       ...(context.subcategory ? { subcategory: context.subcategory } : {}),
     },
   }
+}
+
+export function staffRegisterRoute(): RouteLocationRaw {
+  return { name: STAFF_REGISTER_ROUTE_NAME }
+}
+
+export function staffEditRoute(staffId: string): RouteLocationRaw {
+  return { name: STAFF_EDIT_ROUTE_NAME, params: { staffId } }
 }

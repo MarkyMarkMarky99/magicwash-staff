@@ -20,6 +20,7 @@ export interface ApiHandlerRequest<TQuery extends ApiQueryParams = ApiQueryParam
   headers: Record<string, string | string[] | undefined>
   params: Record<string, string> // route path params, e.g. /appointments/:id
   staff?: StaffMember
+  email?: string
 }
 
 /** Handles one HTTP method for a single route. */

@@ -50,7 +50,7 @@ Invalid-format and duplicate-tag warnings disappear three seconds after their la
 Saving reserves the tag and resets the current garment immediately. In the background, the camera
 JPEG uploads to Firebase Storage's `images` folder, then the existing LaundryPhotos create
 API receives `orderId`, `orderItemId` (`null` when opened without an item), `itemId`, `createdBy`, and `imageUrl`. The actor is
-resolved with `currentActor` from the optional `by` query, matching the gallery upload.
+resolved with `currentActor` as the signed-in StaffId, or `unknown` when signed out; the optional `by` query is ignored, matching the gallery upload.
 The registered count increases only after the create request succeeds. A failure releases
 the tag for retry and shows a dismissible error naming it. The close button remains disabled
 while any upload is pending; the header shows the pending count.

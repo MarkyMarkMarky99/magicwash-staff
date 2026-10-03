@@ -3,7 +3,7 @@ import type { VercelRequest } from '@vercel/node'
 import { ApiGateway } from '../../../../server/shared/http/api-gateway.js'
 import { authRoutes } from '../../../../server/modules/auth/auth.module.js'
 
-const staff = { email: 'Admin@Example.com', name: 'Admin', role: 'admin' as const }
+const staff = { staffId: 'staff-id', email: 'Admin@Example.com', name: 'Admin', role: 'admin' as const }
 const gateway = new ApiGateway({ auth: async () => authRoutes }, async () => staff)
 const request = (method: string, path: string) => ({ method, url: path, query: {}, headers: {} }) as VercelRequest
 const result = await gateway.handleRequest(request('GET', '/api/auth/me'))

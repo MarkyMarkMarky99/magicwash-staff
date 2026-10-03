@@ -6,7 +6,7 @@ import { ApiError } from '../../../../server/shared/http/api-error.js'
 import type { StaffAuthenticator } from '../../../../server/shared/auth/staff-auth.js'
 import { authenticateStaff } from '../../../../server/shared/auth/staff-auth.js'
 
-const staff = { email: 'worker@example.com', name: 'Worker', role: 'staff' as const }
+const staff = { staffId: 'staff-id', email: 'worker@example.com', name: 'Worker', role: 'staff' as const }
 const request = (path: string, authorization?: string) => ({
   method: 'GET', url: path, query: {}, headers: authorization ? { authorization } : {},
 }) as VercelRequest

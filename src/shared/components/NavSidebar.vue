@@ -1,9 +1,10 @@
 <script setup>
-import { onScopeDispose, ref } from 'vue'
+import { inject, onScopeDispose, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { invalidate } from '@/shared/api/response-cache'
 import { onUserChanged, signOutUser } from '@/shared/api/firebase-auth'
 import { useNavDrawer } from '@/shared/composables/use-nav-drawer'
+import { staffAdminKey } from '@/shared/staff-admin'
 
 defineProps({
   open: Boolean
@@ -13,6 +14,7 @@ const { close } = useNavDrawer()
 const router = useRouter()
 const route = useRoute()
 const signedIn = ref(false)
+const isAdmin = inject(staffAdminKey, ref(false))
 onScopeDispose(onUserChanged((user) => { signedIn.value = user !== null }))
 
 function navigate(path) {
@@ -111,6 +113,16 @@ function logout() {
           >
             <span class="material-symbols-outlined">bug_report</span>
             <span>แจ้งปัญหา</span>
+          </button>
+        </li>
+        <li v-if="isAdmin">
+          <button
+            class="w-full flex items-center gap-4 px-5 py-3 text-left hover:bg-black/5 transition-colors"
+            :class="route.path.startsWith('/staff') ? 'text-primary font-semibold' : ''"
+            @click="navigate('/staff')"
+          >
+            <span class="material-symbols-outlined">badge</span>
+            <span>พนักงาน</span>
           </button>
         </li>
       </ul>
