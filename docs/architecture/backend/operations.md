@@ -116,7 +116,7 @@ rows are full header width. Unspecified values normally serialize as `''`; repos
 nullable values send `null`, which the Values API skips. An append response can therefore report an
 `updatedRange` that omits trailing blank cells. The landed-range check requires column A anchoring,
 coverage of every submitted nonblank value, and no columns beyond the submitted width. Echo
-normalization restores the full known width. Writes use Google Sheets API with `USER_ENTERED`;
+normalization restores the full known width. General repository writes use Google Sheets API with `USER_ENTERED`;
 `valueInput` declarations guard unsupported column intent and do not change the wire option. APPEND
 writes complete rows and UPDATE patches changed columns, then verifies row identity.
 
@@ -168,13 +168,43 @@ JSON, schema, and count-mismatch failures and redact the print server URL and Ac
 
 ## Environment and external state
 
-Only `GET /api/auth/me` requires a Firebase ID token in the `Authorization: Bearer` header
-for now. The gateway verifies the token against Firebase's public keys for
-`FIREBASE_PROJECT_ID` and requires a verified email. It then reads the restricted `Staff` tab
-in `STAFF_SPREADSHEET_ID` through the authenticated Sheets API and allows only active `admin`
-or `staff` entries. The parsed staff list is cached for 60 seconds. All other API routes
-dispatch without authentication or staff on the request. `GET /api/auth/me` returns the
-authenticated staff email, name, and role.
+The `auth` and `staff` modules require a Firebase ID token in the `Authorization: Bearer`
+header. Token verification uses Firebase's public keys for `FIREBASE_PROJECT_ID` and requires
+a verified email, normalized by trimming and lowercasing. Missing or invalid tokens return 401.
+The restricted `Staff` tab in `STAFF_SPREADSHEET_ID` is read through the authenticated Sheets
+API, never GViz. The active allowlist includes only `admin` and `staff` roles and is cached
+for 60 seconds. Successful staff POST and PATCH invalidate that instance's cache; an older
+in-flight read cannot repopulate the cache after invalidation.
+
+`GET /api/auth/me` still requires an active allowlist entry (403 otherwise) and returns its
+email, name, and role. The staff module receives the verified email and, when listed, the
+active StaffMember. Other modules continue dispatching without authentication or staff identity.
+
+| Route | Authorization | Result |
+| --- | --- | --- |
+| `GET /api/staff/me` | Valid token | Own row including pending/inactive rows; 404 if absent |
+| `POST /api/staff` | Valid token | Register own verified email; 201, or 409 for any existing email |
+| `GET /api/staff` | Active admin | All rows with nonempty Email, including rows with blank StaffId |
+| `GET /api/staff/:staffId` | Active admin | Staff row, or 404 |
+| `PATCH /api/staff/:staffId` | Active admin | Updated row, or 404; own role/active fields return 409 |
+
+Admin routes return 403 for callers outside the active admin allowlist. There is no staff
+self-edit route. `contracts/staff/staff-api.schema.ts` validates registration name, phone,
+and address as required trimmed nonempty strings. Email comes only from the token. Admin
+patches require at least one editable field and reject Email/StaffId and unknown fields;
+startDate is a valid `yyyy-MM-dd` date or an empty string. Invalid bodies return 422.
+
+The staff service maps columns by live header name and uses authenticated SheetsApiClient
+reads with `UNFORMATTED_VALUE`, coercing text cells with `String()`. StartDate numeric serials
+use whole days from the Google Sheets epoch (1899-12-30) with UTC arithmetic; valid
+`yyyy-MM-dd` strings are preserved, and other values become empty strings. Read rows are
+mapped directly without strict response-schema parsing so a bad cell cannot break all staff
+reads and patches. Request bodies remain schema-validated. Login continues reading only A:D. Staff writes use `RAW` for every cell so phone numbers retain leading zeroes;
+Active is a native boolean. Registration appends a full-width row with an unprefixed
+`generateShortId()`, blank Role/Position/StartDate, and Active false. PATCH writes only the
+provided columns. Rows with empty Email are absent; legacy owner rows with empty StaffId
+remain visible but cannot be addressed by an empty ID. Duplicate email lookup is
+case-insensitive; Sheets provides no atomic unique-email constraint across concurrent requests.
 
 `FIREBASE_PROJECT_ID` and `STAFF_SPREADSHEET_ID` are server-only environment variables.
 

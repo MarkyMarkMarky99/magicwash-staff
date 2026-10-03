@@ -7,6 +7,7 @@
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — design-only work (invoice create as a form overlay with swipeable line cards), 1 commit ahead of `main`; kept by owner, not for merge yet.
 - **`feat/package-credit`** — monthly-subscription package credits, phases 1–4 built, awaiting owner test on Preview. Details on that branch: `.user/memory/feat-package-credit.md`.
+- **`feat/staff-registration`** — staff self-registration + admin approval, browser-tested by owner, committed, not pushed. Details: `.user/memory/feat-staff-registration.md`.
 
 ## Pending work
 
@@ -119,8 +120,7 @@
   - `column-order.dry-test.ts` fails on `main`: it expects `update: false` for OrderItemForms/OrderImages writes.
 
 - **Auth, UX, and documentation**
-  - Staff sign-in is optional (only `/api/auth/me` checks the token); user still to decide page/API gating, signed-in actor instead of `admin`/`?by=`, and Firebase Storage rules.
-  - Vercel Preview hosts are not Firebase Authorized domains, so sign-in fails on Preview (`auth/unauthorized-domain`).
+  - Sign-in still optional outside `auth`/`staff`; open: page/API gating, signed-in actor vs `admin`/`?by=`, Storage rules; Preview hosts not Firebase Authorized domains.
   - 5 server dry-tests reported failing (invoice workflows x2, sheet metadata x2, order-item contract export); not checked against pre-auth `main`.
   - Fix screenshot-upload accessibility states, failed-upload handling, and staff-safe Firebase errors.
   - Align the customer-packages form with `docs/design/patterns/forms.md`.

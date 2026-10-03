@@ -9,6 +9,13 @@ export interface StaffMember {
 const CACHE_TTL_MS = 60_000
 let cached: { members: Map<string, StaffMember>; expiresAt: number } | undefined
 let inFlight: Promise<Map<string, StaffMember>> | undefined
+let cacheGeneration = 0
+
+export function invalidateStaffListCache(): void {
+  cacheGeneration += 1
+  cached = undefined
+  inFlight = undefined
+}
 
 export function parseStaffList(rows: SheetsApiValues): Map<string, StaffMember> {
   const [header, ...data] = rows
@@ -39,9 +46,10 @@ async function loadStaffList(): Promise<Map<string, StaffMember>> {
 export function getStaffList(): Promise<Map<string, StaffMember>> {
   if (cached && Date.now() < cached.expiresAt) return Promise.resolve(cached.members)
   if (!inFlight) {
+    const generation = cacheGeneration
     let pending: Promise<Map<string, StaffMember>>
     pending = loadStaffList().then((members) => {
-      cached = { members, expiresAt: Date.now() + CACHE_TTL_MS }
+      if (generation === cacheGeneration) cached = { members, expiresAt: Date.now() + CACHE_TTL_MS }
       return members
     }).finally(() => {
       if (inFlight === pending) inFlight = undefined

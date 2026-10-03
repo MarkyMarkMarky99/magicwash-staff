@@ -2,6 +2,8 @@ import type { RouteLoader } from '../shared/http/gateway.types.js'
 import { ApiError } from '../shared/http/api-error.js'
 
 export const routeRegistry = {
+  staff: (): ReturnType<RouteLoader> =>
+    import('../modules/staff/staff.module.js').then((module) => module.staffRoutes),
   portal: (): ReturnType<RouteLoader> =>
     import('../modules/portal/portal.module.js').then((module) => module.portalRoutes),
   auth: (): ReturnType<RouteLoader> =>

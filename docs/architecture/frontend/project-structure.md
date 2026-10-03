@@ -52,8 +52,15 @@ application-level pages or development tools when one is needed.
   `Authorization: Bearer`. Every `/api` request goes through it, including services that call
   `fetch` for outcome handling.
 - `src/data/auth/auth.store.ts` owns the session. After Firebase signs a user in, it calls
-  `GET /api/auth/me`; a 403 (email not on the `Staff` allow-list or inactive) signs the user back
-  out and shows the reason on the login page.
+  `GET /api/auth/me`. Its `status` is `loading`, `signedOut`, `signedIn`, `unregistered`, or
+  `pending`. On a 403 the Google session is kept and the store calls `GET /api/staff/me`: a 404 is
+  `unregistered` (the login page sends the user to `/staff/register`); a row with no role or
+  `active = false` is `pending` (the login page shows "ลงทะเบียนแล้ว รอผู้ดูแลอนุมัติ" with a logout
+  button). Only `signedIn` counts as signed in as staff. A 403 followed by an already usable row,
+  a 401, or any other error signs the user out with an error on the login page. See
+  `docs/features/staff/registration.md`.
+- `App.vue` starts the session check on mount and provides `isAdmin` to `NavSidebar` through
+  `staffAdminKey` (`src/shared/staff-admin.ts`), which shows the staff-management entry to admins only.
 - Sign-in is optional: no route requires it. `/login` is reached from the nav menu, which shows
   "เข้าสู่ระบบ" when signed out and "ออกจากระบบ" when signed in. The login page has a close button,
   and after signing in it leaves the same way (history back, or `/` without history); a
