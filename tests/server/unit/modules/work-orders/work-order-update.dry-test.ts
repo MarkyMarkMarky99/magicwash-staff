@@ -63,6 +63,7 @@ function orderRow(overrides: Partial<OrderFormDbRow> = {}): OrderFormDbRow {
 
 function createService(repository: RecordingRepository): WorkOrderService {
   return new WorkOrderService({
+    workRateRepository: () => ({ async read() { return [] } }),
     orderFormRepository: () => repository,
     laundryPhotoRepository: () => ({ async read() { return [] } }),
     orderItemRepository: () => ({ async read() { return [] } }),

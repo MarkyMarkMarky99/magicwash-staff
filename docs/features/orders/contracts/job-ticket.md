@@ -91,6 +91,7 @@ Tickets are provisioned after a work-order status write succeeds with `APPROVED`
 the order's LaundryPhotos rows, resolves each photo's `orderitem_id` against OrderItemForms, and
 uses the order service type only when the referenced line cannot be resolved. It then reads existing
 tickets and appends every missing `(laundryItemId, department)` pair in one batch.
+Each new ticket's `work_minutes` is taken from its department's active EASY row in WorkRates, or left blank when none exists or WorkRates cannot be read (approval still succeeds).
 Each new department ticket defaults `photoEvidenceUrl` to the first non-empty `LaundryPhotos.image_url` for its garment tag, or null when none exists.
 
 Repeating an `APPROVED` update is safe for already-created pairs and fills tickets for garments that

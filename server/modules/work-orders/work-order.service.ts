@@ -12,6 +12,7 @@ import { getLaundryPhotosRepository } from '../../sheets/LaundryPhotos/LaundryPh
 import { laundryPhotosRowSchema } from '../../sheets/LaundryPhotos/LaundryPhotos.db-contract.js'
 import { getOrderItemFormsRepository } from '../../sheets/OrderItemForms/OrderItemForms.repository.js'
 import { orderItemFormsRowSchema } from '../../sheets/OrderItemForms/OrderItemForms.db-contract.js'
+import { getWorkRatesRepository } from '../../sheets/WorkRates/WorkRates.repository.js'
 import { getJobTicketsRepository } from '../../sheets/JobTickets/JobTickets.repository.js'
 import { jobTicketsRowSchema } from '../../sheets/JobTickets/JobTickets.db-contract.js'
 import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
@@ -27,7 +28,7 @@ import {
   type OrderFormApiRow,
   type OrderFormDbRow,
 } from './work-order.mapping.js'
-import { buildJobTickets } from './job-ticket-provisioning.js'
+import { buildJobTickets, readWorkMinutesByDepartment, type WorkRateReader } from './job-ticket-provisioning.js'
 
 type OrderItemFormsDbRow = z.infer<typeof orderItemFormsRowSchema>
 type LaundryPhotosDbRow = z.infer<typeof laundryPhotosRowSchema>
@@ -70,6 +71,7 @@ export interface WorkOrderServiceOptions {
   laundryPhotoRepository?: () => LaundryPhotoReader
   orderItemRepository?: () => OrderItemReader
   jobTicketRepository?: () => JobTicketProvisioningRepository
+  workRateRepository?: () => WorkRateReader
 }
 
 const defaultOrderItemPort: OrderItemPort = {
@@ -105,6 +107,7 @@ export class WorkOrderService extends BaseCrudService<
   private readonly laundryPhotoRepository: () => LaundryPhotoReader
   private readonly orderItemRepository: () => OrderItemReader
   private readonly jobTicketRepository: () => JobTicketProvisioningRepository
+  private readonly workRateRepository: () => WorkRateReader
 
   constructor(input: WorkOrderServiceOptions = {}) {
     const orderFormRepository = input.orderFormRepository ?? getOrderFormRepository
@@ -122,6 +125,7 @@ export class WorkOrderService extends BaseCrudService<
     this.laundryPhotoRepository = input.laundryPhotoRepository ?? getLaundryPhotosRepository
     this.orderItemRepository = input.orderItemRepository ?? getOrderItemFormsRepository
     this.jobTicketRepository = input.jobTicketRepository ?? getJobTicketsRepository
+    this.workRateRepository = input.workRateRepository ?? getWorkRatesRepository
   }
 
   override async list(query: unknown): Promise<ServiceListResult<WorkOrderListResponse>> {
@@ -230,11 +234,12 @@ export class WorkOrderService extends BaseCrudService<
       return { ...updatedOrder, ticketProvisioning: emptyProvisioning }
     }
 
-    const [orderHeaderRows, photoRows, itemRows, existingTicketRows] = await Promise.all([
+    const [orderHeaderRows, photoRows, itemRows, existingTicketRows, minutesByDepartment] = await Promise.all([
       this.orderFormRepository().read({ id: updatedOrder.orderId }),
       this.laundryPhotoRepository().read({ where: { order_id: updatedOrder.orderId } }),
       this.orderItemRepository().read({ where: { order_id: updatedOrder.orderId } }),
       this.jobTicketRepository().read({ where: { order_id: updatedOrder.orderId } }),
+      readWorkMinutesByDepartment(this.workRateRepository),
     ])
     const linesById = new Map(
       itemRows.flatMap((row) => typeof row.id === 'string' && row.id !== '' ? [[row.id, row] as const] : []),
@@ -267,6 +272,7 @@ export class WorkOrderService extends BaseCrudService<
           ? [{ laundryItemId: ticket.laundry_item_id, department: ticket.department }]
           : [],
       ),
+      minutesByDepartment,
     )
 
     if (provisioning.rows.length === 0) {

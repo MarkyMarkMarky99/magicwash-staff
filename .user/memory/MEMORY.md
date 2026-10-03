@@ -5,7 +5,7 @@
 ## Branches in flight
 
 - `work` — retained initial cloud checkout branch; details: `.user/memory/work.md`.
-- **`feat/work-ledger`** — staff KPI sheets WorkTransactions/WorkRates registered, EARN write not built. Details: `.user/memory/feat-work-ledger.md`.
+- **`feat/work-ledger`** — KPI sheets registered and approval stamps ticket work_minutes; EARN write not built. Details: `.user/memory/feat-work-ledger.md`.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — design-only work (invoice create as a form overlay with swipeable line cards), 1 commit ahead of `main`; kept by owner, not for merge yet.
 - **`feat/package-credit`** — monthly-subscription package credits, phases 1–4 built, awaiting owner test on Preview. Details on that branch: `.user/memory/feat-package-credit.md`.
