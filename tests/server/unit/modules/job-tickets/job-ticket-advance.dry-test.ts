@@ -61,7 +61,7 @@ assert.equal(pending.earnBatches.length, 0)
 assert.equal(pending.workRepositoryCalls, 0)
 assert.deepEqual(pending.batches[0], [
   { keyValue: 'one', patch: { status: 'In Progress', started_at: '2026-09-23 10:00:00', scanned_by: 'staff', updated_by: 'staff' } },
-  { keyValue: 'two', patch: { status: 'In Progress', started_at: 'previous', scanned_by: 'staff', updated_by: 'staff' } },
+  { keyValue: 'two', patch: { status: 'In Progress', scanned_by: 'staff', updated_by: 'staff' } },
 ])
 
 const mixed = setup([
@@ -157,4 +157,7 @@ try {
 } finally {
   console.error = originalConsoleError
 }
+const gvizStarted = setup([row({ status: 'In Progress', started_at: 'Date(2026,9,4,3,22,46)' })])
+await gvizStarted.service.advance(request([{ ticketId: 'one', orderId: '1' }], 'In Progress'))
+assert.equal('started_at' in (gvizStarted.batches[0] as Array<{ patch: Record<string, unknown> }>)[0]!.patch, false)
 console.log('job-ticket-advance.dry-test: OK')

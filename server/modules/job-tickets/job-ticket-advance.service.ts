@@ -10,6 +10,7 @@ import type { SheetRowUpdate } from '../../shared/repositories/sheet-repository.
 import { classifySheetWriteFailure } from '../../shared/repositories/write-failure.js'
 import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
 import { generateShortId } from '../../shared/utils/id.js'
+import { hasStartedAt } from './job-ticket-started-at.js'
 
 type JobTicketDbRow = z.infer<typeof jobTicketsRowSchema>
 type WorkTransactionsDbRow = z.infer<typeof workTransactionsRowSchema>
@@ -88,7 +89,7 @@ export class JobTicketAdvanceService {
       const startedAt = ticket.started_at ?? timestamp
       const completedAt = status === 'Completed' ? timestamp : ticket.completed_at ?? null
       updates.push({ keyValue: entry.ticketId, patch: {
-        status, started_at: startedAt,
+        status, ...(hasStartedAt(ticket.started_at) ? {} : { started_at: startedAt }),
         ...(status === 'Completed' ? { completed_at: completedAt } : {}),
         scanned_by: request.scannedBy, updated_by: request.scannedBy,
       } })

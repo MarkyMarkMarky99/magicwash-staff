@@ -11,7 +11,8 @@
 
 ## Next
 
-- Merge to `main` after the started_at fix.
+- Merge to `main` (started_at rewrite fixed on this branch).
+- Owner decision: 511 JobTickets rows already hold `started_at` as `Date(...)` text; repair script not written.
 - Accepted risk: two simultaneous completions of one ticket can write two EARNs; fix with a VOID row.
 - Before KPI drives pay: server must take the actor from the token, not the client body.
 - Future: supervisor-created tickets with custom `work_minutes`; KPI report screen.
