@@ -4,7 +4,7 @@
 
 ## Branches in flight
 
-- `feat/customer-package-invoice-option` — invoice choice and optional existing number await owner testing; details: `.user/memory/feat-customer-package-invoice-option.md`.
+- `feat/customer-package-invoice-option` — single invoice control awaits owner testing; details: `.user/memory/feat-customer-package-invoice-option.md`.
 - `work` — retained initial cloud checkout branch; details: `.user/memory/work.md`.
 
 ## Pending work
