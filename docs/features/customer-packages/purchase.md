@@ -1,26 +1,26 @@
 # Customer package creation
 
 The create form opened from a customer's Packages tab keeps that customer fixed and offers
-“Issue an invoice” at the bottom of the form, below Notes, enabled by default.
+one shared `FormToggleInput` labeled “Invoice already created” at the bottom, below Notes.
+It starts off. Opening it replaces the label with an optional “Invoice number” field.
 
-With the switch enabled, the form creates a CYCLE invoice for one package at its catalog price,
-using the package's start and expiry dates as the billing period. Only after invoice persistence
-is confirmed does it create the customer package, linking the invoice number.
+With the switch off, the customer-detail flow creates a CYCLE invoice for one package at its
+catalog price, using the package's start and expiry dates as the billing period. Only after
+invoice persistence is confirmed does it create the customer package, linking the invoice number.
 
-With the switch disabled, the form creates the customer package and opening-credit transaction
-through the existing customer-package endpoint. An optional shared `FormToggleInput` lets staff
-enter an existing invoice number; it is saved as `invoiceId`. Leaving the field blank or switching
-it off saves `invoiceId: null`. It makes no invoice request. Turning automatic invoicing back on
-clears the manual number and the purchase links the newly generated invoice instead.
-The customer, active package, and validity dates must still be valid.
+With the switch on, the form creates the customer package and opening-credit transaction through
+the existing customer-package endpoint without generating an invoice. A supplied number is trimmed
+and saved as `invoiceId`; leaving the input blank saves `invoiceId: null`. The switch's state is
+independent of the text value, so an open but empty input still skips automatic invoice creation.
+Switching off clears the manual number and restores automatic invoicing.
 
 The invoice choice is available before submission. Once an invoice purchase attempt exists, the
-form shows its outcome and existing resume/reconciliation actions; users cannot switch to a
-package-only purchase to bypass a partially persisted or uncertain attempt. The switch is disabled
-while a package-only request is in progress.
+form shows its outcome and existing resume/reconciliation actions; users cannot change the choice
+to bypass a partially persisted or uncertain attempt. The control is disabled while a package-only
+request is in progress. Customer, active package, and validity dates must still be valid.
 
-The form opened from the customer-package list keeps its existing behavior: select a customer,
-optionally enter an existing invoice number with the same `FormToggleInput`, and create a package without generating an invoice.
+The form opened from the customer-package list uses the same optional input but never generates
+an invoice: select a customer and optionally supply an existing invoice number.
 
 Closing or completing either flow keeps the existing navigation behavior. Live writes require
 the configured Google workbook bindings and credentials.

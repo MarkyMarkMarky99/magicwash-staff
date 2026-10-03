@@ -7,7 +7,6 @@ import FormInput from '@/shared/components/FormInput.vue'
 import FormOptionGrid from '@/shared/components/FormOptionGrid.vue'
 import FormPicker from '@/shared/components/FormPicker.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
-import FormSwitch from '@/shared/components/FormSwitch.vue'
 import FormToggleInput from '@/shared/components/FormToggleInput.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import { useCloseRoute } from '@/shared/navigation/use-close-route'
@@ -40,9 +39,9 @@ const customerStore = useCustomerStore()
 const packageStore = usePackageStore()
 const purchaseStore = useCustomerPackagePurchaseStore()
 const customer = ref<CustomerDetailDto | null>(null)
-const issueInvoice = ref(true)
+const invoiceAlreadyCreated = ref(false)
 const attempt = computed(() => purchaseStore.attempts[sourceCustomerId])
-const autoInvoice = computed(() => Boolean(sourceCustomerId) && (issueInvoice.value || Boolean(attempt.value)))
+const autoInvoice = computed(() => Boolean(sourceCustomerId) && (!invoiceAlreadyCreated.value || Boolean(attempt.value)))
 const purchaseRetryAllowed = computed(() => attempt.value ? canResumePackagePurchase(attempt.value) : false)
 const {
   customers,
@@ -91,8 +90,8 @@ const purchaseMessage = computed(() => {
   return 'message' in outcome ? outcome.message : 'Some records may already have been saved. Check this invoice before continuing.'
 })
 
-watch(issueInvoice, (value) => {
-  if (value) invoiceId.value = ''
+watch(invoiceAlreadyCreated, (value) => {
+  if (!value) invoiceId.value = ''
 })
 
 watch(startDate, (value) => {
@@ -261,21 +260,15 @@ async function submitForm() {
       <FormOptionGrid :model-value="timeSlot" label="Time slot" :options="timeSlotOptions" variant="compact" @update:model-value="timeSlot = timeSlot === $event ? '' : $event" />
       <FormTextarea id="customer-package-notes" v-model="notes" label="Notes" />
       <p v-if="formError" class="font-body text-sm text-error">{{ formError }}</p>
-      <fieldset v-if="sourceCustomerId" :disabled="submitting">
-        <FormSwitch
-          v-model="issueInvoice"
-          label="Issue an invoice"
-          :description="issueInvoice ? 'Create an invoice at the package price before adding the customer package.' : 'Add the package with opening credits without creating an invoice.'"
-        />
-      </fieldset>
-      <fieldset v-if="!autoInvoice" :disabled="submitting">
+      <fieldset :disabled="submitting">
         <FormToggleInput
           id="customer-package-invoice"
           v-model="invoiceId"
-          label="Existing invoice number"
-          input-label="Existing invoice number"
-          description="Optional. Link an existing invoice, or leave it blank."
-          placeholder="Enter an invoice number (optional)"
+          v-model:enabled="invoiceAlreadyCreated"
+          label="Invoice already created"
+          input-label="Invoice number"
+          description="Enter the invoice number, or leave it blank."
+          placeholder="Invoice number (optional)"
         />
       </fieldset>
       <p v-if="autoInvoice" class="font-body text-xs text-on-surface-variant">
