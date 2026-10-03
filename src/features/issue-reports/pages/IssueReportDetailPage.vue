@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
-import FormInput from '@/shared/components/FormInput.vue'
 import FormOptionGrid from '@/shared/components/FormOptionGrid.vue'
 import { ApiError } from '@/shared/api/api-client'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
-import { useIssueReportActor } from '../composables/use-issue-report-actor'
+import { currentActor } from '@/shared/config/actor'
+import { useStaffStore } from '@/data/staff/staff.store'
 import { ISSUE_REPORT_STATUS_OPTIONS, issueReportStatusBadge } from '../components/issue-report-status'
 import { getIssueReport, type IssueReportDto, type IssueReportStatus } from '@/data/issue-reports/issue-report.service'
 import { useIssueReportStore } from '../stores/issue-report.store'
@@ -15,7 +15,7 @@ defineOptions({ name: 'IssueReportDetailPage' })
 
 const props = defineProps<{ id: string }>()
 const issueReportStore = useIssueReportStore()
-const { actor, persist } = useIssueReportActor()
+const staffStore = useStaffStore()
 const report = ref<IssueReportDto | null>(null)
 const loading = ref(false)
 const loadError = ref<string | null>(null)
@@ -24,8 +24,6 @@ const actionError = ref<string | null>(null)
 // Rows created before the upload field existed hold a pasted link, which may point at a page
 // rather than an image. Those must fall back to the link text instead of a broken thumbnail.
 const screenshotUnrenderable = ref(false)
-const actorReady = computed(() => actor.value.trim().length > 0)
-const statusOptions = computed(() => ISSUE_REPORT_STATUS_OPTIONS.map((option) => ({ ...option, disabled: !actorReady.value })))
 let latestLoad = 0
 
 async function loadDetail() {
@@ -61,15 +59,14 @@ async function loadDetail() {
 }
 
 async function changeStatus(next: string) {
-  if (!actorReady.value || !report.value) return
+  if (!report.value) return
 
   actionError.value = null
   try {
     report.value = await issueReportStore.update(report.value.issueReportId, {
       status: next as IssueReportStatus,
-      updatedBy: actor.value.trim(),
+      updatedBy: currentActor(),
     })
-    persist()
   } catch (error) {
     actionError.value = error instanceof Error ? error.message : 'Unable to update issue report'
   }
@@ -121,16 +118,15 @@ watch(() => props.id, () => void loadDetail(), { immediate: true })
               </dd>
             </div>
             <div><dt class="font-semibold text-on-surface-variant">สร้างเมื่อ</dt><dd>{{ report.createdAt }}</dd></div>
-            <div><dt class="font-semibold text-on-surface-variant">ผู้แจ้ง</dt><dd>{{ report.createdBy ?? '—' }}</dd></div>
+            <div><dt class="font-semibold text-on-surface-variant">ผู้แจ้ง</dt><dd>{{ staffStore.nameOf(report.createdBy) || '—' }}</dd></div>
             <div><dt class="font-semibold text-on-surface-variant">อัปเดตเมื่อ</dt><dd>{{ report.updatedAt ?? '—' }}</dd></div>
-            <div><dt class="font-semibold text-on-surface-variant">ผู้อัปเดต</dt><dd>{{ report.updatedBy ?? '—' }}</dd></div>
+            <div><dt class="font-semibold text-on-surface-variant">ผู้อัปเดต</dt><dd>{{ staffStore.nameOf(report.updatedBy) || '—' }}</dd></div>
           </dl>
         </section>
 
         <section class="space-y-3 rounded-xl border border-outline-variant/30 p-4">
           <p v-if="actionError" class="rounded-lg bg-error-container px-3 py-2 text-sm text-on-error-container" role="alert">{{ actionError }}</p>
-          <FormInput id="issue-report-detail-actor" v-model="actor" label="ผู้ดำเนินการ" placeholder="ชื่อพนักงาน" autocomplete="name" />
-          <FormOptionGrid :model-value="report.status" label="เปลี่ยนสถานะ" :options="statusOptions" variant="compact" @update:model-value="changeStatus" />
+          <FormOptionGrid :model-value="report.status" label="เปลี่ยนสถานะ" :options="[...ISSUE_REPORT_STATUS_OPTIONS]" variant="compact" @update:model-value="changeStatus" />
         </section>
       </div>
     </ScrollRegion>

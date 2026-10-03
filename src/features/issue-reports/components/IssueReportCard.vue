@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import type { IssueReportDto } from '@/data/issue-reports/issue-report.service'
+import { useStaffStore } from '@/data/staff/staff.store'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { issueReportStatusBadge } from './issue-report-status'
+
+const staffStore = useStaffStore()
 
 const props = defineProps<{
   report: IssueReportDto
@@ -23,6 +26,6 @@ const emit = defineEmits<{
       <BaseBadge :label="issueReportStatusBadge(props.report.status).label" size="lg" :tone="issueReportStatusBadge(props.report.status).tone" />
     </div>
     <p class="mt-1 line-clamp-2 font-body text-xs leading-relaxed text-on-surface-variant">{{ props.report.description }}</p>
-    <p class="mt-2 font-body text-[11px] text-on-surface-variant">{{ props.report.createdAt }} · {{ props.report.createdBy ?? '—' }}</p>
+    <p class="mt-2 font-body text-[11px] text-on-surface-variant">{{ props.report.createdAt }} · {{ staffStore.nameOf(props.report.createdBy) || '—' }}</p>
   </button>
 </template>
