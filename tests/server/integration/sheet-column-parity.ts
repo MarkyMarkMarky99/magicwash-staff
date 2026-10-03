@@ -27,6 +27,8 @@ import { packageTransactionsDbContract } from '../../../server/sheets/PackageTra
 import { packagesDbContract } from '../../../server/sheets/Packages/Packages.db-contract.js'
 import { issueReportsDbContract } from '../../../server/sheets/IssueReports/IssueReports.db-contract.js'
 import { jobTicketsDbContract } from '../../../server/sheets/JobTickets/JobTickets.db-contract.js'
+import { workTransactionsDbContract } from '../../../server/sheets/WorkTransactions/WorkTransactions.db-contract.js'
+import { workRatesDbContract } from '../../../server/sheets/WorkRates/WorkRates.db-contract.js'
 
 const GVIZ_BASE_URL = 'https://docs.google.com/spreadsheets/d'
 
@@ -56,6 +58,18 @@ interface GvizResponse {
 }
 
 const readableSheets: readonly ReadableSheet[] = [
+  {
+    name: 'WorkTransactions',
+    sheetName: workTransactionsDbContract.sheetName,
+    spreadsheetIdEnv: workTransactionsDbContract.spreadsheetId!,
+    rowSchema: workTransactionsDbContract.row,
+  },
+  {
+    name: 'WorkRates',
+    sheetName: workRatesDbContract.sheetName,
+    spreadsheetIdEnv: workRatesDbContract.spreadsheetId!,
+    rowSchema: workRatesDbContract.row,
+  },
   {
     name: 'AfterPhoto',
     sheetName: afterPhotoDbContract.sheetName,
