@@ -6,7 +6,7 @@ import FormLabel from '@/shared/components/FormLabel.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import { useCloseRoute } from '@/shared/navigation/use-close-route'
-import { useIssueReportActor } from '../composables/use-issue-report-actor'
+import { currentActor } from '@/shared/config/actor'
 import { useScreenshotUpload } from '../composables/use-screenshot-upload'
 import { useIssueReportStore } from '../stores/issue-report.store'
 
@@ -15,20 +15,19 @@ defineOptions({ name: 'IssueReportFormPage' })
 const router = useRouter()
 const { close } = useCloseRoute({ name: 'issue-reports' })
 const issueReportStore = useIssueReportStore()
-const { actor, persist } = useIssueReportActor()
 const { screenshot, imageUrl, isBusy, select, clear } = useScreenshotUpload()
 const report = reactive({ title: '', description: '' })
 const screenshotInput = ref<HTMLInputElement | null>(null)
 const submitting = ref(false)
 const formError = ref<string | null>(null)
-const canSubmit = computed(() => !submitting.value && !isBusy.value && report.title.trim() && report.description.trim() && actor.value.trim())
+const canSubmit = computed(() => !submitting.value && !isBusy.value && report.title.trim() && report.description.trim())
 
 function createPayload() {
   return {
     title: report.title.trim(),
     description: report.description.trim(),
     screenshotUrl: imageUrl.value,
-    createdBy: actor.value.trim(),
+    createdBy: currentActor(),
   }
 }
 
@@ -51,7 +50,6 @@ async function submit() {
   submitting.value = true
   try {
     await issueReportStore.create(createPayload())
-    persist()
     await router.replace({ name: 'issue-reports' })
   } catch (reason) {
     formError.value = reason instanceof Error ? reason.message : 'Unable to create issue report'
@@ -125,7 +123,6 @@ onBeforeUnmount(clear)
         />
       </section>
 
-      <FormInput id="issue-report-actor" v-model="actor" label="ผู้แจ้ง *" placeholder="ชื่อพนักงาน" autocomplete="name" />
       <p v-if="formError" class="rounded-lg bg-error-container px-3 py-2 text-sm text-on-error-container" role="alert">{{ formError }}</p>
     </div>
   </FormOverlay>
