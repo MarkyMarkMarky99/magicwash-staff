@@ -4,7 +4,7 @@
 
 ## Branches in flight
 
-- **`feature/orders-report`** — Orders report page (`/reports/orders`, `GET /api/order-reports`) built, not browser-checked or deployed. Details: `.user/memory/feature-orders-report.md`.
+- **`feature/orders-report`** — Orders report page (`/reports/orders`, Week/Month) built and owner-viewed locally; not deployed. Details: `.user/memory/feature-orders-report.md`.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — design-only work (invoice create as a form overlay with swipeable line cards), 1 commit ahead of `main`; kept by owner, not for merge yet.
 - **`feat/package-credit`** — monthly-subscription package credits, phases 1–4 built, awaiting owner test on Preview. Details on that branch: `.user/memory/feat-package-credit.md`.

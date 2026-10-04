@@ -6,8 +6,7 @@ import {
   changePercent,
   chartBars,
   completionNote,
-  dayOrderCounts,
-  dayTiles,
+  dayColumns,
   parseReportQuery,
   percentOf,
   reportQueryFor,
@@ -22,27 +21,24 @@ const TODAY = '2026-10-05'
 assert.equal(shiftDate('2026-10-05', -6), '2026-09-29')
 assert.equal(shiftDate('2026-03-01', -1), '2026-02-28')
 assert.equal(shiftDate('2026-12-31', 1), '2027-01-01')
-assert.deepEqual(dayTiles(TODAY), [
-  '2026-09-29', '2026-09-30', '2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04', '2026-10-05',
-])
+assert.deepEqual(parseReportQuery({}, TODAY), { period: 'week', date: TODAY, day: null })
+assert.deepEqual(parseReportQuery({ period: 'week', date: '2026-09-28' }, TODAY), { period: 'week', date: '2026-09-28', day: null })
+assert.deepEqual(parseReportQuery({ period: ['month', 'week'], date: ['2026-08-01'] }, TODAY), { period: 'month', date: '2026-08-01', day: null })
+assert.deepEqual(parseReportQuery({ period: 'day', date: '2026-10-04' }, TODAY), { period: 'week', date: '2026-10-04', day: null })
+assert.deepEqual(parseReportQuery({ period: 'week', date: 'nope' }, TODAY), { period: 'week', date: TODAY, day: null })
+assert.deepEqual(parseReportQuery({ period: 'week', date: '2026-02-30' }, TODAY), { period: 'week', date: TODAY, day: null })
+assert.deepEqual(parseReportQuery({ period: 'week', date: '2026-10-06' }, TODAY), { period: 'week', date: TODAY, day: null })
+assert.deepEqual(parseReportQuery({ day: '2026-09-29' }, TODAY), { period: 'week', date: TODAY, day: '2026-09-29' })
+assert.deepEqual(parseReportQuery({ day: '2026-09-28' }, TODAY), { period: 'week', date: TODAY, day: null })
+assert.deepEqual(parseReportQuery({ date: '2026-09-28', day: '2026-09-28' }, TODAY), { period: 'week', date: '2026-09-28', day: '2026-09-28' })
+assert.deepEqual(parseReportQuery({ date: '2026-09-28', day: TODAY }, TODAY), { period: 'week', date: '2026-09-28', day: null })
+assert.deepEqual(parseReportQuery({ period: 'month', day: TODAY }, TODAY), { period: 'month', date: TODAY, day: null })
+assert.deepEqual(parseReportQuery({ date: 5 }, TODAY), { period: 'week', date: TODAY, day: null })
 
-assert.deepEqual(parseReportQuery({}, TODAY), { period: 'day', date: TODAY })
-assert.deepEqual(parseReportQuery({ period: 'week', date: '2026-09-28' }, TODAY), { period: 'week', date: '2026-09-28' })
-assert.deepEqual(parseReportQuery({ period: ['month', 'day'], date: ['2026-08-01'] }, TODAY), { period: 'month', date: '2026-08-01' })
-assert.deepEqual(parseReportQuery({ period: 'year', date: '2026-10-04' }, TODAY), { period: 'day', date: '2026-10-04' })
-assert.deepEqual(parseReportQuery({ period: 'week', date: 'nope' }, TODAY), { period: 'week', date: TODAY })
-assert.deepEqual(parseReportQuery({ period: 'week', date: '2026-02-30' }, TODAY), { period: 'week', date: TODAY })
-assert.deepEqual(parseReportQuery({ period: 'week', date: '2026-10-06' }, TODAY), { period: 'week', date: TODAY })
-assert.deepEqual(parseReportQuery({ period: 'day', date: '2026-09-28' }, TODAY), { period: 'day', date: TODAY })
-assert.deepEqual(parseReportQuery({ period: 'day', date: '2026-09-29' }, TODAY), { period: 'day', date: '2026-09-29' })
-assert.deepEqual(parseReportQuery({ period: 'month', date: '2026-01-15' }, TODAY), { period: 'month', date: '2026-01-15' })
-assert.deepEqual(parseReportQuery({ date: 5 }, TODAY), { period: 'day', date: TODAY })
+assert.deepEqual(reportQueryFor({ period: 'week', date: TODAY, day: null }, TODAY), { period: undefined, date: undefined, day: undefined })
+assert.deepEqual(reportQueryFor({ period: 'week', date: '2026-09-28', day: '2026-09-27' }, TODAY), { period: undefined, date: '2026-09-28', day: '2026-09-27' })
+assert.deepEqual(reportQueryFor({ period: 'month', date: TODAY, day: TODAY }, TODAY), { period: 'month', date: undefined, day: undefined })
 
-assert.deepEqual(reportQueryFor({ period: 'day', date: TODAY }, TODAY), { period: undefined, date: undefined })
-assert.deepEqual(reportQueryFor({ period: 'week', date: '2026-09-28' }, TODAY), { period: 'week', date: '2026-09-28' })
-assert.deepEqual(reportQueryFor({ period: 'month', date: TODAY }, TODAY), { period: 'month', date: undefined })
-
-assert.equal(canStepForward('day', TODAY, TODAY), false)
 assert.equal(canStepForward('week', TODAY, TODAY), false)
 assert.equal(canStepForward('week', '2026-10-04', TODAY), true)
 assert.equal(canStepForward('month', '2026-10-01', TODAY), false)
@@ -121,5 +117,5 @@ const month = report({
 assert.deepEqual(chartBars(month, TODAY).map((bar) => bar.highlight), [true, false])
 assert.deepEqual(chartBars(month, '2026-09-01').map((bar) => bar.highlight), [false, false])
 
-assert.deepEqual([...dayOrderCounts(report({}))], [['2026-10-04', 3], [TODAY, 8]])
-assert.deepEqual([...dayOrderCounts(month)], [])
+assert.deepEqual(dayColumns(report({})), [{ date: '2026-10-04', orders: 3 }, { date: TODAY, orders: 8 }])
+assert.deepEqual(dayColumns(month), [])

@@ -1,11 +1,18 @@
-import { orderReportPeriodSchema } from '@contracts/order-reports/order-report-api.schema'
-import type { OrderReportDto, OrderReportPeriod } from '@/data/order-reports/order-report.service'
+import type { OrderReportDto } from '@/data/order-reports/order-report.service'
 
 export const ORDER_REPORT_ROUTE_NAME = 'order-report'
 
+export type ReportPeriod = 'week' | 'month'
+
 export interface ReportView {
-  period: OrderReportPeriod
+  period: ReportPeriod
   date: string
+  day: string | null
+}
+
+export interface DayColumn {
+  date: string
+  orders: number
 }
 
 export interface ChartBar {
@@ -24,7 +31,7 @@ export interface ServiceRow {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
-const DAY_TILE_COUNT = 7
+const WEEK_DAYS = 7
 
 const SERVICE_LABELS: Record<OrderReportDto['byService'][number]['serviceType'], string> = {
   WSIR: 'Wash & iron',
@@ -49,23 +56,20 @@ export function shiftDate(date: string, days: number): string {
   return new Date(Date.parse(`${date}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10)
 }
 
-export function dayTiles(today: string): string[] {
-  return Array.from({ length: DAY_TILE_COUNT }, (_value, index) => shiftDate(today, index - (DAY_TILE_COUNT - 1)))
-}
-
 export function parseReportQuery(query: Record<string, unknown>, today: string): ReportView {
-  const parsedPeriod = orderReportPeriodSchema.safeParse(firstValue(query.period))
-  const period = parsedPeriod.success ? parsedPeriod.data : 'day'
-  const raw = firstValue(query.date)
-  const earliest = period === 'day' ? shiftDate(today, -(DAY_TILE_COUNT - 1)) : null
-  const valid = isRealDate(raw) && raw <= today && (earliest === null || raw >= earliest)
-  return { period, date: valid ? raw : today }
+  const period: ReportPeriod = firstValue(query.period) === 'month' ? 'month' : 'week'
+  const rawDate = firstValue(query.date)
+  const date = isRealDate(rawDate) && rawDate <= today ? rawDate : today
+  const rawDay = firstValue(query.day)
+  const inWeek = isRealDate(rawDay) && rawDay <= date && rawDay >= shiftDate(date, -(WEEK_DAYS - 1))
+  return { period, date, day: period === 'week' && inWeek ? rawDay : null }
 }
 
-export function reportQueryFor(view: ReportView, today: string): { period: string | undefined; date: string | undefined } {
+export function reportQueryFor(view: ReportView, today: string): { period: string | undefined; date: string | undefined; day: string | undefined } {
   return {
-    period: view.period === 'day' ? undefined : view.period,
+    period: view.period === 'week' ? undefined : view.period,
     date: view.date === today ? undefined : view.date,
+    day: view.period === 'week' && view.day !== null ? view.day : undefined,
   }
 }
 
@@ -73,13 +77,11 @@ function monthOf(date: string): string {
   return date.slice(0, 7)
 }
 
-export function canStepForward(period: OrderReportPeriod, date: string, today: string): boolean {
-  if (period === 'week') return date < today
-  if (period === 'month') return monthOf(date) < monthOf(today)
-  return false
+export function canStepForward(period: ReportPeriod, date: string, today: string): boolean {
+  return period === 'week' ? date < today : monthOf(date) < monthOf(today)
 }
 
-export function stepDate(period: 'week' | 'month', date: string, direction: -1 | 1, today: string): string {
+export function stepDate(period: ReportPeriod, date: string, direction: -1 | 1, today: string): string {
   if (period === 'week') {
     const next = shiftDate(date, 7 * direction)
     return next > today ? today : next
@@ -154,6 +156,6 @@ export function serviceRows(report: OrderReportDto): ServiceRow[] {
     }))
 }
 
-export function dayOrderCounts(report: OrderReportDto): Map<string, number> {
-  return new Map(report.series.filter((entry) => entry.from === entry.to).map((entry) => [entry.from, entry.orders]))
+export function dayColumns(report: OrderReportDto): DayColumn[] {
+  return report.series.filter((entry) => entry.from === entry.to).map((entry) => ({ date: entry.from, orders: entry.orders }))
 }

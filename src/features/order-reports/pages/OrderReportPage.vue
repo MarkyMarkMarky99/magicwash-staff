@@ -5,8 +5,9 @@ import type { LocationQueryRaw } from 'vue-router'
 import { bangkokToday } from '@shared/utils/bangkok-datetime'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
-import { getOrderReport, type OrderReportDto, type OrderReportPeriod } from '@/data/order-reports/order-report.service'
+import { getOrderReport, type OrderReportDto } from '@/data/order-reports/order-report.service'
 import OrderReportChart from '../components/OrderReportChart.vue'
+import OrderReportDayPicker from '../components/OrderReportDayPicker.vue'
 import OrderReportCompletion from '../components/OrderReportCompletion.vue'
 import OrderReportPeriodToggle from '../components/OrderReportPeriodToggle.vue'
 import OrderReportServices from '../components/OrderReportServices.vue'
@@ -15,8 +16,7 @@ import {
   canStepForward,
   changePercent,
   chartBars,
-  dayOrderCounts,
-  dayTiles,
+  dayColumns,
   formatCount,
   monthLabel,
   parseReportQuery,
@@ -26,7 +26,7 @@ import {
   shortDate,
   stepDate,
   tileLabel,
-  weekdayLabel,
+  type ReportPeriod,
   type ReportView,
 } from '../utils/order-report'
 
@@ -39,27 +39,24 @@ const today = ref(bangkokToday())
 const view = ref<ReportView>(parseReportQuery(route.query, today.value))
 const report = ref<OrderReportDto | null>(null)
 const loadedKey = ref<string | null>(null)
+const dayReport = ref<OrderReportDto | null>(null)
 const error = ref<string | null>(null)
-const dayCounts = ref(new Map<string, number>())
 let latestLoad = 0
+let latestDayLoad = 0
 
 const viewKey = computed(() => `${view.value.period}:${view.value.date}`)
 const loaded = computed(() => (report.value !== null && loadedKey.value === viewKey.value && !error.value ? report.value : null))
+const loadedDay = computed(() => (view.value.day !== null && dayReport.value?.date === view.value.day && !error.value ? dayReport.value : null))
+const focus = computed(() => (view.value.day === null ? loaded.value : loadedDay.value))
 
-const tiles = computed(() => dayTiles(today.value).map((date) => ({
-  date,
-  weekday: weekdayLabel(date),
-  dayOfMonth: Number(date.slice(8, 10)),
-  label: tileLabel(date, today.value),
-  hasOrders: (dayCounts.value.get(date) ?? 0) > 0,
-})))
 const canForward = computed(() => canStepForward(view.value.period, view.value.date, today.value))
 const weekFrom = computed(() => shiftDate(view.value.date, -6))
 const change = computed(() => (loaded.value ? changePercent(loaded.value.totals.orders, loaded.value.previousTotals.orders) : null))
 const previousLabel = computed(() => (view.value.period === 'month' ? 'Previous month' : 'Previous 7 days'))
-const chartTitle = computed(() => (view.value.period === 'month' ? 'Orders per week' : 'Orders per day'))
-const bars = computed(() => (loaded.value ? chartBars(loaded.value, view.value.period === 'day' ? view.value.date : today.value) : []))
-const services = computed(() => (loaded.value ? serviceRows(loaded.value) : []))
+const days = computed(() => (loaded.value && view.value.period === 'week' ? dayColumns(loaded.value) : []))
+const bars = computed(() => (loaded.value ? chartBars(loaded.value, today.value) : []))
+const services = computed(() => (focus.value ? serviceRows(focus.value) : []))
+const focusLabel = computed(() => (view.value.day === null ? null : tileLabel(view.value.day, today.value)))
 
 function updateQuery(next: ReportView): void {
   const query: LocationQueryRaw = { ...route.query, ...reportQueryFor(next, today.value) }
@@ -67,18 +64,17 @@ function updateQuery(next: ReportView): void {
   void router.replace({ query })
 }
 
-function selectPeriod(period: OrderReportPeriod): void {
-  updateQuery({ period, date: today.value })
+function selectPeriod(period: ReportPeriod): void {
+  updateQuery({ period, date: today.value, day: null })
 }
 
 function selectDay(date: string): void {
-  updateQuery({ period: 'day', date })
+  updateQuery({ ...view.value, day: view.value.day === date ? null : date })
 }
 
 function step(direction: -1 | 1): void {
   const { period, date } = view.value
-  if (period === 'day') return
-  updateQuery({ period, date: stepDate(period, date, direction, today.value) })
+  updateQuery({ period, date: stepDate(period, date, direction, today.value), day: null })
 }
 
 async function load(): Promise<void> {
@@ -90,10 +86,26 @@ async function load(): Promise<void> {
     if (id !== latestLoad) return
     report.value = result
     loadedKey.value = `${period}:${date}`
-    dayCounts.value = new Map([...dayCounts.value, ...dayOrderCounts(result)])
   } catch {
     if (id === latestLoad) error.value = 'Could not load the report'
   }
+}
+
+async function loadDay(): Promise<void> {
+  const id = ++latestDayLoad
+  const { day } = view.value
+  if (day === null) return
+  try {
+    const result = await getOrderReport('day', day)
+    if (id === latestDayLoad) dayReport.value = result
+  } catch {
+    if (id === latestDayLoad) error.value = 'Could not load the report'
+  }
+}
+
+function reload(): void {
+  void load()
+  void loadDay()
 }
 
 watch(() => route.query, (query) => {
@@ -101,17 +113,14 @@ watch(() => route.query, (query) => {
 })
 
 watch(viewKey, () => void load())
+watch(() => view.value.day, () => void loadDay())
 
 onActivated(() => {
-  const now = bangkokToday()
-  if (now !== today.value) {
-    today.value = now
-    dayCounts.value = new Map()
-  }
+  today.value = bangkokToday()
   const next = parseReportQuery(route.query, today.value)
-  const changed = next.period !== view.value.period || next.date !== view.value.date
+  const changed = next.period !== view.value.period || next.date !== view.value.date || next.day !== view.value.day
   view.value = next
-  if (!changed) void load()
+  if (!changed) reload()
 })
 </script>
 
@@ -123,33 +132,7 @@ onActivated(() => {
         <p class="text-[13px] text-on-primary/60">Orders received, by service and status</p>
       </section>
 
-      <section v-if="view.period === 'day'" class="px-4 pt-4" aria-label="Choose a day">
-        <div class="flex items-baseline justify-between px-1 pb-2">
-          <span class="text-[13px] font-bold">{{ monthLabel(view.date) }}</span>
-          <span class="text-[12px] text-on-primary/60">{{ tileLabel(view.date, today) }}</span>
-        </div>
-        <div class="grid grid-cols-[repeat(7,minmax(44px,1fr))] gap-1.5">
-          <button
-            v-for="tile in tiles"
-            :key="tile.date"
-            type="button"
-            :aria-label="tile.label"
-            :aria-pressed="tile.date === view.date"
-            class="flex h-[60px] flex-col items-center justify-center gap-0.5 rounded-[14px] border focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime"
-            :class="tile.date === view.date ? 'border-lime bg-lime text-on-surface' : 'border-on-primary/10 bg-on-primary/5 text-on-primary'"
-            @click="selectDay(tile.date)"
-          >
-            <span class="text-[11px] font-semibold opacity-80">{{ tile.weekday }}</span>
-            <span class="font-headline text-[17px] font-extrabold leading-none">{{ tile.dayOfMonth }}</span>
-            <span
-              class="h-[5px] w-[5px] rounded-full"
-              :class="!tile.hasOrders ? 'bg-transparent' : tile.date === view.date ? 'bg-on-surface' : 'bg-secondary-container'"
-            />
-          </button>
-        </div>
-      </section>
-
-      <section v-else-if="view.period === 'week'" class="px-4 pt-4" aria-label="Week">
+      <section v-if="view.period === 'week'" class="px-4 pt-4" aria-label="Week">
         <div class="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center">
           <button type="button" aria-label="Previous 7 days" class="flex h-11 w-11 items-center justify-center rounded-xl text-on-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime" @click="step(-1)">
             <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
@@ -175,13 +158,13 @@ onActivated(() => {
 
       <p v-if="error" class="mx-4 mt-4 rounded-xl bg-error-container px-3 py-2 text-sm text-on-error-container" role="alert">
         {{ error }}
-        <button type="button" class="ml-2 min-h-11 min-w-11 font-bold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime" @click="load">Retry</button>
+        <button type="button" class="ml-2 min-h-11 min-w-11 font-bold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime" @click="reload">Retry</button>
       </p>
 
       <p v-else-if="!loaded" class="px-5 pt-8 text-center text-[13px] text-on-primary/60" aria-live="polite">Loading report…</p>
 
       <template v-else>
-        <section v-if="view.period !== 'day'" class="flex flex-col gap-1 px-5 pt-3" aria-label="Total orders">
+        <section class="flex flex-col gap-1 px-5 pt-3" aria-label="Total orders">
           <div class="flex items-baseline gap-2.5">
             <span class="font-headline text-[52px] font-extrabold leading-none tracking-[-0.02em]">{{ formatCount(loaded.totals.orders) }}</span>
             <span class="text-[14px] text-on-primary/60">orders</span>
@@ -190,12 +173,16 @@ onActivated(() => {
           <span class="text-[13px] text-on-primary/60">{{ previousLabel }} · {{ formatCount(loaded.previousTotals.orders) }} orders</span>
         </section>
 
-        <OrderReportCompletion :report="loaded" />
+        <p v-if="focusLabel" class="px-5 pt-4 text-[13px] font-bold text-lime">{{ focusLabel }}</p>
+        <OrderReportCompletion v-if="focus" :report="focus" />
+        <p v-else class="px-5 pt-8 text-center text-[13px] text-on-primary/60" aria-live="polite">Loading day…</p>
 
-        <p v-if="view.period === 'day' && loaded.totals.orders === 0" class="mx-4 mt-3 rounded-[20px] border border-on-primary/10 bg-on-primary/5 px-4 py-6 text-center text-[13px] text-on-primary/60">No orders this day.</p>
-        <template v-else>
-          <OrderReportChart :title="chartTitle" :bars="bars" />
-          <OrderReportServices :rows="services" />
+        <OrderReportDayPicker v-if="view.period === 'week'" :days="days" :selected="view.day" :today="today" @select="selectDay" />
+        <OrderReportChart v-else title="Orders per week" :bars="bars" />
+
+        <template v-if="focus">
+          <p v-if="focus.totals.orders === 0" class="mx-4 mt-3 rounded-[20px] border border-on-primary/10 bg-on-primary/5 px-4 py-6 text-center text-[13px] text-on-primary/60">{{ view.day ? 'No orders this day.' : 'No orders in this period.' }}</p>
+          <OrderReportServices v-else :rows="services" />
         </template>
       </template>
     </ScrollRegion>
