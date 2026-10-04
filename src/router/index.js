@@ -13,6 +13,7 @@ import { orderRoutes } from '@/features/orders/routes'
 import { tagScannerRoutes } from '@/features/tag-scanner/routes'
 import { jobTicketRoutes } from '@/features/job-tickets/routes'
 import { staffRoutes } from '@/features/staff/routes'
+import { orderReportRoutes } from '@/features/order-reports/routes'
 
 const routes = [
   ...appointmentRoutes,
@@ -27,6 +28,7 @@ const routes = [
   ...tagScannerRoutes,
   ...jobTicketRoutes,
   ...staffRoutes,
+  ...orderReportRoutes,
 ]
 
 if (import.meta.env.DEV) {

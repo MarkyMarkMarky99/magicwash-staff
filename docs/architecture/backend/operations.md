@@ -197,6 +197,9 @@ period (shorter than 62 days). Each row carries `department`, derived from the j
 (`IRN-`, `WSH-`, …; null when unknown), and `staffId`, the worker credited: the row's own
 `created_by` for EARN, and the same ticket's EARN `created_by` for ADJUSTMENT and VOID.
 
+`GET /api/order-reports?period=day|week|month&date=yyyy-MM-dd` requires approved staff, reads the whole
+OrderForm tab once and aggregates it in memory; its rules are in `docs/features/orders/order-report.md`.
+
 | Route | Authorization | Result |
 | --- | --- | --- |
 | `GET /api/staff/me` | Valid token | Own row including pending/inactive rows; 404 if absent |

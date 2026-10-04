@@ -88,6 +88,16 @@ function logout() {
         <li>
           <button
             class="w-full flex items-center gap-4 px-5 py-3 text-left hover:bg-black/5 transition-colors"
+            :class="route.path === '/reports/orders' ? 'text-primary font-semibold' : ''"
+            @click="navigate('/reports/orders')"
+          >
+            <span class="material-symbols-outlined">bar_chart</span>
+            <span>Orders report</span>
+          </button>
+        </li>
+        <li>
+          <button
+            class="w-full flex items-center gap-4 px-5 py-3 text-left hover:bg-black/5 transition-colors"
             :class="route.path === '/invoices' ? 'text-primary font-semibold' : ''"
             @click="navigate('/invoices')"
           >
