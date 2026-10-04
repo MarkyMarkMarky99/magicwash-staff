@@ -1,6 +1,6 @@
 # Project memory
 
-- Branch: `main`; awaiting verification of the customer package invoice deployment in Vercel.
+- Branch: `main`; one local commit (sign-in redirect fallback) held unpushed by owner; customer package invoice deployment still awaiting verification.
 
 ## Branches in flight
 
@@ -127,8 +127,7 @@
   - `column-order.dry-test.ts` fails on `main`: it expects `update: false` for OrderItemForms/OrderImages writes.
 
 - **Auth, UX, and documentation**
-  - Google sign-in on prod hit `auth/popup-blocked` (browser setting/standalone/in-app); redirect fallback not built.
-  - Auth domain moved to `magicwash-laundry.com` (Vercel, `/__/auth` proxy); phone-check the Google account chooser shows it.
+  - Popup-blocked redirect fallback committed on local `main`, NOT pushed by owner request; any push ships it. Browser-test from a home-screen icon/LINE once pushed.
   - Sign-in still optional outside `auth`/`staff`; open: page/API gating, Storage rules; Preview hosts not Firebase Authorized domains.
   - Server-owned invoice and payment writes still record `'admin'` (`server/shared/config/actor.ts`); deferred by owner, needs client actor or token gating.
   - No screen shows actors by name yet; use `useStaffStore().nameOf(id)` when work-history screens are built.

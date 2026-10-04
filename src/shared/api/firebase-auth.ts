@@ -1,4 +1,4 @@
-import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth'
+import { GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut, type User } from 'firebase/auth'
 import { auth } from '@/firebase'
 
 let firstState: Promise<User | null> | null = null
@@ -18,10 +18,24 @@ export function onUserChanged(callback: (user: User | null) => void): () => void
   return onAuthStateChanged(auth, callback)
 }
 
-export async function signInWithGoogle(): Promise<void> {
+function googleProvider(): GoogleAuthProvider {
   const provider = new GoogleAuthProvider()
   provider.setCustomParameters({ prompt: 'select_account' })
-  await signInWithPopup(auth, provider)
+  return provider
+}
+
+export async function signInWithGoogle(): Promise<void> {
+  await signInWithPopup(auth, googleProvider())
+}
+
+/** Starts Google sign-in by redirecting the page. */
+export async function signInWithGoogleRedirect(): Promise<void> {
+  await signInWithRedirect(auth, googleProvider())
+}
+
+/** Completes Google sign-in after returning from a redirect. */
+export async function completeRedirectSignIn(): Promise<void> {
+  await getRedirectResult(auth)
 }
 
 export async function signOutUser(): Promise<void> {

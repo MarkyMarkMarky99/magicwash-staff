@@ -5,7 +5,7 @@ import { getCurrentStaff, type StaffSession } from './auth.service'
 import { getMyStaff, type StaffDto } from '@/data/staff/staff.service'
 import { setSignedInStaffId } from '@/shared/config/actor'
 import { ApiError } from '@/shared/api/api-client'
-import { onUserChanged, signInWithGoogle, signOutUser } from '@/shared/api/firebase-auth'
+import { completeRedirectSignIn, onUserChanged, signInWithGoogle, signInWithGoogleRedirect, signOutUser } from '@/shared/api/firebase-auth'
 
 /**
  * `unregistered`: Google session kept, no Staff row yet (must register).
@@ -14,6 +14,13 @@ import { onUserChanged, signInWithGoogle, signOutUser } from '@/shared/api/fireb
 export type AuthStatus = 'loading' | 'signedOut' | 'signedIn' | 'unregistered' | 'pending'
 
 const CANCELLED_SIGN_IN_CODES = new Set(['auth/popup-closed-by-user', 'auth/cancelled-popup-request'])
+
+function signInError(reason: unknown): string | null {
+  const code = (reason as { code?: unknown } | null)?.code
+  if (typeof code === 'string' && CANCELLED_SIGN_IN_CODES.has(code)) return null
+  console.error('Google sign-in failed', reason)
+  return `เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง (${typeof code === 'string' ? code : 'unknown'})`
+}
 
 export const useAuthStore = defineStore('auth', () => {
   const status = ref<AuthStatus>('loading')
@@ -114,6 +121,10 @@ export const useAuthStore = defineStore('auth', () => {
     if (!started) {
       started = true
       onUserChanged((user) => void applyUser(user))
+      completeRedirectSignIn().catch((reason) => {
+        const message = signInError(reason)
+        if (message !== null) error.value = message
+      })
     }
     return readyPromise
   }
@@ -126,10 +137,16 @@ export const useAuthStore = defineStore('auth', () => {
       await signInWithGoogle()
     } catch (reason) {
       const code = (reason as { code?: unknown } | null)?.code
-      if (typeof code !== 'string' || !CANCELLED_SIGN_IN_CODES.has(code)) {
-        console.error('Google sign-in failed', reason)
-        error.value = `เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง (${typeof code === 'string' ? code : 'unknown'})`
+      if (code === 'auth/popup-blocked') {
+        try {
+          await signInWithGoogleRedirect()
+          return
+        } catch (redirectReason) {
+          reason = redirectReason
+        }
       }
+      const message = signInError(reason)
+      if (message !== null) error.value = message
     } finally {
       signingIn.value = false
     }
