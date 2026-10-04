@@ -171,6 +171,30 @@ function asNullableString(value: unknown): string | null {
   return typeof value === 'string' && value !== '' ? value : null
 }
 
+const GVIZ_DATE_PATTERN = /^Date\((\d{4}),(\d{1,2}),(\d{1,2})(?:,(\d{1,2}),(\d{1,2}),(\d{1,2}))?\)$/
+
+function gvizDateParts(value: unknown): string[] | null {
+  const match = typeof value === 'string' ? GVIZ_DATE_PATTERN.exec(value) : null
+  if (!match) return null
+  const [, year, month, day, hour = '0', minute = '0', second = '0'] = match
+  const pad = (part: string | number) => String(part).padStart(2, '0')
+  return [year!, pad(Number(month) + 1), pad(day!), pad(hour), pad(minute), pad(second)]
+}
+
+function asDate(value: unknown): string {
+  const parts = gvizDateParts(value)
+  return parts ? parts.slice(0, 3).join('-') : asString(value)
+}
+
+function asNullableDate(value: unknown): string | null {
+  return asDate(value) || null
+}
+
+function asNullableDateTime(value: unknown): string | null {
+  const parts = gvizDateParts(value)
+  return parts ? `${parts.slice(0, 3).join('-')} ${parts.slice(3).join(':')}` : asNullableString(value)
+}
+
 function parseJsonRecord(value: unknown): JsonRecord {
   if (typeof value !== 'string' || value.trim() === '') return {}
   try {
@@ -302,7 +326,7 @@ function assembleInvoiceRows(
       amount: typeof payment.amount === 'number' ? payment.amount : null,
       method: payment.method ?? null,
       status: payment.status as InvoiceDetailResponse['payments'][number]['status'],
-      paidAt: asNullableString(payment.paid_at),
+      paidAt: asNullableDateTime(payment.paid_at),
       reference: asNullableString(payment.reference),
       proofUrl: asNullableString(payment.proof_url),
       notes: asNullableString(payment.notes),
@@ -314,15 +338,15 @@ function assembleInvoiceRows(
     )
     const paidAmount = roundMoney(paidAmountsByInvoice.get(invoiceNumber) ?? 0)
     const customer = parseJsonRecord(invoice.customer)
-    const dueDate = asString(invoice.due_date)
+    const dueDate = asDate(invoice.due_date)
 
     return {
       invoiceNumber,
       status: deriveInvoiceStatus(invoice.status, grandTotal, paidAmount, dueDate, today),
       billingType: invoice.billing_type as InvoiceDetailResponse['billingType'],
-      billingPeriodStart: asNullableString(invoice.billing_period_start),
-      billingPeriodEnd: asNullableString(invoice.billing_period_end),
-      issuedDate: asString(invoice.issued_date),
+      billingPeriodStart: asNullableDate(invoice.billing_period_start),
+      billingPeriodEnd: asNullableDate(invoice.billing_period_end),
+      issuedDate: asDate(invoice.issued_date),
       dueDate,
       customerId: asString(invoice.customer_id),
       customer: {

@@ -186,5 +186,23 @@ test('detail returns not found when the source header is absent', async () => {
   await assert.rejects(() => service.getById('INV-MISSING'), (error: unknown) => error instanceof ApiError && error.status === 404)
 })
 
+test('detail turns GViz Date(...) cells into contract dates', async () => {
+  const service = createService({
+    invoices: [header('INV-001', {
+      issued_date: 'Date(2026,9,2)',
+      due_date: 'Date(2026,9,5)',
+      billing_period_start: 'Date(2026,8,1)',
+      billing_period_end: 'Date(2026,8,30)',
+    } as InvoiceRow)],
+    items: [item('INV-001')],
+    payments: [payment('INV-001', { paid_at: 'Date(2025,5,16,9,5,0)' } as PaymentRow)],
+  })
+  const detail = await service.getById('INV-001')
+  assert.deepEqual(
+    [detail.issuedDate, detail.dueDate, detail.billingPeriodStart, detail.billingPeriodEnd, detail.payments[0]!.paidAt],
+    ['2026-10-02', '2026-10-05', '2026-09-01', '2026-09-30', '2025-06-16 09:05:00'],
+  )
+})
+
 for (const item of tests) await item.run()
 console.log(`${tests.length} invoice read dry tests passed`)
