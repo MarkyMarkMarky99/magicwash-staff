@@ -3,11 +3,14 @@
   "rewrites": [
     { "source": "/api/:path*/", "destination": "/api/[...path]" },
     { "source": "/api/:path*", "destination": "/api/[...path]" },
-    { "source": "/__/auth/:path*", "destination": "https://magicwashlaundry-a50ca.firebaseapp.com/__/auth/:path*" }
+    { "source": "/__/auth/:path*", "destination": "https://magicwashlaundry-a50ca.firebaseapp.com/__/auth/:path*" },
+    { "source": "/robots.txt", "has": [{ "type": "host", "value": "magicwash-laundry.com" }], "destination": "/robots-public.txt" },
+    { "source": "/robots.txt", "destination": "/robots-staff.txt" }
   ],
   "headers": [
     {
       "source": "/(.*)",
+      "missing": [{ "type": "host", "value": "magicwash-laundry.com" }],
       "headers": [
         { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
       ]

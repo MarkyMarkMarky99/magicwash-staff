@@ -1,6 +1,6 @@
 # Project memory
 
-- Branch: `main`; login lockdown + redirect fallback committed, waiting for `PRINT_API_KEY` in Vercel Production before push; customer package invoice deployment still awaiting verification.
+- Branch: `main`; customer package invoice deployment still awaiting verification.
 
 ## Branches in flight
 
@@ -129,6 +129,7 @@
 - **Auth, UX, and documentation**
   - Redirect fallback for popup-blocked ships with the lockdown push; browser-test from a home-screen icon/LINE.
   - Login lockdown: every route and API except `portal` needs approved staff; print server reads invoices with `PRINT_API_KEY`. Open: Firebase Storage rules, Sheets link-sharing, Preview hosts cannot sign in.
+  - Staff app moving to `staff.magicwash-laundry.com` (authDomain, noindex); apex left indexable for a future public shop site awaiting owner content (services, area, hours, contact, logo).
   - Server-owned invoice and payment writes still record `'admin'` (`server/shared/config/actor.ts`); deferred by owner, needs client actor or token gating.
   - No screen shows actors by name yet; use `useStaffStore().nameOf(id)` when work-history screens are built.
   - 5 server dry-tests reported failing (invoice workflows x2, sheet metadata x2, order-item contract export); not checked against pre-auth `main`.

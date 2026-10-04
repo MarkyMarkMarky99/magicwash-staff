@@ -4,7 +4,7 @@ import { getStorage } from 'firebase/storage'
 
 const firebaseConfig = {
   apiKey:            'AIzaSyBxDx2bEZD-sww2uo_gzN93tx9dTRcBS-M',
-  authDomain:        'magicwash-laundry.com',
+  authDomain:        'staff.magicwash-laundry.com',
   projectId:         'magicwashlaundry-a50ca',
   storageBucket:     'magicwashlaundry-a50ca.firebasestorage.app',
   messagingSenderId: '967978406004',
