@@ -39,11 +39,13 @@ export async function updateWorkOrder(orderId: string, payload: WorkOrderUpdateP
     { data: { ...payload, updatedBy: currentActor() }, requestSchema: workOrderUpdateSchema },
   )
   invalidate('/api/work-orders')
+  invalidate('/api/order-reports')
   return result
 }
 
 export async function createWorkOrder(payload: WorkOrderCreatePayload): Promise<WorkOrderCreateDto> {
   const result = await apiPost<WorkOrderCreateDto>(WORK_ORDERS_ENDPOINT, { data: payload, requestSchema: workOrderCreateSchema })
   invalidate('/api/work-orders')
+  invalidate('/api/order-reports')
   return result
 }

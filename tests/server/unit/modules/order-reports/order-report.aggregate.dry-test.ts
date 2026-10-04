@@ -193,7 +193,67 @@ assert.equal(buildOrderReport(averageRows(10), 'week', '2026-10-05').sevenDayAve
 assert.equal(buildOrderReport(averageRows(10), 'day', '2026-10-10').sevenDayAverage, 0)
 assert.equal(buildOrderReport(averageRows(10), 'day', '2026-10-02').sevenDayAverage, 0)
 
-for (const report of [dayReport, weekReport, octoberReport, february, statusReport]) {
+// days: per-day detail for day and week, empty for month
+assert.deepEqual(empty.days.map((entry) => entry.date), [
+  '2026-09-29', '2026-09-30', '2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04', '2026-10-05',
+])
+assert.ok(empty.days.every((entry) => entry.sevenDayAverage === 0 && entry.totals.orders === 0))
+assert.deepEqual(octoberReport.days, [])
+assert.deepEqual(february.days, [])
+assert.deepEqual(weekReport.days.map((entry) => entry.date), weekReport.series.map((entry) => entry.from))
+assert.deepEqual(weekReport.days.map((entry) => entry.totals.orders), weekReport.series.map((entry) => entry.orders))
+assert.deepEqual(dayReport.days.map((entry) => entry.date), weekReport.days.map((entry) => entry.date))
+
+const daysRows = [
+  row({ orderId: 'p1', receivedDate: '2026-10-05', status: 'PENDING', serviceType: 'WSIR', quantity: 3 }),
+  row({ orderId: 'p2', receivedDate: '2026-10-05', status: 'APPROVED', serviceType: 'XYZ', quantity: null }),
+  row({ orderId: 'p3', receivedDate: '2026-10-05', status: 'COMPLETED', serviceType: 'IRON', quantity: 4 }),
+  row({ orderId: 'p4', receivedDate: '2026-10-05', status: 'CANCELLED', serviceType: 'WASH', quantity: 50 }),
+  row({ orderId: 'q1', receivedDate: '2026-10-03', status: 'RECEIVED', serviceType: 'DRCL', quantity: 2 }),
+  row({ orderId: 'q2', receivedDate: '2026-10-03', status: 'CANCELLED', quantity: 9 }),
+  row({ orderId: 'q3', receivedDate: '2026-10-03', status: 'WEIRD', serviceType: null, quantity: 1 }),
+  row({ orderId: 'r1', receivedDate: '2026-09-29', status: 'PENDING', quantity: 6 }),
+  row({ orderId: 'r2', receivedDate: '2026-09-28', status: 'PENDING', quantity: 60 }),
+  row({ orderId: 'r3', receivedDate: '2026-10-06', status: 'PENDING', quantity: 70 }),
+]
+const detail = buildOrderReport(daysRows, 'week', '2026-10-05')
+assert.equal(detail.days.length, 7)
+for (const entry of detail.days) {
+  const single = buildOrderReport(daysRows, 'day', entry.date)
+  assert.deepEqual(entry.totals, single.totals, entry.date)
+  assert.deepEqual(entry.status, single.status, entry.date)
+  assert.deepEqual(entry.byService, single.byService, entry.date)
+  assert.equal(entry.sevenDayAverage, single.sevenDayAverage, entry.date)
+  assert.deepEqual(Object.keys(entry), ['date', 'totals', 'status', 'byService', 'sevenDayAverage'])
+  assert.deepEqual(entry.byService.map((service) => service.serviceType), SERVICES)
+}
+assert.deepEqual(buildOrderReport(daysRows, 'day', '2026-10-05').days, detail.days)
+
+const latest = detail.days[6]!
+assert.equal(latest.date, '2026-10-05')
+assert.deepEqual(latest.totals, { orders: 3, pieces: 7, cancelled: 1 })
+assert.deepEqual(latest.status, { pending: 1, inProgress: 1, completed: 1 })
+assert.deepEqual(latest.byService, [
+  { serviceType: 'WSIR', orders: 1, pieces: 3 },
+  { serviceType: 'DRCL', orders: 0, pieces: 0 },
+  { serviceType: 'IRON', orders: 1, pieces: 4 },
+  { serviceType: 'WASH', orders: 0, pieces: 0 },
+  { serviceType: 'OTHER', orders: 1, pieces: 0 },
+])
+assert.equal(latest.sevenDayAverage, 0.9)
+
+const earlier = detail.days[4]!
+assert.equal(earlier.date, '2026-10-03')
+assert.deepEqual(earlier.totals, { orders: 2, pieces: 3, cancelled: 1 })
+assert.deepEqual(earlier.status, { pending: 0, inProgress: 1, completed: 0 })
+assert.equal(earlier.byService[4]?.orders, 1)
+assert.equal(earlier.sevenDayAverage, 0.6)
+
+const firstDay = detail.days[0]!
+assert.equal(firstDay.date, '2026-09-29')
+assert.equal(firstDay.sevenDayAverage, 0.3)
+
+for (const report of [dayReport, weekReport, octoberReport, february, statusReport, detail]) {
   assert.deepEqual(orderReportResponseSchema.parse(report), report)
   assert.deepEqual(report.byService.map((entry) => entry.serviceType), SERVICES)
 }

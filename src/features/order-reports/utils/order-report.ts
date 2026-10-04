@@ -10,6 +10,8 @@ export interface ReportView {
   day: string | null
 }
 
+export type ReportFocus = Pick<OrderReportDto, 'period' | 'totals' | 'status' | 'byService' | 'sevenDayAverage'>
+
 export interface DayColumn {
   date: string
   orders: number
@@ -128,7 +130,7 @@ export function tileLabel(date: string, today: string): string {
   return date === today ? `Today, ${shortDate(date)}` : `${weekdayLabel(date)}, ${shortDate(date)}`
 }
 
-export function completionNote(report: OrderReportDto): string {
+export function completionNote(report: ReportFocus): string {
   const base = `${formatCount(report.totals.pieces)} pieces · ${report.totals.cancelled} cancelled`
   if (report.period !== 'day' || report.sevenDayAverage === 0) return base
   const versusAverage = Math.round(report.totals.orders / report.sevenDayAverage * 100)
@@ -144,7 +146,7 @@ export function chartBars(report: OrderReportDto, highlightDate: string): ChartB
   }))
 }
 
-export function serviceRows(report: OrderReportDto): ServiceRow[] {
+export function serviceRows(report: ReportFocus): ServiceRow[] {
   return report.byService
     .filter((entry) => entry.serviceType !== 'OTHER' || entry.orders > 0)
     .map((entry) => ({
@@ -158,4 +160,16 @@ export function serviceRows(report: OrderReportDto): ServiceRow[] {
 
 export function dayColumns(report: OrderReportDto): DayColumn[] {
   return report.series.filter((entry) => entry.from === entry.to).map((entry) => ({ date: entry.from, orders: entry.orders }))
+}
+
+export function dayFocus(report: OrderReportDto, date: string): ReportFocus | null {
+  const entry = report.days.find((day) => day.date === date)
+  if (entry === undefined) return null
+  return {
+    period: 'day',
+    totals: entry.totals,
+    status: entry.status,
+    byService: entry.byService,
+    sevenDayAverage: entry.sevenDayAverage,
+  }
 }

@@ -38,6 +38,9 @@ assert.deepEqual(
   [['WSIR', 1], ['DRCL', 0], ['IRON', 1], ['WASH', 0], ['OTHER', 0]],
 )
 
+assert.equal(explicit.days.length, 7)
+assert.deepEqual(explicit.days.at(-1)?.totals, explicit.totals)
+
 const defaulted = await service.get({ period: 'week' })
 assert.equal(reads, 2)
 assert.equal(defaulted.date, '2026-10-06', 'date defaults to the Bangkok calendar day')

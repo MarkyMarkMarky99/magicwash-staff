@@ -46,16 +46,24 @@ const validResponse = {
   byService: ['WSIR', 'DRCL', 'IRON', 'WASH', 'OTHER'].map((serviceType) => ({ serviceType, orders: 0, pieces: 0 })),
   series: [{ from: '2026-10-05', to: '2026-10-05', label: 'Mon', orders: 1 }],
   sevenDayAverage: 0.4,
+  days: [{
+    date: '2026-10-05',
+    totals: { orders: 1, pieces: 4, cancelled: 0 },
+    status: { pending: 1, inProgress: 0, completed: 0 },
+    byService: ['WSIR', 'DRCL', 'IRON', 'WASH', 'OTHER'].map((serviceType) => ({ serviceType, orders: 0, pieces: 0 })),
+    sevenDayAverage: 0.1,
+  }],
 }
 
 assert.deepEqual(Object.keys(orderReportResponseSchema.shape), [
   'period', 'date', 'range', 'previousRange', 'totals', 'previousTotals', 'status',
-  'byService', 'series', 'sevenDayAverage',
+  'byService', 'series', 'sevenDayAverage', 'days',
 ])
 assert.deepEqual(Object.keys(orderReportResponseSchema.shape.totals.shape), ['orders', 'pieces', 'cancelled'])
 assert.deepEqual(Object.keys(orderReportResponseSchema.shape.previousTotals.shape), ['orders', 'pieces'])
 assert.deepEqual(Object.keys(orderReportResponseSchema.shape.status.shape), ['pending', 'inProgress', 'completed'])
 assert.deepEqual(orderReportResponseSchema.parse(validResponse), validResponse)
+assert.deepEqual(orderReportResponseSchema.parse({ ...validResponse, days: [] }), { ...validResponse, days: [] })
 
 for (const invalid of [
   { ...validResponse, period: 'year' },
@@ -65,6 +73,9 @@ for (const invalid of [
   { ...validResponse, byService: [{ serviceType: 'BOGUS', orders: 0, pieces: 0 }] },
   { ...validResponse, series: [{ from: '2026-10-05', to: '2026-10-05', orders: 1 }] },
   { ...validResponse, sevenDayAverage: undefined },
+  { ...validResponse, days: undefined },
+  { ...validResponse, days: [{ ...validResponse.days[0], date: 'x' }] },
+  { ...validResponse, days: [{ ...validResponse.days[0], sevenDayAverage: undefined }] },
 ]) {
   assert.equal(orderReportResponseSchema.safeParse(invalid).success, false)
 }

@@ -119,6 +119,38 @@ function buildSeries(
   })
 }
 
+function sumPieces(list: CountedOrder[]): number {
+  return list.reduce((total, order) => total + order.pieces, 0)
+}
+
+function averageOver(active: CountedOrder[], date: string): number {
+  const count = active.filter((order) => order.day >= addDays(date, -6) && order.day <= date).length
+  return Math.round((count / 7) * 10) / 10
+}
+
+function summarize(orders: CountedOrder[], active: CountedOrder[], range: DayRange) {
+  const current = active.filter((order) => within(order, range))
+  const countStatus = (predicate: (status: string) => boolean) =>
+    current.filter((order) => predicate(order.status)).length
+
+  return {
+    totals: {
+      orders: current.length,
+      pieces: sumPieces(current),
+      cancelled: orders.filter((order) => order.status === 'CANCELLED' && within(order, range)).length,
+    },
+    status: {
+      pending: countStatus((status) => status === 'PENDING'),
+      inProgress: countStatus((status) => IN_PROGRESS_STATUSES.has(status)),
+      completed: countStatus((status) => status === 'COMPLETED'),
+    },
+    byService: SERVICE_ORDER.map((serviceType) => {
+      const matching = current.filter((order) => order.serviceType === serviceType)
+      return { serviceType, orders: matching.length, pieces: sumPieces(matching) }
+    }),
+  }
+}
+
 export function buildOrderReport(
   rows: OrderReportSourceRow[],
   period: OrderReportPeriod,
@@ -130,34 +162,26 @@ export function buildOrderReport(
   })
   const { range, previousRange } = rangesFor(period, date)
   const active = orders.filter((order) => order.status !== 'CANCELLED')
-  const current = active.filter((order) => within(order, range))
   const previous = active.filter((order) => within(order, previousRange))
-  const sumPieces = (list: CountedOrder[]) => list.reduce((total, order) => total + order.pieces, 0)
-  const countStatus = (predicate: (status: string) => boolean) =>
-    current.filter((order) => predicate(order.status)).length
-  const sevenDayOrders = active.filter((order) => order.day >= addDays(date, -6) && order.day <= date).length
 
   return {
     period,
     date,
     range,
     previousRange,
-    totals: {
-      orders: current.length,
-      pieces: sumPieces(current),
-      cancelled: orders.filter((order) => order.status === 'CANCELLED' && within(order, range)).length,
-    },
+    ...summarize(orders, active, range),
     previousTotals: { orders: previous.length, pieces: sumPieces(previous) },
-    status: {
-      pending: countStatus((status) => status === 'PENDING'),
-      inProgress: countStatus((status) => IN_PROGRESS_STATUSES.has(status)),
-      completed: countStatus((status) => status === 'COMPLETED'),
-    },
-    byService: SERVICE_ORDER.map((serviceType) => {
-      const matching = current.filter((order) => order.serviceType === serviceType)
-      return { serviceType, orders: matching.length, pieces: sumPieces(matching) }
-    }),
     series: buildSeries(period, date, range, active),
-    sevenDayAverage: Math.round((sevenDayOrders / 7) * 10) / 10,
+    sevenDayAverage: averageOver(active, date),
+    days: period === 'month'
+      ? []
+      : Array.from({ length: 7 }, (_, index) => {
+        const day = addDays(date, index - 6)
+        return {
+          date: day,
+          ...summarize(orders, active, { from: day, to: day }),
+          sevenDayAverage: averageOver(active, day),
+        }
+      }),
   }
 }

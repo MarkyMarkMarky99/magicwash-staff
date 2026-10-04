@@ -198,7 +198,7 @@ period (shorter than 62 days). Each row carries `department`, derived from the j
 `created_by` for EARN, and the same ticket's EARN `created_by` for ADJUSTMENT and VOID.
 
 `GET /api/order-reports?period=day|week|month&date=yyyy-MM-dd` requires approved staff, reads the whole
-OrderForm tab once and aggregates it in memory; its rules are in `docs/features/orders/order-report.md`.
+OrderForm tab once and aggregates it in memory, including per-day detail in `days`; its rules are in `docs/features/orders/order-report.md`.
 
 | Route | Authorization | Result |
 | --- | --- | --- |

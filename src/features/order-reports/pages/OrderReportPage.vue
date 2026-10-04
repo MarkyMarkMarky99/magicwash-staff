@@ -4,8 +4,8 @@ import { useRoute, useRouter } from 'vue-router'
 import type { LocationQueryRaw } from 'vue-router'
 import { bangkokToday } from '@shared/utils/bangkok-datetime'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
-import ScrollRegion from '@/shared/components/ScrollRegion.vue'
-import { getOrderReport, type OrderReportDto } from '@/data/order-reports/order-report.service'
+import PullToRefresh from '@/shared/components/PullToRefresh.vue'
+import { getOrderReport, invalidateOrderReports, type OrderReportDto } from '@/data/order-reports/order-report.service'
 import OrderReportChart from '../components/OrderReportChart.vue'
 import OrderReportDayPicker from '../components/OrderReportDayPicker.vue'
 import OrderReportCompletion from '../components/OrderReportCompletion.vue'
@@ -17,6 +17,7 @@ import {
   changePercent,
   chartBars,
   dayColumns,
+  dayFocus,
   formatCount,
   monthLabel,
   parseReportQuery,
@@ -39,15 +40,15 @@ const today = ref(bangkokToday())
 const view = ref<ReportView>(parseReportQuery(route.query, today.value))
 const report = ref<OrderReportDto | null>(null)
 const loadedKey = ref<string | null>(null)
-const dayReport = ref<OrderReportDto | null>(null)
 const error = ref<string | null>(null)
 let latestLoad = 0
-let latestDayLoad = 0
 
 const viewKey = computed(() => `${view.value.period}:${view.value.date}`)
 const loaded = computed(() => (report.value !== null && loadedKey.value === viewKey.value && !error.value ? report.value : null))
-const loadedDay = computed(() => (view.value.day !== null && dayReport.value?.date === view.value.day && !error.value ? dayReport.value : null))
-const focus = computed(() => (view.value.day === null ? loaded.value : loadedDay.value))
+const focus = computed(() => {
+  if (loaded.value === null) return null
+  return view.value.day === null ? loaded.value : dayFocus(loaded.value, view.value.day)
+})
 
 const canForward = computed(() => canStepForward(view.value.period, view.value.date, today.value))
 const weekFrom = computed(() => shiftDate(view.value.date, -6))
@@ -82,30 +83,23 @@ async function load(): Promise<void> {
   const { period, date } = view.value
   error.value = null
   try {
-    const result = await getOrderReport(period, date)
+    const key = `${period}:${date}`
+    const result = await getOrderReport(period, date, (fresh) => {
+      if (id !== latestLoad) return
+      report.value = fresh
+      loadedKey.value = key
+    })
     if (id !== latestLoad) return
     report.value = result
-    loadedKey.value = `${period}:${date}`
+    loadedKey.value = key
   } catch {
     if (id === latestLoad) error.value = 'Could not load the report'
   }
 }
 
-async function loadDay(): Promise<void> {
-  const id = ++latestDayLoad
-  const { day } = view.value
-  if (day === null) return
-  try {
-    const result = await getOrderReport('day', day)
-    if (id === latestDayLoad) dayReport.value = result
-  } catch {
-    if (id === latestDayLoad) error.value = 'Could not load the report'
-  }
-}
-
-function reload(): void {
-  void load()
-  void loadDay()
+async function refresh(): Promise<void> {
+  invalidateOrderReports()
+  await load()
 }
 
 watch(() => route.query, (query) => {
@@ -113,20 +107,19 @@ watch(() => route.query, (query) => {
 })
 
 watch(viewKey, () => void load())
-watch(() => view.value.day, () => void loadDay())
 
 onActivated(() => {
   today.value = bangkokToday()
   const next = parseReportQuery(route.query, today.value)
   const changed = next.period !== view.value.period || next.date !== view.value.date || next.day !== view.value.day
   view.value = next
-  if (!changed) reload()
+  if (!changed) void load()
 })
 </script>
 
 <template>
   <AppLayout>
-    <ScrollRegion as="main" class="bg-on-surface pb-28 font-body text-on-primary">
+    <PullToRefresh as="main" class="bg-on-surface pb-28 font-body text-on-primary" :refresh="refresh">
       <section class="px-5 pb-1 pt-5" aria-label="Report title">
         <h2 class="font-headline text-[20px] font-bold leading-tight">Orders report</h2>
         <p class="text-[13px] text-on-primary/60">Orders received, by service and status</p>
@@ -158,7 +151,7 @@ onActivated(() => {
 
       <p v-if="error" class="mx-4 mt-4 rounded-xl bg-error-container px-3 py-2 text-sm text-on-error-container" role="alert">
         {{ error }}
-        <button type="button" class="ml-2 min-h-11 min-w-11 font-bold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime" @click="reload">Retry</button>
+        <button type="button" class="ml-2 min-h-11 min-w-11 font-bold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime" @click="load()">Retry</button>
       </p>
 
       <p v-else-if="!loaded" class="px-5 pt-8 text-center text-[13px] text-on-primary/60" aria-live="polite">Loading report…</p>
@@ -175,7 +168,6 @@ onActivated(() => {
 
         <p v-if="focusLabel" class="px-5 pt-4 text-[13px] font-bold text-lime">{{ focusLabel }}</p>
         <OrderReportCompletion v-if="focus" :report="focus" />
-        <p v-else class="px-5 pt-8 text-center text-[13px] text-on-primary/60" aria-live="polite">Loading day…</p>
 
         <OrderReportDayPicker v-if="view.period === 'week'" :days="days" :selected="view.day" :today="today" @select="selectDay" />
         <OrderReportChart v-else title="Orders per week" :bars="bars" />
@@ -185,7 +177,7 @@ onActivated(() => {
           <OrderReportServices v-else :rows="services" />
         </template>
       </template>
-    </ScrollRegion>
+    </PullToRefresh>
 
     <OrderReportPeriodToggle :period="view.period" @select="selectPeriod" />
   </AppLayout>

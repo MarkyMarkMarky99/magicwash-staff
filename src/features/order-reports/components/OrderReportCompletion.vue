@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import CompletionRing from '@/shared/components/CompletionRing.vue'
-import type { OrderReportDto } from '@/data/order-reports/order-report.service'
-import { completionNote, percentOf } from '../utils/order-report'
+import { completionNote, percentOf, type ReportFocus } from '../utils/order-report'
 
-const props = defineProps<{ report: OrderReportDto }>()
+const props = defineProps<{ report: ReportFocus }>()
 
 const completed = computed(() => props.report.status.completed)
 const orders = computed(() => props.report.totals.orders)

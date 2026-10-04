@@ -32,6 +32,7 @@ const CACHE_HOURS: Record<string, number> = {
   '/api/after-photos': 1,
   '/api/customers': 1,
   '/api/laundry-photos': 1,
+  '/api/order-reports': 1,
   '/api/price-list': 1,
 }
 
@@ -46,7 +47,7 @@ const CACHE_HOURS: Record<string, number> = {
 const PERSIST_ENDPOINTS: readonly string[] = ['/api/customers', '/api/price-list']
 
 /** Endpoints that must never be served from cache, not even stale. */
-const NEVER_CACHE: readonly string[] = ['/api/job-tickets', '/api/auth', '/api/staff', '/api/work-transactions', '/api/order-reports']
+const NEVER_CACHE: readonly string[] = ['/api/job-tickets', '/api/auth', '/api/staff', '/api/work-transactions']
 
 /** Ceiling across every cached entry; least-recently-used entries go first. */
 export const CACHE_MAX_BYTES = 4 * 1024 * 1024

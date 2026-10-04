@@ -7,6 +7,7 @@ import {
   chartBars,
   completionNote,
   dayColumns,
+  dayFocus,
   parseReportQuery,
   percentOf,
   reportQueryFor,
@@ -84,6 +85,7 @@ const report = (overrides: Partial<OrderReportDto>): OrderReportDto => ({
     { from: TODAY, to: TODAY, label: 'Mon', orders: 8 },
   ],
   sevenDayAverage: 6.3,
+  days: [],
   ...overrides,
 })
 
@@ -119,3 +121,38 @@ assert.deepEqual(chartBars(month, '2026-09-01').map((bar) => bar.highlight), [fa
 
 assert.deepEqual(dayColumns(report({})), [{ date: '2026-10-04', orders: 3 }, { date: TODAY, orders: 8 }])
 assert.deepEqual(dayColumns(month), [])
+
+const withDays = report({
+  period: 'week',
+  days: [
+    {
+      date: '2026-10-04',
+      totals: { orders: 3, pieces: 10, cancelled: 0 },
+      status: { pending: 3, inProgress: 0, completed: 0 },
+      byService: report({}).byService,
+      sevenDayAverage: 2,
+    },
+    {
+      date: TODAY,
+      totals: { orders: 8, pieces: 120, cancelled: 2 },
+      status: { pending: 1, inProgress: 3, completed: 4 },
+      byService: report({}).byService,
+      sevenDayAverage: 6.3,
+    },
+  ],
+})
+const focused = dayFocus(withDays, TODAY)
+assert.ok(focused)
+assert.equal(focused.period, 'day')
+assert.deepEqual(focused.totals, { orders: 8, pieces: 120, cancelled: 2 })
+assert.deepEqual(focused.status, { pending: 1, inProgress: 3, completed: 4 })
+assert.equal(completionNote(focused), '120 pieces · 2 cancelled · 127% of 7-day average (6.3)')
+assert.deepEqual(serviceRows(focused).map((row) => [row.key, row.orders, row.width]), [
+  ['WSIR', 4, 50],
+  ['DRCL', 2, 25],
+  ['IRON', 2, 25],
+  ['WASH', 0, 0],
+])
+assert.equal(completionNote(dayFocus(withDays, '2026-10-04')!), '10 pieces · 0 cancelled · 150% of 7-day average (2)')
+assert.equal(dayFocus(withDays, '2026-10-03'), null)
+assert.equal(dayFocus(report({ period: 'month' }), TODAY), null)
