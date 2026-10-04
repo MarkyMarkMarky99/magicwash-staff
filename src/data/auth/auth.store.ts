@@ -127,7 +127,8 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (reason) {
       const code = (reason as { code?: unknown } | null)?.code
       if (typeof code !== 'string' || !CANCELLED_SIGN_IN_CODES.has(code)) {
-        error.value = 'เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'
+        console.error('Google sign-in failed', reason)
+        error.value = `เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง (${typeof code === 'string' ? code : 'unknown'})`
       }
     } finally {
       signingIn.value = false

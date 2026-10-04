@@ -4,7 +4,6 @@
 
 ## Branches in flight
 
-- `work` — retained initial cloud checkout branch; details: `.user/memory/work.md`.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — design-only work (invoice create as a form overlay with swipeable line cards), 1 commit ahead of `main`; kept by owner, not for merge yet.
 - **`feat/package-credit`** — monthly-subscription package credits, phases 1–4 built, awaiting owner test on Preview. Details on that branch: `.user/memory/feat-package-credit.md`.
@@ -128,6 +127,7 @@
   - `column-order.dry-test.ts` fails on `main`: it expects `update: false` for OrderItemForms/OrderImages writes.
 
 - **Auth, UX, and documentation**
+  - Google sign-in fails on prod right after the button tap; error now shows the Firebase code, awaiting the user's reading.
   - Sign-in still optional outside `auth`/`staff`; open: page/API gating, Storage rules; Preview hosts not Firebase Authorized domains.
   - Server-owned invoice and payment writes still record `'admin'` (`server/shared/config/actor.ts`); deferred by owner, needs client actor or token gating.
   - No screen shows actors by name yet; use `useStaffStore().nameOf(id)` when work-history screens are built.
