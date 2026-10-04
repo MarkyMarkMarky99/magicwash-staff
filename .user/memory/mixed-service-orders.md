@@ -2,7 +2,6 @@
 
 ## Decision
 
-- Do not add multiple service types to one order on `feat/price-list-image-url` or its release branch.
 - Start a separate branch after the price-list photo work is closed.
 
 ## Findings to resume

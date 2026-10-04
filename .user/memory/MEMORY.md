@@ -5,7 +5,7 @@
 ## Branches in flight
 
 - **`feature/orders-report`** — Orders report page (`/reports/orders`, Week/Month) built and owner-viewed locally; not deployed. Details: `.user/memory/feature-orders-report.md`.
-- **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 260 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
+- **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 407 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — design-only work (invoice create as a form overlay with swipeable line cards), 1 commit ahead of `main`; kept by owner, not for merge yet.
 - **`feat/package-credit`** — monthly-subscription package credits, phases 1–4 built, awaiting owner test on Preview. Details on that branch: `.user/memory/feat-package-credit.md`.
 
@@ -30,7 +30,6 @@
   - Order rows show `—` as line 2 when there is no note; long invoice numbers truncate (`INV20260905-41f3…`).
   - Package names are long in the `Packages` sheet itself; user to choose renaming them there or showing `packageCode`.
   - Browser-check customer detail `BottomNavBar` on a phone: floating lime sticker + pop animation, custom section icons, `pb-14` list clearance.
-  - Order detail Approve is now `OrderApproveButton` (sticker FAB); only the quantity-mismatch disable shows a reason.
   - Phone-check the push drawer (open, drag-close, Back) and swipe cards no longer moving on scroll.
   - Deferred by user: the push drawer's rounded corner sits below the iOS status bar because status-bar-style `black` keeps the page under it; reaching the top edge needs `black-translucent` plus a new height fix.
   - Browser-check `CloseButton` onDark sticker style (lime outline squircle, solid lime + offset shadow when active) on header (menu, back, pending with badge) and the 6 dark-overlay X buttons; hover/focus pop animation; also check every shared `CloseButton` placement (forms, sheets, pickers, nav, scanners, invoice proof lightbox).
@@ -115,7 +114,6 @@
   - Vercel Preview hosts cannot sign in, so testing `feat/package-credit` on Preview needs an authorized host first.
   - Staff app moving to `staff.magicwash-laundry.com` (authDomain, noindex); apex left indexable for a future public shop site awaiting owner content (services, area, hours, contact, logo).
   - Server-owned invoice and payment writes still record `'admin'` (`server/shared/config/actor.ts`); deferred by owner, needs client actor or token gating.
-  - No screen shows actors by name yet; use `useStaffStore().nameOf(id)` when work-history screens are built.
   - 5 server dry-tests reported failing (invoice workflows x2, sheet metadata x2, order-item contract export); not checked against pre-auth `main`.
   - Fix screenshot-upload accessibility states, failed-upload handling, and staff-safe Firebase errors.
   - Align the customer-packages form with `docs/design/patterns/forms.md`.
@@ -125,7 +123,7 @@
   - Migrate remaining local-state overlays: `OrderGalleryPage.vue`, `InvoiceProofLightbox.vue`, `NavSidebar.vue`.
   - Unnest the remove `<button>` at `OrderGalleryPage.vue:402` from the lightbox `<button>` at `:375` — verified as the only nested pair; the other two files have none.
   - Update list-page documentation that still describes deleted header search (`SEARCHABLE_ROUTES` / `meta.searchable`).
-  - Fix 2 real defects in `persistent-cache.ts` and 12 source comments that contradict the code. See `.user/memory/stale-comments-and-defects.md`.
+  - Fix 2 real defects in `persistent-cache.ts`. See `.user/memory/stale-comments-and-defects.md`.
   - Resume held comment-cleanup decisions after a canonical cache convention exists; verify each finding before acting. See `.user/memory/doc-comment-docs-work.md`.
 
 - **Verification and cleanup**
