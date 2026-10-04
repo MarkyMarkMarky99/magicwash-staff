@@ -127,7 +127,8 @@
   - `column-order.dry-test.ts` fails on `main`: it expects `update: false` for OrderItemForms/OrderImages writes.
 
 - **Auth, UX, and documentation**
-  - Google sign-in fails on prod right after the button tap; error now shows the Firebase code, awaiting the user's reading.
+  - Google sign-in on prod hit `auth/popup-blocked` (browser setting/standalone/in-app); redirect fallback not built.
+  - Auth domain moved to `magicwash-laundry.com` (Vercel, `/__/auth` proxy); phone-check the Google account chooser shows it.
   - Sign-in still optional outside `auth`/`staff`; open: page/API gating, Storage rules; Preview hosts not Firebase Authorized domains.
   - Server-owned invoice and payment writes still record `'admin'` (`server/shared/config/actor.ts`); deferred by owner, needs client actor or token gating.
   - No screen shows actors by name yet; use `useStaffStore().nameOf(id)` when work-history screens are built.

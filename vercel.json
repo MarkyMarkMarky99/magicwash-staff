@@ -2,7 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     { "source": "/api/:path*/", "destination": "/api/[...path]" },
-    { "source": "/api/:path*", "destination": "/api/[...path]" }
+    { "source": "/api/:path*", "destination": "/api/[...path]" },
+    { "source": "/__/auth/:path*", "destination": "https://magicwashlaundry-a50ca.firebaseapp.com/__/auth/:path*" }
   ],
   "headers": [
     {
