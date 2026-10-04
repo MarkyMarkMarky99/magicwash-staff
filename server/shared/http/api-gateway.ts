@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { authenticateStaffIdentity, type StaffAuthenticator, type StaffIdentityAuthenticator } from '../auth/staff-auth.js'
 import type { StaffMember } from '../auth/staff-list.js'
@@ -40,8 +41,12 @@ export class ApiGateway {
     }
 
     const loader = this.registry[moduleName]
-    const identity = moduleName === 'staff' && req.headers.authorization !== undefined ? await this.authenticateIdentity(req) : undefined
-    const staff = moduleName === 'auth' ? await this.authenticate(req) : identity?.staff
+    const identity = moduleName === 'staff' ? await this.authenticateIdentity(req) : undefined
+    const staff = moduleName === 'staff'
+      ? identity?.staff
+      : isPublicModule(moduleName) || hasInvoicePrintKey(req, segments)
+        ? undefined
+        : await this.authenticate(req)
     let routes: GatewayModuleRoutes
     try {
       routes = await loader()
@@ -59,6 +64,20 @@ export class ApiGateway {
 
     return handler.handleRequest(toApiRequest(req, segments, staff, identity?.email))
   }
+}
+
+function isPublicModule(moduleName: string): boolean {
+  return moduleName === 'portal'
+}
+
+function hasInvoicePrintKey(req: VercelRequest, segments: string[]): boolean {
+  if (segments[0] !== 'invoices' || segments.length !== 2 || req.method !== 'GET') return false
+  const expectedKey = process.env.PRINT_API_KEY
+  const suppliedKey = req.headers['x-print-api-key']
+  if (!expectedKey?.trim() || typeof suppliedKey !== 'string') return false
+  const expected = Buffer.from(expectedKey)
+  const supplied = Buffer.from(suppliedKey)
+  return expected.length === supplied.length && timingSafeEqual(expected, supplied)
 }
 
 function parsePath(req: VercelRequest): string[] {

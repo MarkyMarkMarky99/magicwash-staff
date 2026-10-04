@@ -75,7 +75,7 @@ try {
   })
   assert.equal((await realIdentityGateway.handleRequest({
     method: 'GET', url: '/api/staff', query: {}, headers: {},
-  } as VercelRequest)).status, 200)
+  } as VercelRequest)).status, 401)
   assert.equal((await realIdentityGateway.handleRequest({
     method: 'GET', url: '/api/staff', query: {}, headers: { authorization: 'Bearer bad' },
   } as VercelRequest)).status, 401)
@@ -140,13 +140,14 @@ assert.equal(staffSchema.parse(data(await call('GET', '/api/staff/me', 'inactive
 assert.equal(staffSchema.parse(data(await call('GET', '/api/staff/me', 'worker@example.com'))).phone, '812345678')
 
 for (const email of ['worker@example.com', 'new@example.com', 'inactive@example.com', 'unlisted@example.com']) {
-  assert.equal((await call('GET', '/api/staff', email)).status, 200)
+  assert.equal((await call('GET', '/api/staff', email)).status, email === 'worker@example.com' ? 200 : 401)
   for (const [method, path] of [['GET', '/api/staff/worker-id'], ['PATCH', '/api/staff/worker-id']]) {
     assert.equal((await call(method!, path!, email, { name: 'Changed' })).status, 403)
   }
 }
 assert.equal((await call('GET', '/api/staff', 'bad')).status, 401)
-const listResult = await call('GET', '/api/staff')
+assert.equal((await call('GET', '/api/staff')).status, 401)
+const listResult = await call('GET', '/api/staff', 'worker@example.com')
 assert.equal(listResult.status, 200)
 const list = (data(listResult) as unknown[]).map((row) => staffSchema.parse(row))
 assert.equal(list.length, 5)

@@ -168,9 +168,9 @@ JSON, schema, and count-mismatch failures and redact the print server URL and Ac
 
 ## Environment and external state
 
-The `auth` module and staff identity routes require a Firebase ID token in the
-`Authorization: Bearer` header. `GET /api/staff` is public when no header is supplied;
-a supplied token is still verified and an invalid token returns 401. Token verification uses Firebase's public keys for `FIREBASE_PROJECT_ID` and requires
+The gateway leaves `portal` public. The `staff` module always verifies identity through
+`authenticateIdentity`; missing or invalid Firebase ID tokens in the `Authorization: Bearer`
+header return 401. Token verification uses Firebase's public keys for `FIREBASE_PROJECT_ID` and requires
 a verified email, normalized by trimming and lowercasing. Missing or invalid tokens return 401.
 The restricted `Staff` tab in `STAFF_SPREADSHEET_ID` is read through the authenticated Sheets
 API, never GViz. The active allowlist includes only `admin` and `staff` roles and is cached
@@ -179,9 +179,19 @@ in-flight read cannot repopulate the cache after invalidation.
 
 `GET /api/auth/me` still requires an active allowlist entry (403 otherwise) and returns its
 staffId, email, name, and role. The staff module receives the verified email and, when listed, the
-active StaffMember. Other modules continue dispatching without authentication or staff identity.
+active StaffMember. Unregistered verified identities can still register and request their own row.
+Every other module, including `auth`, requires approved staff through `authenticate`: missing or
+invalid tokens return 401, and identities outside the active allowlist return 403. The approved
+StaffMember is passed to the handler. Registry lookup returns 404 for unknown modules before
+authentication; authentication completes before the registered module is loaded.
 
-`GET /api/work-transactions?from=yyyy-MM-dd&to=yyyy-MM-dd` is public. It reads the whole
+The sole business-route exception is `GET /api/invoices/:id`, with exactly two path segments.
+It accepts an `x-print-api-key` header exactly matching the server-only `PRINT_API_KEY`, compared
+with `crypto.timingSafeEqual` on equal-length buffers. An unset or blank environment key disables
+this path. A matching key permits the request without a token and passes no StaffMember. Other
+methods, invoice collection requests, and other modules still require approved staff.
+
+`GET /api/work-transactions?from=yyyy-MM-dd&to=yyyy-MM-dd` requires approved staff. It reads the whole
 WorkTransactions tab once and returns every row whose `created_at` falls in the inclusive Bangkok-day
 period (shorter than 62 days). Each row carries `department`, derived from the job ticket id prefix
 (`IRN-`, `WSH-`, …; null when unknown), and `staffId`, the worker credited: the row's own
@@ -191,7 +201,7 @@ period (shorter than 62 days). Each row carries `department`, derived from the j
 | --- | --- | --- |
 | `GET /api/staff/me` | Valid token | Own row including pending/inactive rows; 404 if absent |
 | `POST /api/staff` | Valid token | Register own verified email; 201, or 409 for any existing email |
-| `GET /api/staff` | Public; supplied tokens must be valid | Every row in the existing list response, with all columns and no role/active filtering; rows with nonempty Email include blank StaffIds |
+| `GET /api/staff` | Approved staff; verified identities without an approved StaffMember return 401 | Every row in the existing list response, with all columns and no role/active filtering; rows with nonempty Email include blank StaffIds |
 | `GET /api/staff/:staffId` | Active admin | Staff row, or 404 |
 | `PATCH /api/staff/:staffId` | Active admin | Updated row, or 404; own role/active fields return 409 |
 
@@ -213,7 +223,10 @@ provided columns. Rows with empty Email are absent; legacy owner rows with empty
 remain visible but cannot be addressed by an empty ID. Duplicate email lookup is
 case-insensitive; Sheets provides no atomic unique-email constraint across concurrent requests.
 
-The app prefetches the staff list at load to map StaffIds to names. Frontend writes record
+The app prefetches appointments, customers, staff, and prices once, on its first signed-in state,
+to prepare business data and map StaffIds to names. Frontend routes other than login and staff
+registration await auth readiness and require signed-in status, redirecting other sessions to
+login with the requested full path in the redirect query. Frontend writes record
 the signed-in StaffId as actor, or `unknown` when signed out; `?by=` is ignored.
 
 `FIREBASE_PROJECT_ID` and `STAFF_SPREADSHEET_ID` are server-only environment variables.

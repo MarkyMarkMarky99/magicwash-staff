@@ -1,6 +1,6 @@
 # Project memory
 
-- Branch: `main`; one local commit (sign-in redirect fallback) held unpushed by owner; customer package invoice deployment still awaiting verification.
+- Branch: `main`; login lockdown + redirect fallback committed, waiting for `PRINT_API_KEY` in Vercel Production before push; customer package invoice deployment still awaiting verification.
 
 ## Branches in flight
 
@@ -127,8 +127,8 @@
   - `column-order.dry-test.ts` fails on `main`: it expects `update: false` for OrderItemForms/OrderImages writes.
 
 - **Auth, UX, and documentation**
-  - Popup-blocked redirect fallback committed on local `main`, NOT pushed by owner request; any push ships it. Browser-test from a home-screen icon/LINE once pushed.
-  - Sign-in still optional outside `auth`/`staff`; open: page/API gating, Storage rules; Preview hosts not Firebase Authorized domains.
+  - Redirect fallback for popup-blocked ships with the lockdown push; browser-test from a home-screen icon/LINE.
+  - Login lockdown: every route and API except `portal` needs approved staff; print server reads invoices with `PRINT_API_KEY`. Open: Firebase Storage rules, Sheets link-sharing, Preview hosts cannot sign in.
   - Server-owned invoice and payment writes still record `'admin'` (`server/shared/config/actor.ts`); deferred by owner, needs client actor or token gating.
   - No screen shows actors by name yet; use `useStaffStore().nameOf(id)` when work-history screens are built.
   - 5 server dry-tests reported failing (invoice workflows x2, sheet metadata x2, order-item contract export); not checked against pre-auth `main`.

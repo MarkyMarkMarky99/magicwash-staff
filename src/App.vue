@@ -152,10 +152,14 @@ onMounted(() => {
   window.addEventListener('keydown', onKeydown)
   preloadDocumentScanner()
   void authStore.ready()
-  void appointmentStore.loadInitial()
-  void customerStore.loadCustomers()
-  void staffStore.load()
-  void priceListStore.load()
+  const stopPrefetch = watch(() => authStore.status, (status) => {
+    if (status !== 'signedIn') return
+    void appointmentStore.loadInitial()
+    void customerStore.loadCustomers()
+    void staffStore.load()
+    void priceListStore.load()
+    queueMicrotask(() => stopPrefetch())
+  }, { immediate: true })
 })
 
 onUnmounted(() => window.removeEventListener('keydown', onKeydown))
