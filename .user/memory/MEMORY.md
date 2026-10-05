@@ -1,15 +1,19 @@
 # Project memory
 
-- Branch: `feature/orders-report` checked out; `main`: customer package invoice deployment still awaiting verification.
+- Branch: `main` checked out; orders report merged and pushed 2026-10-05; customer package invoice deployment still awaiting verification.
 
 ## Branches in flight
 
-- **`feature/orders-report`** — Orders report page (`/reports/orders`, Week/Month) built and owner-viewed locally; not deployed. Details: `.user/memory/feature-orders-report.md`.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 407 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — design-only work (invoice create as a form overlay with swipeable line cards), 1 commit ahead of `main`; kept by owner, not for merge yet.
 - **`feat/package-credit`** — monthly-subscription package credits, phases 1–4 built, awaiting owner test on Preview. Details on that branch: `.user/memory/feat-package-credit.md`.
 
 ## Pending work
+
+- **Orders report (`/reports/orders`, merged 2026-10-05)**
+  - Phone-check pull to refresh and the JobTicket ring after `CompletionRing` moved to shared.
+  - Open: Month change % compares a partial month with a whole one; same-days comparison proposed, owner undecided.
+  - Open: status cards show current status, not status on that day; check whether orders ever reach COMPLETED.
 
 - **Staff KPI (WorkTransactions / WorkRates, merged 2026-10-04)**
   - Browser-check the staff profile page `/staff/:staffId` (Day date strip, Week leaderboard); only unit-tested.
