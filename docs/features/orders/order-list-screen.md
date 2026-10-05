@@ -22,7 +22,7 @@ status filter tabs use `order-status-labels.ts`.
 ## Controls
 
 - **Search** — one keyword across `orderId`, `orderNumber`, `customerId`, `invoiceNumber`. See `search-fields.md`.
-- **Status tabs** — ทั้งหมด / รอดำเนินการ / รับผ้าแล้ว / เสร็จแล้ว.
+- **Status tabs** — All / Pending / Received / Completed.
 - **Sort** — `receivedDate` descending, fixed.
 - No date-range filter. The route owns the page value.
 
@@ -40,4 +40,4 @@ without waiting for a full reload.
 
 - **Loading** — five skeleton rows.
 - **Error** — the API message, falling back to "Unable to load work orders".
-- **Empty** — "ไม่พบออเดอร์ที่ตรงกับเงื่อนไข".
+- **Empty** — "No orders match these filters".

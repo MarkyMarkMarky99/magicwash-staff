@@ -4,6 +4,7 @@
 
 ## Branches in flight
 
+- **`feature/order-list-actions-menu`** — order list: actions dropdown (Create order / Orders report), English labels, report removed from sidebar; next swap status tabs for appointment-style date tabs; not pushed, owner still editing.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 407 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — design-only work (invoice create as a form overlay with swipeable line cards), 1 commit ahead of `main`; kept by owner, not for merge yet.
 - **`feat/package-credit`** — monthly-subscription package credits, phases 1–4 built, awaiting owner test on Preview. Details on that branch: `.user/memory/feat-package-credit.md`.

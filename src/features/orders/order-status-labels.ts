@@ -1,7 +1,7 @@
 export const orderStatusLabels = {
-  PENDING: 'รอดำเนินการ',
-  RECEIVED: 'รับผ้าแล้ว',
-  COMPLETED: 'เสร็จแล้ว',
+  PENDING: 'Pending',
+  RECEIVED: 'Received',
+  COMPLETED: 'Completed',
 } as const
 
 export function getOrderStatusLabel(status: string | null | undefined): string | null {
