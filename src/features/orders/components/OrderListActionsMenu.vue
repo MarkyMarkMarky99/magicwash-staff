@@ -1,15 +1,17 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import BaseDropdown from '@/shared/components/BaseDropdown.vue'
 
+const props = defineProps<{ date: string }>()
 const router = useRouter()
 
-const actions = [
+const actions = computed(() => [
   { key: 'create', label: 'Create order', icon: 'post_add', to: { name: 'order-create' } },
-  { key: 'report', label: 'Orders report', icon: 'bar_chart', to: { path: '/reports/orders' } },
-]
+  { key: 'report', label: 'Orders report', icon: 'bar_chart', to: { path: '/reports/orders', query: { date: props.date, day: props.date } } },
+])
 
-function go(to: (typeof actions)[number]['to'], close: () => void) {
+function go(to: (typeof actions.value)[number]['to'], close: () => void) {
   close()
   void router.push(to)
 }

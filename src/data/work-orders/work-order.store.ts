@@ -44,7 +44,12 @@ export const useWorkOrderStore = defineStore('work-orders', () => {
     listLoading.value = true
     listError.value = null
     try {
-      const result = await listWorkOrders({ keyword, status: status || undefined, dateField, date, page, perPage: PAGE_SIZE })
+      const result = await listWorkOrders({ keyword, status: status || undefined, dateField, date, page, perPage: PAGE_SIZE }, (fresh) => {
+        if (requestSequence === listRequestSequence) {
+          orders.value = fresh.items
+          pagination.value = fresh.pagination
+        }
+      })
       if (requestSequence !== listRequestSequence) return
       orders.value = result.items
       pagination.value = result.pagination

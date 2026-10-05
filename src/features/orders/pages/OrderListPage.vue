@@ -61,9 +61,9 @@ function viewInvoice(invoiceNumber: string) {
         <DateTabs v-if="calendar" :year="calendar.year" :month="calendar.month - 1" :selected-date="date" @date-select="setDate" @prev-month="stepMonth(-1)" @next-month="stepMonth(1)" />
       </div>
     </template>
-    <ListContainer title="Orders" icon="local_laundry_service" searchable close-search-on-outside-click:search-value="keyword" search-placeholder="Search customer, phone, order or invoice no." @update:search-value="setKeyword($event)" count-label="orders" :loading="listLoading" :error="listError" :empty="!listLoading && !listError && orders.length === 0" empty-text="No orders match these filters" :skeleton-rows="5">
+    <ListContainer title="Orders" icon="local_laundry_service" searchable close-search-on-outside-click :search-value="keyword" search-placeholder="Search customer, phone, order or invoice no." @update:search-value="setKeyword($event)" count-label="orders" :loading="listLoading" :error="listError" :empty="!listLoading && !listError && orders.length === 0" empty-text="No orders match these filters" :skeleton-rows="5">
       <template #search-actions><OrderListDateFieldMenu :date-field="dateField" @select="setDateField" /></template>
-      <template #actions><OrderListActionsMenu /></template>
+      <template #actions><OrderListActionsMenu :date="date" /></template>
       <OrderCard v-for="order in orderRows" :key="order.orderId" :order="order" :show-customer-name="true" :show-photos="true" :show-invoice="true" :on-edit="editOrder" @select="openOrder" @view-photos="viewPhotos" @view-invoice="viewInvoice" />
     </ListContainer>
   </ListPageLayout>

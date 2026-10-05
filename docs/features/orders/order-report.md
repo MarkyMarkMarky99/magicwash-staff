@@ -34,6 +34,8 @@ All ranges are inclusive `YYYY-MM-DD` days.
 
 ## Screen
 
+The order list opens the report with `date` and `day` set to the list's selected day.
+
 The page lives at `/reports/orders` (`src/features/order-reports/`), is not in the navigation menu, is opened from the order list's actions dropdown (the `more_vert` button, items "Create order" and "Orders report"), shows a back button to the order list, and is open to every signed-in staff member. It is a dark page in the style of the staff profile: `bg-on-surface` with `on-primary` text and `border-on-primary/10 bg-on-primary/5` cards. `src/data/order-reports/order-report.service.ts` reads the endpoint.
 
 The screen offers two periods, Week and Month; the selected-day detail comes from the week response's `days`, so the screen never requests `period=day`. The view is route-owned query state, replaced rather than pushed: `period` is `week` or `month`, `date` is a `YYYY-MM-DD` day ending the week (or inside the month), and `day` is an optional selected day inside the week. A missing or unknown `period` is `week` (an old `day` link opens the week). A missing, invalid or future `date` is today in Asia/Bangkok. `day` is dropped unless the period is `week` and the day lies in the 7 days ending at `date`. The default view carries no query at all. Switching period or moving with the arrows clears the selected day and, for a period switch, resets the date to today.

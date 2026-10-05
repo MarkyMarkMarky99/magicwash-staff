@@ -1,4 +1,4 @@
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { normalizeSheetDate, todaySheetDate } from '@/shared/utils/sheet-date'
 
@@ -30,10 +30,14 @@ const readPage = (value: unknown) => {
 export function useOrderListFilterRoute() {
   const route = useRoute()
   const router = useRouter()
-  const keyword = computed(() => readString(route.query.keyword))
-  const dateField = computed(() => readDateField(route.query.dateField))
-  const date = computed(() => readDate(route.query.date))
-  const page = computed(() => readPage(route.query.page))
+  const listQuery = ref(route.query)
+  watch(() => route.query, (query) => {
+    if (route.name === 'order-list') listQuery.value = query
+  })
+  const keyword = computed(() => readString(listQuery.value.keyword))
+  const dateField = computed(() => readDateField(listQuery.value.dateField))
+  const date = computed(() => readDate(listQuery.value.date))
+  const page = computed(() => readPage(listQuery.value.page))
 
   function replaceQuery(next: Record<string, string | undefined>) {
     const query = { ...route.query, ...next }

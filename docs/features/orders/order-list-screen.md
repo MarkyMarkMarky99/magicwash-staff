@@ -28,10 +28,13 @@ no status filter.
 - The route owns the page value.
 
 Control state lives in the query string (`keyword`, `date`, `dateField`, `page`); today and Received are left out of it. Changing the keyword, day or date field resets `page` to 1.
+The list ignores route changes while another page is active.
 
 `GET /api/work-orders` accepts optional `date` (`YYYY-MM-DD`) and `dateField` (`receivedDate` by default). With `date`, the server reads every row matching the other filters, keeps those whose chosen field falls on that day, and pages them in memory. An invalid value returns 422.
 
 ## Actions
+
+The actions menu opens the order report on the selected day with both `date` and `day` query parameters set to that day.
 
 Tap opens detail. Swiping left reveals Edit, which pushes `/orders/:orderId/edit` through the
 host. The card closes its panel after navigation and shows a failure message if navigation rejects.
