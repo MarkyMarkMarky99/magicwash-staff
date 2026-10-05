@@ -9,7 +9,8 @@ import { getInvoiceTarget } from '@/shared/navigation/invoice-detail-route'
 import { orderEditRoute } from '@/shared/navigation/form-routes'
 import OrderCard from '@/features/orders/components/OrderCard.vue'
 import OrderListActionsMenu from '@/features/orders/components/OrderListActionsMenu.vue'
-import { ORDER_LIST_DATE_FIELDS, useOrderListFilterRoute } from '@/features/orders/composables/use-order-list-filter-route'
+import OrderListDateFieldMenu from '@/features/orders/components/OrderListDateFieldMenu.vue'
+import { useOrderListFilterRoute } from '@/features/orders/composables/use-order-list-filter-route'
 import { useCustomerStore } from '@/data/customers/customer.store'
 import { useWorkOrderStore } from '@/data/work-orders/work-order.store'
 import { addSheetDateDays, getSheetDateCalendar } from '@/shared/utils/sheet-date'
@@ -60,20 +61,8 @@ function viewInvoice(invoiceNumber: string) {
         <DateTabs v-if="calendar" :year="calendar.year" :month="calendar.month - 1" :selected-date="date" @date-select="setDate" @prev-month="stepMonth(-1)" @next-month="stepMonth(1)" />
       </div>
     </template>
-    <ListContainer title="Orders" icon="local_laundry_service" searchable :search-value="keyword" search-placeholder="Search customer, phone, order or invoice no." @update:search-value="setKeyword($event)" count-label="orders" :loading="listLoading" :error="listError" :empty="!listLoading && !listError && orders.length === 0" empty-text="No orders match these filters" :skeleton-rows="5">
-      <template #search-actions>
-        <div class="flex shrink-0 gap-1" role="group" aria-label="Filter by date">
-          <button
-            v-for="option in ORDER_LIST_DATE_FIELDS"
-            :key="option.key"
-            type="button"
-            class="h-7 rounded-full px-2.5 font-label text-[11px] font-bold transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
-            :class="dateField === option.key ? 'bg-primary text-on-primary' : 'text-primary hover:bg-primary/10 active:bg-primary/20'"
-            :aria-pressed="dateField === option.key"
-            @click="setDateField(option.key)"
-          >{{ option.label }}</button>
-        </div>
-      </template>
+    <ListContainer title="Orders" icon="local_laundry_service" searchable close-search-on-outside-click:search-value="keyword" search-placeholder="Search customer, phone, order or invoice no." @update:search-value="setKeyword($event)" count-label="orders" :loading="listLoading" :error="listError" :empty="!listLoading && !listError && orders.length === 0" empty-text="No orders match these filters" :skeleton-rows="5">
+      <template #search-actions><OrderListDateFieldMenu :date-field="dateField" @select="setDateField" /></template>
       <template #actions><OrderListActionsMenu /></template>
       <OrderCard v-for="order in orderRows" :key="order.orderId" :order="order" :show-customer-name="true" :show-photos="true" :show-invoice="true" :on-edit="editOrder" @select="openOrder" @view-photos="viewPhotos" @view-invoice="viewInvoice" />
     </ListContainer>

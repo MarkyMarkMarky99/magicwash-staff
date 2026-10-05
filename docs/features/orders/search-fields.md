@@ -25,7 +25,7 @@ With a keyword, the service reads every OrderForm row matching the equality filt
 
 - `orderId`, `customerId` — system UUIDs that no person remembers.
 - `quantity` — numeric; a number is not something staff search by.
-- `receivedDate`, `dueDate`, `createdAt` — covered by the date tabs and date-field pills (see `order-list-screen.md`).
+- `receivedDate`, `dueDate`, `createdAt` — covered by the date tabs and the date-field filter (see `order-list-screen.md`).
 - `status`, `serviceType` — shown on each card; the list has no status filter.
 - `note`, `orderName`, `orderDescription` — free text, noisy matches.
 - `createdBy`, `updatedBy` — audit data.

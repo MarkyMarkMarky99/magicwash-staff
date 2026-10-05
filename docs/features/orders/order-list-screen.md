@@ -22,7 +22,7 @@ no status filter.
 ## Controls
 
 - **Date tabs** — the shared `DateTabs` month strip above the list; one day is selected, today by default. The arrows move to the first day of the previous or next month.
-- **Date field** — the magnifier opens the search row, which holds Received / Due / Created pills choosing which order date the day matches (`receivedDate`, `dueDate` or `createdAt`); Received by default.
+- **Date field** — the magnifier opens the search row; its right end holds a `tune` filter button whose dropdown picks which order date the day matches: Received, Due or Created (`receivedDate`, `dueDate` or `createdAt`), with a check on the current one. Received is the default; for the others the button shows the field's name beside the icon.
 - **Search** — one keyword matching the customer's label, name, phone or address, or the order's `orderNumber` or `invoiceNumber`. See `search-fields.md`. A non-empty keyword searches every day; the selected day is ignored while it is set.
 - **Sort** — `receivedDate` descending, fixed.
 - The route owns the page value.

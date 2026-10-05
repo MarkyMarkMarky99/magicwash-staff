@@ -24,6 +24,8 @@ const props = defineProps({
   searchValue: { type: String, default: undefined },
   searchPlaceholder: { type: String, default: 'ค้นหา…' },
   searchDebounceMs: { type: Number, default: 300 },
+  // Opt-in: pages whose search-actions open a panel in the list body must keep the row open.
+  closeSearchOnOutsideClick: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['update:searchValue'])
@@ -61,6 +63,24 @@ watch(() => props.defaultCollapsed, (value) => {
 function toggleSearch() {
   searchOpen.value = !searchOpen.value
 }
+
+const searchToggleRef = ref(null)
+const searchRowRef = ref(null)
+
+function closeSearchOnOutsidePointer(event) {
+  const target = event.target
+  if (!(target instanceof Element)) return
+  if (searchToggleRef.value?.contains(target) || searchRowRef.value?.contains(target)) return
+  // BaseDropdown teleports its panel to body, so a dropdown opened from the row is outside it.
+  if (target.closest('[id^="base-dropdown-"]')) return
+  searchOpen.value = false
+}
+
+watch([searchOpen, () => props.closeSearchOnOutsideClick], ([open, enabled], _, onCleanup) => {
+  if (!open || !enabled) return
+  document.addEventListener('pointerdown', closeSearchOnOutsidePointer)
+  onCleanup(() => document.removeEventListener('pointerdown', closeSearchOnOutsidePointer))
+}, { immediate: true })
 const headingId = computed(() =>
   `${props.title.toLowerCase().replace(/\s+/g, '-')}-heading`
 )
@@ -93,6 +113,7 @@ function toggleCollapsed() {
         <BaseBadge v-if="count !== undefined" :label="`${count} ${countLabel}`" size="sm" tone="neutral" :uppercase="true" />
         <button
           v-if="searchable"
+          ref="searchToggleRef"
           type="button"
           class="-my-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
           :class="searchOpen || keywordInput ? 'bg-primary/10 text-primary' : 'text-primary hover:bg-primary/10 active:bg-primary/20'"
@@ -115,6 +136,7 @@ function toggleCollapsed() {
 
     <div
       v-if="searchable && searchOpen"
+      ref="searchRowRef"
       class="flex items-center gap-2 border-b border-outline-variant/20 bg-surface-container px-4 py-2"
     >
       <span class="material-symbols-outlined shrink-0 text-[18px] text-on-surface-variant" aria-hidden="true">search</span>
