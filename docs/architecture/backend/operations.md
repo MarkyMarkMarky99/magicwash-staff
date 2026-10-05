@@ -200,6 +200,8 @@ period (shorter than 62 days). Each row carries `department`, derived from the j
 `GET /api/order-reports?period=day|week|month&date=yyyy-MM-dd` requires approved staff, reads the whole
 OrderForm tab once and aggregates it in memory, including per-day detail in `days`; its rules are in `docs/features/orders/order-report.md`.
 
+`GET /api/order-snapshots` requires approved staff and reads the whole OrderForm tab once, selecting only the list columns and timestamp, with no filters or pagination. It returns the order-list contract plus `createdAt`, drops blank order ids, trims customer ids, normalises date and timestamp fields, and sorts by received date descending (nulls last), then order id ascending. The order list and report share this uncached snapshot in the browser and reload it once per page activation. The browser adds a `request` sequence number to the URL so a reload after a write never joins an earlier in-flight GET; the server ignores it.
+
 | Route | Authorization | Result |
 | --- | --- | --- |
 | `GET /api/staff/me` | Valid token | Own row including pending/inactive rows; 404 if absent |

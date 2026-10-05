@@ -3,18 +3,21 @@ import {
   orderReportQuerySchema,
   orderReportResponseSchema,
   orderReportServiceTypeSchema,
-} from '../../../contracts/order-reports/order-report-api.schema.js'
-import { normalizeSheetTimestamp, toNumber } from '../../../shared/utils/bangkok-datetime.js'
-import type { OrderFormApiRow } from '../work-orders/work-order.mapping.js'
+} from '../../contracts/order-reports/order-report-api.schema.js'
+import { normalizeSheetTimestamp, toNumber } from '../utils/bangkok-datetime.js'
 
 type OrderReportPeriod = z.infer<typeof orderReportQuerySchema>['period']
 type OrderReportResponse = z.infer<typeof orderReportResponseSchema>
 type OrderReportServiceType = z.infer<typeof orderReportServiceTypeSchema>
 type DayRange = OrderReportResponse['range']
 
-export type OrderReportSourceRow = Partial<
-  Pick<OrderFormApiRow, 'orderId' | 'receivedDate' | 'serviceType' | 'status' | 'quantity'>
->
+export interface OrderReportSourceRow {
+  orderId?: unknown
+  receivedDate?: unknown
+  serviceType?: unknown
+  status?: unknown
+  quantity?: unknown
+}
 
 interface CountedOrder {
   day: string

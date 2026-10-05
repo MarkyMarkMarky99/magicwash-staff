@@ -1,7 +1,6 @@
 # Order list — search fields
 
-A keyword on `GET /api/work-orders` is matched in memory by `WorkOrderService`
-(`server/modules/work-orders/work-order.service.ts`), not by GViz. An order matches when either:
+The order list matches its keyword in the browser over the shared order snapshot, using customers from the customer store. It fetches `GET /api/order-snapshots` once per activation; keyword changes make no request. Unknown customers cannot match customer fields, but their orders can still match order or invoice numbers. An order matches when either:
 
 - its customer matches the keyword the same way the customer list search does — `customerIndex`
   (the three-letter label), `customerName`, `phone` or `address`, read from the Customers sheet; or
@@ -11,7 +10,7 @@ Matching is a case-insensitive substring match with the keyword trimmed. The cus
 `matchesCustomerKeyword` in root `shared/utils/customer-search.ts`, which the customer list page
 also uses, so both screens find the same customers.
 
-With a keyword, the service reads every OrderForm row matching the equality filters (`customerId`,
+For other `GET /api/work-orders` callers, the same matching rules remain in `WorkOrderService` (`server/modules/work-orders/work-order.service.ts`). With a keyword, the service reads every OrderForm row matching the equality filters (`customerId`,
 `status`) and the Customers sheet in parallel, filters, then pages in memory. Without a keyword or
 `date`, the list keeps the paged GViz read.
 
@@ -32,6 +31,6 @@ With a keyword, the service reads every OrderForm row matching the equality filt
 
 ## Limits
 
-- **No date-range search in the query layer.** `ReadQueryDTO` does not support range filters and `GvizQueryBuilder` exposes no range method — every non-reserved query key becomes an equality filter. The order list's single-day filter and keyword search work around this inside `WorkOrderService`.
-- **A keyword ignores the selected day.** The page drops `date` while a keyword is set, so search covers every day.
-- **Every keyword search reads both sheets in full.** Acceptable while orders and customers stay in the low thousands.
+- **No date-range search in the query layer.** `ReadQueryDTO` does not support range filters and `GvizQueryBuilder` exposes no range method — every non-reserved query key becomes an equality filter. The order list filters its snapshot in the browser; other `/api/work-orders` callers use the in-memory filtering in `WorkOrderService`.
+- **A keyword ignores the selected day.** The browser ignores the date filter while a trimmed keyword is non-empty, so search covers every day.
+- **Server keyword searches read both sheets in full.** This remains true for `/api/work-orders` callers. The order list searches its loaded snapshot and customer store without another request.

@@ -5,7 +5,8 @@ import type { LocationQueryRaw } from 'vue-router'
 import { bangkokToday } from '@shared/utils/bangkok-datetime'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import PullToRefresh from '@/shared/components/PullToRefresh.vue'
-import { getOrderReport, invalidateOrderReports, type OrderReportDto } from '@/data/order-reports/order-report.service'
+import { useOrderSnapshotStore } from '@/data/order-snapshots/order-snapshot.store'
+import { buildOrderReport } from '@shared/reports/order-report.aggregate'
 import OrderReportChart from '../components/OrderReportChart.vue'
 import OrderReportDayPicker from '../components/OrderReportDayPicker.vue'
 import OrderReportCompletion from '../components/OrderReportCompletion.vue'
@@ -39,13 +40,12 @@ const router = useRouter()
 
 const today = ref(bangkokToday())
 const view = ref<ReportView>(parseReportQuery(route.query, today.value))
-const report = ref<OrderReportDto | null>(null)
-const loadedKey = ref<string | null>(null)
-const error = ref<string | null>(null)
-let latestLoad = 0
-
-const viewKey = computed(() => `${view.value.period}:${view.value.date}`)
-const loaded = computed(() => (report.value !== null && loadedKey.value === viewKey.value && !error.value ? report.value : null))
+const snapshotStore = useOrderSnapshotStore()
+const report = computed(() => snapshotStore.orders === null
+  ? null
+  : buildOrderReport(snapshotStore.orders, view.value.period, view.value.date, today.value))
+const loaded = report
+const error = computed(() => snapshotStore.orders === null ? snapshotStore.error : null)
 const focus = computed(() => {
   if (loaded.value === null) return null
   return view.value.day === null ? loaded.value : dayFocus(loaded.value, view.value.day)
@@ -81,42 +81,18 @@ function step(direction: -1 | 1): void {
   updateQuery({ period, date: stepDate(period, date, direction, today.value), day: null })
 }
 
-async function load(): Promise<void> {
-  const id = ++latestLoad
-  const { period, date } = view.value
-  error.value = null
-  try {
-    const key = `${period}:${date}`
-    const result = await getOrderReport(period, date, (fresh) => {
-      if (id !== latestLoad) return
-      report.value = fresh
-      loadedKey.value = key
-    })
-    if (id !== latestLoad) return
-    report.value = result
-    loadedKey.value = key
-  } catch {
-    if (id === latestLoad) error.value = 'Could not load the report'
-  }
-}
-
 async function refresh(): Promise<void> {
-  invalidateOrderReports()
-  await load()
+  await snapshotStore.load()
 }
 
 watch(() => route.query, (query) => {
   if (route.name === ORDER_REPORT_ROUTE_NAME) view.value = parseReportQuery(query, today.value)
 })
 
-watch(viewKey, () => void load())
-
 onActivated(() => {
   today.value = bangkokToday()
-  const next = parseReportQuery(route.query, today.value)
-  const changed = next.period !== view.value.period || next.date !== view.value.date || next.day !== view.value.day
-  view.value = next
-  if (!changed) void load()
+  view.value = parseReportQuery(route.query, today.value)
+  void snapshotStore.load()
 })
 </script>
 
@@ -154,7 +130,7 @@ onActivated(() => {
 
       <p v-if="error" class="mx-4 mt-4 rounded-xl bg-error-container px-3 py-2 text-sm text-on-error-container" role="alert">
         {{ error }}
-        <button type="button" class="ml-2 min-h-11 min-w-11 font-bold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime" @click="load()">Retry</button>
+        <button type="button" class="ml-2 min-h-11 min-w-11 font-bold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime" @click="snapshotStore.load()">Retry</button>
       </p>
 
       <p v-else-if="!loaded" class="px-5 pt-8 text-center text-[13px] text-on-primary/60" aria-live="polite">Loading report…</p>

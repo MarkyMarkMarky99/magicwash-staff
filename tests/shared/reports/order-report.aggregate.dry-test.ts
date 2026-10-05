@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict'
-import { orderReportResponseSchema } from '../../../../../contracts/order-reports/order-report-api.schema.js'
+import { orderReportResponseSchema } from '../../../contracts/order-reports/order-report-api.schema.js'
 import {
   buildOrderReport,
   type OrderReportSourceRow,
-} from '../../../../../server/modules/order-reports/order-report.aggregate.js'
+} from '../../../shared/reports/order-report.aggregate.js'
 
 function row(overrides: Record<string, unknown> = {}): OrderReportSourceRow {
   return {

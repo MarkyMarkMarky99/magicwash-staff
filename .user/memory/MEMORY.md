@@ -4,7 +4,7 @@
 
 ## Branches in flight
 
-- **`feature/order-list-actions-menu`** — order list: actions menu, English labels, shared `DateTabs` with Received/Due/Created, customer-field search; owner checked locally; not pushed, owner still editing.
+- **`feature/order-list-actions-menu`** — order list + report share one in-memory `/api/order-snapshots` load per page open; pushed for Preview test 2026-10-06, not merged.
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 407 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — design-only work (invoice create as a form overlay with swipeable line cards), 1 commit ahead of `main`; kept by owner, not for merge yet.
 - **`feat/package-credit`** — monthly-subscription package credits, phases 1–4 built, awaiting owner test on Preview. Details on that branch: `.user/memory/feat-package-credit.md`.
@@ -12,6 +12,7 @@
 ## Pending work
 
 - **Orders report (`/reports/orders`, merged 2026-10-05)**
+  - Order list has no pull-to-refresh yet (ListPageLayout lacks it); `/api/order-reports` and the server date/keyword path of `/api/work-orders` now have no frontend caller.
   - Deferred by owner: status cards show current status, not status on that day; check whether orders ever reach COMPLETED.
 
 - **Staff KPI (WorkTransactions / WorkRates, merged 2026-10-04)**

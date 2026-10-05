@@ -2,7 +2,7 @@
 
 **Route:** `/orders` · **Page:** `OrderListPage.vue` · **Card:** `OrderCard.vue`
 
-The card is shared with customer order history. The staff list uses `GET /api/work-orders`.
+The card is shared with customer order history. The staff list reads `GET /api/order-snapshots` once per page activation into the shared in-memory snapshot store, also used by the orders report. Changing the day, date field or keyword filters this snapshot in the browser and makes no request. Snapshot responses are never cached.
 
 ## Card
 
@@ -30,7 +30,7 @@ no status filter.
 Control state lives in the query string (`keyword`, `date`, `dateField`, `page`); today and Received are left out of it. Changing the keyword, day or date field resets `page` to 1.
 The list ignores route changes while another page is active.
 
-`GET /api/work-orders` accepts optional `date` (`YYYY-MM-DD`) and `dateField` (`receivedDate` by default). With `date`, the server reads every row matching the other filters, keeps those whose chosen field falls on that day, and pages them in memory. An invalid value returns 422.
+Without a non-empty trimmed keyword, the browser keeps snapshot rows whose chosen date field starts with the selected `YYYY-MM-DD` day. Received is the default field; Due and Created use the same rule. A keyword ignores the day and searches the whole snapshot. Filtering preserves received-date descending order, with null dates last and order id ascending for ties.
 
 ## Actions
 
@@ -39,11 +39,10 @@ The actions menu opens the order report on the selected day with both `date` and
 Tap opens detail. Swiping left reveals Edit, which pushes `/orders/:orderId/edit` through the
 host. The card closes its panel after navigation and shows a failure message if navigation rejects.
 The message stays visible until its close button is pressed or the next edit attempt begins.
-The work-order store reconciles the PATCH response into loaded rows so changed header values appear
-without waiting for a full reload.
+Work-order invalidation reloads the shared snapshot so saved header changes appear in the list and report.
 
 ## States
 
-- **Loading** — five skeleton rows.
-- **Error** — the API message, falling back to "Unable to load work orders".
+- **Loading** — five skeleton rows while the first snapshot is loading.
+- **Error** — the API message, falling back to "Could not load orders", only when no snapshot has loaded. A failed refresh keeps the previous snapshot visible.
 - **Empty** — "No orders match these filters".

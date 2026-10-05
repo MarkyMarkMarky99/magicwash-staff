@@ -11,7 +11,7 @@ import {
   type OrderFormApiRow,
   type OrderFormDbRow,
 } from '../work-orders/work-order.mapping.js'
-import { buildOrderReport } from './order-report.aggregate.js'
+import { buildOrderReport } from '../../../shared/reports/order-report.aggregate.js'
 
 type OrderReportResponse = z.infer<typeof orderReportResponseSchema>
 

@@ -4,6 +4,8 @@
 
 ## Source and attribution
 
+The screen computes the report in the browser from the same in-memory order snapshot used by `/orders`, loaded through `GET /api/order-snapshots` once per page activation. Both runtimes use `buildOrderReport` in `shared/reports/order-report.aggregate.ts`. Switching week, month, date or selected day recomputes from that snapshot without a request. The `/api/order-reports` endpoint and its data service remain available for other callers.
+
 The service reads the whole OrderForm sheet once per request through the work-orders repository and field map, then aggregates in memory with the pure function `buildOrderReport`. Rows with a blank `orderId` or a `receivedDate` that is not a real calendar day are ignored. `receivedDate` is normalised with the shared sheet helpers, so a GViz `Date(y,m,d)` cell, a plain `yyyy-MM-dd` string, a `yyyy-MM-dd HH:mm:ss` string, and an ISO value with an offset (converted to Bangkok) all resolve to one Bangkok calendar day. An order belongs to that day.
 
 ## Ranges
@@ -36,9 +38,9 @@ All ranges are inclusive `YYYY-MM-DD` days.
 
 The order list opens the report with `date` and `day` set to the list's selected day.
 
-The page lives at `/reports/orders` (`src/features/order-reports/`), is not in the navigation menu, is opened from the order list's actions dropdown (the `more_vert` button, items "Create order" and "Orders report"), shows a back button to the order list, and is open to every signed-in staff member. It is a dark page in the style of the staff profile: `bg-on-surface` with `on-primary` text and `border-on-primary/10 bg-on-primary/5` cards. `src/data/order-reports/order-report.service.ts` reads the endpoint.
+The page lives at `/reports/orders` (`src/features/order-reports/`), is not in the navigation menu, is opened from the order list's actions dropdown (the `more_vert` button, items "Create order" and "Orders report"), shows a back button to the order list, and is open to every signed-in staff member. It is a dark page in the style of the staff profile: `bg-on-surface` with `on-primary` text and `border-on-primary/10 bg-on-primary/5` cards. The screen reads the shared snapshot store in `src/data/order-snapshots/`.
 
-The screen offers two periods, Week and Month; the selected-day detail comes from the week response's `days`, so the screen never requests `period=day`. The view is route-owned query state, replaced rather than pushed: `period` is `week` or `month`, `date` is a `YYYY-MM-DD` day ending the week (or inside the month), and `day` is an optional selected day inside the week. A missing or unknown `period` is `week` (an old `day` link opens the week). A missing, invalid or future `date` is today in Asia/Bangkok. `day` is dropped unless the period is `week` and the day lies in the 7 days ending at `date`. The default view carries no query at all. Switching period or moving with the arrows clears the selected day and, for a period switch, resets the date to today.
+The screen offers two periods, Week and Month; the selected-day detail comes from the computed week's `days`. The view is route-owned query state, replaced rather than pushed: `period` is `week` or `month`, `date` is a `YYYY-MM-DD` day ending the week (or inside the month), and `day` is an optional selected day inside the week. A missing or unknown `period` is `week` (an old `day` link opens the week). A missing, invalid or future `date` is today in Asia/Bangkok. `day` is dropped unless the period is `week` and the day lies in the 7 days ending at `date`. The default view carries no query at all. Switching period or moving with the arrows clears the selected day and, for a period switch, resets the date to today.
 
 Layout, top to bottom:
 
@@ -50,12 +52,14 @@ Layout, top to bottom:
 - `month`: an "Orders per week" chart of the `W1`–`W5` buckets with today's bucket in lime.
 - "By service" rows with orders, pieces and a lime bar for the share of orders, for the same scope as the completion block. The Other row is hidden when it has no orders. When that scope has no orders the card is replaced by "No orders this day." or "No orders in this period."
 
-A floating Week and Month pill is pinned to the bottom of the screen above the scroll region, which has bottom padding so the last card is never covered. A failed load shows an error with Retry, which reloads the period; the page shows "Loading report…" until the response for the current period and date arrives. Selecting a day makes no request. The page reloads each time it is reactivated, and a new Bangkok day moves the default date.
+A floating Week and Month pill is pinned to the bottom of the screen above the scroll region, which has bottom padding so the last card is never covered. A failed first load shows an error with Retry, which reloads the snapshot; the page shows "Loading report…" until a snapshot is available. Later refresh failures keep the previous snapshot and report visible. The page reloads the snapshot each time it is reactivated, and a new Bangkok day moves the default date.
 
 ## Cache
 
-`/api/order-reports` is cached for one hour in the shared response cache, served stale-first: a cached response paints at once and, once older than an hour, is refreshed in the background and swapped in. Each period and date is its own entry. `createWorkOrder` and `updateWorkOrder` (`src/data/work-orders/work-order.service.ts`) call `invalidate('/api/order-reports')`; they are the only frontend writes to OrderForm columns the report reads (receivedDate, serviceType, status, quantity). Invoice and order-item writes touch no such column. A change made from another device or typed into the sheet shows after the hour, after pull-to-refresh, or after the navigation menu's refresh.
+The screen snapshot is never served from or written to the response cache. Its store keeps one in-memory snapshot and reloads on work-order invalidation.
+
+For other callers, `/api/order-reports` is cached for one hour in the shared response cache, served stale-first: a cached response paints at once and, once older than an hour, is refreshed in the background and swapped in. Each period and date is its own entry. `createWorkOrder` and `updateWorkOrder` (`src/data/work-orders/work-order.service.ts`) call `invalidate('/api/order-reports')`; they are the only frontend writes to OrderForm columns the report reads (receivedDate, serviceType, status, quantity). Invoice and order-item writes touch no such column. A change made from another device or typed into the sheet appears in the screen on the next activation or snapshot refresh.
 
 ## Pull to refresh
 
-The scroll region is the shared `PullToRefresh` (see `docs/conventions/components.md`). Pulling the body down at the top calls `invalidateOrderReports()`, which drops every cached report, then reloads the current period and date; the spinner stays until that response arrives or fails.
+The scroll region is the shared `PullToRefresh` (see `docs/conventions/components.md`). Pulling the body down at the top calls the snapshot store's `load()` and awaits it; the spinner stays until the fresh snapshot arrives or fails.
