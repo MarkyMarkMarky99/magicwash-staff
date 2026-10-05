@@ -99,6 +99,14 @@ export function percentOf(count: number, total: number): number {
   return Math.min(100, Math.max(0, Math.round(count / total * 100)))
 }
 
+export function previousPeriodLabel(period: ReportPeriod, previousRange: OrderReportDto['previousRange']): string {
+  if (period === 'week') return 'Previous 7 days'
+  const year = Number(previousRange.to.slice(0, 4))
+  const month = Number(previousRange.to.slice(5, 7))
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate()
+  return Number(previousRange.to.slice(8)) < lastDay ? 'Same days last month' : 'Previous month'
+}
+
 export function changePercent(current: number, previous: number): string | null {
   if (previous === 0) return null
   const change = Math.round((current - previous) / previous * 100)

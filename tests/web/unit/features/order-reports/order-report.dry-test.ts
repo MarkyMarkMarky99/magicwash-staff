@@ -10,6 +10,7 @@ import {
   dayFocus,
   parseReportQuery,
   percentOf,
+  previousPeriodLabel,
   reportQueryFor,
   serviceRows,
   shiftDate,
@@ -56,6 +57,12 @@ assert.equal(stepDate('month', '2025-12-01', 1, TODAY), '2026-01-01')
 assert.equal(percentOf(3, 8), 38)
 assert.equal(percentOf(0, 0), 0)
 assert.equal(percentOf(5, 3), 100)
+assert.equal(previousPeriodLabel('week', { from: '2026-09-22', to: '2026-09-28' }), 'Previous 7 days')
+assert.equal(previousPeriodLabel('month', { from: '2026-09-01', to: '2026-09-05' }), 'Same days last month')
+assert.equal(previousPeriodLabel('month', { from: '2026-08-01', to: '2026-08-31' }), 'Previous month')
+assert.equal(previousPeriodLabel('month', { from: '2026-02-01', to: '2026-02-28' }), 'Previous month')
+assert.equal(previousPeriodLabel('month', { from: '2028-02-01', to: '2028-02-28' }), 'Same days last month')
+assert.equal(previousPeriodLabel('month', { from: '2028-02-01', to: '2028-02-29' }), 'Previous month')
 assert.equal(changePercent(48, 43), '+12%')
 assert.equal(changePercent(40, 50), '-20%')
 assert.equal(changePercent(10, 10), '0%')

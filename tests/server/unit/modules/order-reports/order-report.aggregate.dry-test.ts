@@ -18,7 +18,7 @@ function row(overrides: Record<string, unknown> = {}): OrderReportSourceRow {
 
 const SERVICES = ['WSIR', 'DRCL', 'IRON', 'WASH', 'OTHER']
 
-const empty = buildOrderReport([], 'day', '2026-10-05')
+const empty = buildOrderReport([], 'day', '2026-10-05', '2026-10-05')
 assert.deepEqual(orderReportResponseSchema.parse(empty), empty)
 assert.deepEqual(empty.totals, { orders: 0, pieces: 0, cancelled: 0 })
 assert.deepEqual(empty.previousTotals, { orders: 0, pieces: 0 })
@@ -48,6 +48,7 @@ const dayReport = buildOrderReport(
   ],
   'day',
   '2026-10-05',
+  '2026-10-05',
 )
 assert.deepEqual(dayReport.range, { from: '2026-10-05', to: '2026-10-05' })
 assert.deepEqual(dayReport.previousRange, { from: '2026-10-04', to: '2026-10-04' })
@@ -66,6 +67,7 @@ const cancelledReport = buildOrderReport(
     row({ orderId: 'c', status: 'CANCELLED', quantity: 50, receivedDate: '2026-10-04' }),
   ],
   'day',
+  '2026-10-05',
   '2026-10-05',
 )
 assert.deepEqual(cancelledReport.totals, { orders: 1, pieces: 2, cancelled: 1 })
@@ -89,6 +91,7 @@ const statusReport = buildOrderReport(
     row({ orderId: '8', status: undefined, serviceType: undefined, quantity: undefined }),
   ],
   'day',
+  '2026-10-05',
   '2026-10-05',
 )
 assert.deepEqual(statusReport.totals, { orders: 8, pieces: 21, cancelled: 0 })
@@ -114,6 +117,7 @@ const weekReport = buildOrderReport(
   ],
   'week',
   '2026-10-05',
+  '2026-10-05',
 )
 assert.deepEqual(weekReport.range, { from: '2026-09-29', to: '2026-10-05' })
 assert.deepEqual(weekReport.previousRange, { from: '2026-09-22', to: '2026-09-28' })
@@ -125,7 +129,7 @@ assert.equal(weekReport.series[0]?.from, '2026-09-29')
 assert.equal(weekReport.series[6]?.to, '2026-10-05')
 
 // week crossing a year boundary
-const yearBoundary = buildOrderReport([row({ receivedDate: '2025-12-31' })], 'week', '2026-01-02')
+const yearBoundary = buildOrderReport([row({ receivedDate: '2025-12-31' })], 'week', '2026-01-02', '2026-10-05')
 assert.deepEqual(yearBoundary.range, { from: '2025-12-27', to: '2026-01-02' })
 assert.deepEqual(yearBoundary.previousRange, { from: '2025-12-20', to: '2025-12-26' })
 assert.equal(yearBoundary.totals.orders, 1)
@@ -133,13 +137,13 @@ assert.equal(yearBoundary.totals.orders, 1)
 // month: 31-day month, W1..W5 buckets, full range even for the current month
 const monthRows = [
   '2026-10-01', '2026-10-07', '2026-10-08', '2026-10-14', '2026-10-15', '2026-10-21',
-  '2026-10-22', '2026-10-28', '2026-10-29', '2026-10-31', '2026-11-01', '2026-09-30',
+  '2026-10-22', '2026-10-28', '2026-10-29', '2026-10-31', '2026-11-01', '2026-09-30', '2026-09-01', '2026-09-05', '2026-09-06',
 ].map((receivedDate, index) => row({ orderId: `m${index}`, receivedDate, quantity: 1 }))
-const octoberReport = buildOrderReport(monthRows, 'month', '2026-10-05')
+const octoberReport = buildOrderReport(monthRows, 'month', '2026-10-05', '2026-10-05')
 assert.deepEqual(octoberReport.range, { from: '2026-10-01', to: '2026-10-31' })
-assert.deepEqual(octoberReport.previousRange, { from: '2026-09-01', to: '2026-09-30' })
+assert.deepEqual(octoberReport.previousRange, { from: '2026-09-01', to: '2026-09-05' })
 assert.deepEqual(octoberReport.totals, { orders: 10, pieces: 10, cancelled: 0 })
-assert.deepEqual(octoberReport.previousTotals, { orders: 1, pieces: 1 })
+assert.deepEqual(octoberReport.previousTotals, { orders: 2, pieces: 2 })
 assert.deepEqual(octoberReport.series, [
   { from: '2026-10-01', to: '2026-10-07', label: 'W1', orders: 2 },
   { from: '2026-10-08', to: '2026-10-14', label: 'W2', orders: 2 },
@@ -148,11 +152,35 @@ assert.deepEqual(octoberReport.series, [
   { from: '2026-10-29', to: '2026-10-31', label: 'W5', orders: 2 },
 ])
 
+const pastMonth = buildOrderReport(
+  [
+    row({ receivedDate: '2026-08-01', quantity: 2 }),
+    row({ receivedDate: '2026-08-31', quantity: 3 }),
+    row({ receivedDate: '2026-07-31', quantity: 10 }),
+    row({ receivedDate: '2026-09-01', quantity: 20 }),
+  ],
+  'month',
+  '2026-09-01',
+  '2026-10-05',
+)
+assert.deepEqual(pastMonth.previousRange, { from: '2026-08-01', to: '2026-08-31' })
+assert.deepEqual(pastMonth.previousTotals, { orders: 2, pieces: 5 })
+
+const clampedMonth = buildOrderReport(
+  [row({ receivedDate: '2026-02-28', quantity: 3 }), row({ receivedDate: '2026-03-01', quantity: 9 })],
+  'month',
+  '2026-03-31',
+  '2026-03-31',
+)
+assert.deepEqual(clampedMonth.previousRange, { from: '2026-02-01', to: '2026-02-28' })
+assert.deepEqual(clampedMonth.previousTotals, { orders: 1, pieces: 3 })
+
 // month: 28-day February has no W5; leap February has W5 of one day
 const february = buildOrderReport(
   [row({ receivedDate: '2026-02-28' }), row({ orderId: 'x', receivedDate: '2026-01-31' })],
   'month',
   '2026-02-10',
+  '2026-10-05',
 )
 assert.deepEqual(february.range, { from: '2026-02-01', to: '2026-02-28' })
 assert.deepEqual(february.previousRange, { from: '2026-01-01', to: '2026-01-31' })
@@ -160,15 +188,15 @@ assert.deepEqual(february.series.map((entry) => entry.label), ['W1', 'W2', 'W3',
 assert.deepEqual(february.series[3], { from: '2026-02-22', to: '2026-02-28', label: 'W4', orders: 1 })
 assert.deepEqual(february.previousTotals, { orders: 1, pieces: 1 })
 
-const leapFebruary = buildOrderReport([row({ receivedDate: '2028-02-29' })], 'month', '2028-02-29')
+const leapFebruary = buildOrderReport([row({ receivedDate: '2028-02-29' })], 'month', '2028-02-29', '2026-10-05')
 assert.deepEqual(leapFebruary.range, { from: '2028-02-01', to: '2028-02-29' })
 assert.deepEqual(leapFebruary.series.at(-1), { from: '2028-02-29', to: '2028-02-29', label: 'W5', orders: 1 })
 
-const thirtyDay = buildOrderReport([], 'month', '2026-04-15')
+const thirtyDay = buildOrderReport([], 'month', '2026-04-15', '2026-10-05')
 assert.deepEqual(thirtyDay.series.at(-1), { from: '2026-04-29', to: '2026-04-30', label: 'W5', orders: 0 })
 
 // month in January: previous month is December of the prior year
-const january = buildOrderReport([], 'month', '2026-01-15')
+const january = buildOrderReport([], 'month', '2026-01-15', '2026-10-05')
 assert.deepEqual(january.previousRange, { from: '2025-12-01', to: '2025-12-31' })
 
 // cancelled in month counts only inside the range
@@ -179,19 +207,20 @@ const monthCancelled = buildOrderReport(
   ],
   'month',
   '2026-10-05',
+  '2026-10-05',
 )
 assert.deepEqual(monthCancelled.totals, { orders: 0, pieces: 0, cancelled: 1 })
 
 // sevenDayAverage: always the 7 days ending at date, 1 decimal, independent of period
 const averageRows = (count: number) =>
   Array.from({ length: count }, (_, index) => row({ orderId: `a${index}`, receivedDate: '2026-10-03' }))
-assert.equal(buildOrderReport(averageRows(1), 'day', '2026-10-05').sevenDayAverage, 0.1)
-assert.equal(buildOrderReport(averageRows(2), 'day', '2026-10-05').sevenDayAverage, 0.3)
-assert.equal(buildOrderReport(averageRows(3), 'day', '2026-10-05').sevenDayAverage, 0.4)
-assert.equal(buildOrderReport(averageRows(7), 'month', '2026-10-05').sevenDayAverage, 1)
-assert.equal(buildOrderReport(averageRows(10), 'week', '2026-10-05').sevenDayAverage, 1.4)
-assert.equal(buildOrderReport(averageRows(10), 'day', '2026-10-10').sevenDayAverage, 0)
-assert.equal(buildOrderReport(averageRows(10), 'day', '2026-10-02').sevenDayAverage, 0)
+assert.equal(buildOrderReport(averageRows(1), 'day', '2026-10-05', '2026-10-05').sevenDayAverage, 0.1)
+assert.equal(buildOrderReport(averageRows(2), 'day', '2026-10-05', '2026-10-05').sevenDayAverage, 0.3)
+assert.equal(buildOrderReport(averageRows(3), 'day', '2026-10-05', '2026-10-05').sevenDayAverage, 0.4)
+assert.equal(buildOrderReport(averageRows(7), 'month', '2026-10-05', '2026-10-05').sevenDayAverage, 1)
+assert.equal(buildOrderReport(averageRows(10), 'week', '2026-10-05', '2026-10-05').sevenDayAverage, 1.4)
+assert.equal(buildOrderReport(averageRows(10), 'day', '2026-10-10', '2026-10-05').sevenDayAverage, 0)
+assert.equal(buildOrderReport(averageRows(10), 'day', '2026-10-02', '2026-10-05').sevenDayAverage, 0)
 
 // days: per-day detail for day and week, empty for month
 assert.deepEqual(empty.days.map((entry) => entry.date), [
@@ -216,10 +245,10 @@ const daysRows = [
   row({ orderId: 'r2', receivedDate: '2026-09-28', status: 'PENDING', quantity: 60 }),
   row({ orderId: 'r3', receivedDate: '2026-10-06', status: 'PENDING', quantity: 70 }),
 ]
-const detail = buildOrderReport(daysRows, 'week', '2026-10-05')
+const detail = buildOrderReport(daysRows, 'week', '2026-10-05', '2026-10-05')
 assert.equal(detail.days.length, 7)
 for (const entry of detail.days) {
-  const single = buildOrderReport(daysRows, 'day', entry.date)
+  const single = buildOrderReport(daysRows, 'day', entry.date, '2026-10-05')
   assert.deepEqual(entry.totals, single.totals, entry.date)
   assert.deepEqual(entry.status, single.status, entry.date)
   assert.deepEqual(entry.byService, single.byService, entry.date)
@@ -227,7 +256,7 @@ for (const entry of detail.days) {
   assert.deepEqual(Object.keys(entry), ['date', 'totals', 'status', 'byService', 'sevenDayAverage'])
   assert.deepEqual(entry.byService.map((service) => service.serviceType), SERVICES)
 }
-assert.deepEqual(buildOrderReport(daysRows, 'day', '2026-10-05').days, detail.days)
+assert.deepEqual(buildOrderReport(daysRows, 'day', '2026-10-05', '2026-10-05').days, detail.days)
 
 const latest = detail.days[6]!
 assert.equal(latest.date, '2026-10-05')

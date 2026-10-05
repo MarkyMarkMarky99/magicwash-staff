@@ -21,6 +21,7 @@ import {
   formatCount,
   monthLabel,
   parseReportQuery,
+  previousPeriodLabel,
   reportQueryFor,
   serviceRows,
   shiftDate,
@@ -53,7 +54,9 @@ const focus = computed(() => {
 const canForward = computed(() => canStepForward(view.value.period, view.value.date, today.value))
 const weekFrom = computed(() => shiftDate(view.value.date, -6))
 const change = computed(() => (loaded.value ? changePercent(loaded.value.totals.orders, loaded.value.previousTotals.orders) : null))
-const previousLabel = computed(() => (view.value.period === 'month' ? 'Previous month' : 'Previous 7 days'))
+const previousLabel = computed(() => (loaded.value
+  ? previousPeriodLabel(view.value.period, loaded.value.previousRange)
+  : view.value.period === 'month' ? 'Previous month' : 'Previous 7 days'))
 const days = computed(() => (loaded.value && view.value.period === 'week' ? dayColumns(loaded.value) : []))
 const bars = computed(() => (loaded.value ? chartBars(loaded.value, today.value) : []))
 const services = computed(() => (focus.value ? serviceRows(focus.value) : []))

@@ -12,7 +12,7 @@ All ranges are inclusive `YYYY-MM-DD` days.
 
 - `day`: `range` is `[date, date]`; `previousRange` is the day before.
 - `week`: `range` is the 7 days ending at `date` (`date-6` to `date`); `previousRange` is the 7 days before that.
-- `month`: `range` is the whole calendar month containing `date`, first to last day, even when that month is the current one; `previousRange` is the whole previous calendar month.
+- `month`: `range` is the whole calendar month containing `date`, first to last day, even when that month is the current one; `previousRange` starts on the first day of the previous calendar month. When `date` and today in Asia/Bangkok are in the same calendar month, it ends on today's day of the month, clamped to the last day of the previous month. Otherwise it ends on the last day of the previous month.
 
 ## Counting rules
 
@@ -42,7 +42,7 @@ Layout, top to bottom:
 
 - Title "Orders report" and the subtitle "Orders received, by service and status".
 - A period header. `week` shows "Last 7 days · from – to" between previous and next arrows that move seven days (next is disabled once the range ends today). `month` shows a previous and next month navigator (next is disabled on the current month); its arrows land on the first day of a past month and on today for the current one.
-- The period total, a change badge against `previousTotals.orders` (hidden when that is 0) and the "Previous 7 days" or "Previous month" line. These always describe the whole period.
+- The period total and a change badge against `previousTotals.orders` (hidden when that is 0). The comparison line says "Previous 7 days" for week; for month it says "Same days last month" when `previousRange` ends before the last day of its own month, otherwise "Previous month". The total describes the whole selected period, and the comparison uses the previous range described above.
 - The completion block: a ring of `completed / totals.orders` (0 when there are no orders) with the order total in the centre, beside Pending, In progress and Completed cards whose fill width is their share of the total. Under it one line: pieces and cancelled, plus, for a selected day only, the percentage of the seven-day average with the average in brackets, left out when the average is 0. With no day selected it describes the whole period; with a day selected it describes that day, taken from the loaded week's `days` entry, under a lime label naming the day.
 - `week`: an "Orders per day" picker with no card background. Each of the 7 days in the week response's `series` is one tappable column with its order count, a bar and the weekday and date as the label. Tapping a day selects it (lime) and tapping it again returns to the whole week. Nothing is selected when the week opens.
 - `month`: an "Orders per week" chart of the `W1`–`W5` buckets with today's bucket in lime.

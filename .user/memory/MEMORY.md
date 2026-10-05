@@ -1,6 +1,6 @@
 # Project memory
 
-- Branch: `main` checked out; orders report merged and pushed 2026-10-05; customer package invoice deployment still awaiting verification.
+- Branch: `main` checked out; orders report month same-days comparison pushed 2026-10-06; customer package invoice deployment still awaiting verification.
 
 ## Branches in flight
 
@@ -11,9 +11,7 @@
 ## Pending work
 
 - **Orders report (`/reports/orders`, merged 2026-10-05)**
-  - Phone-check pull to refresh and the JobTicket ring after `CompletionRing` moved to shared.
-  - Open: Month change % compares a partial month with a whole one; same-days comparison proposed, owner undecided.
-  - Open: status cards show current status, not status on that day; check whether orders ever reach COMPLETED.
+  - Deferred by owner: status cards show current status, not status on that day; check whether orders ever reach COMPLETED.
 
 - **Staff KPI (WorkTransactions / WorkRates, merged 2026-10-04)**
   - Browser-check the staff profile page `/staff/:staffId` (Day date strip, Week leaderboard); only unit-tested.

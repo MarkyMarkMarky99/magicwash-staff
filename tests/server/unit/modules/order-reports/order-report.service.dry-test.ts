@@ -24,7 +24,11 @@ const reader: OrderReportReader = {
 }
 
 // 2026-10-05T18:00:00Z is already 2026-10-06 01:00 in Bangkok
-const service = new OrderReportService(() => reader, () => new Date('2026-10-05T18:00:00Z'))
+let clockCalls = 0
+const service = new OrderReportService(() => reader, () => {
+  clockCalls += 1
+  return new Date('2026-10-05T18:00:00Z')
+})
 
 const explicit = await service.get({ period: 'day', date: '2026-10-05' })
 assert.equal(reads, 1)
@@ -73,7 +77,10 @@ const success = await routes.collection.handleRequest({
 assert.equal(success.status, 200)
 const successBody = success.body as { success: boolean; data: unknown }
 assert.equal(successBody.success, true)
-assert.deepEqual(orderReportResponseSchema.parse(successBody.data).range, { from: '2026-10-01', to: '2026-10-31' })
+const monthReport = orderReportResponseSchema.parse(successBody.data)
+assert.deepEqual(monthReport.range, { from: '2026-10-01', to: '2026-10-31' })
+assert.deepEqual(monthReport.previousRange, { from: '2026-09-01', to: '2026-09-06' }, 'comparison uses today from the injected Bangkok clock, even with an explicit date')
+assert.equal(clockCalls, 3, 'each valid report computes today once')
 
 const invalid = await routes.collection.handleRequest({
   method: 'GET',

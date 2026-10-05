@@ -56,7 +56,7 @@ function previousMonthRange(day: string): DayRange {
   return monthRange(addDays(`${day.slice(0, 7)}-01`, -1))
 }
 
-function rangesFor(period: OrderReportPeriod, date: string): { range: DayRange; previousRange: DayRange } {
+function rangesFor(period: OrderReportPeriod, date: string, today: string): { range: DayRange; previousRange: DayRange } {
   if (period === 'day') {
     return {
       range: { from: date, to: date },
@@ -69,7 +69,12 @@ function rangesFor(period: OrderReportPeriod, date: string): { range: DayRange; 
       previousRange: { from: addDays(date, -13), to: addDays(date, -7) },
     }
   }
-  return { range: monthRange(date), previousRange: previousMonthRange(date) }
+  const previousRange = previousMonthRange(date)
+  if (date.slice(0, 7) === today.slice(0, 7)) {
+    const day = Math.min(Number(today.slice(8)), Number(previousRange.to.slice(8)))
+    previousRange.to = `${previousRange.from.slice(0, 8)}${String(day).padStart(2, '0')}`
+  }
+  return { range: monthRange(date), previousRange }
 }
 
 function toCountedOrder(row: OrderReportSourceRow): CountedOrder | null {
@@ -155,12 +160,13 @@ export function buildOrderReport(
   rows: OrderReportSourceRow[],
   period: OrderReportPeriod,
   date: string,
+  today: string,
 ): OrderReportResponse {
   const orders = rows.flatMap((row) => {
     const counted = toCountedOrder(row)
     return counted === null ? [] : [counted]
   })
-  const { range, previousRange } = rangesFor(period, date)
+  const { range, previousRange } = rangesFor(period, date, today)
   const active = orders.filter((order) => order.status !== 'CANCELLED')
   const previous = active.filter((order) => within(order, previousRange))
 

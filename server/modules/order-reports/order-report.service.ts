@@ -27,12 +27,14 @@ export class OrderReportService {
 
   async get(query: unknown): Promise<OrderReportResponse> {
     const { period, date } = parseOrThrow(orderReportQuerySchema, query)
-    const resolvedDate = date ?? bangkokToday(this.now())
+    const today = bangkokToday(this.now())
+    const resolvedDate = date ?? today
     const rows = await this.repository().read()
     return buildOrderReport(
       rows.map((row) => orderFormMapper.toApi<Partial<OrderFormApiRow>>(row)),
       period,
       resolvedDate,
+      today,
     )
   }
 }
