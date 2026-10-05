@@ -1,32 +1,37 @@
 # Order list — search fields
 
-`WorkOrderService` in `server/modules/work-orders/work-order.service.ts` declares:
+A keyword on `GET /api/work-orders` is matched in memory by `WorkOrderService`
+(`server/modules/work-orders/work-order.service.ts`), not by GViz. An order matches when either:
 
-```ts
-searchFields: ['orderId', 'orderNumber', 'customerId', 'invoiceNumber'],
-```
+- its customer matches the keyword the same way the customer list search does — `customerIndex`
+  (the three-letter label), `customerName`, `phone` or `address`, read from the Customers sheet; or
+- its `orderNumber` or `invoiceNumber` contains the keyword.
 
-Entries are **API field names**, not DB column names; the repository resolves them to columns via `toDbField`.
+Matching is a case-insensitive substring match with the keyword trimmed. The customer rule is
+`matchesCustomerKeyword` in root `shared/utils/customer-search.ts`, which the customer list page
+also uses, so both screens find the same customers.
 
-GViz builds `column contains 'keyword'` per field, OR-ed together — substring matching, one keyword across all four fields. An empty `searchFields` array makes the builder drop the keyword entirely.
+With a keyword, the service reads every OrderForm row matching the equality filters (`customerId`,
+`status`) and the Customers sheet in parallel, filters, then pages in memory. Without a keyword or
+`date`, the list keeps the paged GViz read.
 
-## Why these four
+## Why these fields
 
-- `orderId` — `create()` never writes `order_number`, so app-created orders show `orderId` in the list. Without this entry, staff search for what they see and get nothing.
+- Customer label, name, phone, address — what staff know about a customer.
 - `orderNumber` — the number from the paper form, present on imported rows.
-- `customerId` — every order for one customer.
 - `invoiceNumber` — trace an invoice back to its order.
 
 ## Excluded
 
-- `quantity` — numeric. GViz `contains` against a numeric column fails the whole query rather than returning no matches. Never put a numeric column in `searchFields`.
-- `receivedDate`, `dueDate` — dates need range filtering, which the query layer does not support.
-- `status`, `serviceType` — covered by the status tabs.
+- `orderId`, `customerId` — system UUIDs that no person remembers.
+- `quantity` — numeric; a number is not something staff search by.
+- `receivedDate`, `dueDate`, `createdAt` — covered by the date tabs and date-field pills (see `order-list-screen.md`).
+- `status`, `serviceType` — shown on each card; the list has no status filter.
 - `note`, `orderName`, `orderDescription` — free text, noisy matches.
 - `createdBy`, `updatedBy` — audit data.
 
 ## Limits
 
-- **Customer name is not searchable.** `customerName` is merged from the Customers sheet after the paginated OrderForm read. It is not an OrderForm column, so GViz cannot match it. Supporting it needs denormalisation onto OrderForm, a two-step query, or in-memory filtering after paging.
-- **No date-range search anywhere.** `ReadQueryDTO` does not support range filters and `GvizQueryBuilder` exposes no range method — every non-reserved query key becomes an equality filter. Adding ranges changes shared code every module uses.
-- **GViz `contains` case sensitivity is unverified.** The builder does no case folding and no test asserts it.
+- **No date-range search in the query layer.** `ReadQueryDTO` does not support range filters and `GvizQueryBuilder` exposes no range method — every non-reserved query key becomes an equality filter. The order list's single-day filter and keyword search work around this inside `WorkOrderService`.
+- **A keyword ignores the selected day.** The page drops `date` while a keyword is set, so search covers every day.
+- **Every keyword search reads both sheets in full.** Acceptable while orders and customers stay in the low thousands.

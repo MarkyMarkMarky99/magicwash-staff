@@ -3,6 +3,7 @@ import { computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { customerTypeSchema } from '@contracts/customers/customer-api.schema'
+import { matchesCustomerKeyword } from '@shared/utils/customer-search'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import CustomerTypeTabs from '../components/CustomerTypeTabs.vue'
@@ -30,16 +31,8 @@ const filteredCustomers = computed(() => {
   const type = filter.value.customerType
   if (type) list = list.filter((c) => c.customerType === type)
 
-  const q = filter.value.keyword.trim().toLowerCase()
-  if (q) {
-    list = list.filter(
-      (c) =>
-        (c.customerIndex ?? '').toLowerCase().includes(q) ||
-        (c.customerName ?? '').toLowerCase().includes(q) ||
-        (c.phone ?? '').toLowerCase().includes(q) ||
-        (c.address ?? '').toLowerCase().includes(q),
-    )
-  }
+  const keyword = filter.value.keyword
+  if (keyword.trim()) list = list.filter((c) => matchesCustomerKeyword(c, keyword))
 
   return list
 })

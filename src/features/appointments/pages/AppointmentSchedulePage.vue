@@ -8,7 +8,7 @@ import ListContainer from '@/shared/components/ListContainer.vue'
 import { useAppointmentStore } from '@/data/appointments/appointment.store'
 import { appointmentDateFromString, toAppointmentDate } from '../utils/appointment-date'
 import AppointmentCard from '../components/AppointmentCard.vue'
-import AppointmentDateTabs from '../components/AppointmentDateTabs.vue'
+import DateTabs from '@/shared/components/DateTabs.vue'
 
 const router = useRouter()
 const store = useAppointmentStore()
@@ -65,7 +65,7 @@ function openCustomer(customerId: string) {
 <template>
   <AppLayout>
     <div class="flex-none bg-primary text-on-primary w-full min-w-0">
-      <AppointmentDateTabs :year="navYear" :month="navMonth" :selected-date="selectedDate" @date-select="selectDate" @prev-month="previousMonth" @next-month="nextMonth" />
+      <DateTabs :year="navYear" :month="navMonth" :selected-date="selectedDate" @date-select="selectDate" @prev-month="previousMonth" @next-month="nextMonth" />
     </div>
 
     <ScrollRegion as="main" class="pb-20 w-full bg-surface min-w-0">

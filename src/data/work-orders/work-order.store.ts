@@ -6,6 +6,7 @@ import {
   updateWorkOrder,
   type WorkOrderDetailDto,
   type WorkOrderListDto,
+  type WorkOrderListQuery,
   type WorkOrderUpdatePayload,
 } from './work-order.service'
 import { onCacheInvalidated } from '@/shared/api/response-cache'
@@ -19,6 +20,8 @@ function errorMessage(reason: unknown, fallback: string): string {
 interface WorkOrderListFilter {
   keyword?: string
   status?: string
+  dateField?: WorkOrderListQuery['dateField']
+  date?: string
   page?: number
 }
 
@@ -35,13 +38,13 @@ export const useWorkOrderStore = defineStore('work-orders', () => {
   let listRequestSequence = 0
   let detailRequestSequence = 0
 
-  async function loadList({ keyword = '', status = '', page = 1 }: WorkOrderListFilter = {}) {
-    activeListFilter = { keyword, status, page }
+  async function loadList({ keyword = '', status = '', dateField, date, page = 1 }: WorkOrderListFilter = {}) {
+    activeListFilter = { keyword, status, dateField, date, page }
     const requestSequence = ++listRequestSequence
     listLoading.value = true
     listError.value = null
     try {
-      const result = await listWorkOrders({ keyword, status: status || undefined, page, perPage: PAGE_SIZE })
+      const result = await listWorkOrders({ keyword, status: status || undefined, dateField, date, page, perPage: PAGE_SIZE })
       if (requestSequence !== listRequestSequence) return
       orders.value = result.items
       pagination.value = result.pagination

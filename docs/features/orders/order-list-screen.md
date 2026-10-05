@@ -16,17 +16,20 @@ Customer names are resolved from the customer store. The card falls back to the 
 
 ## Status labels
 
-The card uses `order-status-presentation.ts` for its status icon, label, and badge tone. The
-status filter tabs use `order-status-labels.ts`.
+The card uses `order-status-presentation.ts` for its status icon, label, and badge tone. The list has
+no status filter.
 
 ## Controls
 
-- **Search** — one keyword across `orderId`, `orderNumber`, `customerId`, `invoiceNumber`. See `search-fields.md`.
-- **Status tabs** — All / Pending / Received / Completed.
+- **Date tabs** — the shared `DateTabs` month strip above the list; one day is selected, today by default. The arrows move to the first day of the previous or next month.
+- **Date field** — the magnifier opens the search row, which holds Received / Due / Created pills choosing which order date the day matches (`receivedDate`, `dueDate` or `createdAt`); Received by default.
+- **Search** — one keyword matching the customer's label, name, phone or address, or the order's `orderNumber` or `invoiceNumber`. See `search-fields.md`. A non-empty keyword searches every day; the selected day is ignored while it is set.
 - **Sort** — `receivedDate` descending, fixed.
-- No date-range filter. The route owns the page value.
+- The route owns the page value.
 
-Control state lives in the query string. Changing the keyword or the tab resets `page` to 1.
+Control state lives in the query string (`keyword`, `date`, `dateField`, `page`); today and Received are left out of it. Changing the keyword, day or date field resets `page` to 1.
+
+`GET /api/work-orders` accepts optional `date` (`YYYY-MM-DD`) and `dateField` (`receivedDate` by default). With `date`, the server reads every row matching the other filters, keeps those whose chosen field falls on that day, and pages them in memory. An invalid value returns 422.
 
 ## Actions
 

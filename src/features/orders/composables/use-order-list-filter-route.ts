@@ -1,10 +1,26 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { normalizeSheetDate, todaySheetDate } from '@/shared/utils/sheet-date'
+
+export const ORDER_LIST_DATE_FIELDS = [
+  { key: 'receivedDate', label: 'Received' },
+  { key: 'dueDate', label: 'Due' },
+  { key: 'createdAt', label: 'Created' },
+] as const
+
+export type OrderListDateField = (typeof ORDER_LIST_DATE_FIELDS)[number]['key']
 
 const readString = (value: unknown) => {
   const raw = Array.isArray(value) ? value[0] : value
   return raw === undefined || raw === null ? '' : String(raw)
 }
+
+const readDateField = (value: unknown): OrderListDateField => {
+  const field = readString(value)
+  return ORDER_LIST_DATE_FIELDS.find((option) => option.key === field)?.key ?? 'receivedDate'
+}
+
+const readDate = (value: unknown) => normalizeSheetDate(readString(value)) ?? todaySheetDate()
 
 const readPage = (value: unknown) => {
   const page = Number(readString(value))
@@ -15,7 +31,8 @@ export function useOrderListFilterRoute() {
   const route = useRoute()
   const router = useRouter()
   const keyword = computed(() => readString(route.query.keyword))
-  const status = computed(() => readString(route.query.status))
+  const dateField = computed(() => readDateField(route.query.dateField))
+  const date = computed(() => readDate(route.query.date))
   const page = computed(() => readPage(route.query.page))
 
   function replaceQuery(next: Record<string, string | undefined>) {
@@ -25,8 +42,9 @@ export function useOrderListFilterRoute() {
   }
 
   function setKeyword(value: string) { replaceQuery({ keyword: value, page: undefined }) }
-  function setStatus(value: string) { replaceQuery({ status: value, page: undefined }) }
+  function setDateField(value: OrderListDateField) { replaceQuery({ dateField: value === 'receivedDate' ? undefined : value, page: undefined }) }
+  function setDate(value: string) { replaceQuery({ date: value === todaySheetDate() ? undefined : value, page: undefined }) }
   function setPage(value: number) { replaceQuery({ page: value > 1 ? String(value) : undefined }) }
 
-  return { keyword, status, page, setKeyword, setStatus, setPage }
+  return { keyword, dateField, date, page, setKeyword, setDateField, setDate, setPage }
 }

@@ -38,7 +38,7 @@ Also found while surveying:
 - `OrderGalleryPage` defines a scoped class `gallery-scroll` whose body is identical to the global
   `no-scrollbar` in `src/style.css`. Delete it on migration.
 - `overscroll-behavior: contain` exists in exactly one of the 29 (`FormOverlay:231`).
-- Only one place scrolls programmatically: `AppointmentDateTabs:47` calls `scrollIntoView` on its
+- Only one place scrolls programmatically: `DateTabs:47` calls `scrollIntoView` on its
   own strip. The component must expose its element.
 - `BaseDropdown` computes its panel `maxHeight` inline from the space around the trigger
   (`:37-48`). That is correct and stays — the region must not impose a height there.

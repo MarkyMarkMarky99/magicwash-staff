@@ -6,6 +6,10 @@ import {
 import {
   workOrderApiContract,
 } from '../../../contracts/work-orders/work-order-api.schema.js'
+import { normalizeSheetTimestamp } from '../../../shared/utils/bangkok-datetime.js'
+import { containsKeyword, matchesCustomerKeyword, normalizeSearchKeyword } from '../../../shared/utils/customer-search.js'
+import { getCustomersRepository } from '../../sheets/Customers/Customers.repository.js'
+import { customersRowSchema } from '../../sheets/Customers/Customers.db-contract.js'
 import { orderItemService } from '../order-items/order-item.module.js'
 import { getOrderFormRepository } from '../../sheets/OrderForm/OrderForm.repository.js'
 import { getLaundryPhotosRepository } from '../../sheets/LaundryPhotos/LaundryPhotos.repository.js'
@@ -33,7 +37,9 @@ import { buildJobTickets, readWorkMinutesByDepartment, type WorkRateReader } fro
 type OrderItemFormsDbRow = z.infer<typeof orderItemFormsRowSchema>
 type LaundryPhotosDbRow = z.infer<typeof laundryPhotosRowSchema>
 type JobTicketsDbRow = z.infer<typeof jobTicketsRowSchema>
+type CustomersDbRow = z.infer<typeof customersRowSchema>
 type WorkOrderListQuery = z.infer<typeof workOrderApiContract.query.list>
+type WorkOrderListDateField = NonNullable<WorkOrderListQuery['dateField']>
 type WorkOrderCreate = z.infer<typeof workOrderApiContract.request.create>
 type WorkOrderCreateItem = WorkOrderCreate['items'][number]
 type WorkOrderUpdate = z.infer<typeof workOrderApiContract.request.update>
@@ -72,7 +78,15 @@ export interface WorkOrderServiceOptions {
   orderItemRepository?: () => OrderItemReader
   jobTicketRepository?: () => JobTicketProvisioningRepository
   workRateRepository?: () => WorkRateReader
+  customerRepository?: () => CustomerReader
 }
+
+export interface CustomerReader {
+  read(): Promise<Array<Partial<CustomersDbRow>>>
+}
+
+// Order fields a keyword matches; customers are matched through their own fields.
+const WORK_ORDER_SEARCH_FIELDS = ['orderNumber', 'invoiceNumber'] as const
 
 const defaultOrderItemPort: OrderItemPort = {
   listByOrderId: async (orderId) => {
@@ -108,6 +122,7 @@ export class WorkOrderService extends BaseCrudService<
   private readonly orderItemRepository: () => OrderItemReader
   private readonly jobTicketRepository: () => JobTicketProvisioningRepository
   private readonly workRateRepository: () => WorkRateReader
+  private readonly customerRepository: () => CustomerReader
 
   constructor(input: WorkOrderServiceOptions = {}) {
     const orderFormRepository = input.orderFormRepository ?? getOrderFormRepository
@@ -115,7 +130,7 @@ export class WorkOrderService extends BaseCrudService<
     super({
       repository: orderFormRepository,
       api: workOrderApiContract,
-      searchFields: ['orderId', 'orderNumber', 'customerId', 'invoiceNumber'],
+      searchFields: WORK_ORDER_SEARCH_FIELDS,
       fieldMap: orderFormFieldMap,
     })
 
@@ -126,10 +141,14 @@ export class WorkOrderService extends BaseCrudService<
     this.orderItemRepository = input.orderItemRepository ?? getOrderItemFormsRepository
     this.jobTicketRepository = input.jobTicketRepository ?? getJobTicketsRepository
     this.workRateRepository = input.workRateRepository ?? getWorkRatesRepository
+    this.customerRepository = input.customerRepository ?? getCustomersRepository
   }
 
   override async list(query: unknown): Promise<ServiceListResult<WorkOrderListResponse>> {
-    const result = await super.list(query)
+    const { dateField = 'receivedDate', date, ...baseQuery } = parseOrThrow(workOrderApiContract.query.list, query)
+    const result = date === undefined && normalizeSearchKeyword(baseQuery.keyword) === ''
+      ? await super.list(baseQuery)
+      : await this.listInMemory(baseQuery, dateField, date)
     const items = result.items.filter(
       (item) => typeof item.orderId === 'string' && item.orderId.trim() !== '',
     )
@@ -144,6 +163,50 @@ export class WorkOrderService extends BaseCrudService<
       }),
       pagination: result.pagination,
     }
+  }
+
+  // A date day is a range over timestamp cells and a keyword also matches the
+  // customer's label, name, phone and address from the Customers sheet; ReadQueryDTO
+  // can express neither, so this reads every matching row and filters and pages in memory.
+  private async listInMemory(
+    query: Omit<WorkOrderListQuery, 'dateField' | 'date'>,
+    dateField: WorkOrderListDateField,
+    date: string | undefined,
+  ): Promise<ServiceListResult<WorkOrderListResponse>> {
+    const keyword = normalizeSearchKeyword(query.keyword)
+    const [rows, matchedCustomerIds] = await Promise.all([
+      this.orderFormRepository().read({
+        where: orderFormMapper.toDb({ customerId: query.customerId, status: query.status }) as Partial<OrderFormDbRow>,
+        sort: { field: orderFormMapper.toDbField(query.sortBy), order: query.sortOrder },
+      }),
+      keyword === '' ? Promise.resolve(new Set<string>()) : this.readCustomerIdsMatching(keyword),
+    ])
+    const start = (query.page - 1) * query.perPage
+    const items = rows
+      .map((row) => orderFormMapper.toApi<Partial<OrderFormApiRow>>(row))
+      .filter((row) => keyword === ''
+        || matchedCustomerIds.has(normalizeCustomerId(row.customerId))
+        || WORK_ORDER_SEARCH_FIELDS.some((field) => containsKeyword(row[field], keyword)))
+      .filter((row) => date === undefined || normalizeSheetTimestamp(row[dateField]).slice(0, 10) === date)
+      .slice(start, start + query.perPage)
+      .map((row) => Object.fromEntries(
+        Object.keys(workOrderApiContract.response.list.shape).map((field) => [field, row[field as keyof OrderFormApiRow]]),
+      ) as WorkOrderListResponse)
+
+    return { items, pagination: { page: query.page, perPage: query.perPage } }
+  }
+
+  private async readCustomerIdsMatching(keyword: string): Promise<Set<string>> {
+    const customers = await this.customerRepository().read()
+    return new Set(customers
+      .filter((customer) => matchesCustomerKeyword({
+        customerIndex: customer.CustomerIndex,
+        customerName: customer.CustomerName,
+        phone: customer.Phone,
+        address: customer.Address,
+      }, keyword))
+      .map((customer) => normalizeCustomerId(customer.CustomerID))
+      .filter((customerId) => customerId !== ''))
   }
 
   override async getById(id: string): Promise<WorkOrderDetailResponse> {

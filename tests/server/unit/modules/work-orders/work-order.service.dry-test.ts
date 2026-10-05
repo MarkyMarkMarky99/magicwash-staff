@@ -6,10 +6,12 @@ import { workOrderApiContract } from '../../../../../contracts/work-orders/work-
 import { WorkOrderService, type OrderItemPort } from '../../../../../server/modules/work-orders/work-order.service.js'
 import { orderFormFieldMap } from '../../../../../server/modules/work-orders/work-order.mapping.js'
 import { orderFormDbContract, orderFormRowSchema } from '../../../../../server/sheets/OrderForm/OrderForm.db-contract.js'
+import { customersRowSchema } from '../../../../../server/sheets/Customers/Customers.db-contract.js'
 import type { SheetRepositoryContract } from '../../../../../server/shared/repositories/sheet-repository.contract.js'
 import { ApiError } from '../../../../../server/shared/http/api-error.js'
 
 type OrderFormDbRow = z.infer<typeof orderFormRowSchema>
+type CustomersDbRow = z.infer<typeof customersRowSchema>
 type OrderItemResponse = z.infer<typeof orderItemResponseSchema>
 
 interface FakeOrderRepository extends SheetRepositoryContract<OrderFormDbRow> {
@@ -135,15 +137,21 @@ const itemPort: OrderItemPort = {
   },
 }
 
+const customerRows: Array<Partial<CustomersDbRow>> = [
+  { CustomerID: 'CUS-ABC', CustomerIndex: 'ABC', CustomerName: 'Somchai Laundry', Phone: '0811111111', Address: 'Thonglor' },
+  { CustomerID: 'CUS-XYZ', CustomerIndex: 'XYZ', CustomerName: 'Nok', Phone: null, Address: null },
+  { CustomerID: '', CustomerIndex: 'ABD', CustomerName: 'Blank id', Phone: null, Address: null },
+]
+let customerReads = 0
 const service = new WorkOrderService({
   workRateRepository: () => ({ async read() { return [] } }),
   orderFormRepository: () => orderRepository,
   orderItemPort: itemPort,
+  customerRepository: () => ({ async read() { customerReads += 1; return customerRows } }),
 })
 
 orderRepository.readRows = [makeOrderRow({ customer_id: 'CUS-1' })]
 const singleCustomerList = await service.list({
-  keyword: 'INV-1',
   customerId: 'CUS-1',
   page: 2,
   perPage: 7,
@@ -162,10 +170,11 @@ assert.deepEqual(
 assert.deepEqual(
   (orderRepository.readQueries[0] as { search?: unknown }).search,
   {
-    keyword: 'INV-1',
-    fields: ['id', 'order_number', 'customer_id', 'invoice_id'],
+    keyword: '',
+    fields: ['order_number', 'invoice_id'],
   },
 )
+assert.equal(customerReads, 0)
 orderRepository.readRows = [
   makeBlankOrderRow(),
   makeOrderRow({ id: 'order-good', customer_id: 'CUS-1' }),
@@ -180,6 +189,59 @@ const blankCustomerList = await service.list({ page: 1, perPage: 5, sortBy: 'rec
 assert.equal(blankCustomerList.items.length, 1)
 assert.equal(blankCustomerList.items[0]?.orderId, 'order-no-customer')
 assert.equal(blankCustomerList.items[0]?.customerId, '')
+
+// date filter: reads every matching row unpaged, then filters by the chosen date field and pages in memory
+orderRepository.readRows = [
+  makeOrderRow({ id: 'received-on-day', received_date: 'Date(2026,9,5)', due_date: '2026-10-08', timestamp: '2026-10-04 18:00:00' }),
+  makeOrderRow({ id: 'due-on-day', received_date: '2026-10-01', due_date: 'Date(2026,9,5)', timestamp: '2026-10-01 09:00:00' }),
+  makeOrderRow({ id: 'created-on-day', received_date: '2026-10-06', due_date: '2026-10-09', timestamp: 'Date(2026,9,5,23,59,0)' }),
+  makeOrderRow({ id: 'second-received-on-day', received_date: '2026-10-05', due_date: '2026-10-07', timestamp: '2026-10-04 08:00:00' }),
+]
+const dateQuery = { status: 'PENDING', page: 1, perPage: 5, sortBy: 'receivedDate', sortOrder: 'desc', date: '2026-10-05' }
+const receivedOnDay = await service.list(dateQuery)
+assert.deepEqual(receivedOnDay.items.map((item) => item.orderId), ['received-on-day', 'second-received-on-day'])
+assert.deepEqual(Object.keys(receivedOnDay.items[0] ?? {}).sort(), Object.keys(workOrderApiContract.response.list.shape).sort())
+assert.deepEqual(receivedOnDay.pagination, { page: 1, perPage: 5 })
+const dateReadQuery = orderRepository.readQueries.at(-1) as { where?: Record<string, unknown>; search?: unknown; pagination?: unknown }
+assert.equal(dateReadQuery.pagination, undefined)
+assert.equal(dateReadQuery.search, undefined)
+assert.equal(dateReadQuery.where?.status, 'PENDING')
+assert.equal(customerReads, 0)
+assert.deepEqual((await service.list({ ...dateQuery, dateField: 'dueDate' })).items.map((item) => item.orderId), ['due-on-day'])
+assert.deepEqual((await service.list({ ...dateQuery, dateField: 'createdAt' })).items.map((item) => item.orderId), ['created-on-day'])
+assert.deepEqual((await service.list({ ...dateQuery, page: 2, perPage: 1 })).items.map((item) => item.orderId), ['second-received-on-day'])
+await assert.rejects(
+  () => service.list({ ...dateQuery, date: '5/10/2026' }),
+  (error: unknown) => error instanceof ApiError && error.status === 422,
+)
+await assert.rejects(
+  () => service.list({ ...dateQuery, dateField: 'updatedAt' }),
+  (error: unknown) => error instanceof ApiError && error.status === 422,
+)
+
+// keyword: matches customers by label, name, phone or address, plus order and invoice numbers; ids are not searched
+orderRepository.readRows = [
+  makeOrderRow({ id: 'abc-order', customer_id: 'CUS-ABC', received_date: '2026-09-01' }),
+  makeOrderRow({ id: 'xyz-order', customer_id: 'CUS-XYZ', received_date: '2026-10-05' }),
+  makeOrderRow({ id: 'paper-order', customer_id: 'CUS-XYZ', order_number: 'F-1234' }),
+  makeOrderRow({ id: 'invoiced-order', customer_id: 'CUS-XYZ', invoice_id: 'INV20261005-ab' }),
+  makeOrderRow({ id: 'blank-customer', customer_id: '' }),
+]
+const keywordQuery = { page: 1, perPage: 10, sortBy: 'receivedDate', sortOrder: 'desc' }
+const searchIds = async (keyword: string, extra: Record<string, unknown> = {}) =>
+  (await service.list({ ...keywordQuery, keyword, ...extra })).items.map((item) => item.orderId)
+assert.deepEqual(await searchIds('abc'), ['abc-order'])
+assert.deepEqual(await searchIds('somchai'), ['abc-order'])
+assert.deepEqual(await searchIds('0811'), ['abc-order'])
+assert.deepEqual(await searchIds('THONGLOR'), ['abc-order'])
+assert.deepEqual(await searchIds('f-12'), ['paper-order'])
+assert.deepEqual(await searchIds('inv20261005'), ['invoiced-order'])
+assert.deepEqual(await searchIds('CUS-ABC'), [])
+assert.deepEqual(await searchIds('abc-order'), [])
+assert.deepEqual(await searchIds('ab'), ['abc-order', 'invoiced-order'])
+assert.deepEqual(await searchIds('xyz', { date: '2026-10-05' }), ['xyz-order'])
+assert.equal((orderRepository.readQueries.at(-1) as { search?: unknown }).search, undefined)
+assert.ok(customerReads > 0)
 
 orderRepository.readRows = [makeOrderRow({ id: 'order-1', customer_id: 'CUS-1' })]
 const detail = await service.getById('order-1')

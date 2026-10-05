@@ -18,6 +18,8 @@ export const workOrderListQuerySchema = z.object({
   keyword: z.string().default(''),
   customerId: z.string().trim().min(1).optional(),
   status: z.string().trim().min(1).optional(),
+  dateField: z.enum(['receivedDate', 'dueDate', 'createdAt']).optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   page: z.coerce.number().int().positive().default(apiPaginationDefaults.page),
   perPage: z.coerce.number().int().positive().max(MAX_WORK_ORDERS_PER_PAGE).default(MAX_WORK_ORDERS_PER_PAGE),
   sortBy: z.enum(['receivedDate']).default('receivedDate'),
