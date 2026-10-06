@@ -4,6 +4,8 @@ The four department pages use `/departments/:department`: `washing`, `drycleanin
 
 Each page loads Pending, In Progress, and Completed tickets for its department through the existing job-ticket list API. The three status requests start in parallel, while pages within each status load sequentially. Completed tickets are ordered by `completedAt` descending, stopping when the first completion before the current Bangkok date appears. The combined list is capped at 2,000 tickets; a warning marks a capped list as incomplete. Loading, errors with retry, and empty results use the list page pattern.
 Job-ticket GETs bypass the response cache so reopening the work queue reads current statuses.
+All department pages filter the loaded list to scope ITEM before cards, counts, rings, selection,
+and scan queues are derived. ORDER tickets, including weight-photo Packaging credit, are hidden.
 Loaded garment tags are normalized to strings, with numeric tags padded to eight digits and missing tags retained as null so those tickets remain visible.
 
 The `status` query selects ALL, PENDING, IN PROGRESS, or COMPLETED. Tab counts and sorting use the loaded list in memory. The `group` query selects `item` for a flat garment grid or defaults to `order` for order cards. Both controls replace the current URL entry. Orders sort by nearest due date. Each order card shows customer, order ID, due date, a completion ring, and counts for the three statuses. The ring starts at 12 o'clock; its head is a second, thinner stroke of fixed length on the same circle, locked to the arc end, carrying the completed percentage and moving with the arc when the value changes. The ring centre shows the customer's `customerIndex` from the preloaded customer store, or `-` when none is found. Tapping the card body expands it to show only garments matching the active tab. Garments use the shared square image card, showing photo evidence when present. Image cards show the image and status badge; their text labels are omitted. A ticket with a `taskCode` also shows it in a small chip at the bottom-left of the card, and the card's accessible name reads `Select tag <tag>, task <taskCode>; current status <status>`. A ticket without a task code shows no chip and no task in its name. A garment with several tasks in the department appears as one card per task, ordered by `stepNo` then `taskCode`, in both the flat grid and an expanded order card.
@@ -18,11 +20,16 @@ The scan button opens the shared scanner with `scan=1` in the query. Browser Bac
 
 Completing a ticket through `/api/job-tickets/advance` appends one WorkTransactions EARN row with the ticket's `work_minutes` and `created_by` set to the staff StaffId; accepting work (Pending → In Progress) earns nothing. Tickets without `work_minutes` (created before the column existed) earn nothing and are not reported. If the score write fails, the affected tickets are counted in `scoreFailed` and the page shows “Score not saved … Tell an admin”; completion itself still succeeds.
 
+Packaging weight-photo scores come from successful WEIGHT order-image saves: a Completed ORDER
+ticket stores kg times the `PCK-WEIGHT-KG` Packaging rate and earns one EARN for an active
+photographer StaffId. Missing rates leave minutes null and earn nothing; inactive or unknown
+photographers still receive a ticket without EARN. Failures are logged and do not fail the image save.
+
 Tagging scores come from work-order approval: newly appended Completed Tagging tickets at
 step 0 earn their stored work minutes for the active StaffId recorded in LaundryPhotos
 `created_by`, rather than the approving actor. Photos without an active StaffId earn nothing.
 WorkRates successful reads are indexed by task code and cached in memory for the life of each server instance, without
-a TTL, so a rate change reaches approvals only after the instance restarts; concurrent reads share one in-flight request. Failed reads are logged and are not cached,
+a TTL, so a rate change reaches approvals and weight photos only after the instance restarts; concurrent reads share one in-flight request. Failed reads are logged and are not cached,
 so a later approval can try again. Minutes already stored on tickets are not affected by a rate change.
 
 The play arrow on each order card continues to send one `/api/job-tickets/start-order` request to start all Pending tickets with tags in that order. In Progress, Completed, and Cancelled tickets are skipped; Pending tickets without tags are counted as skipped. Each order's Start runs in the background and shows a spinning sync icon while that order syncs. Its button is disabled only during that order's sync or when the order has no Pending tickets. The actor is the signed-in StaffId, or `unknown` when signed out; the optional `by` query is ignored.

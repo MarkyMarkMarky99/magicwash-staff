@@ -87,4 +87,6 @@ assert.equal(jobTicketAdvanceResponseSchema.parse({ kind: 'completed', advanced:
 assert.equal(jobTicketAdvanceResponseSchema.parse({ kind: 'write_failed', certainty: 'unknown', blocked: [], skipped: [{ ticketId: 'two', reason: 'status_changed' }] }).kind, 'write_failed')
 assert.throws(() => jobTicketAdvanceResponseSchema.parse({ kind: 'write_failed', certainty: 'maybe', blocked: [], skipped: [] }))
 
+assert.equal(jobTicketApiContract.response.list.shape.laundryItemId.safeParse(null).success, true)
+
 console.log('job-ticket API contract dry test passed')

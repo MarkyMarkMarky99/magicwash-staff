@@ -20,7 +20,7 @@
   - Browser-check the staff profile page `/staff/:staffId` (Day date strip, Week leaderboard); only unit-tested.
   - Staff list is now a daily ranking (medals, DateTabs, English); browser-check on a phone and as non-admin.
   - Tagging score was pushed; deployment and fresh-order JobTickets/WorkTransactions verification remain unconfirmed.
-  - Weight-photo score (1 kg = 20 min) is deferred under Packaging with ORDER scope; task-code structure changes come first.
+  - Weight-photo score built (ORDER ticket + EARN on WEIGHT image save, live `PCK-WEIGHT-KG` = 20 min/kg); after deploy, save a WEIGHT photo and check JobTickets + WorkTransactions.
   - Accepted risk: two simultaneous completions of one ticket can write two EARNs; correct with a VOID row.
   - Before KPI drives pay: server must take the actor from the token, not the client body.
   - Future: supervisor-created tickets with custom `work_minutes`; Month view; Attendance for efficiency %.

@@ -16,7 +16,7 @@ export const jobTicketsRowSchema = z
   .object({
     id: z.string().min(1),
     order_id: z.string().min(1),
-    laundry_item_id: z.string().min(1),
+    laundry_item_id: z.string().min(1).nullable(),
     scope: jobTicketScopeSchema,
     task_code: z.string().nullable(),
     department: jobTicketDepartmentSchema,

@@ -51,13 +51,14 @@ let replacingLeave = false
 let noticeTimer: ReturnType<typeof setTimeout> | undefined
 
 const filterLabels = { ALL: 'All', PENDING: 'Pending', 'IN PROGRESS': 'In Progress', COMPLETED: 'Completed' } as const
-const counts = computed(() => countDepartmentStatuses(ticketStore.tickets))
+const departmentTickets = computed(() => filterTickets(ticketStore.tickets, 'ALL'))
+const counts = computed(() => countDepartmentStatuses(departmentTickets.value))
 const tabs = computed(() => statusFilters.map(key => ({ key, label: filterLabels[key], count: counts.value[key] })))
 
 const orderInfo = computed(() => {
   const customers = new Map(customerStore.customers.map(customer => [customer.customerId, customer]))
   const info = new Map<string, OrderInfo>()
-  for (const ticket of ticketStore.tickets) {
+  for (const ticket of departmentTickets.value) {
     if (info.has(ticket.orderId)) continue
     const customerId = ticket.customerId
     info.set(ticket.orderId, {
@@ -69,9 +70,9 @@ const orderInfo = computed(() => {
   }
   return info
 })
-const visibleTickets = computed(() => sortDepartmentTickets(filterTickets(ticketStore.tickets, activeFilter.value), orderInfo.value))
+const visibleTickets = computed(() => sortDepartmentTickets(filterTickets(departmentTickets.value, activeFilter.value), orderInfo.value))
 const visibleOrders = computed(() => groupDepartmentOrders(visibleTickets.value, orderInfo.value))
-const allOrders = computed(() => new Map(groupDepartmentOrders(ticketStore.tickets, orderInfo.value).map(order => [order.orderId, order])))
+const allOrders = computed(() => new Map(groupDepartmentOrders(departmentTickets.value, orderInfo.value).map(order => [order.orderId, order])))
 
 async function reload(): Promise<void> {
   const code = department.value?.code
@@ -187,7 +188,7 @@ watch([() => department.value?.code, fromStatus, () => ticketStore.loading], ([c
   const key = queueKey(code, status)
   if (key === restoredQueueKey) return
   restoredQueueKey = key
-  try { setScanQueue(restoreScanQueue(JSON.parse(localStorage.getItem(key) ?? 'null'), ticketStore.tickets, status, code)) }
+  try { setScanQueue(restoreScanQueue(JSON.parse(localStorage.getItem(key) ?? 'null'), departmentTickets.value, status, code)) }
   catch { setScanQueue([]) }
 }, { immediate: true })
 
@@ -206,7 +207,7 @@ function handleScan(value: string): void {
   if (!status || submitting.value) return
   const code = department.value?.code
   if (!code) return
-  const result = resolveScanTag(value, ticketStore.tickets, status, scanQueue.value, code)
+  const result = resolveScanTag(value, departmentTickets.value, status, scanQueue.value, code)
   if (result.entry && pendingTickets.value.length >= 200) {
     feedback('failure')
     scanResult.value = { title: value, message: 'Send up to 200 jobs at a time', tone: 'error' }
@@ -219,7 +220,7 @@ function handleScan(value: string): void {
 
 const pendingTickets = computed(() => {
   const entries = new Map<string, { ticketId: string; orderId: string }>()
-  for (const ticket of ticketStore.tickets) {
+  for (const ticket of departmentTickets.value) {
     if (selectedTicketIds.value.has(ticket.id)) entries.set(ticket.id, { ticketId: ticket.id, orderId: ticket.orderId })
   }
   for (const entry of scanQueue.value) entries.set(entry.ticketId, { ticketId: entry.ticketId, orderId: entry.orderId })

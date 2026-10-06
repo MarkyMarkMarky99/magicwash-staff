@@ -37,8 +37,9 @@ function createService(appendError?: Error, workRateError?: Error, scoreError?: 
   }
   const appendCalls: Array<Array<Record<string, unknown>>> = []
   const scoreCalls: Array<Array<Record<string, unknown>>> = []
-  const existingRows: Array<{ id: string; order_id: string; laundry_item_id: string; department: 'Washing' | 'Tagging' | 'Ironing' | 'Packaging'; task_code?: string | null }> = [
+  const existingRows: Array<{ id: string; order_id: string; laundry_item_id: string | null; department: 'Washing' | 'Tagging' | 'Ironing' | 'Packaging'; task_code?: string | null }> = [
     { id: 'WSH-order-1-tag-1', order_id: 'order-1', laundry_item_id: 'tag-1', department: 'Washing', task_code: 'WSIR' },
+    { id: 'PCK-order-1-image-1-PCK-WEIGHT-KG', order_id: 'order-1', laundry_item_id: null, department: 'Packaging', task_code: 'PCK-WEIGHT-KG' },
   ]
   const workRateCalls = { getters: 0, reads: 0 }
   const service = new WorkOrderService({

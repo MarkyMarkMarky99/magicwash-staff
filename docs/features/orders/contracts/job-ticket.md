@@ -1,7 +1,7 @@
 # Job tickets — API contract
 
 Module `job-tickets`. Reads and writes the `JobTickets` tab in the job-tracking workbook
-(`JOB_TICKETS_SPREADSHEET_ID`). The physical row shape is item-scoped: one garment has one ticket
+(`JOB_TICKETS_SPREADSHEET_ID`). ITEM rows give one garment one ticket
 for every task step in its service route. A task is identified by `taskCode`, which is the `task_code` of a
 `WorkRates` row and belongs to one department. A route may hold several tasks in the same department;
 today every route holds exactly one task per department, so a garment still has one ticket per department.
@@ -15,8 +15,9 @@ Routes are fixed by `serviceType`, each step written as department (`stepNo`) `t
 - `IRON` — Ironing (1) `IRN-STANDARD`, Packaging (2) `PCK-STANDARD`
 
 Tagging is not part of a route: its ticket at step 0 uses `TAG-PHOTO`. `LOG-STANDARD` is reserved for
-Logistics, which no route uses yet. Task variants (machine, hand, carpet, shoe), a Packaging split, and
-per-weight order tickets are not implemented and need business rules first.
+Logistics, which no route uses yet. Task variants (machine, hand, carpet, shoe) and a Packaging split are not implemented.
+WEIGHT order photos create Completed ORDER tickets at step 0 for `PCK-WEIGHT-KG`, with a blank
+`laundry_item_id` (read as nullable `laundryItemId`). Department boards show only ITEM tickets.
 
 ## `GET /api/job-tickets`
 
@@ -100,6 +101,19 @@ Eligible Pending tickets move to In Progress; eligible In Progress tickets move 
 Completing a ticket through `/api/job-tickets/advance` appends one WorkTransactions EARN row with the ticket's `work_minutes` and `created_by` set to the staff StaffId; accepting work (Pending → In Progress) earns nothing. Tickets without `work_minutes` (created before the column existed) earn nothing and are not reported. If the score write fails, the affected tickets are counted in `scoreFailed` and the page shows “Score not saved … Tell an admin”; completion itself still succeeds.
 
 The unwrapped response is `completed` with HTTP 200, or `write_failed` with HTTP 502 for a rejected write and HTTP 500 for an uncertain write. Completed responses list advanced ticket IDs, nullable garment IDs, new statuses, and nullable start and completion times, plus blocked and skipped entries and a non-negative integer `scoreFailed` count. Failed writes report certainty, blocked entries, and skipped entries without claiming advancement.
+
+## Weight photo credit
+
+After a WEIGHT order image is appended, one ticket uses id
+`PCK-<orderId>-<orderImageId>-PCK-WEIGHT-KG`, Packaging, ORDER scope, and step 0. Start and
+completion timestamps use the image creation time in Bangkok. Scan, update, and creation actors
+are the photographer; evidence is the stored image path. Customer, order name, due date, and notes
+come from OrderForm; special instructions are null because the header has no such field.
+Work minutes are positive finite kg times the Packaging rate for `PCK-WEIGHT-KG`, or null when
+quantity or rate is unavailable. Finite minutes earn one EARN for the trimmed photographer only
+when they match an active StaffId. Existing ticket ids are skipped. Ticket or EARN failures are
+logged, never retried automatically, and leave the image response unchanged. Other image types
+create no ticket or credit. Image editing and deletion are outside this workflow.
 
 ## Provisioning
 

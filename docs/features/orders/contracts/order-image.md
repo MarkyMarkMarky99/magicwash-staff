@@ -66,6 +66,14 @@ Behaviour
 - `deliveryId` is written when supplied, otherwise left blank
 - WEIGHT capture takes one photo per entered weight and then closes the camera. Another weighing
   requires opening WEIGHT capture again and entering a new weight.
+- After a WEIGHT append succeeds, Packaging receives one Completed ORDER ticket at step 0
+  for `PCK-WEIGHT-KG`, id `PCK-<orderId>-<orderImageId>-PCK-WEIGHT-KG`, with no garment tag.
+  Its start/completion time and actors come from the image; evidence uses `imagePath`. Header
+  metadata comes from OrderForm. Minutes are kg times the matching Packaging WorkRates minutes,
+  or null for unavailable rates or invalid quantity. Finite minutes earn one EARN only for an
+  active StaffId matching the trimmed photographer. Existing ticket ids are skipped; ticket and
+  EARN failures are logged without retry or any change to the image response. Other image types
+  create no ticket or EARN. Department boards hide these ORDER tickets.
 - DOCUMENT capture saves one photo per "Use this photo" and then closes the scanner. Another
   document requires opening DOCUMENT capture again.
 

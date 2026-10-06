@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { WeightPhotoTicketService } from './weight-photo-ticket.service.js'
 import { orderImageApiContract } from '../../../contracts/order-images/order-image-api.schema.js'
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
 import type {
@@ -35,6 +36,7 @@ type OrderImageCreateResponse = z.infer<typeof orderImageApiContract.response.cr
 
 export interface OrderImageServiceOptions {
   repository?: SheetRepositoryContract<OrderImagesDbRow>
+  weightPhotoTicketService?: Pick<WeightPhotoTicketService, 'provision'>
 }
 
 export function createOrderImageId(): string {
@@ -100,6 +102,8 @@ export class OrderImageService extends BaseCrudService<
   OrderImagesDbRow,
   typeof orderImageFieldMap
 > {
+  private readonly weightPhotoTicketService: Pick<WeightPhotoTicketService, 'provision'>
+
   constructor(input: OrderImageServiceOptions = {}) {
     super({
       repository: input.repository ?? createOrderImageRepository(),
@@ -108,6 +112,19 @@ export class OrderImageService extends BaseCrudService<
       fieldMap: orderImageFieldMap,
       transformer: createOrderImageTransformer(),
     })
+    this.weightPhotoTicketService = input.weightPhotoTicketService ?? new WeightPhotoTicketService()
+  }
+
+  override async create(payload: unknown): Promise<OrderImageCreateResponse> {
+    const image = await super.create(payload)
+    if (image.imageType === 'WEIGHT') {
+      try {
+        await this.weightPhotoTicketService.provision(image)
+      } catch (error) {
+        console.error('Failed to provision weight photo ticket', error)
+      }
+    }
+    return image
   }
 }
 

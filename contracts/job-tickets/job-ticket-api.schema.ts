@@ -33,7 +33,7 @@ export const jobTicketUpdateSchema = z.object({
 export const jobTicketResponseSchema = z.object({
   id: z.string(),
   orderId: z.string(),
-  laundryItemId: z.string(),
+  laundryItemId: z.string().nullable(),
   scope: jobTicketScopeSchema,
   taskCode: z.string().nullable(),
   department: jobTicketDepartmentSchema,

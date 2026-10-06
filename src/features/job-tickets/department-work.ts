@@ -107,7 +107,7 @@ export function readGrouper(value: unknown): Grouper {
 }
 
 export function filterTickets(tickets: readonly JobTicketDto[], filter: StatusFilter): JobTicketDto[] {
-  return filter === 'ALL' ? [...tickets] : tickets.filter(ticket => ticket.status.toUpperCase() === filter)
+  return tickets.filter(ticket => ticket.scope === 'ITEM' && (filter === 'ALL' || ticket.status.toUpperCase() === filter))
 }
 
 export function countDepartmentStatuses(tickets: readonly JobTicketDto[]): Record<StatusFilter, number> {

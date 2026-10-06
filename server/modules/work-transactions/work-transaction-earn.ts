@@ -7,8 +7,12 @@ type JobTicketRow = z.infer<typeof jobTicketsRowSchema>
 type EarnRow = Omit<z.infer<typeof workTransactionsRowSchema>, 'created_at'>
 
 export function buildEarnRows(tickets: readonly (Partial<JobTicketRow> & Pick<JobTicketRow, 'id'>)[]): EarnRow[] {
+  return buildCompletedTicketEarnRows(tickets.filter((ticket) => ticket.department === 'Tagging'))
+}
+
+export function buildCompletedTicketEarnRows(tickets: readonly (Partial<JobTicketRow> & Pick<JobTicketRow, 'id'>)[]): EarnRow[] {
   return tickets.flatMap((ticket) =>
-    ticket.department === 'Tagging' && ticket.status === 'Completed'
+    ticket.status === 'Completed'
       && typeof ticket.work_minutes === 'number' && Number.isFinite(ticket.work_minutes)
       && typeof ticket.scanned_by === 'string' && ticket.scanned_by.trim() !== ''
       ? [{
