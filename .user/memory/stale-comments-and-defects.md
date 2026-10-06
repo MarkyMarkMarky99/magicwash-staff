@@ -1,10 +1,9 @@
 # Stale source comments and real defects — open
 
-Two code defects the comment-cleanup rounds left untouched, plus unchecked audit rows.
+Two statically supported cache defects, plus unchecked audit rows.
 
-**Every row below is a claim from a read-only audit, not a verified fact.** Open the code and the
-cited evidence before acting. The same audit was already wrong twice elsewhere. If a comment does
-not say what the row claims, fix the row — do not delete the comment.
+- Runtime reproduction of the cache defects remains pending; existing dry tests do not cover these cases.
+- Recheck each stale-comment lead before changing its source comment.
 
 Full context and the audit's other tables: `.user/memory/doc-comment-docs-work.md`.
 
@@ -12,8 +11,8 @@ Full context and the audit's other tables: `.user/memory/doc-comment-docs-work.m
 
 | Location | Defect |
 |---|---|
-| `src/shared/api/persistent-cache.ts:77-83` | The parse guard checks object-ness and that `t` is a number. `parsed.v` is never validated, so a shape-mismatched value passes through. |
-| `src/shared/api/persistent-cache.ts:175-189` | If `removeItem` throws, the persisted entry survives and `promoteFromStorage` reads it back into memory. The next read does not revalidate. Promotion: `src/shared/api/response-cache.ts:78-99,144-157`. |
+| `src/shared/api/persistent-cache.ts` | The parse guard checks object-ness and that `t` is a number, but never validates `parsed.v`. |
+| `src/shared/api/persistent-cache.ts`, `response-cache.ts` | Failed `removeItem` leaves the persisted entry available for promotion back into memory without value validation. |
 
 ## Unchecked stale-comment rows
 

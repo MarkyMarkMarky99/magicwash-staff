@@ -49,28 +49,28 @@ const visibleStaff = computed(() =>
 const listLoading = computed(() => loading.value && !loaded.value)
 const listError = computed(() => (loaded.value ? null : error.value))
 
-// A row still waiting for approval opens the form, where the admin approves it.
+// For an admin, a row still waiting for approval opens the form, where they approve it.
 function openStaff(staffId: string): void {
   const row = items.value.find((item) => item.staffId === staffId)
-  void router.push(row && staffStanding(row) === 'pending' ? staffEditRoute(staffId) : staffProfileRoute(staffId))
+  void router.push(isAdmin.value && row && staffStanding(row) === 'pending' ? staffEditRoute(staffId) : staffProfileRoute(staffId))
 }
 
 // This page stays cached, so it must not react to sign-out while another route is showing.
 watch(
   status,
   (value) => {
-    if (route.name !== 'staff-list' || value === 'loading' || isAdmin.value) return
+    if (route.name !== 'staff-list' || value === 'loading' || value === 'signedIn') return
     void router.replace('/')
   },
   { immediate: true },
 )
 
-watch(isAdmin, (admin) => {
-  if (admin && route.name === 'staff-list') void staffStore.load()
+watch(status, (value) => {
+  if (value === 'signedIn' && route.name === 'staff-list') void staffStore.load()
 })
 
 onActivated(() => {
-  if (isAdmin.value) void staffStore.load()
+  if (status.value === 'signedIn') void staffStore.load()
 })
 </script>
 

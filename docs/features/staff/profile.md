@@ -1,8 +1,8 @@
 # Staff profile
 
 `/staff/:staffId` (`StaffProfilePage.vue`) shows one staff member's work score in standard minutes,
-built from WorkTransactions. The staff list opens it for every row except a pending one, which
-still opens the edit form. Admins also get an Edit link to that form.
+built from WorkTransactions. For admins, the staff list opens it for every row except a pending one,
+which opens the edit form. Non-admins open the profile for every row. Only admins get an Edit link to that form.
 
 The page reads `GET /api/work-transactions` for the last 14 Bangkok days (today included) every
 time it is shown (the endpoint is in `NEVER_CACHE`; a new Bangkok day moves the period), and

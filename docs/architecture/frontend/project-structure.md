@@ -59,8 +59,8 @@ application-level pages or development tools when one is needed.
   button). Only `signedIn` counts as signed in as staff. A 403 followed by an already usable row,
   a 401, or any other error signs the user out with an error on the login page. See
   `docs/features/staff/registration.md`.
-- `App.vue` starts the session check on mount and provides `isAdmin` to `NavSidebar` through
-  `staffAdminKey` (`src/shared/staff-admin.ts`), which shows the staff-management entry to admins only.
+- `App.vue` starts the session check on mount and provides `status === 'signedIn'` to `NavSidebar` through
+  `staffSignedInKey` (`src/shared/staff-session.ts`), which shows the staff-management entry to every signed-in staff member.
 - Sign-in is optional: no route requires it. `/login` is reached from the nav menu, which shows
   "เข้าสู่ระบบ" when signed out and "ออกจากระบบ" when signed in. The login page has a close button,
   and after signing in it leaves the same way (history back, or `/` without history); a

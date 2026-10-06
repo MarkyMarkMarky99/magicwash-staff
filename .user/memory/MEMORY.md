@@ -1,21 +1,23 @@
 # Project memory
 
-- Branch: `main` checked out; order list actions menu + shared order snapshot merged 2026-10-06 and phone-checked on production; customer package invoice deployment still awaiting verification.
+- Branch: `main`; customer-package invoice deployment still needs verification.
 
 ## Branches in flight
 
-- **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 413 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
-- **`feat/invoice-form-overlay`** — design-only work (invoice create as a form overlay with swipeable line cards), 1 commit ahead of `main`; kept by owner, not for merge yet.
-- **`feat/package-credit`** — monthly-subscription package credits, phases 1–4 built; on hold by owner 2026-10-06 (Preview test and the 3 open decisions not started). Details on that branch: `.user/memory/feat-package-credit.md`.
+- **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
+- **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
+- **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 
 ## Pending work
 
+- Prior runtime reports and live-data claims need rechecking; browser checks and owner decisions below remain open.
 - **Orders report (`/reports/orders`, merged 2026-10-05)**
   - Order list has no pull-to-refresh yet (ListPageLayout lacks it); `/api/order-reports` and the server date/keyword path of `/api/work-orders` now have no frontend caller.
   - Deferred by owner: status cards show current status, not status on that day; check whether orders ever reach COMPLETED.
 
 - **Staff KPI (WorkTransactions / WorkRates, merged 2026-10-04)**
   - Browser-check the staff profile page `/staff/:staffId` (Day date strip, Week leaderboard); only unit-tested.
+  - Staff list/profiles opened to every signed-in staff member (2026-10-06); browser-check as non-admin: no Edit link, pending rows open the profile.
   - Accepted risk: two simultaneous completions of one ticket can write two EARNs; correct with a VOID row.
   - Before KPI drives pay: server must take the actor from the token, not the client body.
   - Future: supervisor-created tickets with custom `work_minutes`; Month view; Attendance for efficiency %.
@@ -25,8 +27,8 @@
 - Package detail hero card: low-credit badge threshold (20%) was Claude's pick, not confirmed by user.
 - Package Add transaction form (phase 1): browser-check each type; voiding a past credit-add can still drive the balance negative.
 - Package transfer phase 2 not built: server must write paired −N/+N rows for same-customer packages and define partial-failure handling; the form's Transfer UI exists but Save is disabled.
-- Packages: cards show the raw service code (`WSIR`) not the Thai label; package form service picker not browser-checked; retired `appscript/MagicwashPortal/CustomerPackageView*` files and the live `CustomerPackageView` sheet await owner's delete decision.
-- Pre-existing failing web dry-tests, cause not investigated: `appointment.store`, `work-order-update`, `order.store`, `customer-scoped-store-reloads`, `customer-package.service`, `customer-order-history-race`.
+- Packages: review raw service-code labels, browser-check the service picker, and decide deletion of the unverified live `CustomerPackageView` sheet.
+- Recheck reported web dry-test failures: `appointment.store`, `work-order-update`, `order.store`, `customer-scoped-store-reloads`, `customer-package.service`, `customer-order-history-race`.
 - **Customer detail and visual system** (merged 2026-09-27)
   - Browser-verify create dropdowns open, order swipe "Order detail", and appointment date order; the ui-shots run failed to capture these.
   - Pill shows `0 PACKAGES` while the list is still loading.
@@ -50,7 +52,7 @@
   - Browser-verify the ring head following the arc when a ticket status changes (tap or Start).
   - Browser-check department pages after dropping the per-order detail fetch and parallelising the status loads (pushed 2026-09-28).
   - Ticket `due_date` goes stale when an order's due date is edited; order update does not rewrite existing tickets.
-  - Completed tab reads 500 rows and keeps only today's; a `completedFrom` API filter was proposed, not built.
+  - Completed loading pages through today's tickets; a server-side `completedFrom` filter remains proposed.
   - Per-department ticket cache (show stored list, refresh in background) proposed, not built.
   - Tablet layout for the department page (2–3 order columns) deferred by user; needs an opt-in wide route flag in `App.vue`.
   - Deferred backend: worklist read (not-done + done-today, cap 2000) and cancel timestamps.
@@ -69,9 +71,8 @@
   - 20 open phone/browser checks and decisions: see `.user/memory/order-detail-ui.md`.
 
 - **Images and gallery**
-  - Document scanner: phone-check no camera flash after "Use this photo"; accept takes ~1 s (enhance in a worker only if staff complain); first ~2 s of detection often misses.
+  - Phone-check document scanner acceptance, camera flash, and initial detection; consider worker enhancement only if staff complain.
   - Backfill `Cache-Control` on existing photos after Firebase bucket credentials are available. See `docs/plans/image-pipeline.md`.
-  - Fix gallery `created_by`: it is read only from `?by=`, and the frontend fallback can fail silently.
   - Deferred: preloading the image files themselves on order detail; only photo metadata is prefetched. Decide once photo counts per order are known.
   - Move `usePhotoUpload.js` into the gallery feature and decide where legacy photo capture belongs.
   - Do not re-propose lazy-loading the gallery route: staff open it on nearly every order.
@@ -81,7 +82,7 @@
   - Price-list store keeps written rows over reads until a read matches every field; watch for rows sticking if GViz formats differ.
   - On hold: durable e2e suite in `tests/e2e/` with page objects; test IDs live in tests, derived from docs.
   - Wire `onFresh` at remaining call sites; first correct the stale cache-plan claim that no caller uses it.
-  - Reduce page-load latency, in this order: `App.vue:8` (prefetches appointments on every mount), then HTTP cache headers on `/api/*`. Measured 2026-09-08: GViz 0.49s · prod warm 0.82s · prod cold 1.65s. Fewer reads beats smaller ones.
+  - Reduce page-load latency: authenticated `App.vue` prefetch first, then HTTP cache headers on `/api/*`.
   - Customers are fetched in full on purpose (real customers are under a thousand); `listCustomers` caps at 2000 and sets `truncated`. Do not add a customers pager.
   - `GVizQueryBuilder` supports only equality-AND; no `IN`/`OR`. Any feature needing a multi-id read must adapt in its own layer, not widen the shared builder.
   - Portal: webapp-react still reads the Portal views; switch it to `GET /api/portal/customers/:id`, then retire the Apps Script view sync.
@@ -107,24 +108,24 @@
   - Customers PATCH is advertised but the sheet disallows update; no tests for the POST route response or an empty label pool.
   - Deferred by user: duplicate-phone check misses legacy phones without a leading 0; map picker (Leaflet + Nominatim/Longdo), location field hidden until then.
   - Dirty data, fix undecided: Customers has 1 blank and 19 duplicated `CustomerIndex`; CustomerIDMapping lacks 302 customers, has 5 orphan ids and 2 ids mangled to `2.50E+33`/`2.63E+53`.
-  - `frontend-data-boundaries.dry-test.ts` fails on `main`: `InvoicePaymentFormPage.vue` imports `shared/api/firebase-storage`.
-  - `column-order.dry-test.ts` fails on `main`: it expects `update: false` for OrderItemForms/OrderImages writes.
+  - Re-run `frontend-data-boundaries.dry-test.ts` after addressing the payment form's Firebase Storage import.
+  - Re-run `column-order.dry-test.ts`: its OrderItemForms update expectation contradicts the current contract.
 
 - **Auth, UX, and documentation**
   - Redirect fallback for popup-blocked ships with the lockdown push; browser-test from a home-screen icon/LINE.
-  - Login lockdown: every route and API except `portal` needs approved staff; print server reads invoices with `PRINT_API_KEY`. Open: Firebase Storage rules, Sheets link-sharing, Preview hosts cannot sign in (Firebase Authorized domains take exact hostnames only; one branch alias added 2026-10-06; Vercel Deployment Protection is off).
+  - Verify Firebase Storage rules, Sheets link-sharing, and deployment sign-in settings after login lockdown.
   - Deferred by owner (2026-10-04): security review SEC-01 KPI re-credit by reopening tickets, SEC-02 formula text in sheets, SEC-03 bulk photo reassign across orders.
-  - Vercel Preview hosts cannot sign in, so testing `feat/package-credit` on Preview needs an authorized host first.
-  - Staff app moving to `staff.magicwash-laundry.com` (authDomain, noindex); apex left indexable for a future public shop site awaiting owner content (services, area, hours, contact, logo).
+  - Confirm Preview sign-in on an authorized host before testing `feat/package-credit`.
+  - Public apex shop site awaits owner content: services, area, hours, contact, and logo.
   - Server-owned invoice and payment writes still record `'admin'` (`server/shared/config/actor.ts`); deferred by owner, needs client actor or token gating.
   - 5 server dry-tests reported failing (invoice workflows x2, sheet metadata x2, order-item contract export); not checked against pre-auth `main`.
   - Fix screenshot-upload accessibility states, failed-upload handling, and staff-safe Firebase errors.
   - Align the customer-packages form with `docs/design/patterns/forms.md`.
-  - Fix `docs/conventions/naming.md`: composables are kebab-case, not `usePascalCase.ts`.
+  - Resolve conflicting composable filename guidance in `docs/conventions/naming.md` against the mixed current filenames.
   - Consolidate frontend helpers into `src/shared/utils/`; strays include `src/shared/appointment-pending-count.ts` and `src/utils/imageCompression.js`. User deferred this to its own pass.
   - Remove schema-file `z.infer` exports in a dedicated all-contract pass.
   - Migrate remaining local-state overlays: `OrderGalleryPage.vue`, `InvoiceProofLightbox.vue`, `NavSidebar.vue`.
-  - Unnest the remove `<button>` at `OrderGalleryPage.vue:402` from the lightbox `<button>` at `:375` — verified as the only nested pair; the other two files have none.
+  - Unnest the remove button inside the gallery image tile in `OrderGalleryPage.vue`.
   - Update list-page documentation that still describes deleted header search (`SEARCHABLE_ROUTES` / `meta.searchable`).
   - Fix 2 real defects in `persistent-cache.ts`. See `.user/memory/stale-comments-and-defects.md`.
   - Resume held comment-cleanup decisions after a canonical cache convention exists; verify each finding before acting. See `.user/memory/doc-comment-docs-work.md`.
@@ -134,7 +135,7 @@
   - `src/features/orders/utils/order-price-list-items.ts` has no caller since Orders moved to Items, but keeps a unit test; decide whether to delete both.
   - `output/price-list-images/generated/*.jpg` are committed generated artifacts; decide whether they belong in the repo or `.gitignore`.
   - Two allowlisted cross-feature imports remain (`PriceListItemPicker` in invoices and orders), UI that knows domain fields, with no legal home under the current rule. Accepted for now; reopen only when a third feature needs it.
-  - Placement rule settled 2026-09-16: UI folders (`src/shared/components`, `layouts`) stay generic and must not know domain fields; non-UI folders under `src/shared/` may hold cross-feature business rules. Rejected and not to be re-proposed: `src/shared/components/<domain>/`, a new `src/ui/<domain>/` layer, and moving the per-feature status-presentation modules to `src/shared/utils/`.
+  - User rejected new shared-domain UI layers and moving feature status presentation; use the canonical placement docs when resuming shared-code cleanup.
   - Appointment date strip opens at day 1 instead of centering today; a `scrollTo` attempt hid the strip, so diagnose in a real browser first.
   - `ListContainer` collapsible header is a non-focusable `div` without `aria-expanded`; schedule slots now start collapsed when empty.
   - Phone-test ISS-72adcdca: a cache-hit customer-row tap must open only customer detail, while the swipe action still fires.

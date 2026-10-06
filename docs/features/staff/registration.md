@@ -16,7 +16,7 @@ Backend contract: `contracts/staff/staff-api.schema.ts`. Routes: `GET /api/staff
 
 ## Routes
 
-- `/staff` (`staff-list`): admin list.
+- `/staff` (`staff-list`): staff list for every signed-in staff member.
 - `/staff/register` (`staff-register`): self-registration, same `StaffFormPage.vue` as edit.
 - `/staff/:staffId/edit` (`staff-edit`): admin edit; `meta.parent` is `staff-list`.
 
@@ -37,8 +37,8 @@ Route names and builders live in `src/shared/navigation/form-routes.ts`.
 
 ## Access
 
-Only an admin (`status = signedIn` and `staff.role = admin`) sees the nav entry, the list, and the edit form. The list and edit pages replace themselves with `/` for anyone else once the session check settles; the backend independently answers 403 for admin-only detail and edit requests.
+Every signed-in staff member (`status = signedIn`, any role) sees the nav entry, the list, and every staff profile. Only an admin (`status = signedIn` and `staff.role = admin`) sees the Edit link and the edit form, including for their own row. The list page replaces itself with `/` for anyone not signed in once the session check settles; the edit page does so for non-admins. A pending row opens the edit form for admins and the profile for others; the backend independently answers 403 for admin-only detail and edit requests.
 
 ## List
 
-`StaffListPage.vue` follows the list page pattern. It fetches the whole collection once from `GET /api/staff` (no paging, no cap) through `src/data/staff/staff.store.ts` and re-reads it every time the page is activated. The `status` query (`pending`, `active`, `inactive`; absent means all) selects the tab and is replace-only. Rows with no role sort first and carry a warning background and a "รออนุมัติ" badge; an approved but disabled row shows "ปิดใช้งาน". Tapping a pending row opens the edit form, where the admin approves it; tapping any other row opens the staff profile (`docs/features/staff/profile.md`).
+`StaffListPage.vue` follows the list page pattern. It fetches the whole collection once from `GET /api/staff` (no paging, no cap) through `src/data/staff/staff.store.ts` and re-reads it every time the page is activated. The `status` query (`pending`, `active`, `inactive`; absent means all) selects the tab and is replace-only. Rows with no role sort first and carry a warning background and a "รออนุมัติ" badge; an approved but disabled row shows "ปิดใช้งาน". For admins, tapping a pending row opens the edit form, where they approve it; tapping any other row opens the staff profile. Non-admins open the staff profile for every row (`docs/features/staff/profile.md`).

@@ -1,14 +1,14 @@
 # Open work from the doc-comment audit
 
 Two things remain: prose that must be written into `docs/` before its source comment can go, and
-claims nobody has verified. Everything the audit resolved is gone — see `git log` for it.
+claims whose provenance or runtime behavior remains unverified.
 
 **Every line below is a claim, not an instruction.** Open the code and the cited document before
 acting. The audit was wrong twice already. If a comment does not say what a row claims, fix the
 row; do not delete the comment.
 
-Related: `.user/memory/stale-comments-and-defects.md` holds the 12 comments that contradict the
-code and the 2 real defects.
+Related: `.user/memory/stale-comments-and-defects.md` holds unresolved comment leads and two
+statically supported cache defects.
 
 ## Deferred — 58 ALREADY-DOCUMENTED rows
 
@@ -24,7 +24,7 @@ ever lands.
 ### `docs/conventions/data-fetching.md` — Cache policy
 
 **Blocked:** this document is an unreviewed draft at `agent-docs/conventions/`.
-These two entries wait on the same decision as the 58 deferred rows above.
+These entries wait on the same decision as the 58 deferred rows above.
 
 M1, from `src/shared/api/persistent-cache.ts:117-118`:
 
@@ -34,7 +34,7 @@ M1, from `src/shared/api/persistent-cache.ts:117-118`:
 
 > The appointments list API exposes an exact `appointmentDate` filter but no `deletedAt` or date-range filter. Waiting-pickup filtering therefore remains client-side; soft-deleted rows may appear, so this helper is not a deletion-correctness boundary.
 
-`## Cache policy` — from `src/features/customers/stores/customer.store.ts:14`:
+`## Cache policy` — from `src/data/customers/customer.store.ts`:
 
 > `useCustomerStore` caches the full customer list and skips subsequent loads unless `force` is true. Set `force: true` or call `invalidate()` when the next load must refetch.
 
@@ -87,11 +87,11 @@ M8, from `src/shared/stores/selected-customer.store.ts:6-17`:
 
 ### `docs/conventions/contracts/api.md`
 
-`## Rules` — from `src/features/invoices/services/invoice.service.ts:33-53`:
+`## Rules` — from `src/data/invoices/invoice.service.ts`:
 
 > `POST /api/invoices` returns the `CreateInvoiceResponse` discriminated union directly, rather than the standard `{ success, data, meta }` envelope. The client reads and validates the body even for non-OK statuses and maps an unrecognized body to an `items_write_failed` outcome with `certainty: 'unknown'`.
 
-`## Boundary` — from `src/features/invoices/services/invoice-detail.service.ts:23`:
+`## Boundary` — from `src/data/invoices/invoice-detail.service.ts`:
 
 > `getInvoiceDetail` returns `null` when the requested invoice is not found. Other lookup failures remain errors.
 
@@ -101,27 +101,23 @@ M8, from `src/shared/stores/selected-customer.store.ts:6-17`:
 
 ### `docs/architecture/backend/operations.md`
 
-`## Sheets writes and certainty` — from `src/features/invoices/services/invoice.service.ts:74`:
+`## Sheets writes and certainty` — from `server/modules/invoices/invoice.service.ts`:
 
-> `ORDER` invoice creation writes the invoice number into the source `OrderForm.invoice_id` after the invoice items and header are recorded. `CYCLE` invoices have no source order and skip this linkage stage.
+> Invoice creation writes the invoice number into `OrderForm.invoice_id` after recording items and header when `sourceOrderId` is present. Requests without a source order skip this linkage stage.
 
 ### `docs/architecture/backend/persistence.md`
 
-`## Reads` — from `src/features/customer-packages/services/customer-package.service.ts:51-56`:
+`## Reads` — from `src/data/customer-packages/customer-package.service.ts`:
 
 > GViz may return numeric-looking identifier cells as numbers. Normalizing them to strings restores the DTO type but cannot restore a lost leading zero; columns requiring that digit must be stored as Plain Text.
 
 ### `docs/features/orders/order-detail-screen.md`
 
-`## Caching` — from `src/features/orders/stores/order.store.ts:49-53`:
+`## Caching` — from `src/data/work-orders/work-order.store.ts`:
 
 > When the list already contains an order, the detail store seeds the header from that row while the detail request is in flight. It preserves an existing detail object for the same order so a refresh does not replace loaded items with an empty seed.
 
 ### `docs/features/orders/order-item-form.md`
-
-`## Fields` — from `src/features/orders/services/order-price-list.service.ts:15`:
-
-> The price-list picker requests up to 1,000 catalogue rows. When the result reaches that limit, the picker marks the catalogue as truncated and tells staff that search covers only the loaded rows.
 
 `## Overlay` — from `src/features/orders/composables/use-order-overlay-route.ts:28`:
 
@@ -149,7 +145,6 @@ From `src/shared/`:
 2. `src/shared/config/cache.ts:17-30` — "raise TTL after real-world use" has no documentary evidence; `docs/plans/cache-gateway.md:131-134` is itself inconsistent.
 3. `src/shared/config/cache.ts:52-59` — the issue-report reporter's use of `localStorage` is unverified.
 4. `src/shared/components/BaseSwipeCard.vue:81-90` — the browser compatibility-click rationale has only static source tests behind it, never a runtime check.
-5. `src/shared/config/actor.ts:4-10` — `?by=<name>` works, but the claimed AppSheet provenance is established by neither source nor docs.
 
 From `src/features/`:
 
