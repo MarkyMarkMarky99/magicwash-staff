@@ -34,6 +34,7 @@ The palette is built from the brand's deep green and the logo (`src/assets/logo.
 | Surfaces | `background`, `surface`, `surface-container-lowest` … `-highest`, `surface-variant` | Page and card backgrounds |
 | Text and lines | `on-surface`, `on-surface-variant`, `outline`, `outline-variant` | Body text, secondary text, borders |
 | Status | `error`, `warning`, `success`, `info`, each with `-container` and `on-…` | Status only; never decoration |
+| Rank medals | `medal-gold`, `medal-silver`, `medal-bronze` | 1st–3rd place icons on rankings only |
 
 ## Retired colours
 

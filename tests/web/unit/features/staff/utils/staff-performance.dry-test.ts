@@ -4,6 +4,7 @@ import {
   averageWorkedDay,
   dailyMinutes,
   daysEndingAt,
+  rankDay,
   rankStaff,
   summarizeDay,
 } from '@/features/staff/utils/staff-performance'
@@ -49,5 +50,18 @@ assert.equal(summarizeDay([row({ type: 'VOID', minutes: -6 })], 'a', '2026-10-04
 
 assert.equal(averageWorkedDay([0, 10, 0, 20]), 15)
 assert.equal(averageWorkedDay([0, 0]), 0)
+
+const board = rankDay(
+  [{ staffId: 'z' }, { staffId: 'a' }, { staffId: '' }, { staffId: 'b' }, { staffId: 'c' }],
+  [...rows, row({ id: '8', staffId: 'c', minutes: 9 })],
+  '2026-10-04',
+)
+assert.deepEqual(board.map((entry) => [entry.member.staffId, entry.points, entry.jobs, entry.rank]), [
+  ['b', 30, 1, 1],
+  ['a', 9, 3, 2],
+  ['c', 9, 1, 2],
+  ['z', 0, 0, null],
+  ['', 0, 0, null],
+], 'most points first, ties share a rank, members without points keep list order')
 
 console.log('staff performance dry test passed')

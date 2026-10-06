@@ -7,7 +7,6 @@ import {
   updateStaffPayload,
 } from '../../../../../../src/features/staff/utils/staff-form-payload'
 import { staffBadges, staffStanding } from '../../../../../../src/features/staff/utils/staff-presentation'
-import { readStaffFilter } from '../../../../../../src/features/staff/composables/useStaffFilterRoute'
 
 const row = {
   staffId: 'STF-001',
@@ -40,12 +39,8 @@ assert.equal(updateStaffBodySchema.safeParse(updateStaffPayload({ ...original, n
 assert.equal(staffStanding({ role: null, active: true }), 'pending')
 assert.equal(staffStanding({ role: 'staff', active: false }), 'inactive')
 assert.equal(staffStanding({ role: 'admin', active: true }), 'active')
-assert.deepEqual(staffBadges({ role: null, active: false }).map((badge) => badge.label), ['รออนุมัติ'])
-assert.deepEqual(staffBadges({ role: 'staff', active: false }).map((badge) => badge.label), ['พนักงาน', 'ปิดใช้งาน'])
-
-assert.equal(readStaffFilter('pending'), 'pending')
-assert.equal(readStaffFilter(['inactive']), 'inactive')
-assert.equal(readStaffFilter('nonsense'), 'all')
-assert.equal(readStaffFilter(undefined), 'all')
+assert.deepEqual(staffBadges({ role: null, active: false }).map((badge) => badge.label), ['Pending'])
+assert.deepEqual(staffBadges({ role: 'staff', active: false }).map((badge) => badge.label), ['Disabled'])
+assert.deepEqual(staffBadges({ role: 'admin', active: true }), [])
 
 console.log('staff-form-payload.dry-test: OK')

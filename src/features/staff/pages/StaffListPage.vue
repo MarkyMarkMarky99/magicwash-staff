@@ -1,21 +1,18 @@
 <script setup lang="ts">
-import { computed, onActivated, watch } from 'vue'
+import { computed, onActivated, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
+import { bangkokToday } from '@shared/utils/bangkok-datetime'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
-import GenericTabs from '@/shared/components/GenericTabs.vue'
+import DateTabs from '@/shared/components/DateTabs.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import { staffEditRoute, staffProfileRoute } from '@/shared/navigation/form-routes'
 import { useAuthStore } from '@/data/auth/auth.store'
 import { useStaffStore } from '@/data/staff/staff.store'
+import { listWorkTransactions, type WorkTransactionDto } from '@/data/work-transactions/work-transaction.service'
 import StaffCard from '../components/StaffCard.vue'
-import { useStaffFilterRoute } from '../composables/useStaffFilterRoute'
-import {
-  STAFF_FILTER_KEYS,
-  STAFF_FILTER_LABELS,
-  staffStanding,
-  type StaffFilterKey,
-} from '../utils/staff-presentation'
+import { rankDay } from '../utils/staff-performance'
+import { staffStanding } from '../utils/staff-presentation'
 
 defineOptions({ name: 'StaffListPage' })
 
@@ -23,31 +20,59 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const staffStore = useStaffStore()
-const { status, isAdmin } = storeToRefs(authStore)
+const { status, isAdmin, staff: me } = storeToRefs(authStore)
 const { items, loading, error, loaded } = storeToRefs(staffStore)
-const { filter, updateFilter } = useStaffFilterRoute()
 
-const counts = computed<Record<StaffFilterKey, number>>(() => ({
-  all: items.value.length,
-  pending: items.value.filter((row) => staffStanding(row) === 'pending').length,
-  active: items.value.filter((row) => staffStanding(row) === 'active').length,
-  inactive: items.value.filter((row) => staffStanding(row) === 'inactive').length,
-}))
-const tabs = computed(() =>
-  STAFF_FILTER_KEYS.map((key) => ({ key, label: STAFF_FILTER_LABELS[key], count: counts.value[key] })),
-)
+const selectedDate = ref(bangkokToday())
+const navYear = ref(Number(selectedDate.value.slice(0, 4)))
+const navMonth = ref(Number(selectedDate.value.slice(5, 7)) - 1)
 
-// Rows waiting for approval come first so an admin cannot miss them.
-const visibleStaff = computed(() =>
-  items.value
-    .filter((row) => filter.value === 'all' || staffStanding(row) === filter.value)
-    .sort((a, b) =>
-      Number(staffStanding(b) === 'pending') - Number(staffStanding(a) === 'pending')
-      || (a.name || a.email).localeCompare(b.name || b.email, 'th'),
-    ),
+const scores = ref<WorkTransactionDto[]>([])
+const scoresFor = ref<string | null>(null)
+const scoresError = ref<string | null>(null)
+let latestScores = 0
+
+// Members without points keep this order at the end of the ranking.
+const members = computed(() =>
+  [...items.value].sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email, 'th')),
 )
-const listLoading = computed(() => loading.value && !loaded.value)
-const listError = computed(() => (loaded.value ? null : error.value))
+const board = computed(() => rankDay(members.value, scores.value, selectedDate.value))
+const topPoints = computed(() => Math.max(0, ...board.value.map((entry) => entry.points)))
+const scoresReady = computed(() => scoresFor.value === selectedDate.value)
+const listLoading = computed(() => (loading.value && !loaded.value) || (!scoresReady.value && !scoresError.value))
+const listError = computed(() => (loaded.value ? scoresError.value : error.value))
+
+async function loadScores(): Promise<void> {
+  const day = selectedDate.value
+  const request = ++latestScores
+  scoresError.value = null
+  try {
+    const rows = await listWorkTransactions(day, day)
+    if (request !== latestScores) return
+    scores.value = rows
+    scoresFor.value = day
+  } catch {
+    if (request !== latestScores) return
+    scoresError.value = 'Could not load scores'
+  }
+}
+
+function load(): void {
+  void staffStore.load()
+  void loadScores()
+}
+
+function selectDate(date: string): void {
+  selectedDate.value = date
+  void loadScores()
+}
+
+function stepMonth(step: number): void {
+  const month = navMonth.value + step
+  navYear.value += Math.floor(month / 12)
+  navMonth.value = (month + 12) % 12
+  selectDate(`${navYear.value}-${String(navMonth.value + 1).padStart(2, '0')}-01`)
+}
 
 // For an admin, a row still waiting for approval opens the form, where they approve it.
 function openStaff(staffId: string): void {
@@ -66,11 +91,11 @@ watch(
 )
 
 watch(status, (value) => {
-  if (value === 'signedIn' && route.name === 'staff-list') void staffStore.load()
+  if (value === 'signedIn' && route.name === 'staff-list') load()
 })
 
 onActivated(() => {
-  if (status.value === 'signedIn') void staffStore.load()
+  if (status.value === 'signedIn') load()
 })
 </script>
 
@@ -78,22 +103,32 @@ onActivated(() => {
   <ListPageLayout>
     <template #filters>
       <div class="flex-none bg-primary text-on-primary">
-        <GenericTabs :tabs="tabs" :active-key="filter" @select="updateFilter($event as StaffFilterKey)" />
+        <DateTabs :year="navYear" :month="navMonth" :selected-date="selectedDate" @date-select="selectDate" @prev-month="stepMonth(-1)" @next-month="stepMonth(1)" />
       </div>
     </template>
 
     <ListContainer
-      title="พนักงาน"
-      icon="badge"
-      :count="visibleStaff.length"
-      count-label="คน"
+      title="Staff ranking"
+      icon="leaderboard"
+      :count="board.length"
+      count-label="staff"
       :loading="listLoading"
       :skeleton-rows="4"
       :error="listError"
-      :empty="!listLoading && !listError && visibleStaff.length === 0"
-      empty-text="ไม่พบพนักงาน"
+      :empty="!listLoading && !listError && board.length === 0"
+      empty-text="No staff found"
     >
-      <StaffCard v-for="member in visibleStaff" :key="member.email" :staff="member" @select="openStaff" />
+      <StaffCard
+        v-for="entry in board"
+        :key="entry.member.email"
+        :staff="entry.member"
+        :points="entry.points"
+        :jobs="entry.jobs"
+        :rank="entry.rank"
+        :top-points="topPoints"
+        :self="entry.member.staffId !== '' && entry.member.staffId === me?.staffId"
+        @select="openStaff"
+      />
     </ListContainer>
   </ListPageLayout>
 </template>

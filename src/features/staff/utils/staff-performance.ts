@@ -79,3 +79,30 @@ export function averageWorkedDay(minutesPerDay: readonly number[]): number {
   const worked = minutesPerDay.filter((minutes) => minutes > 0)
   return worked.length === 0 ? 0 : Math.round(worked.reduce((sum, minutes) => sum + minutes, 0) / worked.length)
 }
+
+export interface BoardEntry<T> {
+  member: T
+  points: number
+  jobs: number
+  /** Competition rank (1, 1, 3) among members with points; null for no points. */
+  rank: number | null
+}
+
+/** One day's ranking of every member, most points first; members without points keep list order at the end. */
+export function rankDay<T extends { staffId: string }>(
+  members: readonly T[],
+  rows: readonly WorkTransactionDto[],
+  day: string,
+): BoardEntry<T>[] {
+  const entries = members.map((member, index) => {
+    const summary = member.staffId === '' ? { minutes: 0, jobs: 0 } : summarizeDay(rows, member.staffId, day)
+    return { member, points: summary.minutes, jobs: summary.jobs, rank: null as number | null, index }
+  })
+  entries.sort((a, b) => b.points - a.points || a.index - b.index)
+  entries.forEach((entry, position) => {
+    if (entry.points <= 0) return
+    const previous = entries[position - 1]
+    entry.rank = previous && previous.points === entry.points ? previous.rank : position + 1
+  })
+  return entries.map(({ index: _index, ...entry }) => entry)
+}

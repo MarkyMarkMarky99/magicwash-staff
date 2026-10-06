@@ -42,6 +42,11 @@
   /* Accents carried over from the price-list form, which the app's tone now follows. */
   --color-lime: #b2df26;
 
+  /* Rank medals: 1st, 2nd and 3rd place on the staff ranking. */
+  --color-medal-gold: #d4a017;
+  --color-medal-silver: #9aa3ad;
+  --color-medal-bronze: #b87333;
+
   /* ── Typography ──
      Noto Sans Thai leads every stack: this app is Thai-first, and Manrope/Inter carry no Thai
      glyphs, so Thai text was silently falling through to whatever the OS picked. Latin now

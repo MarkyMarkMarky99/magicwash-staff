@@ -22,22 +22,8 @@ export function staffStanding(row: Pick<StaffDto, 'role' | 'active'>): StaffStan
   return row.active ? 'active' : 'inactive'
 }
 
+/** Status badges only: an approved, active row has none. */
 export function staffBadges(row: Pick<StaffDto, 'role' | 'active'>): { label: string; tone: BadgeTone }[] {
-  if (row.role === null) return [{ label: 'รออนุมัติ', tone: 'warning' }]
-
-  const badges: { label: string; tone: BadgeTone }[] = [
-    { label: ROLE_LABELS[row.role], tone: row.role === 'admin' ? 'brand' : 'info' },
-  ]
-  if (!row.active) badges.push({ label: 'ปิดใช้งาน', tone: 'danger' })
-  return badges
-}
-
-export const STAFF_FILTER_KEYS = ['all', 'pending', 'active', 'inactive'] as const
-export type StaffFilterKey = (typeof STAFF_FILTER_KEYS)[number]
-
-export const STAFF_FILTER_LABELS: Record<StaffFilterKey, string> = {
-  all: 'ทั้งหมด',
-  pending: 'รออนุมัติ',
-  active: 'ใช้งานอยู่',
-  inactive: 'ปิดใช้งาน',
+  if (row.role === null) return [{ label: 'Pending', tone: 'warning' }]
+  return row.active ? [] : [{ label: 'Disabled', tone: 'danger' }]
 }
