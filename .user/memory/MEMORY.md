@@ -10,8 +10,9 @@
 
 ## Pending work
 
-- Task-code refactor committed on main; live sheets already migrated, so prod JobTickets/WorkRates reads fail until it deploys; then verify with a test order per `docs/features/job-tickets/task-code-migration.md`.
-- Prior runtime reports and live-data claims need rechecking; browser checks and owner decisions below remain open.
+- Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
+- Bag tag print after WEIGHT photo: layout locked, request body proposed, awaiting owner decisions; see `.user/memory/bag-tag-and-bag-scan.md`.
+- Order bag-scan page (Packaging): mock approved, scanned-state storage undecided; see `.user/memory/bag-tag-and-bag-scan.md`.
 - **Orders report (`/reports/orders`, merged 2026-10-05)**
   - Order list has no pull-to-refresh yet (ListPageLayout lacks it); `/api/order-reports` and the server date/keyword path of `/api/work-orders` now have no frontend caller.
   - Deferred by owner: status cards show current status, not status on that day; check whether orders ever reach COMPLETED.
@@ -19,8 +20,6 @@
 - **Staff KPI (WorkTransactions / WorkRates, merged 2026-10-04)**
   - Browser-check the staff profile page `/staff/:staffId` (Day date strip, Week leaderboard); only unit-tested.
   - Staff list is now a daily ranking (medals, DateTabs, English); browser-check on a phone and as non-admin.
-  - Tagging score was pushed; deployment and fresh-order JobTickets/WorkTransactions verification remain unconfirmed.
-  - Weight-photo score built (ORDER ticket + EARN on WEIGHT image save, live `PCK-WEIGHT-KG` = 20 min/kg); after deploy, save a WEIGHT photo and check JobTickets + WorkTransactions.
   - Accepted risk: two simultaneous completions of one ticket can write two EARNs; correct with a VOID row.
   - Before KPI drives pay: server must take the actor from the token, not the client body.
   - Future: supervisor-created tickets with custom `work_minutes`; Month view; Attendance for efficiency %.

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bag Tag Free Designs</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
+<style>
+  :root { --paper:#fff; --ink:#000; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#d9d9d9; font:14px/1.4 Arial,sans-serif; color:#222; padding:16px 20px 40px; }
+  h2 { font-size:16px; margin:22px 0 2px; }
+  p.why { margin-bottom:8px; color:#444; }
+  .row { display:flex; gap:24px; align-items:flex-start; }
+  .zoom { zoom:2.2; }
+  .label { position:relative; width:70mm; height:35mm; background:var(--paper); color:var(--ink);
+           font-family:'Arial Black',Arial,sans-serif; box-shadow:0 0 0 .2mm #777; }
+  .label * { position:absolute; }
+  .blk { background:var(--ink); }
+  .wht { color:var(--paper); }
+  /* text: --f font size mm, --b baseline y mm, --k baseline fraction of font (line-height 1) */
+  .t { font-size:calc(var(--f) * 1mm); line-height:.9; white-space:nowrap; top:calc((var(--b) - var(--k) * var(--f)) * 1mm); --k:.84; }
+  .t.ar { font-family:Arial,sans-serif; font-weight:700; --k:.80; }
+  .t.r { text-align:right; }
+  .unit { font-size:calc(var(--f) * 1mm); }
+  .qr canvas { display:none !important; }
+  .qr img, .qr canvas { position:static; display:block; width:100% !important; height:100% !important; image-rendering:pixelated; }
+  .bcw svg { position:static; display:block; width:100%; height:100%; }
+  .hr { background:var(--ink); }
+  .spine-t { inset:0; display:flex; align-items:center; justify-content:center; writing-mode:vertical-rl; transform:rotate(180deg);
+             font-size:4.2mm; line-height:1; white-space:nowrap; color:var(--paper); }
+  .cx { text-align:center; }
+  .wt .u { position:static; }
+</style>
+</head>
+<body>
+
+<h2>1. Ledger — weight tab</h2>
+<p class="why">Rule-driven typographic layout: white paper, black hairline rules form a clear table; brand and weight stack beside the QR, barcode and owner code share one base line.</p>
+<div class="row" id="r1"></div>
+
+<h2>2. Spine</h2>
+<p class="why">A full-height black spine carries the brand sideways like a book binding; owner code sits on a solid black plate under the weight so it reads from the shelf.</p>
+<div class="row" id="r2"></div>
+
+<h2>3. Card</h2>
+<p class="why">Diagonal black mass: a black card on the left holds brand, weight and time in reverse type, answered by the QR and a black owner-code plate on the right.</p>
+<div class="row" id="r3"></div>
+
+<script>
+const DATA = [
+  { w:'12.6', code:'TSK' },
+  { w:'3.25', code:'KBNK' },
+];
+const TS = '07 Oct 2026 \u00b7 03:15';
+const VAL = 'e06ace06';
+
+const D1 = d => `
+<div class="label"><div class="inner" style="inset:0;transform:scale(.9375);transform-origin:center">
+  <div class="qr" data-qr style="left:1.5mm;top:1.5mm;width:22mm;height:22mm"></div>
+  <div class="t cx" style="--f:5.4;--b:5.4;left:26mm;width:42.5mm">MAGICWASH</div>
+  <div class="hr" style="left:26mm;top:7mm;width:42.5mm;height:.7mm"></div>
+  <div class="blk" style="left:26mm;top:9mm;width:42.5mm;height:14.5mm"></div>
+  <div class="t wht cx" style="--f:9.4;--b:16.5;left:26mm;width:42.5mm">${d.w}<span class="unit" style="position:static;font-size:4.8mm;margin-left:1mm">kg</span></div>
+  <div class="t ar wht" data-fit="39.3" style="--f:2.6;--b:22.6;left:27.6mm">${TS}</div>
+  <div class="hr" style="left:1.5mm;top:25.3mm;width:67mm;height:.7mm"></div>
+  <div class="bcw" style="left:1.5mm;top:27.5mm;width:30.75mm;height:6mm"><svg class="bc" data-bc></svg></div>
+  <div class="t r" style="--f:8.3;--b:33.5;right:1.5mm">${d.code}</div>
+</div></div>`;
+
+const D2 = d => `
+<div class="label">
+  <div class="blk" style="left:1.5mm;top:1.5mm;width:6.5mm;height:32mm"><div class="spine-t">MAGIC WASH</div></div>
+  <div class="qr" data-qr style="left:11mm;top:1.5mm;width:22mm;height:22mm"></div>
+  <div class="t" style="--f:10.2;--b:8.8;left:36mm">${d.w}<span class="unit" style="position:static;font-size:5mm;margin-left:1mm">kg</span></div>
+  <div class="blk" style="left:36mm;top:12.5mm;width:32.5mm;height:11mm"></div>
+  <div class="t wht cx" style="--f:8.4;--b:21;left:36mm;width:32.5mm">${d.code}</div>
+  <div class="bcw" style="left:11mm;top:26mm;width:30.75mm;height:7.5mm"><svg class="bc" data-bc></svg></div>
+  <div class="t ar r" style="--f:2.6;--b:33.5;right:1.5mm">${TS}</div>
+</div>`;
+
+const D3 = d => `
+<div class="label">
+  <div class="blk" style="left:1.5mm;top:1.5mm;width:42.5mm;height:22mm"></div>
+  <div class="t wht" style="--f:4.2;--b:6.2;left:4mm">MAGIC WASH</div>
+  <div class="t wht" style="--f:11.6;--b:17;left:4mm">${d.w}<span class="unit" style="position:static;font-size:5.2mm;margin-left:1.2mm">kg</span></div>
+  <div class="t wht ar" style="--f:2.5;--b:21.3;left:4mm">${TS}</div>
+  <div class="qr" data-qr style="left:46.5mm;top:1.5mm;width:22mm;height:22mm"></div>
+  <div class="blk" style="left:46.5mm;top:25.5mm;width:22mm;height:8mm"></div>
+  <div class="t wht cx" style="--f:6.2;--b:31.75;left:46.5mm;width:22mm">${d.code}</div>
+  <div class="bcw" style="left:1.5mm;top:25.5mm;width:42mm;height:8mm"><svg class="bc" data-bc></svg></div>
+</div>`;
+
+[['r1',D1],['r2',D2],['r3',D3]].forEach(([id,fn]) => {
+  const row = document.getElementById(id);
+  DATA.forEach(d => {
+    const z = document.createElement('div');
+    z.className = 'zoom';
+    z.innerHTML = fn(d);
+    row.appendChild(z);
+  });
+});
+
+
+document.querySelectorAll('[data-fit]').forEach(el => {
+  const mm = el.getBoundingClientRect().width / el.offsetWidth * (96 / 25.4);
+  const target = parseFloat(el.dataset.fit);
+  let f = 2.6;
+  for (let i = 0; i < 4; i++) {
+    el.style.setProperty('--f', f);
+    const w = el.scrollWidth / (96 / 25.4);
+    f = f * target / w;
+  }
+  el.style.setProperty('--f', f.toFixed(3));
+});
+document.querySelectorAll('[data-qr]').forEach(el => {
+  new QRCode(el, { text:VAL, width:252, height:252, colorDark:'#000000', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M });
+});
+document.querySelectorAll('[data-bc]').forEach(svg => {
+  JsBarcode(svg, VAL, { format:'CODE128', displayValue:false, margin:0, width:1, height:40 });
+  if (!svg.getAttribute('viewBox')) svg.setAttribute('viewBox', '0 0 ' + parseFloat(svg.getAttribute('width')) + ' ' + parseFloat(svg.getAttribute('height')));
+  svg.removeAttribute('width'); svg.removeAttribute('height');
+  svg.setAttribute('preserveAspectRatio', 'none');
+  svg.setAttribute('shape-rendering', 'crispEdges');
+});
+</script>
+
+<script>
+window.addEventListener('load', () => setTimeout(() => {
+  const bad = [];
+  document.querySelectorAll('.label').forEach((label, i) => {
+    const L = label.getBoundingClientRect();
+    label.querySelectorAll('*').forEach(el => {
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0) return;
+      if (r.left < L.left - 0.5 || r.top < L.top - 0.5 || r.right > L.right + 0.5 || r.bottom > L.bottom + 0.5)
+        bad.push(`label ${i}: ${el.tagName.toLowerCase()}.${el.className || ''}`);
+    });
+  });
+  const b = document.createElement('div');
+  b.id = 'overflow-check';
+  b.textContent = bad.length ? `OVERFLOW (${bad.length}): ` + bad.slice(0, 12).join(' | ') : 'OVERFLOW CHECK: OK';
+  b.style.cssText = `position:sticky;top:0;z-index:99;padding:8px;font:700 14px monospace;color:#fff;background:${bad.length ? '#c00' : '#070'}`;
+  document.body.prepend(b);
+}, 800));
+</script>
+</body>
+</html>
