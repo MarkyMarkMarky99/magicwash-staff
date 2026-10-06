@@ -10,6 +10,7 @@
 
 ## Pending work
 
+- Task-code refactor committed on main; live sheets already migrated, so prod JobTickets/WorkRates reads fail until it deploys; then verify with a test order per `docs/features/job-tickets/task-code-migration.md`.
 - Prior runtime reports and live-data claims need rechecking; browser checks and owner decisions below remain open.
 - **Orders report (`/reports/orders`, merged 2026-10-05)**
   - Order list has no pull-to-refresh yet (ListPageLayout lacks it); `/api/order-reports` and the server date/keyword path of `/api/work-orders` now have no frontend caller.
@@ -18,8 +19,8 @@
 - **Staff KPI (WorkTransactions / WorkRates, merged 2026-10-04)**
   - Browser-check the staff profile page `/staff/:staffId` (Day date strip, Week leaderboard); only unit-tested.
   - Staff list is now a daily ranking (medals, DateTabs, English); browser-check on a phone and as non-admin.
-  - Tagging score (step-0 Completed ticket + EARN at APPROVED, tagger from LaundryPhotos) not yet deployed; after deploy, approve a fresh order and check JobTickets + WorkTransactions rows.
-  - Weight-photo score (1 kg = 20 min) planned, not started: same ticket+EARN pattern, Tagging department, image id as laundry_item_id.
+  - Tagging score was pushed; deployment and fresh-order JobTickets/WorkTransactions verification remain unconfirmed.
+  - Weight-photo score (1 kg = 20 min) is deferred under Packaging with ORDER scope; task-code structure changes come first.
   - Accepted risk: two simultaneous completions of one ticket can write two EARNs; correct with a VOID row.
   - Before KPI drives pay: server must take the actor from the token, not the client body.
   - Future: supervisor-created tickets with custom `work_minutes`; Month view; Attendance for efficiency %.
@@ -111,7 +112,6 @@
   - Deferred by user: duplicate-phone check misses legacy phones without a leading 0; map picker (Leaflet + Nominatim/Longdo), location field hidden until then.
   - Dirty data, fix undecided: Customers has 1 blank and 19 duplicated `CustomerIndex`; CustomerIDMapping lacks 302 customers, has 5 orphan ids and 2 ids mangled to `2.50E+33`/`2.63E+53`.
   - Re-run `frontend-data-boundaries.dry-test.ts` after addressing the payment form's Firebase Storage import.
-  - Re-run `column-order.dry-test.ts`: its OrderItemForms update expectation contradicts the current contract.
 
 - **Auth, UX, and documentation**
   - Redirect fallback for popup-blocked ships with the lockdown push; browser-test from a home-screen icon/LINE.

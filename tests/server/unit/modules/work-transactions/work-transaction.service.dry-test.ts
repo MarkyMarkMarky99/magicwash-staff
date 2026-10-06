@@ -8,6 +8,8 @@ const service = new WorkTransactionService(() => ({
     reads += 1
     return [
       { id: 'e1', job_ticket_id: 'IRN-o1-tag1', type: 'EARN', minutes: 6, created_at: 'Date(2026,9,4,9,15,0)', created_by: 'staff-a' },
+      { id: 'e3', job_ticket_id: 'PCK-o1-tag1-CHECK_PACK', type: 'EARN', minutes: 4, created_at: '2026-10-04 12:00:00', created_by: 'staff-d' },
+      { id: 'e4', job_ticket_id: 'WSH-o1-tag1-WSH-STANDARD', type: 'EARN', minutes: 12, created_at: '2026-10-04 12:30:00', created_by: 'staff-e' },
       { id: 'e2', job_ticket_id: 'WSH-o1-tag1', type: 'EARN', minutes: 2, created_at: '2026-10-03 18:00:00', created_by: 'staff-b' },
       { id: 'v1', job_ticket_id: 'WSH-o1-tag1', type: 'VOID', minutes: -2, created_at: '2026-10-04 10:00:00', created_by: 'admin-1' },
       { id: 'old', job_ticket_id: 'PCK-o1-tag1', type: 'EARN', minutes: 1, created_at: '2026-09-01 08:00:00', created_by: 'staff-a' },
@@ -22,6 +24,8 @@ const items = await service.list({ from: '2026-10-03', to: '2026-10-04' })
 assert.equal(reads, 1)
 assert.deepEqual(items, [
   { id: 'e1', jobTicketId: 'IRN-o1-tag1', department: 'Ironing', type: 'EARN', minutes: 6, staffId: 'staff-a', createdAt: '2026-10-04 09:15:00', createdBy: 'staff-a' },
+  { id: 'e3', jobTicketId: 'PCK-o1-tag1-CHECK_PACK', department: 'Packaging', type: 'EARN', minutes: 4, staffId: 'staff-d', createdAt: '2026-10-04 12:00:00', createdBy: 'staff-d' },
+  { id: 'e4', jobTicketId: 'WSH-o1-tag1-WSH-STANDARD', department: 'Washing', type: 'EARN', minutes: 12, staffId: 'staff-e', createdAt: '2026-10-04 12:30:00', createdBy: 'staff-e' },
   { id: 'e2', jobTicketId: 'WSH-o1-tag1', department: 'Washing', type: 'EARN', minutes: 2, staffId: 'staff-b', createdAt: '2026-10-03 18:00:00', createdBy: 'staff-b' },
   { id: 'v1', jobTicketId: 'WSH-o1-tag1', department: 'Washing', type: 'VOID', minutes: -2, staffId: 'staff-b', createdAt: '2026-10-04 10:00:00', createdBy: 'admin-1' },
   { id: '12345678', jobTicketId: 'XYZ-o2-tag2', department: null, type: 'EARN', minutes: 3, staffId: 'staff-c', createdAt: '2026-10-04 11:00:00', createdBy: 'staff-c' },

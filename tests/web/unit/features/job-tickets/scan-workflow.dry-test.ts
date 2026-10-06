@@ -7,7 +7,7 @@ import { completionPercentage, countDepartmentStatuses } from '@/features/job-ti
 import { createTagScanGuard, feedbackOutcomeForScanResult, presentScanResult, presentStartOrderResult } from '@/features/job-tickets/scan-result'
 
 const row: JobTicketDto = {
-  id: 'WSH-order-1-tag-1', orderId: 'order-1', laundryItemId: 'tag-1', scope: 'ITEM', serviceType: 'WASH',
+  id: 'WSH-order-1-tag-1', orderId: 'order-1', laundryItemId: 'tag-1', scope: 'ITEM', taskCode: 'WSH-STANDARD',
   department: 'Washing', stepNo: 1, customerId: 'customer-1', orderName: null, dueDate: null,
   specialInstructions: null, notes: null, status: 'Pending', startedAt: null, completedAt: null,
   scannedBy: null, photoEvidenceUrl: null, createdAt: null, createdBy: null, updatedAt: null,
@@ -60,6 +60,7 @@ try {
     { result: { kind: 'already_completed', ticketId: row.id }, status: 200, tone: 'warning', message: 'This job is already completed' },
     { result: { kind: 'not_found', laundryItemId: 'tag-1', department: 'Washing' }, status: 404, tone: 'error', message: 'No job found for this tag in this department' },
     { result: { kind: 'blocked', laundryItemId: 'tag-1', department: 'Washing', blockedByDepartment: 'DryCleaning' }, status: 409, tone: 'error', message: 'Cannot proceed: Dry Cleaning is not completed' },
+    { result: { kind: 'ambiguous', laundryItemId: 'tag-1', department: 'Washing', taskCodes: ['WSH-A', null] }, status: 409, tone: 'error', message: 'This tag has 2 tasks in this department (WSH-A, no task). Choose the task instead of scanning' },
     { result: { kind: 'not_advanceable', ticketId: row.id, status: 'Cancelled' }, status: 409, tone: 'error', message: 'Cannot proceed with status Cancelled' },
     { result: { kind: 'write_failed', ticketId: row.id, certainty: 'rejected' }, status: 502, tone: 'error', message: 'Could not save' },
     { result: { kind: 'write_failed', ticketId: row.id, certainty: 'unknown' }, status: 500, tone: 'error', message: 'Could not save. Check the job before scanning again' },
@@ -77,6 +78,8 @@ try {
   rawResponse = { kind: 'blocked', laundryItemId: 9305753, department: 'Washing', blockedByDepartment: 'DryCleaning' }
   assert.deepEqual(await scanJobTicket(payload), { kind: 'blocked', laundryItemId: '09305753', department: 'Washing', blockedByDepartment: 'DryCleaning' })
   rawResponse = null
+  await scanJobTicket({ ...payload, taskCode: ' WSH-B ' })
+  assert.deepEqual(requests.at(-1)?.body, { ...payload, taskCode: 'WSH-B' })
   await assert.rejects(() => scanJobTicket({ ...payload, scannedBy: ' ' }))
   store.tickets = [{ ...row, status: 'Pending', startedAt: null, scannedBy: null }]
   const startPayload = { orderId: 'order-1', department: 'Washing', scannedBy: 'staff-2' } as const
@@ -133,7 +136,7 @@ try {
     assert.deepEqual(presentStartOrderResult(failed), { tone: 'error', message })
   }
   await assert.rejects(() => startJobTicketOrder({ ...startPayload, orderId: ' ' }))
-  assert.equal(requests.length, 13)
+  assert.equal(requests.length, 15)
   store.$dispose()
 
   const guard = createTagScanGuard()

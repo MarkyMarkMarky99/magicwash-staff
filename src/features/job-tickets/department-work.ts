@@ -25,10 +25,21 @@ export function toggleTicketSelection(selected: ReadonlySet<string>, ticket: Job
   return next
 }
 
+export function taskLabel(ticket: Pick<JobTicketDto, 'taskCode'>): string | null {
+  return ticket.taskCode?.trim() || null
+}
+
+export function ticketSelectLabel(ticket: JobTicketDto): string {
+  const task = taskLabel(ticket)
+  return `Select tag ${ticket.laundryItemId ?? 'missing'}${task ? `, task ${task}` : ''}; current status ${ticket.status}`
+}
+
 export function resolveScanTag(value: string, tickets: readonly JobTicketDto[], status: AdvanceStatus, queue: readonly ScanQueueEntry[], department: Department): { entry?: ScanQueueEntry; message: string } {
   const tag = normalizeGarmentTagId(value)
   const matching = tickets.filter(ticket => ticket.id && ticket.department === department && ticket.laundryItemId === tag)
-  const ticket = matching.find(row => row.status === status)
+  const candidates = matching.filter(row => row.status === status)
+  if (candidates.length > 1) return { message: `${candidates.length} tasks for this tag (${candidates.map(row => taskLabel(row) ?? 'no task').join(', ')}). Select them from the list` }
+  const ticket = candidates[0]
   if (!ticket) return { message: matching.length ? 'Not in this tab' : 'No job for this tag' }
   if (queue.some(entry => entry.ticketId === ticket.id)) return { message: 'Already queued' }
   return { entry: { ticketId: ticket.id, orderId: ticket.orderId, tag: tag! }, message: 'Queued' }
@@ -121,7 +132,9 @@ export function sortDepartmentTickets(tickets: readonly JobTicketDto[], orderInf
     Number(left.laundryItemId === null) - Number(right.laundryItemId === null)
     || dueSortKey(orderInfo.get(left.orderId)?.dueDate ?? null).localeCompare(dueSortKey(orderInfo.get(right.orderId)?.dueDate ?? null))
     || String(left.orderId ?? '').localeCompare(String(right.orderId ?? ''))
-    || (left.laundryItemId ?? '').localeCompare(right.laundryItemId ?? ''))
+    || (left.laundryItemId ?? '').localeCompare(right.laundryItemId ?? '')
+    || left.stepNo - right.stepNo
+    || (left.taskCode ?? '').localeCompare(right.taskCode ?? ''))
 }
 
 export function groupDepartmentOrders(tickets: readonly JobTicketDto[], orderInfo: ReadonlyMap<string, OrderInfo>): DepartmentOrder[] {

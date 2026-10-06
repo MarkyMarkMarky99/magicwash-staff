@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict'
 import type { JobTicketDto, JobTicketListQuery } from '@/data/job-tickets/job-ticket.service'
 import { completedTodayFromPage, listJobTickets, loadDepartmentTickets, MAX_DEPARTMENT_TICKETS } from '@/data/job-tickets/job-ticket.service'
-import { advanceSummary, completionPercentage, countDepartmentStatuses, filterTickets, groupDepartmentOrders, readDepartment, readGrouper, readStatusFilter, resolveScanTag, restoreScanQueue, sortDepartmentTickets, statusForFilter, toggleTicketSelection } from '@/features/job-tickets/department-work'
+import { advanceSummary, completionPercentage, countDepartmentStatuses, filterTickets, groupDepartmentOrders, readDepartment, readGrouper, readStatusFilter, resolveScanTag, restoreScanQueue, sortDepartmentTickets, statusForFilter, taskLabel, ticketSelectLabel, toggleTicketSelection } from '@/features/job-tickets/department-work'
 import { normalizeGarmentTagId } from '@/shared/utils/garment-tag-id'
 
 function ticket(id: string, orderId: string, status: JobTicketDto['status'], completedAt: string | null = null): JobTicketDto {
   return {
-    id, orderId, laundryItemId: id, scope: 'ITEM', serviceType: 'WASH', department: 'Washing', stepNo: 1,
+    id, orderId, laundryItemId: id, scope: 'ITEM', taskCode: 'WSH-STANDARD', department: 'Washing', stepNo: 1,
     customerId: 'customer-1', orderName: null, dueDate: null, specialInstructions: null, notes: null,
     status, startedAt: null, completedAt, scannedBy: null, photoEvidenceUrl: null,
     createdAt: null, createdBy: null, updatedAt: null, updatedBy: null, deletedAt: null, deletedBy: null,
@@ -36,6 +36,36 @@ assert.equal(resolveScanTag('tag-b', scanTickets, 'Pending', [], 'Washing').mess
 assert.equal(resolveScanTag('missing', scanTickets, 'Pending', [], 'Washing').message, 'No job for this tag')
 assert.equal(resolveScanTag('tag-a', scanTickets, 'Pending', [{ ticketId: 'tag-a', orderId: 'order-1', tag: 'tag-a' }], 'Washing').message, 'Already queued')
 assert.deepEqual(restoreScanQueue([{ ticketId: 'tag-a' }, { ticketId: 'tag-a' }, { ticketId: 'tag-b' }, { ticketId: 'missing' }], scanTickets, 'Pending', 'Washing'), [{ ticketId: 'tag-a', orderId: 'order-1', tag: 'tag-a' }])
+const taskTickets = [
+  { ...ticket('wash-b', 'order-1', 'Pending'), laundryItemId: 'tag-m', taskCode: 'WSH-B', stepNo: 2 },
+  { ...ticket('wash-a', 'order-1', 'Pending'), laundryItemId: 'tag-m', taskCode: 'WSH-A', stepNo: 1 },
+  { ...ticket('wash-done', 'order-1', 'Completed'), laundryItemId: 'tag-solo', taskCode: 'WSH-A', stepNo: 1 },
+  { ...ticket('wash-solo', 'order-1', 'Pending'), laundryItemId: 'tag-solo', taskCode: 'WSH-B', stepNo: 2 },
+  { ...ticket('wash-legacy', 'order-1', 'Pending'), laundryItemId: 'tag-legacy', taskCode: null },
+]
+assert.deepEqual(resolveScanTag('tag-m', taskTickets, 'Pending', [], 'Washing'), {
+  message: '2 tasks for this tag (WSH-B, WSH-A). Select them from the list',
+})
+assert.deepEqual(resolveScanTag('tag-solo', taskTickets, 'Pending', [], 'Washing'), { entry: { ticketId: 'wash-solo', orderId: 'order-1', tag: 'tag-solo' }, message: 'Queued' })
+assert.deepEqual(resolveScanTag('tag-solo', taskTickets, 'Pending', [{ ticketId: 'wash-solo', orderId: 'order-1', tag: 'tag-solo' }], 'Washing').message, 'Already queued')
+assert.deepEqual(resolveScanTag('tag-legacy', taskTickets, 'Pending', [], 'Washing').entry?.ticketId, 'wash-legacy')
+assert.deepEqual(resolveScanTag('tag-m', [taskTickets[0]!, { ...taskTickets[1]!, taskCode: null }], 'Pending', [], 'Washing'), {
+  message: '2 tasks for this tag (WSH-B, no task). Select them from the list',
+})
+assert.deepEqual(restoreScanQueue([{ ticketId: 'wash-a' }, { ticketId: 'wash-legacy', orderId: 'order-9', tag: 'stale' }], taskTickets, 'Pending', 'Washing'), [
+  { ticketId: 'wash-a', orderId: 'order-1', tag: 'tag-m' },
+  { ticketId: 'wash-legacy', orderId: 'order-1', tag: 'tag-legacy' },
+])
+assert.deepEqual(restoreScanQueue([{ ticketId: 'WSH-order-1-tag-m' }], taskTickets, 'Pending', 'Washing'), [])
+assert.equal(taskLabel(taskTickets[0]!), 'WSH-B')
+assert.equal(taskLabel(taskTickets[4]!), null)
+assert.equal(taskLabel({ taskCode: '  ' }), null)
+assert.equal(ticketSelectLabel(taskTickets[0]!), 'Select tag tag-m, task WSH-B; current status Pending')
+assert.equal(ticketSelectLabel(taskTickets[4]!), 'Select tag tag-legacy; current status Pending')
+assert.equal(ticketSelectLabel({ ...taskTickets[4]!, laundryItemId: null, status: 'In Progress' }), 'Select tag missing; current status In Progress')
+const taskOrderInfo = new Map([['order-1', { dueDate: '2026-09-24', customerId: 'customer-1', customerName: 'Task', customerIndex: 'TSK' }]])
+assert.deepEqual(sortDepartmentTickets(taskTickets.slice(0, 2), taskOrderInfo).map(row => row.id), ['wash-a', 'wash-b'])
+assert.deepEqual(sortDepartmentTickets([{ ...taskTickets[0]!, stepNo: 1 }, { ...taskTickets[1]!, stepNo: 1 }], taskOrderInfo).map(row => row.taskCode), ['WSH-A', 'WSH-B'])
 for (const scoreFailed of [1, 3]) {
   assert.equal(advanceSummary({ kind: 'completed', advanced: [], blocked: [], skipped: [], scoreFailed }, 'In Progress'),
     `0 completed · 0 blocked · 0 skipped · Score not saved for ${scoreFailed} job${scoreFailed === 1 ? '' : 's'}. Tell an admin.`)

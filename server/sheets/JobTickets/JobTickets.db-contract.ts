@@ -2,7 +2,6 @@ import { z } from 'zod'
 import type { SheetContract } from '../../shared/contracts/sheet-contract.js'
 
 export const jobTicketScopeSchema = z.enum(['ITEM', 'ORDER'])
-export const jobTicketServiceTypeSchema = z.enum(['WSIR', 'IRON', 'DRCL', 'WASH'])
 export const jobTicketDepartmentSchema = z.enum([
   'Tagging',
   'Washing',
@@ -19,7 +18,7 @@ export const jobTicketsRowSchema = z
     order_id: z.string().min(1),
     laundry_item_id: z.string().min(1),
     scope: jobTicketScopeSchema,
-    service_type: jobTicketServiceTypeSchema.nullable(),
+    task_code: z.string().nullable(),
     department: jobTicketDepartmentSchema,
     step_no: z.number().int().min(0),
     customer_id: z.string().nullable(),

@@ -12,6 +12,7 @@ import AdvanceConfirmDialog from '../components/AdvanceConfirmDialog.vue'
 import CompletionRing from '@/shared/components/CompletionRing.vue'
 import ScanResultCard from '../components/ScanResultCard.vue'
 import TicketStatusIcon, { type TicketTapState } from '../components/TicketStatusIcon.vue'
+import TicketTaskChip from '../components/TicketTaskChip.vue'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
 import type { JobTicketDto } from '@/data/job-tickets/job-ticket.service'
@@ -19,7 +20,7 @@ import { useCustomerStore } from '@/data/customers/customer.store'
 import { currentActor } from '@/shared/config/actor'
 import { feedback, primeFeedbackAudio } from '@/shared/utils/scan-feedback'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
-import { advanceSummary, countDepartmentStatuses, filterTickets, groupDepartmentOrders, readDepartment, readGrouper, readStatusFilter, resolveScanTag, restoreScanQueue, sortDepartmentTickets, statusFilters, statusForFilter, toggleTicketSelection } from '../department-work'
+import { advanceSummary, countDepartmentStatuses, filterTickets, groupDepartmentOrders, readDepartment, readGrouper, readStatusFilter, resolveScanTag, restoreScanQueue, sortDepartmentTickets, statusFilters, statusForFilter, taskLabel, ticketSelectLabel, toggleTicketSelection } from '../department-work'
 import type { AdvanceStatus, Grouper, OrderInfo, ScanQueueEntry, TicketStatus } from '../department-work'
 import { presentStartOrderResult, type ScanDisplay } from '../scan-result'
 
@@ -49,12 +50,6 @@ let pushedScanner = false
 let replacingLeave = false
 let noticeTimer: ReturnType<typeof setTimeout> | undefined
 
-const statusLabels: Record<TicketStatus, string> = {
-  Pending: 'Pending',
-  'In Progress': 'In Progress',
-  Completed: 'Completed',
-  Cancelled: 'Cancelled',
-}
 const filterLabels = { ALL: 'All', PENDING: 'Pending', 'IN PROGRESS': 'In Progress', COMPLETED: 'Completed' } as const
 const counts = computed(() => countDepartmentStatuses(ticketStore.tickets))
 const tabs = computed(() => statusFilters.map(key => ({ key, label: filterLabels[key], count: counts.value[key] })))
@@ -406,10 +401,11 @@ onBeforeRouteLeave(to => {
       </template>
 
       <div v-if="grouper === 'item'" class="grid grid-cols-2 gap-2 p-4 sm:grid-cols-3">
-        <button v-for="ticket in visibleTickets" :key="ticket.id" type="button" class="relative min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-lime" :class="selectedTicketIds.has(ticket.id) ? 'ring-4 ring-lime' : ''" :aria-pressed="selectedTicketIds.has(ticket.id)" :aria-label="`Select tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="toggleTicket(ticket)">
+        <button v-for="ticket in visibleTickets" :key="ticket.id" type="button" class="relative min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-lime" :class="selectedTicketIds.has(ticket.id) ? 'ring-4 ring-lime' : ''" :aria-pressed="selectedTicketIds.has(ticket.id)" :aria-label="ticketSelectLabel(ticket)" @click="toggleTicket(ticket)">
           <SquareImageCard :image-url="ticket.photoEvidenceUrl">
             <template #badge><TicketStatusIcon :status="ticket.status" :state="tapStates.get(ticket.id)" /></template>
           </SquareImageCard>
+          <TicketTaskChip :task-code="taskLabel(ticket)" />
           <span v-if="selectedTicketIds.has(ticket.id)" class="material-symbols-outlined absolute bottom-2 right-2 rounded-full bg-lime p-1 text-primary" aria-hidden="true">check</span>
         </button>
       </div>
@@ -439,10 +435,11 @@ onBeforeRouteLeave(to => {
           </button>
           <button type="button" class="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/25 text-on-surface focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-40" :aria-label="syncingOrderIds.has(order.orderId) ? 'Syncing' : 'Start all pending'" :disabled="syncingOrderIds.has(order.orderId) || statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Pending') === 0" @click="startOrder(order.orderId)"><span v-if="syncingOrderIds.has(order.orderId)" class="material-symbols-outlined animate-spin text-[22px]" aria-hidden="true">sync</span><svg v-else viewBox="0 0 24 24" class="h-6 w-6" aria-hidden="true"><path d="M8.5 6v12l9.5-6z" fill="currentColor" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round" /></svg></button>
           <div v-if="expandedOrderId === order.orderId" class="grid grid-cols-2 gap-2 px-4 pb-4 sm:grid-cols-3">
-            <button v-for="ticket in order.tickets" :key="ticket.id" type="button" class="relative min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-lime" :class="selectedTicketIds.has(ticket.id) ? 'ring-4 ring-lime' : ''" :aria-pressed="selectedTicketIds.has(ticket.id)" :aria-label="`Select tag ${ticket.laundryItemId ?? 'missing'}; current status ${statusLabels[ticket.status]}`" @click="toggleTicket(ticket)">
+            <button v-for="ticket in order.tickets" :key="ticket.id" type="button" class="relative min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-lime" :class="selectedTicketIds.has(ticket.id) ? 'ring-4 ring-lime' : ''" :aria-pressed="selectedTicketIds.has(ticket.id)" :aria-label="ticketSelectLabel(ticket)" @click="toggleTicket(ticket)">
               <SquareImageCard :image-url="ticket.photoEvidenceUrl">
                 <template #badge><TicketStatusIcon :status="ticket.status" :state="tapStates.get(ticket.id)" /></template>
               </SquareImageCard>
+              <TicketTaskChip :task-code="taskLabel(ticket)" />
               <span v-if="selectedTicketIds.has(ticket.id)" class="material-symbols-outlined absolute bottom-2 right-2 rounded-full bg-lime p-1 text-primary" aria-hidden="true">check</span>
             </button>
           </div>

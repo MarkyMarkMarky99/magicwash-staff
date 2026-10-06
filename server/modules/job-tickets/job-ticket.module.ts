@@ -25,7 +25,7 @@ export const jobTicketFieldMap = {
   order_id: 'orderId',
   laundry_item_id: 'laundryItemId',
   scope: 'scope',
-  service_type: 'serviceType',
+  task_code: 'taskCode',
   department: 'department',
   step_no: 'stepNo',
   customer_id: 'customerId',
@@ -88,6 +88,7 @@ function statusForScan(response: JobTicketScanResponse): number {
       return 404
     case 'not_advanceable':
     case 'blocked':
+    case 'ambiguous':
       return 409
     case 'write_failed':
       return response.certainty === 'rejected' ? 502 : 500

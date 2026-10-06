@@ -1,20 +1,16 @@
 import type { z } from 'zod'
-import { workRatesRowSchema } from '../../sheets/WorkRates/WorkRates.db-contract.js'
-
-type WorkRatesDbRow = z.infer<typeof workRatesRowSchema>
-
-export interface WorkRateReader {
-  read(): Promise<Array<Partial<WorkRatesDbRow>>>
-}
+import type { jobTicketDepartmentSchema } from '../../sheets/JobTickets/JobTickets.db-contract.js'
+import type { WorkRatesByTask } from './work-rate-lookup.js'
 
 export type RoutableServiceType = 'WSIR' | 'IRON' | 'DRCL' | 'WASH'
-export type JobTicketDepartment =
-  | 'Tagging'
-  | 'Washing'
-  | 'DryCleaning'
-  | 'Ironing'
-  | 'Packaging'
-  | 'Logistics'
+export type JobTicketDepartment = z.infer<typeof jobTicketDepartmentSchema>
+
+export interface RouteStep {
+  department: JobTicketDepartment
+  taskCode: string
+}
+
+export type ServiceRoutes = Record<RoutableServiceType, readonly RouteStep[]>
 
 export interface JobTicketProvisioningOrder {
   orderId: string
@@ -35,8 +31,10 @@ export interface JobTicketProvisioningGarment {
 }
 
 export interface ExistingJobTicket {
+  id: string
   laundryItemId: string
   department: string
+  taskCode: string | null
 }
 
 export interface ProvisionedJobTicketRow {
@@ -44,7 +42,7 @@ export interface ProvisionedJobTicketRow {
   order_id: string
   laundry_item_id: string
   scope: 'ITEM'
-  service_type: RoutableServiceType | null
+  task_code: string
   department: JobTicketDepartment
   step_no: number
   customer_id: string | null
@@ -73,11 +71,26 @@ export interface JobTicketProvisioningResult {
   unroutableGarments: UnroutableGarment[]
 }
 
-const routes: Record<RoutableServiceType, readonly JobTicketDepartment[]> = {
-  WASH: ['Washing', 'Packaging'],
-  WSIR: ['Washing', 'Ironing', 'Packaging'],
-  DRCL: ['DryCleaning', 'Ironing', 'Packaging'],
-  IRON: ['Ironing', 'Packaging'],
+const defaultTaskCodes: Record<JobTicketDepartment, string> = {
+  Tagging: 'TAG-PHOTO',
+  Washing: 'WSH-STANDARD',
+  DryCleaning: 'DRC-STANDARD',
+  Ironing: 'IRN-STANDARD',
+  Packaging: 'PCK-STANDARD',
+  Logistics: 'LOG-STANDARD',
+}
+
+function defaultStep(department: JobTicketDepartment): RouteStep {
+  return { department, taskCode: defaultTaskCodes[department] }
+}
+
+const taggingStep = defaultStep('Tagging')
+
+export const serviceRoutes: ServiceRoutes = {
+  WASH: [defaultStep('Washing'), defaultStep('Packaging')],
+  WSIR: [defaultStep('Washing'), defaultStep('Ironing'), defaultStep('Packaging')],
+  DRCL: [defaultStep('DryCleaning'), defaultStep('Ironing'), defaultStep('Packaging')],
+  IRON: [defaultStep('Ironing'), defaultStep('Packaging')],
 }
 
 const departmentPrefixes: Record<JobTicketDepartment, string> = {
@@ -95,60 +108,48 @@ export function departmentForJobTicketId(jobTicketId: string): JobTicketDepartme
   return departments.find((department) => departmentPrefixes[department] === prefix) ?? null
 }
 
-export function buildJobTicketId(
-  orderId: string,
-  laundryItemId: string,
-  department: JobTicketDepartment,
-): string {
+export function buildJobTicketId(orderId: string, laundryItemId: string, step: RouteStep): string {
+  return `${departmentPrefixes[step.department]}-${orderId}-${laundryItemId}-${step.taskCode}`
+}
+
+function buildLegacyJobTicketId(orderId: string, laundryItemId: string, department: JobTicketDepartment): string {
   return `${departmentPrefixes[department]}-${orderId}-${laundryItemId}`
 }
 
-let cachedWorkMinutes: Map<JobTicketDepartment, number> | undefined
-let workRatesInFlight: Promise<Map<JobTicketDepartment, number>> | undefined
-
-export function resetWorkRatesCache(): void {
-  cachedWorkMinutes = undefined
-  workRatesInFlight = undefined
+function occupancyKey(laundryItemId: string, step: RouteStep): string {
+  return `${laundryItemId}\u0000${step.department}\u0000${step.taskCode}`
 }
 
-export async function readWorkMinutesByDepartment(
-  repository: () => WorkRateReader,
-): Promise<Map<JobTicketDepartment, number>> {
-  if (cachedWorkMinutes) return cachedWorkMinutes
-  if (workRatesInFlight) return workRatesInFlight
-  const pending = Promise.resolve().then(async () => {
-    try {
-      const rows = await repository().read()
-      const minutesByDepartment = new Map<JobTicketDepartment, number>()
-      for (const row of rows) {
-        if (row.active === true && row.level === 'EASY'
-          && typeof row.minutes === 'number' && Number.isFinite(row.minutes)
-          && typeof row.department === 'string' && !minutesByDepartment.has(row.department)) {
-          minutesByDepartment.set(row.department, row.minutes)
-        }
-      }
-      if (workRatesInFlight === pending) cachedWorkMinutes = minutesByDepartment
-      return minutesByDepartment
-    } catch (error) {
-      console.error('Failed to read WorkRates', error)
-      return new Map()
+function occupiedByExisting(orderId: string, existingTickets: readonly ExistingJobTicket[]): Set<string> {
+  const occupied = new Set<string>()
+  const departments = Object.keys(defaultTaskCodes) as JobTicketDepartment[]
+  for (const ticket of existingTickets) {
+    const department = departments.find((candidate) => candidate === ticket.department)
+    if (department === undefined) continue
+    if (ticket.taskCode !== null && ticket.taskCode.trim() !== '') {
+      occupied.add(occupancyKey(ticket.laundryItemId, { department, taskCode: ticket.taskCode.trim() }))
     }
-  }).finally(() => {
-    if (workRatesInFlight === pending) workRatesInFlight = undefined
-  })
-  workRatesInFlight = pending
-  return pending
+    if (ticket.id === buildLegacyJobTicketId(orderId, ticket.laundryItemId, department)) {
+      occupied.add(occupancyKey(ticket.laundryItemId, defaultStep(department)))
+    }
+  }
+  return occupied
+}
+
+function minutesForStep(rates: WorkRatesByTask, step: RouteStep): number | null {
+  const rate = rates.get(step.taskCode)
+  return rate?.department === step.department ? rate.minutes : null
 }
 
 export function buildJobTickets(
   order: JobTicketProvisioningOrder,
   garments: readonly JobTicketProvisioningGarment[],
   existingTickets: readonly ExistingJobTicket[],
-  minutesByDepartment: ReadonlyMap<JobTicketDepartment, number>,
+  ratesByTask: WorkRatesByTask,
+  routes: ServiceRoutes = serviceRoutes,
 ): JobTicketProvisioningResult {
-  const occupiedPairs = new Set(
-    existingTickets.map((ticket) => `${ticket.laundryItemId}\u0000${ticket.department}`),
-  )
+  const occupied = occupiedByExisting(order.orderId, existingTickets)
+  const existingIds = new Set(existingTickets.map((ticket) => ticket.id))
   const rows: ProvisionedJobTicketRow[] = []
   const unroutableGarments: UnroutableGarment[] = []
   const photosByTag = new Map<string, string>()
@@ -169,16 +170,17 @@ export function buildJobTickets(
       continue
     }
 
-    const taggingPair = `${garment.laundryItemId}\u0000Tagging`
-    if (garment.taggedBy !== null && !occupiedPairs.has(taggingPair)) {
-      occupiedPairs.add(taggingPair)
+    const taggingId = buildJobTicketId(order.orderId, garment.laundryItemId, taggingStep)
+    const taggingKey = occupancyKey(garment.laundryItemId, taggingStep)
+    if (garment.taggedBy !== null && !occupied.has(taggingKey) && !existingIds.has(taggingId)) {
+      occupied.add(taggingKey)
       rows.push({
-        id: buildJobTicketId(order.orderId, garment.laundryItemId, 'Tagging'),
+        id: taggingId,
         order_id: order.orderId,
         laundry_item_id: garment.laundryItemId,
         scope: 'ITEM',
-        service_type: isRoutableServiceType(garment.serviceType) ? garment.serviceType : null,
-        department: 'Tagging',
+        task_code: taggingStep.taskCode,
+        department: taggingStep.department,
         step_no: 0,
         customer_id: order.customerId,
         order_name: order.orderName,
@@ -192,11 +194,11 @@ export function buildJobTickets(
         updated_by: garment.taggedBy,
         photo_evidence_url: photosByTag.get(garment.laundryItemId) ?? null,
         created_by: order.createdBy,
-        work_minutes: minutesByDepartment.get('Tagging') ?? null,
+        work_minutes: minutesForStep(ratesByTask, taggingStep),
       })
     }
 
-    if (!isRoutableServiceType(garment.serviceType)) {
+    if (!isRoutableServiceType(garment.serviceType, routes)) {
       unroutableGarments.push({
         laundryItemId: garment.laundryItemId,
         serviceType: garment.serviceType,
@@ -205,17 +207,18 @@ export function buildJobTickets(
       continue
     }
 
-    for (const [index, department] of routes[garment.serviceType].entries()) {
-      const pair = `${garment.laundryItemId}\u0000${department}`
-      if (occupiedPairs.has(pair)) continue
-      occupiedPairs.add(pair)
+    for (const [index, step] of routes[garment.serviceType].entries()) {
+      const id = buildJobTicketId(order.orderId, garment.laundryItemId, step)
+      const key = occupancyKey(garment.laundryItemId, step)
+      if (occupied.has(key) || existingIds.has(id)) continue
+      occupied.add(key)
       rows.push({
-        id: buildJobTicketId(order.orderId, garment.laundryItemId, department),
+        id,
         order_id: order.orderId,
         laundry_item_id: garment.laundryItemId,
         scope: 'ITEM',
-        service_type: garment.serviceType,
-        department,
+        task_code: step.taskCode,
+        department: step.department,
         step_no: index + 1,
         customer_id: order.customerId,
         order_name: order.orderName,
@@ -225,7 +228,7 @@ export function buildJobTickets(
         status: 'Pending',
         photo_evidence_url: photosByTag.get(garment.laundryItemId) ?? null,
         created_by: order.createdBy,
-        work_minutes: minutesByDepartment.get(department) ?? null,
+        work_minutes: minutesForStep(ratesByTask, step),
       })
     }
   }
@@ -233,6 +236,6 @@ export function buildJobTickets(
   return { rows, unroutableGarments }
 }
 
-function isRoutableServiceType(value: string | null): value is RoutableServiceType {
+function isRoutableServiceType(value: string | null, routes: ServiceRoutes): value is RoutableServiceType {
   return value !== null && Object.prototype.hasOwnProperty.call(routes, value)
 }

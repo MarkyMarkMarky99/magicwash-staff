@@ -55,8 +55,8 @@ const tests: ColumnOrderTest[] = [
     name: 'WorkRates',
     contract: workRatesDbContract,
     expected: {
-      id: 'A', department: 'B', level: 'C', name_th: 'D', minutes: 'E', active: 'F',
-      notes: 'G', created_at: 'H', created_by: 'I', updated_at: 'J', updated_by: 'K',
+      task_code: 'A', department: 'B', name_th: 'C', minutes: 'D', active: 'E',
+      notes: 'F', created_at: 'G', created_by: 'H', updated_at: 'I', updated_by: 'J',
     },
     primaryKeyColumn: 'A',
   },
@@ -240,7 +240,7 @@ const tests: ColumnOrderTest[] = [
     name: 'JobTickets',
     contract: jobTicketsDbContract,
     expected: {
-      id: 'A', order_id: 'B', laundry_item_id: 'C', scope: 'D', service_type: 'E',
+      id: 'A', order_id: 'B', laundry_item_id: 'C', scope: 'D', task_code: 'E',
       department: 'F', step_no: 'G', customer_id: 'H', order_name: 'I', due_date: 'J',
       special_instructions: 'K', notes: 'L', status: 'M', started_at: 'N', completed_at: 'O',
       scanned_by: 'P', photo_evidence_url: 'Q', created_at: 'R', created_by: 'S',
@@ -448,12 +448,13 @@ for (const test of tests) {
 
 assert.deepEqual(orderItemFormsDbContract.writes, {
   append: true,
-  update: false,
+  update: true,
   delete: false,
 })
 assert.equal('valueInput' in orderItemFormsDbContract, false)
 assert.deepEqual(orderItemFormsDbContract.audit, {
   onAppend: ['timestamp'],
+  onUpdate: ['updated_at'],
 })
 
 const expectedOrderImagesColumns = [

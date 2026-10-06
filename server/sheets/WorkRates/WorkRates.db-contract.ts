@@ -2,13 +2,10 @@ import { z } from 'zod'
 import type { SheetContract } from '../../shared/contracts/sheet-contract.js'
 import { jobTicketDepartmentSchema } from '../JobTickets/JobTickets.db-contract.js'
 
-const workRateLevelDbSchema = z.enum(['EASY', 'MEDIUM', 'HARD'])
-
 /** KEY ORDER = physical WorkRates sheet column order. */
 export const workRatesRowSchema = z.object({
-  id: z.string(),
+  task_code: z.string().trim().regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/),
   department: jobTicketDepartmentSchema,
-  level: workRateLevelDbSchema,
   name_th: z.string(),
   minutes: z.number(),
   active: z.boolean(),
@@ -21,7 +18,7 @@ export const workRatesRowSchema = z.object({
 
 export const workRatesDbContract = {
   row: workRatesRowSchema,
-  primaryKey: 'id',
+  primaryKey: 'task_code',
   sheetName: 'WorkRates',
   spreadsheetId: 'WORK_SPREADSHEET_ID',
   writes: { append: false, update: false, delete: false },

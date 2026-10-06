@@ -29,10 +29,14 @@ assert.throws(() => jobTicketUpdateSchema.parse({ updatedBy: 'staff-1' }))
 assert.deepEqual(jobTicketScanRequestSchema.parse({
   laundryItemId: ' tag-1 ', department: 'Ironing', scannedBy: ' staff-2 ',
 }), { laundryItemId: 'tag-1', department: 'Ironing', scannedBy: 'staff-2' })
+assert.deepEqual(jobTicketScanRequestSchema.parse({
+  laundryItemId: 'tag-1', department: 'Ironing', taskCode: ' IRN-STANDARD ', scannedBy: 'staff-2',
+}), { laundryItemId: 'tag-1', department: 'Ironing', taskCode: 'IRN-STANDARD', scannedBy: 'staff-2' })
+assert.throws(() => jobTicketScanRequestSchema.parse({ laundryItemId: 'tag-1', department: 'Ironing', taskCode: ' ', scannedBy: 'staff-2' }))
 
 const row = {
   id: 'ticket-1', orderId: 'order-1', laundryItemId: 'tag-1', scope: 'ITEM',
-  serviceType: 'WSIR', department: 'Washing', stepNo: 1, customerId: 'customer-1',
+  taskCode: 'WSH-STANDARD', department: 'Washing', stepNo: 1, customerId: 'customer-1',
   orderName: 'Order one', dueDate: '2026-09-30', specialInstructions: null, notes: null,
   status: 'Pending', startedAt: null, completedAt: null, scannedBy: null,
   photoEvidenceUrl: null, createdAt: '2026-09-23 10:00:00', createdBy: 'staff-1',
@@ -44,6 +48,14 @@ assert.equal(jobTicketApiContract.response.update, jobTicketResponseSchema)
 assert.equal(jobTicketScanResponseSchema.parse({
   kind: 'blocked', laundryItemId: 'tag-1', department: 'Ironing', blockedByDepartment: 'Washing',
 }).kind, 'blocked')
+assert.deepEqual(jobTicketResponseSchema.parse({ ...row, taskCode: null }).taskCode, null)
+assert.equal('serviceType' in jobTicketResponseSchema.parse(row), false)
+assert.deepEqual(jobTicketScanResponseSchema.parse({
+  kind: 'ambiguous', laundryItemId: 'tag-1', department: 'Washing', taskCodes: ['WSH-STANDARD', null],
+}), { kind: 'ambiguous', laundryItemId: 'tag-1', department: 'Washing', taskCodes: ['WSH-STANDARD', null] })
+assert.throws(() => jobTicketScanResponseSchema.parse({
+  kind: 'ambiguous', laundryItemId: 'tag-1', department: 'Washing', taskCodes: ['WSH-STANDARD'],
+}))
 assert.deepEqual(jobTicketScanResponseSchema.parse({
   kind: 'not_advanceable', ticketId: 'ticket-1', status: 'Cancelled',
 }), { kind: 'not_advanceable', ticketId: 'ticket-1', status: 'Cancelled' })

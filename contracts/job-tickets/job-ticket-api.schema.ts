@@ -3,7 +3,6 @@ import { API_PAGINATION_DEFAULTS } from '../shared/api.schema.js'
 import type { ModuleApiContract } from '../shared/module-api-contract.js'
 
 export const jobTicketScopeSchema = z.enum(['ITEM', 'ORDER'])
-export const jobTicketServiceTypeSchema = z.enum(['WSIR', 'IRON', 'DRCL', 'WASH'])
 export const jobTicketDepartmentSchema = z.enum([
   'Tagging',
   'Washing',
@@ -36,7 +35,7 @@ export const jobTicketResponseSchema = z.object({
   orderId: z.string(),
   laundryItemId: z.string(),
   scope: jobTicketScopeSchema,
-  serviceType: jobTicketServiceTypeSchema.nullable(),
+  taskCode: z.string().nullable(),
   department: jobTicketDepartmentSchema,
   stepNo: z.number().int().min(0),
   customerId: z.string().nullable(),
@@ -61,6 +60,7 @@ export const jobTicketResponseSchema = z.object({
 export const jobTicketScanRequestSchema = z.object({
   laundryItemId: z.string().trim().min(1),
   department: jobTicketDepartmentSchema,
+  taskCode: z.string().trim().min(1).optional(),
   scannedBy: z.string().trim().min(1),
 })
 
@@ -151,6 +151,12 @@ export const jobTicketScanResponseSchema = z.discriminatedUnion('kind', [
     kind: z.literal('not_found'),
     laundryItemId: z.string(),
     department: jobTicketDepartmentSchema,
+  }),
+  z.object({
+    kind: z.literal('ambiguous'),
+    laundryItemId: z.string(),
+    department: jobTicketDepartmentSchema,
+    taskCodes: z.array(z.string().nullable()).min(2),
   }),
   z.object({
     kind: z.literal('not_advanceable'),

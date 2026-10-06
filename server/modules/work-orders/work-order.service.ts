@@ -37,7 +37,8 @@ import {
   type OrderFormApiRow,
   type OrderFormDbRow,
 } from './work-order.mapping.js'
-import { buildJobTickets, readWorkMinutesByDepartment, type WorkRateReader } from './job-ticket-provisioning.js'
+import { buildJobTickets } from './job-ticket-provisioning.js'
+import { readWorkRates, type WorkRateReader } from './work-rate-lookup.js'
 
 type OrderItemFormsDbRow = z.infer<typeof orderItemFormsRowSchema>
 type LaundryPhotosDbRow = z.infer<typeof laundryPhotosRowSchema>
@@ -316,12 +317,12 @@ export class WorkOrderService extends BaseCrudService<
       return { ...updatedOrder, ticketProvisioning: emptyProvisioning }
     }
 
-    const [orderHeaderRows, photoRows, itemRows, existingTicketRows, minutesByDepartment, staffMembers] = await Promise.all([
+    const [orderHeaderRows, photoRows, itemRows, existingTicketRows, ratesByTask, staffMembers] = await Promise.all([
       this.orderFormRepository().read({ id: updatedOrder.orderId }),
       this.laundryPhotoRepository().read({ where: { order_id: updatedOrder.orderId } }),
       this.orderItemRepository().read({ where: { order_id: updatedOrder.orderId } }),
       this.jobTicketRepository().read({ where: { order_id: updatedOrder.orderId } }),
-      readWorkMinutesByDepartment(this.workRateRepository),
+      readWorkRates(this.workRateRepository),
       Promise.resolve().then(() => this.staffReader()).catch((error) => {
         console.error('Failed to read staff list for Tagging', error)
         return new Map<string, StaffMember>()
@@ -360,11 +361,16 @@ export class WorkOrderService extends BaseCrudService<
       },
       garments,
       existingTicketRows.flatMap((ticket) =>
-        typeof ticket.laundry_item_id === 'string' && typeof ticket.department === 'string'
-          ? [{ laundryItemId: ticket.laundry_item_id, department: ticket.department }]
+        typeof ticket.id === 'string' && typeof ticket.laundry_item_id === 'string' && typeof ticket.department === 'string'
+          ? [{
+              id: ticket.id,
+              laundryItemId: ticket.laundry_item_id,
+              department: ticket.department,
+              taskCode: typeof ticket.task_code === 'string' ? ticket.task_code : null,
+            }]
           : [],
       ),
-      minutesByDepartment,
+      ratesByTask,
     )
 
     if (provisioning.rows.length === 0) {

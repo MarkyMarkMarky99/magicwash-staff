@@ -11,7 +11,7 @@ import { routeRegistry } from '../../../../../server/api/route-registry.js'
 
 assert.deepEqual(jobTicketFieldMap, {
   id: 'id', order_id: 'orderId', laundry_item_id: 'laundryItemId', scope: 'scope',
-  service_type: 'serviceType', department: 'department', step_no: 'stepNo',
+  task_code: 'taskCode', department: 'department', step_no: 'stepNo',
   customer_id: 'customerId', order_name: 'orderName', due_date: 'dueDate',
   special_instructions: 'specialInstructions', notes: 'notes', status: 'status',
   started_at: 'startedAt', completed_at: 'completedAt', scanned_by: 'scannedBy',
@@ -46,6 +46,13 @@ try {
   const blocked = await jobTicketRoutes.item!.handleRequest(request('scan'))
   assert.equal(blocked.status, 409)
   assert.equal((blocked.body as { kind: string }).kind, 'blocked')
+
+  scanMethods.scan = async () => ({
+    kind: 'ambiguous', laundryItemId: 'tag-1', department: 'Washing', taskCodes: ['WSH-STANDARD', 'WSH-DELICATE'],
+  })
+  const ambiguous = await jobTicketRoutes.item!.handleRequest(request('scan'))
+  assert.equal(ambiguous.status, 409)
+  assert.equal((ambiguous.body as { kind: string }).kind, 'ambiguous')
 
   scanMethods.scan = async () => ({
     kind: 'not_advanceable', ticketId: 'ticket-1', status: 'Cancelled',

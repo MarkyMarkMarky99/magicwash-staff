@@ -157,6 +157,44 @@ try {
 } finally {
   console.error = originalConsoleError
 }
+const sequential = setup([
+  row({ id: 'wash-a', step_no: 1, task_code: 'WSH-A', status: 'In Progress', work_minutes: 4 }),
+  row({ id: 'wash-b', step_no: 2, task_code: 'WSH-B', work_minutes: 9 }),
+  row({ id: 'wash-c', step_no: 1, task_code: 'WSH-C', laundry_item_id: 'tag-2', status: 'Completed', work_minutes: 2 }),
+  row({ id: 'wash-d', step_no: 2, task_code: 'WSH-D', laundry_item_id: 'tag-2', work_minutes: 6 }),
+])
+assert.deepEqual(await sequential.service.advance(request(['wash-b', 'wash-d'].map(ticketId => ({ ticketId, orderId: '1' })))), {
+  kind: 'completed', scoreFailed: 0,
+  advanced: [{ ticketId: 'wash-d', laundryItemId: 'tag-2', status: 'In Progress', startedAt: '2026-09-23 10:00:00', completedAt: null }],
+  blocked: [{ ticketId: 'wash-b', laundryItemId: 'tag-1', blockedByDepartment: 'Washing' }],
+  skipped: [],
+})
+const sequentialCompletion = setup([
+  row({ id: 'wash-a', step_no: 1, task_code: 'WSH-A', status: 'In Progress', work_minutes: 4 }),
+  row({ id: 'wash-b', step_no: 2, task_code: 'WSH-B', status: 'In Progress', work_minutes: 9 }),
+])
+const completedSecond = await sequentialCompletion.service.advance(request([{ ticketId: 'wash-b', orderId: '1' }], 'In Progress'))
+assert.equal(completedSecond.kind === 'completed' ? completedSecond.blocked.length : null, 1)
+assert.equal(sequentialCompletion.earnBatches.length, 0)
+const completedFirst = await sequentialCompletion.service.advance(request([{ ticketId: 'wash-a', orderId: '1' }], 'In Progress'))
+assert.equal(completedFirst.kind === 'completed' ? completedFirst.advanced.length : null, 1)
+assert.deepEqual(sequentialCompletion.earnBatches[0]!.map(({ id, ...earned }) => earned), [
+  { job_ticket_id: 'wash-a', type: 'EARN', minutes: 4, notes: null, created_by: 'staff' },
+])
+const afterFirstTask = setup([
+  row({ id: 'wash-a', step_no: 1, task_code: 'WSH-A', status: 'Completed', work_minutes: 4 }),
+  row({ id: 'wash-b', step_no: 2, task_code: 'WSH-B', status: 'In Progress', work_minutes: 9 }),
+])
+const afterFirstResult = await afterFirstTask.service.advance(request([
+  { ticketId: 'wash-a', orderId: '1' }, { ticketId: 'wash-b', orderId: '1' },
+], 'In Progress'))
+assert.equal(afterFirstResult.kind === 'completed' ? afterFirstResult.advanced[0]?.ticketId : null, 'wash-b')
+assert.deepEqual(afterFirstResult.kind === 'completed' ? afterFirstResult.skipped : null, [
+  { ticketId: 'wash-a', reason: 'status_changed' },
+])
+assert.deepEqual(afterFirstTask.earnBatches[0]!.map(({ id, ...earned }) => earned), [
+  { job_ticket_id: 'wash-b', type: 'EARN', minutes: 9, notes: null, created_by: 'staff' },
+])
 const gvizStarted = setup([row({ status: 'In Progress', started_at: 'Date(2026,9,4,3,22,46)' })])
 await gvizStarted.service.advance(request([{ ticketId: 'one', orderId: '1' }], 'In Progress'))
 assert.equal('started_at' in (gvizStarted.batches[0] as Array<{ patch: Record<string, unknown> }>)[0]!.patch, false)

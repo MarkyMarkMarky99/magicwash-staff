@@ -51,6 +51,8 @@ export function presentScanResult(result: JobTicketScanResult): { tone: Exclude<
       return { tone: 'error', message: `Cannot proceed: ${departmentLabels[result.blockedByDepartment]} is not completed` }
     case 'not_found':
       return { tone: 'error', message: 'No job found for this tag in this department' }
+    case 'ambiguous':
+      return { tone: 'error', message: `This tag has ${result.taskCodes.length} tasks in this department (${result.taskCodes.map(code => code ?? 'no task').join(', ')}). Choose the task instead of scanning` }
     case 'not_advanceable':
       return { tone: 'error', message: `Cannot proceed with status ${statusLabels[result.status]}` }
     case 'write_failed':

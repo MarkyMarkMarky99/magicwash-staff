@@ -9,7 +9,7 @@ type JobTicketRow = z.infer<typeof jobTicketsRowSchema>
 function ticket(overrides: Partial<JobTicketRow>): Partial<JobTicketRow> {
   return {
     id: 'ticket-1', order_id: 'order-1', laundry_item_id: 'tag-1', scope: 'ITEM',
-    service_type: 'WSIR', department: 'Washing', step_no: 1, status: 'Pending',
+    task_code: 'WSH-STANDARD', department: 'Washing', step_no: 1, status: 'Pending',
     started_at: null, completed_at: null, deleted_at: null, ...overrides,
   }
 }
@@ -73,6 +73,75 @@ assert.deepEqual(cancelled.updates, [])
 const missing = serviceWith([])
 assert.deepEqual(await missing.service.scan({
   laundryItemId: 'tag-1', department: 'Washing', scannedBy: 'staff-1',
+}), { kind: 'not_found', laundryItemId: 'tag-1', department: 'Washing' })
+
+const sameDepartment = [
+  ticket({ id: 'wash-a', task_code: 'WSH-A', step_no: 1 }),
+  ticket({ id: 'wash-b', task_code: 'WSH-B', step_no: 2 }),
+  ticket({ id: 'iron', task_code: 'IRN-STANDARD', department: 'Ironing', step_no: 3 }),
+]
+const ambiguous = serviceWith(sameDepartment)
+assert.deepEqual(await ambiguous.service.scan({
+  laundryItemId: 'tag-1', department: 'Washing', scannedBy: 'staff-1',
+}), { kind: 'ambiguous', laundryItemId: 'tag-1', department: 'Washing', taskCodes: ['WSH-A', 'WSH-B'] })
+assert.deepEqual(ambiguous.updates, [])
+
+const legacyAmbiguous = serviceWith([
+  ticket({ id: 'legacy-1', task_code: null }),
+  ticket({ id: 'legacy-2', task_code: 'WSH-B', step_no: 2 }),
+])
+assert.deepEqual(await legacyAmbiguous.service.scan({
+  laundryItemId: 'tag-1', department: 'Washing', scannedBy: 'staff-1',
+}), { kind: 'ambiguous', laundryItemId: 'tag-1', department: 'Washing', taskCodes: [null, 'WSH-B'] })
+
+const explicitSecond = serviceWith(sameDepartment)
+assert.deepEqual(await explicitSecond.service.scan({
+  laundryItemId: 'tag-1', department: 'Washing', taskCode: 'WSH-B', scannedBy: 'staff-1',
+}), { kind: 'blocked', laundryItemId: 'tag-1', department: 'Washing', blockedByDepartment: 'Washing' })
+assert.deepEqual(explicitSecond.updates, [])
+
+const explicitFirst = serviceWith(sameDepartment)
+const explicitFirstResult = await explicitFirst.service.scan({
+  laundryItemId: 'tag-1', department: 'Washing', taskCode: 'WSH-A', scannedBy: 'staff-1',
+})
+assert.equal(explicitFirstResult.kind === 'advanced' ? explicitFirstResult.ticketId : null, 'wash-a')
+assert.deepEqual(explicitFirst.updates.map((update) => update.id), ['wash-a'])
+
+const afterFirst = serviceWith([
+  ticket({ id: 'wash-a', task_code: 'WSH-A', step_no: 1, status: 'Completed' }),
+  ticket({ id: 'wash-b', task_code: 'WSH-B', step_no: 2 }),
+])
+const afterFirstResult = await afterFirst.service.scan({
+  laundryItemId: 'tag-1', department: 'Washing', taskCode: 'WSH-B', scannedBy: 'staff-1',
+})
+assert.equal(afterFirstResult.kind === 'advanced' ? afterFirstResult.ticketId : null, 'wash-b')
+
+const paddedTaskCode = serviceWith([ticket({ id: 'wash-b', task_code: 'WSH-B ' })])
+assert.deepEqual(await paddedTaskCode.service.scan({
+  laundryItemId: 'tag-1', department: 'Washing', taskCode: 'WSH-B', scannedBy: 'staff-1',
+}), {
+  kind: 'advanced', ticketId: 'wash-b', status: 'In Progress',
+  startedAt: '2026-09-23 10:00:00', completedAt: null,
+})
+assert.deepEqual(paddedTaskCode.updates, [{
+  id: 'wash-b',
+  patch: {
+    status: 'In Progress', started_at: '2026-09-23 10:00:00', scanned_by: 'staff-1', updated_by: 'staff-1',
+  },
+}])
+
+const nullTaskCodeSibling = serviceWith([
+  ticket({ id: 'legacy', task_code: null }),
+  ticket({ id: 'wash-b', task_code: 'WSH-B' }),
+])
+const nullTaskCodeSiblingResult = await nullTaskCodeSibling.service.scan({
+  laundryItemId: 'tag-1', department: 'Washing', taskCode: 'WSH-B', scannedBy: 'staff-1',
+})
+assert.equal(nullTaskCodeSiblingResult.kind === 'advanced' ? nullTaskCodeSiblingResult.ticketId : null, 'wash-b')
+assert.deepEqual(nullTaskCodeSibling.updates.map((update) => update.id), ['wash-b'])
+
+assert.deepEqual(await serviceWith(sameDepartment).service.scan({
+  laundryItemId: 'tag-1', department: 'Washing', taskCode: 'WSH-NONE', scannedBy: 'staff-1',
 }), { kind: 'not_found', laundryItemId: 'tag-1', department: 'Washing' })
 
 for (const [error, certainty] of [

@@ -64,6 +64,27 @@ assert.deepEqual(await blocked.service.startOrder(payload), {
 })
 assert.equal(blocked.batches.length, 0)
 
+const sequential = serviceWith([
+  ticket({ id: 'wash-a', task_code: 'WSH-A', step_no: 1 }),
+  ticket({ id: 'wash-b', task_code: 'WSH-B', step_no: 2 }),
+])
+assert.deepEqual(await sequential.service.startOrder(payload), {
+  kind: 'completed',
+  advanced: [{ ticketId: 'wash-a', laundryItemId: 'tag-1', status: 'In Progress', startedAt: '2026-09-23 10:00:00' }],
+  blocked: [{ ticketId: 'wash-b', laundryItemId: 'tag-1', blockedByDepartment: 'Washing' }],
+  skippedWithoutTag: 0,
+})
+assert.deepEqual(sequential.batches, [[
+  { keyValue: 'wash-a', patch: { status: 'In Progress', started_at: '2026-09-23 10:00:00', scanned_by: 'staff-1', updated_by: 'staff-1' } },
+]])
+
+const afterFirstTask = serviceWith([
+  ticket({ id: 'wash-a', task_code: 'WSH-A', step_no: 1, status: 'Completed' }),
+  ticket({ id: 'wash-b', task_code: 'WSH-B', step_no: 2 }),
+])
+const afterFirstTaskResult = await afterFirstTask.service.startOrder(payload)
+assert.deepEqual(afterFirstTaskResult.kind === 'completed' ? afterFirstTaskResult.advanced.map((entry) => entry.ticketId) : null, ['wash-b'])
+
 for (const [error, certainty] of [
   [new WriteRejectedError('UPDATE', 'rejected'), 'rejected'],
   [new WriteTransportError('UPDATE', 'network'), 'unknown'],

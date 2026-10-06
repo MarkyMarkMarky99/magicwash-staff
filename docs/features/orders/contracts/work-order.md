@@ -84,8 +84,9 @@ The response is the updated work-order list/header shape plus:
 For updates without an explicit `APPROVED` status, ticket provisioning is not run and the nested result contains
 zero created tickets, zero score failures, no skipped garments, and no failure. After an `APPROVED` status write, the
 service reads LaundryPhotos, OrderItemForms, and existing JobTickets, builds every missing
-item-scoped department ticket, and uses one batch append. Existing garment/department pairs are
-not appended again, so a repeated approval can fill tickets for a garment tagged later.
+item-scoped task ticket, and uses one batch append. Existing garment/department/task tickets are
+not appended again, so a repeated approval can fill tickets for a garment tagged later. Tickets created
+before task codes occupy their department's default task by id; see the job-ticket contract.
 
 Approval reads the active staff list alongside the other provisioning inputs. A photo's trimmed
 `created_by` must match a non-empty active StaffId to create a Tagging ticket. Each distinct tag
@@ -93,9 +94,9 @@ uses its first matching garment, creates a Completed ticket at step 0, and credi
 with an EARN row after the ticket append succeeds. Unsupported services can still receive a
 Tagging ticket. A staff read failure creates no Tagging tickets or scores. A ticket append
 failure writes no scores; a score append failure leaves `ticketsCreated` intact and reports
-`scoreFailed`. Re-approval skips existing Tagging pairs and does not score them again.
+`scoreFailed`. Re-approval skips existing Tagging tickets and does not score them again.
 
-Each new ticket's `work_minutes` is taken from its department's active EASY row in WorkRates, or left blank when none exists or WorkRates cannot be read (approval still succeeds).
+Each new ticket's `work_minutes` is the `minutes` of the active WorkRates row whose `task_code` is the ticket's task code and whose department matches, or left blank when none exists, the code is duplicated anywhere in WorkRates, or WorkRates cannot be read (approval still succeeds). Rows with a blank or unreadable code, an unknown department, or minutes that are not a finite non-negative number are ignored and logged; a task code that appears on more than one row, including inactive rows or rows with invalid minutes, is ignored entirely and logged, so no duplicate is silently preferred.
 The status write is not rolled back if provisioning fails. A rejected append confirms that no
 ticket batch landed. An unknown append outcome must not be retried automatically because the batch
 may have landed even though its response could not be confirmed.

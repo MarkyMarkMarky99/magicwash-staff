@@ -38,8 +38,21 @@ export class JobTicketScanService {
     const tickets = (await this.repository().read({
       where: { laundry_item_id: request.laundryItemId },
     })).filter((ticket) => ticket.deleted_at == null || ticket.deleted_at === '')
-    const ticket = tickets.find((candidate) => candidate.department === request.department)
+    const candidates = tickets.filter((candidate) =>
+      candidate.department === request.department
+      && (request.taskCode === undefined || candidate.task_code?.trim() === request.taskCode),
+    )
 
+    if (candidates.length > 1) {
+      return {
+        kind: 'ambiguous',
+        laundryItemId: request.laundryItemId,
+        department: request.department,
+        taskCodes: candidates.map((candidate) => candidate.task_code ?? null),
+      }
+    }
+
+    const ticket = candidates[0]
     if (ticket?.id === undefined || ticket.step_no === undefined) {
       return {
         kind: 'not_found',

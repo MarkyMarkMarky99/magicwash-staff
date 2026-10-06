@@ -5,7 +5,7 @@ import { orderFormRowSchema } from '../../../../../server/sheets/OrderForm/Order
 import type { SheetRepositoryContract } from '../../../../../server/shared/repositories/sheet-repository.contract.js'
 import { WriteRejectedError, WriteTransportError } from '../../../../../server/shared/repositories/sheets-api.client.js'
 
-import { resetWorkRatesCache } from '../../../../../server/modules/work-orders/job-ticket-provisioning.js'
+import { resetWorkRatesCache } from '../../../../../server/modules/work-orders/work-rate-lookup.js'
 
 type OrderFormRow = z.infer<typeof orderFormRowSchema>
 
@@ -20,7 +20,13 @@ function orderRow(overrides: Partial<OrderFormRow> = {}): OrderFormRow {
   }
 }
 
-function createService(appendError?: Error, workRateError?: Error, scoreError?: Error, staffError?: Error) {
+const standardRates = () => [
+  { task_code: 'TAG-PHOTO', department: 'Tagging', active: true, minutes: 3 },
+  { task_code: 'WSH-STANDARD', department: 'Washing', active: true, minutes: 12 },
+  { task_code: 'IRN-STANDARD', department: 'Ironing', active: true, minutes: 5 },
+]
+
+function createService(appendError?: Error, workRateError?: Error, scoreError?: Error, staffError?: Error, rateRows: Array<Record<string, unknown>> = standardRates()) {
   resetWorkRatesCache()
   const orderRepository: SheetRepositoryContract<OrderFormRow> = {
     async read() { return [orderRow()] },
@@ -31,8 +37,8 @@ function createService(appendError?: Error, workRateError?: Error, scoreError?: 
   }
   const appendCalls: Array<Array<Record<string, unknown>>> = []
   const scoreCalls: Array<Array<Record<string, unknown>>> = []
-  const existingRows: Array<{ order_id: string; laundry_item_id: string; department: 'Washing' | 'Tagging' | 'Ironing' | 'Packaging' }> = [
-    { order_id: 'order-1', laundry_item_id: 'tag-1', department: 'Washing' },
+  const existingRows: Array<{ id: string; order_id: string; laundry_item_id: string; department: 'Washing' | 'Tagging' | 'Ironing' | 'Packaging'; task_code?: string | null }> = [
+    { id: 'WSH-order-1-tag-1', order_id: 'order-1', laundry_item_id: 'tag-1', department: 'Washing', task_code: 'WSIR' },
   ]
   const workRateCalls = { getters: 0, reads: 0 }
   const service = new WorkOrderService({
@@ -55,11 +61,7 @@ function createService(appendError?: Error, workRateError?: Error, scoreError?: 
           workRateCalls.reads += 1
           assert.deepEqual(args, [])
           if (workRateError) throw workRateError
-          return [
-            { department: 'Tagging', active: true, level: 'EASY', minutes: 3 },
-            { department: 'Washing', active: true, level: 'EASY', minutes: 12 },
-            { department: 'Ironing', active: true, level: 'EASY', minutes: 5 },
-          ]
+          return rateRows
         },
       }
     },
@@ -102,6 +104,14 @@ assert.deepEqual(successful.appendCalls[0]?.map((row) => row.work_minutes), [3, 
 assert.deepEqual(successful.appendCalls[0]?.map((row) => [row.laundry_item_id, row.department]), [
   ['tag-1', 'Tagging'], ['tag-1', 'Ironing'], ['tag-1', 'Packaging'], ['tag-2', 'Washing'], ['tag-2', 'Packaging'],
 ])
+assert.deepEqual(successful.appendCalls[0]?.map((row) => [row.id, row.task_code]), [
+  ['TAG-order-1-tag-1-TAG-PHOTO', 'TAG-PHOTO'],
+  ['IRN-order-1-tag-1-IRN-STANDARD', 'IRN-STANDARD'],
+  ['PCK-order-1-tag-1-PCK-STANDARD', 'PCK-STANDARD'],
+  ['WSH-order-1-tag-2-WSH-STANDARD', 'WSH-STANDARD'],
+  ['PCK-order-1-tag-2-PCK-STANDARD', 'PCK-STANDARD'],
+])
+assert.ok(successful.appendCalls[0]?.every((row) => !('service_type' in row)))
 assert.deepEqual(successful.appendCalls[0]?.map((row) => row.photo_evidence_url), [
   'https://example.test/tag-1.jpg', 'https://example.test/tag-1.jpg', 'https://example.test/tag-1.jpg', null, null,
 ])
@@ -142,17 +152,55 @@ try {
 assert.equal(successful.scoreCalls.length, 1)
 const earn = successful.scoreCalls[0]?.[0]
 assert.match(String(earn?.id), /^[a-z0-9]{8}$/)
-assert.deepEqual(earn, { id: earn?.id, job_ticket_id: 'TAG-order-1-tag-1', type: 'EARN', minutes: 3, notes: null, created_by: 'tagger-1' })
+assert.deepEqual(earn, { id: earn?.id, job_ticket_id: 'TAG-order-1-tag-1-TAG-PHOTO', type: 'EARN', minutes: 3, notes: null, created_by: 'tagger-1' })
 assert.equal(successful.appendCalls[0]?.[0]?.completed_at, '2026-10-06 10:00:00')
 successful.existingRows.push(...successful.appendCalls[0]!.map(row => ({
-  order_id: String(row.order_id), laundry_item_id: String(row.laundry_item_id),
+  id: String(row.id), order_id: String(row.order_id), laundry_item_id: String(row.laundry_item_id),
   department: row.department as typeof successful.existingRows[number]['department'],
+  task_code: String(row.task_code),
 })))
 const reapproval = await successful.service.update('order-1', { status: 'APPROVED', updatedBy: 'staff-2' })
 assert.equal(reapproval.ticketProvisioning.ticketsCreated, 0)
 assert.equal(reapproval.ticketProvisioning.scoreFailed, 0)
 assert.equal(successful.scoreCalls.length, 1)
 assert.equal(successful.appendCalls.length, 1)
+
+const legacy = createService()
+legacy.existingRows.push(
+  { id: 'TAG-order-1-tag-1', order_id: 'order-1', laundry_item_id: 'tag-1', department: 'Tagging', task_code: null },
+  { id: 'IRN-order-1-tag-1', order_id: 'order-1', laundry_item_id: 'tag-1', department: 'Ironing', task_code: null },
+  { id: 'PCK-order-1-tag-1', order_id: 'order-1', laundry_item_id: 'tag-1', department: 'Packaging', task_code: 'WSIR' },
+)
+const legacyResult = await legacy.service.update('order-1', { status: 'APPROVED', updatedBy: 'staff-2' })
+assert.equal(legacyResult.ticketProvisioning.ticketsCreated, 2)
+assert.deepEqual(legacy.appendCalls[0]?.map((row) => row.id), ['WSH-order-1-tag-2-WSH-STANDARD', 'PCK-order-1-tag-2-PCK-STANDARD'])
+assert.equal(legacy.scoreCalls.length, 0)
+
+const rateChanged = createService(undefined, undefined, undefined, undefined, [
+  { task_code: 'TAG-PHOTO', department: 'Tagging', active: true, minutes: 60 },
+  { task_code: 'WSH-STANDARD', department: 'Washing', active: true, minutes: 60 },
+  { task_code: 'IRN-STANDARD', department: 'Ironing', active: true, minutes: 60 },
+])
+rateChanged.existingRows.push(...successful.existingRows.filter((row) => row.id !== 'WSH-order-1-tag-1'))
+const rateChangedResult = await rateChanged.service.update('order-1', { status: 'APPROVED', updatedBy: 'staff-2' })
+assert.equal(rateChangedResult.ticketProvisioning.ticketsCreated, 0)
+assert.equal(rateChanged.appendCalls.length, 0)
+assert.equal(rateChanged.scoreCalls.length, 0)
+
+const originalConsoleErrorForRates = console.error
+console.error = () => {}
+try {
+  const duplicateTagRate = createService(undefined, undefined, undefined, undefined, [
+    ...standardRates(),
+    { task_code: 'TAG-PHOTO', department: 'Tagging', active: true, minutes: 9 },
+  ])
+  const duplicateResult = await duplicateTagRate.service.update('order-1', { status: 'APPROVED', updatedBy: 'staff-2' })
+  assert.equal(duplicateResult.ticketProvisioning.ticketsCreated, 5)
+  assert.deepEqual(duplicateTagRate.appendCalls[0]?.map((row) => row.work_minutes), [null, 5, null, 12, null])
+  assert.equal(duplicateTagRate.scoreCalls.length, 0)
+} finally {
+  console.error = originalConsoleErrorForRates
+}
 
 const nonApproved = createService()
 const nonApprovedResponse = await nonApproved.service.update('order-1', { status: 'RECEIVED', updatedBy: 'staff-2' })
