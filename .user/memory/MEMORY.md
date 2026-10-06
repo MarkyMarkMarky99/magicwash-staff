@@ -12,8 +12,8 @@
 ## Pending work
 
 - Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
-- Bag tag print after WEIGHT photo: layout locked, request body proposed, awaiting owner decisions; see `.user/memory/feat-bag-tag-and-bag-scan.md`.
-- Order bag-scan page (Packaging): mock approved, scanned-state storage undecided; see `.user/memory/feat-bag-tag-and-bag-scan.md`.
+- RESUME HERE (2026-10-07): read `.user/memory/feat-bag-tag-and-bag-scan.md` for the handoff; bag tag print + bag-scan page await owner decisions.
+- Session log `2026-10-07-045309-local-command-caveatthe-command-below-was-run-d.txt` (repo root): query it only via the `explore` skill, never read it directly (too large).
 - **Orders report (`/reports/orders`, merged 2026-10-05)**
   - Order list has no pull-to-refresh yet (ListPageLayout lacks it); `/api/order-reports` and the server date/keyword path of `/api/work-orders` now have no frontend caller.
   - Deferred by owner: status cards show current status, not status on that day; check whether orders ever reach COMPLETED.
