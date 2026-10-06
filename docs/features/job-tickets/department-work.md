@@ -18,6 +18,13 @@ The scan button opens the shared scanner with `scan=1` in the query. Browser Bac
 
 Completing a ticket through `/api/job-tickets/advance` appends one WorkTransactions EARN row with the ticket's `work_minutes` and `created_by` set to the staff StaffId; accepting work (Pending → In Progress) earns nothing. Tickets without `work_minutes` (created before the column existed) earn nothing and are not reported. If the score write fails, the affected tickets are counted in `scoreFailed` and the page shows “Score not saved … Tell an admin”; completion itself still succeeds.
 
+Tagging scores come from work-order approval: newly appended Completed Tagging tickets at
+step 0 earn their stored work minutes for the active StaffId recorded in LaundryPhotos
+`created_by`, rather than the approving actor. Photos without an active StaffId earn nothing.
+WorkRates successful reads are cached in memory for the life of each server instance, without
+a TTL; concurrent reads share one in-flight request. Failed reads are logged and are not cached,
+so a later approval can try again.
+
 The play arrow on each order card continues to send one `/api/job-tickets/start-order` request to start all Pending tickets with tags in that order. In Progress, Completed, and Cancelled tickets are skipped; Pending tickets without tags are counted as skipped. Each order's Start runs in the background and shows a spinning sync icon while that order syncs. Its button is disabled only during that order's sync or when the order has no Pending tickets. The actor is the signed-in StaffId, or `unknown` when signed out; the optional `by` query is ignored.
 
 Start shows one summary notice with counts of advanced, blocked, and skipped without a tag, plus the blocking department names when any are blocked. A failed Start write asks staff to retry or check the order according to write certainty. The shared sound and vibration controls appear in the scanner header. A queued read plays one short beep and a 70 ms vibration; rejected reads play two short beeps and a distinct vibration pattern, subject to the independent preferences. Image taps and Start are silent.

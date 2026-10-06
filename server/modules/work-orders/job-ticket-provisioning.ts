@@ -23,10 +23,12 @@ export interface JobTicketProvisioningOrder {
   dueDate: string | null
   notes: string | null
   createdBy: string
+  completedAt: string
 }
 
 export interface JobTicketProvisioningGarment {
   laundryItemId: string
+  taggedBy: string | null
   serviceType: string | null
   specialInstructions: string | null
   photoEvidenceUrl: string | null
@@ -42,7 +44,7 @@ export interface ProvisionedJobTicketRow {
   order_id: string
   laundry_item_id: string
   scope: 'ITEM'
-  service_type: RoutableServiceType
+  service_type: RoutableServiceType | null
   department: JobTicketDepartment
   step_no: number
   customer_id: string | null
@@ -50,7 +52,11 @@ export interface ProvisionedJobTicketRow {
   due_date: string | null
   special_instructions: string | null
   notes: string | null
-  status: 'Pending'
+  status: 'Pending' | 'Completed'
+  started_at?: string
+  completed_at?: string
+  scanned_by?: string
+  updated_by?: string
   photo_evidence_url: string | null
   created_by: string
   work_minutes: number | null
@@ -97,24 +103,41 @@ export function buildJobTicketId(
   return `${departmentPrefixes[department]}-${orderId}-${laundryItemId}`
 }
 
+let cachedWorkMinutes: Map<JobTicketDepartment, number> | undefined
+let workRatesInFlight: Promise<Map<JobTicketDepartment, number>> | undefined
+
+export function resetWorkRatesCache(): void {
+  cachedWorkMinutes = undefined
+  workRatesInFlight = undefined
+}
+
 export async function readWorkMinutesByDepartment(
   repository: () => WorkRateReader,
 ): Promise<Map<JobTicketDepartment, number>> {
-  try {
-    const rows = await repository().read()
-    const minutesByDepartment = new Map<JobTicketDepartment, number>()
-    for (const row of rows) {
-      if (row.active === true && row.level === 'EASY'
-        && typeof row.minutes === 'number' && Number.isFinite(row.minutes)
-        && typeof row.department === 'string' && !minutesByDepartment.has(row.department)) {
-        minutesByDepartment.set(row.department, row.minutes)
+  if (cachedWorkMinutes) return cachedWorkMinutes
+  if (workRatesInFlight) return workRatesInFlight
+  const pending = Promise.resolve().then(async () => {
+    try {
+      const rows = await repository().read()
+      const minutesByDepartment = new Map<JobTicketDepartment, number>()
+      for (const row of rows) {
+        if (row.active === true && row.level === 'EASY'
+          && typeof row.minutes === 'number' && Number.isFinite(row.minutes)
+          && typeof row.department === 'string' && !minutesByDepartment.has(row.department)) {
+          minutesByDepartment.set(row.department, row.minutes)
+        }
       }
+      if (workRatesInFlight === pending) cachedWorkMinutes = minutesByDepartment
+      return minutesByDepartment
+    } catch (error) {
+      console.error('Failed to read WorkRates', error)
+      return new Map()
     }
-    return minutesByDepartment
-  } catch (error) {
-    console.error('Failed to read WorkRates', error)
-    return new Map()
-  }
+  }).finally(() => {
+    if (workRatesInFlight === pending) workRatesInFlight = undefined
+  })
+  workRatesInFlight = pending
+  return pending
 }
 
 export function buildJobTickets(
@@ -144,6 +167,33 @@ export function buildJobTickets(
         reason: 'missingLaundryItemId',
       })
       continue
+    }
+
+    const taggingPair = `${garment.laundryItemId}\u0000Tagging`
+    if (garment.taggedBy !== null && !occupiedPairs.has(taggingPair)) {
+      occupiedPairs.add(taggingPair)
+      rows.push({
+        id: buildJobTicketId(order.orderId, garment.laundryItemId, 'Tagging'),
+        order_id: order.orderId,
+        laundry_item_id: garment.laundryItemId,
+        scope: 'ITEM',
+        service_type: isRoutableServiceType(garment.serviceType) ? garment.serviceType : null,
+        department: 'Tagging',
+        step_no: 0,
+        customer_id: order.customerId,
+        order_name: order.orderName,
+        due_date: order.dueDate,
+        special_instructions: garment.specialInstructions,
+        notes: order.notes,
+        status: 'Completed',
+        started_at: order.completedAt,
+        completed_at: order.completedAt,
+        scanned_by: garment.taggedBy,
+        updated_by: garment.taggedBy,
+        photo_evidence_url: photosByTag.get(garment.laundryItemId) ?? null,
+        created_by: order.createdBy,
+        work_minutes: minutesByDepartment.get('Tagging') ?? null,
+      })
     }
 
     if (!isRoutableServiceType(garment.serviceType)) {

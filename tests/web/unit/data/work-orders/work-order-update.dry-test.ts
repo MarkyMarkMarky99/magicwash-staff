@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { setSignedInStaffId } from '@/shared/config/actor'
 import { createPinia, setActivePinia } from 'pinia'
 import { updateWorkOrder, type WorkOrderListDto } from '@/data/work-orders/work-order.service'
 import { useWorkOrderStore } from '@/data/work-orders/work-order.store'
@@ -17,12 +18,13 @@ globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) =>
   return new Response(JSON.stringify({
     data: {
       ...row, status: 'APPROVED', receivedDate: '2026-09-23', quantity: 3,
-      ticketProvisioning: { ticketsCreated: 2, skippedGarments: [], failure: null },
+      ticketProvisioning: { ticketsCreated: 2, scoreFailed: 0, skippedGarments: [], failure: null },
     },
   }), { status: 200, headers: { 'Content-Type': 'application/json' } })
 }) as typeof fetch
 
 try {
+  setSignedInStaffId('staff-1')
   setActivePinia(createPinia())
   const store = useWorkOrderStore()
   const customerStore = useCustomerOrdersStore()
@@ -35,10 +37,11 @@ try {
   assert.equal(calls[0]?.url, '/api/work-orders/order%2F1')
   assert.equal(calls[0]?.method, 'PATCH')
   assert.deepEqual(calls[0]?.body, {
-    status: 'APPROVED', receivedDate: '2026-09-23', quantity: 3, updatedBy: 'admin',
+    status: 'APPROVED', receivedDate: '2026-09-23', quantity: 3, updatedBy: 'staff-1',
   })
   customerStore.applyPersisted(updated)
   assert.equal(updated.ticketProvisioning.ticketsCreated, 2)
+  assert.equal(updated.ticketProvisioning.scoreFailed, 0)
   assert.equal(customerStore.items[0]?.status, 'APPROVED')
   assert.equal(store.orders[0]?.status, 'APPROVED')
   assert.equal(store.orders[0]?.quantity, 3)
@@ -47,5 +50,6 @@ try {
   assert.equal(calls.length, 1)
   console.log('work-order-update.dry-test: OK')
 } finally {
+  setSignedInStaffId(null)
   globalThis.fetch = originalFetch
 }

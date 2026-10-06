@@ -96,6 +96,7 @@ export const workOrderUpdateSchema = z.object({
 
 export const workOrderTicketProvisioningSchema = z.object({
   ticketsCreated: z.number().int().nonnegative(),
+  scoreFailed: z.number().int().min(0),
   skippedGarments: z.array(z.object({
     laundryItemId: z.string(),
     serviceType: z.string().nullable(),

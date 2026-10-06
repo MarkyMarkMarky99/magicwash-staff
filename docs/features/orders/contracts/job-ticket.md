@@ -96,6 +96,15 @@ tickets and appends every missing `(laundryItemId, department)` pair in one batc
 Each new ticket's `work_minutes` is taken from its department's active EASY row in WorkRates, or left blank when none exists or WorkRates cannot be read (approval still succeeds).
 Each new department ticket defaults `photoEvidenceUrl` to the first non-empty `LaundryPhotos.image_url` for its garment tag, or null when none exists.
 
+Approval also creates one Tagging ticket at step 0 per distinct non-blank tag whose
+LaundryPhotos `created_by` matches an active StaffId. The first matching photo author is the
+tagger. This ticket is already Completed, with start and completion times set to the approval
+time and scan/update actors set to the tagger. It is created even for an unsupported service
+(with null service type). Routed tickets remain Pending at steps 1 onward. Old photo authors
+that are not active StaffIds create no Tagging ticket or score. After the ticket batch succeeds,
+each new Tagging ticket with finite work minutes earns one WorkTransactions EARN row credited
+to the tagger. Existing Tagging pairs are skipped and earn no additional score on re-approval.
+
 Repeating an `APPROVED` update is safe for already-created pairs and fills tickets for garments that
-were tagged later. A garment with a missing tag or unsupported service type is reported as skipped.
+were tagged later. A garment with a missing tag or unsupported service type is reported as skipped for routing; an unsupported service can still receive its Tagging ticket.
 The order status is never rolled back when the ticket batch fails.

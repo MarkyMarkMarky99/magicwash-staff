@@ -38,7 +38,7 @@ export const jobTicketResponseSchema = z.object({
   scope: jobTicketScopeSchema,
   serviceType: jobTicketServiceTypeSchema.nullable(),
   department: jobTicketDepartmentSchema,
-  stepNo: z.number().int().min(1),
+  stepNo: z.number().int().min(0),
   customerId: z.string().nullable(),
   orderName: z.string().nullable(),
   dueDate: z.string().nullable(),

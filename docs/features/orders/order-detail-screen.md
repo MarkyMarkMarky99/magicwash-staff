@@ -44,3 +44,5 @@ A square Approve action anchored to the bottom-right of the app column appears f
 RECEIVED, and SUBMITTED orders. Its error toast uses the same anchor. The action is disabled
 when header and item quantities mismatch or while saving. Approval uses the normal
 work-order update path and reports ticket provisioning in the detail notice.
+When `ticketProvisioning.scoreFailed` is positive, the same notice shows a warning:
+“Tagging score not saved for N tags. Tell an admin.”, where N is the failed score count.

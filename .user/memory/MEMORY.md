@@ -17,7 +17,9 @@
 
 - **Staff KPI (WorkTransactions / WorkRates, merged 2026-10-04)**
   - Browser-check the staff profile page `/staff/:staffId` (Day date strip, Week leaderboard); only unit-tested.
-  - Staff list/profiles opened to every signed-in staff member (2026-10-06); browser-check as non-admin: no Edit link, pending rows open the profile.
+  - Staff list is now a daily ranking (medals, DateTabs, English); browser-check on a phone and as non-admin.
+  - Tagging score (step-0 Completed ticket + EARN at APPROVED, tagger from LaundryPhotos) not yet deployed; after deploy, approve a fresh order and check JobTickets + WorkTransactions rows.
+  - Weight-photo score (1 kg = 20 min) planned, not started: same ticket+EARN pattern, Tagging department, image id as laundry_item_id.
   - Accepted risk: two simultaneous completions of one ticket can write two EARNs; correct with a VOID row.
   - Before KPI drives pay: server must take the actor from the token, not the client body.
   - Future: supervisor-created tickets with custom `work_minutes`; Month view; Attendance for efficiency %.

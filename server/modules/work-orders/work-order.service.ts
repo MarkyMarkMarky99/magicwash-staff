@@ -25,6 +25,11 @@ import type { ServiceListResult } from '../../shared/services/base-crud.service.
 import { BaseCrudService } from '../../shared/services/base-crud.service.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import { classifySheetWriteFailure } from '../../shared/repositories/write-failure.js'
+import { getStaffList, type StaffMember } from '../../shared/auth/staff-list.js'
+import { getWorkTransactionsRepository } from '../../sheets/WorkTransactions/WorkTransactions.repository.js'
+import { workTransactionsRowSchema } from '../../sheets/WorkTransactions/WorkTransactions.db-contract.js'
+import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
+import { buildEarnRows } from '../work-transactions/work-transaction-earn.js'
 import { generateShortId } from '../../shared/utils/id.js'
 import {
   orderFormFieldMap,
@@ -70,6 +75,10 @@ export interface JobTicketProvisioningRepository {
   batchAppend(rows: Array<Partial<JobTicketsDbRow>>): Promise<unknown[]>
 }
 
+export interface WorkTransactionWriter {
+  batchAppend(rows: Array<Partial<z.infer<typeof workTransactionsRowSchema>>>): Promise<unknown[]>
+}
+
 export interface WorkOrderServiceOptions {
   orderFormRepository?: () => SheetRepositoryContract<OrderFormDbRow>
   orderItemPort?: OrderItemPort
@@ -78,6 +87,9 @@ export interface WorkOrderServiceOptions {
   orderItemRepository?: () => OrderItemReader
   jobTicketRepository?: () => JobTicketProvisioningRepository
   workRateRepository?: () => WorkRateReader
+  staffReader?: typeof getStaffList
+  workTransactionRepository?: () => WorkTransactionWriter
+  now?: () => Date
   customerRepository?: () => CustomerReader
 }
 
@@ -122,6 +134,9 @@ export class WorkOrderService extends BaseCrudService<
   private readonly orderItemRepository: () => OrderItemReader
   private readonly jobTicketRepository: () => JobTicketProvisioningRepository
   private readonly workRateRepository: () => WorkRateReader
+  private readonly staffReader: typeof getStaffList
+  private readonly workTransactionRepository: () => WorkTransactionWriter
+  private readonly now: () => Date
   private readonly customerRepository: () => CustomerReader
 
   constructor(input: WorkOrderServiceOptions = {}) {
@@ -141,6 +156,9 @@ export class WorkOrderService extends BaseCrudService<
     this.orderItemRepository = input.orderItemRepository ?? getOrderItemFormsRepository
     this.jobTicketRepository = input.jobTicketRepository ?? getJobTicketsRepository
     this.workRateRepository = input.workRateRepository ?? getWorkRatesRepository
+    this.staffReader = input.staffReader ?? getStaffList
+    this.workTransactionRepository = input.workTransactionRepository ?? getWorkTransactionsRepository
+    this.now = input.now ?? (() => new Date())
     this.customerRepository = input.customerRepository ?? getCustomersRepository
   }
 
@@ -289,6 +307,7 @@ export class WorkOrderService extends BaseCrudService<
     const request = parseOrThrow(workOrderApiContract.request.update, payload)
     const emptyProvisioning = {
       ticketsCreated: 0,
+      scoreFailed: 0,
       skippedGarments: [],
       failure: null,
     }
@@ -297,13 +316,20 @@ export class WorkOrderService extends BaseCrudService<
       return { ...updatedOrder, ticketProvisioning: emptyProvisioning }
     }
 
-    const [orderHeaderRows, photoRows, itemRows, existingTicketRows, minutesByDepartment] = await Promise.all([
+    const [orderHeaderRows, photoRows, itemRows, existingTicketRows, minutesByDepartment, staffMembers] = await Promise.all([
       this.orderFormRepository().read({ id: updatedOrder.orderId }),
       this.laundryPhotoRepository().read({ where: { order_id: updatedOrder.orderId } }),
       this.orderItemRepository().read({ where: { order_id: updatedOrder.orderId } }),
       this.jobTicketRepository().read({ where: { order_id: updatedOrder.orderId } }),
       readWorkMinutesByDepartment(this.workRateRepository),
+      Promise.resolve().then(() => this.staffReader()).catch((error) => {
+        console.error('Failed to read staff list for Tagging', error)
+        return new Map<string, StaffMember>()
+      }),
     ])
+    const activeStaffIds = new Set([...staffMembers.values()]
+      .map((member) => member.staffId)
+      .filter((staffId) => staffId.trim() !== ''))
     const linesById = new Map(
       itemRows.flatMap((row) => typeof row.id === 'string' && row.id !== '' ? [[row.id, row] as const] : []),
     )
@@ -313,7 +339,9 @@ export class WorkOrderService extends BaseCrudService<
         const line = typeof photo.orderitem_id === 'string'
           ? linesById.get(photo.orderitem_id)
           : undefined
+        const tagger = typeof photo.created_by === 'string' ? photo.created_by.trim() : ''
         return {
+          taggedBy: activeStaffIds.has(tagger) ? tagger : null,
           laundryItemId: typeof photo.item_id === 'string' ? photo.item_id : '',
           serviceType: line === undefined ? updatedOrder.serviceType : line.service_type ?? null,
           specialInstructions: line?.special_instructions ?? null,
@@ -328,6 +356,7 @@ export class WorkOrderService extends BaseCrudService<
         dueDate: updatedOrder.dueDate,
         notes: updatedOrder.note,
         createdBy: request.updatedBy,
+        completedAt: formatBangkokTimestamp(this.now()),
       },
       garments,
       existingTicketRows.flatMap((ticket) =>
@@ -343,6 +372,7 @@ export class WorkOrderService extends BaseCrudService<
         ...updatedOrder,
         ticketProvisioning: {
           ticketsCreated: 0,
+          scoreFailed: 0,
           skippedGarments: provisioning.unroutableGarments,
           failure: null,
         },
@@ -351,23 +381,36 @@ export class WorkOrderService extends BaseCrudService<
 
     try {
       await this.jobTicketRepository().batchAppend(provisioning.rows)
-      return {
-        ...updatedOrder,
-        ticketProvisioning: {
-          ticketsCreated: provisioning.rows.length,
-          skippedGarments: provisioning.unroutableGarments,
-          failure: null,
-        },
-      }
     } catch (error) {
       return {
         ...updatedOrder,
         ticketProvisioning: {
           ticketsCreated: 0,
+          scoreFailed: 0,
           skippedGarments: provisioning.unroutableGarments,
           failure: { certainty: classifySheetWriteFailure(error).certainty },
         },
       }
+    }
+
+    const earnRows = buildEarnRows(provisioning.rows)
+    let scoreFailed = 0
+    if (earnRows.length > 0) {
+      try {
+        await this.workTransactionRepository().batchAppend(earnRows)
+      } catch (error) {
+        console.error('Failed to save Tagging scores', error)
+        scoreFailed = earnRows.length
+      }
+    }
+    return {
+      ...updatedOrder,
+      ticketProvisioning: {
+        ticketsCreated: provisioning.rows.length,
+        scoreFailed,
+        skippedGarments: provisioning.unroutableGarments,
+        failure: null,
+      },
     }
   }
 }

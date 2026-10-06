@@ -139,8 +139,8 @@ async function approveOrder(): Promise<void> {
         : 'Ticket creation failed.'
       : 'Ticket creation completed.'
     orderApprovalNotice.value = {
-      message: `Order saved. ${tickets.ticketsCreated} tickets created. ${result}`,
-      success: !tickets.failure,
+      message: `Order saved. ${tickets.ticketsCreated} tickets created. ${result}${tickets.scoreFailed > 0 ? ` Tagging score not saved for ${tickets.scoreFailed} tags. Tell an admin.` : ''}`,
+      success: !tickets.failure && tickets.scoreFailed === 0,
     }
     await workOrderStore.loadDetail(order.orderId)
   } catch (reason) {

@@ -21,7 +21,7 @@ export const jobTicketsRowSchema = z
     scope: jobTicketScopeSchema,
     service_type: jobTicketServiceTypeSchema.nullable(),
     department: jobTicketDepartmentSchema,
-    step_no: z.number().int().min(1),
+    step_no: z.number().int().min(0),
     customer_id: z.string().nullable(),
     order_name: z.string().nullable(),
     due_date: z.string().nullable(),

@@ -63,6 +63,7 @@ function orderRow(overrides: Partial<OrderFormDbRow> = {}): OrderFormDbRow {
 
 function createService(repository: RecordingRepository): WorkOrderService {
   return new WorkOrderService({
+    staffReader: async () => new Map(),
     workRateRepository: () => ({ async read() { return [] } }),
     orderFormRepository: () => repository,
     laundryPhotoRepository: () => ({ async read() { return [] } }),
@@ -88,7 +89,7 @@ assert.deepEqual(repository.updateCalls, [
 assert.equal('updated_at' in repository.updateCalls[0]!.data, false)
 assert.equal(updated.status, 'APPROVED')
 assert.deepEqual(updated.ticketProvisioning, {
-  ticketsCreated: 0,
+  ticketsCreated: 0, scoreFailed: 0,
   skippedGarments: [],
   failure: null,
 })
@@ -118,7 +119,7 @@ assert.equal(fieldsUpdated.receivedDate, '2026-09-23')
 assert.equal(fieldsUpdated.dueDate, '2026-09-26')
 assert.equal(fieldsUpdated.quantity, null)
 assert.deepEqual(fieldsUpdated.ticketProvisioning, {
-  ticketsCreated: 0, skippedGarments: [], failure: null,
+  ticketsCreated: 0, scoreFailed: 0, skippedGarments: [], failure: null,
 })
 await assert.rejects(
   () => service.update('order-1', { updatedBy: 'staff-2' }),

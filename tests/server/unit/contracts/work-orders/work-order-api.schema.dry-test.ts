@@ -212,13 +212,13 @@ assert.deepEqual(workOrderUpdateSchema.parse({ quantity: 4, updatedBy: 'staff-1'
   quantity: 4, updatedBy: 'staff-1',
 })
 assert.deepEqual(workOrderTicketProvisioningSchema.parse({
-  ticketsCreated: 2,
+  ticketsCreated: 2, scoreFailed: 0,
   skippedGarments: [{
     laundryItemId: 'tag-1', serviceType: null, reason: 'unsupportedServiceType',
   }],
   failure: { certainty: 'unknown' },
 }), {
-  ticketsCreated: 2,
+  ticketsCreated: 2, scoreFailed: 0,
   skippedGarments: [{
     laundryItemId: 'tag-1', serviceType: null, reason: 'unsupportedServiceType',
   }],
@@ -241,5 +241,10 @@ const schemaSource = readFileSync(new URL('../../../../../contracts/work-orders/
 assert.equal(/\bexport\s+type\s+\w+\s*=\s*z\.infer\s*</.test(schemaSource), false)
 assert.equal(/\b[a-z][a-z0-9]*_[a-z0-9_]*\b/.test(schemaSource), false)
 assert.equal(/\bas\s*\{/.test(schemaSource), false)
+
+for (const scoreFailed of [-1, 1.5, NaN, Infinity, undefined]) {
+  assert.equal(workOrderTicketProvisioningSchema.safeParse({ ticketsCreated: 0, scoreFailed, skippedGarments: [], failure: null }).success, false)
+}
+assert.equal(workOrderTicketProvisioningSchema.parse({ ticketsCreated: 1, scoreFailed: 1, skippedGarments: [], failure: null }).scoreFailed, 1)
 
 console.log('work-order-api.schema.dry-test: OK')

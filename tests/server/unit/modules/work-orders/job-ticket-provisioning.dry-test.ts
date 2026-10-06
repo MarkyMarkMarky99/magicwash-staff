@@ -3,6 +3,7 @@ import {
   buildJobTicketId,
   buildJobTickets,
   readWorkMinutesByDepartment,
+  resetWorkRatesCache,
   type JobTicketDepartment,
   type WorkRateReader,
 } from '../../../../../server/modules/work-orders/job-ticket-provisioning.js'
@@ -14,6 +15,7 @@ const order = {
   dueDate: '2026-09-30',
   notes: 'Rush',
   createdBy: 'staff-1',
+  completedAt: '2026-10-06 10:00:00',
 }
 
 const minutesByDepartment = new Map<JobTicketDepartment, number>([
@@ -45,6 +47,7 @@ assert.deepEqual([
 
 for (const [serviceType, departments] of Object.entries(expectedRoutes)) {
   const result = buildJobTickets(order, [{
+    taggedBy: null,
     laundryItemId: `tag-${serviceType}`,
     serviceType,
     specialInstructions: 'Delicate',
@@ -63,6 +66,7 @@ for (const [serviceType, departments] of Object.entries(expectedRoutes)) {
 
 const idempotent = buildJobTickets(order, [{
   laundryItemId: 'tag-1',
+  taggedBy: null,
   serviceType: 'WSIR',
   specialInstructions: null,
   photoEvidenceUrl: 'https://example.test/new.jpg',
@@ -71,21 +75,21 @@ assert.deepEqual(idempotent.rows.map((row) => row.department), ['Ironing', 'Pack
 assert.ok(idempotent.rows.every((row) => row.photo_evidence_url === 'https://example.test/new.jpg'))
 
 const duplicatePhotos = buildJobTickets(order, [
-  { laundryItemId: 'tag-2', serviceType: 'WASH', specialInstructions: null, photoEvidenceUrl: '' },
-  { laundryItemId: 'tag-2', serviceType: 'WASH', specialInstructions: null, photoEvidenceUrl: 'https://example.test/first.jpg' },
-  { laundryItemId: 'tag-2', serviceType: 'WASH', specialInstructions: null, photoEvidenceUrl: 'https://example.test/later.jpg' },
+  { taggedBy: null, laundryItemId: 'tag-2', serviceType: 'WASH', specialInstructions: null, photoEvidenceUrl: '' },
+  { taggedBy: null, laundryItemId: 'tag-2', serviceType: 'WASH', specialInstructions: null, photoEvidenceUrl: 'https://example.test/first.jpg' },
+  { taggedBy: null, laundryItemId: 'tag-2', serviceType: 'WASH', specialInstructions: null, photoEvidenceUrl: 'https://example.test/later.jpg' },
 ], [], minutesByDepartment)
 assert.equal(duplicatePhotos.rows.length, 2)
 assert.ok(duplicatePhotos.rows.every((row) => row.photo_evidence_url === 'https://example.test/first.jpg'))
 
 const emptyPhoto = buildJobTickets(order, [
-  { laundryItemId: 'tag-empty', serviceType: 'WASH', specialInstructions: null, photoEvidenceUrl: '  ' },
+  { taggedBy: null, laundryItemId: 'tag-empty', serviceType: 'WASH', specialInstructions: null, photoEvidenceUrl: '  ' },
 ], [], minutesByDepartment)
 assert.ok(emptyPhoto.rows.every((row) => row.photo_evidence_url === null))
 
 const unroutable = buildJobTickets(order, [
-  { laundryItemId: 'tag-3', serviceType: 'FOLD', specialInstructions: null, photoEvidenceUrl: null },
-  { laundryItemId: '', serviceType: 'WASH', specialInstructions: null, photoEvidenceUrl: null },
+  { taggedBy: null, laundryItemId: 'tag-3', serviceType: 'FOLD', specialInstructions: null, photoEvidenceUrl: null },
+  { taggedBy: null, laundryItemId: '', serviceType: 'WASH', specialInstructions: null, photoEvidenceUrl: null },
 ], [], minutesByDepartment)
 assert.deepEqual(unroutable.rows, [])
 assert.deepEqual(unroutable.unroutableGarments, [
@@ -93,6 +97,33 @@ assert.deepEqual(unroutable.unroutableGarments, [
   { laundryItemId: '', serviceType: 'WASH', reason: 'missingLaundryItemId' },
 ])
 
+const taggedGarments = [
+  { laundryItemId: 'tag-new', taggedBy: null, serviceType: 'WASH', specialInstructions: null, photoEvidenceUrl: 'https://example.test/first.jpg' },
+  { laundryItemId: 'tag-new', taggedBy: 'tagger-1', serviceType: 'IRON', specialInstructions: 'Careful', photoEvidenceUrl: null },
+  { laundryItemId: 'tag-new', taggedBy: 'tagger-2', serviceType: 'DRCL', specialInstructions: 'Later', photoEvidenceUrl: null },
+  { laundryItemId: 'tag-unsupported', taggedBy: 'tagger-1', serviceType: 'FOLD', specialInstructions: null, photoEvidenceUrl: null },
+  { laundryItemId: '  ', taggedBy: 'tagger-1', serviceType: 'WASH', specialInstructions: null, photoEvidenceUrl: null },
+]
+const taggingRates = new Map<JobTicketDepartment, number>([['Tagging', 3]])
+const tagging = buildJobTickets(order, taggedGarments, [], taggingRates).rows.filter(row => row.department === 'Tagging')
+assert.deepEqual(tagging[0], {
+  id: 'TAG-order-1-tag-new', order_id: 'order-1', laundry_item_id: 'tag-new', scope: 'ITEM',
+  service_type: 'IRON', department: 'Tagging', step_no: 0, customer_id: 'customer-1',
+  order_name: 'Order one', due_date: '2026-09-30', special_instructions: 'Careful', notes: 'Rush',
+  status: 'Completed', started_at: order.completedAt, completed_at: order.completedAt,
+  scanned_by: 'tagger-1', updated_by: 'tagger-1', photo_evidence_url: 'https://example.test/first.jpg',
+  created_by: 'staff-1', work_minutes: 3,
+})
+assert.equal(tagging.length, 2)
+assert.equal(tagging[1]?.service_type, null)
+assert.equal(tagging[1]?.status, 'Completed')
+assert.equal(buildJobTickets(order, taggedGarments, [
+  { laundryItemId: 'tag-new', department: 'Tagging' },
+  { laundryItemId: 'tag-unsupported', department: 'Tagging' },
+], taggingRates).rows.filter(row => row.department === 'Tagging').length, 0)
+assert.equal(buildJobTickets(order, taggedGarments, [], new Map()).rows.find(row => row.department === 'Tagging')?.work_minutes, null)
+
+resetWorkRatesCache()
 let readCalls = 0
 const rateRows = [
   { department: 'Washing', active: false, level: 'EASY', minutes: 99 },
@@ -121,6 +152,21 @@ const rates = await readWorkMinutesByDepartment(() => ({
 assert.equal(readCalls, 1)
 assert.deepEqual([...rates], [['Washing', 12], ['Ironing', 0]])
 
+assert.equal(await readWorkMinutesByDepartment(() => { throw new Error('must use cache') }), rates)
+assert.equal(readCalls, 1)
+resetWorkRatesCache()
+let concurrentReads = 0
+let releaseRead!: () => void
+const deferred = new Promise<void>(resolve => { releaseRead = resolve })
+const reader = () => ({ async read() { concurrentReads += 1; await deferred; return rateRows } })
+const first = readWorkMinutesByDepartment(reader)
+const second = readWorkMinutesByDepartment(reader)
+await Promise.resolve()
+assert.equal(concurrentReads, 1)
+releaseRead()
+assert.equal(await first, await second)
+resetWorkRatesCache()
+
 const originalConsoleError = console.error
 const loggedErrors: unknown[][] = []
 console.error = (...args) => { loggedErrors.push(args) }
@@ -133,6 +179,8 @@ try {
   const getterError = new Error('WorkRates getter failed')
   const failedGetter = await readWorkMinutesByDepartment(() => { throw getterError })
   assert.equal(failedGetter.size, 0)
+  const recovered = await readWorkMinutesByDepartment(() => ({ async read() { return rateRows } }))
+  assert.deepEqual([...recovered], [['Washing', 12], ['Ironing', 0]])
   assert.deepEqual(loggedErrors, [
     ['Failed to read WorkRates', readError],
     ['Failed to read WorkRates', getterError],
