@@ -1,17 +1,17 @@
 # Project memory
 
-- Branch: `main` checked out; orders report month same-days comparison pushed 2026-10-06; customer package invoice deployment still awaiting verification.
+- Branch: `main` checked out; order list actions menu + shared order snapshot merged 2026-10-06 without a logged-in Preview test; customer package invoice deployment still awaiting verification.
 
 ## Branches in flight
 
-- **`feature/order-list-actions-menu`** — order list + report share one in-memory `/api/order-snapshots` load per page open; pushed for Preview test 2026-10-06, not merged.
-- **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 407 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
+- **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 413 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — design-only work (invoice create as a form overlay with swipeable line cards), 1 commit ahead of `main`; kept by owner, not for merge yet.
 - **`feat/package-credit`** — monthly-subscription package credits, phases 1–4 built, awaiting owner test on Preview. Details on that branch: `.user/memory/feat-package-credit.md`.
 
 ## Pending work
 
 - **Orders report (`/reports/orders`, merged 2026-10-05)**
+  - Phone-check on production the 8 order list/report flows from the 2026-10-06 handoff (date/search, report jump, Back, edits, updates from another device).
   - Order list has no pull-to-refresh yet (ListPageLayout lacks it); `/api/order-reports` and the server date/keyword path of `/api/work-orders` now have no frontend caller.
   - Deferred by owner: status cards show current status, not status on that day; check whether orders ever reach COMPLETED.
 
@@ -113,7 +113,7 @@
 
 - **Auth, UX, and documentation**
   - Redirect fallback for popup-blocked ships with the lockdown push; browser-test from a home-screen icon/LINE.
-  - Login lockdown: every route and API except `portal` needs approved staff; print server reads invoices with `PRINT_API_KEY`. Open: Firebase Storage rules, Sheets link-sharing, Preview hosts cannot sign in.
+  - Login lockdown: every route and API except `portal` needs approved staff; print server reads invoices with `PRINT_API_KEY`. Open: Firebase Storage rules, Sheets link-sharing, Preview hosts cannot sign in (Firebase Authorized domains take exact hostnames only; one branch alias added 2026-10-06; Vercel Deployment Protection is off).
   - Deferred by owner (2026-10-04): security review SEC-01 KPI re-credit by reopening tickets, SEC-02 formula text in sheets, SEC-03 bulk photo reassign across orders.
   - Vercel Preview hosts cannot sign in, so testing `feat/package-credit` on Preview needs an authorized host first.
   - Staff app moving to `staff.magicwash-laundry.com` (authDomain, noindex); apex left indexable for a future public shop site awaiting owner content (services, area, hours, contact, logo).
