@@ -1,17 +1,16 @@
 # Project memory
 
-- Branch: `main` checked out; order list actions menu + shared order snapshot merged 2026-10-06 without a logged-in Preview test; customer package invoice deployment still awaiting verification.
+- Branch: `main` checked out; order list actions menu + shared order snapshot merged 2026-10-06 and phone-checked on production; customer package invoice deployment still awaiting verification.
 
 ## Branches in flight
 
 - **`feat/live-order-helper`** — read-only helper branch retained without a worktree; 413 behind `main`, keep only the two source files if it is ever revived. Details: `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — design-only work (invoice create as a form overlay with swipeable line cards), 1 commit ahead of `main`; kept by owner, not for merge yet.
-- **`feat/package-credit`** — monthly-subscription package credits, phases 1–4 built, awaiting owner test on Preview. Details on that branch: `.user/memory/feat-package-credit.md`.
+- **`feat/package-credit`** — monthly-subscription package credits, phases 1–4 built; on hold by owner 2026-10-06 (Preview test and the 3 open decisions not started). Details on that branch: `.user/memory/feat-package-credit.md`.
 
 ## Pending work
 
 - **Orders report (`/reports/orders`, merged 2026-10-05)**
-  - Phone-check on production the 8 order list/report flows from the 2026-10-06 handoff (date/search, report jump, Back, edits, updates from another device).
   - Order list has no pull-to-refresh yet (ListPageLayout lacks it); `/api/order-reports` and the server date/keyword path of `/api/work-orders` now have no frontend caller.
   - Deferred by owner: status cards show current status, not status on that day; check whether orders ever reach COMPLETED.
 
