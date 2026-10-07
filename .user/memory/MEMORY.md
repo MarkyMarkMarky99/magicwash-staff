@@ -11,7 +11,7 @@
 ## Pending work
 
 - Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
-- Bag tags + delivery-tracking page shipped 2026-10-07; open items in `.user/memory/bag-tags-and-delivery-tracking.md`.
+- RESUME HERE (2026-10-07): wire the bag-tag QR to real data (public delivery-tracking API); handoff in `.user/memory/bag-tags-and-delivery-tracking.md`.
 - **Orders report (`/reports/orders`, merged 2026-10-05)**
   - Order list has no pull-to-refresh yet (ListPageLayout lacks it); `/api/order-reports` and the server date/keyword path of `/api/work-orders` now have no frontend caller.
   - Deferred by owner: status cards show current status, not status on that day; check whether orders ever reach COMPLETED.
