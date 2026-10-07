@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { BagTagPrintService, logBagTagFailure } from '../bag-tag-prints/bag-tag-print.service.js'
 import { WeightPhotoTicketService } from './weight-photo-ticket.service.js'
 import { orderImageApiContract } from '../../../contracts/order-images/order-image-api.schema.js'
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
@@ -36,6 +37,7 @@ type OrderImageCreateResponse = z.infer<typeof orderImageApiContract.response.cr
 
 export interface OrderImageServiceOptions {
   repository?: SheetRepositoryContract<OrderImagesDbRow>
+  bagTagPrintService?: Pick<BagTagPrintService, 'print'>
   weightPhotoTicketService?: Pick<WeightPhotoTicketService, 'provision'>
 }
 
@@ -102,6 +104,7 @@ export class OrderImageService extends BaseCrudService<
   OrderImagesDbRow,
   typeof orderImageFieldMap
 > {
+  private readonly bagTagPrintService: Pick<BagTagPrintService, 'print'>
   private readonly weightPhotoTicketService: Pick<WeightPhotoTicketService, 'provision'>
 
   constructor(input: OrderImageServiceOptions = {}) {
@@ -112,6 +115,7 @@ export class OrderImageService extends BaseCrudService<
       fieldMap: orderImageFieldMap,
       transformer: createOrderImageTransformer(),
     })
+    this.bagTagPrintService = input.bagTagPrintService ?? new BagTagPrintService()
     this.weightPhotoTicketService = input.weightPhotoTicketService ?? new WeightPhotoTicketService()
   }
 
@@ -122,6 +126,11 @@ export class OrderImageService extends BaseCrudService<
         await this.weightPhotoTicketService.provision(image)
       } catch (error) {
         console.error('Failed to provision weight photo ticket', error)
+      }
+      try {
+        await this.bagTagPrintService.print(image)
+      } catch {
+        logBagTagFailure('unexpected_error')
       }
     }
     return image

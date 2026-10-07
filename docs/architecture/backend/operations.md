@@ -149,6 +149,8 @@ the invoice number to the shop print service. `PRINT_SERVER_URL`, `CF_ACCESS_CLI
 `CF_ACCESS_CLIENT_SECRET` are server-only environment variables; Cloudflare Access credentials must
 never be exposed to browser code or API responses.
 
+`BAG_TAG_PRINT_ENABLED` enables one bag tag after each saved WEIGHT order image only when set to `true`; `BAG_TAG_TRACKING_URL_BASE` is the QR URL prefix concatenated with the saved image ID. The backend awaits POST /print-bag-tag with a 10-second timeout using the same print server credentials; failures are logged as `bag_tag_print_failure` and leave the save response unchanged.
+
 Payments are a ledger. `POST /api/payments` appends a staff-recorded payment as `VERIFIED`, so it
 counts toward the invoice at once; an invoice's paid amount, balance and `PAID` status are derived
 from `VERIFIED` rows, never set on the invoice. `PATCH /api/payments/:paymentId` reviews only a
