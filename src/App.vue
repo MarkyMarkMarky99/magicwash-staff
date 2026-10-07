@@ -24,6 +24,7 @@ const route = useRoute()
 const router = useRouter()
 const { isOpen: drawerOpen, close: closeDrawer } = useNavDrawer()
 const appShell = ref<HTMLElement | null>(null)
+const isPublicRoute = computed(() => route.meta.public === true)
 
 type Drag = {
   pointerId: number
@@ -147,8 +148,10 @@ provide(appointmentPendingCountKey, pendingCount)
 provide(staffSignedInKey, computed(() => authStore.status === 'signedIn'))
 
 // Keep the schedule and pending badge ready from the same backend-backed store.
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener('keydown', onKeydown)
+  await router.isReady()
+  if (isPublicRoute.value) return
   preloadDocumentScanner()
   void authStore.ready()
   const stopPrefetch = watch(() => authStore.status, (status) => {
@@ -166,7 +169,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 
 <template>
   <div class="app-column relative h-full overflow-hidden bg-surface">
-    <NavSidebar :open="drawerOpen" />
+    <NavSidebar v-if="!isPublicRoute" :open="drawerOpen" />
 
     <div
       ref="appShell"

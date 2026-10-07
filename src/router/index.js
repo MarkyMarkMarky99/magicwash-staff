@@ -14,6 +14,7 @@ import { tagScannerRoutes } from '@/features/tag-scanner/routes'
 import { jobTicketRoutes } from '@/features/job-tickets/routes'
 import { staffRoutes } from '@/features/staff/routes'
 import { orderReportRoutes } from '@/features/order-reports/routes'
+import { deliveryTrackingRoutes } from '@/features/delivery-tracking/routes'
 
 const routes = [
   ...appointmentRoutes,
@@ -29,6 +30,7 @@ const routes = [
   ...jobTicketRoutes,
   ...staffRoutes,
   ...orderReportRoutes,
+  ...deliveryTrackingRoutes,
 ]
 
 if (import.meta.env.DEV) {
@@ -64,6 +66,7 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
+  if (to.meta.public) return true
   if (to.name === 'login' || to.name === STAFF_REGISTER_ROUTE_NAME) return true
   const authStore = useAuthStore()
   await authStore.ready()
