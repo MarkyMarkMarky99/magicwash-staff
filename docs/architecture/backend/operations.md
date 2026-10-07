@@ -62,6 +62,13 @@ Legacy dirty cells must not become 500 responses. JSON view columns listed in `j
 to their API fields with `[]` for malformed arrays and `null` for malformed objects; correct a
 wrong materialized view in its Apps Script source rather than guessing in the API or frontend.
 
+The staff-authenticated `bag-items` module exposes collection GET and POST only.
+GET requires at least one of `bagId` or `orderId` and applies supplied filters with equality.
+POST records a garment in a bag, generating its short id and stamping the append timestamp.
+An existing `bag_id` / `laundry_item_id` pair returns its original row without another append.
+This read-before-append check is not atomic across concurrent requests because Sheets has
+no unique-pair constraint. See `docs/features/orders/contracts/bag-item.md` for the contract.
+
 ## Public delivery tracking
 
 `GET /api/delivery-tracking/:orderImageId` serves the customer page opened from a bag-tag QR,

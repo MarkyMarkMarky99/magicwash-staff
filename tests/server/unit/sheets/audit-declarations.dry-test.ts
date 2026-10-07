@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { bagItemsDbContract } from '../../../../server/sheets/BagItems/BagItems.db-contract.js'
 import { appointmentsDbContract } from '../../../../server/sheets/Appointments/Appointments.db-contract.js'
 import { customersDbContract } from '../../../../server/sheets/Customers/Customers.db-contract.js'
 import { invoiceItemsDbContract } from '../../../../server/sheets/InvoiceItems/InvoiceItems.db-contract.js'
@@ -16,6 +17,7 @@ import { jobTicketsDbContract } from '../../../../server/sheets/JobTickets/JobTi
 import { workTransactionsDbContract } from '../../../../server/sheets/WorkTransactions/WorkTransactions.db-contract.js'
 
 const declaredAudits = [
+  { name: 'BagItems', contract: bagItemsDbContract, expected: { onAppend: ['created_at'] } },
   {
     name: 'WorkTransactions',
     contract: workTransactionsDbContract,
@@ -51,7 +53,7 @@ const declaredAudits = [
   {
     name: 'OrderItemForms',
     contract: orderItemFormsDbContract,
-    expected: { onAppend: ['timestamp'] },
+    expected: { onAppend: ['timestamp'], onUpdate: ['updated_at'] },
   },
   {
     name: 'OrderImages',
@@ -81,7 +83,7 @@ const declaredAudits = [
   {
     name: 'OrderItemForms',
     contract: orderItemFormsDbContract,
-    expected: { onAppend: ['timestamp'] },
+    expected: { onAppend: ['timestamp'], onUpdate: ['updated_at'] },
   },
   {
     name: 'OrderImages',
