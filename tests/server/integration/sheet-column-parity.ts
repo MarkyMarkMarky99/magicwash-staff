@@ -7,6 +7,7 @@
  */
 
 import { requireEnv } from '../../../server/shared/utils/env.js'
+import { bagItemsDbContract } from '../../../server/sheets/BagItems/BagItems.db-contract.js'
 import { appointmentsDbContract } from '../../../server/sheets/Appointments/Appointments.db-contract.js'
 import { afterPhotoDbContract } from '../../../server/sheets/AfterPhoto/AfterPhoto.db-contract.js'
 import { customerIdMappingDbContract } from '../../../server/sheets/CustomerIDMapping/CustomerIDMapping.db-contract.js'
@@ -58,6 +59,7 @@ interface GvizResponse {
 }
 
 const readableSheets: readonly ReadableSheet[] = [
+  { name: 'BagItems', sheetName: bagItemsDbContract.sheetName, spreadsheetIdEnv: bagItemsDbContract.spreadsheetId, rowSchema: bagItemsDbContract.row },
   {
     name: 'WorkTransactions',
     sheetName: workTransactionsDbContract.sheetName,

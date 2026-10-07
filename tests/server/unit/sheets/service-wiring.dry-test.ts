@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { bagItemsRowSchema } from '../../../../server/sheets/BagItems/BagItems.db-contract.js'
 import { generateKeyPairSync } from 'node:crypto'
 import { deriveGVizColumns, type GSheetRowSchema } from '../../../../server/shared/repositories/utils/gviz-query.builder.js'
 import { customerPackagesRowSchema } from '../../../../server/sheets/CustomerPackages/CustomerPackages.db-contract.js'
@@ -22,6 +23,7 @@ import { jobTicketsRowSchema } from '../../../../server/sheets/JobTickets/JobTic
 //    repository constructor which reads env. ESM evaluates imports before the
 //    module body, so the env has to be set first and the modules pulled in with
 //    a dynamic import inside each test rather than a static one at the top. ──
+process.env.ORDERS_SPREADSHEET_ID = 'characterization-orders-id'
 process.env.PORTAL_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 process.env.APPOINTMENTS_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 process.env.LAUNDRY_PACKAGES_SPREADSHEET_ID = 'characterization-spreadsheet-id'
@@ -870,6 +872,26 @@ test('customer-package write wiring preserves field maps, shared singletons, and
   assert.equal(methodResult.status, 405)
   assert.equal((methodResult.headers as { Allow: string }).Allow, 'POST')
   assert.equal(packageTransactionRoutes.item, undefined)
+})
+
+test('BagItems production wiring maps all columns and equality filters', async () => {
+  const body = sheetGvizBody(bagItemsRowSchema, [
+    'bag-item-1', 'bag-1', 'order-1', 'tag-1', '2026-10-08 10:00:00', 'staff-1',
+  ])
+  await withMockFetch(async () => response(body), async (calls) => {
+    const { bagItemService } = await import('../../../../server/modules/bag-items/bag-item.module.js')
+    const result = await bagItemService.list({ bagId: 'bag-1', orderId: 'order-1' })
+    assert.deepEqual(result.items, [{
+      bagItemId: 'bag-item-1', bagId: 'bag-1', orderId: 'order-1', laundryItemId: 'tag-1',
+      createdAt: '2026-10-08 10:00:00', createdBy: 'staff-1',
+    }])
+    assert.equal(calls.length, 1)
+    const url = new URL(calls[0].url)
+    assert.equal(url.searchParams.get('sheet'), 'BagItems')
+    assert.ok(url.pathname.includes('characterization-orders-id'))
+    assert.match(url.searchParams.get('tq')!, /B = 'bag-1'/)
+    assert.match(url.searchParams.get('tq')!, /C = 'order-1'/)
+  })
 })
 
 async function main(): Promise<void> {

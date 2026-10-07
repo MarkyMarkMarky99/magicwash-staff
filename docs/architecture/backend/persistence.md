@@ -46,6 +46,11 @@ It is the only concrete implementation of `SheetRepositoryContract` and uses dat
 
 Mapping belongs to the module; see `service-layer.md`.
 
+The append-only `BagItems` ledger shares `ORDERS_SPREADSHEET_ID` with `OrderImages`.
+Its six string columns are `id`, `bag_id`, `order_id`, `laundry_item_id`, `created_at`,
+and `created_by`, in that physical order. Append audit stamps `created_at`; the caller
+supplies the packer's StaffId in `created_by`. Updates and deletes are disabled.
+
 ## Reads
 
 `SheetRepository.read` calls `fetchGVizRows` in `server/shared/repositories/utils/gviz-reader.ts`.

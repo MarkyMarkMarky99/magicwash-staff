@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { bagItemsDbContract } from '../../../../server/sheets/BagItems/BagItems.db-contract.js'
 import { appointmentsDbContract } from '../../../../server/sheets/Appointments/Appointments.db-contract.js'
 import { afterPhotoDbContract } from '../../../../server/sheets/AfterPhoto/AfterPhoto.db-contract.js'
 import { customerIdMappingDbContract } from '../../../../server/sheets/CustomerIDMapping/CustomerIDMapping.db-contract.js'
@@ -42,6 +43,12 @@ interface ColumnOrderTest {
 }
 
 const tests: ColumnOrderTest[] = [
+  {
+    name: 'BagItems',
+    contract: bagItemsDbContract,
+    expected: { id: 'A', bag_id: 'B', order_id: 'C', laundry_item_id: 'D', created_at: 'E', created_by: 'F' },
+    primaryKeyColumn: 'A',
+  },
   {
     name: 'WorkTransactions',
     contract: workTransactionsDbContract,

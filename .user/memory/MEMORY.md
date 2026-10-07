@@ -8,6 +8,8 @@
 - **`feat/bag-scan-delivery`** — Logistics bag tickets + order-completion + bag-scan page; next: Logistics side-nav list and ticket-driven bag list; see `.user/memory/feat-bag-scan-delivery.md`.
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
+- **`feat/bag-items-sheet`** — BagItems sheet registered (live tab created, parity PASS) + `/api/bag-items`; not pushed; see `.user/memory/feat-bag-items-sheet.md`.
+- **`feat/bag-scan-delivery`** — Logistics bag tickets + order completion + bag-scan page; see `.user/memory/feat-bag-scan-delivery.md` on that branch.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 
 ## Pending work
