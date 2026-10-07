@@ -2,6 +2,7 @@ import type { z } from 'zod'
 import type { orderImageResponseSchema } from '../../../contracts/order-images/order-image-api.schema.js'
 import { bagTagCustomerIndexSchema } from '../../../contracts/bag-tag-prints/bag-tag-print.schema.js'
 import { normalizeSheetTimestamp } from '../../../shared/utils/bangkok-datetime.js'
+import { getOrderFormRepository } from '../../sheets/OrderForm/OrderForm.repository.js'
 import { customerService } from '../customers/customer.module.js'
 import { requestBagTagPrint } from './bag-tag-print-client.js'
 
@@ -9,6 +10,7 @@ type OrderImage = z.infer<typeof orderImageResponseSchema>
 
 export interface BagTagPrintServiceOptions {
   customerReader?: (customerId: string) => Promise<{ customerIndex: unknown } | null>
+  orderCustomerIdReader?: (orderId: string) => Promise<unknown>
   printClient?: typeof requestBagTagPrint
 }
 
@@ -18,10 +20,13 @@ export function logBagTagFailure(failureKind: string): void {
 
 export class BagTagPrintService {
   private readonly customerReader
+  private readonly orderCustomerIdReader
   private readonly printClient
 
   constructor(input: BagTagPrintServiceOptions = {}) {
     this.customerReader = input.customerReader ?? ((id) => customerService.getById(id))
+    this.orderCustomerIdReader = input.orderCustomerIdReader
+      ?? (async (orderId: string) => (await getOrderFormRepository().read({ id: orderId }))[0]?.customer_id)
     this.printClient = input.printClient ?? requestBagTagPrint
   }
 
@@ -37,7 +42,10 @@ export class BagTagPrintService {
 
     let customerIndex: string | null = null
     try {
-      const customer = image.customerId ? await this.customerReader(image.customerId) : null
+      // The app saves order images with customerId null; the order row holds the customer.
+      const orderCustomerId = image.customerId || (image.orderId ? await this.orderCustomerIdReader(image.orderId) : null)
+      const customerId = typeof orderCustomerId === 'string' ? orderCustomerId.trim() : ''
+      const customer = customerId ? await this.customerReader(customerId) : null
       if (!customer) {
         logBagTagFailure('customer_not_found')
       } else {

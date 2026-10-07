@@ -18,6 +18,7 @@ const calls: { url: string; init?: RequestInit }[] = []
 let customer: { customerIndex: unknown } | null = { customerIndex: 'A 12._:-z' }
 let customerThrows = false
 let customerReads = 0
+let orderReads = 0
 let ticketThrows = false
 let ticketCalls = 0
 let savedOverrides: Partial<Row> = {}
@@ -44,6 +45,11 @@ const printer = new BagTagPrintService({
     customerReads++
     if (customerThrows) throw new Error('sensitive lookup details')
     return customer
+  },
+  async orderCustomerIdReader(orderId) {
+    assert.equal(orderId, 'order-1')
+    orderReads++
+    return 'customer-1'
   },
 })
 const service = new OrderImageService({ repository, bagTagPrintService: printer,
@@ -151,6 +157,12 @@ try {
   customer = { customerIndex: 1999 }
   await service.create(payload)
   assert.equal(lastBody().customerIndex, '1999')
+  const orderReadsBefore = orderReads
+  savedOverrides = { customer_id: null }
+  await service.create({ ...payload, customerId: null })
+  assert.equal(orderReads, orderReadsBefore + 1)
+  assert.equal(lastBody().customerIndex, '1999')
+  savedOverrides = {}
   customer = { customerIndex: 'A 12._:-z' }
   for (const quantity of [null, 0, -1, 1000, Infinity, NaN]) {
     savedOverrides = { quantity }
