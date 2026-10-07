@@ -60,6 +60,19 @@ Errors
 
 An order created through `POST` is readable here immediately — no Apps Script sync is in the path.
 
+## Completion
+
+After a successful COMPLETED order status write, every non-deleted Pending or In Progress
+job ticket is completed in one repository updateMany. Completion uses the current Bangkok
+timestamp and fills missing start times with that timestamp. updated_by uses the request actor;
+scanned_by is preserved. No WorkTransactions or EARN rows are created. Ticket read/write failures
+are logged and the normal header response with empty ticketProvisioning is still returned.
+APPROVED provisioning is unchanged.
+
+After a successful appointment update requesting COMPLETED, a DELIVERY or PICKUP_DELIVERY
+appointment with a non-empty deliveryOrderId invokes this same work-order COMPLETED update
+with the appointment request actor. Failures are logged and leave the appointment response unchanged.
+
 ## `PATCH /api/work-orders/:id` — update header
 
 Request

@@ -19,6 +19,8 @@ import { orderItemFormsRowSchema } from '../../sheets/OrderItemForms/OrderItemFo
 import { getWorkRatesRepository } from '../../sheets/WorkRates/WorkRates.repository.js'
 import { getJobTicketsRepository } from '../../sheets/JobTickets/JobTickets.repository.js'
 import { jobTicketsRowSchema } from '../../sheets/JobTickets/JobTickets.db-contract.js'
+import { hasStartedAt } from '../job-tickets/job-ticket-started-at.js'
+import type { SheetBatchUpdateContract } from '../../shared/repositories/sheet-repository.contract.js'
 import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
 import type { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import type { ServiceListResult } from '../../shared/services/base-crud.service.js'
@@ -80,7 +82,10 @@ export interface WorkTransactionWriter {
   batchAppend(rows: Array<Partial<z.infer<typeof workTransactionsRowSchema>>>): Promise<unknown[]>
 }
 
+export type JobTicketCompletionRepository = Pick<JobTicketProvisioningRepository, 'read'> & SheetBatchUpdateContract<JobTicketsDbRow>
+
 export interface WorkOrderServiceOptions {
+  jobTicketCompletionRepository?: () => JobTicketCompletionRepository
   orderFormRepository?: () => SheetRepositoryContract<OrderFormDbRow>
   orderItemPort?: OrderItemPort
   orderItemWriter?: OrderItemWriter
@@ -133,6 +138,7 @@ export class WorkOrderService extends BaseCrudService<
   private readonly orderItemWriter: OrderItemWriter
   private readonly laundryPhotoRepository: () => LaundryPhotoReader
   private readonly orderItemRepository: () => OrderItemReader
+  private readonly jobTicketCompletionRepository: () => JobTicketCompletionRepository
   private readonly jobTicketRepository: () => JobTicketProvisioningRepository
   private readonly workRateRepository: () => WorkRateReader
   private readonly staffReader: typeof getStaffList
@@ -155,6 +161,7 @@ export class WorkOrderService extends BaseCrudService<
     this.orderItemWriter = input.orderItemWriter ?? orderItemService
     this.laundryPhotoRepository = input.laundryPhotoRepository ?? getLaundryPhotosRepository
     this.orderItemRepository = input.orderItemRepository ?? getOrderItemFormsRepository
+    this.jobTicketCompletionRepository = input.jobTicketCompletionRepository ?? getJobTicketsRepository
     this.jobTicketRepository = input.jobTicketRepository ?? getJobTicketsRepository
     this.workRateRepository = input.workRateRepository ?? getWorkRatesRepository
     this.staffReader = input.staffReader ?? getStaffList
@@ -314,6 +321,28 @@ export class WorkOrderService extends BaseCrudService<
     }
 
     if (request.status !== 'APPROVED') {
+      if (request.status === 'COMPLETED') {
+        try {
+          const repository = this.jobTicketCompletionRepository()
+          const rows = await repository.read({ where: { order_id: updatedOrder.orderId } })
+          const timestamp = formatBangkokTimestamp(this.now())
+          const updates = rows
+            .filter((row) => (row.deleted_at == null || row.deleted_at === '')
+              && (row.status === 'Pending' || row.status === 'In Progress'))
+            .flatMap((row) => typeof row.id === 'string' && row.id !== '' ? [{
+              keyValue: row.id,
+              patch: {
+                status: 'Completed' as const,
+                completed_at: timestamp,
+                ...(!hasStartedAt(row.started_at) ? { started_at: timestamp } : {}),
+                updated_by: request.updatedBy,
+              },
+            }] : [])
+          if (updates.length > 0) await repository.updateMany(updates)
+        } catch (error) {
+          console.error('Failed to close open tickets for completed order', error)
+        }
+      }
       return { ...updatedOrder, ticketProvisioning: emptyProvisioning }
     }
 

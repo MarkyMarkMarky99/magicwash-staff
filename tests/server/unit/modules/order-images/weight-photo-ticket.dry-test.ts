@@ -24,7 +24,7 @@ function fixture(options: { active?: boolean; rate?: boolean; department?: 'Pack
     image_type: 'WEIGHT', image_path: payload.imagePath, notes: null, quantity: 8.7,
     created_at: options.timestamp ?? '2026-10-07 10:20:30', created_by: 'photographer-1',
   }
-  const service = new OrderImageService({
+  const service = new OrderImageService({ bagLogisticsTicketService: { async provision() {} },
     repository: {
       async read() { return [] },
       async append(row) {

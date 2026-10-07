@@ -64,6 +64,19 @@ Actions:
 - The page sends a complete body to POST /api/laundry-tag-prints; the backend
   forwards it to the TSC print server. Tag IDs are not yet persisted.
 
+## Order bag scan
+
+Route `/orders/:orderId/bag-scan`, name `order-bag-scan`, opens from the order detail Scan bags action.
+It loads all pages of WEIGHT images and Logistics tickets through the existing data services.
+Bags are numbered by creation time ascending; customer index/name come from the preloaded customer
+store and the status badge from the order header. Rows show kg, photographer, weigh time, scan state,
+and https thumbnails. The summary shows scanning progress, all scanned, or no bags with a disabled FAB.
+
+Scan opens the shared camera QR/Code 128 scanner at `?scan=1`; Back closes it. Reads accept the
+text after the last `/b/` or a trimmed bare image id. Another order's bag, missing tickets, and repeat
+scans show notices. Pending LOG-BAG tickets advance to In Progress through the existing advance API
+with the signed-in StaffId. The scanner stays open for the next bag. No KPI or Complete action is shown.
+
 ## Create Order Form
 
 Route: /orders/new — name `order-create`, meta `{ parent: 'order-list' }`

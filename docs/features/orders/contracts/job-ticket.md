@@ -115,6 +115,20 @@ when they match an active StaffId. Existing ticket ids are skipped. Ticket or EA
 logged, never retried automatically, and leave the image response unchanged. Other image types
 create no ticket or credit. Image editing and deletion are outside this workflow.
 
+## Bag logistics tickets
+
+Each saved WEIGHT image provisions `LOG-<orderId>-<orderImageId>-LOG-BAG`, with task LOG-BAG,
+Logistics department, ORDER scope, step 0, and blank laundry item id. Existing ids are skipped.
+Customer, order name, due date, and notes come from OrderForm exactly as Packaging does; special
+instructions are null. Evidence uses the image path; creation and update actors use the photographer.
+Status starts Pending, with null start, completion, scan actor, and work minutes. No rates, staff,
+or WorkTransactions are read or written. Provisioning failures are logged and never fail the image save.
+
+An order updated to COMPLETED closes every open non-deleted ticket in one updateMany, across all
+departments and scopes. Pending and In Progress become Completed at the current Bangkok time,
+with that same start time only when missing, and the request actor as updated_by. scanned_by stays
+unchanged; no EARN is written. Read/write failures are logged without changing the order response.
+
 ## Provisioning
 
 Tickets are provisioned after a work-order status write succeeds with `APPROVED`. The service reads

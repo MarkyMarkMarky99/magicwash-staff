@@ -11,10 +11,10 @@ import {
   overlayToImageType,
 } from '@/features/orders/composables/use-order-overlay-route'
 
-test('labels the three writable types', () => {
+test('keeps three capture types and labels pickup and delivery photos', () => {
   assert.deepEqual(ORDER_IMAGE_TYPES, ['WEIGHT', 'BELONGING', 'DOCUMENT'])
-  assert.deepEqual(Object.keys(orderImageTypeLabels), ['WEIGHT', 'BELONGING', 'DOCUMENT'])
-  assert.deepEqual(Object.keys(orderImageTypeIcons), ['WEIGHT', 'BELONGING', 'DOCUMENT'])
+  assert.deepEqual(Object.keys(orderImageTypeLabels), ['WEIGHT', 'BELONGING', 'DOCUMENT', 'PICKUP', 'DELIVERY'])
+  assert.deepEqual(Object.keys(orderImageTypeIcons), ['WEIGHT', 'BELONGING', 'DOCUMENT', 'PICKUP', 'DELIVERY'])
 })
 
 test('falls back for legacy and blank types', () => {

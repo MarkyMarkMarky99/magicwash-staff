@@ -20,7 +20,7 @@ const RESPONSE_FIELDS = [
   'notes', 'quantity', 'createdAt', 'createdBy',
 ] as const
 
-assert.deepEqual(orderImageTypeSchema.options, ['WEIGHT', 'BELONGING', 'DOCUMENT'])
+assert.deepEqual(orderImageTypeSchema.options, ['WEIGHT', 'BELONGING', 'DOCUMENT', 'PICKUP', 'DELIVERY'])
 assert.equal(MAX_ORDER_IMAGES_PER_PAGE, 500)
 assert.deepEqual(new Set(Object.keys(orderImageModule)), new Set([
   'MAX_ORDER_IMAGES_PER_PAGE',
@@ -73,7 +73,7 @@ assert.deepEqual(orderImageCreateSchema.parse(minimalCreate), {
   orderId: 'ORD-1', customerId: null, deliveryId: null, imageType: 'WEIGHT',
   imagePath: 'https://firebasestorage.example/x.jpg', notes: null, quantity: 20.5, createdBy: 'staff-1',
 })
-for (const imageType of ['WEIGHT', 'BELONGING', 'DOCUMENT'] as const) {
+for (const imageType of ['WEIGHT', 'BELONGING', 'DOCUMENT', 'PICKUP', 'DELIVERY'] as const) {
   const quantity = imageType === 'WEIGHT' ? 20.5 : null
   assert.equal(orderImageCreateSchema.parse({ ...minimalCreate, imageType, quantity }).imageType, imageType)
 }
@@ -86,7 +86,7 @@ assert.throws(
   () => orderImageCreateSchema.parse({ ...minimalCreate, imagePath: 'OrderForm_Images/x.jpg' }),
   /imagePath must start with http:\/\/ or https:\/\//,
 )
-for (const imageType of ['BAG', 'FORM', 'PICKUP', 'HANGERS', 'DELIVERED', 'UNRECOGNIZED'] as const) {
+for (const imageType of ['BAG', 'FORM', 'HANGERS', 'DELIVERED', 'UNRECOGNIZED'] as const) {
   assert.throws(
     () => orderImageCreateSchema.parse({ ...minimalCreate, imageType }),
     ZodError,

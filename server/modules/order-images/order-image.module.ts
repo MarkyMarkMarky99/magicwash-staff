@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { BagTagPrintService, logBagTagFailure } from '../bag-tag-prints/bag-tag-print.service.js'
+import { BagLogisticsTicketService } from './bag-logistics-ticket.service.js'
 import { WeightPhotoTicketService } from './weight-photo-ticket.service.js'
 import { orderImageApiContract } from '../../../contracts/order-images/order-image-api.schema.js'
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
@@ -38,6 +39,7 @@ type OrderImageCreateResponse = z.infer<typeof orderImageApiContract.response.cr
 export interface OrderImageServiceOptions {
   repository?: SheetRepositoryContract<OrderImagesDbRow>
   bagTagPrintService?: Pick<BagTagPrintService, 'print'>
+  bagLogisticsTicketService?: Pick<BagLogisticsTicketService, 'provision'>
   weightPhotoTicketService?: Pick<WeightPhotoTicketService, 'provision'>
 }
 
@@ -105,6 +107,7 @@ export class OrderImageService extends BaseCrudService<
   typeof orderImageFieldMap
 > {
   private readonly bagTagPrintService: Pick<BagTagPrintService, 'print'>
+  private readonly bagLogisticsTicketService: Pick<BagLogisticsTicketService, 'provision'>
   private readonly weightPhotoTicketService: Pick<WeightPhotoTicketService, 'provision'>
 
   constructor(input: OrderImageServiceOptions = {}) {
@@ -116,6 +119,7 @@ export class OrderImageService extends BaseCrudService<
       transformer: createOrderImageTransformer(),
     })
     this.bagTagPrintService = input.bagTagPrintService ?? new BagTagPrintService()
+    this.bagLogisticsTicketService = input.bagLogisticsTicketService ?? new BagLogisticsTicketService()
     this.weightPhotoTicketService = input.weightPhotoTicketService ?? new WeightPhotoTicketService()
   }
 
@@ -126,6 +130,11 @@ export class OrderImageService extends BaseCrudService<
         await this.weightPhotoTicketService.provision(image)
       } catch (error) {
         console.error('Failed to provision weight photo ticket', error)
+      }
+      try {
+        await this.bagLogisticsTicketService.provision(image)
+      } catch (error) {
+        console.error('Failed to provision bag logistics ticket', error)
       }
       try {
         await this.bagTagPrintService.print(image)

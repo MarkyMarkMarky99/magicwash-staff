@@ -52,7 +52,7 @@ const printer = new BagTagPrintService({
     return 'customer-1'
   },
 })
-const service = new OrderImageService({ repository, bagTagPrintService: printer,
+const service = new OrderImageService({ bagLogisticsTicketService: { async provision() {} }, repository, bagTagPrintService: printer,
   weightPhotoTicketService: { async provision() { ticketCalls++; if (ticketThrows) throw new Error('ticket failure') } },
 })
 function successResponse() {
@@ -200,7 +200,7 @@ try {
   assert.deepEqual(await service.create(payload), saved)
   assert.equal(calls.length, count + 1, 'ticket failure must not suppress printing')
   ticketThrows = false
-  const throwingService = new OrderImageService({ repository,
+  const throwingService = new OrderImageService({ bagLogisticsTicketService: { async provision() {} }, repository,
     weightPhotoTicketService: { async provision() {} },
     bagTagPrintService: { async print() { throw new Error('test-client-secret') } },
   })
