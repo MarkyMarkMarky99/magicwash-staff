@@ -67,7 +67,7 @@ export class ApiGateway {
 }
 
 function isPublicModule(moduleName: string): boolean {
-  return moduleName === 'portal'
+  return moduleName === 'portal' || moduleName === 'delivery-tracking'
 }
 
 function hasInvoicePrintKey(req: VercelRequest, segments: string[]): boolean {

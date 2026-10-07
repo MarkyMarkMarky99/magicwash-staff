@@ -6,12 +6,13 @@
 
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
+- **`feat/delivery-tracking-api`** — real public tracking API for `/b/:id`, pushed for owner's Preview check; see `.user/memory/feat-delivery-tracking-api.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 
 ## Pending work
 
 - Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
-- RESUME HERE (2026-10-07): wire the bag-tag QR to real data (public delivery-tracking API); handoff in `.user/memory/bag-tags-and-delivery-tracking.md`.
+- RESUME HERE (2026-10-07): owner checks the tracking Preview; next build bag-scan Logistics tickets (design decided in `.user/memory/bag-tags-and-delivery-tracking.md`).
 - **Orders report (`/reports/orders`, merged 2026-10-05)**
   - Order list has no pull-to-refresh yet (ListPageLayout lacks it); `/api/order-reports` and the server date/keyword path of `/api/work-orders` now have no frontend caller.
   - Deferred by owner: status cards show current status, not status on that day; check whether orders ever reach COMPLETED.

@@ -6,6 +6,10 @@ export const routeRegistry = {
     import('../modules/staff/staff.module.js').then((module) => module.staffRoutes),
   portal: (): ReturnType<RouteLoader> =>
     import('../modules/portal/portal.module.js').then((module) => module.portalRoutes),
+  'delivery-tracking': (): ReturnType<RouteLoader> =>
+    import('../modules/delivery-tracking/delivery-tracking.module.js').then(
+      (module) => module.deliveryTrackingRoutes,
+    ),
   auth: (): ReturnType<RouteLoader> =>
     import('../modules/auth/auth.module.js').then((module) => module.authRoutes),
   appointments: (): ReturnType<RouteLoader> =>

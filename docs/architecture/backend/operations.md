@@ -62,6 +62,17 @@ Legacy dirty cells must not become 500 responses. JSON view columns listed in `j
 to their API fields with `[]` for malformed arrays and `null` for malformed objects; correct a
 wrong materialized view in its Apps Script source rather than guessing in the API or frontend.
 
+## Public delivery tracking
+
+`GET /api/delivery-tracking/:orderImageId` serves the customer page opened from a bag-tag QR,
+without login. It returns 404 unless the id is a `WEIGHT` OrderImages row. The response lists
+every WEIGHT image of the same order as bags, ordered by weigh time, with the order's received
+date and status label and its customer index; it never returns customer name, phone, or address.
+Only `https://` image paths are returned; legacy relative paths become `null`. Delivered state
+comes from the order's `COMPLETED` DELIVERY appointment (`DeliveryOrderID`); until Appointments
+has a delivered-time column, `deliveredAt` is that row's `UpdatedAt` and proof of delivery is
+`null`.
+
 ## Live portal reads
 
 `server/modules/portal/` exposes read-only `GET /api/portal/orders` and
@@ -170,7 +181,7 @@ JSON, schema, and count-mismatch failures and redact the print server URL and Ac
 
 ## Environment and external state
 
-The gateway leaves `portal` public. The `staff` module always verifies identity through
+The gateway leaves `portal` and `delivery-tracking` public. The `staff` module always verifies identity through
 `authenticateIdentity`; missing or invalid Firebase ID tokens in the `Authorization: Bearer`
 header return 401. Token verification uses Firebase's public keys for `FIREBASE_PROJECT_ID` and requires
 a verified email, normalized by trimming and lowercasing. Missing or invalid tokens return 401.
