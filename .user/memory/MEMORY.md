@@ -1,19 +1,17 @@
 # Project memory
 
-- Branch: `feat/bag-tag-and-bag-scan` (off `main`); customer-package invoice deployment still needs verification.
+- Branch: `main`; customer-package invoice deployment still needs verification.
 
 ## Branches in flight
 
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
-- **`feat/bag-tag-and-bag-scan`** — design-only: locked bag tag + bag-scan page mocks, awaiting owner decisions; see `.user/memory/feat-bag-tag-and-bag-scan.md`.
 
 ## Pending work
 
 - Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
-- RESUME HERE (2026-10-07): read `.user/memory/feat-bag-tag-and-bag-scan.md` for the handoff; bag tag print + bag-scan page await owner decisions.
-- Session log `2026-10-07-045309-local-command-caveatthe-command-below-was-run-d.txt` (repo root): query it only via the `explore` skill, never read it directly (too large).
+- Bag tags + delivery-tracking page shipped 2026-10-07; open items in `.user/memory/bag-tags-and-delivery-tracking.md`.
 - **Orders report (`/reports/orders`, merged 2026-10-05)**
   - Order list has no pull-to-refresh yet (ListPageLayout lacks it); `/api/order-reports` and the server date/keyword path of `/api/work-orders` now have no frontend caller.
   - Deferred by owner: status cards show current status, not status on that day; check whether orders ever reach COMPLETED.
