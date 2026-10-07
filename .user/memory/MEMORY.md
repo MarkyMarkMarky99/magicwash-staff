@@ -4,7 +4,8 @@
 
 ## Branches in flight
 
-- **`feat/bag-scan-delivery`** — Logistics bag tickets + order-completion + bag-scan page; waiting on owner's Bags sheet design; see `.user/memory/feat-bag-scan-delivery.md`.
+- **`feat/bag-items-sheet`** — BagItems sheet + GET/POST /api/bag-items built in worktree `.claude/worktrees/bag-items-sheet`, not pushed; see `.user/memory/feat-bag-items-sheet.md` on that branch.
+- **`feat/bag-scan-delivery`** — Logistics bag tickets + order-completion + bag-scan page; next: Logistics side-nav list and ticket-driven bag list; see `.user/memory/feat-bag-scan-delivery.md`.
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
@@ -12,7 +13,7 @@
 ## Pending work
 
 - Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
-- RESUME HERE (2026-10-08): `feat/bag-scan-delivery` waits on the owner's Bags/BagItems sheet design; owner still to scan a real bag tag on prod `/b/:id`.
+- RESUME HERE (2026-10-08): `feat/bag-scan-delivery` next steps in its branch file; owner still to scan a real bag tag on prod `/b/:id`.
 - **Orders report (`/reports/orders`, merged 2026-10-05)**
   - Order list has no pull-to-refresh yet (ListPageLayout lacks it); `/api/order-reports` and the server date/keyword path of `/api/work-orders` now have no frontend caller.
   - Deferred by owner: status cards show current status, not status on that day; check whether orders ever reach COMPLETED.
