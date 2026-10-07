@@ -9,8 +9,9 @@
 - `baa54ea`: customer code now read via OrderForm.customer_id (images are saved with customerId null); owner has not yet seen a tag printed after this fix.
 - Owner's uncommitted `config.json` in MagicwashInvoice (printApiKey, domain) left untouched on purpose.
 
-## Delivery-tracking API — on `feat/delivery-tracking-api`
-- Built and probed on live sheets; awaiting owner Preview check, then merge. See `.user/memory/feat-delivery-tracking-api.md`.
+## Delivery-tracking API — on main 2026-10-07
+- Live probe OK (`574fdcaa` → bag 4/4); owner still to scan a real tag on a phone.
+- Temporary: `deliveredAt` = COMPLETED DELIVERY appointment's `UpdatedAt`; proof null until Appointments gets DeliveredAt/proof columns.
 - Also open: real shop LINE/phone in `utils/delivery-tracking.ts`; weight-tab font falls back to Arial on phones (load Archivo Black).
 
 ## Bag-scan page (staff, not built)
