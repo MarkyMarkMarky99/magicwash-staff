@@ -8,6 +8,13 @@
 - Open: Pack scans garments into the bag after the tag prints (recommended) or before weighing?
 - Watch: OrderImages already has legacy `DELIVERY` (2) and `PICKUP` (271) rows; tracking proof may pick a legacy DELIVERY row.
 - To do: remove the "Scan bags" link from `OrderDetailPage.vue`; add side-nav Logistics page with the same status filters as other departments (ALL / PENDING / IN PROGRESS / COMPLETED) — decided 2026-10-08.
-- Proposed (awaiting owner's go): add Logistics to `DepartmentWorkPage` (departments map + side nav), let `filterTickets` show ORDER-scope LOG-BAG for Logistics, scan resolves a bag-tag QR to its ticket, tapping an order opens `/orders/:id/bag-scan`; same round removes the order-detail link.
-- To do: bag-scan page must list bags from JobTickets (photo = `photo_evidence_url`), not OrderImages; weight read from OrderImages by the orderImageId in the ticket id.
+- Decided 2026-10-08: bag scan is a Logistics task — loading packed bags onto the van, scanning every bag of the order moves its LOG-BAG ticket Pending → In Progress; page and route leave the orders feature.
+- Decided 2026-10-08: putting garments into a bag (BagItems) is Packaging's job, out of scope now; Logistics does not show bag contents.
+- To do: bag-scan page must list bags from JobTickets (photo = `photo_evidence_url`), not OrderImages.
+- Decided 2026-10-08: scan page shows bag weight from OrderImages (via the orderImageId in the ticket id).
+- Decided 2026-10-08: Logistics department page lists per order like other departments, no item rows (delivery is whole-order); tapping an order opens its bag-scan page.
+- Decided 2026-10-08: no scan FAB on the Logistics list; scanning happens only on the order's bag page, route `/departments/logistics/:orderId`.
+- Decided 2026-10-08: scanner matches QR ids locally against the order's unscanned bags; one batch request when all bags are scanned or the user confirms, then the camera closes (no request per scan).
+- Decided 2026-10-08: drop the order-status badge (`presentationFor`) from the bag page.
+- In progress: Codex implementing the Logistics page round; Claude reviews every diff line.
 - Not tested: phone camera scanning; appointment → order completion on live sheets.

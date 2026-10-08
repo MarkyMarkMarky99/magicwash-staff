@@ -12,7 +12,7 @@
 ## Pending work
 
 - Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
-- RESUME HERE (2026-10-08): on `feat/bag-scan-delivery`, await owner's go to brief Codex for the Logistics page (plan in `.user/memory/feat-bag-scan-delivery.md`).
+- RESUME HERE (2026-10-08): on `feat/bag-scan-delivery`, Codex implementing the Logistics page round; review its diff (decisions in `.user/memory/feat-bag-scan-delivery.md`).
 - **Orders report (`/reports/orders`, merged 2026-10-05)**
   - Order list has no pull-to-refresh yet (ListPageLayout lacks it); `/api/order-reports` and the server date/keyword path of `/api/work-orders` now have no frontend caller.
   - Deferred by owner: status cards show current status, not status on that day; check whether orders ever reach COMPLETED.
