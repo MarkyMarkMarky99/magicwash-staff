@@ -6,7 +6,7 @@ import { normalizeGarmentTagId } from '@/shared/utils/garment-tag-id'
 import type { JobTicketAdvanceResult } from '@/data/job-tickets/job-ticket.service'
 import { departmentLabels } from './scan-result'
 
-export type Department = Extract<z.infer<typeof jobTicketDepartmentSchema>, 'Washing' | 'DryCleaning' | 'Ironing' | 'Packaging'>
+export type Department = Extract<z.infer<typeof jobTicketDepartmentSchema>, 'Washing' | 'DryCleaning' | 'Ironing' | 'Packaging' | 'Logistics'>
 export type TicketStatus = z.infer<typeof jobTicketStatusSchema>
 export type StatusFilter = 'ALL' | 'PENDING' | 'IN PROGRESS' | 'COMPLETED'
 export type Grouper = 'item' | 'order'
@@ -88,6 +88,7 @@ export const departments: Record<string, { code: Department; label: string }> = 
   drycleaning: { code: 'DryCleaning', label: 'Dry Cleaning' },
   ironing: { code: 'Ironing', label: 'Ironing' },
   packaging: { code: 'Packaging', label: 'Packaging' },
+  logistics: { code: 'Logistics', label: 'Logistics' },
 }
 
 export const statusFilters: readonly StatusFilter[] = ['ALL', 'PENDING', 'IN PROGRESS', 'COMPLETED']
@@ -106,8 +107,10 @@ export function readGrouper(value: unknown): Grouper {
   return raw === 'item' ? 'item' : 'order'
 }
 
-export function filterTickets(tickets: readonly JobTicketDto[], filter: StatusFilter): JobTicketDto[] {
-  return tickets.filter(ticket => ticket.scope === 'ITEM' && (filter === 'ALL' || ticket.status.toUpperCase() === filter))
+export function filterTickets(tickets: readonly JobTicketDto[], filter: StatusFilter, department?: Department): JobTicketDto[] {
+  return tickets.filter(ticket => (department === 'Logistics'
+    ? ticket.scope === 'ORDER' && ticket.department === 'Logistics' && ticket.taskCode === 'LOG-BAG' && !ticket.deletedAt
+    : ticket.scope === 'ITEM') && (filter === 'ALL' || ticket.status.toUpperCase() === filter))
 }
 
 export function countDepartmentStatuses(tickets: readonly JobTicketDto[]): Record<StatusFilter, number> {

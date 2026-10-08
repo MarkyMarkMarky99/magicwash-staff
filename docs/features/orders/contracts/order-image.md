@@ -73,7 +73,8 @@ Behaviour
   or null for unavailable rates or invalid quantity. Finite minutes earn one EARN only for an
   active StaffId matching the trimmed photographer. Existing ticket ids are skipped; ticket and
   EARN failures are logged without retry or any change to the image response. Other image types
-  create no ticket or EARN. Department boards hide these ORDER tickets.
+  create no ticket or EARN. The Packaging department board hides these ORDER credit tickets; the Logistics board lists
+  LOG-BAG tickets as described in [Department work pages](../../job-tickets/department-work.md).
 - After Packaging provisioning and before bag-tag printing, each saved WEIGHT image also
   provisions a Pending Logistics ORDER ticket `LOG-<orderId>-<orderImageId>-LOG-BAG` at step 0.
   See [Bag logistics tickets](./job-ticket.md#bag-logistics-tickets). Failures leave the save response unchanged.

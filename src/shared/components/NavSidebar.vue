@@ -133,6 +133,7 @@ function logout() {
           { path: '/departments/drycleaning', label: 'Dry Cleaning', icon: 'dry_cleaning' },
           { path: '/departments/ironing', label: 'Ironing', icon: 'iron' },
           { path: '/departments/packaging', label: 'Packaging', icon: 'inventory_2' },
+          { path: '/departments/logistics', label: 'Logistics', icon: 'local_shipping' },
         ]" :key="entry.path">
           <button
             class="w-full flex items-center gap-4 px-5 py-3 text-left hover:bg-black/5 transition-colors"

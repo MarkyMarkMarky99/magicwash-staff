@@ -16,5 +16,7 @@
 - Decided 2026-10-08: no scan FAB on the Logistics list; scanning happens only on the order's bag page, route `/departments/logistics/:orderId`.
 - Decided 2026-10-08: scanner matches QR ids locally against the order's unscanned bags; one batch request when all bags are scanned or the user confirms, then the camera closes (no request per scan).
 - Decided 2026-10-08: drop the order-status badge (`presentationFor`) from the bag page.
-- In progress: Codex implementing the Logistics page round; Claude reviews every diff line.
+- Built 2026-10-08: Logistics department list + `/departments/logistics/:orderId` bag page (batch scan, one request); header card and list header restyled to `.user/memory/designs/order-bag-scan-page.html`.
+- Test data: 4 LOG-BAG tickets created by script on live sheet for test order `22fcaba8`; delete or reset after testing.
+- Not tested: the batch scan flow in a browser/phone (owner testing the UI now).
 - Not tested: phone camera scanning; appointment → order completion on live sheets.

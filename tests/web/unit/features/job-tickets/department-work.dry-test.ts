@@ -17,6 +17,7 @@ assert.equal(readDepartment('washing')?.code, 'Washing')
 assert.equal(readDepartment('drycleaning')?.code, 'DryCleaning')
 assert.equal(readDepartment('ironing')?.code, 'Ironing')
 assert.equal(readDepartment('packaging')?.code, 'Packaging')
+assert.equal(readDepartment('logistics')?.code, 'Logistics')
 assert.equal(readDepartment('__proto__'), null)
 assert.equal(readStatusFilter('CANCELLED'), 'ALL')
 assert.equal(readStatusFilter('IN PROGRESS'), 'IN PROGRESS')
@@ -87,6 +88,18 @@ assert.deepEqual(boardTickets, tickets)
 assert.deepEqual(countDepartmentStatuses(boardTickets), { ALL: 3, PENDING: 1, 'IN PROGRESS': 1, COMPLETED: 1 })
 assert.equal(completionPercentage(boardTickets), 33)
 assert.ok(!groupDepartmentOrders(boardTickets, orderInfo).some(order => order.orderId === 'order-only'))
+const logisticsBag = { ...ticket('LOG-order-soon-bag-1-LOG-BAG', 'order-soon', 'Pending'), scope: 'ORDER' as const, department: 'Logistics' as const, taskCode: 'LOG-BAG', laundryItemId: null }
+const logisticsDone = { ...logisticsBag, id: 'LOG-order-soon-bag-2-LOG-BAG', status: 'Completed' as const }
+const logisticsRows = [...tickets, logisticsBag, logisticsDone,
+  { ...logisticsBag, scope: 'ITEM' as const }, { ...logisticsBag, taskCode: 'OTHER' },
+  { ...logisticsBag, deletedAt: '2026-10-08' }, { ...logisticsBag, department: 'Packaging' as const }]
+assert.deepEqual(filterTickets(logisticsRows, 'ALL', 'Logistics'), [logisticsBag, logisticsDone])
+assert.deepEqual(filterTickets(logisticsRows, 'PENDING', 'Logistics'), [logisticsBag])
+assert.deepEqual(countDepartmentStatuses(filterTickets(logisticsRows, 'ALL', 'Logistics')), { ALL: 2, PENDING: 1, 'IN PROGRESS': 0, COMPLETED: 1 })
+assert.equal(groupDepartmentOrders(filterTickets(logisticsRows, 'ALL', 'Logistics'), orderInfo)[0]?.percentage, 50)
+for (const department of ['Washing', 'DryCleaning', 'Ironing', 'Packaging'] as const) {
+  assert.deepEqual(filterTickets([...tickets, logisticsBag], 'ALL', department), tickets)
+}
 assert.equal(completionPercentage([]), 0)
 assert.equal(completionPercentage(tickets), 33)
 assert.deepEqual(countDepartmentStatuses(tickets), { ALL: 3, PENDING: 1, 'IN PROGRESS': 1, COMPLETED: 1 })
