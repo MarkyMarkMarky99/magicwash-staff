@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
 import BaseRowCard from '@/shared/components/BaseRowCard.vue'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
@@ -54,7 +54,6 @@ const emit = defineEmits<{
 const baseCard = ref<InstanceType<typeof BaseSwipeCard> | null>(null)
 const updating = ref(false)
 const toast = ref<{ ok: boolean; message: string } | null>(null)
-let toastTimer: ReturnType<typeof setTimeout> | undefined
 
 const config = computed(() => statusConfig[props.appointment.status])
 const next = computed(() => nextStatus[props.appointment.status])
@@ -64,7 +63,6 @@ const formattedDate = computed(() => formatSheetDate(props.appointment.appointme
 const customerLabel = computed(() => formatCustomerLabel(props.appointment.customerName || props.appointment.customerId, props.appointment.customerCode))
 const vehicle = computed(() => props.appointment.vehicle ? vehicleConfig[props.appointment.vehicle] : null)
 
-onUnmounted(() => clearTimeout(toastTimer))
 
 async function advanceStatus() {
   if (!next.value) {
@@ -77,8 +75,6 @@ async function advanceStatus() {
   try {
     await props.onStatusUpdate(props.appointment.appointmentId, next.value)
     baseCard.value?.snapCard('none')
-    toast.value = { ok: true, message: `→ ${statusConfig[next.value].label}` }
-    toastTimer = setTimeout(() => { toast.value = null }, 2500)
   } catch (reason) {
     baseCard.value?.snapCard('none')
     toast.value = { ok: false, message: reason instanceof Error ? reason.message : 'Unable to update appointment' }
