@@ -1,22 +1,23 @@
 # Department work pages
 
-The four department pages use `/departments/:department`: `washing`, `drycleaning`, `ironing`, and `packaging`. These map to the JobTicket department values `Washing`, `DryCleaning`, `Ironing`, and `Packaging`. An unknown value shows a not-found state.
+The five department pages use `/departments/:department`: `washing`, `drycleaning`, `ironing`, `packaging`, and `logistics`. These map to the JobTicket department values `Washing`, `DryCleaning`, `Ironing`, `Packaging`, and `Logistics`. An unknown value shows a not-found state.
 
 Each page loads Pending, In Progress, and Completed tickets for its department through the existing job-ticket list API. The three status requests start in parallel, while pages within each status load sequentially. Completed tickets are ordered by `completedAt` descending, stopping when the first completion before the current Bangkok date appears. The combined list is capped at 2,000 tickets; a warning marks a capped list as incomplete. Loading, errors with retry, and empty results use the list page pattern.
 Job-ticket GETs bypass the response cache so reopening the work queue reads current statuses.
-All department pages filter the loaded list to scope ITEM before cards, counts, rings, selection,
-and scan queues are derived. ORDER tickets, including weight-photo Packaging credit, are hidden.
+Washing, Dry Cleaning, Ironing, and Packaging filter the loaded list to scope ITEM before cards,
+counts, rings, selection, and scan queues are derived. Their ORDER tickets, including weight-photo
+Packaging credit, are hidden. Logistics keeps only non-deleted ORDER-scope Logistics LOG-BAG tickets.
 Loaded garment tags are normalized to strings, with numeric tags padded to eight digits and missing tags retained as null so those tickets remain visible.
 
-The `status` query selects ALL, PENDING, IN PROGRESS, or COMPLETED. Tab counts and sorting use the loaded list in memory. The `group` query selects `item` for a flat garment grid or defaults to `order` for order cards. Both controls replace the current URL entry. Orders sort by nearest due date. Each order card shows customer, order ID, due date, a completion ring, and counts for the three statuses. The ring starts at 12 o'clock; its head is a second, thinner stroke of fixed length on the same circle, locked to the arc end, carrying the completed percentage and moving with the arc when the value changes. The ring centre shows the customer's `customerIndex` from the preloaded customer store, or `-` when none is found. Tapping the card body expands it to show only garments matching the active tab. Garments use the shared square image card, showing photo evidence when present. Image cards show the image and status badge; their text labels are omitted. A ticket with a `taskCode` also shows it in a small chip at the bottom-left of the card, and the card's accessible name reads `Select tag <tag>, task <taskCode>; current status <status>`. A ticket without a task code shows no chip and no task in its name. A garment with several tasks in the department appears as one card per task, ordered by `stepNo` then `taskCode`, in both the flat grid and an expanded order card.
+The `status` query selects ALL, PENDING, IN PROGRESS, or COMPLETED. Tab counts and sorting use the loaded list in memory. For the four garment departments, the `group` query selects `item` for a flat garment grid or defaults to `order` for order cards. Both controls replace the current URL entry. Orders sort by nearest due date. Each order card shows customer, order ID, due date, a completion ring, and counts for the three statuses. The ring starts at 12 o'clock; its head is a second, thinner stroke of fixed length on the same circle, locked to the arc end, carrying the completed percentage and moving with the arc when the value changes. The ring centre shows the customer's `customerIndex` from the preloaded customer store, or `-` when none is found. Tapping the card body expands it to show only garments matching the active tab. Garments use the shared square image card, showing photo evidence when present. Image cards show the image and status badge; their text labels are omitted. A ticket with a `taskCode` also shows it in a small chip at the bottom-left of the card, and the card's accessible name reads `Select tag <tag>, task <taskCode>; current status <status>`. A ticket without a task code shows no chip and no task in its name. A garment with several tasks in the department appears as one card per task, ordered by `stepNo` then `taskCode`, in both the flat grid and an expanded order card.
 
-On all department pages, the item/order grouping buttons are icon-only at every screen width. Their accessible names remain `By item` and `By order`.
+On the four garment department pages, the item/order grouping buttons are icon-only at every screen width. Their accessible names remain `By item` and `By order`.
 
 Order due dates and customer IDs come directly from the loaded tickets. Names come from the preloaded customer list, falling back to customer ID. The department page does not fetch work-order details.
 
-The Pending tab selects jobs to move to In Progress; the In Progress tab selects jobs to complete. Tapping an eligible image toggles its selection and marks it with a lime ring and check badge. The action button shows the selected count and asks for confirmation before one batch submission. All and Completed tabs do not permit image updates or show the scanner button. The selected tickets must have the active tab status in this department. Changing tabs clears the selection after Send or Discard confirmation when anything is pending.
+In the four garment departments, the Pending tab selects jobs to move to In Progress; the In Progress tab selects jobs to complete. Tapping an eligible image toggles its selection and marks it with a lime ring and check badge. The action button shows the selected count and asks for confirmation before one batch submission. All and Completed tabs do not permit image updates or show the scanner button. The selected tickets must have the active tab status in this department. Changing tabs clears the selection after Send or Discard confirmation when anything is pending.
 
-The scan button opens the shared scanner with `scan=1` in the query. Browser Back closes an overlay opened from the page; closing a refreshed scanner deep link removes the query with replace. Each read resolves a loaded ticket in this department and the active status tab, adds it to a deduplicated queue, and gives success or failure feedback. When a tag has more than one ticket with the active status in the department, the read is rejected and names the task codes, so staff pick the tasks from the list; a scan never queues the first of several tasks. The result explains tags outside the tab, duplicate reads, ambiguous tags, and unknown tags. The queue count appears in the scanner. A queue is saved locally by department and status, keyed by ticket id, and restored only for tickets still loaded with that status. Queues saved before task codes hold ticket ids and restore unchanged; an entry is never remapped by garment alone, so a sibling task of the same garment is not restored in its place. Closing with queued scans asks staff to Send, Discard, or Cancel. Leaving the page, changing department, or switching tabs with a selection or queue also asks for confirmation. A rejected write or connection error keeps the pending work for retry. An uncertain write clears it and reloads the department so staff can check the jobs before sending again. A successful batch updates the loaded statuses, timestamps, and actor and shows one summary notice with advanced, blocked, and skipped counts.
+In the four garment departments, the scan button opens the shared scanner with `scan=1` in the query. Browser Back closes an overlay opened from the page; closing a refreshed scanner deep link removes the query with replace. Each read resolves a loaded ticket in this department and the active status tab, adds it to a deduplicated queue, and gives success or failure feedback. When a tag has more than one ticket with the active status in the department, the read is rejected and names the task codes, so staff pick the tasks from the list; a scan never queues the first of several tasks. The result explains tags outside the tab, duplicate reads, ambiguous tags, and unknown tags. The queue count appears in the scanner. A queue is saved locally by department and status, keyed by ticket id, and restored only for tickets still loaded with that status. Queues saved before task codes hold ticket ids and restore unchanged; an entry is never remapped by garment alone, so a sibling task of the same garment is not restored in its place. Closing with queued scans asks staff to Send, Discard, or Cancel. Leaving the page, changing department, or switching tabs with a selection or queue also asks for confirmation. A rejected write or connection error keeps the pending work for retry. An uncertain write clears it and reloads the department so staff can check the jobs before sending again. A successful batch updates the loaded statuses, timestamps, and actor and shows one summary notice with advanced, blocked, and skipped counts.
 
 Completing a ticket through `/api/job-tickets/advance` appends one WorkTransactions EARN row with the ticket's `work_minutes` and `created_by` set to the staff StaffId; accepting work (Pending → In Progress) earns nothing. Tickets without `work_minutes` (created before the column existed) earn nothing and are not reported. If the score write fails, the affected tickets are counted in `scoreFailed` and the page shows “Score not saved … Tell an admin”; completion itself still succeeds.
 
@@ -32,6 +33,41 @@ WorkRates successful reads are indexed by task code and cached in memory for the
 a TTL, so a rate change reaches approvals and weight photos only after the instance restarts; concurrent reads share one in-flight request. Failed reads are logged and are not cached,
 so a later approval can try again. Minutes already stored on tickets are not affected by a rate change.
 
-The play arrow on each order card continues to send one `/api/job-tickets/start-order` request to start all Pending tickets with tags in that order. In Progress, Completed, and Cancelled tickets are skipped; Pending tickets without tags are counted as skipped. Each order's Start runs in the background and shows a spinning sync icon while that order syncs. Its button is disabled only during that order's sync or when the order has no Pending tickets. The actor is the signed-in StaffId, or `unknown` when signed out; the optional `by` query is ignored.
+The play arrow on each garment department order card continues to send one `/api/job-tickets/start-order` request to start all Pending tickets with tags in that order. In Progress, Completed, and Cancelled tickets are skipped; Pending tickets without tags are counted as skipped. Each order's Start runs in the background and shows a spinning sync icon while that order syncs. Its button is disabled only during that order's sync or when the order has no Pending tickets. The actor is the signed-in StaffId, or `unknown` when signed out; the optional `by` query is ignored.
 
 Start shows one summary notice with counts of advanced, blocked, and skipped without a tag, plus the blocking department names when any are blocked. A task blocked by an earlier task in its own department names that same department. A failed Start write asks staff to retry or check the order according to write certainty. The shared sound and vibration controls appear in the scanner header. A queued read plays one short beep and a 70 ms vibration; rejected reads play two short beeps and a distinct vibration pattern, subject to the independent preferences. Image taps and Start are silent.
+
+## Logistics order bags
+
+Logistics always groups by order, including when a deep link supplies `group=item`. It uses the same
+ALL, PENDING, IN PROGRESS, and COMPLETED tabs, order cards, completion ring, and status counts.
+There is no ticket image grid, grouping control, ticket selection, batch start/play action, or scan
+FAB on the Logistics list. Tapping an order card opens `/departments/logistics/:orderId`, route name
+`logistics-order-bags`, owned by job-tickets and rendered by `LogisticsOrderBagsPage.vue`. The route
+pattern `/departments/:department(logistics)/:orderId` captures the Logistics department for the
+`department-work` parent, so the header Back button returns to `/departments/logistics`.
+
+The bag page loads the work-order header, all pages of that order's Logistics tickets, and its order
+images through the data services. Non-deleted ORDER LOG-BAG tickets define the bags. Each ticket id
+is `LOG-<orderId>-<orderImageId>-LOG-BAG`; the row shows the embedded orderImageId, the ticket's
+photoEvidenceUrl, and scanned/pending state. Weight is the quantity of the matching OrderImages row,
+without filtering by image type; a missing image or quantity shows no weight. Images without a bag
+ticket do not create rows. The header shows customer, bag weights, and scanning progress, with no
+order-status badge. Bags sort by ticket createdAt ascending after Bangkok timestamp normalization,
+then by orderImageId. In Progress and Completed bags are already scanned.
+
+Scan opens the existing shared camera overlay with `scan=1`. Each read accepts a trimmed bare
+orderImageId or the text after the last `/b/` segment, and matches against this order's loaded bags.
+Pending matches are marked scanned only in memory. Unmatched ids show “Not a bag of this order”;
+repeated local scans and already In Progress or Completed bags show “already scanned”. Reads provide
+sound/vibration feedback and make no network request individually.
+
+Scanning the last Pending bag automatically confirms; the Confirm button can confirm a partial
+set. Either sends one advanceJobTickets request with Logistics, from Pending, the current staff
+actor, and every locally scanned ticket id paired with this order id. Orders have fewer than 200
+bags; the page does not chunk requests. Confirmed advances update local tickets to In Progress and
+record the returned start time and actor. Partial responses, failed writes, and uncertain writes
+reload server data before staff scan again. After confirmation finishes, the camera closes.
+Closing without confirmation, browser Back, or leaving the page discards the local scans without a
+write; scans are never persisted. Close uses Back for a scanner entry pushed by the page and removes
+`scan` with replace for a refreshed/deep-linked scanner. Navigation waits while confirmation saves.

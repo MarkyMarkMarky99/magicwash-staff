@@ -19,6 +19,7 @@ for (const key of environmentKeys) {
 }
 
 const [
+  bagItemsModule,
   afterPhotoModule,
   orderFormModule,
   orderItemFormsModule,
@@ -42,6 +43,7 @@ const [
   workTransactionsModule,
   workRatesModule,
 ] = await Promise.all([
+  import('../../../../server/sheets/BagItems/BagItems.repository.js'),
   import('../../../../server/sheets/AfterPhoto/AfterPhoto.repository.js'),
   import('../../../../server/sheets/OrderForm/OrderForm.repository.js'),
   import('../../../../server/sheets/OrderItemForms/OrderItemForms.repository.js'),
@@ -79,6 +81,7 @@ process.env.WORK_SPREADSHEET_ID = 'work-spreadsheet-id'
 process.env.AFTER_PHOTOS_SPREADSHEET_ID = 'after-photos-spreadsheet-id'
 
 const getters = [
+  ['BagItems', bagItemsModule.getBagItemsRepository],
   ['OrderForm', orderFormModule.getOrderFormRepository],
   ['OrderItemForms', orderItemFormsModule.getOrderItemFormsRepository],
   ['OrderImages', orderImagesModule.getOrderImagesRepository],

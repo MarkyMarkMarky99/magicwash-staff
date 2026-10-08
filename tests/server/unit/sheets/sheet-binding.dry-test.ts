@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { bagItemsDbContract } from '../../../../server/sheets/BagItems/BagItems.db-contract.js'
 import { readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
@@ -25,8 +26,9 @@ import { jobTicketsDbContract } from '../../../../server/sheets/JobTickets/JobTi
 import { workTransactionsDbContract } from '../../../../server/sheets/WorkTransactions/WorkTransactions.db-contract.js'
 import { workRatesDbContract } from '../../../../server/sheets/WorkRates/WorkRates.db-contract.js'
 
-const expectedSheetCount = 22
+const expectedSheetCount = 23
 const expectedSheetDirectories = [
+  'BagItems',
   'AfterPhoto',
   'Appointments',
   'CustomerPackages',
@@ -52,6 +54,7 @@ const expectedSheetDirectories = [
 ] as const
 
 const bindings = [
+  { name: 'BagItems', contract: bagItemsDbContract, expectedSpreadsheetId: 'ORDERS_SPREADSHEET_ID', expectedSheetName: 'BagItems' },
   {
     name: 'WorkTransactions',
     contract: workTransactionsDbContract,

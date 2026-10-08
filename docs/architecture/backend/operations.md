@@ -62,16 +62,25 @@ Legacy dirty cells must not become 500 responses. JSON view columns listed in `j
 to their API fields with `[]` for malformed arrays and `null` for malformed objects; correct a
 wrong materialized view in its Apps Script source rather than guessing in the API or frontend.
 
+The staff-authenticated `bag-items` module exposes collection GET and POST only.
+GET requires at least one of `bagId` or `orderId` and applies supplied filters with equality.
+POST records a garment in a bag, generating its short id and stamping the append timestamp.
+An existing `bag_id` / `laundry_item_id` pair returns its original row without another append.
+This read-before-append check is not atomic across concurrent requests because Sheets has
+no unique-pair constraint. See `docs/features/orders/contracts/bag-item.md` for the contract.
+
 ## Public delivery tracking
 
 `GET /api/delivery-tracking/:orderImageId` serves the customer page opened from a bag-tag QR,
 without login. It returns 404 unless the id is a `WEIGHT` OrderImages row. The response lists
 every WEIGHT image of the same order as bags, ordered by weigh time, with the order's received
 date and status label and its customer index; it never returns customer name, phone, or address.
-Only `https://` image paths are returned; legacy relative paths become `null`. Delivered state
-comes from the order's `COMPLETED` DELIVERY appointment (`DeliveryOrderID`); until Appointments
-has a delivered-time column, `deliveredAt` is that row's `UpdatedAt` and proof of delivery is
-`null`.
+Only `https://` image paths are returned; legacy relative paths become `null`. Delivery state
+comes from the scanned bag's JobTickets id `LOG-<orderId>-<orderImageId>-LOG-BAG`: Completed
+means Delivered with `deliveredAt` normalized from `completed_at` (null when empty); In Progress
+means Out for delivery with no delivered time. Other states use the OrderForm status label.
+Proof of delivery is the https image path of the newest same-order DELIVERY OrderImages row,
+or null. Bags remain WEIGHT rows only. This endpoint does not read Appointments.
 
 ## Live portal reads
 

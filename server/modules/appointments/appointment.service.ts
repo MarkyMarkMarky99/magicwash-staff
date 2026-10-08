@@ -1,3 +1,4 @@
+import { parseOrThrow } from '../../shared/http/validate.js'
 import type { z } from 'zod'
 import type { RepositoryTransformer } from '../../shared/repositories/base.repository.js'
 import { BaseCrudService } from '../../shared/services/base-crud.service.js'
@@ -55,11 +56,12 @@ export interface AppointmentServiceOptions {
   /** Optional transformer for Address snapshot pack/unpack. */
   transformer?: RepositoryTransformer
   generateAppointmentId?: () => string
+  completeDeliveryOrder?: (orderId: string, payload: { status: 'COMPLETED'; updatedBy: string }) => Promise<unknown>
 }
 
 /**
  * Appointment-specific write policy. BaseCrudService still validates the public
- * request once, checks update existence, persists through the existing repository,
+ * request, checks update existence, persists through the existing repository,
  * and projects the response. These hooks receive only validated API inputs.
  */
 export class AppointmentService extends BaseCrudService<
@@ -74,6 +76,7 @@ export class AppointmentService extends BaseCrudService<
   AppointmentSheetDbRow,
   AppointmentSheetFieldMap
 > {
+  private readonly completeDeliveryOrder: AppointmentServiceOptions['completeDeliveryOrder']
   private readonly generateAppointmentId: () => string
 
   constructor(input: AppointmentServiceOptions) {
@@ -84,7 +87,28 @@ export class AppointmentService extends BaseCrudService<
       fieldMap: input.fieldMap ?? appointmentsFieldMap,
       transformer: input.transformer,
     })
+    this.completeDeliveryOrder = input.completeDeliveryOrder
     this.generateAppointmentId = input.generateAppointmentId ?? defaultAppointmentId
+  }
+
+  override async update(id: string, payload: unknown): Promise<AppointmentUpdateResponse> {
+    const appointment = await super.update(id, payload)
+    const request = parseOrThrow(appointmentApiContract.request.update, payload)
+    if (request.status === 'COMPLETED' && appointment.deliveryOrderId?.trim()
+      && (appointment.appointmentType === 'DELIVERY' || appointment.appointmentType === 'PICKUP_DELIVERY')) {
+      try {
+        const completion = { status: 'COMPLETED' as const, updatedBy: request.updatedBy }
+        if (this.completeDeliveryOrder) {
+          await this.completeDeliveryOrder(appointment.deliveryOrderId, completion)
+        } else {
+          const { workOrderService } = await import('../work-orders/work-order.module.js')
+          await workOrderService.update(appointment.deliveryOrderId, completion)
+        }
+      } catch (error) {
+        console.error('Failed to complete delivery order', error)
+      }
+    }
+    return appointment
   }
 
   protected override prepareCreate(data: AppointmentCreateInput): AppointmentCreateCommand {

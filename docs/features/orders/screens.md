@@ -64,6 +64,12 @@ Actions:
 - The page sends a complete body to POST /api/laundry-tag-prints; the backend
   forwards it to the TSC print server. Tag IDs are not yet persisted.
 
+## Logistics bag scan
+
+Bag scanning belongs to job-tickets. Open an order from the Logistics department list; order detail
+has no Scan bags action. See [Logistics order bags](../job-tickets/department-work.md#logistics-order-bags)
+for the bag page and batch scan flow.
+
 ## Create Order Form
 
 Route: /orders/new — name `order-create`, meta `{ parent: 'order-list' }`

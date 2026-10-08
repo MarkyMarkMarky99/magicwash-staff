@@ -30,8 +30,9 @@ const ticketStore = useJobTicketStore()
 const customerStore = useCustomerStore()
 const department = computed(() => readDepartment(route.params.department))
 const activeFilter = computed(() => readStatusFilter(route.query.status))
-const fromStatus = computed(() => statusForFilter(activeFilter.value))
-const grouper = computed(() => readGrouper(route.query.group))
+const isLogistics = computed(() => department.value?.code === 'Logistics')
+const fromStatus = computed(() => isLogistics.value ? null : statusForFilter(activeFilter.value))
+const grouper = computed(() => isLogistics.value ? 'order' : readGrouper(route.query.group))
 const scannerOpen = computed(() => department.value !== null && fromStatus.value !== null && route.query.scan === '1')
 const expandedOrderId = ref<string | null>(null)
 const scanResult = ref<ScanDisplay | null>(null)
@@ -51,7 +52,7 @@ let replacingLeave = false
 let noticeTimer: ReturnType<typeof setTimeout> | undefined
 
 const filterLabels = { ALL: 'All', PENDING: 'Pending', 'IN PROGRESS': 'In Progress', COMPLETED: 'Completed' } as const
-const departmentTickets = computed(() => filterTickets(ticketStore.tickets, 'ALL'))
+const departmentTickets = computed(() => filterTickets(ticketStore.tickets, 'ALL', department.value?.code))
 const counts = computed(() => countDepartmentStatuses(departmentTickets.value))
 const tabs = computed(() => statusFilters.map(key => ({ key, label: filterLabels[key], count: counts.value[key] })))
 
@@ -70,7 +71,7 @@ const orderInfo = computed(() => {
   }
   return info
 })
-const visibleTickets = computed(() => sortDepartmentTickets(filterTickets(departmentTickets.value, activeFilter.value), orderInfo.value))
+const visibleTickets = computed(() => sortDepartmentTickets(filterTickets(departmentTickets.value, activeFilter.value, department.value?.code), orderInfo.value))
 const visibleOrders = computed(() => groupDepartmentOrders(visibleTickets.value, orderInfo.value))
 const allOrders = computed(() => new Map(groupDepartmentOrders(departmentTickets.value, orderInfo.value).map(order => [order.orderId, order])))
 
@@ -94,6 +95,14 @@ function changeFilter(value: string): void {
   if (value === 'ALL') delete query.status
   else query.status = value
   void router.replace({ query })
+}
+
+function openOrder(orderId: string): void {
+  if (isLogistics.value) {
+    void router.push({ name: 'logistics-order-bags', params: { department: 'logistics', orderId } })
+    return
+  }
+  expandedOrderId.value = expandedOrderId.value === orderId ? null : orderId
 }
 
 function changeGrouper(value: Grouper): void {
@@ -388,7 +397,7 @@ onBeforeRouteLeave(to => {
       :empty="!ticketStore.loading && !ticketStore.error && visibleTickets.length === 0"
       empty-text="No jobs with this status" :skeleton-rows="5"
     >
-      <template #actions>
+      <template v-if="!isLogistics" #actions>
         <div class="flex rounded-full bg-surface-container p-0.5 font-label text-[10px]">
           <button type="button" class="flex items-center gap-1 rounded-full px-2 py-1 focus-visible:outline-2 focus-visible:outline-lime" :class="grouper === 'item' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'" :aria-pressed="grouper === 'item'" aria-label="By item" @click="changeGrouper('item')"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">grid_view</span></button>
           <button type="button" class="flex items-center gap-1 rounded-full px-2 py-1 focus-visible:outline-2 focus-visible:outline-lime" :class="grouper === 'order' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'" :aria-pressed="grouper === 'order'" aria-label="By order" @click="changeGrouper('order')"><span class="material-symbols-outlined text-[16px]" aria-hidden="true">view_agenda</span></button>
@@ -416,8 +425,8 @@ onBeforeRouteLeave(to => {
           <button
             type="button"
             class="w-full rounded-2xl p-4 text-left focus-visible:outline-2 focus-visible:outline-lime"
-            :aria-expanded="expandedOrderId === order.orderId"
-            @click="expandedOrderId = expandedOrderId === order.orderId ? null : order.orderId"
+            :aria-expanded="isLogistics ? undefined : expandedOrderId === order.orderId"
+            @click="openOrder(order.orderId)"
           >
             <span class="flex items-start justify-between gap-2 pr-11">
               <span class="min-w-0">
@@ -434,8 +443,8 @@ onBeforeRouteLeave(to => {
               </span>
             </span>
           </button>
-          <button type="button" class="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/25 text-on-surface focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-40" :aria-label="syncingOrderIds.has(order.orderId) ? 'Syncing' : 'Start all pending'" :disabled="syncingOrderIds.has(order.orderId) || statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Pending') === 0" @click="startOrder(order.orderId)"><span v-if="syncingOrderIds.has(order.orderId)" class="material-symbols-outlined animate-spin text-[22px]" aria-hidden="true">sync</span><svg v-else viewBox="0 0 24 24" class="h-6 w-6" aria-hidden="true"><path d="M8.5 6v12l9.5-6z" fill="currentColor" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round" /></svg></button>
-          <div v-if="expandedOrderId === order.orderId" class="grid grid-cols-2 gap-2 px-4 pb-4 sm:grid-cols-3">
+          <button v-if="!isLogistics" type="button" class="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/25 text-on-surface focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-40" :aria-label="syncingOrderIds.has(order.orderId) ? 'Syncing' : 'Start all pending'" :disabled="syncingOrderIds.has(order.orderId) || statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Pending') === 0" @click="startOrder(order.orderId)"><span v-if="syncingOrderIds.has(order.orderId)" class="material-symbols-outlined animate-spin text-[22px]" aria-hidden="true">sync</span><svg v-else viewBox="0 0 24 24" class="h-6 w-6" aria-hidden="true"><path d="M8.5 6v12l9.5-6z" fill="currentColor" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round" /></svg></button>
+          <div v-if="!isLogistics && expandedOrderId === order.orderId" class="grid grid-cols-2 gap-2 px-4 pb-4 sm:grid-cols-3">
             <button v-for="ticket in order.tickets" :key="ticket.id" type="button" class="relative min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-lime" :class="selectedTicketIds.has(ticket.id) ? 'ring-4 ring-lime' : ''" :aria-pressed="selectedTicketIds.has(ticket.id)" :aria-label="ticketSelectLabel(ticket)" @click="toggleTicket(ticket)">
               <SquareImageCard :image-url="ticket.photoEvidenceUrl">
                 <template #badge><TicketStatusIcon :status="ticket.status" :state="tapStates.get(ticket.id)" /></template>

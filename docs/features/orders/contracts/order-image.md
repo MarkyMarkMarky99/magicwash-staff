@@ -47,12 +47,12 @@ Errors: 400 blank id · 404 not found · 409 multiple rows.
 Request
 - `orderId` — string, required
 - `customerId` — string, nullable, default `null`
-- `imageType` — enum `WEIGHT` | `BELONGING` | `DOCUMENT`, required (write side only; the read path returns the sheet's 13 live spellings verbatim)
+- `imageType` — enum `WEIGHT` | `BELONGING` | `DOCUMENT` | `PICKUP` | `DELIVERY`, required (write side only; the read path returns the sheet's 13 live spellings verbatim)
 - `imagePath` — string, required, must start with `http://` or `https://` → otherwise 422
 - `deliveryId` — string, optional, nullable, default `null`
 - `notes` — string, nullable, default `null`
 - `quantity` — required for `WEIGHT`: greater than 0, at most 200 kg, and at most one decimal
-  place. It must be `null` for `BELONGING` and `DOCUMENT`.
+  place. It must be `null` for all other types. PICKUP and DELIVERY have no capture UI.
 - `createdBy` — string, required
 - not accepted: `orderImageId`, `createdAt`
 
@@ -73,7 +73,11 @@ Behaviour
   or null for unavailable rates or invalid quantity. Finite minutes earn one EARN only for an
   active StaffId matching the trimmed photographer. Existing ticket ids are skipped; ticket and
   EARN failures are logged without retry or any change to the image response. Other image types
-  create no ticket or EARN. Department boards hide these ORDER tickets.
+  create no ticket or EARN. The Packaging department board hides these ORDER credit tickets; the Logistics board lists
+  LOG-BAG tickets as described in [Department work pages](../../job-tickets/department-work.md).
+- After Packaging provisioning and before bag-tag printing, each saved WEIGHT image also
+  provisions a Pending Logistics ORDER ticket `LOG-<orderId>-<orderImageId>-LOG-BAG` at step 0.
+  See [Bag logistics tickets](./job-ticket.md#bag-logistics-tickets). Failures leave the save response unchanged.
 - DOCUMENT capture saves one photo per "Use this photo" and then closes the scanner. Another
   document requires opening DOCUMENT capture again.
 

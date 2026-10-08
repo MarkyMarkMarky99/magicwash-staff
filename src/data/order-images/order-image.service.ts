@@ -9,8 +9,8 @@ export type OrderImageDto = z.infer<typeof orderImageResponseSchema>
 export type OrderImageCreatePayload = z.infer<typeof orderImageCreateSchema>
 export type OrderImageCreateDto = z.infer<typeof orderImageCreateResponseSchema>
 
-export function listOrderImages(orderId: string): Promise<ListResult<OrderImageDto>> {
-  return apiGetList<OrderImageDto>(ORDER_IMAGES_ENDPOINT, { query: { orderId }, querySchema: orderImageListQuerySchema })
+export function listOrderImages(orderId: string, page = 1): Promise<ListResult<OrderImageDto>> {
+  return apiGetList<OrderImageDto>(ORDER_IMAGES_ENDPOINT, { query: { orderId, page }, querySchema: orderImageListQuerySchema })
 }
 
 export async function createOrderImage(payload: OrderImageCreatePayload): Promise<OrderImageCreateDto> {

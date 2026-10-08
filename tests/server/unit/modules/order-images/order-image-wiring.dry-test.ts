@@ -203,7 +203,7 @@ repository.readRows = [
   makeRow({ id: 'image-1', order_id: 'order-1', quantity: 0, notes: null }),
   makeRow({ id: 'image-2', order_id: 'other-order', quantity: 1, notes: 'second image' }),
 ]
-const service = new OrderImageService({ repository, weightPhotoTicketService: { async provision() {} } })
+const service = new OrderImageService({ bagLogisticsTicketService: { async provision() {} }, repository, weightPhotoTicketService: { async provision() {} } })
 
 const pagination = { page: 2, perPage: 2 }
 const listed = await service.list({ orderId: 'order-1', ...pagination })
