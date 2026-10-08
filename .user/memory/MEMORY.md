@@ -13,7 +13,7 @@
 - Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
 - **Logistics bag delivery (merged 2026-10-08, prod-tested on order `22fcaba8`)**
   - No backfill: bags weighed before 2026-10-08 have no LOG-BAG ticket, so those orders never reach the Logistics list.
-  - Next: Packaging garment-into-bag scan (BagItems), PACK image type, `/b/:id`; resume from `.user/memory/packaging-bag-items-handoff.md`.
+  - Next: Packaging create-bag page; workflow agreed in `docs/features/packaging/workflow.md`, resume from `.user/memory/packaging-bag-items-handoff.md`.
   - Watch: legacy OrderImages `DELIVERY` (2) and `PICKUP` (271) rows; tracking proof may pick a legacy DELIVERY row.
 
 - **Orders report (`/reports/orders`, merged 2026-10-05)**

@@ -71,3 +71,6 @@ reload server data before staff scan again. After confirmation finishes, the cam
 Closing without confirmation, browser Back, or leaving the page discards the local scans without a
 write; scans are never persisted. Close uses Back for a scanner entry pushed by the page and removes
 `scan` with replace for a refreshed/deep-linked scanner. Navigation waits while confirmation saves.
+
+The Packaging bag workflow (create bags, assign garments, confirm, print tags) is in
+[Packaging workflow](../packaging/workflow.md).

@@ -14,15 +14,19 @@
 - Garment identity = tag id (`laundry_item_id`); garment photos live in LaundryPhotos.
 - Packaging department page exists (ITEM tickets per garment); see `docs/features/job-tickets/department-work.md`.
 
-## Not built
-- PACK image type for hung/folded bags that skip the scale; each PACK image needs its own LOG-BAG ticket and bag tag.
-- Packaging UI: scan a bag tag, then scan garment tags into it (writes BagItems).
-- `/b/:id` customer page listing the bag's garments.
+## Agreed workflow (2026-10-09)
+- Business flow and owner decisions: `docs/features/packaging/workflow.md`.
+- Bag page reuses the Logistics order bag page; one Confirm per order writes everything and prints all tags.
+- Prototype to reuse for the page look: `.user/memory/designs/order-bag-scan-page.html`.
 
-## Open decisions (owner)
-- When Packaging scans garments into a bag: after the bag tag prints (Claude's pick) or before weighing.
-- Where the Packaging bag UI lives: on the Packaging department page or its own page.
-- Whether a garment may move between bags (BagItems has no update/delete today).
+## Not built
+- Packaging order bag page, bag bottom sheet, confirm endpoint, and print contract change (item count, optional `weightKg`, `packedAt`).
+- `/b/:id` customer page listing the bag's garments.
+- PACK image type: superseded by create-bag unless the owner revives it.
+
+## Open (technical, Claude to propose)
+- When the bag photo uploads to Firebase, and partial-failure handling of the one Confirm request.
+- Printer-side contract change in C:\MagicwashInvoice.
 
 ## References
 - Bag tag and tracking history: `.user/memory/bag-tags-and-delivery-tracking.md`.
