@@ -12,6 +12,7 @@ import { useCustomerStore } from '@/data/customers/customer.store'
 import { filterTickets } from '../department-work'
 import { currentActor } from '@/shared/config/actor'
 import { feedback, primeFeedbackAudio } from '@/shared/utils/scan-feedback'
+import { invalidate } from '@/shared/api/response-cache'
 import { normalizeSheetTimestamp } from '@shared/utils/bangkok-datetime'
 
 const props = defineProps<{ orderId: string }>()
@@ -157,6 +158,7 @@ async function confirmScans(): Promise<void> {
     }
   } finally {
     submitting.value = false
+    invalidate('/api/job-tickets')
     if (orderId === props.orderId) closeScanner()
   }
 }

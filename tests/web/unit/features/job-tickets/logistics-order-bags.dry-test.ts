@@ -21,6 +21,7 @@ async function harness() {
   let reads = 0
   let backs = 0
   let replacements = 0
+  const invalidations: string[] = []
   let result: any = null
   let leaveGuard: any
   let updateGuard: any
@@ -34,6 +35,7 @@ async function harness() {
     }),
     useCustomerStore: () => ({ customers: [] }), currentActor: () => 'staff-1',
     feedback: () => {}, primeFeedbackAudio: () => {}, filterTickets, normalizeSheetTimestamp,
+    invalidate: (path: string) => { invalidations.push(path) },
     getWorkOrder: async () => ({ orderId: 'order-1', customerId: 'customer-1' }),
     listOrderImages: async () => ({ items: [
       { orderImageId: 'bag-a', imageType: 'BELONGING', quantity: 2.5, imagePath: 'https://images/not-evidence' },
@@ -55,7 +57,7 @@ async function harness() {
   await page.load()
   return { page, route, requests, scope, setResult: (value: any) => { result = value },
     setServerTickets: (value: any) => { serverTickets = value },
-    get reads() { return reads }, get backs() { return backs }, get replacements() { return replacements },
+    get reads() { return reads }, get backs() { return backs }, get replacements() { return replacements }, invalidations,
     leave: (to: any) => leaveGuard(to), update: () => updateGuard() }
 }
 
@@ -93,6 +95,7 @@ assert.equal(local.page.tickets.value[0].status, 'In Progress')
 assert.equal(local.page.tickets.value[0].scannedBy, 'staff-1')
 assert.equal(local.page.tickets.value[1].status, 'Pending')
 assert.equal(local.backs, 1)
+assert.deepEqual(local.invalidations, ['/api/job-tickets'])
 assert.equal(local.reads, 1)
 local.scope.stop()
 
