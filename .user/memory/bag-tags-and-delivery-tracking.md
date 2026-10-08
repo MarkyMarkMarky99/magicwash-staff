@@ -11,11 +11,11 @@
 
 ## Delivery-tracking API — on main 2026-10-07
 - Live probe OK (`574fdcaa` → bag 4/4); owner still to scan a real tag on a phone.
-- On main `deliveredAt` still comes from the appointment's `UpdatedAt`; `feat/bag-scan-delivery` replaces it with ticket `completed_at` + DELIVERY photo.
+- `deliveredAt` = bag ticket `completed_at` + DELIVERY photo (merged 2026-10-08).
 - Also open: real shop LINE/phone in `utils/delivery-tracking.ts`; weight-tab font falls back to Arial on phones (load Archivo Black).
 
-## Bag scan / Logistics — on `feat/bag-scan-delivery`
-- Status and next steps: `.user/memory/feat-bag-scan-delivery.md`.
+## Bag scan / Logistics — merged to main 2026-10-08
+- Next (Packaging side): `.user/memory/packaging-bag-items-handoff.md`.
 - Design mockup: `.user/memory/designs/order-bag-scan-page.html`.
 - Decided: Logistics ticket per bag; scan = Pending → In Progress (on the van); order COMPLETED closes all open tickets, no KPI.
 - Decided: appointment → COMPLETED calls the existing work-order COMPLETED update; no separate delivery workflow.
