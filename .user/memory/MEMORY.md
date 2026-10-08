@@ -4,7 +4,7 @@
 
 ## Branches in flight
 
-- **`feat/bag-scan-delivery`** — Logistics bag tickets, order-completion, Logistics department + bag scan page, BagItems merged in; next: browser-test scan, then push; see `.user/memory/feat-bag-scan-delivery.md`.
+- **`feat/bag-scan-delivery`** — merged to `main` 2026-10-08 and pushed for production testing; kept until the owner's prod bag-scan test passes; see `.user/memory/feat-bag-scan-delivery.md`.
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
@@ -12,7 +12,7 @@
 ## Pending work
 
 - Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
-- RESUME HERE (2026-10-08): on `feat/bag-scan-delivery`, Logistics page committed; owner browser-testing the bag scan on test order `22fcaba8`.
+- RESUME HERE (2026-10-08): Logistics bag scan live on production; owner testing on order `22fcaba8`, then delete the branch and reset test tickets.
 - **Orders report (`/reports/orders`, merged 2026-10-05)**
   - Order list has no pull-to-refresh yet (ListPageLayout lacks it); `/api/order-reports` and the server date/keyword path of `/api/work-orders` now have no frontend caller.
   - Deferred by owner: status cards show current status, not status on that day; check whether orders ever reach COMPLETED.
