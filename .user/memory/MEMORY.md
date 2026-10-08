@@ -4,7 +4,6 @@
 
 ## Branches in flight
 
-- **`feat/bag-scan-delivery`** — merged to `main` 2026-10-08 and pushed for production testing; kept until the owner's prod bag-scan test passes; see `.user/memory/feat-bag-scan-delivery.md`.
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
@@ -12,7 +11,11 @@
 ## Pending work
 
 - Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
-- RESUME HERE (2026-10-08): Logistics bag scan live on production; owner testing on order `22fcaba8`, then delete the branch and reset test tickets.
+- **Logistics bag delivery (merged 2026-10-08, prod-tested on order `22fcaba8`)**
+  - No backfill: bags weighed before 2026-10-08 have no LOG-BAG ticket, so those orders never reach the Logistics list.
+  - Not built: PACK image type, Packaging garment-into-bag scan (BagItems; timing open), `/b/:id` bag contents.
+  - Watch: legacy OrderImages `DELIVERY` (2) and `PICKUP` (271) rows; tracking proof may pick a legacy DELIVERY row.
+
 - **Orders report (`/reports/orders`, merged 2026-10-05)**
   - Order list has no pull-to-refresh yet (ListPageLayout lacks it); `/api/order-reports` and the server date/keyword path of `/api/work-orders` now have no frontend caller.
   - Deferred by owner: status cards show current status, not status on that day; check whether orders ever reach COMPLETED.
@@ -61,7 +64,6 @@
   - Phone Back closes garment registration while uploads are pending; blocking it not decided.
   - Decide whether to remove the old BEF album add-photo path now that registration is proven.
   - Physical QR labels: real-print scan test pending; consider print DENSITY and larger QR cells.
-  - Logistics and ORDER-scoped tickets are not built.
   - GViz types a whole column by majority: numeric legacy tags in JobTickets/LaundryPhotos make base62 tags read as null; user is clearing the numeric rows (frontend now tolerates both).
 
 - **Forms and navigation**
