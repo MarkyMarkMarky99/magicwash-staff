@@ -51,7 +51,11 @@ export class JobTicketTransitionService {
     this.now = input.now ?? (() => new Date())
   }
 
-  async transition(payload: unknown, alreadyRead?: readonly Partial<JobTicketDbRow>[]): Promise<JobTicketAdvanceResponse> {
+  async transition(
+    payload: unknown,
+    alreadyRead?: readonly Partial<JobTicketDbRow>[],
+    options: { skipGating?: boolean; skipScores?: boolean } = {},
+  ): Promise<JobTicketAdvanceResponse> {
     const request = parseOrThrow(transitionRequestSchema, payload)
     const seen = new Set<string>()
     const requested = request.tickets.filter(ticket => {
@@ -73,7 +77,7 @@ export class JobTicketTransitionService {
     for (const entry of requested) {
       const orderTickets = orders.get(entry.orderId) ?? []
       const ticket = orderTickets.find(row => row.id === entry.ticketId)
-      if (!ticket || ticket.department !== request.department || typeof ticket.step_no !== 'number') {
+      if (!ticket || ticket.department !== request.department || (!options.skipGating && typeof ticket.step_no !== 'number')) {
         skipped.push({ ticketId: entry.ticketId, reason: 'not_found' })
         continue
       }
@@ -81,7 +85,7 @@ export class JobTicketTransitionService {
         skipped.push({ ticketId: entry.ticketId, reason: 'status_changed' })
         continue
       }
-      const blocker = findEarlierDepartment(ticket, orderTickets)
+      const blocker = options.skipGating ? null : findEarlierDepartment(ticket, orderTickets)
       if (blocker !== undefined && blocker !== null) {
         blocked.push({ ticketId: entry.ticketId, laundryItemId: ticket.laundry_item_id ?? null, blockedByDepartment: blocker })
         continue
@@ -104,7 +108,7 @@ export class JobTicketTransitionService {
     } catch (error) {
       return { kind: 'write_failed', certainty: classifySheetWriteFailure(error).certainty, blocked, skipped }
     }
-    const scoreFailed = await this.appendScores(completed, request.scannedBy)
+    const scoreFailed = options.skipScores ? 0 : await this.appendScores(completed, request.scannedBy)
     return { kind: 'completed', advanced, blocked, skipped, scoreFailed }
   }
 

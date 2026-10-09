@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import type { ApiHandlerRequest } from '../../../../../server/shared/http/api-handler.js'
 import {
   jobTicketFieldMap,
+  jobTicketCompleteService,
   jobTicketAdvanceService,
   jobTicketRoutes,
   jobTicketStartService,
@@ -34,7 +35,27 @@ const startMethods = jobTicketStartService as unknown as {
 const originalStart = startMethods.startOrder
 const advanceMethods = jobTicketAdvanceService as unknown as { advance: (payload: unknown) => Promise<unknown> }
 const originalAdvance = advanceMethods.advance
+const originalComplete = jobTicketCompleteService.completeOrder
+let completeCalls = 0
+jobTicketCompleteService.completeOrder = async (payload, actor) => {
+  completeCalls += 1
+  assert.deepEqual(payload, { orderId: '123', department: 'Packaging', scannedBy: 'forged' })
+  assert.equal(actor, 'admin-id')
+  return { kind: 'completed', completed: [], scannedBy: actor }
+}
 try {
+  const completeRequest = { ...request('complete-order'), body: { orderId: '123', department: 'Packaging', scannedBy: 'forged' } }
+  assert.equal((await jobTicketRoutes.item!.handleRequest(completeRequest)).status, 403)
+  assert.equal((await jobTicketRoutes.item!.handleRequest({ ...completeRequest,
+    staff: { staffId: 'staff-id', role: 'staff', email: 'staff@example.com', name: 'Staff' } })).status, 403)
+  assert.equal(completeCalls, 0, 'non-admins never reach the write service')
+  const adminRequest = { ...completeRequest, staff: { staffId: 'admin-id', role: 'admin' as const, email: 'admin@example.com', name: 'Admin' } }
+  assert.equal((await jobTicketRoutes.item!.handleRequest(adminRequest)).status, 200)
+  assert.equal(completeCalls, 1)
+  for (const [certainty, status] of [['rejected', 502], ['unknown', 500]] as const) {
+    jobTicketCompleteService.completeOrder = async () => ({ kind: 'write_failed', certainty })
+    assert.equal((await jobTicketRoutes.item!.handleRequest(adminRequest)).status, status)
+  }
   assert.equal((await jobTicketRoutes.item!.handleRequest(request('scan'))).status, 404)
 
   startMethods.startOrder = async () => ({ kind: 'completed', advanced: [], blocked: [], skippedWithoutTag: 0 })
@@ -56,6 +77,7 @@ try {
   const missing = await jobTicketRoutes.item!.handleRequest(request('other'))
   assert.equal(missing.status, 404)
 } finally {
+  jobTicketCompleteService.completeOrder = originalComplete
   startMethods.startOrder = originalStart
   advanceMethods.advance = originalAdvance
 }

@@ -49,16 +49,31 @@ so a later approval can try again. Minutes already stored on tickets are not aff
 
 Start and advance share the same transition core and earlier-step gate as Packaging Confirm.
 
-The play arrow on each garment department order card continues to send one `/api/job-tickets/start-order` request to start all Pending tickets with tags in that order. In Progress, Completed, and Cancelled tickets are skipped; Pending tickets without tags are counted as skipped. Each order's Start runs in the background and shows a spinning sync icon while that order syncs. Its button is disabled only during that order's sync or when the order has no Pending tickets. The actor is the signed-in StaffId, or `unknown` when signed out; the optional `by` query is ignored.
+On the All and Pending tabs, the play arrow on each garment department order card sends one `/api/job-tickets/start-order` request to start all Pending tickets with tags in that order. In Progress, Completed, and Cancelled tickets are skipped; Pending tickets without tags are counted as skipped. Each order's Start runs in the background and shows a spinning sync icon while that order syncs. Its button is disabled only during that order's sync or when the order has no Pending tickets. The actor is the signed-in StaffId, or `unknown` when signed out; the optional `by` query is ignored.
 
 Start shows one summary notice with counts of advanced, blocked, and skipped without a tag, plus the blocking department names when any are blocked. A task blocked by an earlier task in its own department names that same department. A failed Start write asks staff to retry or check the order according to write certainty. The shared sound and vibration controls appear in the scanner header. A queued read plays one short beep and a 70 ms vibration; rejected reads play two short beeps and a distinct vibration pattern, subject to the independent preferences. Image taps and Start are silent.
+
+On the In Progress tab, admins see Complete in the same position and style as the order's Start
+button. It closes every Pending and In Progress list-visible job for that order and department,
+including jobs without tags, with no earlier-department gate and no score. Non-admins see no
+per-order button on this tab. The shared confirm dialog asks “Complete all <n> open jobs of order
+<id> in <Department>? This skips the workflow and gives no score.” The count includes both open
+statuses from the shared department list. Confirm calls only the resource store's `completeOrder`;
+the server enforces the admin role and supplies the StaffId actor.
+
+The order button disables and uses the existing spinning sync state during saving. Success patches
+shared ticket rows in place and reports the completed count and no score; affected selections and
+scan queue entries are removed. Rejected writes allow retry; uncertain writes and connection errors
+ask staff to check the order and reload the list. Completed has no per-order button. All and Pending
+retain Start for everyone in garment departments; Start remains absent in Logistics.
 
 ## Logistics order bags
 
 Logistics always groups by order, including when a deep link supplies `group=item`. It uses the same
 ALL, PENDING, IN PROGRESS, and COMPLETED tabs, order cards, completion ring, and status counts.
 There is no ticket image grid, grouping control, ticket selection, batch start/play action, or scan
-FAB on the Logistics list. Tapping an order card opens `/departments/logistics/:orderId`, route name
+FAB on the Logistics list. Admin Complete appears only on In Progress order cards; tapping this
+button opens the confirmation without navigating to the bag page. Tapping an order card body opens `/departments/logistics/:orderId`, route name
 `logistics-order-bags`, owned by job-tickets and rendered by `OrderBagsPage.vue`. The route
 pattern `/departments/:department(logistics)/:orderId` captures the Logistics department for the
 `department-work` parent, so the header Back button returns to `/departments/logistics`.

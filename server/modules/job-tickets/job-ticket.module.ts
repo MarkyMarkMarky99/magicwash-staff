@@ -14,6 +14,7 @@ import { ApiHandler } from '../../shared/http/api-handler.js'
 import type { GatewayModuleRoutes } from '../../shared/http/gateway.types.js'
 import type { ApiResult } from '../../shared/http/response.js'
 import { JobTicketAdvanceService } from './job-ticket-advance.service.js'
+import { JobTicketCompleteService, type JobTicketCompleteOrderResponse } from './job-ticket-complete.service.js'
 import { JobTicketStartService } from './job-ticket-start.service.js'
 
 type JobTicketDbRow = z.infer<typeof jobTicketsRowSchema>
@@ -70,6 +71,7 @@ export const jobTicketService = new BaseCrudService<
   fieldMap: jobTicketFieldMap,
 })
 
+export const jobTicketCompleteService = new JobTicketCompleteService()
 export const jobTicketStartService = new JobTicketStartService()
 export const jobTicketAdvanceService = new JobTicketAdvanceService()
 
@@ -80,7 +82,12 @@ export const jobTicketRoutes: GatewayModuleRoutes = {
   item: new ApiHandler({
     GET: async (req) => crudRoutes.item!.handleRequest(req),
     PATCH: async (req) => crudRoutes.item!.handleRequest(req),
-    POST: async (req): Promise<ApiResult<JobTicketStartOrderResponse | JobTicketAdvanceResponse>> => {
+    POST: async (req): Promise<ApiResult<JobTicketStartOrderResponse | JobTicketAdvanceResponse | JobTicketCompleteOrderResponse>> => {
+      if (req.params.id === 'complete-order') {
+        if (req.staff?.role !== 'admin') throw ApiError.forbidden()
+        const response = await jobTicketCompleteService.completeOrder(req.body, req.staff.staffId)
+        return { status: response.kind === 'completed' ? 200 : response.certainty === 'rejected' ? 502 : 500, body: response }
+      }
       if (req.params.id === 'start-order') {
         const response = await jobTicketStartService.startOrder(req.body)
         return { status: response.kind === 'completed' ? 200 : response.certainty === 'rejected' ? 502 : 500, body: response }

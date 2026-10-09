@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import {
   jobTicketApiContract,
+  jobTicketCompleteOrderRequestSchema,
+  jobTicketCompleteOrderResponseSchema,
   jobTicketAdvanceRequestSchema,
   jobTicketAdvanceResponseSchema,
   jobTicketListQuerySchema,
@@ -9,6 +11,18 @@ import {
   jobTicketStartOrderResponseSchema,
   jobTicketUpdateSchema,
 } from '../../../../../contracts/job-tickets/job-ticket-api.schema.js'
+
+assert.deepEqual(jobTicketCompleteOrderRequestSchema.parse({ orderId: ' 123 ', department: 'Packaging', scannedBy: 'forged' }),
+  { orderId: '123', department: 'Packaging' })
+for (const department of ['Washing', 'DryCleaning', 'Ironing', 'Packaging', 'Logistics'])
+  assert.equal(jobTicketCompleteOrderRequestSchema.parse({ orderId: '123', department }).department, department)
+for (const payload of [{ orderId: ' ', department: 'Packaging' }, { orderId: '123', department: 'Tagging' }])
+  assert.throws(() => jobTicketCompleteOrderRequestSchema.parse(payload))
+assert.equal(jobTicketCompleteOrderResponseSchema.parse({ kind: 'completed', completed: [{
+  ticketId: 'one', status: 'Completed', startedAt: '2026-10-09 12:00:00', completedAt: '2026-10-09 12:00:00',
+}], scannedBy: 'admin-id' }).kind, 'completed')
+for (const certainty of ['rejected', 'unknown'])
+  assert.deepEqual(jobTicketCompleteOrderResponseSchema.parse({ kind: 'write_failed', certainty }), { kind: 'write_failed', certainty })
 
 assert.deepEqual(jobTicketListQuerySchema.parse({}), {
   keyword: '', page: 1, perPage: 500, sortBy: 'createdAt', sortOrder: 'desc',

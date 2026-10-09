@@ -63,6 +63,28 @@ export const jobTicketStartOrderRequestSchema = z.object({
   scannedBy: z.string().trim().min(1),
 })
 
+export const jobTicketCompleteOrderRequestSchema = z.object({
+  orderId: z.string().trim().min(1),
+  department: z.enum(['Washing', 'DryCleaning', 'Ironing', 'Packaging', 'Logistics']),
+})
+
+export const jobTicketCompleteOrderResponseSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('completed'),
+    completed: z.array(z.object({
+      ticketId: z.string(),
+      status: z.literal('Completed'),
+      startedAt: z.string(),
+      completedAt: z.string(),
+    })),
+    scannedBy: z.string(),
+  }),
+  z.object({
+    kind: z.literal('write_failed'),
+    certainty: z.enum(['rejected', 'unknown']),
+  }),
+])
+
 export const jobTicketAdvanceRequestSchema = z.object({
   department: jobTicketDepartmentSchema,
   fromStatus: z.enum(['Pending', 'In Progress']),

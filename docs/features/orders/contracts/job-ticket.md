@@ -84,6 +84,31 @@ Completing a ticket through `/api/job-tickets/advance` appends one WorkTransacti
 
 The unwrapped response is `completed` with HTTP 200, or `write_failed` with HTTP 502 for a rejected write and HTTP 500 for an uncertain write. Completed responses list advanced ticket IDs, nullable garment IDs, new statuses, and nullable start and completion times, plus blocked and skipped entries and a non-negative integer `scoreFailed` count. Failed writes report certainty, blocked entries, and skipped entries without claiming advancement.
 
+## `POST /api/job-tickets/complete-order`
+
+Admin-only department closure accepts `{ orderId, department }`, with a trimmed nonempty order ID
+and Washing, DryCleaning, Ironing, Packaging, or Logistics. Non-admin callers receive 403 before
+any service read or write. The scan and update actor is always `req.staff.staffId`; request-body
+actors are ignored.
+
+One `where order_id` read selects non-deleted Pending and In Progress tickets belonging to that
+order and department. The department list and this action share `isDepartmentWorkTicket`:
+garment departments use ITEM scope; Logistics uses ORDER scope and LOG-BAG. Missing garment tags
+and legacy missing step numbers do not prevent closure. Packaging ORDER weight-photo credit,
+other departments/orders, Completed, Cancelled, and deleted tickets remain untouched.
+
+The transition core receives the read rows and opts into skipping both earlier-step gating and
+score creation. Every selected ticket moves directly to Completed, retains its start time or
+stamps it when missing, and stamps completion at the current Bangkok time. It writes one
+`updateMany` for nonempty work and appends no WorkTransactions EARN rows. Existing transition
+callers retain gating and scoring by default. Retrying already Completed tickets writes nothing.
+
+The unwrapped HTTP 200 response is `{ kind: 'completed', completed, scannedBy }`, where each
+completed entry contains `ticketId`, `status: 'Completed'`, `startedAt`, and `completedAt`.
+`scannedBy` is the server actor used to patch shared frontend rows. Write failure returns
+`{ kind: 'write_failed', certainty }`, with HTTP 502 for rejected and HTTP 500 for unknown
+persistence. Failed responses do not claim closed tickets.
+
 ## Weight photo credit
 
 After a WEIGHT order image is appended, one ticket uses id

@@ -183,6 +183,7 @@ const departmentRoute = reactive({ params: { department: 'logistics' }, query: {
 const destinations: any[] = []
 const ticketStore = { tickets: local.page.tickets.value, loading: false, error: null, loadDepartment: async () => {}, activateDepartment: () => {}, releaseDepartment: () => {} }
 const departmentDependencies = { ...departmentWork, computed, ref, watch,
+  useAuthStore: () => ({ isAdmin: false }),
   useRoute: () => departmentRoute, useRouter: () => ({ push: async (to: any) => { destinations.push(to) } }),
   useJobTicketStore: () => ticketStore, useCustomerStore: () => ({ customers: [] }),
   onActivated: () => {}, onDeactivated: () => {}, onBeforeRouteLeave: () => {}, onBeforeRouteUpdate: () => {}, onBeforeUnmount: () => {},
@@ -207,7 +208,7 @@ departmentPage.openOrder('order-1')
 assert.equal(departmentPage.expandedOrderId.value, null)
 assert.equal(destinations.length, 1)
 departmentScope.stop()
-assert.match(departmentSource, /<button v-if="!isLogistics"[^>]*@click="startOrder/)
+assert.match(departmentSource, /<button v-if="showStartOrder"[^>]*@click="startOrder/)
 assert.match(departmentSource, /v-if="!isLogistics && expandedOrderId === order.orderId"/)
 
 const { jobTicketRoutes } = await import('@/features/job-tickets/routes')

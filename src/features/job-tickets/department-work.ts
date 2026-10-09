@@ -1,4 +1,5 @@
 import type { z } from 'zod'
+import { isDepartmentWorkTicket } from '@shared/job-tickets/department-work'
 import { jobTicketDepartmentSchema, jobTicketStatusSchema } from '@contracts/job-tickets/job-ticket-api.schema'
 import type { JobTicketDto } from '@/data/job-tickets/job-ticket.service'
 import { normalizeSheetDate } from '@/shared/utils/sheet-date'
@@ -108,9 +109,8 @@ export function readGrouper(value: unknown): Grouper {
 }
 
 export function filterTickets(tickets: readonly JobTicketDto[], filter: StatusFilter, department?: Department): JobTicketDto[] {
-  return tickets.filter(ticket => (department === 'Logistics'
-    ? ticket.scope === 'ORDER' && ticket.department === 'Logistics' && ticket.taskCode === 'LOG-BAG' && !ticket.deletedAt
-    : ticket.scope === 'ITEM') && (filter === 'ALL' || ticket.status.toUpperCase() === filter))
+  return tickets.filter(ticket => isDepartmentWorkTicket(ticket, department)
+    && (filter === 'ALL' || ticket.status.toUpperCase() === filter))
 }
 
 export function countDepartmentStatuses(tickets: readonly JobTicketDto[]): Record<StatusFilter, number> {

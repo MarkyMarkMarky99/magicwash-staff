@@ -14,6 +14,8 @@ import ScanResultCard from '../components/ScanResultCard.vue'
 import TicketStatusIcon, { type TicketTapState } from '../components/TicketStatusIcon.vue'
 import TicketTaskChip from '../components/TicketTaskChip.vue'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
+import ConfirmOverlay from '@/shared/layouts/ConfirmOverlay.vue'
+import { useAuthStore } from '@/data/auth/auth.store'
 import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
 import type { JobTicketDto } from '@/data/job-tickets/job-ticket.service'
 import { useCustomerStore } from '@/data/customers/customer.store'
@@ -28,9 +30,13 @@ const route = useRoute()
 const router = useRouter()
 const ticketStore = useJobTicketStore()
 const customerStore = useCustomerStore()
+const authStore = useAuthStore()
+const completeOrderId = ref<string | null>(null)
 const department = computed(() => readDepartment(route.params.department))
 const activeFilter = computed(() => readStatusFilter(route.query.status))
 const isLogistics = computed(() => department.value?.code === 'Logistics')
+const showCompleteOrder = computed(() => authStore.isAdmin && activeFilter.value === 'IN PROGRESS')
+const showStartOrder = computed(() => !isLogistics.value && (activeFilter.value === 'ALL' || activeFilter.value === 'PENDING'))
 const isPackaging = computed(() => department.value?.code === 'Packaging')
 const fromStatus = computed(() => isLogistics.value ? null : statusForFilter(activeFilter.value))
 const grouper = computed(() => isLogistics.value ? 'order' : readGrouper(route.query.group))
@@ -77,6 +83,8 @@ const orderInfo = computed(() => {
 const visibleTickets = computed(() => sortDepartmentTickets(filterTickets(departmentTickets.value, activeFilter.value, department.value?.code), orderInfo.value))
 const visibleOrders = computed(() => groupDepartmentOrders(visibleTickets.value, orderInfo.value))
 const allOrders = computed(() => new Map(groupDepartmentOrders(departmentTickets.value, orderInfo.value).map(order => [order.orderId, order])))
+const completeOrderJobs = computed(() => (allOrders.value.get(completeOrderId.value ?? '')?.tickets ?? [])
+  .filter(ticket => ticket.status === 'Pending' || ticket.status === 'In Progress'))
 
 async function reload(forceReload = true): Promise<void> {
   const code = department.value?.code
@@ -88,6 +96,7 @@ async function reload(forceReload = true): Promise<void> {
 
 watch(() => department.value?.code, code => {
   expandedOrderId.value = null
+  completeOrderId.value = null
   scanResult.value = null
   dismissPageNotice()
   clearTapStates()
@@ -97,6 +106,7 @@ watch(() => department.value?.code, code => {
 function changeFilter(value: string): void {
   if (!statusFilters.includes(value as typeof statusFilters[number])) return
   expandedOrderId.value = null
+  completeOrderId.value = null
   const query: LocationQueryRaw = { ...route.query }
   if (value === 'ALL') delete query.status
   else query.status = value
@@ -269,7 +279,8 @@ function discardConfirmed(): void {
 async function sendConfirmed(): Promise<void> {
   const code = department.value?.code
   const status = fromStatus.value
-  if (!code || !status || !pendingTickets.value.length || submitting.value) return
+  if (!code || !status || !pendingTickets.value.length || submitting.value
+    || pendingTickets.value.some(entry => syncingOrderIds.value.has(entry.orderId))) return
   const entries = pendingTickets.value.slice(0, 200)
   submitting.value = true
   for (const entry of entries) setTapState(entry.ticketId, 'saving')
@@ -339,6 +350,45 @@ async function startOrder(orderId: string): Promise<void> {
   }
 }
 
+async function completeOrder(): Promise<void> {
+  const orderId = completeOrderId.value
+  const departmentCode = department.value?.code
+  if (!orderId || !departmentCode || !showCompleteOrder.value || submitting.value || syncingOrderIds.value.has(orderId)) return
+  const openIds = completeOrderJobs.value.map(ticket => ticket.id)
+  if (!openIds.length) return
+  completeOrderId.value = null
+  syncingOrderIds.value = new Set([...syncingOrderIds.value, orderId])
+  dismissPageNotice()
+  for (const ticketId of openIds) setTapState(ticketId, 'saving')
+  try {
+    const response = await ticketStore.completeOrder({ orderId, department: departmentCode })
+    if (department.value?.code !== departmentCode) return
+    for (const ticketId of openIds) setTapState(ticketId, response.kind === 'completed' ? null : 'failed')
+    if (response.kind === 'completed') {
+      const completedIds = new Set(response.completed.map(ticket => ticket.ticketId))
+      selectedTicketIds.value = new Set([...selectedTicketIds.value].filter(id => !completedIds.has(id)))
+      setScanQueue(scanQueue.value.filter(entry => !completedIds.has(entry.ticketId)))
+      showPageNotice({ title: orderId, message: `${response.completed.length} completed · No score given`, tone: 'success' })
+    } else {
+      showPageNotice({ title: orderId, message: response.certainty === 'unknown'
+        ? 'Could not save. Check the order before trying again' : 'Could not save. Try again', tone: 'error' })
+      if (response.certainty === 'unknown') await reload()
+    }
+  } catch {
+    if (department.value?.code !== departmentCode) return
+    for (const ticketId of openIds) setTapState(ticketId, 'failed')
+    showPageNotice({ title: orderId, message: 'Connection failed. Check the order before trying again', tone: 'error' })
+    await reload()
+  } finally {
+    for (const ticketId of openIds) {
+      if (tapStates.value.get(ticketId) === 'saving') setTapState(ticketId, null)
+    }
+    const next = new Set(syncingOrderIds.value)
+    next.delete(orderId)
+    syncingOrderIds.value = next
+  }
+}
+
 function statusShare(tickets: readonly JobTicketDto[], status: TicketStatus): number {
   return tickets.length === 0 ? 0 : Math.round(100 * statusCount(tickets, status) / tickets.length)
 }
@@ -357,6 +407,8 @@ watch(scannerOpen, open => {
 watch(fromStatus, () => {
   selectedTicketIds.value = new Set()
 })
+
+watch(activeFilter, () => { completeOrderId.value = null })
 
 function guardPending(to: RouteLocationNormalized): boolean | void {
   if (bypassGuard || submitting.value) return submitting.value ? false : undefined
@@ -378,7 +430,7 @@ onActivated(() => {
   if (code && code !== loadedDepartment) void reload(false)
   else if (code) ticketStore.activateDepartment(code)
 })
-onDeactivated(() => { pageActive = false; ticketStore.releaseDepartment() })
+onDeactivated(() => { pageActive = false; completeOrderId.value = null; ticketStore.releaseDepartment() })
 
 onBeforeUnmount(() => {
   ticketStore.releaseDepartment()
@@ -462,7 +514,8 @@ onBeforeRouteLeave(to => {
               </span>
             </span>
           </button>
-          <button v-if="!isLogistics" type="button" class="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/25 text-on-surface focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-40" :aria-label="syncingOrderIds.has(order.orderId) ? 'Syncing' : 'Start all pending'" :disabled="syncingOrderIds.has(order.orderId) || statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Pending') === 0" @click="startOrder(order.orderId)"><span v-if="syncingOrderIds.has(order.orderId)" class="material-symbols-outlined animate-spin text-[22px]" aria-hidden="true">sync</span><svg v-else viewBox="0 0 24 24" class="h-6 w-6" aria-hidden="true"><path d="M8.5 6v12l9.5-6z" fill="currentColor" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round" /></svg></button>
+          <button v-if="showStartOrder" type="button" class="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/25 text-on-surface focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-40" :aria-label="syncingOrderIds.has(order.orderId) ? 'Syncing' : 'Start all pending'" :disabled="syncingOrderIds.has(order.orderId) || statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Pending') === 0" @click="startOrder(order.orderId)"><span v-if="syncingOrderIds.has(order.orderId)" class="material-symbols-outlined animate-spin text-[22px]" aria-hidden="true">sync</span><svg v-else viewBox="0 0 24 24" class="h-6 w-6" aria-hidden="true"><path d="M8.5 6v12l9.5-6z" fill="currentColor" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round" /></svg></button>
+          <button v-if="showCompleteOrder" type="button" class="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/25 text-on-surface focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-40" :aria-label="syncingOrderIds.has(order.orderId) ? 'Syncing' : 'Complete all open jobs'" :disabled="syncingOrderIds.has(order.orderId) || submitting" @click.stop="completeOrderId = order.orderId"><span class="material-symbols-outlined text-[22px]" :class="syncingOrderIds.has(order.orderId) ? 'animate-spin' : ''" aria-hidden="true">{{ syncingOrderIds.has(order.orderId) ? 'sync' : 'check' }}</span></button>
           <div v-if="!isLogistics && expandedOrderId === order.orderId" class="grid grid-cols-2 gap-2 px-4 pb-4 sm:grid-cols-3">
             <button v-for="ticket in order.tickets" :key="ticket.id" type="button" class="relative min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-lime" :class="selectedTicketIds.has(ticket.id) ? 'ring-4 ring-lime' : ''" :aria-pressed="selectedTicketIds.has(ticket.id)" :aria-label="ticketSelectLabel(ticket)" @click="toggleTicket(ticket)">
               <SquareImageCard :image-url="ticket.photoEvidenceUrl">
@@ -492,6 +545,7 @@ onBeforeRouteLeave(to => {
         <ScanResultCard v-if="scanResult" :result="scanResult" />
       </template>
     </QrScannerOverlay>
-    <AdvanceConfirmDialog v-if="confirmIntent && !submitting"title="Send job updates?" :message="`${pendingTickets.length} jobs are ready to ${fromStatus === 'Pending' ? 'start' : 'complete'}.`" :count="pendingTickets.length" :send-label="`Send ${pendingTickets.length}`" :show-cancel="true" @send="sendConfirmed" @discard="discardConfirmed" @cancel="confirmIntent = null; pendingDestination = null" />
+    <ConfirmOverlay :open="completeOrderId !== null" title="Complete all jobs?" :description="`Complete all ${completeOrderJobs.length} open jobs of order ${completeOrderId} in ${department?.label}? This skips the workflow and gives no score.`" cancel-label="Cancel" confirm-label="Complete" :confirm-disabled="!showCompleteOrder || !completeOrderJobs.length" @close="completeOrderId = null" @confirm="completeOrder" />
+    <AdvanceConfirmDialog v-if="confirmIntent && !submitting" title="Send job updates?" :message="`${pendingTickets.length} jobs are ready to ${fromStatus === 'Pending' ? 'start' : 'complete'}.`" :count="pendingTickets.length" :send-label="`Send ${pendingTickets.length}`" :show-cancel="true" @send="sendConfirmed" @discard="discardConfirmed" @cancel="confirmIntent = null; pendingDestination = null" />
   </ListPageLayout>
 </template>
