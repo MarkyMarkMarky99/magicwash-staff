@@ -35,7 +35,7 @@ const done = computed(() => props.packed === props.total)
     <div class="relative mx-5 border-t border-white/15 pb-6 pt-3">
       <div class="flex items-end justify-between gap-3">
         <p class="font-label text-[9px] font-bold uppercase tracking-[0.14em] text-lime">Garments packed</p>
-        <BaseBadge :label="statusLabel" tone="info" size="lg" />
+        <BaseBadge v-if="statusLabel" :label="statusLabel" tone="info" size="lg" />
       </div>
       <p class="mt-1 flex items-baseline gap-0.5 font-headline">
         <span class="font-[Manrope,sans-serif] text-[40px] font-extrabold leading-[44px] tracking-[-0.04em] tabular-nums" :class="done ? 'text-lime' : ''">{{ packed }}</span>

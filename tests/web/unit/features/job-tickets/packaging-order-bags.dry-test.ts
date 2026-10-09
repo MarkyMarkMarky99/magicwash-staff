@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { jobTicketRoutes } from '@/features/job-tickets/routes'
 import {
@@ -84,4 +85,6 @@ assert.equal(router.resolve('/departments/packaging').name, 'department-work')
 assert.ok(!router.resolve('/departments/washing/x').matched.some(route => route.name === 'packaging-order-bags'))
 assert.equal(jobTicketRoutes.findIndex(route => route.name === 'packaging-order-bags') < jobTicketRoutes.findIndex(route => route.name === 'department-work'), true)
 
+const pageSource = readFileSync(new URL('../../../../../src/features/job-tickets/pages/PackagingOrderBagsPage.vue', import.meta.url), 'utf8')
+assert.match(pageSource, /:loading="state\.ticketsLoading\.value"/)
 console.log('packaging-order-bags.dry-test: OK')

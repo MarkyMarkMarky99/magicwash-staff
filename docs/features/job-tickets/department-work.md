@@ -2,8 +2,24 @@
 
 The five department pages use `/departments/:department`: `washing`, `drycleaning`, `ironing`, `packaging`, and `logistics`. These map to the JobTicket department values `Washing`, `DryCleaning`, `Ironing`, `Packaging`, and `Logistics`. An unknown value shows a not-found state.
 
-Each page loads Pending, In Progress, and Completed tickets for its department through the existing job-ticket list API. The three status requests start in parallel, while pages within each status load sequentially. Completed tickets are ordered by `completedAt` descending, stopping when the first completion before the current Bangkok date appears. The combined list is capped at 2,000 tickets; a warning marks a capped list as incomplete. Loading, errors with retry, and empty results use the list page pattern.
-Job-ticket GETs bypass the response cache so reopening the work queue reads current statuses.
+The shared `src/data/job-tickets/job-ticket.store.ts` owns all ticket rows and view loading, errors,
+and cap signals. Department views combine shared open-work ids with their own Completed ticket ids; order loads merge shared
+rows without adding older Completed tickets to department lists. Writes patch the shared rows so
+every view sees them. Invalidation reloads the active department and order views retained by visible
+pages; deactivated and unmounted pages release their views.
+
+The store loads Pending and In Progress across all departments in two parallel status requests,
+with sequential 500-row pages and a 10,000-ticket cap on the combined open set. Concurrent department
+loads share this request; switching departments reuses it until invalidation or explicit refresh.
+If invalidation occurs during an open-work read, its result is discarded and a fresh read starts
+after it settles, so in-flight API deduplication cannot reuse the old response.
+Each department separately loads Completed tickets ordered by `completedAt` descending, stopping
+at the first completion before the current Bangkok date. Department lists derive their own rows
+from the shared open set and their Completed ids, retaining the 10,000-ticket visible cap. A capped
+open set or department list shows the incomplete-list warning. Loading, retry, and empty states
+use the list page pattern. When all departments together exceed the open cap, a department may
+have fewer rows than the previous per-department request; the incomplete warning covers that limit.
+Job-ticket GETs bypass the response cache; the resource store owns open-work reuse.
 Washing, Dry Cleaning, Ironing, and Packaging filter the loaded list to scope ITEM before cards,
 counts, rings, selection, and scan queues are derived. Their ORDER tickets, including weight-photo
 Packaging credit, are hidden. Logistics keeps only non-deleted ORDER-scope Logistics LOG-BAG tickets.
@@ -48,7 +64,8 @@ pattern `/departments/:department(logistics)/:orderId` captures the Logistics de
 `department-work` parent, so the header Back button returns to `/departments/logistics`.
 
 The bag page loads the work-order header, all pages of that order's Logistics tickets, and its order
-images through the data services. Non-deleted ORDER LOG-BAG tickets define the bags. Each ticket id
+images through the data layer. Tickets use `loadOrder(orderId, 'Logistics')` in the resource store;
+cached Logistics tickets render immediately during reload. Non-deleted ORDER LOG-BAG tickets define the bags. Each ticket id
 is `LOG-<orderId>-<orderImageId>-LOG-BAG`; the row shows the embedded orderImageId, the ticket's
 photoEvidenceUrl, and scanned/pending state. Weight is the quantity of the matching OrderImages row,
 without filtering by image type; a missing image or quantity shows no weight. Images without a bag
@@ -63,9 +80,9 @@ repeated local scans and already In Progress or Completed bags show “already s
 sound/vibration feedback and make no network request individually.
 
 Scanning the last Pending bag automatically confirms; the Confirm button can confirm a partial
-set. Either sends one advanceJobTickets request with Logistics, from Pending, the current staff
+set. Either calls the store’s `advanceTickets` for one advance request with Logistics, from Pending, the current staff
 actor, and every locally scanned ticket id paired with this order id. Orders have fewer than 200
-bags; the page does not chunk requests. Confirmed advances update local tickets to In Progress and
+bags; the page does not chunk requests. Confirmed advances update shared tickets to In Progress and
 record the returned start time and actor. Partial responses, failed writes, and uncertain writes
 reload server data before staff scan again. After confirmation finishes, the camera closes.
 Closing without confirmation, browser Back, or leaving the page discards the local scans without a
@@ -79,12 +96,19 @@ On the Packaging page, tapping an order card body opens `/departments/packaging/
 same `department-work` parent as Logistics. The route is registered before the generic department route.
 The other garment departments still expand the card.
 
-`loadPackagingOrder` in `packaging-bag-source.ts` reads the work order, all its job tickets,
-BagItems, OrderImages, and LaundryPhotos through data services. Non-deleted Packaging ITEM tickets
-define garments; the shared advance gate identifies the earliest unfinished department. Photos
-come from LaundryPhotos by garment tag. BagItems defines confirmed assignments and bag counts;
-each bag uses its OrderImages photo and earliest BagItems timestamp. Customer name and index use
-the preloaded customer store. The status badge shows the order status in title case.
+`loadPackagingOrder` in `packaging-bag-source.ts` calls the resource store’s `loadOrder(orderId)`
+for all departments and reads BagItems in parallel. Cached Packaging tickets render
+immediately, then the page rebuilds as the reads finish. Garments use their disabled style and cannot
+be selected or scanned until the full order ticket load succeeds; invalidation reloads disable them
+again until earlier-department gates and older Completed tickets are known. Non-deleted Packaging ITEM tickets
+define garments; the shared advance gate identifies the earliest unfinished department. A garment's
+photo is its Packaging ticket's `photoEvidenceUrl`, as on the department page; LaundryPhotos is not
+read. Garments sort by tag ID, independent of preview or full-load ticket order. BagItems defines
+confirmed assignments, bag counts, and the earliest timestamp for each bag. A confirmed bag photo
+comes from the matching `LOG-<orderId>-<bagId>-LOG-BAG` Logistics ticket’s `photoEvidenceUrl`,
+or is null when the ticket is absent. Packaging does not read OrderImages. The customer comes from the tickets' `customerId` and the preloaded
+customer store. The work order is read afterwards, without blocking the page, only for the status
+badge, which shows the order status in title case and stays hidden until it loads.
 
 New bag IDs use the browser-safe short-ID generator. IDs, garment tags, and photo URLs are kept
 per order in localStorage. Taking a photo immediately uploads to `order-images/<orderId>` in

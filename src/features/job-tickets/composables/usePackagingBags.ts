@@ -1,9 +1,10 @@
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onActivated, onDeactivated, onBeforeUnmount, ref, watch } from 'vue'
+import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
 import { generateShortId } from '@shared/utils/id'
 import { uploadToStorage } from '@/shared/api/firebase-storage'
 import { confirmPackagingBags } from '@/data/packaging-bags/packaging-bag.service'
 import { currentActor } from '@/shared/config/actor'
-import { loadPackagingOrder } from '../packaging-bag-source'
+import { loadPackagingOrder, loadPackagingOrderStatus } from '../packaging-bag-source'
 import {
   bagNumber, canConfirm, garmentsInNewBags, restoreBags, scanGarment, toggleGarment, unassignedCount,
   type BagScanOutcome, type NewBag, type PackagingOrder,
@@ -30,10 +31,17 @@ function writeStoredBags(orderId: string, bags: readonly NewBag[]): void {
 }
 
 export function usePackagingBags(orderId: () => string) {
+  const ticketStore = useJobTicketStore()
+  let releaseOrder: (() => void) | undefined
+  let rebuild: (() => PackagingOrder) | undefined
+  const ticketsReady = ref(false)
+  const ticketsLoading = computed(() => !ticketsReady.value || ticketStore.orderView(orderId()).loading || !!ticketStore.orderView(orderId()).error)
   const order = ref<PackagingOrder | null>(null)
   const bags = ref<NewBag[]>([])
-  const loading = ref(true)
-  const error = ref<string | null>(null)
+  const pageLoading = ref(true)
+  const pageError = ref<string | null>(null)
+  const loading = computed(() => pageLoading.value || ticketStore.orderView(orderId()).loading)
+  const error = computed(() => pageError.value ?? ticketStore.orderView(orderId()).error)
   const notice = ref<string | null>(null)
   const submitting = ref(false)
   const uploading = ref(new Set<string>())
@@ -43,33 +51,49 @@ export function usePackagingBags(orderId: () => string) {
   const pending = computed(() => garmentsInNewBags(bags.value))
   const emptyBags = computed(() => bags.value.filter(bag => !bag.garmentTagIds.length))
   const bagsWithoutPhoto = computed(() => bags.value.filter(bag => !bag.photoUrl))
-  const confirmable = computed(() => !submitting.value && !uploading.value.size && bags.value.length <= 20 && canConfirm(bags.value))
+  const confirmable = computed(() => !ticketsLoading.value && !submitting.value && !uploading.value.size && bags.value.length <= 20 && canConfirm(bags.value))
 
   function commit(next: NewBag[]): void {
     bags.value = next
     if (order.value) writeStoredBags(order.value.orderId, next)
   }
 
+  function applyOrder(loaded: PackagingOrder, restored: NewBag[]): void {
+    const retryIds = new Set(restored.map(bag => bag.id))
+    order.value = { ...loaded,
+      confirmedBags: loaded.confirmedBags.filter(bag => !retryIds.has(bag.id)),
+      garments: loaded.garments.map(garment => ({ ...garment,
+        confirmedBagId: garment.confirmedBagId && retryIds.has(garment.confirmedBagId) ? null : garment.confirmedBagId })),
+    }
+    bags.value = restored
+  }
+
   async function load(): Promise<void> {
+    releaseOrder?.()
+    releaseOrder = ticketStore.retainOrder(orderId())
+    rebuild = undefined
+    ticketsReady.value = false
     const sequence = ++loadSequence
     const id = orderId()
-    loading.value = true
-    error.value = null
+    pageLoading.value = true
+    pageError.value = null
     try {
-      const loaded = await loadPackagingOrder(id)
+      const loaded = await loadPackagingOrder(id, (preview, builder) => {
+        if (sequence !== loadSequence) return
+        rebuild = builder
+        applyOrder(preview, restoreBags(preview, readStoredBags(id)))
+      })
       if (sequence !== loadSequence) return
+      ticketsReady.value = true
       const restored = restoreBags(loaded, readStoredBags(id))
-      const retryIds = new Set(restored.map(bag => bag.id))
-      order.value = { ...loaded,
-        confirmedBags: loaded.confirmedBags.filter(bag => !retryIds.has(bag.id)),
-        garments: loaded.garments.map(garment => ({ ...garment,
-          confirmedBagId: garment.confirmedBagId && retryIds.has(garment.confirmedBagId) ? null : garment.confirmedBagId })),
-      }
-      bags.value = restored
+      applyOrder(loaded, restored)
+      void loadPackagingOrderStatus(id).then(label => {
+        if (sequence === loadSequence && order.value) order.value = { ...order.value, statusLabel: label }
+      }, () => {})
     } catch (reason) {
-      if (sequence === loadSequence) error.value = reason instanceof Error ? reason.message : 'Unable to load order'
+      if (sequence === loadSequence) pageError.value = reason instanceof Error ? reason.message : 'Unable to load order'
     } finally {
-      if (sequence === loadSequence) loading.value = false
+      if (sequence === loadSequence) pageLoading.value = false
     }
   }
 
@@ -88,11 +112,11 @@ export function usePackagingBags(orderId: () => string) {
   }
 
   function toggle(bagId: string, tagId: string): void {
-    if (order.value && !submitting.value) commit(toggleGarment(order.value, bags.value, bagId, tagId))
+    if (order.value && !ticketsLoading.value && !submitting.value) commit(toggleGarment(order.value, bags.value, bagId, tagId))
   }
 
   function scan(bagId: string, value: string): BagScanOutcome | null {
-    if (!order.value || submitting.value) return null
+    if (!order.value || ticketsLoading.value || submitting.value) return null
     const outcome = scanGarment(order.value, bags.value, bagId, value)
     commit(outcome.bags)
     return outcome
@@ -142,7 +166,14 @@ export function usePackagingBags(orderId: () => string) {
     return order.value ? bagNumber(order.value, bags.value, bagId) : 0
   }
 
-  onBeforeUnmount(() => { loadSequence += 1 })
+  watch(() => ticketStore.orderTickets(orderId()), () => {
+    if (!rebuild || !order.value) return
+    applyOrder({ ...rebuild(), statusLabel: order.value.statusLabel }, bags.value)
+  }, { deep: true })
 
-  return { order, bags, loading, error, notice, submitting, uploading, unassigned, pending, emptyBags, bagsWithoutPhoto, confirmable, load, addBag, deleteBag, toggle, scan, setPhoto, confirm, numberOf }
+  onActivated(() => { if (!releaseOrder) releaseOrder = ticketStore.retainOrder(orderId()) })
+  onDeactivated(() => { releaseOrder?.(); releaseOrder = undefined })
+  onBeforeUnmount(() => { releaseOrder?.(); loadSequence += 1 })
+
+  return { order, bags, ticketsLoading, loading, error, notice, submitting, uploading, unassigned, pending, emptyBags, bagsWithoutPhoto, confirmable, load, addBag, deleteBag, toggle, scan, setPhoto, confirm, numberOf }
 }

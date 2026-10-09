@@ -196,6 +196,7 @@ onBeforeRouteLeave(to => {
       :bag-number="sheetBag ? state.numberOf(sheetBag.id) : 0"
       :selected-count="sheetBag?.garmentTagIds.length ?? 0"
       :cards="sheetCards"
+      :loading="state.ticketsLoading.value"
       @close="sheet.close"
       @toggle="tagId => sheetBag && state.toggle(sheetBag.id, tagId)"
       @scan="openScanner"

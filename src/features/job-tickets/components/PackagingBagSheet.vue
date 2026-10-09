@@ -5,6 +5,7 @@ import DetailOverlay from '@/shared/layouts/DetailOverlay.vue'
 import type { GarmentState, PackagingGarment } from '../packaging-bags'
 
 defineProps<{
+  loading?: boolean
   open: boolean
   bagNumber: number
   selectedCount: number
@@ -37,13 +38,13 @@ function blockedLabel(state: GarmentState): string | null {
         :key="garment.tagId"
         type="button"
         class="relative min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-lime"
-        :class="[state.kind === 'selected' ? 'ring-4 ring-lime' : '', blockedLabel(state) ? 'cursor-not-allowed' : '']"
-        :disabled="blockedLabel(state) !== null"
+        :class="[state.kind === 'selected' ? 'ring-4 ring-lime' : '', loading || blockedLabel(state) ? 'cursor-not-allowed' : '']"
+        :disabled="loading || blockedLabel(state) !== null"
         :aria-pressed="state.kind === 'selected'"
         :aria-label="`Garment ${garment.tagId}${blockedLabel(state) ? `, ${blockedLabel(state)}` : ''}`"
         @click="emit('toggle', garment.tagId)"
       >
-        <span class="block" :class="blockedLabel(state) ? 'opacity-40 saturate-0' : ''">
+        <span class="block" :class="loading || blockedLabel(state) ? 'opacity-40 saturate-0' : ''">
           <SquareImageCard :image-url="garment.imageUrl" :primary-text="garment.tagId" />
         </span>
         <span v-if="blockedLabel(state)" class="absolute inset-x-0 top-0 flex aspect-square items-center justify-center px-1">

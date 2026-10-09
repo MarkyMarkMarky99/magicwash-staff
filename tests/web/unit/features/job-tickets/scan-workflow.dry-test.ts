@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict'
 import { createPinia, setActivePinia } from 'pinia'
 import type { JobTicketDto, JobTicketScanResult } from '@/data/job-tickets/job-ticket.service'
-import { scanJobTicket, startJobTicketOrder } from '@/data/job-tickets/job-ticket.service'
 import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
 import { completionPercentage, countDepartmentStatuses } from '@/features/job-tickets/department-work'
 import { createTagScanGuard, feedbackOutcomeForScanResult, presentScanResult, presentStartOrderResult } from '@/features/job-tickets/scan-result'
@@ -30,29 +29,29 @@ globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) =>
 try {
   setActivePinia(createPinia())
   const store = useJobTicketStore()
-  store.tickets = [row]
-  const loadedRow = store.tickets[0]
+  store.rows.set(row.id, row)
+  const loadedRow = store.orderTickets('order-1')[0]
 
   assert.deepEqual(await store.scan(payload), response)
   assert.equal(requests[0]?.url, '/api/job-tickets/scan')
   assert.equal(requests[0]?.method, 'POST')
   assert.deepEqual(requests[0]?.body, payload)
-  assert.equal(store.tickets[0], loadedRow)
+  assert.equal(store.orderTickets('order-1')[0], loadedRow)
   assert.equal(loadedRow?.status, 'In Progress')
   assert.equal(loadedRow?.startedAt, '2026-09-23T09:00:00+07:00')
   assert.equal(loadedRow?.completedAt, null)
   assert.equal(loadedRow?.scannedBy, 'staff-1')
-  assert.deepEqual(countDepartmentStatuses(store.tickets), { ALL: 1, PENDING: 0, 'IN PROGRESS': 1, COMPLETED: 0 })
+  assert.deepEqual(countDepartmentStatuses(store.orderTickets('order-1')), { ALL: 1, PENDING: 0, 'IN PROGRESS': 1, COMPLETED: 0 })
   assert.deepEqual(presentScanResult(response), { tone: 'success', message: 'Job started' })
   assert.equal(feedbackOutcomeForScanResult(response), 'success')
 
   response = { kind: 'advanced', ticketId: row.id, status: 'Completed', startedAt: '2026-09-23T09:00:00+07:00', completedAt: '2026-09-23T09:10:00+07:00' }
   assert.deepEqual(await store.scan(payload), response)
-  assert.equal(store.tickets[0], loadedRow)
-  assert.equal(store.tickets.length, 1)
+  assert.equal(store.orderTickets('order-1')[0], loadedRow)
+  assert.equal(store.orderTickets('order-1').length, 1)
   assert.equal(loadedRow?.status, 'Completed')
   assert.equal(loadedRow?.completedAt, '2026-09-23T09:10:00+07:00')
-  assert.equal(completionPercentage(store.tickets), 100)
+  assert.equal(completionPercentage(store.orderTickets('order-1')), 100)
   assert.deepEqual(presentScanResult(response), { tone: 'success', message: 'Completed' })
   assert.equal(feedbackOutcomeForScanResult(response), 'success')
 
@@ -71,17 +70,17 @@ try {
     assert.deepEqual(await store.scan(payload), outcome.result)
     assert.deepEqual(presentScanResult(outcome.result), { tone: outcome.tone, message: outcome.message })
     assert.equal(feedbackOutcomeForScanResult(outcome.result), 'failure')
-    assert.equal(store.tickets[0], loadedRow)
+    assert.equal(store.orderTickets('order-1')[0], loadedRow)
     assert.equal(loadedRow?.status, 'Completed')
   }
   responseStatus = 409
   rawResponse = { kind: 'blocked', laundryItemId: 9305753, department: 'Washing', blockedByDepartment: 'DryCleaning' }
-  assert.deepEqual(await scanJobTicket(payload), { kind: 'blocked', laundryItemId: '09305753', department: 'Washing', blockedByDepartment: 'DryCleaning' })
+  assert.deepEqual(await store.scan(payload), { kind: 'blocked', laundryItemId: '09305753', department: 'Washing', blockedByDepartment: 'DryCleaning' })
   rawResponse = null
-  await scanJobTicket({ ...payload, taskCode: ' WSH-B ' })
+  await store.scan({ ...payload, taskCode: ' WSH-B ' })
   assert.deepEqual(requests.at(-1)?.body, { ...payload, taskCode: 'WSH-B' })
-  await assert.rejects(() => scanJobTicket({ ...payload, scannedBy: ' ' }))
-  store.tickets = [{ ...row, status: 'Pending', startedAt: null, scannedBy: null }]
+  await assert.rejects(() => store.scan({ ...payload, scannedBy: ' ' }))
+  store.rows.set(row.id, { ...row, status: 'Pending', startedAt: null, scannedBy: null })
   const startPayload = { orderId: 'order-1', department: 'Washing', scannedBy: 'staff-2' } as const
   responseStatus = 200
   rawResponse = {
@@ -99,9 +98,9 @@ try {
     blocked: [{ ticketId: 'ticket-2', laundryItemId: '09305754', blockedByDepartment: 'DryCleaning' }],
     skippedWithoutTag: 1,
   })
-  assert.equal(store.tickets[0]?.status, 'In Progress')
-  assert.equal(store.tickets[0]?.startedAt, '2026-09-23 10:00:00')
-  assert.equal(store.tickets[0]?.scannedBy, 'staff-2')
+  assert.equal(store.orderTickets('order-1')[0]?.status, 'In Progress')
+  assert.equal(store.orderTickets('order-1')[0]?.startedAt, '2026-09-23 10:00:00')
+  assert.equal(store.orderTickets('order-1')[0]?.scannedBy, 'staff-2')
   const advancePayload = { department: 'Washing', fromStatus: 'In Progress', tickets: [{ ticketId: row.id, orderId: 'order-1' }], scannedBy: 'staff-3' } as const
   rawResponse = { kind: 'completed', advanced: [{ ticketId: row.id, laundryItemId: 9305753, status: 'Completed', startedAt: '2026-09-23 10:00:00', completedAt: '2026-09-23 11:00:00' }], blocked: [{ ticketId: 'ticket-2', laundryItemId: 9305754, blockedByDepartment: 'DryCleaning' }], skipped: [], scoreFailed: 0 }
   const advanced = await store.advanceTickets(advancePayload)
@@ -112,9 +111,9 @@ try {
     assert.equal(advanced.advanced[0]?.laundryItemId, '09305753')
     assert.equal(advanced.blocked[0]?.laundryItemId, '09305754')
   }
-  assert.equal(store.tickets[0]?.status, 'Completed')
-  assert.equal(store.tickets[0]?.completedAt, '2026-09-23 11:00:00')
-  assert.equal(store.tickets[0]?.scannedBy, 'staff-3')
+  assert.equal(store.orderTickets('order-1')[0]?.status, 'Completed')
+  assert.equal(store.orderTickets('order-1')[0]?.completedAt, '2026-09-23 11:00:00')
+  assert.equal(store.orderTickets('order-1')[0]?.scannedBy, 'staff-3')
   rawResponse = null
   assert.deepEqual(presentStartOrderResult(started), {
     tone: 'error', message: '1 advanced · 1 blocked · 1 skipped without tag · Blocked by Dry Cleaning',
@@ -131,11 +130,11 @@ try {
   ] as const) {
     responseStatus = status
     rawResponse = { kind: 'write_failed', certainty, blocked: [], skippedWithoutTag: 0 }
-    const failed = await startJobTicketOrder(startPayload)
+    const failed = await store.startOrder(startPayload)
     assert.equal(failed.kind, 'write_failed')
     assert.deepEqual(presentStartOrderResult(failed), { tone: 'error', message })
   }
-  await assert.rejects(() => startJobTicketOrder({ ...startPayload, orderId: ' ' }))
+  await assert.rejects(() => store.startOrder({ ...startPayload, orderId: ' ' }))
   assert.equal(requests.length, 15)
   store.$dispose()
 

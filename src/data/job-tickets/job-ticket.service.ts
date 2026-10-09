@@ -15,7 +15,7 @@ export type JobTicketAdvanceResult = z.infer<typeof jobTicketAdvanceResponseSche
 
 const ENDPOINT = '/api/job-tickets'
 const PAGE_SIZE = 500
-export const MAX_DEPARTMENT_TICKETS = 2000
+export const MAX_DEPARTMENT_TICKETS = 10_000
 
 export async function listJobTickets(query: Partial<JobTicketListQuery>): Promise<ListResult<JobTicketDto>> {
   const result = await apiGetList<z.infer<typeof jobTicketResponseSchema>>(ENDPOINT, { query, querySchema: jobTicketListQuerySchema })
@@ -93,27 +93,40 @@ export function completedTodayFromPage(tickets: readonly JobTicketDto[], today: 
   return { tickets: current, reachedOlder: firstOlder !== -1 }
 }
 
-export async function loadDepartmentTickets(
+async function loadStatusTickets(
+  status: 'Pending' | 'In Progress' | 'Completed',
+  department: JobTicketListQuery['department'],
+  today: string,
+  fetchPage: typeof listJobTickets,
+): Promise<JobTicketDto[]> {
+  const tickets: JobTicketDto[] = []
+  for (let page = 1; tickets.length < MAX_DEPARTMENT_TICKETS; page += 1) {
+    const perPage = Math.min(PAGE_SIZE, MAX_DEPARTMENT_TICKETS - tickets.length)
+    const result = await fetchPage({ department, status, page, perPage,
+      sortBy: status === 'Completed' ? 'completedAt' : 'createdAt', sortOrder: 'desc' })
+    const selected = status === 'Completed' ? completedTodayFromPage(result.items, today) : { tickets: result.items, reachedOlder: false }
+    tickets.push(...selected.tickets.slice(0, MAX_DEPARTMENT_TICKETS - tickets.length))
+    if (selected.reachedOlder || result.items.length < perPage) break
+  }
+  return tickets
+}
+
+export async function loadOpenTickets(
+  fetchPage: typeof listJobTickets = listJobTickets,
+): Promise<{ tickets: JobTicketDto[]; truncated: boolean }> {
+  const results = await Promise.all([
+    loadStatusTickets('Pending', undefined, '', fetchPage),
+    loadStatusTickets('In Progress', undefined, '', fetchPage),
+  ])
+  const combined = results.flat()
+  return { tickets: combined.slice(0, MAX_DEPARTMENT_TICKETS), truncated: combined.length >= MAX_DEPARTMENT_TICKETS }
+}
+
+export async function loadCompletedTickets(
   department: JobTicketListQuery['department'],
   now: Date = new Date(),
   fetchPage: typeof listJobTickets = listJobTickets,
 ): Promise<{ tickets: JobTicketDto[]; truncated: boolean }> {
-  const today = todaySheetDate(now)
-  const statuses = ['Pending', 'In Progress', 'Completed'] as const
-  const results = await Promise.all(statuses.map(async status => {
-    const tickets: JobTicketDto[] = []
-    let page = 1
-    while (tickets.length < MAX_DEPARTMENT_TICKETS) {
-      const perPage = Math.min(PAGE_SIZE, MAX_DEPARTMENT_TICKETS - tickets.length)
-      const result = await fetchPage({ department, status, page, perPage,
-        sortBy: status === 'Completed' ? 'completedAt' : 'createdAt', sortOrder: 'desc' })
-      const selected = status === 'Completed' ? completedTodayFromPage(result.items, today) : { tickets: result.items, reachedOlder: false }
-      tickets.push(...selected.tickets.slice(0, MAX_DEPARTMENT_TICKETS - tickets.length))
-      if (selected.reachedOlder || result.items.length < perPage) break
-      page += 1
-    }
-    return tickets
-  }))
-  const combined = results.flat()
-  return { tickets: combined.slice(0, MAX_DEPARTMENT_TICKETS), truncated: combined.length >= MAX_DEPARTMENT_TICKETS }
+  const tickets = await loadStatusTickets('Completed', department, todaySheetDate(now), fetchPage)
+  return { tickets, truncated: tickets.length >= MAX_DEPARTMENT_TICKETS }
 }

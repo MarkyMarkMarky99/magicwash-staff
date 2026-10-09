@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onActivated, onDeactivated, onBeforeUnmount, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import type { LocationQueryRaw, RouteLocationNormalized } from 'vue-router'
 import GenericTabs from '@/shared/components/GenericTabs.vue'
@@ -50,6 +50,8 @@ let bypassGuard = false
 let restoredQueueKey = ''
 let pushedScanner = false
 let replacingLeave = false
+let pageActive = true
+let loadedDepartment: string | undefined
 let noticeTimer: ReturnType<typeof setTimeout> | undefined
 
 const filterLabels = { ALL: 'All', PENDING: 'Pending', 'IN PROGRESS': 'In Progress', COMPLETED: 'Completed' } as const
@@ -76,9 +78,12 @@ const visibleTickets = computed(() => sortDepartmentTickets(filterTickets(depart
 const visibleOrders = computed(() => groupDepartmentOrders(visibleTickets.value, orderInfo.value))
 const allOrders = computed(() => new Map(groupDepartmentOrders(departmentTickets.value, orderInfo.value).map(order => [order.orderId, order])))
 
-async function reload(): Promise<void> {
+async function reload(forceOpen = true): Promise<void> {
   const code = department.value?.code
-  if (code) await ticketStore.loadDepartment(code)
+  if (code && pageActive) {
+    loadedDepartment = code
+    await ticketStore.loadDepartment(code, forceOpen)
+  }
 }
 
 watch(() => department.value?.code, code => {
@@ -86,7 +91,7 @@ watch(() => department.value?.code, code => {
   scanResult.value = null
   dismissPageNotice()
   clearTapStates()
-  if (code) void reload()
+  if (code) void reload(false)
 }, { immediate: true })
 
 function changeFilter(value: string): void {
@@ -367,7 +372,16 @@ function guardPending(to: RouteLocationNormalized): boolean | void {
 
 onBeforeRouteUpdate(to => guardPending(to))
 
+onActivated(() => {
+  pageActive = true
+  const code = department.value?.code
+  if (code && code !== loadedDepartment) void reload(false)
+  else if (code) ticketStore.activateDepartment(code)
+})
+onDeactivated(() => { pageActive = false; ticketStore.releaseDepartment() })
+
 onBeforeUnmount(() => {
+  ticketStore.releaseDepartment()
   dismissPageNotice()
   clearTapStates()
 })
@@ -390,7 +404,7 @@ onBeforeRouteLeave(to => {
     </template>
 
     <div v-if="department && ticketStore.truncated" role="alert" class="flex-none border-b border-warning bg-warning-container px-4 py-2 font-body text-sm text-on-warning-container">
-      List incomplete: showing up to 2,000 jobs
+      List incomplete: showing up to 10,000 jobs
     </div>
 
     <ListContainer
@@ -411,7 +425,7 @@ onBeforeRouteLeave(to => {
       <template #error>
         <div class="px-4 py-6 text-center">
           <p role="alert" class="text-sm text-error">{{ ticketStore.error }}</p>
-          <button type="button" class="mt-3 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" @click="reload">Try again</button>
+          <button type="button" class="mt-3 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" @click="reload()">Try again</button>
         </div>
       </template>
 

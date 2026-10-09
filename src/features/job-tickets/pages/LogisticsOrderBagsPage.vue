@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed, onActivated, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onActivated, onDeactivated, onBeforeUnmount, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import StickerFab from '@/shared/components/StickerFab.vue'
 import QrScannerOverlay from '@/shared/components/QrScannerOverlay.vue'
 import { listOrderImages, type OrderImageDto } from '@/data/order-images/order-image.service'
-import { advanceJobTickets, listJobTickets, type JobTicketDto } from '@/data/job-tickets/job-ticket.service'
+import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
 import { getWorkOrder, type WorkOrderDetailDto } from '@/data/work-orders/work-order.service'
 import { useCustomerStore } from '@/data/customers/customer.store'
 import { filterTickets } from '../department-work'
@@ -21,10 +21,14 @@ const router = useRouter()
 const customerStore = useCustomerStore()
 const order = ref<WorkOrderDetailDto | null>(null)
 const images = ref<OrderImageDto[]>([])
-const tickets = ref<JobTicketDto[]>([])
+const ticketStore = useJobTicketStore()
+const tickets = computed(() => filterTickets(ticketStore.orderTickets(props.orderId, 'Logistics'), 'ALL', 'Logistics'))
+let releaseOrder: (() => void) | undefined
 const scannedTicketIds = ref(new Set<string>())
-const loading = ref(true)
-const error = ref<string | null>(null)
+const pageLoading = ref(true)
+const pageError = ref<string | null>(null)
+const loading = computed(() => pageLoading.value || ticketStore.orderView(props.orderId, 'Logistics').loading)
+const error = computed(() => pageError.value ?? ticketStore.orderView(props.orderId, 'Logistics').error)
 const submitting = ref(false)
 const notice = ref<{ message: string; success: boolean } | null>(null)
 const scannerOpen = computed(() => route.name === 'logistics-order-bags' && route.params.orderId === props.orderId && route.query.scan === '1')
@@ -49,14 +53,16 @@ let loadSequence = 0
 let noticeTimer: ReturnType<typeof setTimeout> | undefined
 
 async function load(): Promise<void> {
+  releaseOrder?.()
+  releaseOrder = ticketStore.retainOrder(props.orderId, 'Logistics')
   const sequence = ++loadSequence
   const orderId = props.orderId
-  loading.value = true
-  error.value = null
+  pageLoading.value = true
+  pageError.value = null
   notice.value = null
   scannedTicketIds.value = new Set()
   try {
-    const [header, photos, jobs] = await Promise.all([
+    const [header, photos] = await Promise.all([
       getWorkOrder(orderId),
       (async () => {
         const rows: OrderImageDto[] = []
@@ -66,23 +72,15 @@ async function load(): Promise<void> {
           if (result.items.length < 500) return rows
         }
       })(),
-      (async () => {
-        const rows: JobTicketDto[] = []
-        for (let page = 1; ; page += 1) {
-          const result = await listJobTickets({ orderId, department: 'Logistics', page, perPage: 500 })
-          rows.push(...result.items)
-          if (result.items.length < 500) return rows
-        }
-      })(),
+      ticketStore.loadOrder(orderId, 'Logistics'),
     ])
     if (sequence !== loadSequence) return
     order.value = header
     images.value = photos
-    tickets.value = filterTickets(jobs, 'ALL', 'Logistics').filter(ticket => ticket.orderId === orderId)
   } catch (reason) {
-    if (sequence === loadSequence) error.value = reason instanceof Error ? reason.message : 'Unable to load bags'
+    if (sequence === loadSequence) pageError.value = reason instanceof Error ? reason.message : 'Unable to load bags'
   } finally {
-    if (sequence === loadSequence) loading.value = false
+    if (sequence === loadSequence) pageLoading.value = false
   }
 }
 
@@ -134,15 +132,10 @@ async function confirmScans(): Promise<void> {
   const actor = currentActor()
   submitting.value = true
   try {
-    const result = await advanceJobTickets({ department: 'Logistics', fromStatus: 'Pending', scannedBy: actor, tickets: entries })
+    const result = await ticketStore.advanceTickets({ department: 'Logistics', fromStatus: 'Pending', scannedBy: actor, tickets: entries })
     if (orderId !== props.orderId) return
     scannedTicketIds.value = new Set()
     if (result.kind === 'completed') {
-      const advanced = new Map(result.advanced.map(row => [row.ticketId, row]))
-      tickets.value = tickets.value.map(ticket => {
-        const update = advanced.get(ticket.id)
-        return update ? { ...ticket, status: update.status, startedAt: update.startedAt, scannedBy: actor } : ticket
-      })
       if (result.advanced.length !== entries.length) {
         await load()
         showNotice(`${result.advanced.length} bags started. Other bag statuses changed; check before scanning again`)
@@ -163,13 +156,14 @@ async function confirmScans(): Promise<void> {
   }
 }
 
-watch(() => props.orderId, () => { order.value = null; images.value = []; tickets.value = []; void load() })
+watch(() => props.orderId, () => { order.value = null; images.value = []; void load() })
 watch(scannerOpen, open => {
   if (!open) { pushedScanner = false; scannedTicketIds.value = new Set() }
 })
 onBeforeRouteUpdate(() => { if (submitting.value) return false })
 onActivated(() => { void load() })
-onBeforeUnmount(() => { loadSequence += 1; if (noticeTimer) clearTimeout(noticeTimer) })
+onDeactivated(() => { releaseOrder?.(); releaseOrder = undefined })
+onBeforeUnmount(() => { releaseOrder?.(); loadSequence += 1; if (noticeTimer) clearTimeout(noticeTimer) })
 onBeforeRouteLeave(to => {
   if (submitting.value) return false
   if (!scannerOpen.value || replacingLeave) return
@@ -205,7 +199,7 @@ onBeforeRouteLeave(to => {
       </section>
       <section class="mx-3 mt-5">
         <header class="mb-2.5 flex items-center justify-between gap-3"><div class="border-l-4 border-lime pl-2.5"><h2 class="font-headline text-[17px] font-extrabold tracking-[-0.03em] text-primary">Weight photos</h2><p class="mt-[3px] font-label text-[9px] font-bold uppercase leading-none tracking-[0.1em] text-on-surface-variant">Scan every bag before delivery</p></div><p v-if="!loading && !error" class="shrink-0 font-label text-[10px] font-extrabold uppercase tracking-[0.04em] text-on-surface-variant">{{ scannedCount }} of {{ bags.length }} scanned</p></header>
-        <div v-if="loading" class="grid gap-2" aria-busy="true"><div v-for="row in 3" :key="row" class="h-[76px] animate-pulse rounded-[14px] bg-surface-container" /></div>
+        <div v-if="loading && !bags.length" class="grid gap-2" aria-busy="true"><div v-for="row in 3" :key="row" class="h-[76px] animate-pulse rounded-[14px] bg-surface-container" /></div>
         <div v-else-if="error" class="rounded-[14px] bg-white p-4 text-sm text-error"><p role="alert">{{ error }}</p><button type="button" class="mt-2 rounded px-3 py-2 font-bold focus-visible:outline-2 focus-visible:outline-lime" @click="load">Retry</button></div>
         <div v-else-if="!bags.length" class="flex flex-col items-center rounded-[14px] bg-white px-4 py-7 text-center shadow-[0_1px_0_rgba(7,63,56,0.05)]"><span class="grid h-14 w-14 -rotate-[7deg] place-items-center rounded-[18px] bg-secondary-container text-on-secondary-container"><span class="material-symbols-outlined text-[28px]" aria-hidden="true">inventory_2</span></span><p class="mt-3 font-body text-sm font-extrabold text-on-surface">No bag tickets yet</p><p class="mt-1 font-body text-[13px] text-on-surface-variant">Logistics bag tickets appear here to be scanned.</p></div>
         <ol v-else class="grid gap-2">

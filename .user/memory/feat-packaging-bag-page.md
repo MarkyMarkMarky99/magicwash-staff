@@ -7,3 +7,8 @@
 - Open: keep the additive `closeButton` prop on shared `DetailOverlay`; sheet scan button uses `onDark` tone on a light sheet.
 - Gap: `/b/:id` tracking accepts WEIGHT only, so a Packaging bag tag QR shows not found.
 - Not exercised: live Firebase upload, real tag print, EARN repair path on retry.
+
+## JobTickets data ownership (built 2026-10-09, browser test pending)
+- All JobTickets reads/writes go through `src/data/job-tickets/job-ticket.store.ts`; checker blocks runtime service imports from features.
+- Open work (Pending + In Progress) loads once for all departments; cap raised to 10,000 by owner.
+- Packaging reads only JobTickets (store) + BagItems; bag photo from the LOG-BAG ticket.

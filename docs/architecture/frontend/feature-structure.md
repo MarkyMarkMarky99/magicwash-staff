@@ -51,6 +51,8 @@ Page
   local field and derived state.
 - Shared table rows, loading state, and cap signals belong to the resource store in `src/data/`;
   feature consumers keep only workflow state and derive their own visible filters.
+- `src/data/job-tickets/job-ticket.store.ts` owns JobTickets rows and department/order view state.
+  Features import service types only and use the store for reads and writes.
 - Features do not construct API requests or call the shared API client directly.
 - Feature-specific filtering and derivation of table data stays in the feature.
 

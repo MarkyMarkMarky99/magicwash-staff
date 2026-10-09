@@ -11,7 +11,7 @@ const script = parse(source).descriptor.scriptSetup!.content.replace(/^import .*
 const code = transpileModule(script, { compilerOptions: { target: ScriptTarget.ES2022 } }).outputText
 const { filterTickets } = await import('@/features/job-tickets/department-work')
 
-async function harness() {
+async function harness(options: { cached?: boolean; wait?: Promise<void> } = {}) {
   const scope = effectScope()
   const route = reactive({ name: 'logistics-order-bags', params: { orderId: 'order-1' }, query: { scan: '1', keep: 'yes' } as Record<string, string> })
   const job = (id: string, status = 'Pending') => ({ id: `LOG-order-1-${id}-LOG-BAG`, orderId: 'order-1', scope: 'ORDER', department: 'Logistics', taskCode: 'LOG-BAG', deletedAt: null, status, photoEvidenceUrl: `https://tickets/${id}`, startedAt: null })
@@ -26,7 +26,27 @@ async function harness() {
   let leaveGuard: any
   let updateGuard: any
   const requests: any[] = []
+  const cachedTickets = ref<any[]>(options.cached ? [serverTickets[0]] : [])
+  const store = {
+    orderView: () => ({ loading: false, error: null }),
+    orderTickets: (orderId: string, department: string) => cachedTickets.value.filter(row => row.orderId === orderId && row.department === department), retainOrder: () => () => {},
+    loadOrder: async (orderId: string, department: string) => {
+      assert.equal(orderId, 'order-1'); assert.equal(department, 'Logistics')
+      reads += 1; await options.wait; cachedTickets.value = serverTickets
+    },
+    advanceTickets: async (payload: any) => {
+      requests.push(payload)
+      if (result instanceof Error) throw result
+      const response = result ? await result : { kind: 'completed', advanced: payload.tickets.map(({ ticketId }: any) => ({ ticketId, status: 'In Progress', startedAt: '2026-10-08T10:00:00+07:00' })), blocked: [], skipped: [], scoreFailed: 0 }
+      if (response.kind === 'completed') for (const advanced of response.advanced) {
+        const ticket = cachedTickets.value.find(row => row.id === advanced.ticketId)
+        if (ticket) Object.assign(ticket, { status: advanced.status, startedAt: advanced.startedAt, scannedBy: payload.scannedBy })
+      }
+      return response
+    },
+  }
   const dependencies = {
+    useJobTicketStore: () => store,
     computed, ref, watch, defineProps: () => ({ orderId: 'order-1' }), useRoute: () => route,
     useRouter: () => ({
       push: async ({ query }: any) => { route.query = query },
@@ -41,25 +61,30 @@ async function harness() {
       { orderImageId: 'bag-a', imageType: 'BELONGING', quantity: 2.5, imagePath: 'https://images/not-evidence' },
       { orderImageId: 'orphan', imageType: 'WEIGHT', quantity: 99 },
     ] }),
-    listJobTickets: async () => { reads += 1; return { items: serverTickets } },
-    advanceJobTickets: async (payload: any) => {
-      requests.push(payload)
-      if (result instanceof Error) throw result
-      if (result) return await result
-      return { kind: 'completed', advanced: payload.tickets.map(({ ticketId }: any) => ({ ticketId, status: 'In Progress', startedAt: '2026-10-08T10:00:00+07:00' })), blocked: [], skipped: [], scoreFailed: 0 }
-    },
-    onActivated: () => {}, onBeforeUnmount: () => {},
+    onActivated: () => {}, onDeactivated: () => {}, onBeforeUnmount: () => {},
     onBeforeRouteLeave: (guard: any) => { leaveGuard = guard },
     onBeforeRouteUpdate: (guard: any) => { updateGuard = guard },
     setTimeout: () => 1, clearTimeout: () => {},
   }
-  const page = scope.run(() => new Function(...Object.keys(dependencies), `${code}; return { load, bags, tickets, scannedTicketIds, scannedCount, totalWeight, handleScan, confirmScans, openScanner, closeScanner, scannerOpen, notice, submitting };`)(...Object.values(dependencies)))!
-  await page.load()
-  return { page, route, requests, scope, setResult: (value: any) => { result = value },
+  const page = scope.run(() => new Function(...Object.keys(dependencies), `${code}; return { load, bags, tickets, scannedTicketIds, scannedCount, totalWeight, handleScan, confirmScans, openScanner, closeScanner, scannerOpen, notice, submitting, loading };`)(...Object.values(dependencies)))!
+  const ready = page.load()
+  if (!options.wait) await ready
+  return { page, ready, route, requests, scope, setResult: (value: any) => { result = value },
     setServerTickets: (value: any) => { serverTickets = value },
     get reads() { return reads }, get backs() { return backs }, get replacements() { return replacements }, invalidations,
     leave: (to: any) => leaveGuard(to), update: () => updateGuard() }
 }
+
+let finishCachedLoad!: () => void
+const cached = await harness({ cached: true, wait: new Promise<void>(resolve => { finishCachedLoad = resolve }) })
+assert.equal(cached.page.loading.value, true)
+assert.deepEqual(cached.page.bags.value.map((bag: any) => bag.orderImageId), ['bag-a'])
+cached.page.handleScan('bag-a')
+assert.equal(cached.page.scannedTicketIds.value.size, 0)
+finishCachedLoad()
+await cached.ready
+assert.equal(cached.page.bags.value.length, 3)
+cached.scope.stop()
 
 const local = await harness()
 assert.deepEqual(local.page.bags.value.map((bag: any) => bag.orderImageId), ['bag-a', 'bag-b', 'bag-done'])
@@ -155,11 +180,11 @@ const departmentCode = transpileModule(departmentScript, { compilerOptions: { ta
 const departmentWork = await import('@/features/job-tickets/department-work')
 const departmentRoute = reactive({ params: { department: 'logistics' }, query: { status: 'PENDING', group: 'item', scan: '1' } })
 const destinations: any[] = []
-const ticketStore = { tickets: local.page.tickets.value, loading: false, error: null, loadDepartment: async () => {} }
+const ticketStore = { tickets: local.page.tickets.value, loading: false, error: null, loadDepartment: async () => {}, activateDepartment: () => {}, releaseDepartment: () => {} }
 const departmentDependencies = { ...departmentWork, computed, ref, watch,
   useRoute: () => departmentRoute, useRouter: () => ({ push: async (to: any) => { destinations.push(to) } }),
   useJobTicketStore: () => ticketStore, useCustomerStore: () => ({ customers: [] }),
-  onBeforeRouteLeave: () => {}, onBeforeRouteUpdate: () => {}, onBeforeUnmount: () => {},
+  onActivated: () => {}, onDeactivated: () => {}, onBeforeRouteLeave: () => {}, onBeforeRouteUpdate: () => {}, onBeforeUnmount: () => {},
   localStorage: { getItem: () => null, removeItem: () => {}, setItem: () => {} },
 }
 const departmentScope = effectScope()
