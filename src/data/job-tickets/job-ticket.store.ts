@@ -5,13 +5,13 @@ import { advanceJobTickets, listJobTickets, loadOpenTickets, loadCompletedTicket
 import { onCacheInvalidated } from '@/shared/api/response-cache'
 
 type Department = JobTicketListQuery['department']
-type TicketView = { ids: string[]; loading: boolean; error: string | null; truncated: boolean; requestId: number }
+type TicketView = { ids: string[]; loaded: boolean; loading: boolean; error: string | null; truncated: boolean; requestId: number }
 
 export const useJobTicketStore = defineStore('job-tickets', () => {
   const rows = ref(new Map<string, JobTicketDto>())
   const departments = reactive(new Map<Department, TicketView>())
   const orders = reactive(new Map<string, TicketView>())
-  const openWork = reactive({ ids: [] as string[], loading: false, error: null as string | null, truncated: false, requestId: 0 })
+  const openWork = reactive({ ids: [] as string[], loaded: false, loading: false, error: null as string | null, truncated: false, requestId: 0 })
   let openLoaded = false
   let openPromise: Promise<void> | undefined
   let openPromiseId = 0
@@ -26,13 +26,15 @@ export const useJobTicketStore = defineStore('job-tickets', () => {
     })
   })
   const tickets = computed(() => departmentRows.value.slice(0, MAX_DEPARTMENT_TICKETS))
-  const loading = computed(() => openWork.loading || (departments.get(activeDepartment.value)?.loading ?? false))
+  // A view that already has rows keeps showing them while it refreshes; only a first load blocks the page.
+  const loading = computed(() => (openWork.loading && !openWork.loaded)
+    || ((departments.get(activeDepartment.value)?.loading ?? false) && !departments.get(activeDepartment.value)?.loaded))
   const error = computed(() => openWork.error ?? departments.get(activeDepartment.value)?.error ?? null)
   const truncated = computed(() => openWork.truncated || (departments.get(activeDepartment.value)?.truncated ?? false)
     || departmentRows.value.length >= MAX_DEPARTMENT_TICKETS)
 
   function view(views: Map<string | undefined, TicketView>, key: string | undefined): TicketView {
-    if (!views.has(key)) views.set(key, { ids: [], loading: false, error: null, truncated: false, requestId: 0 })
+    if (!views.has(key)) views.set(key, { ids: [], loaded: false, loading: false, error: null, truncated: false, requestId: 0 })
     return views.get(key)!
   }
 
@@ -64,6 +66,7 @@ export const useJobTicketStore = defineStore('job-tickets', () => {
         merge(result.tickets)
         openWork.ids = result.tickets.map(ticket => ticket.id)
         openWork.truncated = result.truncated
+        openWork.loaded = true
         openLoaded = true
       } catch (reason) {
         if (id === openWork.requestId) openWork.error = reason instanceof Error ? reason.message : 'โหลดรายการงานไม่สำเร็จ'
@@ -80,8 +83,6 @@ export const useJobTicketStore = defineStore('job-tickets', () => {
     if (forceOpen) invalidateOpenWork()
     const state = view(departments, department)
     const id = ++state.requestId
-    state.ids = []
-    state.truncated = false
     state.loading = true
     state.error = null
     try {
@@ -90,6 +91,7 @@ export const useJobTicketStore = defineStore('job-tickets', () => {
       merge(result.tickets)
       state.ids = result.tickets.map(ticket => ticket.id)
       state.truncated = result.truncated
+      state.loaded = true
     } catch (reason) {
       if (id === state.requestId) state.error = reason instanceof Error && reason.message ? reason.message : 'โหลดรายการงานไม่สำเร็จ'
     } finally {

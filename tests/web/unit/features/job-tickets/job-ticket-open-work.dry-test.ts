@@ -27,7 +27,7 @@ globalThis.fetch = (async input => {
   const perPage = Number(url.searchParams.get('perPage'))
   if (status !== 'Completed' && !url.searchParams.has('orderId')) {
     assert.equal(department, null)
-    assert.equal(perPage, 500)
+    assert.equal(perPage, MAX_DEPARTMENT_TICKETS)
     assert.equal(url.searchParams.get('sortBy'), 'createdAt')
     assert.equal(url.searchParams.get('sortOrder'), 'desc')
     await waiting
@@ -67,6 +67,10 @@ try {
   await store.loadDepartment('Packaging')
   assert.equal(calls.filter(url => url.searchParams.get('status') !== 'Completed').length, 2)
   assert.deepEqual(store.tickets.map(row => row.id), ['packaging-open', 'Packaging-completed'])
+  const refresh = store.loadDepartment('Packaging')
+  assert.equal(store.loading, false, 'a loaded department keeps showing its rows while it refreshes')
+  assert.deepEqual(store.tickets.map(row => row.id), ['packaging-open', 'Packaging-completed'])
+  await refresh
   await store.loadOrder('order-1')
   assert.equal(store.rows.has('old-order-completed'), true)
   assert.deepEqual(store.tickets.map(row => row.id), ['packaging-open', 'Packaging-completed'])
@@ -82,7 +86,7 @@ try {
   assert.equal(store.truncated, true)
   assert.equal([...store.rows.values()].filter(row => row.status === 'Pending').length, MAX_DEPARTMENT_TICKETS - 500)
   assert.equal([...store.rows.values()].filter(row => row.status === 'In Progress').length, 500)
-  assert.deepEqual(calls.filter(url => url.searchParams.get('status') === 'Pending').map(url => url.searchParams.get('page')), Array.from({ length: MAX_DEPARTMENT_TICKETS / 500 }, (_, index) => String(index + 1)))
+  assert.deepEqual(calls.filter(url => url.searchParams.get('status') === 'Pending').map(url => url.searchParams.get('page')), ['1'])
   const beforeSwitch = calls.length
   await store.loadDepartment('Washing')
   assert.equal(calls.length, beforeSwitch + 1)

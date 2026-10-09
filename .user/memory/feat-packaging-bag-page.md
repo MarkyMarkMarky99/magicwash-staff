@@ -10,5 +10,5 @@
 
 ## JobTickets data ownership (built 2026-10-09, browser test pending)
 - All JobTickets reads/writes go through `src/data/job-tickets/job-ticket.store.ts`; checker blocks runtime service imports from features.
-- Open work (Pending + In Progress) loads once for all departments; cap raised to 10,000 by owner.
+- Open work (Pending + In Progress) loads once for all departments, one request per status; cap 10,000 (owner). Loaded views refresh without blanking.
 - Packaging reads only JobTickets (store) + BagItems; bag photo from the LOG-BAG ticket.

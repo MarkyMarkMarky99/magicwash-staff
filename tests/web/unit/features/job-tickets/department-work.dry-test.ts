@@ -178,56 +178,45 @@ assert.equal(calls[2]?.department, 'Washing')
 assert.equal(calls[2]?.sortBy, 'completedAt')
 assert.equal(calls[2]?.sortOrder, 'desc')
 
-const capPages = MAX_DEPARTMENT_TICKETS / 500
+// Open work is read in one request per status, sized to the whole cap.
 const capCalls: Partial<JobTicketListQuery>[] = []
 const capped = await loadOpenTickets(async query => {
   capCalls.push(query)
-  const items = query.status === 'Pending' ? Array.from({ length: query.perPage ?? 500 }, (_, index) => ticket(`p${query.page}-${index}`, 'order-soon', 'Pending')) : []
-  return { items, pagination: { page: query.page ?? 1, perPage: query.perPage ?? 500 } }
+  const items = query.status === 'Pending' ? Array.from({ length: query.perPage! }, (_, index) => ticket(`p${query.page}-${index}`, 'order-soon', 'Pending')) : []
+  return { items, pagination: { page: query.page ?? 1, perPage: query.perPage! } }
 })
 assert.equal(capped.tickets.length, MAX_DEPARTMENT_TICKETS)
 assert.equal(capped.truncated, true)
-assert.deepEqual(capCalls.filter(call => call.status === 'Pending').map(call => call.page), Array.from({ length: capPages }, (_, index) => index + 1))
-assert.deepEqual(capCalls.slice(0, 2).map(call => call.status), ['Pending', 'In Progress'])
+assert.deepEqual(capCalls.map(call => [call.status, call.page, call.perPage]), [['Pending', 1, MAX_DEPARTMENT_TICKETS], ['In Progress', 1, MAX_DEPARTMENT_TICKETS]])
 
 const combinedCalls: Partial<JobTicketListQuery>[] = []
 const combinedCap = await loadOpenTickets(async query => {
   combinedCalls.push(query)
-  const length = query.status === 'Pending' && query.page! < capPages ? query.perPage ?? 500
-    : query.status === 'In Progress' && query.page === 1 ? query.perPage ?? 500 : 0
-  const items = Array.from({ length }, (_, index) => ticket(`${query.status}-${query.page}-${index}`, 'order-soon', query.status!))
-  return { items, pagination: { page: query.page ?? 1, perPage: query.perPage ?? 500 } }
+  const length = query.status === 'Pending' ? MAX_DEPARTMENT_TICKETS - 500 : 600
+  const items = Array.from({ length }, (_, index) => ticket(`${query.status}-${index}`, 'order-soon', query.status!))
+  return { items, pagination: { page: query.page ?? 1, perPage: query.perPage! } }
 })
 assert.equal(combinedCap.tickets.length, MAX_DEPARTMENT_TICKETS)
 assert.equal(combinedCap.truncated, true)
 assert.deepEqual(combinedCap.tickets.map(row => row.status).filter((status, index, statuses) => index === 0 || status !== statuses[index - 1]), ['Pending', 'In Progress'])
-assert.deepEqual(combinedCalls.slice(0, 2).map(call => call.status), ['Pending', 'In Progress'])
+assert.equal(combinedCap.tickets[MAX_DEPARTMENT_TICKETS - 501]?.id, `Pending-${MAX_DEPARTMENT_TICKETS - 501}`)
+assert.equal(combinedCap.tickets[MAX_DEPARTMENT_TICKETS - 1]?.id, 'In Progress-499')
 
 const parallelCalls: Partial<JobTicketListQuery>[] = []
 const resolveFirstPages = new Map<JobTicketDto['status'], (items: JobTicketDto[]) => void>()
 const parallelLoad = loadOpenTickets(async query => {
   parallelCalls.push(query)
-  if (query.page === 1) {
-    return await new Promise<Awaited<ReturnType<typeof listJobTickets>>>(resolve => {
-      resolveFirstPages.set(query.status!, items => resolve({ items, pagination: { page: 1, perPage: query.perPage ?? 500 } }))
-    })
-  }
-  const items = query.status === 'Pending' && query.page! < capPages
-    ? Array.from({ length: query.perPage ?? 500 }, (_, index) => ticket(`later-${query.page}-${index}`, 'order-soon', 'Pending')) : []
-  return { items, pagination: { page: query.page ?? 1, perPage: query.perPage ?? 500 } }
+  return await new Promise<Awaited<ReturnType<typeof listJobTickets>>>(resolve => {
+    resolveFirstPages.set(query.status!, items => resolve({ items, pagination: { page: 1, perPage: query.perPage! } }))
+  })
 })
 assert.deepEqual(parallelCalls.map(call => call.status), ['Pending', 'In Progress'])
 assert.equal(resolveFirstPages.size, 2)
-resolveFirstPages.get('In Progress')!(Array.from({ length: 500 }, (_, index) => ticket(`progress-${index}`, 'order-soon', 'In Progress')))
-resolveFirstPages.get('Pending')!(Array.from({ length: 500 }, (_, index) => ticket(`pending-${index}`, 'order-soon', 'Pending')))
+resolveFirstPages.get('In Progress')!([ticket('progress-0', 'order-soon', 'In Progress')])
+resolveFirstPages.get('Pending')!([ticket('pending-0', 'order-soon', 'Pending')])
 const parallelResult = await parallelLoad
-assert.equal(parallelResult.tickets.length, MAX_DEPARTMENT_TICKETS)
-assert.equal(parallelResult.truncated, true)
-assert.equal(parallelResult.tickets[0]?.id, 'pending-0')
-assert.equal(parallelResult.tickets[MAX_DEPARTMENT_TICKETS - 501]?.id, `later-${capPages - 1}-499`)
-assert.equal(parallelResult.tickets[MAX_DEPARTMENT_TICKETS - 500]?.id, 'progress-0')
-assert.equal(parallelResult.tickets[MAX_DEPARTMENT_TICKETS - 1]?.id, 'progress-499')
-assert.ok(!parallelResult.tickets.some(row => row.status === 'Completed'))
+assert.deepEqual(parallelResult.tickets.map(row => row.id), ['pending-0', 'progress-0'])
+assert.equal(parallelResult.truncated, false)
 
 assert.ok([...capCalls, ...combinedCalls, ...parallelCalls].every(call => call.department === undefined))
 const completedCap = await loadCompletedTickets('Washing', new Date('2026-09-23T03:00:00Z'), async query => {

@@ -101,7 +101,8 @@ async function loadStatusTickets(
 ): Promise<JobTicketDto[]> {
   const tickets: JobTicketDto[] = []
   for (let page = 1; tickets.length < MAX_DEPARTMENT_TICKETS; page += 1) {
-    const perPage = Math.min(PAGE_SIZE, MAX_DEPARTMENT_TICKETS - tickets.length)
+    // Open work is read in one request per status: each extra page costs a full JobTickets scan.
+    const perPage = Math.min(status === 'Completed' ? PAGE_SIZE : MAX_DEPARTMENT_TICKETS, MAX_DEPARTMENT_TICKETS - tickets.length)
     const result = await fetchPage({ department, status, page, perPage,
       sortBy: status === 'Completed' ? 'completedAt' : 'createdAt', sortOrder: 'desc' })
     const selected = status === 'Completed' ? completedTodayFromPage(result.items, today) : { tickets: result.items, reachedOlder: false }

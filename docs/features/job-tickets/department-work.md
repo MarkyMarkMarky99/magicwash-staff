@@ -9,7 +9,8 @@ every view sees them. Invalidation reloads the active department and order views
 pages; deactivated and unmounted pages release their views.
 
 The store loads Pending and In Progress across all departments in two parallel status requests,
-with sequential 500-row pages and a 10,000-ticket cap on the combined open set. Concurrent department
+each a single request of up to 10,000 rows (every extra page costs a full JobTickets scan), and a
+10,000-ticket cap on the combined open set. Concurrent department
 loads share this request; switching departments reuses it until invalidation or explicit refresh.
 If invalidation occurs during an open-work read, its result is discarded and a fresh read starts
 after it settles, so in-flight API deduplication cannot reuse the old response.
@@ -20,6 +21,8 @@ open set or department list shows the incomplete-list warning. Loading, retry, a
 use the list page pattern. When all departments together exceed the open cap, a department may
 have fewer rows than the previous per-department request; the incomplete warning covers that limit.
 Job-ticket GETs bypass the response cache; the resource store owns open-work reuse.
+Only a view's first load blocks the page; a department that already has rows keeps showing them
+while its Completed tickets or the open set refresh.
 Washing, Dry Cleaning, Ironing, and Packaging filter the loaded list to scope ITEM before cards,
 counts, rings, selection, and scan queues are derived. Their ORDER tickets, including weight-photo
 Packaging credit, are hidden. Logistics keeps only non-deleted ORDER-scope Logistics LOG-BAG tickets.
