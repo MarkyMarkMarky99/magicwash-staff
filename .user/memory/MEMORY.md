@@ -13,7 +13,9 @@
 - Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
 - **Packaging bags + JobTickets store (merged 2026-10-09, staff trial in prod)**
   - Watch the first real Confirm: photo upload, sheet writes, LOG-BAG tickets, tag print with item count (`pcs`).
-  - Gap: `/b/:id` tracking accepts WEIGHT only, so a Packaging bag tag QR shows not found.
+  - Gap: `/b/:id` tracking accepts WEIGHT only (`delivery-tracking.service.ts:57`), so a Packaging bag tag QR shows not found.
+  - Next: accept BAG images in tracking, count both bag types, make `weightKg` nullable and show item count from BagItems.
+  - Later, needs design: customer page listing the garments in a bag from BagItems.
   - Print server must run C:\MagicwashInvoice `bc80a4e`+ (restarted 2026-10-09 17:40); older code rejects `packedAt`.
   - Open: keep the additive `closeButton` prop on shared `DetailOverlay`; sheet scan button uses `onDark` tone on a light sheet.
   - Next perf items (1, 3, 5–7) in `.user/memory/perf-research-2026-10-09.md`; items 2 and 4 done.
