@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { washQueueDbContract } from '../../../../server/sheets/WashQueue/WashQueue.db-contract.js'
 import { bagItemsDbContract } from '../../../../server/sheets/BagItems/BagItems.db-contract.js'
 import { readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -26,7 +27,7 @@ import { jobTicketsDbContract } from '../../../../server/sheets/JobTickets/JobTi
 import { workTransactionsDbContract } from '../../../../server/sheets/WorkTransactions/WorkTransactions.db-contract.js'
 import { workRatesDbContract } from '../../../../server/sheets/WorkRates/WorkRates.db-contract.js'
 
-const expectedSheetCount = 23
+const expectedSheetCount = 24
 const expectedSheetDirectories = [
   'BagItems',
   'AfterPhoto',
@@ -49,11 +50,13 @@ const expectedSheetDirectories = [
   'Packages',
   'Payments',
   'PriceList',
+  'WashQueue',
   'WorkRates',
   'WorkTransactions',
 ] as const
 
 const bindings = [
+  { name: 'WashQueue', contract: washQueueDbContract, expectedSpreadsheetId: 'JOB_TICKETS_SPREADSHEET_ID', expectedSheetName: 'WashQueue' },
   { name: 'BagItems', contract: bagItemsDbContract, expectedSpreadsheetId: 'ORDERS_SPREADSHEET_ID', expectedSheetName: 'BagItems' },
   {
     name: 'WorkTransactions',
@@ -188,6 +191,15 @@ const bindings = [
     expectedSheetName: 'Items',
   },
 ] as const
+
+assert.deepEqual(Object.keys(washQueueDbContract.row.shape), [
+  'id', 'status', 'photo_url', 'instruction', 'work_minutes', 'loaded_at', 'loaded_by',
+  'unloaded_at', 'unloaded_by', 'collected_at', 'collected_by', 'cancelled_at', 'cancelled_by',
+  'created_at', 'created_by', 'updated_at', 'updated_by',
+  'weight_before_kg', 'weight_after_kg', 'unload_photo_url', 'machine_id',
+])
+assert.deepEqual(washQueueDbContract.writes, { append: true, update: true, delete: false })
+assert.deepEqual(washQueueDbContract.audit, { onAppend: ['created_at', 'updated_at'], onUpdate: ['updated_at'] })
 
 const sheetRoot = fileURLToPath(new URL('../../../../server/sheets/', import.meta.url))
 const filesystemSheetDirectories = readdirSync(sheetRoot, { withFileTypes: true })

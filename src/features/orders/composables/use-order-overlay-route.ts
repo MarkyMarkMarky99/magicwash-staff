@@ -2,7 +2,7 @@ import { computed, watch } from 'vue'
 import type { LocationQuery, LocationQueryRaw } from 'vue-router'
 import { useRoute, useRouter } from 'vue-router'
 import type { OrderImageType } from '@/features/orders/order-image-labels'
-import { isValidOrderImageWeight, MAX_ORDER_IMAGE_WEIGHT_KG } from '@shared/utils/item-quantity'
+import { MAX_ORDER_IMAGE_WEIGHT_KG, parseWeightKg } from '@shared/utils/item-quantity'
 
 export type OrderOverlay = 'item' | 'photo-weight' | 'photo-belonging' | 'photo-document' | 'register-garment'
 
@@ -49,10 +49,7 @@ export function readRegistrationItemId(query: LocationQuery): string | null {
 }
 
 export function parseOrderImageWeight(raw: string): number | null {
-  const trimmed = raw.trim()
-  if (!isValidOrderImageWeight(trimmed)) return null
-  const parsed = Number(trimmed)
-  return Math.round(parsed * 10) / 10
+  return parseWeightKg(raw)
 }
 
 export function readOrderImageWeight(query: LocationQuery): number | null {

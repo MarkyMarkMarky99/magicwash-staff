@@ -2,6 +2,8 @@ import type { RouteLoader } from '../shared/http/gateway.types.js'
 import { ApiError } from '../shared/http/api-error.js'
 
 export const routeRegistry = {
+  'wash-queue': (): ReturnType<RouteLoader> =>
+    import('../modules/wash-queue/wash-queue.module.js').then((module) => module.washQueueRoutes),
   staff: (): ReturnType<RouteLoader> =>
     import('../modules/staff/staff.module.js').then((module) => module.staffRoutes),
   portal: (): ReturnType<RouteLoader> =>

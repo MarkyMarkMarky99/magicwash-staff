@@ -1,5 +1,4 @@
 # Project memory
-
 - Branch: `main`; customer-package invoice deployment still needs verification.
 
 ## Branches in flight
@@ -9,6 +8,9 @@
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 
 ## Pending work
+- **Wash queue (merged 2026-10-10, prod, not staff-tested)** — see `docs/features/wash-queue/wash-queue.md`
+  - Phone-test book → Load → Unload → Pick up → Cancel swipes; set Staff Position `WashOperator`; recheck Order Detail WEIGHT with the restyled WeightPrompt.
+  - Open: keep action success notices? block backdrop-discard on booking? OrderBagRow may lose radius mid-swipe; KPI and machine_id deferred.
 
 - Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
 - **Packaging bags + JobTickets store (merged 2026-10-09, staff trial in prod)**
@@ -23,11 +25,9 @@
 - **Logistics bag delivery (merged 2026-10-08, prod-tested on order `22fcaba8`)**
   - No backfill: bags weighed before 2026-10-08 have no LOG-BAG ticket, so those orders never reach the Logistics list.
   - Watch: legacy OrderImages `DELIVERY` (2) and `PICKUP` (271) rows; tracking proof may pick a legacy DELIVERY row.
-
 - **Orders report (`/reports/orders`, merged 2026-10-05)**
   - Order list has no pull-to-refresh yet (ListPageLayout lacks it); `/api/order-reports` and the server date/keyword path of `/api/work-orders` now have no frontend caller.
   - Deferred by owner: status cards show current status, not status on that day; check whether orders ever reach COMPLETED.
-
 - **Staff KPI (WorkTransactions / WorkRates, merged 2026-10-04)**
   - Browser-check the staff profile page `/staff/:staffId` (Day date strip, Week leaderboard); only unit-tested.
   - Staff list is now a daily ranking (medals, DateTabs, English); browser-check on a phone and as non-admin.
@@ -35,13 +35,12 @@
   - Before KPI drives pay: server must take the actor from the token, not the client body.
   - Future: supervisor-created tickets with custom `work_minutes`; Month view; Attendance for efficiency %.
   - Design canvas for the profile: claude.ai/artifact/NACQydNrsqjzx31RrK6tsX.
-
 - Phone-check a form's close X sits top-right with no white strip (CloseButton position fix, pushed 2026-09-28).
 - Package detail hero card: low-credit badge threshold (20%) was Claude's pick, not confirmed by user.
 - Package Add transaction form (phase 1): browser-check each type; voiding a past credit-add can still drive the balance negative.
 - Package transfer phase 2 not built: server must write paired −N/+N rows for same-customer packages and define partial-failure handling; the form's Transfer UI exists but Save is disabled.
 - Packages: review raw service-code labels, browser-check the service picker, and decide deletion of the unverified live `CustomerPackageView` sheet.
-- Recheck reported web dry-test failures: `appointment.store`, `work-order-update`, `order.store`, `customer-scoped-store-reloads`, `customer-package.service`, `customer-order-history-race`.
+- 10 dry-test files fail regardless of wash-queue (checked 2026-10-10): invoice workflows x2, order-item contract, data-boundaries, customer-package service, customer-scoped reloads, appointment store, customer history race, order store, form-route integrations.
 - **Customer detail and visual system** (merged 2026-09-27)
   - Browser-verify create dropdowns open, order swipe "Order detail", and appointment date order; the ui-shots run failed to capture these.
   - Pill shows `0 PACKAGES` while the list is still loading.
@@ -52,7 +51,6 @@
   - Deferred by user: the push drawer's rounded corner sits below the iOS status bar because status-bar-style `black` keeps the page under it; reaching the top edge needs `black-translucent` plus a new height fix.
   - Browser-check `CloseButton` onDark sticker style (lime outline squircle, solid lime + offset shadow when active) on header (menu, back, pending with badge) and the 6 dark-overlay X buttons; hover/focus pop animation; also check every shared `CloseButton` placement (forms, sheets, pickers, nav, scanners, invoice proof lightbox).
   - Browser-check the palette move (mint/tertiary removed, info = steel blue) and `BaseBadge` sm/lg sizes on order hero card, scanner, form controls.
-
 - **Garment tracking and job tickets**
   - Scan FAB sits below the screen edge on some phones; cause unknown, awaiting the user's device/browser details.
   - Overlapping order Start notices share one page-notice slot; the later replaces the earlier.
@@ -69,19 +67,17 @@
   - Per-department ticket cache (show stored list, refresh in background) proposed, not built.
   - Tablet layout for the department page (2–3 order columns) deferred by user; needs an opt-in wide route flag in `App.vue`.
   - Deferred backend: worklist read (not-done + done-today, cap 2000) and cancel timestamps.
+  - Not started: garment registration batch-appends LaundryPhotos on camera close (Back/X/screen-off safe); Approve-gating decision open, see `.user/memory/laundry-photos-batch-append.md`.
   - Phone Back closes garment registration while uploads are pending; blocking it not decided.
   - Decide whether to remove the old BEF album add-photo path now that registration is proven.
   - Physical QR labels: real-print scan test pending; consider print DENSITY and larger QR cells.
   - GViz types a whole column by majority: numeric legacy tags in JobTickets/LaundryPhotos make base62 tags read as null; user is clearing the numeric rows (frontend now tolerates both).
-
 - **Forms and navigation**
   - Remove dead CSS `.invoice-line-select` in `InvoiceLineItemsEditor.vue`.
   - Pre-existing defect: some forms `push` on exit, so Back re-opens the form after save. See `.user/memory/form-exit-history.md`.
   - Browser-verify the form-routes refactor (merged untested in a browser); unticked to-dos in `docs/plans/form-routes.md`.
-
 - **Order detail UI**
   - 20 open phone/browser checks and decisions: see `.user/memory/order-detail-ui.md`.
-
 - **Images and gallery**
   - Phone-check document scanner acceptance, camera flash, and initial detection; consider worker enhancement only if staff complain.
   - Backfill `Cache-Control` on existing photos after Firebase bucket credentials are available. See `docs/plans/image-pipeline.md`.
@@ -89,8 +85,9 @@
   - Move `usePhotoUpload.js` into the gallery feature and decide where legacy photo capture belongs.
   - Do not re-propose lazy-loading the gallery route: staff open it on nearly every order.
   - Audit and update gallery-read documentation in `docs/architecture/frontend/feature-structure.md`, `docs/features/orders/overview.md`, and `docs/features/orders/forms/create-order-image.md`.
-
 - **Cache, API, and performance**
+  - Agreed 2026-10-09, not started (big job): app-wide write outbox in `src/shared/api/` (IndexedDB, auto-flush, retry) for deferrable writes; GETs and must-answer writes (invoice, payment, approve, print) stay direct.
+  - Outbox prerequisites: every queued endpoint must be replay-safe (client ids; key for ticket/EARN), per-order ordering; next step is `docs/plans/write-outbox.md` with an endpoint table.
   - Price-list store keeps written rows over reads until a read matches every field; watch for rows sticking if GViz formats differ.
   - On hold: durable e2e suite in `tests/e2e/` with page objects; test IDs live in tests, derived from docs.
   - Wire `onFresh` at remaining call sites; first correct the stale cache-plan claim that no caller uses it.
@@ -102,7 +99,6 @@
   - Normalize GViz `Date(...)` values reaching photo modules according to `docs/conventions/datetime.md`.
   - Consolidate datetime helpers in a dedicated pass; `SheetRepository` is shared by every module.
   - App-wide GViz read normalization is deferred by the user; do not start or re-propose it. See `.user/memory/gviz-read-normalization.md`.
-
 - **Prices, invoices, and sheet data**
   - Resolve concurrent item-code allocation before production use.
   - Defer mixed-service orders to a separate branch after the price-list photo release; see `.user/memory/mixed-service-orders.md`.
@@ -121,7 +117,6 @@
   - Deferred by user: duplicate-phone check misses legacy phones without a leading 0; map picker (Leaflet + Nominatim/Longdo), location field hidden until then.
   - Dirty data, fix undecided: Customers has 1 blank and 19 duplicated `CustomerIndex`; CustomerIDMapping lacks 302 customers, has 5 orphan ids and 2 ids mangled to `2.50E+33`/`2.63E+53`.
   - Re-run `frontend-data-boundaries.dry-test.ts` after addressing the payment form's Firebase Storage import.
-
 - **Auth, UX, and documentation**
   - Redirect fallback for popup-blocked ships with the lockdown push; browser-test from a home-screen icon/LINE.
   - Verify Firebase Storage rules, Sheets link-sharing, and deployment sign-in settings after login lockdown.
@@ -129,7 +124,6 @@
   - Confirm Preview sign-in on an authorized host before testing `feat/package-credit`.
   - Public apex shop site awaits owner content: services, area, hours, contact, and logo.
   - Server-owned invoice and payment writes still record `'admin'` (`server/shared/config/actor.ts`); deferred by owner, needs client actor or token gating.
-  - 5 server dry-tests reported failing (invoice workflows x2, sheet metadata x2, order-item contract export); not checked against pre-auth `main`.
   - Fix screenshot-upload accessibility states, failed-upload handling, and staff-safe Firebase errors.
   - Align the customer-packages form with `docs/design/patterns/forms.md`.
   - Resolve conflicting composable filename guidance in `docs/conventions/naming.md` against the mixed current filenames.
@@ -140,7 +134,6 @@
   - Update list-page documentation that still describes deleted header search (`SEARCHABLE_ROUTES` / `meta.searchable`).
   - Fix 2 real defects in `persistent-cache.ts`. See `.user/memory/stale-comments-and-defects.md`.
   - Resume held comment-cleanup decisions after a canonical cache convention exists; verify each finding before acting. See `.user/memory/doc-comment-docs-work.md`.
-
 - **Verification and cleanup**
   - Browser-verify appointment creation without a customer location in Preview.
   - `src/features/orders/utils/order-price-list-items.ts` has no caller since Orders moved to Items, but keeps a unit test; decide whether to delete both.
@@ -153,6 +146,5 @@
   - Browser-check ListContainer search, theme consistency, and the order-detail dropdown at the bottom edge.
   - Delete `docs/plans/scroll-region.md` and `docs/plans/overlay-frame.md` once unreferenced (`LightboxOverlay` is gone).
   - Delete sheet test data: `Items` `ITM-0099` / `2e6b91d2`; `OrderForm` `246fde2b`, `cc4d375e`, `f68ae08d`; `LaundryPhotos` `QK0H9DT1`, `a260b2b1`, `1b7649ba`; `AfterPhoto` `0aacd052`.
-  - Browser-check the appointment card status badge now sitting in the top-end slot on both the schedule and pending pages.
-  - Browser-check swipe cards now opening 4rem per action (`leftActions`/`rightActions`), incl. the AppointmentCard "Swipe to …" label in 4rem.
+  - Browser-check the appointment card status badge in the top-end slot, and swipe cards opening 4rem per action (incl. the AppointmentCard "Swipe to …" label).
   - User kept New Order, Schedule Pickup, New Package and Create Invoice on customer detail as per-tab dropdowns (2026-09-27); Book Delivery and package usage in the order sheet still undecided.

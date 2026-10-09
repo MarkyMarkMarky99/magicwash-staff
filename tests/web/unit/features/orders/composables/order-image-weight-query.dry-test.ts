@@ -23,7 +23,7 @@ test('rejects every invalid weight so the camera cannot open', () => {
 
 test('the weight prompt exposes the same one-decimal rule to the browser', () => {
   const source = readFileSync(
-    new URL('../../../../../../src/features/orders/components/OrderImageWeightPrompt.vue', import.meta.url),
+    new URL('../../../../../../src/shared/components/WeightPrompt.vue', import.meta.url),
     'utf8',
   )
 
