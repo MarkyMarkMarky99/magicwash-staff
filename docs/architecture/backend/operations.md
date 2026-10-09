@@ -71,8 +71,8 @@ no unique-pair constraint. See `docs/features/orders/contracts/bag-item.md` for 
 
 The staff-authenticated `packaging-bags` module exposes `POST /api/packaging-bags/confirm`.
 It validates all bag assignments before writing, then appends missing BAG OrderImages and
-BagItems, provisions LOG-BAG tickets, and completes Packaging ITEM tickets through the existing
-advance service. Only after every write succeeds does it attempt bag-tag printing. A failure
+BagItems, provisions LOG-BAG tickets, and completes Packaging ITEM tickets through the shared
+transition core. Only after every write succeeds does it attempt bag-tag printing. A failure
 retains partial writes for an explicit staff retry; it does not roll back. See
 [Packaging Confirm](../../features/packaging/confirm.md) for its request and response contracts.
 

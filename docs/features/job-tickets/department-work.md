@@ -47,6 +47,8 @@ WorkRates successful reads are indexed by task code and cached in memory for the
 a TTL, so a rate change reaches approvals and weight photos only after the instance restarts; concurrent reads share one in-flight request. Failed reads are logged and are not cached,
 so a later approval can try again. Minutes already stored on tickets are not affected by a rate change.
 
+Start and advance share the same transition core and earlier-step gate as Packaging Confirm.
+
 The play arrow on each garment department order card continues to send one `/api/job-tickets/start-order` request to start all Pending tickets with tags in that order. In Progress, Completed, and Cancelled tickets are skipped; Pending tickets without tags are counted as skipped. Each order's Start runs in the background and shows a spinning sync icon while that order syncs. Its button is disabled only during that order's sync or when the order has no Pending tickets. The actor is the signed-in StaffId, or `unknown` when signed out; the optional `by` query is ignored.
 
 Start shows one summary notice with counts of advanced, blocked, and skipped without a tag, plus the blocking department names when any are blocked. A task blocked by an earlier task in its own department names that same department. A failed Start write asks staff to retry or check the order according to write certainty. The shared sound and vibration controls appear in the scanner header. A queued read plays one short beep and a 70 ms vibration; rejected reads play two short beeps and a distinct vibration pattern, subject to the independent preferences. Image taps and Start are silent.
@@ -120,7 +122,7 @@ upload failures show a notice, and Confirm is disabled during uploads or a save.
 
 Confirm sends every new bag in one `POST /api/packaging-bags/confirm` request with the current
 StaffId. The endpoint validates the whole request, appends missing BAG images and BagItems,
-provisions LOG-BAG tickets, completes garment Packaging tickets through the advance service,
+provisions LOG-BAG tickets, completes garment Packaging tickets through the shared transition core,
 and then attempts printing. Failure retains the device bags for retry, including after a reload
 following partial writes. Success clears stored bags, reloads the order, and reports printed and
 unprinted tags. Job-ticket, bag-item, and order-image caches invalidate on both success and failure.

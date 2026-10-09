@@ -57,13 +57,6 @@ export const jobTicketResponseSchema = z.object({
   workMinutes: z.number().nullable(),
 })
 
-export const jobTicketScanRequestSchema = z.object({
-  laundryItemId: z.string().trim().min(1),
-  department: jobTicketDepartmentSchema,
-  taskCode: z.string().trim().min(1).optional(),
-  scannedBy: z.string().trim().min(1),
-})
-
 export const jobTicketStartOrderRequestSchema = z.object({
   orderId: z.string().trim().min(1),
   department: jobTicketDepartmentSchema,
@@ -136,47 +129,6 @@ export const jobTicketStartOrderResponseSchema = z.discriminatedUnion('kind', [
     certainty: z.enum(['rejected', 'unknown']),
     blocked: z.array(jobTicketStartOrderBlockedSchema),
     skippedWithoutTag: z.number().int().min(0),
-  }),
-])
-
-export const jobTicketScanResponseSchema = z.discriminatedUnion('kind', [
-  z.object({
-    kind: z.literal('advanced'),
-    ticketId: z.string(),
-    status: z.enum(['In Progress', 'Completed']),
-    startedAt: z.string().nullable(),
-    completedAt: z.string().nullable(),
-  }),
-  z.object({
-    kind: z.literal('not_found'),
-    laundryItemId: z.string(),
-    department: jobTicketDepartmentSchema,
-  }),
-  z.object({
-    kind: z.literal('ambiguous'),
-    laundryItemId: z.string(),
-    department: jobTicketDepartmentSchema,
-    taskCodes: z.array(z.string().nullable()).min(2),
-  }),
-  z.object({
-    kind: z.literal('not_advanceable'),
-    ticketId: z.string(),
-    status: jobTicketStatusSchema,
-  }),
-  z.object({
-    kind: z.literal('blocked'),
-    laundryItemId: z.string(),
-    department: jobTicketDepartmentSchema,
-    blockedByDepartment: jobTicketDepartmentSchema,
-  }),
-  z.object({
-    kind: z.literal('already_completed'),
-    ticketId: z.string(),
-  }),
-  z.object({
-    kind: z.literal('write_failed'),
-    ticketId: z.string(),
-    certainty: z.enum(['rejected', 'unknown']),
   }),
 ])
 

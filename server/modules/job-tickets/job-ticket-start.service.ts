@@ -5,12 +5,11 @@ import {
 } from '../../../contracts/job-tickets/job-ticket-api.schema.js'
 import { jobTicketsRowSchema } from '../../sheets/JobTickets/JobTickets.db-contract.js'
 import { getJobTicketsRepository } from '../../sheets/JobTickets/JobTickets.repository.js'
+import type { SheetRowUpdate } from '../../shared/repositories/sheet-repository.contract.js'
 import type { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
-import type { SheetRowUpdate } from '../../shared/repositories/sheet-repository.contract.js'
-import { classifySheetWriteFailure } from '../../shared/repositories/write-failure.js'
-import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
-import { hasStartedAt } from './job-ticket-started-at.js'
+
+import { JobTicketTransitionService } from './job-ticket-transition.service.js'
 
 type JobTicketDbRow = z.infer<typeof jobTicketsRowSchema>
 export type JobTicketStartOrderResponse = z.infer<typeof jobTicketStartOrderResponseSchema>
@@ -39,59 +38,19 @@ export class JobTicketStartService {
     const repository = this.repository()
     const tickets = (await repository.read({ where: { order_id: request.orderId } }))
       .filter(ticket => ticket.deleted_at == null || ticket.deleted_at === '')
-    const blocked: Extract<JobTicketStartOrderResponse, { kind: 'completed' }>['blocked'] = []
-    const updates: SheetRowUpdate<JobTicketDbRow>[] = []
-    const advanced: Extract<JobTicketStartOrderResponse, { kind: 'completed' }>['advanced'] = []
-    let skippedWithoutTag = 0
-    const timestamp = formatBangkokTimestamp(this.now())
-
-    for (const ticket of tickets) {
-      if (ticket.department !== request.department || ticket.status !== 'Pending') continue
-      if (!ticket.laundry_item_id) {
-        skippedWithoutTag += 1
-        continue
-      }
-      if (ticket.id === undefined || typeof ticket.step_no !== 'number') continue
-
-      const blocker = tickets
-        .filter(candidate => candidate.laundry_item_id === ticket.laundry_item_id
-          && typeof candidate.step_no === 'number'
-          && candidate.step_no < ticket.step_no!
-          && candidate.status !== 'Completed')
-        .sort((left, right) => (left.step_no ?? 0) - (right.step_no ?? 0))[0]
-      if (blocker?.department !== undefined) {
-        blocked.push({
-          ticketId: ticket.id,
-          laundryItemId: ticket.laundry_item_id,
-          blockedByDepartment: blocker.department,
-        })
-        continue
-      }
-
-      const startedAt = ticket.started_at ?? timestamp
-      updates.push({
-        keyValue: ticket.id,
-        patch: {
-          status: 'In Progress', ...(hasStartedAt(ticket.started_at) ? {} : { started_at: startedAt }),
-          scanned_by: request.scannedBy, updated_by: request.scannedBy,
-        },
-      })
-      advanced.push({
-        ticketId: ticket.id, laundryItemId: ticket.laundry_item_id,
-        status: 'In Progress', startedAt,
-      })
-    }
-
-    if (updates.length === 0) return { kind: 'completed', advanced, blocked, skippedWithoutTag }
-
-    try {
-      await repository.updateMany(updates)
-    } catch (error) {
-      return {
-        kind: 'write_failed', certainty: classifySheetWriteFailure(error).certainty,
-        blocked, skippedWithoutTag,
-      }
-    }
+    const pending = tickets.filter(ticket => String(ticket.order_id) === request.orderId
+      && ticket.department === request.department && ticket.status === 'Pending')
+    const skippedWithoutTag = pending.filter(ticket => !ticket.laundry_item_id).length
+    const result = await new JobTicketTransitionService({ repository: () => repository, now: this.now }).transition({
+      department: request.department, targetStatus: 'In Progress', allowedSourceStatuses: ['Pending'],
+      scannedBy: request.scannedBy,
+      tickets: pending.filter(ticket => ticket.laundry_item_id && ticket.id && typeof ticket.step_no === 'number')
+        .map(ticket => ({ ticketId: ticket.id, orderId: request.orderId })),
+    }, tickets)
+    const blocked = result.blocked.map(entry => ({ ...entry, laundryItemId: entry.laundryItemId! }))
+    if (result.kind === 'write_failed') return { kind: 'write_failed', certainty: result.certainty, blocked, skippedWithoutTag }
+    const advanced = result.advanced.map(entry => ({ ticketId: entry.ticketId, laundryItemId: entry.laundryItemId!,
+      status: 'In Progress' as const, startedAt: entry.startedAt }))
     return { kind: 'completed', advanced, blocked, skippedWithoutTag }
   }
 }

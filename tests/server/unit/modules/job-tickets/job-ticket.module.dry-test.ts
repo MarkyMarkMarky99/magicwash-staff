@@ -4,7 +4,6 @@ import {
   jobTicketFieldMap,
   jobTicketAdvanceService,
   jobTicketRoutes,
-  jobTicketScanService,
   jobTicketStartService,
 } from '../../../../../server/modules/job-tickets/job-ticket.module.js'
 import { routeRegistry } from '../../../../../server/api/route-registry.js'
@@ -29,10 +28,6 @@ function request(id: string): ApiHandlerRequest {
   }
 }
 
-const scanMethods = jobTicketScanService as unknown as {
-  scan: (payload: unknown) => Promise<unknown>
-}
-const originalScan = scanMethods.scan
 const startMethods = jobTicketStartService as unknown as {
   startOrder: (payload: unknown) => Promise<unknown>
 }
@@ -40,33 +35,7 @@ const originalStart = startMethods.startOrder
 const advanceMethods = jobTicketAdvanceService as unknown as { advance: (payload: unknown) => Promise<unknown> }
 const originalAdvance = advanceMethods.advance
 try {
-  scanMethods.scan = async () => ({
-    kind: 'blocked', laundryItemId: 'tag-1', department: 'Washing', blockedByDepartment: 'Tagging',
-  })
-  const blocked = await jobTicketRoutes.item!.handleRequest(request('scan'))
-  assert.equal(blocked.status, 409)
-  assert.equal((blocked.body as { kind: string }).kind, 'blocked')
-
-  scanMethods.scan = async () => ({
-    kind: 'ambiguous', laundryItemId: 'tag-1', department: 'Washing', taskCodes: ['WSH-STANDARD', 'WSH-DELICATE'],
-  })
-  const ambiguous = await jobTicketRoutes.item!.handleRequest(request('scan'))
-  assert.equal(ambiguous.status, 409)
-  assert.equal((ambiguous.body as { kind: string }).kind, 'ambiguous')
-
-  scanMethods.scan = async () => ({
-    kind: 'not_advanceable', ticketId: 'ticket-1', status: 'Cancelled',
-  })
-  const notAdvanceable = await jobTicketRoutes.item!.handleRequest(request('scan'))
-  assert.equal(notAdvanceable.status, 409)
-  assert.deepEqual(notAdvanceable.body, {
-    kind: 'not_advanceable', ticketId: 'ticket-1', status: 'Cancelled',
-  })
-
-  scanMethods.scan = async () => ({
-    kind: 'write_failed', ticketId: 'ticket-1', certainty: 'unknown',
-  })
-  assert.equal((await jobTicketRoutes.item!.handleRequest(request('scan'))).status, 500)
+  assert.equal((await jobTicketRoutes.item!.handleRequest(request('scan'))).status, 404)
 
   startMethods.startOrder = async () => ({ kind: 'completed', advanced: [], blocked: [], skippedWithoutTag: 0 })
   const started = await jobTicketRoutes.item!.handleRequest(request('start-order'))
@@ -87,7 +56,6 @@ try {
   const missing = await jobTicketRoutes.item!.handleRequest(request('other'))
   assert.equal(missing.status, 404)
 } finally {
-  scanMethods.scan = originalScan
   startMethods.startOrder = originalStart
   advanceMethods.advance = originalAdvance
 }

@@ -22,28 +22,37 @@ export class BagLogisticsTicketService {
     if ((await tickets.read({ id })).some((ticket) => ticket.id === id)) return
     const headers = await this.orderFormRepository().read({ id: image.orderId })
     const header = headers[0]
-    const ticket: Partial<z.infer<typeof jobTicketsRowSchema>> & { id: string } = {
-      id,
-      order_id: image.orderId,
-      laundry_item_id: '',
-      scope: 'ORDER',
-      task_code: 'LOG-BAG',
-      department: 'Logistics',
-      step_no: 0,
-      customer_id: typeof header?.customer_id === 'string' ? header.customer_id.trim() : '',
-      order_name: header?.order_name ?? null,
-      due_date: header?.due_date ?? null,
-      notes: header?.note ?? null,
-      special_instructions: null,
-      status: 'Pending',
-      started_at: null,
-      completed_at: null,
-      scanned_by: null,
-      photo_evidence_url: image.imagePath,
-      created_by: image.createdBy,
-      updated_by: image.createdBy,
-      work_minutes: null,
-    }
-    await tickets.batchAppend([ticket])
+    await tickets.batchAppend([buildBagLogisticsTicket(image, {
+      customer_id: header?.customer_id, order_name: header?.order_name, due_date: header?.due_date, notes: header?.note,
+    })])
   }
+}
+
+export function buildBagLogisticsTicket(
+  image: Pick<z.infer<typeof orderImageResponseSchema>, 'orderId' | 'orderImageId' | 'imagePath' | 'createdBy'>,
+  metadata?: Partial<z.infer<typeof jobTicketsRowSchema>>,
+): Partial<z.infer<typeof jobTicketsRowSchema>> & { id: string } {
+  const ticket: Partial<z.infer<typeof jobTicketsRowSchema>> & { id: string } = {
+    id: `LOG-${image.orderId}-${image.orderImageId}-LOG-BAG`,
+    order_id: image.orderId,
+    laundry_item_id: '',
+    scope: 'ORDER',
+    task_code: 'LOG-BAG',
+    department: 'Logistics',
+    step_no: 0,
+    customer_id: typeof metadata?.customer_id === 'string' ? metadata.customer_id.trim() : '',
+    order_name: metadata?.order_name ?? null,
+    due_date: metadata?.due_date ?? null,
+    notes: metadata?.notes ?? null,
+    special_instructions: null,
+    status: 'Pending',
+    started_at: null,
+    completed_at: null,
+    scanned_by: null,
+    photo_evidence_url: image.imagePath,
+    created_by: image.createdBy,
+    updated_by: image.createdBy,
+    work_minutes: null,
+  }
+  return ticket
 }

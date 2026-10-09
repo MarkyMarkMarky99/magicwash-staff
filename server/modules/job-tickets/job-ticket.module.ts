@@ -2,7 +2,6 @@ import type { z } from 'zod'
 import {
   jobTicketApiContract,
   jobTicketAdvanceResponseSchema,
-  jobTicketScanResponseSchema,
   jobTicketStartOrderResponseSchema,
 } from '../../../contracts/job-tickets/job-ticket-api.schema.js'
 import { jobTicketsRowSchema } from '../../sheets/JobTickets/JobTickets.db-contract.js'
@@ -14,7 +13,6 @@ import { ApiError } from '../../shared/http/api-error.js'
 import { ApiHandler } from '../../shared/http/api-handler.js'
 import type { GatewayModuleRoutes } from '../../shared/http/gateway.types.js'
 import type { ApiResult } from '../../shared/http/response.js'
-import { JobTicketScanService } from './job-ticket-scan.service.js'
 import { JobTicketAdvanceService } from './job-ticket-advance.service.js'
 import { JobTicketStartService } from './job-ticket-start.service.js'
 
@@ -51,7 +49,6 @@ type JobTicketApiRow = ApiRowFromFieldMap<JobTicketDbRow, typeof jobTicketFieldM
 type JobTicketListQuery = z.infer<typeof jobTicketApiContract.query.list>
 type JobTicketUpdate = z.infer<typeof jobTicketApiContract.request.update>
 type JobTicketResponse = z.infer<typeof jobTicketApiContract.response.list>
-type JobTicketScanResponse = z.infer<typeof jobTicketScanResponseSchema>
 type JobTicketStartOrderResponse = z.infer<typeof jobTicketStartOrderResponseSchema>
 type JobTicketAdvanceResponse = z.infer<typeof jobTicketAdvanceResponseSchema>
 
@@ -73,38 +70,17 @@ export const jobTicketService = new BaseCrudService<
   fieldMap: jobTicketFieldMap,
 })
 
-export const jobTicketScanService = new JobTicketScanService()
 export const jobTicketStartService = new JobTicketStartService()
 export const jobTicketAdvanceService = new JobTicketAdvanceService()
 
 const crudRoutes = createCrudRoutes(jobTicketService, jobTicketApiContract)
-
-function statusForScan(response: JobTicketScanResponse): number {
-  switch (response.kind) {
-    case 'advanced':
-    case 'already_completed':
-      return 200
-    case 'not_found':
-      return 404
-    case 'not_advanceable':
-    case 'blocked':
-    case 'ambiguous':
-      return 409
-    case 'write_failed':
-      return response.certainty === 'rejected' ? 502 : 500
-  }
-}
 
 export const jobTicketRoutes: GatewayModuleRoutes = {
   collection: crudRoutes.collection,
   item: new ApiHandler({
     GET: async (req) => crudRoutes.item!.handleRequest(req),
     PATCH: async (req) => crudRoutes.item!.handleRequest(req),
-    POST: async (req): Promise<ApiResult<JobTicketScanResponse | JobTicketStartOrderResponse | JobTicketAdvanceResponse>> => {
-      if (req.params.id === 'scan') {
-        const response = await jobTicketScanService.scan(req.body)
-        return { status: statusForScan(response), body: response }
-      }
+    POST: async (req): Promise<ApiResult<JobTicketStartOrderResponse | JobTicketAdvanceResponse>> => {
       if (req.params.id === 'start-order') {
         const response = await jobTicketStartService.startOrder(req.body)
         return { status: response.kind === 'completed' ? 200 : response.certainty === 'rejected' ? 502 : 500, body: response }

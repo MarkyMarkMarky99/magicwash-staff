@@ -43,13 +43,34 @@ export class BagTagPrintService {
     await this.printBag({ ...image, weightKg, itemCount: null, packedAt: normalizeSheetTimestamp(image.createdAt) })
   }
 
-  async printBag(image: Pick<OrderImage, 'orderId' | 'orderImageId' | 'customerId'> & { weightKg: number | null; itemCount: number | null; packedAt: string }): Promise<boolean> {
+  async printBag(image: Pick<OrderImage, 'orderId' | 'orderImageId' | 'customerId'> & { weightKg: number | null; itemCount: number | null; packedAt: string; customerIndex?: string | null }): Promise<boolean> {
     if (process.env.BAG_TAG_PRINT_ENABLED !== 'true') return false
+    let customerIndex = image.customerIndex ?? null
+    if (image.customerIndex === undefined) {
+      try {
+        const customerId = image.customerId || (image.orderId ? await this.orderCustomerIdReader(image.orderId) : null)
+        customerIndex = await this.resolveCustomerIndex(customerId)
+      } catch {
+        logBagTagFailure('customer_lookup_error')
+      }
+    }
+
+    const request = {
+      qrValue: `${process.env.BAG_TAG_TRACKING_URL_BASE ?? ''}${image.orderImageId}`,
+      barcodeValue: image.orderImageId,
+      customerIndex,
+      weightKg: image.weightKg,
+      itemCount: image.itemCount,
+      packedAt: image.packedAt,
+    }
+    return (await this.printClient(request)).outcome === 'accepted'
+  }
+
+  async resolveCustomerIndex(customerIdInput: unknown): Promise<string | null> {
+    if (process.env.BAG_TAG_PRINT_ENABLED !== 'true') return null
     let customerIndex: string | null = null
     try {
-      // The app saves order images with customerId null; the order row holds the customer.
-      const orderCustomerId = image.customerId || (image.orderId ? await this.orderCustomerIdReader(image.orderId) : null)
-      const customerId = typeof orderCustomerId === 'string' ? orderCustomerId.trim() : ''
+      const customerId = typeof customerIdInput === 'string' ? customerIdInput.trim() : ''
       const customer = customerId ? await this.customerReader(customerId) : null
       if (!customer) {
         logBagTagFailure('customer_not_found')
@@ -66,14 +87,6 @@ export class BagTagPrintService {
       logBagTagFailure('customer_lookup_error')
     }
 
-    const request = {
-      qrValue: `${process.env.BAG_TAG_TRACKING_URL_BASE ?? ''}${image.orderImageId}`,
-      barcodeValue: image.orderImageId,
-      customerIndex,
-      weightKg: image.weightKg,
-      itemCount: image.itemCount,
-      packedAt: image.packedAt,
-    }
-    return (await this.printClient(request)).outcome === 'accepted'
+    return customerIndex
   }
 }

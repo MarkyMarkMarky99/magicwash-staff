@@ -22,8 +22,7 @@ globalThis.fetch = (async (input, init) => {
   if (init?.method === 'POST') {
     const payload = JSON.parse(String(init.body))
     const advanced = { ticketId: 'shared', laundryItemId: 'shared', status: 'In Progress', startedAt: '2026-10-09 10:00:00', completedAt: null }
-    const data = url.pathname.endsWith('/scan') ? { kind: 'advanced', ...advanced }
-      : { kind: 'completed', advanced: [advanced], blocked: [], skipped: [], skippedWithoutTag: 0, scoreFailed: 0 }
+    const data = { kind: 'completed', advanced: [advanced], blocked: [], skipped: [], skippedWithoutTag: 0, scoreFailed: 0 }
     assert.equal(payload.scannedBy, 'staff-1')
     return Response.json(data)
   }
@@ -60,7 +59,6 @@ try {
   assert.deepEqual(store.tickets.map(row => row.id), ['shared'])
   assert.equal(store.tickets[0], store.orderTickets('order-1')[0])
   for (const write of [
-    () => store.scan({ laundryItemId: 'shared', department: 'Packaging', scannedBy: 'staff-1' }),
     () => store.startOrder({ orderId: 'order-1', department: 'Packaging', scannedBy: 'staff-1' }),
     () => store.advanceTickets({ department: 'Packaging', fromStatus: 'Pending', scannedBy: 'staff-1', tickets: [{ ticketId: 'shared', orderId: 'order-1' }] }),
   ]) {

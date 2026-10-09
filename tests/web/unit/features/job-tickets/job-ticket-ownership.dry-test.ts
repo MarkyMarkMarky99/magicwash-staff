@@ -29,7 +29,7 @@ try {
     assert.equal(result.status, 1, source)
     assert.match(result.stderr, /JobTickets runtime service|job-ticket\.service/)
   }
-  writeFileSync(fixture, `import type { JobTicketDto } from '${service}'\nimport { type JobTicketListQuery } from '${service}'\nexport type { JobTicketScanPayload } from '${service}'`)
+  writeFileSync(fixture, `import type { JobTicketDto } from '${service}'\nimport { type JobTicketListQuery } from '${service}'\nexport type { JobTicketAdvancePayload } from '${service}'`)
   const result = spawnSync(process.execPath, [checker], { cwd: temporaryRoot, encoding: 'utf8' })
   assert.equal(result.status, 0, result.stderr)
   console.log('job-ticket-ownership.dry-test: OK (runtime imports rejected; type-only imports allowed)')

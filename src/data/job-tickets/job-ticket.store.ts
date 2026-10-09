@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, onScopeDispose, ref, reactive } from 'vue'
-import type { JobTicketAdvancePayload, JobTicketListQuery, JobTicketScanPayload, JobTicketStartOrderPayload, JobTicketDto } from './job-ticket.service'
-import { advanceJobTickets, listJobTickets, loadCurrentTickets, MAX_DEPARTMENT_TICKETS, scanJobTicket, startJobTicketOrder } from './job-ticket.service'
+import type { JobTicketAdvancePayload, JobTicketListQuery, JobTicketStartOrderPayload, JobTicketDto } from './job-ticket.service'
+import { advanceJobTickets, listJobTickets, loadCurrentTickets, MAX_DEPARTMENT_TICKETS, startJobTicketOrder } from './job-ticket.service'
 import { onCacheInvalidated } from '@/shared/api/response-cache'
 
 type Department = JobTicketListQuery['department']
@@ -143,20 +143,6 @@ export const useJobTicketStore = defineStore('job-tickets', () => {
     }
   }
 
-  async function scan(payload: JobTicketScanPayload) {
-    const result = await scanJobTicket(payload)
-    if (result.kind === 'advanced') {
-      const ticket = rows.value.get(result.ticketId)
-      if (ticket) {
-        ticket.status = result.status
-        ticket.startedAt = result.startedAt
-        ticket.completedAt = result.completedAt
-        ticket.scannedBy = payload.scannedBy
-      }
-    }
-    return result
-  }
-
   async function startOrder(payload: JobTicketStartOrderPayload) {
     const result = await startJobTicketOrder(payload)
     if (result.kind === 'completed') {
@@ -195,5 +181,5 @@ export const useJobTicketStore = defineStore('job-tickets', () => {
   })
   onScopeDispose(stopInvalidationListener)
 
-  return { rows, tickets, loading, error, truncated, loadDepartment, activateDepartment, releaseDepartment, orderTickets, orderView, loadOrder, retainOrder, scan, startOrder, advanceTickets }
+  return { rows, tickets, loading, error, truncated, loadDepartment, activateDepartment, releaseDepartment, orderTickets, orderView, loadOrder, retainOrder, startOrder, advanceTickets }
 })

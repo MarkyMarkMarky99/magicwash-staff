@@ -42,38 +42,20 @@ Returns the full camelCase ticket row.
 ## `PATCH /api/job-tickets/:id`
 
 The request accepts only `status` and `updatedBy`. This is the direct ticket maintenance endpoint;
-department scanning uses the gated endpoint below.
+department work uses the shared gated transition below.
 
-## `POST /api/job-tickets/scan`
+## Shared department transition
 
-Request:
-
-- `laundryItemId` — the physical tag stored as `LaundryPhotos.item_id`
-- `department` — the scanning department
-- `taskCode` — optional; selects one task when the garment has several tickets in the department
-- `scannedBy` — the staff actor
-
-A scan resolves the ticket by garment, department, and `taskCode` when given. When more than one ticket
-matches, the scan returns `ambiguous` and changes nothing; it never picks the first match. Every lower
-`stepNo` ticket for the garment, including one in the same department, must be `Completed` before the
-ticket can move.
-
-The first successful scan changes `Pending` to `In Progress`, stamps `startedAt`, and records
-`scannedBy`. The next successful scan changes `In Progress` to `Completed`, stamps `completedAt`,
-and records `scannedBy`. A completed ticket is a successful no-op outcome.
-
-The response is an unwrapped discriminated union:
-
-- `advanced` — 200
-- `already_completed` — 200
-- `not_found` — 404
-- `not_advanceable` — 409 and includes the resolved ticket id and its current status
-- `blocked` — 409 and includes `blockedByDepartment`, which is the scanned department when the blocker is an earlier task in it
-- `ambiguous` — 409 and includes `laundryItemId`, `department`, and the `taskCodes` of the matching tickets (`null` for a ticket without a task code)
-- `write_failed` — 502 for a rejected write, 500 for an unknown write outcome
-
-`not_found` is reserved for a garment that has no ticket for the requested department and task. A cancelled
-ticket returns `not_advanceable` with status `Cancelled`, so it remains resolvable in history.
+Start all pending, department batch advancement (including Logistics), and Packaging Confirm use
+`JobTicketTransitionService`. It takes ticket/order ID pairs, department, target status, allowed
+source statuses, and actor, plus optional tickets already read in the request. Missing, deleted,
+and wrong-department tickets are `not_found`; changed source statuses are `status_changed`.
+The lowest earlier unfinished step for the same order and garment blocks, including Cancelled
+and earlier tasks in the same department. All changes use one updateMany. Missing start times
+are stamped; completion stamps completion time and earns once for newly Completed tickets with
+finite numeric work minutes. Failed EARN writes report scoreFailed; retries do not repair scores.
+Packaging allows Pending or In Progress directly to Completed. Other callers retain their usual hop.
+The unused single-ticket `/scan` endpoint has been removed; the scanner queues a batch for `/advance`.
 
 ## `POST /api/job-tickets/start-order`
 
