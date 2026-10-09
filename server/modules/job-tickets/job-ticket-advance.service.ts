@@ -59,11 +59,7 @@ export class JobTicketAdvanceService {
       return true
     })
     const repository = this.repository()
-    const orders = new Map(await Promise.all([...new Set(requested.map(ticket => ticket.orderId))].map(async orderId => [
-      orderId,
-      (await repository.read({ where: { order_id: orderId } }))
-        .filter(ticket => ticket.deleted_at == null || ticket.deleted_at === ''),
-    ] as const)))
+    const orders = await this.readOrderTickets(repository, requested)
     const blocked: Extract<JobTicketAdvanceResponse, { kind: 'completed' }>['blocked'] = []
     const skipped: Extract<JobTicketAdvanceResponse, { kind: 'completed' }>['skipped'] = []
     const advanced: Extract<JobTicketAdvanceResponse, { kind: 'completed' }>['advanced'] = []
@@ -107,6 +103,32 @@ export class JobTicketAdvanceService {
     }
     const scoreFailed = await this.appendScores(completed, request.scannedBy)
     return { kind: 'completed', advanced, blocked, skipped, scoreFailed }
+  }
+
+  // Gating needs only tickets that are not Completed; three status reads cover any number of orders.
+  private async readOrderTickets(
+    repository: JobTicketAdvanceRepository,
+    requested: ReadonlyArray<{ ticketId: string; orderId: string }>,
+  ): Promise<Map<string, Array<Partial<JobTicketDbRow>>>> {
+    const live = (ticket: Partial<JobTicketDbRow>) => ticket.deleted_at == null || ticket.deleted_at === ''
+    const orderIds = new Set(requested.map(ticket => ticket.orderId))
+    const unfinished = (await Promise.all((['Pending', 'In Progress', 'Cancelled'] as const)
+      .map(status => repository.read({ where: { status } })))).flat()
+    const orders = new Map([...orderIds].map(orderId => [orderId, [] as Array<Partial<JobTicketDbRow>>]))
+    for (const ticket of unfinished) {
+      // GViz can type a numeric-looking order id as a number.
+      const orderId = ticket.order_id == null ? '' : String(ticket.order_id)
+      if (live(ticket) && orderIds.has(orderId)) orders.get(orderId)!.push(ticket)
+    }
+    // A requested ticket outside these reads was completed or never existed; read its order in full
+    // so the skip reason stays exact.
+    const missing = new Set(requested
+      .filter(entry => !orders.get(entry.orderId)!.some(ticket => ticket.id === entry.ticketId))
+      .map(entry => entry.orderId))
+    await Promise.all([...missing].map(async orderId => {
+      orders.set(orderId, (await repository.read({ where: { order_id: orderId } })).filter(live))
+    }))
+    return orders
   }
 
   private async appendScores(completed: Array<{ ticketId: string; workMinutes: JobTicketDbRow['work_minutes'] | undefined }>, actor: string): Promise<number> {

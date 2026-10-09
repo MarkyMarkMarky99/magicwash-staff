@@ -18,9 +18,9 @@ function setup(rows: Row[], error?: Error, scoreError?: Error) {
   const service = new JobTicketAdvanceService({
     repository: () => ({
       async read(query) {
-        const orderId = String(query?.where?.order_id)
-        reads.push(orderId)
-        return rows.filter(item => String(item.order_id) === orderId)
+        const where = (query?.where ?? {}) as Record<string, unknown>
+        reads.push(where.status !== undefined ? `status:${where.status}` : String(where.order_id))
+        return rows.filter(item => Object.entries(where).every(([key, value]) => String(item[key as keyof Row]) === String(value)))
       },
       async updateMany(updates) { batches.push(updates); if (error) throw error; updateSucceeded = true },
     }),
@@ -56,7 +56,7 @@ if (pendingResult.kind === 'completed') {
   assert.equal(pendingResult.advanced[1]?.startedAt, 'previous')
   assert.equal(pendingResult.advanced[0]?.completedAt, null)
 }
-assert.deepEqual(pending.reads, ['1'])
+assert.deepEqual(pending.reads, ['status:Pending', 'status:In Progress', 'status:Cancelled'], 'one status read each, whatever the number of orders')
 assert.equal(pending.earnBatches.length, 0)
 assert.equal(pending.workRepositoryCalls, 0)
 assert.deepEqual(pending.batches[0], [
@@ -74,7 +74,7 @@ const mixed = setup([
 ])
 const result = await mixed.service.advance(request(['done', 'blocked', 'missing'].map(ticketId => ({ ticketId, orderId: '1' }))
   .concat(['wrong', 'changed', 'deleted'].map(ticketId => ({ ticketId, orderId: '2' }))), 'In Progress'))
-assert.deepEqual(mixed.reads.sort(), ['1', '2'])
+assert.deepEqual(mixed.reads.sort(), ['1', '2', 'status:Cancelled', 'status:In Progress', 'status:Pending'], 'orders with a requested ticket outside the status reads are read in full')
 assert.deepEqual(result, {
   kind: 'completed',
   scoreFailed: 0,
@@ -120,7 +120,7 @@ const completion = await complete.service.advance(request([
 ], 'In Progress'))
 assert.equal(completion.kind, 'completed')
 if (completion.kind === 'completed') assert.equal(completion.scoreFailed, 0)
-assert.deepEqual(complete.reads, ['1'])
+assert.deepEqual(complete.reads, ['status:Pending', 'status:In Progress', 'status:Cancelled'])
 assert.equal(complete.earnBatches.length, 1)
 assert.equal(complete.workRepositoryCalls, 1)
 assert.deepEqual(complete.earnBatches[0]!.map(({ id, ...row }) => row), [
@@ -198,4 +198,13 @@ assert.deepEqual(afterFirstTask.earnBatches[0]!.map(({ id, ...earned }) => earne
 const gvizStarted = setup([row({ status: 'In Progress', started_at: 'Date(2026,9,4,3,22,46)' })])
 await gvizStarted.service.advance(request([{ ticketId: 'one', orderId: '1' }], 'In Progress'))
 assert.equal('started_at' in (gvizStarted.batches[0] as Array<{ patch: Record<string, unknown> }>)[0]!.patch, false)
+const cancelledGate = setup([
+  row({ id: 'next', order_id: 12345678 as unknown as string, laundry_item_id: 'tag-9' }),
+  row({ id: 'cancelled-prior', order_id: 12345678 as unknown as string, laundry_item_id: 'tag-9', step_no: 1, department: 'Tagging', status: 'Cancelled' }),
+])
+const cancelledResult = await cancelledGate.service.advance(request([{ ticketId: 'next', orderId: '12345678' }]))
+assert.deepEqual(cancelledResult.kind === 'completed' ? cancelledResult.blocked : null,
+  [{ ticketId: 'next', laundryItemId: 'tag-9', blockedByDepartment: 'Tagging' }], 'a Cancelled earlier ticket still blocks; numeric order ids match')
+assert.deepEqual(cancelledGate.reads, ['status:Pending', 'status:In Progress', 'status:Cancelled'])
+
 console.log('job-ticket-advance.dry-test: OK')
