@@ -50,6 +50,12 @@ Packaging staff put each order's garments into bags (packages) so the order is r
 - One Confirm = one request per order; bag creation, garment assignment, and tag printing are
   committed together, never one bag or one garment at a time.
 - A bag is identified by its OrderImages row (`orderImageId`).
+- A bag photo is uploaded to storage as soon as it is taken. The device keeps only the photo URL
+  with the unconfirmed bag, and Confirm sends those URLs in the order request. No sheet row is
+  written before Confirm. A photo of a bag deleted before Confirm is left in storage.
+- Confirm is safe to retry. Every row and ticket uses a deterministic id, so a retry after a
+  partial failure skips what already exists and writes only what is missing. Tags print only after
+  every write succeeds. Nothing is rolled back.
 - The Packaging order page reuses the Logistics order scan page layout. The bag bottom sheet reuses
   the shared-layout bottom sheet, restyled to match this page.
 - The bag-tag print request gains an item-count field (number of garments in the bag). Weighed

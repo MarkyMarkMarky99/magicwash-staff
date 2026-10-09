@@ -6,8 +6,9 @@ export const bagTagPrintRequestSchema = z.object({
   qrValue: z.string().min(1).max(64).regex(/^[\x20-\x7e]+$/),
   barcodeValue: z.string().min(1).max(32).regex(/^[\x20-\x7e]+$/),
   customerIndex: bagTagCustomerIndexSchema.nullable(),
-  weightKg: z.number().finite().gt(0).lt(1000),
-  weighedAt: z.string().regex(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/),
+  weightKg: z.number().finite().gt(0).lt(1000).nullable(),
+  itemCount: z.number().int().positive().nullable(),
+  packedAt: z.string().regex(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/),
 }).strict()
 
 export const bagTagPrintResponseSchema = z.object({

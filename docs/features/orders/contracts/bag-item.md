@@ -3,7 +3,7 @@
 The staff-authenticated `bag-items` module uses the append-only `BagItems` sheet in
 `ORDERS_SPREADSHEET_ID`, the same workbook as `OrderImages`.
 
-`bagId` references an `OrderImages.id` for a WEIGHT or PACK bag. `orderId` references
+`bagId` references an `OrderImages.id` for a WEIGHT or BAG bag. `orderId` references
 `OrderForm.id` and must equal that bag's order. `laundryItemId` is the garment tag shared
 by `LaundryPhotos.item_id` and `JobTickets.laundry_item_id`; garment identity is the
 order and garment tag pair. The API accepts these references without cross-sheet lookup.
@@ -33,3 +33,8 @@ preserving the original order, actor, id, and timestamp. The check does not make
 requests atomic; Sheets has no unique-pair constraint.
 
 There is no item route, PATCH, or DELETE. Unsupported collection methods return 405.
+
+The Packaging page writes assignments through [Packaging Confirm](../../packaging/confirm.md),
+which validates order membership and earlier work before batch appending missing rows through
+this sheet repository. Those rows use deterministic `<bagId>-<garmentId>` IDs for retries;
+the standalone POST described above retains its generated short IDs.

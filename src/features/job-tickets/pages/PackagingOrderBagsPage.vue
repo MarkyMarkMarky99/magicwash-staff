@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
-import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ConfirmOverlay from '@/shared/layouts/ConfirmOverlay.vue'
 import CameraOverlay from '@/shared/components/CameraOverlay.vue'
@@ -29,7 +29,7 @@ const sheet = useQueryOverlay('bag', active)
 const scan = useQueryOverlay('scan', active)
 const photo = useQueryOverlay('photo', active)
 const confirmOpen = ref(false)
-const printNotice = ref<number | null>(null)
+const printNotice = ref<string | null>(null)
 const scanResult = ref<ScanDisplay | null>(null)
 const mainRef = ref<InstanceType<typeof ScrollRegion> | null>(null)
 const listRef = ref<HTMLElement | null>(null)
@@ -72,13 +72,13 @@ function handleScan(value: string): void {
 function handleCapture(file: File): void {
   const bagId = photo.id.value
   if (!bagId || bags.value.find(bag => bag.id === bagId)?.photoUrl) return
-  state.setPhoto(bagId, file)
+  void state.setPhoto(bagId, file)
   photo.close()
 }
 
-function confirmBags(): void {
+async function confirmBags(): Promise<void> {
   confirmOpen.value = false
-  printNotice.value = state.confirm()
+  printNotice.value = await state.confirm()
   mainRef.value?.el?.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
@@ -98,7 +98,12 @@ watch(() => [loading.value, sheet.id.value, scan.id.value, photo.id.value, sheet
 
 watch(scannerOpen, open => { if (!open) scanResult.value = null })
 
+onBeforeRouteUpdate(to => {
+  if (to.params.orderId !== props.orderId && (state.submitting.value || state.uploading.value.size)) return false
+})
+
 onBeforeRouteLeave(to => {
+  if (state.submitting.value || state.uploading.value.size) return false
   if (replacingLeave || (!sheet.id.value && !scan.id.value && !photo.id.value)) return
   replacingLeave = true
   void router.replace(to).finally(() => { replacingLeave = false })
@@ -138,11 +143,12 @@ onBeforeRouteLeave(to => {
           </header>
           <div v-if="printNotice" role="status" class="mb-2 flex items-start gap-2 rounded-[14px] bg-success-container px-3 py-2.5 text-on-success-container">
             <span class="material-symbols-outlined mt-px shrink-0" style="font-size: 18px" aria-hidden="true">print</span>
-            <p class="min-w-0 flex-1 font-body text-[13px] font-semibold leading-snug"><span class="font-extrabold">{{ printNotice }} bag {{ printNotice === 1 ? 'tag is' : 'tags are' }} printing.</span> Stick each tag on its bag.</p>
+            <p class="min-w-0 flex-1 font-body text-[13px] font-semibold leading-snug"><span class="font-extrabold">{{ printNotice }}</span></p>
             <button type="button" class="shrink-0" aria-label="Dismiss" @click="printNotice = null">
               <span class="material-symbols-outlined" style="font-size: 18px" aria-hidden="true">close</span>
             </button>
           </div>
+          <div v-if="state.notice.value" role="alert" class="mb-2 rounded-[14px] bg-error-container px-3 py-2.5 font-body text-[13px] font-semibold text-on-error-container">{{ state.notice.value }}</div>
           <div v-if="state.emptyBags.value.length" role="alert" class="mb-2 flex items-start gap-2 rounded-[14px] bg-warning-container px-3 py-2.5 text-on-warning-container">
             <span class="material-symbols-outlined mt-px shrink-0" style="font-size: 18px" aria-hidden="true">warning</span>
             <p class="min-w-0 flex-1 font-body text-[13px] font-semibold leading-snug"><span class="font-extrabold">{{ emptyNames }} {{ state.emptyBags.value.length === 1 ? 'is' : 'are' }} empty.</span> Delete {{ state.emptyBags.value.length === 1 ? 'it' : 'them' }} — an empty bag would print an extra tag.</p>
@@ -166,6 +172,7 @@ onBeforeRouteLeave(to => {
               :number="state.numberOf(bag.id)"
               :item-count="bag.garmentTagIds.length"
               :photo-url="bag.photoUrl"
+              :uploading="state.uploading.value.has(bag.id)"
               @open="sheet.open(bag.id)"
               @delete="state.deleteBag(bag.id)"
               @take-photo="photo.open(bag.id)"

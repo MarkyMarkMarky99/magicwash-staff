@@ -118,3 +118,17 @@ export async function reassignLaundryPhotos(
   invalidate(LAUNDRY_PHOTOS_ENDPOINT)
   return result
 }
+
+export async function listLaundryPhotosByTag(orderId: string): Promise<Map<string, string>> {
+  const photos = new Map<string, string>()
+  for (let page = 1; ; page += 1) {
+    const { items } = await apiGetList<LaundryPhotoDto>(LAUNDRY_PHOTOS_ENDPOINT, {
+      query: { orderId, page }, querySchema: laundryPhotoListQuerySchema,
+    })
+    for (const photo of items) {
+      const tagId = normalizeGarmentTagId(photo.itemId)
+      if (!photo.deletedAt && tagId && photo.imageUrl && !photos.has(tagId)) photos.set(tagId, photo.imageUrl)
+    }
+    if (items.length < MAX_LAUNDRY_PHOTOS_PER_PAGE) return photos
+  }
+}

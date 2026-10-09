@@ -16,7 +16,7 @@ export class BagLogisticsTicketService {
     this.jobTicketRepository = input.jobTicketRepository ?? getJobTicketsRepository
   }
 
-  async provision(image: z.infer<typeof orderImageResponseSchema>): Promise<void> {
+  async provision(image: Pick<z.infer<typeof orderImageResponseSchema>, 'orderId' | 'orderImageId' | 'imagePath' | 'createdBy'>): Promise<void> {
     const id = `LOG-${image.orderId}-${image.orderImageId}-LOG-BAG`
     const tickets = this.jobTicketRepository()
     if ((await tickets.read({ id })).some((ticket) => ticket.id === id)) return

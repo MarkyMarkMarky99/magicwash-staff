@@ -53,6 +53,13 @@ API Contract ≠ DB Contract. DB ↔ API mapping belongs to the owning backend m
 
 Full boundary rules: [./README.md](./README.md)
 
+The Packaging Confirm action uses
+`contracts/packaging-bags/packaging-bag-api.schema.ts`; its create/response slots describe
+`POST /api/packaging-bags/confirm`, and unused list/update slots are `z.never()`.
+The shared bag-tag print request in `contracts/bag-tag-prints/bag-tag-print.schema.ts` now carries
+nullable `weightKg`, nullable positive integer `itemCount`, and Bangkok `packedAt`.
+See [Packaging Confirm](../../features/packaging/confirm.md) for the complete action contract.
+
 ## References
 
 - `docs/conventions/contracts/README.md`

@@ -78,6 +78,10 @@ Behaviour
 - After Packaging provisioning and before bag-tag printing, each saved WEIGHT image also
   provisions a Pending Logistics ORDER ticket `LOG-<orderId>-<orderImageId>-LOG-BAG` at step 0.
   See [Bag logistics tickets](./job-ticket.md#bag-logistics-tickets). Failures leave the save response unchanged.
+- Bag-tag printing sends the saved WEIGHT quantity as `weightKg`, `itemCount: null`, and the
+  normalized image creation time as `packedAt`. The print response is unchanged.
+  Packaging BAG images are written only by [Packaging Confirm](../../packaging/confirm.md),
+  without entering this create flow or triggering WEIGHT credit.
 - DOCUMENT capture saves one photo per "Use this photo" and then closes the scanner. Another
   document requires opening DOCUMENT capture again.
 

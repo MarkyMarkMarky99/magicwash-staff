@@ -79,10 +79,25 @@ On the Packaging page, tapping an order card body opens `/departments/packaging/
 same `department-work` parent as Logistics. The route is registered before the generic department route.
 The other garment departments still expand the card.
 
-This page is UI only. `loadPackagingOrder` in `packaging-bag-source.ts` is its single data source and
-returns a fixed placeholder order; no request is sent, and Confirm only turns the new bags into
-confirmed bags in memory and shows the print notice. New bags (ids and garment tags, not photos) are
-kept per order in localStorage; bag photos are object URLs and last only for the page session.
+`loadPackagingOrder` in `packaging-bag-source.ts` reads the work order, all its job tickets,
+BagItems, OrderImages, and LaundryPhotos through data services. Non-deleted Packaging ITEM tickets
+define garments; the shared advance gate identifies the earliest unfinished department. Photos
+come from LaundryPhotos by garment tag. BagItems defines confirmed assignments and bag counts;
+each bag uses its OrderImages photo and earliest BagItems timestamp. Customer name and index use
+the preloaded customer store. The status badge shows the order status in title case.
+
+New bag IDs use the browser-safe short-ID generator. IDs, garment tags, and photo URLs are kept
+per order in localStorage. Taking a photo immediately uploads to `order-images/<orderId>` in
+Firebase Storage; only the returned URL is saved on the device. The photo slot shows uploading,
+upload failures show a notice, and Confirm is disabled during uploads or a save.
+
+Confirm sends every new bag in one `POST /api/packaging-bags/confirm` request with the current
+StaffId. The endpoint validates the whole request, appends missing BAG images and BagItems,
+provisions LOG-BAG tickets, completes garment Packaging tickets through the advance service,
+and then attempts printing. Failure retains the device bags for retry, including after a reload
+following partial writes. Success clears stored bags, reloads the order, and reports printed and
+unprinted tags. Job-ticket, bag-item, and order-image caches invalidate on both success and failure.
+See [Confirm contract](../packaging/confirm.md) for validation, write order, and retry semantics.
 
 The bag sheet is the shared `DetailOverlay` with its close button off, opened by `?bag=<bagId>`. The
 tag scanner adds `scan=1` on top of it and the bag camera uses `?photo=<bagId>`; each is a route-owned

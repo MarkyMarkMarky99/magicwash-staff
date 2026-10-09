@@ -1,11 +1,12 @@
 import { formatSheetDateTime, getBangkokClock } from '@/shared/utils/sheet-date'
-import type { Department } from './department-work'
+import type { z } from 'zod'
+import type { jobTicketDepartmentSchema } from '@contracts/job-tickets/job-ticket-api.schema'
 import { departmentLabels } from './scan-result'
 
 export type PackagingGarment = {
   tagId: string
   imageUrl: string | null
-  waitingFor: Department | null
+  waitingFor: z.infer<typeof jobTicketDepartmentSchema> | null
   confirmedBagId: string | null
 }
 
@@ -22,7 +23,7 @@ export type PackagingOrder = {
 
 export type NewBag = { id: string; garmentTagIds: string[]; photoUrl: string | null }
 
-export type StoredBag = Pick<NewBag, 'id' | 'garmentTagIds'>
+export type StoredBag = NewBag
 
 export type BagScanOutcome = { bags: NewBag[]; tagId: string; success: boolean; message: string }
 
@@ -104,15 +105,15 @@ export function restoreBags(order: PackagingOrder, value: unknown): NewBag[] {
   const restored: NewBag[] = []
   for (const entry of value) {
     if (!entry || typeof entry !== 'object' || typeof entry.id !== 'string' || !Array.isArray(entry.garmentTagIds)) continue
-    if (restored.some(bag => bag.id === entry.id) || order.confirmedBags.some(bag => bag.id === entry.id)) continue
+    if (restored.some(bag => bag.id === entry.id)) continue
     const garmentTagIds: string[] = []
     for (const tagId of entry.garmentTagIds) {
       const garment = typeof tagId === 'string' ? known.get(tagId) : undefined
-      if (!garment || garment.confirmedBagId || garment.waitingFor || taken.has(garment.tagId)) continue
+      if (!garment || (garment.confirmedBagId && garment.confirmedBagId !== entry.id) || garment.waitingFor || taken.has(garment.tagId)) continue
       taken.add(garment.tagId)
       garmentTagIds.push(garment.tagId)
     }
-    restored.push({ id: entry.id, garmentTagIds, photoUrl: null })
+    restored.push({ id: entry.id, garmentTagIds, photoUrl: typeof entry.photoUrl === 'string' && /^https?:\/\//.test(entry.photoUrl) ? entry.photoUrl : null })
   }
   return restored
 }

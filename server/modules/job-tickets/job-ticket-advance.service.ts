@@ -5,11 +5,13 @@ import { getJobTicketsRepository } from '../../sheets/JobTickets/JobTickets.repo
 import { workTransactionsRowSchema } from '../../sheets/WorkTransactions/WorkTransactions.db-contract.js'
 import { getWorkTransactionsRepository } from '../../sheets/WorkTransactions/WorkTransactions.repository.js'
 import type { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
+import { ApiError } from '../../shared/http/api-error.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import type { SheetRowUpdate } from '../../shared/repositories/sheet-repository.contract.js'
 import { classifySheetWriteFailure } from '../../shared/repositories/write-failure.js'
 import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
 import { generateShortId } from '../../shared/utils/id.js'
+import { findEarlierDepartment } from './job-ticket-gating.js'
 import { hasStartedAt } from './job-ticket-started-at.js'
 
 type JobTicketDbRow = z.infer<typeof jobTicketsRowSchema>
@@ -28,17 +30,23 @@ export interface WorkTransactionAppender {
 export interface JobTicketAdvanceServiceOptions {
   repository?: () => JobTicketAdvanceRepository
   workTransactionRepository?: () => WorkTransactionAppender
+  workTransactionReader?: () => { read(query?: ReadQueryDTO<Partial<WorkTransactionsDbRow>>): Promise<Array<Partial<WorkTransactionsDbRow>>> }
+  deterministicEarnIds?: boolean
   now?: () => Date
 }
 
 export class JobTicketAdvanceService {
   private readonly repository: () => JobTicketAdvanceRepository
   private readonly workTransactionRepository: () => WorkTransactionAppender
+  private readonly workTransactionReader
+  private readonly deterministicEarnIds
   private readonly now: () => Date
 
   constructor(input: JobTicketAdvanceServiceOptions = {}) {
     this.repository = input.repository ?? getJobTicketsRepository
     this.workTransactionRepository = input.workTransactionRepository ?? getWorkTransactionsRepository
+    this.workTransactionReader = input.workTransactionReader ?? getWorkTransactionsRepository
+    this.deterministicEarnIds = input.deterministicEarnIds ?? false
     this.now = input.now ?? (() => new Date())
   }
 
@@ -74,15 +82,9 @@ export class JobTicketAdvanceService {
         skipped.push({ ticketId: entry.ticketId, reason: 'status_changed' })
         continue
       }
-      const blocker = orderTickets
-        .filter(candidate => !!ticket.laundry_item_id
-          && candidate.laundry_item_id === ticket.laundry_item_id
-          && typeof candidate.step_no === 'number'
-          && candidate.step_no < ticket.step_no!
-          && candidate.status !== 'Completed')
-        .sort((left, right) => (left.step_no ?? 0) - (right.step_no ?? 0))[0]
-      if (blocker?.department !== undefined) {
-        blocked.push({ ticketId: entry.ticketId, laundryItemId: ticket.laundry_item_id ?? null, blockedByDepartment: blocker.department })
+      const blocker = findEarlierDepartment(ticket, orderTickets)
+      if (blocker !== undefined && blocker !== null) {
+        blocked.push({ ticketId: entry.ticketId, laundryItemId: ticket.laundry_item_id ?? null, blockedByDepartment: blocker })
         continue
       }
       const status = request.fromStatus === 'Pending' ? 'In Progress' : 'Completed'
@@ -103,13 +105,18 @@ export class JobTicketAdvanceService {
     } catch (error) {
       return { kind: 'write_failed', certainty: classifySheetWriteFailure(error).certainty, blocked, skipped }
     }
+    const scoreFailed = await this.appendScores(completed, request.scannedBy)
+    return { kind: 'completed', advanced, blocked, skipped, scoreFailed }
+  }
+
+  private async appendScores(completed: Array<{ ticketId: string; workMinutes: JobTicketDbRow['work_minutes'] | undefined }>, actor: string): Promise<number> {
     const earnRows: Array<Partial<WorkTransactionsDbRow>> = []
     let scoreFailed = 0
     for (const ticket of completed) {
       if (typeof ticket.workMinutes !== 'number' || !Number.isFinite(ticket.workMinutes)) continue
       earnRows.push({
-        id: generateShortId(), job_ticket_id: ticket.ticketId, type: 'EARN',
-        minutes: ticket.workMinutes, notes: null, created_by: request.scannedBy,
+        id: this.deterministicEarnIds ? `EARN-${ticket.ticketId}` : generateShortId(), job_ticket_id: ticket.ticketId, type: 'EARN',
+        minutes: ticket.workMinutes, notes: null, created_by: actor,
       })
     }
     if (earnRows.length > 0) {
@@ -120,6 +127,49 @@ export class JobTicketAdvanceService {
         scoreFailed += earnRows.length
       }
     }
-    return { kind: 'completed', advanced, blocked, skipped, scoreFailed }
+    return scoreFailed
+  }
+
+  async completePackaging(payload: unknown): Promise<void> {
+    const request = parseOrThrow(jobTicketAdvanceRequestSchema, payload)
+    if (request.department !== 'Packaging' || request.fromStatus !== 'In Progress') throw ApiError.validation('Expected Packaging completion')
+
+    const orders = new Map(await Promise.all([...new Set(request.tickets.map(entry => entry.orderId))].map(async orderId => [
+      orderId, await this.repository().read({ where: { order_id: orderId } }),
+    ] as const)))
+    const pending: typeof request.tickets = []
+    const inProgress: typeof request.tickets = []
+    const completed: Array<Partial<JobTicketDbRow>> = []
+    for (const entry of request.tickets) {
+      const ticket = orders.get(entry.orderId)?.find(row => row.id === entry.ticketId && !row.deleted_at && row.department === 'Packaging' && row.scope === 'ITEM')
+      if (!ticket) throw ApiError.conflict('Packaging ticket is no longer available. Reload the order.')
+      if (ticket.status === 'Completed') completed.push(ticket)
+      else if (ticket.status === 'Pending') { pending.push(entry); inProgress.push(entry) }
+      else if (ticket.status === 'In Progress') inProgress.push(entry)
+      else throw ApiError.conflict('Packaging ticket cannot be completed. Reload the order.')
+    }
+    const scored = completed.filter(ticket => typeof ticket.work_minutes === 'number' && Number.isFinite(ticket.work_minutes))
+    if (scored.length) {
+      const scores = await this.workTransactionReader().read()
+      const earned = new Set(scores.filter(row => row.type === 'EARN').map(row => row.job_ticket_id))
+      const byActor = new Map<string, Array<{ ticketId: string; workMinutes: JobTicketDbRow['work_minutes'] | undefined }>>()
+      for (const ticket of scored) {
+        if (earned.has(ticket.id)) continue
+        const actor = ticket.scanned_by || request.scannedBy
+        const rows = byActor.get(actor) ?? []
+        rows.push({ ticketId: ticket.id!, workMinutes: ticket.work_minutes })
+        byActor.set(actor, rows)
+      }
+      for (const [actor, rows] of byActor) {
+        if (await this.appendScores(rows, actor)) throw ApiError.internal('Packaging score was not saved. Press Confirm again.')
+      }
+    }
+    for (const [fromStatus, tickets] of [['Pending', pending], ['In Progress', inProgress]] as const) {
+      if (!tickets.length) continue
+      const result = await this.advance({ ...request, fromStatus, tickets })
+      if (result.kind !== 'completed' || result.blocked.length || result.skipped.length || result.scoreFailed) {
+        throw ApiError.internal('Packaging work was not fully saved. Press Confirm again.')
+      }
+    }
   }
 }

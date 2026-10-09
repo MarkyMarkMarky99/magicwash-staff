@@ -91,7 +91,7 @@ try {
   })
   const expectedBody = {
     qrValue: `https://staff.example/#/b/${saved.orderImageId}`, barcodeValue: saved.orderImageId,
-    customerIndex: 'A 12._:-z', weightKg: 2.5, weighedAt: '2026-10-07 12:34:56',
+    customerIndex: 'A 12._:-z', weightKg: 2.5, itemCount: null, packedAt: '2026-10-07 12:34:56',
   }
   assert.deepEqual(lastBody(), expectedBody)
   assert.equal(logs.length, 0)
@@ -173,7 +173,7 @@ try {
     assert.equal(latestFailure().failureKind, 'invalid_quantity')
   }
   savedOverrides = {}
-  for (const [created_at, weighedAt] of [
+  for (const [created_at, packedAt] of [
     ['2026-10-07 12:34:56', '2026-10-07 12:34:56'],
     ['Date(2026,9,7,12,34,56)', '2026-10-07 12:34:56'],
     ['Date(2026,9,7)', '2026-10-07 00:00:00'],
@@ -185,7 +185,7 @@ try {
     savedOverrides = { created_at }
     const result = await service.create(payload)
     assert.equal(result.createdAt, created_at, 'printing must not mutate save response')
-    assert.equal(lastBody().weighedAt, weighedAt)
+    assert.equal(lastBody().packedAt, packedAt)
   }
   for (const overrides of [{ created_at: 'bad date' }, { id: 'a'.repeat(33) }]) {
     savedOverrides = overrides
@@ -246,11 +246,13 @@ try {
     barcodeValue: ['', 'a'.repeat(33), 'a\t'],
     customerIndex: ['a/', 'a@', 'a\n'],
     weightKg: [0, 1000, NaN, Infinity],
-    weighedAt: ['2026-10-07T12:34:56Z', 'bad'],
+    packedAt: ['2026-10-07T12:34:56Z', 'bad'],
   })) {
     for (const value of invalidValues) assert.equal(bagTagPrintRequestSchema.safeParse({ ...expectedBody, [field]: value }).success, false)
   }
   assert.equal(bagTagPrintRequestSchema.safeParse({ ...expectedBody, qrValue: 'a'.repeat(64), barcodeValue: 'a'.repeat(32), weightKg: 999.9 }).success, true)
+  assert.equal(bagTagPrintRequestSchema.safeParse({ ...expectedBody, weightKg: null, itemCount: 3 }).success, true)
+  for (const itemCount of [0, -1, 1.5, Infinity, '2']) assert.equal(bagTagPrintRequestSchema.safeParse({ ...expectedBody, itemCount }).success, false)
   const invalidCount = calls.length
   await requestBagTagPrint({ ...expectedBody, qrValue: 'a'.repeat(65) })
   assert.equal(calls.length, invalidCount)

@@ -40,6 +40,11 @@ export class BagTagPrintService {
       return
     }
 
+    await this.printBag({ ...image, weightKg, itemCount: null, packedAt: normalizeSheetTimestamp(image.createdAt) })
+  }
+
+  async printBag(image: Pick<OrderImage, 'orderId' | 'orderImageId' | 'customerId'> & { weightKg: number | null; itemCount: number | null; packedAt: string }): Promise<boolean> {
+    if (process.env.BAG_TAG_PRINT_ENABLED !== 'true') return false
     let customerIndex: string | null = null
     try {
       // The app saves order images with customerId null; the order row holds the customer.
@@ -65,9 +70,10 @@ export class BagTagPrintService {
       qrValue: `${process.env.BAG_TAG_TRACKING_URL_BASE ?? ''}${image.orderImageId}`,
       barcodeValue: image.orderImageId,
       customerIndex,
-      weightKg,
-      weighedAt: normalizeSheetTimestamp(image.createdAt),
+      weightKg: image.weightKg,
+      itemCount: image.itemCount,
+      packedAt: image.packedAt,
     }
-    await this.printClient(request)
+    return (await this.printClient(request)).outcome === 'accepted'
   }
 }
