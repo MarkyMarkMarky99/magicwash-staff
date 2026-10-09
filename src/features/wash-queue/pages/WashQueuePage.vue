@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { z } from 'zod'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import type { LocationQueryRaw } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import type { washQueueRowSchema, washQueueUpdateSchema } from '@contracts/wash-queue/wash-queue-api.schema'
 import { useWashQueueStore } from '@/data/wash-queue/wash-queue.store'
 import { useAuthStore } from '@/data/auth/auth.store'
@@ -12,6 +14,7 @@ import ConfirmOverlay from '@/shared/layouts/ConfirmOverlay.vue'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import CameraOverlay from '@/shared/components/CameraOverlay.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
+import GenericTabs from '@/shared/components/GenericTabs.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import PhotoViewer from '@/shared/components/PhotoViewer.vue'
 import StickerFab from '@/shared/components/StickerFab.vue'
@@ -19,14 +22,15 @@ import WeightPrompt from '@/shared/components/WeightPrompt.vue'
 import { formatKg } from '../format-weights'
 import { useQueryOverlay } from '../composables/useQueryOverlay'
 import { useWeighFlow } from '../composables/useWeighFlow'
-import WashQueueActionButton from '../components/WashQueueActionButton.vue'
-import WashQueueNextCard from '../components/WashQueueNextCard.vue'
 import WashQueueNotice from '../components/WashQueueNotice.vue'
 import WashQueueRow, { type WashQueueRowAction } from '../components/WashQueueRow.vue'
+import WashQueueSection from '../components/WashQueueSection.vue'
 
 type WashQueueUpdate = z.infer<typeof washQueueUpdateSchema>
 type WashQueueDto = z.infer<typeof washQueueRowSchema>
 
+const route = useRoute()
+const router = useRouter()
 const store = useWashQueueStore()
 const auth = useAuthStore()
 const staff = useStaffStore()
@@ -53,6 +57,23 @@ const activePhoto = computed(() => photo.id.value)
 const inMachine = computed(() => store.items.filter(row => row.status === 'In Progress'))
 const waiting = computed(() => store.items.filter(row => row.status === 'Pending'))
 const ready = computed(() => store.items.filter(row => row.status === 'Completed'))
+const tabKeys = ['all', 'waiting', 'in-machine', 'ready'] as const
+type TabKey = typeof tabKeys[number]
+const activeTab = computed<TabKey>(() => {
+  const raw = route.query.tab
+  const first = Array.isArray(raw) ? raw[0] : raw
+  return tabKeys.find(key => key === first) ?? 'all'
+})
+const tabs = computed(() => [
+  { key: 'all', label: 'All', count: inMachine.value.length + waiting.value.length + ready.value.length },
+  { key: 'waiting', label: 'Waiting', count: waiting.value.length },
+  { key: 'in-machine', label: 'In machine', count: inMachine.value.length },
+  { key: 'ready', label: 'Ready', count: ready.value.length },
+])
+const tabEmptyText = { all: '', waiting: 'No baskets waiting.', 'in-machine': 'No baskets in the machine.', ready: 'No baskets ready for pickup.' } as const
+const showMachine = computed(() => (activeTab.value === 'all' || activeTab.value === 'in-machine') && inMachine.value.length > 0)
+const showWaiting = computed(() => (activeTab.value === 'all' || activeTab.value === 'waiting') && waiting.value.length > 0)
+const showReady = computed(() => (activeTab.value === 'all' || activeTab.value === 'ready') && ready.value.length > 0)
 const queueEmpty = computed(() => !inMachine.value.length && !waiting.value.length && !ready.value.length)
 const images = computed(() => [...inMachine.value, ...waiting.value, ...ready.value].flatMap(row => [
   { id: row.id, src: row.photoUrl, alt: 'Basket on the scale before washing' },
@@ -61,6 +82,15 @@ const images = computed(() => [...inMachine.value, ...waiting.value, ...ready.va
 const isOperator = computed(() => auth.isAdmin || (currentStaff.value?.position ?? '').trim().toLowerCase() === 'washoperator')
 const notice = computed(() => errorMessage.value ?? (store.items.length ? store.error : null))
 const showPlaceholder = computed(() => (store.loading && !store.items.length) || (Boolean(store.error) && !store.items.length) || queueEmpty.value)
+const tabEmpty = computed(() => !showPlaceholder.value && !showMachine.value && !showWaiting.value && !showReady.value)
+const swipeHint = computed(() => {
+  const rights: string[] = []
+  if (showWaiting.value && isOperator.value) rights.push('load')
+  if (showMachine.value && isOperator.value) rights.push('unload')
+  if (showReady.value && ready.value.some(canCollect)) rights.push('pick up')
+  const left = showWaiting.value && waiting.value.some(canCancel)
+  return rights.length || left ? { left, right: rights.join(' / ') } : null
+})
 let timer: ReturnType<typeof setInterval> | undefined
 let successTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -73,12 +103,18 @@ function canCancel(row: WashQueueDto): boolean {
 function canCollect(row: WashQueueDto): boolean {
   return row.status === 'Completed' && (isMine(row) || isOperator.value)
 }
-function rowActions(row: WashQueueDto): WashQueueRowAction[] {
-  const actions: WashQueueRowAction[] = []
-  if (row.status === 'In Progress' && isOperator.value) actions.push('unload')
-  if (canCollect(row)) actions.push('collect')
-  if (canCancel(row)) actions.push('cancel')
-  return actions
+// Right swipe: Load (first waiting basket, operators), Unload (operators) or Pick up.
+function primaryAction(row: WashQueueDto, index: number): 'load' | 'unload' | 'collect' | null {
+  if (row.status === 'Pending') return index === 0 && isOperator.value ? 'load' : null
+  if (row.status === 'In Progress') return isOperator.value ? 'unload' : null
+  return canCollect(row) ? 'collect' : null
+}
+function changeTab(key: string): void {
+  if (!tabKeys.includes(key as TabKey)) return
+  const query: LocationQueryRaw = { ...route.query }
+  if (key === 'all') delete query.tab
+  else query.tab = key
+  void router.replace({ query })
 }
 function showSuccess(text: string): void {
   clearTimeout(successTimer)
@@ -216,9 +252,7 @@ onUnmounted(() => {
 <template>
   <ListPageLayout>
     <template #filters>
-      <div class="bg-primary px-4 pb-3 pt-1 font-body text-xs font-bold text-on-primary/80" role="status" aria-label="Queue summary">
-        Waiting <span class="text-lime">{{ waiting.length }}</span> · In machine <span class="text-lime">{{ inMachine.length }}</span> · Ready <span class="text-lime">{{ ready.length }}</span>
-      </div>
+      <GenericTabs :tabs="tabs" :active-key="activeTab" @select="changeTab" />
     </template>
 
     <div v-if="notice || roleWarning || staff.error" class="space-y-2 px-4 pt-3">
@@ -241,21 +275,25 @@ onUnmounted(() => {
       </template>
     </ListContainer>
 
+    <ListContainer v-else-if="tabEmpty" :title="tabs.find(tab => tab.key === activeTab)?.label ?? 'Wash queue'" icon="local_laundry_service" count-label="baskets" :count="0" empty :empty-text="tabEmptyText[activeTab]" />
+
     <template v-else>
-      <ListContainer v-if="inMachine.length" title="In machine" icon="local_laundry_service" :count-label="inMachine.length === 1 ? 'basket' : 'baskets'" :count="inMachine.length">
-        <WashQueueRow v-for="row in inMachine" :key="row.id" :row="row" :sender="staff.nameOf(row.createdBy)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :actions="rowActions(row)" @photo="photo.open" @action="rowAction(row, $event)" />
-      </ListContainer>
+      <p v-if="swipeHint" class="mx-4 mt-2.5 flex items-center justify-between gap-3 rounded-xl bg-surface-container-low px-3 py-2 font-label text-[10px] font-bold uppercase leading-tight tracking-wider text-on-surface-variant">
+        <span v-if="swipeHint.left" class="inline-flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-primary" aria-hidden="true">swipe_left</span>Left: cancel</span>
+        <span v-if="swipeHint.right" class="ml-auto inline-flex items-center gap-1">Right: {{ swipeHint.right }}<span class="material-symbols-outlined text-[16px] text-primary" aria-hidden="true">swipe_right</span></span>
+      </p>
 
-      <ListContainer v-if="waiting.length" title="Waiting" icon="hourglass_top" :count-label="waiting.length === 1 ? 'basket' : 'baskets'" :count="waiting.length">
-        <template v-for="(row, index) in waiting" :key="row.id">
-          <WashQueueNextCard v-if="index === 0" :row="row" :sender="staff.nameOf(row.createdBy)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :can-load="isOperator" :can-cancel="canCancel(row)" @photo="photo.open" @load="act(row, 'load')" @cancel="cancelRow = row" />
-          <WashQueueRow v-else :row="row" :sender="staff.nameOf(row.createdBy)" :position="index + 1" :mine="isMine(row)" :busy="busyIds.has(row.id)" :actions="rowActions(row)" @photo="photo.open" @action="rowAction(row, $event)" />
-        </template>
-      </ListContainer>
+      <WashQueueSection v-if="showMachine" title="In machine" subtitle="Unload when the cycle ends" :count="inMachine.length">
+        <WashQueueRow v-for="(row, index) in inMachine" :key="row.id" :row="row" :sender="staff.nameOf(row.createdBy)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row, index)" :cancellable="false" @photo="photo.open" @action="rowAction(row, $event)" />
+      </WashQueueSection>
 
-      <ListContainer v-if="ready.length" title="Ready for pickup" icon="check_circle" :count-label="ready.length === 1 ? 'basket' : 'baskets'" :count="ready.length" collapsible>
-        <WashQueueRow v-for="row in ready" :key="row.id" :row="row" :sender="staff.nameOf(row.createdBy)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :actions="rowActions(row)" @photo="photo.open" @action="rowAction(row, $event)" />
-      </ListContainer>
+      <WashQueueSection v-if="showWaiting" title="Waiting" subtitle="First in, first washed" :count="waiting.length">
+        <WashQueueRow v-for="(row, index) in waiting" :key="row.id" :row="row" :sender="staff.nameOf(row.createdBy)" :position="index + 1" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row, index)" :cancellable="canCancel(row)" @photo="photo.open" @action="rowAction(row, $event)" />
+      </WashQueueSection>
+
+      <WashQueueSection v-if="showReady" title="Ready for pickup" subtitle="Dry weight in, wet weight out" :count="ready.length" collapsible>
+        <WashQueueRow v-for="(row, index) in ready" :key="row.id" :row="row" :sender="staff.nameOf(row.createdBy)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row, index)" :cancellable="false" @photo="photo.open" @action="rowAction(row, $event)" />
+      </WashQueueSection>
     </template>
     <div class="h-8" aria-hidden="true" />
 
@@ -273,7 +311,7 @@ onUnmounted(() => {
       <img v-if="photoUrl" :src="photoUrl" alt="Basket on the scale preview" class="mb-3 h-40 w-full rounded-xl object-cover" />
       <div v-if="draftWeight !== null" class="mb-3 flex items-center justify-between gap-3">
         <p class="font-headline text-lg font-bold text-primary">{{ formatKg(draftWeight) }}</p>
-        <WashQueueActionButton variant="quiet" label="Re-weigh" :disabled="saving" @click="reweigh" />
+        <button type="button" class="flex h-11 items-center justify-center rounded-full border border-outline-variant px-5 font-label text-sm text-on-surface-variant focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime disabled:opacity-50" :disabled="saving" @click="reweigh">Re-weigh</button>
       </div>
       <FormTextarea id="wash-instruction" label="Note / wash program (optional)" :model-value="instruction" @update:model-value="inputInstruction" />
       <WashQueueNotice v-if="bookError" class="mb-3" tone="error" :message="bookError" />
