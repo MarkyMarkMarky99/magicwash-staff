@@ -72,5 +72,21 @@ Closing without confirmation, browser Back, or leaving the page discards the loc
 write; scans are never persisted. Close uses Back for a scanner entry pushed by the page and removes
 `scan` with replace for a refreshed/deep-linked scanner. Navigation waits while confirmation saves.
 
+## Packaging order bags
+
+On the Packaging page, tapping an order card body opens `/departments/packaging/:orderId`, route name
+`packaging-order-bags`, owned by job-tickets and rendered by `PackagingOrderBagsPage.vue`, with the
+same `department-work` parent as Logistics. The route is registered before the generic department route.
+The other garment departments still expand the card.
+
+This page is UI only. `loadPackagingOrder` in `packaging-bag-source.ts` is its single data source and
+returns a fixed placeholder order; no request is sent, and Confirm only turns the new bags into
+confirmed bags in memory and shows the print notice. New bags (ids and garment tags, not photos) are
+kept per order in localStorage; bag photos are object URLs and last only for the page session.
+
+The bag sheet is the shared `DetailOverlay` with its close button off, opened by `?bag=<bagId>`. The
+tag scanner adds `scan=1` on top of it and the bag camera uses `?photo=<bagId>`; each is a route-owned
+query overlay (`useQueryOverlay`) that closes with Back.
+
 The Packaging bag workflow (create bags, assign garments, confirm, print tags) is in
 [Packaging workflow](../packaging/workflow.md).

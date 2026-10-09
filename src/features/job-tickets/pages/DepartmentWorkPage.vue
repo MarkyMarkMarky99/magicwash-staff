@@ -31,6 +31,7 @@ const customerStore = useCustomerStore()
 const department = computed(() => readDepartment(route.params.department))
 const activeFilter = computed(() => readStatusFilter(route.query.status))
 const isLogistics = computed(() => department.value?.code === 'Logistics')
+const isPackaging = computed(() => department.value?.code === 'Packaging')
 const fromStatus = computed(() => isLogistics.value ? null : statusForFilter(activeFilter.value))
 const grouper = computed(() => isLogistics.value ? 'order' : readGrouper(route.query.group))
 const scannerOpen = computed(() => department.value !== null && fromStatus.value !== null && route.query.scan === '1')
@@ -100,6 +101,10 @@ function changeFilter(value: string): void {
 function openOrder(orderId: string): void {
   if (isLogistics.value) {
     void router.push({ name: 'logistics-order-bags', params: { department: 'logistics', orderId } })
+    return
+  }
+  if (isPackaging.value) {
+    void router.push({ name: 'packaging-order-bags', params: { department: 'packaging', orderId } })
     return
   }
   expandedOrderId.value = expandedOrderId.value === orderId ? null : orderId
@@ -425,7 +430,7 @@ onBeforeRouteLeave(to => {
           <button
             type="button"
             class="w-full rounded-2xl p-4 text-left focus-visible:outline-2 focus-visible:outline-lime"
-            :aria-expanded="isLogistics ? undefined : expandedOrderId === order.orderId"
+            :aria-expanded="isLogistics || isPackaging ? undefined : expandedOrderId === order.orderId"
             @click="openOrder(order.orderId)"
           >
             <span class="flex items-start justify-between gap-2 pr-11">

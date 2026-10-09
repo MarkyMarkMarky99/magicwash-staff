@@ -6,10 +6,12 @@ withDefaults(defineProps<{
   open: boolean
   ariaLabel: string
   closeOnBackdrop?: boolean
+  closeButton?: boolean
   panelClass?: string
   size?: '84dvh' | 'auto'
 }>(), {
   closeOnBackdrop: true,
+  closeButton: true,
   panelClass: '',
   size: '84dvh',
 })
@@ -26,7 +28,7 @@ const emit = defineEmits<{
     :size="size"
     backdrop="translucent"
     draggable
-    close-button
+    :close-button="closeButton"
     :panel-class="panelClass"
     :ariaLabel="ariaLabel"
     :close-on-backdrop="closeOnBackdrop"

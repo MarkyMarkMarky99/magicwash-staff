@@ -7,8 +7,9 @@ Packaging staff put each order's garments into bags (packages) so the order is r
 1. Staff open an order from the Packaging department page. This opens the same order scan page that
    the Logistics department uses: an order summary card on top and the order's bag list below.
 2. An order that has no bag yet shows an empty bag list.
-3. Staff press **Create bag**. A new bag appears in the bag list. Creating a bag needs no garment
-   count and no weight.
+3. Below the bag list sits a dashed **Add bag** card. Tapping it adds a new bag to the list.
+   Creating a bag needs no garment count and no weight. The card disappears once every garment of
+   the order is assigned to a bag (confirmed or new), and returns if a garment is unassigned again.
 4. Garments are assigned to a bag later. Staff tap a bag in the list to open a bottom sheet for that
    bag.
 5. In the bottom sheet, staff add garments to the bag by tapping a garment's image or by scanning

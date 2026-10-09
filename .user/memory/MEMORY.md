@@ -7,13 +7,14 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
+- **`feat/packaging-bag-page`** — Packaging order bag page, UI only on fixture data; backend not started; see `.user/memory/feat-packaging-bag-page.md`.
 
 ## Pending work
 
 - Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
 - **Logistics bag delivery (merged 2026-10-08, prod-tested on order `22fcaba8`)**
   - No backfill: bags weighed before 2026-10-08 have no LOG-BAG ticket, so those orders never reach the Logistics list.
-  - Next: Packaging create-bag page; workflow agreed in `docs/features/packaging/workflow.md`, resume from `.user/memory/packaging-bag-items-handoff.md`.
+  - Packaging create-bag page: UI built on `feat/packaging-bag-page`; workflow in `docs/features/packaging/workflow.md`.
   - Watch: legacy OrderImages `DELIVERY` (2) and `PICKUP` (271) rows; tracking proof may pick a legacy DELIVERY row.
 
 - **Orders report (`/reports/orders`, merged 2026-10-05)**
