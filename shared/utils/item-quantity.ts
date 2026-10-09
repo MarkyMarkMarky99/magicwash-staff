@@ -30,3 +30,9 @@ export function isValidItemQuantity(
 export function isValidOrderImageWeight(quantity: string | number): boolean {
   return Number(quantity) <= MAX_ORDER_IMAGE_WEIGHT_KG && isValidItemQuantity(quantity, 'kg')
 }
+
+export function parseWeightKg(raw: string): number | null {
+  const trimmed = raw.trim()
+  if (!isValidOrderImageWeight(trimmed)) return null
+  return Math.round(Number(trimmed) * 10) / 10
+}

@@ -40,7 +40,8 @@ const accessibleLabel = computed(() => props.ariaLabel || props.title)
     @close="emit('close')"
   >
     <form class="flex min-h-0 flex-col" @submit.prevent="emit('confirm')">
-      <header class="flex-none px-5 pb-3 pt-5">
+      <header class="relative flex-none px-5 pb-3 pt-5" :class="$slots['header-action'] ? 'pr-14' : ''">
+        <slot name="header-action" />
         <h2 class="font-headline text-xl font-bold text-primary">{{ title }}</h2>
         <p v-if="description" class="mt-2 font-body text-sm leading-relaxed text-on-surface-variant">
           {{ description }}
@@ -51,6 +52,7 @@ const accessibleLabel = computed(() => props.ariaLabel || props.title)
         <slot />
       </ScrollRegion>
 
+      <slot name="footer">
       <footer class="flex flex-none justify-end gap-2 px-5 pb-5 pt-4">
         <button
           type="button"
@@ -67,6 +69,7 @@ const accessibleLabel = computed(() => props.ariaLabel || props.title)
           {{ confirmLabel }}
         </button>
       </footer>
+      </slot>
     </form>
   </BaseOverlayFrame>
 </template>

@@ -31,6 +31,7 @@ implemented behavior, correct the canonical document rather than adding a compet
 - [Price list browse](docs/design/price-list-browse.md)
 - [Price list picker flow](docs/design/price-list-picker.md)
 - [Order photo library](docs/design/order-photo-library.md)
+- [WashQueue](docs/features/wash-queue/wash-queue.md)
 
 ## Verification
 

@@ -1,6 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { useAuthStore } from '@/data/auth/auth.store'
 import { STAFF_REGISTER_ROUTE_NAME } from '@/shared/navigation/form-routes'
+import { washQueueRoutes } from '@/features/wash-queue/routes'
 import { appointmentRoutes } from '@/features/appointments/routes'
 import { invoiceRoutes } from '@/features/invoices/routes'
 import { customerRoutes } from '@/features/customers/routes'
@@ -17,6 +18,7 @@ import { orderReportRoutes } from '@/features/order-reports/routes'
 import { deliveryTrackingRoutes } from '@/features/delivery-tracking/routes'
 
 const routes = [
+  ...washQueueRoutes,
   ...appointmentRoutes,
   ...customerRoutes,
   ...invoiceRoutes,

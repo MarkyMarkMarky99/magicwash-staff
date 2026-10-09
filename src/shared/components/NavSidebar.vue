@@ -129,6 +129,7 @@ function logout() {
       <div class="border-t border-outline-variant/20 px-5 pb-1 pt-3 font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant">Departments</div>
       <ul class="flex flex-col pb-2">
         <li v-for="entry in [
+          { path: '/wash-queue', label: 'Wash Queue', icon: 'local_laundry_service' },
           { path: '/departments/washing', label: 'Washing', icon: 'local_laundry_service' },
           { path: '/departments/drycleaning', label: 'Dry Cleaning', icon: 'dry_cleaning' },
           { path: '/departments/ironing', label: 'Ironing', icon: 'iron' },
