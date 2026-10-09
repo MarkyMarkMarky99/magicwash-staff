@@ -40,15 +40,12 @@ try {
   await store.loadDepartment('Packaging')
   assert.deepEqual(store.tickets.map(row => row.id), ['shared'])
   assert.equal(store.rows.get('washing')?.department, 'Washing')
-  assert.deepEqual(calls.filter(url => url.searchParams.has('status')).map(url => [url.searchParams.get('status'), url.searchParams.get('department')]), [['Pending', null], ['In Progress', null], ['Completed', 'Packaging']])
+  assert.deepEqual(calls.filter(url => url.searchParams.has('status')).map(url => [url.searchParams.get('status'), url.searchParams.get('department')]), [['Pending', null], ['In Progress', null], ['Completed', null]])
   const beforeSwitch = calls.length
   await store.loadDepartment('Washing')
   assert.deepEqual(store.tickets.map(row => row.id), ['washing'])
-  assert.equal(calls.length, beforeSwitch + 1)
-  assert.equal(calls.at(-1)?.searchParams.get('status'), 'Completed')
-  assert.equal(calls.at(-1)?.searchParams.get('department'), 'Washing')
   await store.loadDepartment('Packaging')
-  assert.equal(calls.length, beforeSwitch + 2)
+  assert.equal(calls.length, beforeSwitch, 'switching departments reuses the loaded current work')
   let release!: () => void
   deferred = new Promise<void>(resolve => { release = resolve })
   const pending = store.loadOrder('order-1')

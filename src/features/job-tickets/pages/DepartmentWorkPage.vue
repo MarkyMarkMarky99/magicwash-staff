@@ -78,11 +78,11 @@ const visibleTickets = computed(() => sortDepartmentTickets(filterTickets(depart
 const visibleOrders = computed(() => groupDepartmentOrders(visibleTickets.value, orderInfo.value))
 const allOrders = computed(() => new Map(groupDepartmentOrders(departmentTickets.value, orderInfo.value).map(order => [order.orderId, order])))
 
-async function reload(forceOpen = true): Promise<void> {
+async function reload(forceReload = true): Promise<void> {
   const code = department.value?.code
   if (code && pageActive) {
     loadedDepartment = code
-    await ticketStore.loadDepartment(code, forceOpen)
+    await ticketStore.loadDepartment(code, forceReload)
   }
 }
 

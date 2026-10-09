@@ -131,3 +131,12 @@ export async function loadCompletedTickets(
   const tickets = await loadStatusTickets('Completed', department, todaySheetDate(now), fetchPage)
   return { tickets, truncated: tickets.length >= MAX_DEPARTMENT_TICKETS }
 }
+
+// Current work for every department in one load: all open tickets plus those completed today.
+export async function loadCurrentTickets(
+  now: Date = new Date(),
+  fetchPage: typeof listJobTickets = listJobTickets,
+): Promise<{ tickets: JobTicketDto[]; truncated: boolean }> {
+  const [open, completed] = await Promise.all([loadOpenTickets(fetchPage), loadCompletedTickets(undefined, now, fetchPage)])
+  return { tickets: [...open.tickets, ...completed.tickets], truncated: open.truncated || completed.truncated }
+}

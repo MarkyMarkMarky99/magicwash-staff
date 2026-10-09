@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, onScopeDispose, ref, reactive } from 'vue'
 import type { JobTicketAdvancePayload, JobTicketListQuery, JobTicketScanPayload, JobTicketStartOrderPayload, JobTicketDto } from './job-ticket.service'
-import { advanceJobTickets, listJobTickets, loadOpenTickets, loadCompletedTickets, MAX_DEPARTMENT_TICKETS, scanJobTicket, startJobTicketOrder } from './job-ticket.service'
+import { advanceJobTickets, listJobTickets, loadCurrentTickets, MAX_DEPARTMENT_TICKETS, scanJobTicket, startJobTicketOrder } from './job-ticket.service'
 import { onCacheInvalidated } from '@/shared/api/response-cache'
 
 type Department = JobTicketListQuery['department']
@@ -9,29 +9,25 @@ type TicketView = { ids: string[]; loaded: boolean; loading: boolean; error: str
 
 export const useJobTicketStore = defineStore('job-tickets', () => {
   const rows = ref(new Map<string, JobTicketDto>())
-  const departments = reactive(new Map<Department, TicketView>())
   const orders = reactive(new Map<string, TicketView>())
-  const openWork = reactive({ ids: [] as string[], loaded: false, loading: false, error: null as string | null, truncated: false, requestId: 0 })
-  let openLoaded = false
-  let openPromise: Promise<void> | undefined
-  let openPromiseId = 0
+  const currentWork = reactive({ ids: [] as string[], loaded: false, loading: false, error: null as string | null, truncated: false, requestId: 0 })
+  let currentLoaded = false
+  let currentPromise: Promise<void> | undefined
+  let currentPromiseId = 0
   const activeDepartment = ref<Department>()
   const activeOrders = new Map<string, { orderId: string; department: Department; users: number }>()
   const departmentRows = computed(() => {
     if (!activeDepartment.value) return []
-    const ids = new Set([...openWork.ids, ...(departments.get(activeDepartment.value)?.ids ?? [])])
-    return [...ids].flatMap(id => {
+    return currentWork.ids.flatMap(id => {
       const row = rows.value.get(id)
       return row && row.department === activeDepartment.value ? [row] : []
     })
   })
   const tickets = computed(() => departmentRows.value.slice(0, MAX_DEPARTMENT_TICKETS))
-  // A view that already has rows keeps showing them while it refreshes; only a first load blocks the page.
-  const loading = computed(() => (openWork.loading && !openWork.loaded)
-    || ((departments.get(activeDepartment.value)?.loading ?? false) && !departments.get(activeDepartment.value)?.loaded))
-  const error = computed(() => openWork.error ?? departments.get(activeDepartment.value)?.error ?? null)
-  const truncated = computed(() => openWork.truncated || (departments.get(activeDepartment.value)?.truncated ?? false)
-    || departmentRows.value.length >= MAX_DEPARTMENT_TICKETS)
+  // Loaded work keeps showing while it refreshes; only the first load blocks the page.
+  const loading = computed(() => currentWork.loading && !currentWork.loaded)
+  const error = computed(() => currentWork.error)
+  const truncated = computed(() => currentWork.truncated || departmentRows.value.length >= MAX_DEPARTMENT_TICKETS)
 
   function view(views: Map<string | undefined, TicketView>, key: string | undefined): TicketView {
     if (!views.has(key)) views.set(key, { ids: [], loaded: false, loading: false, error: null, truncated: false, requestId: 0 })
@@ -42,66 +38,51 @@ export const useJobTicketStore = defineStore('job-tickets', () => {
     for (const ticket of tickets) rows.value.set(ticket.id, ticket)
   }
 
-  function invalidateOpenWork(): void {
-    openLoaded = false
-    openWork.loading = false
-    openWork.requestId += 1
+  function invalidateCurrentWork(): void {
+    currentLoaded = false
+    currentWork.loading = false
+    currentWork.requestId += 1
   }
 
-  async function loadOpenWork(): Promise<void> {
-    if (openLoaded) return
-    if (openPromise) {
-      if (openPromiseId === openWork.requestId) return openPromise
-      await openPromise
-      return loadOpenWork()
+  async function loadCurrentWork(): Promise<void> {
+    if (currentLoaded) return
+    if (currentPromise) {
+      if (currentPromiseId === currentWork.requestId) return currentPromise
+      await currentPromise
+      return loadCurrentWork()
     }
-    const id = ++openWork.requestId
-    openPromiseId = id
-    openWork.loading = true
-    openWork.error = null
-    openPromise = (async () => {
+    const id = ++currentWork.requestId
+    currentPromiseId = id
+    currentWork.loading = true
+    currentWork.error = null
+    currentPromise = (async () => {
       try {
-        const result = await loadOpenTickets()
-        if (id !== openWork.requestId) return
+        const result = await loadCurrentTickets()
+        if (id !== currentWork.requestId) return
         merge(result.tickets)
-        openWork.ids = result.tickets.map(ticket => ticket.id)
-        openWork.truncated = result.truncated
-        openWork.loaded = true
-        openLoaded = true
+        currentWork.ids = result.tickets.map(ticket => ticket.id)
+        currentWork.truncated = result.truncated
+        currentWork.loaded = true
+        currentLoaded = true
       } catch (reason) {
-        if (id === openWork.requestId) openWork.error = reason instanceof Error ? reason.message : 'โหลดรายการงานไม่สำเร็จ'
+        if (id === currentWork.requestId) currentWork.error = reason instanceof Error ? reason.message : 'โหลดรายการงานไม่สำเร็จ'
       } finally {
-        if (id === openWork.requestId) openWork.loading = false
-        if (id === openPromiseId) openPromise = undefined
+        if (id === currentWork.requestId) currentWork.loading = false
+        if (id === currentPromiseId) currentPromise = undefined
       }
     })()
-    return openPromise
+    return currentPromise
   }
 
-  async function loadDepartment(department: Department, forceOpen = false): Promise<void> {
+  async function loadDepartment(department: Department, forceReload = false): Promise<void> {
     activeDepartment.value = department
-    if (forceOpen) invalidateOpenWork()
-    const state = view(departments, department)
-    const id = ++state.requestId
-    state.loading = true
-    state.error = null
-    try {
-      const [, result] = await Promise.all([loadOpenWork(), loadCompletedTickets(department)])
-      if (id !== state.requestId) return
-      merge(result.tickets)
-      state.ids = result.tickets.map(ticket => ticket.id)
-      state.truncated = result.truncated
-      state.loaded = true
-    } catch (reason) {
-      if (id === state.requestId) state.error = reason instanceof Error && reason.message ? reason.message : 'โหลดรายการงานไม่สำเร็จ'
-    } finally {
-      if (id === state.requestId) state.loading = false
-    }
+    if (forceReload) invalidateCurrentWork()
+    await loadCurrentWork()
   }
 
   function activateDepartment(department: Department): void {
     activeDepartment.value = department
-    if (!openLoaded && (!openPromise || openPromiseId !== openWork.requestId)) void loadDepartment(department)
+    if (!currentLoaded && (!currentPromise || currentPromiseId !== currentWork.requestId)) void loadDepartment(department)
   }
 
   function releaseDepartment(): void {
@@ -208,7 +189,7 @@ export const useJobTicketStore = defineStore('job-tickets', () => {
   }
 
   const stopInvalidationListener = onCacheInvalidated('/api/job-tickets', () => {
-    invalidateOpenWork()
+    invalidateCurrentWork()
     if (activeDepartment.value) void loadDepartment(activeDepartment.value)
     for (const active of activeOrders.values()) void loadOrder(active.orderId, active.department).catch(() => {})
   })

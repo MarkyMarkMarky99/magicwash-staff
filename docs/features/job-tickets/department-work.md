@@ -3,26 +3,21 @@
 The five department pages use `/departments/:department`: `washing`, `drycleaning`, `ironing`, `packaging`, and `logistics`. These map to the JobTicket department values `Washing`, `DryCleaning`, `Ironing`, `Packaging`, and `Logistics`. An unknown value shows a not-found state.
 
 The shared `src/data/job-tickets/job-ticket.store.ts` owns all ticket rows and view loading, errors,
-and cap signals. Department views combine shared open-work ids with their own Completed ticket ids; order loads merge shared
-rows without adding older Completed tickets to department lists. Writes patch the shared rows so
-every view sees them. Invalidation reloads the active department and order views retained by visible
-pages; deactivated and unmounted pages release their views.
+and cap signals. Order loads merge shared rows without adding older Completed tickets to department
+lists. Writes patch the shared rows so every view sees them. Invalidation reloads the current work
+and order views retained by visible pages; deactivated and unmounted pages release their views.
 
-The store loads Pending and In Progress across all departments in two parallel status requests,
-each a single request of up to 10,000 rows (every extra page costs a full JobTickets scan), and a
-10,000-ticket cap on the combined open set. Concurrent department
-loads share this request; switching departments reuses it until invalidation or explicit refresh.
-If invalidation occurs during an open-work read, its result is discarded and a fresh read starts
-after it settles, so in-flight API deduplication cannot reuse the old response.
-Each department separately loads Completed tickets ordered by `completedAt` descending, stopping
-at the first completion before the current Bangkok date. Department lists derive their own rows
-from the shared open set and their Completed ids, retaining the 10,000-ticket visible cap. A capped
-open set or department list shows the incomplete-list warning. Loading, retry, and empty states
-use the list page pattern. When all departments together exceed the open cap, a department may
-have fewer rows than the previous per-department request; the incomplete warning covers that limit.
-Job-ticket GETs bypass the response cache; the resource store owns open-work reuse.
-Only a view's first load blocks the page; a department that already has rows keeps showing them
-while its Completed tickets or the open set refresh.
+The store loads the current work of every department in one go: Pending and In Progress across all
+departments, each in a single request of up to 10,000 rows (every extra page costs a full JobTickets
+scan), plus Completed across all departments ordered by `completedAt` descending, stopping at the
+first completion before the current Bangkok date. The three requests run in parallel. Each
+department list filters that shared set by department, so switching departments makes no request
+until invalidation or an explicit refresh. If invalidation occurs during a read, its result is
+discarded and a fresh read starts after it settles, so in-flight API deduplication cannot reuse the
+old response. Open and completed-today loads each cap at 10,000 tickets, and a department list shows
+at most 10,000; any cap shows the incomplete-list warning. Loading, retry, and empty states use the
+list page pattern. Job-ticket GETs bypass the response cache; the resource store owns reuse. Only the
+first load blocks the page; loaded work keeps showing while it refreshes.
 Washing, Dry Cleaning, Ironing, and Packaging filter the loaded list to scope ITEM before cards,
 counts, rings, selection, and scan queues are derived. Their ORDER tickets, including weight-photo
 Packaging credit, are hidden. Logistics keeps only non-deleted ORDER-scope Logistics LOG-BAG tickets.

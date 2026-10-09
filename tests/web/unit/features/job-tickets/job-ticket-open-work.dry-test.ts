@@ -42,7 +42,9 @@ globalThis.fetch = (async input => {
     data = Array.from({ length: Math.max(0, Math.min(perPage, total - start)) }, (_, index) => ticket(`${status}-${start + index}`, (start + index) % 2 ? 'Washing' : 'Packaging', status as JobTicketDto['status']))
   } else if (status === 'Completed') {
     assert.equal(url.searchParams.get('sortBy'), 'completedAt')
-    data = [ticket(`${department}-completed`, department, 'Completed'), { ...ticket(`${department}-older`, department, 'Completed'), completedAt: '2020-01-01 10:00:00' }]
+    assert.equal(department, null)
+    const names = ['Packaging', 'Washing'] as const
+    data = [...names.map(name => ticket(`${name}-completed`, name, 'Completed')), ...names.map(name => ({ ...ticket(`${name}-older`, name, 'Completed'), completedAt: '2020-01-01 10:00:00' }))]
   } else {
     data = status === 'Pending' ? [ticket('packaging-open', 'Packaging'), ticket('washing-open', 'Washing'), ticket('ironing-open', 'Ironing')]
       : [ticket('logistics-open', 'Logistics', 'In Progress')]
@@ -55,7 +57,7 @@ try {
   const washing = store.loadDepartment('Washing')
   assert.equal(store.loading, true)
   await new Promise(resolve => setImmediate(resolve))
-  assert.deepEqual(calls.map(url => [url.searchParams.get('status'), url.searchParams.get('department')]), [['Pending', null], ['In Progress', null], ['Completed', 'Packaging'], ['Completed', 'Washing']])
+  assert.deepEqual(calls.map(url => [url.searchParams.get('status'), url.searchParams.get('department')]), [['Pending', null], ['In Progress', null], ['Completed', null]])
   finishOpen()
   await Promise.all([packaging, washing])
   assert.equal(store.loading, false)
@@ -89,7 +91,7 @@ try {
   assert.deepEqual(calls.filter(url => url.searchParams.get('status') === 'Pending').map(url => url.searchParams.get('page')), ['1'])
   const beforeSwitch = calls.length
   await store.loadDepartment('Washing')
-  assert.equal(calls.length, beforeSwitch + 1)
+  assert.equal(calls.length, beforeSwitch)
   assert.equal(store.tickets.length, MAX_DEPARTMENT_TICKETS / 2)
   assert.equal(store.truncated, true)
   mode = 'failed'
