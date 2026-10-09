@@ -16,7 +16,6 @@ export type PackagingOrder = {
   orderId: string
   customerName: string
   customerIndex: string
-  statusLabel: string
   garments: PackagingGarment[]
   confirmedBags: ConfirmedBag[]
 }

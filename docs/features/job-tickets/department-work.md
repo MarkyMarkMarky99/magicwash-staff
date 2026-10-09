@@ -62,12 +62,18 @@ Logistics always groups by order, including when a deep link supplies `group=ite
 ALL, PENDING, IN PROGRESS, and COMPLETED tabs, order cards, completion ring, and status counts.
 There is no ticket image grid, grouping control, ticket selection, batch start/play action, or scan
 FAB on the Logistics list. Tapping an order card opens `/departments/logistics/:orderId`, route name
-`logistics-order-bags`, owned by job-tickets and rendered by `LogisticsOrderBagsPage.vue`. The route
+`logistics-order-bags`, owned by job-tickets and rendered by `OrderBagsPage.vue`. The route
 pattern `/departments/:department(logistics)/:orderId` captures the Logistics department for the
 `department-work` parent, so the header Back button returns to `/departments/logistics`.
 
-The bag page loads the work-order header, all pages of that order's Logistics tickets, and its order
-images through the data layer. Tickets use `loadOrder(orderId, 'Logistics')` in the resource store;
+Logistics and Packaging share one order bag page, `OrderBagsPage.vue`, which keys `OrderBagsView.vue`
+by department. Both departments use the same summary card (`OrderBagSummary.vue`) and bag row
+(`OrderBagRow.vue`); the department only selects the workflow composable (`useLogisticsBags` or
+`usePackagingBags`), the wording, and the bottom action (Scan or Confirm). Neither shows an
+order-status badge or reads the work order; the customer comes from the order's tickets.
+
+The Logistics bag page loads all pages of that order's Logistics tickets and its order images
+through the data layer. Tickets use `loadOrder(orderId, 'Logistics')` in the resource store;
 cached Logistics tickets render immediately during reload. Non-deleted ORDER LOG-BAG tickets define the bags. Each ticket id
 is `LOG-<orderId>-<orderImageId>-LOG-BAG`; the row shows the embedded orderImageId, the ticket's
 photoEvidenceUrl, and scanned/pending state. Weight is the quantity of the matching OrderImages row,
@@ -95,7 +101,7 @@ write; scans are never persisted. Close uses Back for a scanner entry pushed by 
 ## Packaging order bags
 
 On the Packaging page, tapping an order card body opens `/departments/packaging/:orderId`, route name
-`packaging-order-bags`, owned by job-tickets and rendered by `PackagingOrderBagsPage.vue`, with the
+`packaging-order-bags`, owned by job-tickets and rendered by the shared `OrderBagsPage.vue`, with the
 same `department-work` parent as Logistics. The route is registered before the generic department route.
 The other garment departments still expand the card.
 
@@ -110,8 +116,7 @@ read. Garments sort by tag ID, independent of preview or full-load ticket order.
 confirmed assignments, bag counts, and the earliest timestamp for each bag. A confirmed bag photo
 comes from the matching `LOG-<orderId>-<bagId>-LOG-BAG` Logistics ticket’s `photoEvidenceUrl`,
 or is null when the ticket is absent. Packaging does not read OrderImages. The customer comes from the tickets' `customerId` and the preloaded
-customer store. The work order is read afterwards, without blocking the page, only for the status
-badge, which shows the order status in title case and stays hidden until it loads.
+customer store. The summary card shows the bag count and garments packed; the work order is not read.
 
 New bag IDs use the browser-safe short-ID generator. IDs, garment tags, and photo URLs are kept
 per order in localStorage. Taking a photo immediately uploads to `order-images/<orderId>` in

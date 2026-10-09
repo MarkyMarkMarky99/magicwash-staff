@@ -6,8 +6,9 @@ import { parse } from '@vue/compiler-sfc'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { normalizeSheetTimestamp } from '@shared/utils/bangkok-datetime'
 
-const source = readFileSync(new URL('../../../../../src/features/job-tickets/pages/LogisticsOrderBagsPage.vue', import.meta.url), 'utf8')
-const script = parse(source).descriptor.scriptSetup!.content.replace(/^import .*$/gm, '')
+const source = readFileSync(new URL('../../../../../src/features/job-tickets/composables/useLogisticsBags.ts', import.meta.url), 'utf8')
+const viewSource = readFileSync(new URL('../../../../../src/features/job-tickets/components/OrderBagsView.vue', import.meta.url), 'utf8')
+const script = source.replace(/^import .*$/gm, '').replace(/^export function /m, 'function ')
 const code = transpileModule(script, { compilerOptions: { target: ScriptTarget.ES2022 } }).outputText
 const { filterTickets } = await import('@/features/job-tickets/department-work')
 
@@ -47,7 +48,7 @@ async function harness(options: { cached?: boolean; wait?: Promise<void> } = {})
   }
   const dependencies = {
     useJobTicketStore: () => store,
-    computed, ref, watch, defineProps: () => ({ orderId: 'order-1' }), useRoute: () => route,
+    computed, ref, watch, useRoute: () => route,
     useRouter: () => ({
       push: async ({ query }: any) => { route.query = query },
       replace: async ({ query }: any) => { replacements += 1; route.query = query ?? {} },
@@ -66,7 +67,7 @@ async function harness(options: { cached?: boolean; wait?: Promise<void> } = {})
     onBeforeRouteUpdate: (guard: any) => { updateGuard = guard },
     setTimeout: () => 1, clearTimeout: () => {},
   }
-  const page = scope.run(() => new Function(...Object.keys(dependencies), `${code}; return { load, bags, tickets, scannedTicketIds, scannedCount, totalWeight, handleScan, confirmScans, openScanner, closeScanner, scannerOpen, notice, submitting, loading };`)(...Object.values(dependencies)))!
+  const page = scope.run(() => new Function(...Object.keys(dependencies), `${code}; return useLogisticsBags(() => 'order-1');`)(...Object.values(dependencies)))!
   const ready = page.load()
   if (!options.wait) await ready
   return { page, ready, route, requests, scope, setResult: (value: any) => { result = value },
@@ -236,7 +237,8 @@ assert.deepEqual(sorted.page.bags.value.map((bag: any) => bag.orderImageId), ['b
 assert.deepEqual(sorted.page.tickets.value.map((ticket: any) => ticket.id), chronologicalTickets.map(ticket => ticket.id))
 sorted.scope.stop()
 
-assert.doesNotMatch(source, /features\/orders|order-status-presentation|presentationFor|BaseBadge/)
-assert.match(source, /v-if="bag.weight !== null"/)
-assert.match(source, /@click="confirmScans"/)
+assert.doesNotMatch(source + viewSource, /features\/orders|order-status-presentation|presentationFor|getWorkOrder/)
+assert.match(viewSource, /count: bag\.weight, unit: 'kg'/)
+assert.match(viewSource, /@click="logistics\.confirmScans"/)
+for (const name of ['logistics-order-bags', 'packaging-order-bags']) assert.match(String(jobTicketRoutes.find(route => route.name === name)?.component), /pages\/OrderBagsPage\.vue/)
 console.log('logistics-order-bags.dry-test: OK')

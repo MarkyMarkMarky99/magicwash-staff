@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { createPinia, setActivePinia } from 'pinia'
-import { loadPackagingOrder, loadPackagingOrderStatus } from '@/features/job-tickets/packaging-bag-source'
+import { loadPackagingOrder } from '@/features/job-tickets/packaging-bag-source'
 import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
 import { useCustomerStore } from '@/data/customers/customer.store'
 import { confirmPackagingBags } from '@/data/packaging-bags/packaging-bag.service'
@@ -24,8 +24,7 @@ globalThis.fetch = (async (input, init) => {
   calls.push(url)
   const page = Number(url.searchParams.get('page') ?? 1)
   let data: unknown
-  if (url.pathname === '/api/work-orders/order-1') data = { orderId: 'order-1', customerId: 'customer-1', status: 'APPROVED' }
-  else if (url.pathname === '/api/job-tickets') data = page === 1
+  if (url.pathname === '/api/job-tickets') data = page === 1
     ? [job('p1', 'tag-1'), job('i1', 'tag-1', 'Ironing', 'Pending', 2), job('p2', 'tag-2'), job('p3', 'tag-3'),
       job('deleted', 'tag-deleted'), ...Array.from({ length: 495 }, (_, i) => job(`extra-${i}`, 'extra', 'Washing', 'Completed', 1))]
         .map(row => row.id === 'deleted' ? { ...row, deletedAt: '2026-10-09 10:00:00' } : row)
@@ -58,9 +57,7 @@ try {
   assert.ok(calls.filter(url => url.pathname === '/api/job-tickets').every(url => url.searchParams.get('orderId') === 'order-1' && !url.searchParams.has('department') && url.searchParams.get('perPage') === '500'))
   assert.equal(order.customerName, 'Real customer')
   assert.equal(order.customerIndex, '42')
-  assert.equal(order.statusLabel, '')
   assert.ok(!calls.some(url => url.pathname.startsWith('/api/work-orders') || url.pathname === '/api/laundry-photos' || url.pathname === '/api/order-images'))
-  assert.equal(await loadPackagingOrderStatus('order-1'), 'Approved')
   assert.deepEqual(order.garments, [
     { tagId: 'tag-1', imageUrl: 'https://storage.example/one.jpg', waitingFor: 'Ironing', confirmedBagId: null },
     { tagId: 'tag-2', imageUrl: 'https://storage.example/two.jpg', waitingFor: null, confirmedBagId: null },

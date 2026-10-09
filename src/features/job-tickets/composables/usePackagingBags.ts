@@ -4,7 +4,7 @@ import { generateShortId } from '@shared/utils/id'
 import { uploadToStorage } from '@/shared/api/firebase-storage'
 import { confirmPackagingBags } from '@/data/packaging-bags/packaging-bag.service'
 import { currentActor } from '@/shared/config/actor'
-import { loadPackagingOrder, loadPackagingOrderStatus } from '../packaging-bag-source'
+import { loadPackagingOrder } from '../packaging-bag-source'
 import {
   bagNumber, canConfirm, garmentsInNewBags, restoreBags, scanGarment, toggleGarment, unassignedCount,
   type BagScanOutcome, type NewBag, type PackagingOrder,
@@ -87,9 +87,6 @@ export function usePackagingBags(orderId: () => string) {
       ticketsReady.value = true
       const restored = restoreBags(loaded, readStoredBags(id))
       applyOrder(loaded, restored)
-      void loadPackagingOrderStatus(id).then(label => {
-        if (sequence === loadSequence && order.value) order.value = { ...order.value, statusLabel: label }
-      }, () => {})
     } catch (reason) {
       if (sequence === loadSequence) pageError.value = reason instanceof Error ? reason.message : 'Unable to load order'
     } finally {
@@ -168,7 +165,7 @@ export function usePackagingBags(orderId: () => string) {
 
   watch(() => ticketStore.orderTickets(orderId()), () => {
     if (!rebuild || !order.value) return
-    applyOrder({ ...rebuild(), statusLabel: order.value.statusLabel }, bags.value)
+    applyOrder(rebuild(), bags.value)
   }, { deep: true })
 
   onActivated(() => { if (!releaseOrder) releaseOrder = ticketStore.retainOrder(orderId()) })

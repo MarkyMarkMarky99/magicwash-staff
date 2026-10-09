@@ -9,7 +9,7 @@ import {
 
 const garment = (tagId: string, confirmedBagId: string | null = null, waitingFor: PackagingOrder['garments'][number]['waitingFor'] = null) => ({ tagId, confirmedBagId, waitingFor, imageUrl: null })
 const order: PackagingOrder = {
-  orderId: 'order-1', customerName: 'Customer', customerIndex: 'TSK', statusLabel: 'Approved',
+  orderId: 'order-1', customerName: 'Customer', customerIndex: 'TSK',
   garments: [garment('k3m9x2qa', 'bag-1'), garment('p7d4n8rt', 'bag-1'), garment('w2c6v5hj', 'bag-1'), garment('h8t1b3ze', 'bag-1'),
     garment('m5y9f2ud', 'bag-2'), garment('q4r7s6lk', 'bag-2'), garment('x9a3e5pn'), garment('b6j2g8wc'), garment('z1n4u7ov'),
     garment('f3k8d2ys'), garment('r5t9c1ma', null, 'Ironing'), garment('d8v2h6xi', null, 'Washing')],
@@ -85,6 +85,7 @@ assert.equal(router.resolve('/departments/packaging').name, 'department-work')
 assert.ok(!router.resolve('/departments/washing/x').matched.some(route => route.name === 'packaging-order-bags'))
 assert.equal(jobTicketRoutes.findIndex(route => route.name === 'packaging-order-bags') < jobTicketRoutes.findIndex(route => route.name === 'department-work'), true)
 
-const pageSource = readFileSync(new URL('../../../../../src/features/job-tickets/pages/PackagingOrderBagsPage.vue', import.meta.url), 'utf8')
-assert.match(pageSource, /:loading="state\.ticketsLoading\.value"/)
+const viewSource = readFileSync(new URL('../../../../../src/features/job-tickets/components/OrderBagsView.vue', import.meta.url), 'utf8')
+assert.match(viewSource, /:loading="packaging\.ticketsLoading\.value"/)
+for (const name of ['logistics-order-bags', 'packaging-order-bags']) assert.match(String(jobTicketRoutes.find(route => route.name === name)?.component), /pages\/OrderBagsPage\.vue/)
 console.log('packaging-order-bags.dry-test: OK')

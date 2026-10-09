@@ -1,7 +1,6 @@
 import type { JobTicketDto } from '@/data/job-tickets/job-ticket.service'
 import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
 import { listBagItems, type BagItemDto } from '@/data/bag-items/bag-item.service'
-import { getWorkOrder } from '@/data/work-orders/work-order.service'
 import { useCustomerStore } from '@/data/customers/customer.store'
 import { findEarlierJobTicket } from '@shared/utils/job-ticket-gating'
 import { normalizeSheetTimestamp } from '@shared/utils/bangkok-datetime'
@@ -14,12 +13,6 @@ async function allPages<T>(fetchPage: (page: number) => Promise<{ items: T[] }>)
     rows.push(...items)
     if (items.length < 500) return rows
   }
-}
-
-// Only the status badge needs the work order; the page renders without waiting for it.
-export async function loadPackagingOrderStatus(orderId: string): Promise<string> {
-  const { status } = await getWorkOrder(orderId)
-  return status ? status.charAt(0) + status.slice(1).toLowerCase() : ''
 }
 
 export async function loadPackagingOrder(orderId: string, onPreview?: (order: PackagingOrder, rebuild: () => PackagingOrder) => void): Promise<PackagingOrder> {
@@ -54,7 +47,6 @@ function buildPackagingOrder(orderId: string, jobs: JobTicketDto[], items: BagIt
     orderId,
     customerName: customer?.customerName ?? customerId,
     customerIndex: String(customer?.customerIndex ?? '—'),
-    statusLabel: '',
     garments: [...new Set(packaging.map(ticket => ticket.laundryItemId!))].sort((a, b) => a.localeCompare(b)).map(tagId => {
       const blocker = packaging.filter(ticket => ticket.laundryItemId === tagId)
         .map(ticket => findEarlierJobTicket(ticket, tickets)).find(ticket => ticket !== undefined)

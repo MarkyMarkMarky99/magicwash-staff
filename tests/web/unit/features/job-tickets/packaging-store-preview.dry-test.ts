@@ -45,7 +45,7 @@ globalThis.fetch = (async input => {
 const memory = new Map<string, string>([['magicwash.packaging-bags.order-1', JSON.stringify([{ id: 'bag-a', garmentTagIds: [], photoUrl: 'https://photo/a' }])]])
 const dependencies = {
   ...packaging, computed, ref, watch, useJobTicketStore, loadPackagingOrder,
-  loadPackagingOrderStatus: async () => 'Approved', generateShortId: () => 'bag-new',
+  generateShortId: () => 'bag-new',
   uploadToStorage: async () => 'https://photo/upload', confirmPackagingBags: async () => ({ bags: [] }), currentActor: () => 'staff-1',
   onBeforeUnmount: (callback: () => void) => { unmount = callback }, onActivated: (callback: () => void) => { activate = callback }, onDeactivated: (callback: () => void) => { deactivate = callback },
   localStorage: { getItem: (key: string) => memory.get(key) ?? null, setItem: (key: string, value: string) => memory.set(key, value), removeItem: (key: string) => memory.delete(key) },
