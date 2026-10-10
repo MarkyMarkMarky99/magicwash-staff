@@ -15,6 +15,7 @@ const props = defineProps<{
   row: WashQueueDto
   sender: string
   position?: number
+  machine: string
   mine: boolean
   busy: boolean
   primary: PrimaryAction | null
@@ -32,11 +33,8 @@ const statuses = {
   Completed: { text: 'Ready for pickup', tone: 'text-success' },
 } as const
 const status = computed(() => statuses[props.row.status as keyof typeof statuses] ?? { text: props.row.status, tone: 'text-on-surface-variant' })
-const statusLine = computed(() => {
-  if (props.row.status === 'Pending' && props.position) return `${status.value.text} · #${props.position}`
-  if (props.row.status === 'In Progress' && props.row.machineId) return `${status.value.text} · ${props.row.machineId}`
-  return status.value.text
-})
+// The section already names the status, so the line shows the booked machine; legacy rows without one keep the status.
+const statusLine = computed(() => props.machine || status.value.text)
 const figure = computed(() => {
   const value = props.row.status === 'Completed' ? (props.row.weightAfterKg ?? props.row.weightBeforeKg) : props.row.weightBeforeKg
   return value === null ? '–' : formatKgFigure(value)

@@ -9,6 +9,7 @@ const weightKgSchema = z.number().refine((value) => parseWeightKg(String(value))
 })
 
 export const washQueueCreateSchema = z.object({
+  machineId: z.string().trim().min(1),
   photoUrl: z.string().trim().min(1),
   instruction: z.string().nullable().optional(),
   weightBeforeKg: weightKgSchema,

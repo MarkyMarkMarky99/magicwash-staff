@@ -1,8 +1,9 @@
 # Project memory
-- Branch: `main`; customer-package invoice deployment still needs verification.
+- Branch: `feat/dryer-queue` (current); on `main`, customer-package invoice deployment still needs verification.
 
 ## Branches in flight
 
+- **`feat/dryer-queue`** — washer+dryer queue with Machines sheet, not merged; next: C1 timer card frame; see `.user/memory/feat-dryer-queue.md`.
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
@@ -10,8 +11,7 @@
 ## Pending work
 - **Wash queue (merged 2026-10-10, prod, not staff-tested)** — see `docs/features/wash-queue/wash-queue.md`
   - Phone-test book → Load → Unload → Pick up → Cancel swipes (incl. admin-only Cancel on In machine/Ready, untested; then cancel the test basket); set Staff Position `WashOperator`; recheck Order Detail WEIGHT with the restyled WeightPrompt.
-  - Open: keep action success notices? block backdrop-discard on booking? OrderBagRow may lose radius mid-swipe; KPI and machine_id deferred.
-
+  - Open: keep action success notices? block backdrop-discard on booking? OrderBagRow may lose radius mid-swipe; KPI deferred.
 - Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
 - **Packaging bags + JobTickets store (merged 2026-10-09, staff trial in prod)**
   - Watch the first real Confirm: photo upload, sheet writes, LOG-BAG tickets, tag print with item count (`pcs`).

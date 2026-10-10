@@ -7,6 +7,7 @@ import { ApiError } from '../../shared/http/api-error.js'
 import { ok, created } from '../../shared/http/response.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
+import { getMachinesRepository } from '../../sheets/Machines/Machines.repository.js'
 import { getWashQueueRepository } from '../../sheets/WashQueue/WashQueue.repository.js'
 import type { washQueueRowSchema } from '../../sheets/WashQueue/WashQueue.db-contract.js'
 
@@ -69,6 +70,10 @@ export const washQueueRoutes = {
     POST: async (req) => {
       const body = parseOrThrow(washQueueApiContract.request.create, req.body)
       const staffId = actor(req)
+      const machines = await getMachinesRepository().read()
+      if (!machines.some((machine) => machine.id === body.machineId && machine.status === 'ACTIVE')) {
+        throw ApiError.validation('Choose an available machine.')
+      }
       const row = await getWashQueueRepository().append({
         id: 'WQ-' + generateShortId(), status: 'Pending', photo_url: body.photoUrl,
         instruction: body.instruction ?? null, work_minutes: null,
@@ -76,7 +81,7 @@ export const washQueueRoutes = {
         collected_at: null, collected_by: null, cancelled_at: null, cancelled_by: null,
         created_by: staffId, updated_by: staffId,
         weight_before_kg: body.weightBeforeKg, weight_after_kg: null,
-        unload_photo_url: null, machine_id: null,
+        unload_photo_url: null, machine_id: body.machineId,
       })
       return created(toDto(row))
     },
