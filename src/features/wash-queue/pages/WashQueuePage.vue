@@ -22,6 +22,7 @@ import WeightPrompt from '@/shared/components/WeightPrompt.vue'
 import { formatKg } from '../format-weights'
 import { machineLabel, modeOfMachineId, type MachineMode } from '../machine-label'
 import { useQueryOverlay } from '../composables/useQueryOverlay'
+import { useNow } from '../composables/useNow'
 import { useWeighFlow } from '../composables/useWeighFlow'
 import WashQueueMachinePicker from '../components/WashQueueMachinePicker.vue'
 import WashQueueModeSwitch from '../components/WashQueueModeSwitch.vue'
@@ -40,6 +41,7 @@ const machines = useMachinesStore()
 const auth = useAuthStore()
 const staff = useStaffStore()
 const weigh = useWeighFlow()
+const now = useNow()
 const photo = useQueryOverlay('photo')
 const currentStaff = ref<StaffDto | null>(auth.pendingStaff)
 const photoUrl = ref('')
@@ -122,6 +124,8 @@ const swipeHint = computed(() => {
   return rights.length || left ? { left, right: rights.join(' / ') } : null
 })
 let timer: ReturnType<typeof setInterval> | undefined
+const rowHandles = new Map<string, { close: () => void; contains: (target: Node) => boolean }>()
+let openRowId: string | null = null
 let successTimer: ReturnType<typeof setTimeout> | undefined
 
 function isMine(row: WashQueueDto): boolean {
@@ -140,6 +144,20 @@ function primaryAction(row: WashQueueDto): 'load' | 'unload' | 'collect' | null 
   if (row.status === 'Pending') return waitingPosition.value.get(row.id) === 1 && isOperator.value ? 'load' : null
   if (row.status === 'In Progress') return isOperator.value ? 'unload' : null
   return canCollect(row) ? 'collect' : null
+}
+function bindRow(id: string, handle: unknown): void {
+  if (handle) rowHandles.set(id, handle as { close: () => void; contains: (target: Node) => boolean })
+  else rowHandles.delete(id)
+}
+function rowOpened(id: string): void {
+  if (openRowId && openRowId !== id) rowHandles.get(openRowId)?.close()
+  openRowId = id
+}
+function closeOpenRow(event: PointerEvent): void {
+  const handle = openRowId ? rowHandles.get(openRowId) : undefined
+  if (!handle || (event.target instanceof Node && handle.contains(event.target))) return
+  handle.close()
+  openRowId = null
 }
 function machineOf(row: WashQueueDto): string {
   return machineLabel(row.machineId, machines.items)
@@ -289,11 +307,13 @@ onMounted(() => {
   void getMyStaff().then(row => { currentStaff.value = row }).catch(() => { roleWarning.value = 'Could not check your role. Operator buttons may be hidden.' })
   timer = setInterval(refresh, 30_000)
   document.addEventListener('visibilitychange', refreshVisible)
+  document.addEventListener('pointerdown', closeOpenRow, true)
 })
 onUnmounted(() => {
   clearInterval(timer)
   clearTimeout(successTimer)
   document.removeEventListener('visibilitychange', refreshVisible)
+  document.removeEventListener('pointerdown', closeOpenRow, true)
 })
 </script>
 
@@ -336,25 +356,25 @@ onUnmounted(() => {
         <span v-if="swipeHint.right" class="ml-auto inline-flex items-center gap-1">Right: {{ swipeHint.right }}<span class="material-symbols-outlined text-[16px] text-primary" aria-hidden="true">swipe_right</span></span>
       </p>
 
-      <WashQueueSection v-if="showMachine" title="In machine" subtitle="Unload when the cycle ends">
+      <WashQueueSection v-if="showMachine" title="In machine" subtitle="Unload when the cycle ends" framed>
         <template v-if="topSection === 'machine'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="weigh.open('book')" />
         </template>
-        <WashQueueRow v-for="row in inMachine" :key="row.id" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="canCancel(row)" @photo="photo.open" @action="rowAction(row, $event)" />
+        <WashQueueRow v-for="row in inMachine" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :now="now" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="canCancel(row)" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
       </WashQueueSection>
 
       <WashQueueSection v-if="showWaiting" title="Waiting" subtitle="First in, first washed">
         <template v-if="topSection === 'waiting'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="weigh.open('book')" />
         </template>
-        <WashQueueRow v-for="row in waiting" :key="row.id" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :position="waitingPosition.get(row.id)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="canCancel(row)" @photo="photo.open" @action="rowAction(row, $event)" />
+        <WashQueueRow v-for="row in waiting" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :position="waitingPosition.get(row.id)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="canCancel(row)" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
       </WashQueueSection>
 
       <WashQueueSection v-if="showReady" title="Ready for pickup" subtitle="Dry weight in, wet weight out" collapsible>
         <template v-if="topSection === 'ready'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="weigh.open('book')" />
         </template>
-        <WashQueueRow v-for="row in ready" :key="row.id" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="canCancel(row)" @photo="photo.open" @action="rowAction(row, $event)" />
+        <WashQueueRow v-for="row in ready" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="canCancel(row)" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
       </WashQueueSection>
     </template>
     <div class="h-12" aria-hidden="true" />

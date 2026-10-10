@@ -5,6 +5,7 @@ defineProps<{
   title: string
   subtitle: string
   collapsible?: boolean
+  framed?: boolean
 }>()
 
 const collapsed = ref(false)
@@ -30,7 +31,7 @@ const collapsed = ref(false)
         <slot name="action" />
       </div>
     </div>
-    <ul v-show="!collapsed" class="grid gap-2.5 px-3">
+    <ul v-show="!collapsed" class="grid" :class="framed ? 'gap-6 pb-1 pl-3 pr-4 pt-3' : 'gap-2.5 px-3'">
       <slot />
     </ul>
   </section>
