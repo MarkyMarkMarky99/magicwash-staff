@@ -8,7 +8,6 @@ import { useWashQueueStore } from '@/data/wash-queue/wash-queue.store'
 import { useMachinesStore } from '@/data/machines/machines.store'
 import { useAuthStore } from '@/data/auth/auth.store'
 import { useStaffStore } from '@/data/staff/staff.store'
-import { getMyStaff, type StaffDto } from '@/data/staff/staff.service'
 import { ApiError } from '@/shared/api/api-client'
 import { uploadWashQueuePhoto } from '@/data/wash-queue/wash-queue.service'
 import ConfirmOverlay from '@/shared/layouts/ConfirmOverlay.vue'
@@ -43,7 +42,6 @@ const staff = useStaffStore()
 const weigh = useWeighFlow()
 const now = useNow()
 const photo = useQueryOverlay('photo')
-const currentStaff = ref<StaffDto | null>(auth.pendingStaff)
 const photoUrl = ref('')
 const draftWeight = ref<number | null>(null)
 const draftMachineId = ref<string | null>(null)
@@ -55,7 +53,6 @@ const busyIds = ref(new Set<string>())
 const cancelRow = ref<WashQueueDto | null>(null)
 const errorMessage = ref<string | null>(null)
 const bookError = ref<string | null>(null)
-const roleWarning = ref<string | null>(null)
 const successMessage = ref<string | null>(null)
 const unloadRowId = computed(() => weigh.target.value?.startsWith('unload:') ? weigh.target.value.slice('unload:'.length) : null)
 const weighTitle = computed(() => unloadRowId.value ? 'Weigh the washed basket' : 'Weigh the basket')
@@ -110,17 +107,15 @@ const images = computed(() => ['In Progress', 'Pending', 'Completed'].flatMap(st
 const cancelDescription = computed(() => cancelRow.value?.status === 'Pending'
   ? 'This basket will leave the wash queue.'
   : `This basket is already ${cancelRow.value?.status === 'Completed' ? 'ready for pickup' : 'in a machine'}. Cancelling closes it and removes it from the queue.`)
-const isOperator = computed(() => auth.isAdmin || (currentStaff.value?.position ?? '').trim().toLowerCase() === 'washoperator')
 const notice = computed(() => errorMessage.value ?? (store.items.length ? store.error : null))
 const showPlaceholder = computed(() => (store.loading && !store.items.length) || (Boolean(store.error) && !store.items.length) || queueEmpty.value)
 const tabEmpty = computed(() => !showPlaceholder.value && !showMachine.value && !showWaiting.value && !showReady.value)
 const swipeHint = computed(() => {
   const rights: string[] = []
-  if (showWaiting.value && isOperator.value) rights.push('load')
-  if (showMachine.value && isOperator.value) rights.push('unload')
-  if (showReady.value && ready.value.some(canCollect)) rights.push('pick up')
-  const left = (showWaiting.value && waiting.value.some(canCancel)) ||
-    (auth.isAdmin && (showMachine.value || showReady.value))
+  if (showWaiting.value) rights.push('load')
+  if (showMachine.value) rights.push('unload')
+  if (showReady.value) rights.push('pick up')
+  const left = showWaiting.value || showMachine.value || showReady.value
   return rights.length || left ? { left, right: rights.join(' / ') } : null
 })
 let timer: ReturnType<typeof setInterval> | undefined
@@ -131,19 +126,11 @@ let successTimer: ReturnType<typeof setTimeout> | undefined
 function isMine(row: WashQueueDto): boolean {
   return row.createdBy === auth.staff?.staffId
 }
-// Waiting: the sender or an operator. In machine and Ready: admin only, to close a stuck or test basket.
-function canCancel(row: WashQueueDto): boolean {
-  if (row.status === 'Pending') return isMine(row) || isOperator.value
-  return (row.status === 'In Progress' || row.status === 'Completed') && auth.isAdmin
-}
-function canCollect(row: WashQueueDto): boolean {
-  return row.status === 'Completed' && (isMine(row) || isOperator.value)
-}
-// Right swipe: Load (first waiting basket of its machine, operators), Unload (operators) or Pick up.
+// Right swipe: Load, Unload or Pick up.
 function primaryAction(row: WashQueueDto): 'load' | 'unload' | 'collect' | null {
-  if (row.status === 'Pending') return waitingPosition.value.get(row.id) === 1 && isOperator.value ? 'load' : null
-  if (row.status === 'In Progress') return isOperator.value ? 'unload' : null
-  return canCollect(row) ? 'collect' : null
+  if (row.status === 'Pending') return 'load'
+  if (row.status === 'In Progress') return 'unload'
+  return row.status === 'Completed' ? 'collect' : null
 }
 function bindRow(id: string, handle: unknown): void {
   if (handle) rowHandles.set(id, handle as { close: () => void; contains: (target: Node) => boolean })
@@ -219,7 +206,7 @@ async function capture(file: File): Promise<void> {
   }
 }
 async function unload(row: WashQueueDto, weight: number, file: File): Promise<void> {
-  if (!isOperator.value || row.status !== 'In Progress') return
+  if (row.status !== 'In Progress') return
   setBusy(row.id, true)
   try {
     const unloadPhotoUrl = await uploadWashQueuePhoto(file)
@@ -292,7 +279,7 @@ function rowAction(row: WashQueueDto, kind: WashQueueRowAction): void {
 function confirmCancel(): void {
   const row = cancelRow.value
   cancelRow.value = null
-  if (row && canCancel(row)) void act(row, 'cancel')
+  if (row) void act(row, 'cancel')
 }
 function refresh(): void {
   if (!store.loading && !busyIds.value.size && !saving.value) void store.load()
@@ -304,7 +291,6 @@ onMounted(() => {
   void store.load()
   void machines.load()
   if (!staff.loaded) void staff.load()
-  void getMyStaff().then(row => { currentStaff.value = row }).catch(() => { roleWarning.value = 'Could not check your role. Operator buttons may be hidden.' })
   timer = setInterval(refresh, 30_000)
   document.addEventListener('visibilitychange', refreshVisible)
   document.addEventListener('pointerdown', closeOpenRow, true)
@@ -323,9 +309,8 @@ onUnmounted(() => {
       <GenericTabs :tabs="tabs" :active-key="activeTab" @select="changeTab" />
     </template>
 
-    <div v-if="notice || roleWarning || staff.error || machines.error" class="space-y-2 px-4 pt-3">
+    <div v-if="notice || staff.error || machines.error" class="space-y-2 px-4 pt-3">
       <WashQueueNotice v-if="notice" tone="error" :message="notice" :dismissible="Boolean(errorMessage)" @dismiss="errorMessage = null" />
-      <WashQueueNotice v-if="roleWarning" tone="warning" :message="roleWarning" dismissible @dismiss="roleWarning = null" />
       <WashQueueNotice v-if="staff.error" tone="warning" message="Could not load staff names." />
       <WashQueueNotice v-if="machines.error" tone="warning" :message="machines.error" />
     </div>
@@ -360,21 +345,21 @@ onUnmounted(() => {
         <template v-if="topSection === 'machine'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="weigh.open('book')" />
         </template>
-        <WashQueueRow v-for="row in inMachine" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :now="now" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="canCancel(row)" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
+        <WashQueueRow v-for="row in inMachine" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :now="now" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
       </WashQueueSection>
 
       <WashQueueSection v-if="showWaiting" title="Waiting" subtitle="First in, first washed">
         <template v-if="topSection === 'waiting'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="weigh.open('book')" />
         </template>
-        <WashQueueRow v-for="row in waiting" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :position="waitingPosition.get(row.id)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="canCancel(row)" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
+        <WashQueueRow v-for="row in waiting" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :position="waitingPosition.get(row.id)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
       </WashQueueSection>
 
       <WashQueueSection v-if="showReady" title="Ready for pickup" subtitle="Dry weight in, wet weight out" collapsible>
         <template v-if="topSection === 'ready'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="weigh.open('book')" />
         </template>
-        <WashQueueRow v-for="row in ready" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="canCancel(row)" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
+        <WashQueueRow v-for="row in ready" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
       </WashQueueSection>
     </template>
     <div class="h-12" aria-hidden="true" />
