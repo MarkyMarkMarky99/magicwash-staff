@@ -4,7 +4,8 @@ import type { z } from 'zod'
 import type { washQueueRowSchema } from '@contracts/wash-queue/wash-queue-api.schema'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
-import { formatBookedAt } from '../format-booked-at'
+import { formatBookedAt, formatStartedAt } from '../format-booked-at'
+import { elapsedSeconds, formatElapsed, RUNNING_LONG_SECONDS } from '../format-elapsed'
 import { formatKgFigure } from '../format-weights'
 
 type WashQueueDto = z.infer<typeof washQueueRowSchema>
@@ -15,16 +16,26 @@ const props = defineProps<{
   row: WashQueueDto
   sender: string
   position?: number
+  machine: string
+  now?: number
   mine: boolean
   busy: boolean
   primary: PrimaryAction | null
   cancellable: boolean
 }>()
-const emit = defineEmits<{ photo: [id: string]; action: [action: WashQueueRowAction] }>()
+const emit = defineEmits<{ photo: [id: string]; action: [action: WashQueueRowAction]; opened: [] }>()
 
+const root = ref<HTMLElement | null>(null)
 const swipe = ref<{ snapCard: (direction: string) => void } | null>(null)
 const swipeable = computed(() => props.primary !== null || props.cancellable)
 const isNext = computed(() => props.position === 1)
+const framed = computed(() => props.row.status === 'In Progress')
+const elapsed = computed(() => framed.value && props.now !== undefined ? elapsedSeconds(props.row.loadedAt, props.now) : null)
+const runningLong = computed(() => elapsed.value !== null && elapsed.value > RUNNING_LONG_SECONDS)
+const frameVars = computed(() => ({
+  '--wq-edge': runningLong.value ? 'var(--color-warning)' : 'var(--color-primary)',
+  '--wq-shade': 'color-mix(in srgb, var(--wq-edge) 70%, black)',
+}))
 
 const statuses = {
   Pending: { text: 'Waiting', tone: 'text-warning' },
@@ -32,18 +43,15 @@ const statuses = {
   Completed: { text: 'Ready for pickup', tone: 'text-success' },
 } as const
 const status = computed(() => statuses[props.row.status as keyof typeof statuses] ?? { text: props.row.status, tone: 'text-on-surface-variant' })
-const statusLine = computed(() => {
-  if (props.row.status === 'Pending' && props.position) return `${status.value.text} · #${props.position}`
-  if (props.row.status === 'In Progress' && props.row.machineId) return `${status.value.text} · ${props.row.machineId}`
-  return status.value.text
-})
+// The section already names the status, so the line shows the booked machine; legacy rows without one keep the status.
+const statusLine = computed(() => props.machine || status.value.text)
 const figure = computed(() => {
   const value = props.row.status === 'Completed' ? (props.row.weightAfterKg ?? props.row.weightBeforeKg) : props.row.weightBeforeKg
   return value === null ? '–' : formatKgFigure(value)
 })
 const meta = computed(() => [
   props.row.status === 'Completed' && props.row.weightBeforeKg !== null ? `Dry ${formatKgFigure(props.row.weightBeforeKg)} kg` : '',
-  formatBookedAt(props.row.createdAt),
+  props.row.status === 'In Progress' && props.row.loadedAt ? formatStartedAt(props.row.loadedAt) : formatBookedAt(props.row.createdAt),
   props.row.instruction ?? '',
 ].filter(Boolean).join(' · '))
 const busyLabel = computed(() => props.row.status === 'In Progress' ? 'Unloading…' : props.row.status === 'Completed' ? 'Picking up…' : 'Updating…')
@@ -59,20 +67,32 @@ function trigger(action: WashQueueRowAction): void {
 }
 // BaseSwipeCard snaps in either direction; an unavailable direction is reset so it never blocks the next swipe.
 function rejectRight(): void {
-  if (!props.primary) swipe.value?.snapCard('none')
+  if (props.primary) emit('opened')
+  else swipe.value?.snapCard('none')
 }
 function rejectLeft(): void {
-  if (!props.cancellable) swipe.value?.snapCard('none')
+  if (props.cancellable) emit('opened')
+  else swipe.value?.snapCard('none')
 }
+function close(): void {
+  swipe.value?.snapCard('none')
+}
+function contains(target: Node): boolean {
+  return root.value?.contains(target) ?? false
+}
+defineExpose({ close, contains })
 </script>
 
 <template>
-  <li>
+  <li ref="root" :class="framed ? 'relative rounded-[11px_15px_12px_14px] border-2 border-[color:var(--wq-edge)] bg-white shadow-[4px_4px_0_var(--wq-shade)] [--wq-radius:9px_13px_10px_12px]' : ''" :style="framed ? frameVars : undefined">
+    <span v-if="elapsed !== null" role="timer" class="pointer-events-none absolute -top-3 left-2.5 z-40 inline-flex -rotate-3 items-center gap-1 rounded-[6px_8px_6px_7px] bg-[color:var(--wq-edge)] px-[9px] pb-1 pt-[3px] font-headline text-[11px] font-bold leading-[1.1] tabular-nums text-white shadow-[1px_1px_0_var(--wq-shade)]">
+      <span class="material-symbols-outlined text-[11px] leading-none" aria-hidden="true">timer</span>{{ formatElapsed(elapsed) }}
+    </span>
     <component
       :is="swipeable ? BaseSwipeCard : 'div'"
       ref="swipe"
       v-bind="swipeable ? { disabled: busy, rightActions: primary ? 2 : 0, leftActions: cancellable ? 1 : 0 } : {}"
-      class="relative overflow-hidden rounded-[14px] bg-white shadow-[0_1px_0_rgba(7,63,56,0.05)]"
+      class="relative overflow-hidden [border-radius:var(--wq-radius,14px)] bg-white shadow-[0_1px_0_rgba(7,63,56,0.05)]"
       @swipe-right="rejectRight"
       @swipe-left="rejectLeft"
     >
@@ -133,7 +153,7 @@ function rejectLeft(): void {
 /* BaseSwipeCard moves an unrounded, hover-tinted inner card; keep it a white rounded card mid-swipe.
    The lime panel is wider than the snap distance so its colour shows behind the rounded corners. */
 :deep(.swipe-card) {
-  border-radius: 14px;
+  border-radius: var(--wq-radius, 14px);
   background-color: var(--color-surface-container-lowest) !important;
   /* Covers the anti-aliased sliver of the lime/red panels at the coinciding rounded corners at rest. */
   box-shadow: 0 0 0 1px var(--color-surface-container-lowest);

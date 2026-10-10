@@ -8,10 +8,10 @@
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 
 ## Pending work
-- **Wash queue (merged 2026-10-10, prod, not staff-tested)** — see `docs/features/wash-queue/wash-queue.md`
+- **Wash queue + dryer queue (merged 2026-10-10, prod, not staff-tested)** — see `docs/features/wash-queue/wash-queue.md`
+  - Phone-test dryer mode, machine picker, In machine timer frame and tap-outside swipe close.
   - Phone-test book → Load → Unload → Pick up → Cancel swipes (incl. admin-only Cancel on In machine/Ready, untested; then cancel the test basket); set Staff Position `WashOperator`; recheck Order Detail WEIGHT with the restyled WeightPrompt.
-  - Open: keep action success notices? block backdrop-discard on booking? OrderBagRow may lose radius mid-swipe; KPI and machine_id deferred.
-
+  - Open: success notices? backdrop-discard on booking? OrderBagRow radius; >1:30 warning colour, dryer copy, Photo button edge; KPI deferred.
 - Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
 - **Packaging bags + JobTickets store (merged 2026-10-09, staff trial in prod)**
   - Watch the first real Confirm: photo upload, sheet writes, LOG-BAG tickets, tag print with item count (`pcs`).

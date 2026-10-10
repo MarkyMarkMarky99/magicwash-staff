@@ -76,6 +76,14 @@ transition core. Only after every write succeeds does it attempt bag-tag printin
 retains partial writes for an explicit staff retry; it does not roll back. See
 [Packaging Confirm](../../features/packaging/confirm.md) for its request and response contracts.
 
+The staff-authenticated `machines` module exposes only `GET /api/machines`, returning
+ACTIVE washers and dryers without pagination, ordered by type (WSH before DRY),
+sortOrder ascending (null last), then id. WashQueue POST requires `machineId`, checks
+that the Machines row is ACTIVE before any write, and stores `machine_id`. Unknown or
+unavailable machines return 422. Each machine has its own FIFO queue in the frontend;
+the backend retains the shared workflow without enforcing FIFO. See
+[WashQueue](../../features/wash-queue/wash-queue.md).
+
 ## Public delivery tracking
 
 `GET /api/delivery-tracking/:orderImageId` serves the customer page opened from a bag-tag QR,

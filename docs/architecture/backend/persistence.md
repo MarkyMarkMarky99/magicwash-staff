@@ -51,6 +51,11 @@ Its six string columns are `id`, `bag_id`, `order_id`, `laundry_item_id`, `creat
 and `created_by`, in that physical order. Append audit stamps `created_at`; the caller
 supplies the packer's StaffId in `created_by`. Updates and deletes are disabled.
 
+The read-only `Machines` master shares `JOB_TICKETS_SPREADSHEET_ID` with `WashQueue`.
+Its nine columns are `id`, `type`, `name`, `capacity_kg`, `status`, `sort_order`, `note`,
+`created_at`, and `updated_at`, in that physical order. Append, update and delete are
+disabled; there is no audit stamping.
+
 ## Reads
 
 `SheetRepository.read` calls `fetchGVizRows` in `server/shared/repositories/utils/gviz-reader.ts`.

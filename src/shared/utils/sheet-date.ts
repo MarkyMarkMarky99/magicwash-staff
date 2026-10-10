@@ -104,6 +104,12 @@ export function formatSheetDateTime(value: unknown): string {
   return `${fields.day} ${fields.month} ${fields.year} ${fields.hour}:${fields.minute}:${fields.second}`
 }
 
+/** Parse a sheet timestamp (Bangkok `yyyy-MM-dd HH:mm:ss`, GViz, or ISO) to epoch milliseconds, or null. */
+export function sheetTimestampMs(value: unknown): number | null {
+  const parsed = parseSheetDate(value)
+  return parsed?.kind === 'instant' ? parsed.value.getTime() : null
+}
+
 /** Return today's Bangkok civil date for date inputs and date-only defaults. */
 export function todaySheetDate(now: Date = new Date()): string {
   return partsInBangkok(now).date

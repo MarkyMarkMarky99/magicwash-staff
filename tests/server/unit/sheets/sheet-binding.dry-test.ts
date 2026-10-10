@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { machinesDbContract } from '../../../../server/sheets/Machines/Machines.db-contract.js'
 import { washQueueDbContract } from '../../../../server/sheets/WashQueue/WashQueue.db-contract.js'
 import { bagItemsDbContract } from '../../../../server/sheets/BagItems/BagItems.db-contract.js'
 import { readdirSync } from 'node:fs'
@@ -27,7 +28,7 @@ import { jobTicketsDbContract } from '../../../../server/sheets/JobTickets/JobTi
 import { workTransactionsDbContract } from '../../../../server/sheets/WorkTransactions/WorkTransactions.db-contract.js'
 import { workRatesDbContract } from '../../../../server/sheets/WorkRates/WorkRates.db-contract.js'
 
-const expectedSheetCount = 24
+const expectedSheetCount = 25
 const expectedSheetDirectories = [
   'BagItems',
   'AfterPhoto',
@@ -42,6 +43,7 @@ const expectedSheetDirectories = [
   'Items',
   'JobTickets',
   'LaundryPhotos',
+  'Machines',
   'OrderForm',
   'OrderImages',
   'OrderItemForms',
@@ -56,6 +58,7 @@ const expectedSheetDirectories = [
 ] as const
 
 const bindings = [
+  { name: 'Machines', contract: machinesDbContract, expectedSpreadsheetId: 'JOB_TICKETS_SPREADSHEET_ID', expectedSheetName: 'Machines' },
   { name: 'WashQueue', contract: washQueueDbContract, expectedSpreadsheetId: 'JOB_TICKETS_SPREADSHEET_ID', expectedSheetName: 'WashQueue' },
   { name: 'BagItems', contract: bagItemsDbContract, expectedSpreadsheetId: 'ORDERS_SPREADSHEET_ID', expectedSheetName: 'BagItems' },
   {
@@ -200,6 +203,13 @@ assert.deepEqual(Object.keys(washQueueDbContract.row.shape), [
 ])
 assert.deepEqual(washQueueDbContract.writes, { append: true, update: true, delete: false })
 assert.deepEqual(washQueueDbContract.audit, { onAppend: ['created_at', 'updated_at'], onUpdate: ['updated_at'] })
+
+assert.deepEqual(Object.keys(machinesDbContract.row.shape), [
+  'id', 'type', 'name', 'capacity_kg', 'status', 'sort_order', 'note', 'created_at', 'updated_at',
+])
+assert.deepEqual(machinesDbContract.writes, { append: false, update: false, delete: false })
+assert.equal('audit' in machinesDbContract, false)
+assert.ok(machinesDbContract.row.shape.id.safeParse('legacy-id').success)
 
 const sheetRoot = fileURLToPath(new URL('../../../../server/sheets/', import.meta.url))
 const filesystemSheetDirectories = readdirSync(sheetRoot, { withFileTypes: true })

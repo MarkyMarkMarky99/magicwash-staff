@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import type { z } from 'zod'
 import { washQueueRoutes } from '../../../../../server/modules/wash-queue/wash-queue.module.js'
+import { getMachinesRepository } from '../../../../../server/sheets/Machines/Machines.repository.js'
 import { getWashQueueRepository } from '../../../../../server/sheets/WashQueue/WashQueue.repository.js'
 import { washQueueDbContract, type washQueueRowSchema } from '../../../../../server/sheets/WashQueue/WashQueue.db-contract.js'
 import { SheetRepository } from '../../../../../server/shared/repositories/sheet.repository.js'
@@ -28,7 +29,7 @@ client.appendRows = async (rows, valueInput, width) => {
   assert.equal(rows[0]![13], '2026-10-10 07:00:00')
   assert.equal(rows[0]![15], rows[0]![13])
   assert.equal(rows[0]![17], 12.3)
-  assert.deepEqual(rows[0]!.slice(18), ['', '', ''])
+  assert.deepEqual(rows[0]!.slice(18), ['', '', 'WSH15-01'])
   stored = [...rows[0]!]
   writes++
   return { spreadsheetId: 'wash-queue-wire-test', updates: {
@@ -53,10 +54,18 @@ Object.assign(getWashQueueRepository(), {
   append: repository.append.bind(repository), update: repository.update.bind(repository),
   read: async () => [Object.fromEntries(headers.map((header, index) => [header, stored[index]]))],
 })
+Object.assign(getMachinesRepository(), {
+  read: async () => [
+    { id: 'WSH15-01', status: 'ACTIVE' },
+    { id: 'DRY08-01', status: 'ACTIVE' },
+    { id: 'WSH15-02', status: 'MAINTENANCE' },
+    { id: 'DRY08-02', status: 'RETIRED' },
+  ],
+})
 const staff = { staffId: 'STAFF-me', name: 'Me', email: 'me@example.test', role: 'staff' as const }
 const result = await washQueueRoutes.collection.handleRequest({
   method: 'POST', query: {}, headers: {}, params: {}, staff,
-  body: { photoUrl: 'https://example.test/basket.jpg', weightBeforeKg: 12.3 },
+  body: { photoUrl: 'https://example.test/basket.jpg', weightBeforeKg: 12.3, machineId: 'WSH15-01' },
 })
 assert.equal(result.status, 201)
 const created = (result.body as { data: Record<string, unknown> }).data
@@ -65,7 +74,7 @@ assert.equal(created.instruction, null)
 assert.equal(created.weightBeforeKg, 12.3)
 assert.equal(created.weightAfterKg, null)
 assert.equal(created.unloadPhotoUrl, null)
-assert.equal(created.machineId, null)
+assert.equal(created.machineId, 'WSH15-01')
 assert.equal(created.loadedAt, null)
 assert.equal(created.loadedBy, null)
 assert.equal(created.createdAt, '2026-10-10 07:00:00')
@@ -93,10 +102,10 @@ const completed = (unloaded.body as { data: Record<string, unknown> }).data
 assert.equal(completed.status, 'Completed')
 assert.equal(completed.weightAfterKg, 15.4)
 assert.equal(completed.unloadPhotoUrl, 'https://example.test/wet.jpg')
-assert.equal(completed.machineId, null)
+assert.equal(completed.machineId, 'WSH15-01')
 assert.equal(completed.unloadedBy, staff.staffId)
 assert.equal(stored[18], 15.4)
 assert.equal(stored[19], 'https://example.test/wet.jpg')
-assert.equal(stored[20], '')
+assert.equal(stored[20], 'WSH15-01')
 assert.equal(writes, 3)
 console.log('wash queue wire dry test passed (21 columns, repository audit, null echoes, load/unload writes)')
