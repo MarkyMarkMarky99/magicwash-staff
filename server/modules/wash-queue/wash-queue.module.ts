@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { washQueueApiContract } from '../../../contracts/wash-queue/wash-queue-api.schema.js'
+import { washQueueApiContract, washOptionsSchema } from '../../../contracts/wash-queue/wash-queue-api.schema.js'
 import { generateShortId } from '../../../shared/utils/id.js'
 import { bangkokToday, normalizeSheetTimestamp, toNullableString } from '../../../shared/utils/bangkok-datetime.js'
 import { ApiHandler, type ApiHandlerRequest } from '../../shared/http/api-handler.js'
@@ -7,6 +7,8 @@ import { ApiError } from '../../shared/http/api-error.js'
 import { ok, created } from '../../shared/http/response.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
+import { listWashPrograms } from '../wash-programs/wash-programs.module.js'
+import { getWashProductsRepository } from '../../sheets/WashProducts/WashProducts.repository.js'
 import { getMachinesRepository } from '../../sheets/Machines/Machines.repository.js'
 import { getWashQueueRepository } from '../../sheets/WashQueue/WashQueue.repository.js'
 import type { washQueueRowSchema } from '../../sheets/WashQueue/WashQueue.db-contract.js'
@@ -18,12 +20,23 @@ function toNullableNumber(value: number | string | null | undefined): number | n
   return value === undefined || value === null || String(value) === '' ? null : Number(value)
 }
 
+function parseWashOptions(value: string | null | undefined): WashQueueDto['washOptions'] {
+  if (!value) return null
+  try {
+    const result = washOptionsSchema.safeParse(JSON.parse(value))
+    return result.success ? result.data : null
+  } catch {
+    return null
+  }
+}
+
 function toDto(row: Partial<WashQueueDbRow>): WashQueueDto {
   return {
     id: String(row.id ?? ''),
     status: row.status!,
     photoUrl: String(row.photo_url ?? ''),
     instruction: toNullableString(row.instruction),
+    washOptions: parseWashOptions(row.wash_options),
     workMinutes: toNullableNumber(row.work_minutes),
     loadedAt: normalizeSheetTimestamp(row.loaded_at) || null,
     loadedBy: toNullableString(row.loaded_by),
@@ -41,6 +54,7 @@ function toDto(row: Partial<WashQueueDbRow>): WashQueueDto {
     weightAfterKg: toNullableNumber(row.weight_after_kg),
     unloadPhotoUrl: toNullableString(row.unload_photo_url),
     machineId: toNullableString(row.machine_id),
+    tagCode: toNullableString(row.tag_code),
   }
 }
 
@@ -71,17 +85,42 @@ export const washQueueRoutes = {
       const body = parseOrThrow(washQueueApiContract.request.create, req.body)
       const staffId = actor(req)
       const machines = await getMachinesRepository().read()
-      if (!machines.some((machine) => machine.id === body.machineId && machine.status === 'ACTIVE')) {
+      const machine = machines.find((machine) => machine.id === body.machineId && machine.status === 'ACTIVE')
+      if (!machine) {
         throw ApiError.validation('Choose an available machine.')
+      }
+      if (machine.type === 'WSH' && body.washOptions === null) {
+        throw ApiError.validation('Choose the wash program.')
+      }
+      if (machine.type === 'DRY' && body.washOptions !== null) {
+        throw ApiError.validation('Dryer bookings have no wash options.')
+      }
+      if (body.washOptions !== null) {
+        const products = await getWashProductsRepository().read()
+        for (const step of body.washOptions.steps) {
+          for (const id of step.products) {
+            if (!products.some((product) => product.id === id && product.status === 'ACTIVE')) {
+              const name = products.find((product) => product.id === id)?.name
+              throw ApiError.validation(`${name ? `${name} (${id})` : id} is not an available product. Remove it from the step.`)
+            }
+          }
+        }
+        if (body.washOptions.program !== 'CUSTOM') {
+          const programs = await listWashPrograms()
+          if (!programs.some((program) => program.id === body.washOptions!.program && program.status === 'ACTIVE')) {
+            throw ApiError.validation('Choose an available program.')
+          }
+        }
       }
       const row = await getWashQueueRepository().append({
         id: 'WQ-' + generateShortId(), status: 'Pending', photo_url: body.photoUrl,
-        instruction: body.instruction ?? null, work_minutes: null,
+        instruction: null, work_minutes: null,
         loaded_at: null, loaded_by: null, unloaded_at: null, unloaded_by: null,
         collected_at: null, collected_by: null, cancelled_at: null, cancelled_by: null,
         created_by: staffId, updated_by: staffId,
         weight_before_kg: body.weightBeforeKg, weight_after_kg: null,
-        unload_photo_url: null, machine_id: body.machineId,
+        unload_photo_url: null, machine_id: body.machineId, tag_code: body.tagCode,
+        wash_options: body.washOptions === null ? null : JSON.stringify(body.washOptions),
       })
       return created(toDto(row))
     },

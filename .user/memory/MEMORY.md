@@ -6,11 +6,12 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
+- **`feat/wash-queue-open-access`** — WashQueue open access, A–Z `tag_code`, wash program steps + WashProducts/WashPrograms; not pushed; WashQueue columns only after deploy; see `.user/memory/feat-wash-queue-open-access.md`.
 
 ## Pending work
 - **Wash queue + dryer queue (merged 2026-10-10, prod, not staff-tested)** — see `docs/features/wash-queue/wash-queue.md`
   - Phone-test dryer mode, machine picker, In machine timer frame and tap-outside swipe close.
-  - Phone-test book → Load → Unload → Pick up → Cancel swipes (incl. admin-only Cancel on In machine/Ready, untested; then cancel the test basket); set Staff Position `WashOperator`; recheck Order Detail WEIGHT with the restyled WeightPrompt.
+  - Phone-test book → Load → Unload → Pick up → Cancel swipes (then cancel the test basket); recheck Order Detail WEIGHT with the restyled WeightPrompt.
   - Open: success notices? backdrop-discard on booking? OrderBagRow radius; >1:30 warning colour, dryer copy, Photo button edge; KPI deferred.
 - Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
 - **Packaging bags + JobTickets store (merged 2026-10-09, staff trial in prod)**

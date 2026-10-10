@@ -6,6 +6,7 @@ import BaseBadge from '@/shared/components/BaseBadge.vue'
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
 import { formatBookedAt, formatStartedAt } from '../format-booked-at'
 import { elapsedSeconds, formatElapsed, RUNNING_LONG_SECONDS } from '../format-elapsed'
+import { washOptionsSummary } from '../wash-options'
 import { formatKgFigure } from '../format-weights'
 
 type WashQueueDto = z.infer<typeof washQueueRowSchema>
@@ -15,6 +16,7 @@ type PrimaryAction = Exclude<WashQueueRowAction, 'cancel'>
 const props = defineProps<{
   row: WashQueueDto
   sender: string
+  programName?: (id: string) => string
   position?: number
   machine: string
   now?: number
@@ -52,7 +54,7 @@ const figure = computed(() => {
 const meta = computed(() => [
   props.row.status === 'Completed' && props.row.weightBeforeKg !== null ? `Dry ${formatKgFigure(props.row.weightBeforeKg)} kg` : '',
   props.row.status === 'In Progress' && props.row.loadedAt ? formatStartedAt(props.row.loadedAt) : formatBookedAt(props.row.createdAt),
-  props.row.instruction ?? '',
+  props.row.washOptions !== null ? washOptionsSummary(props.row.washOptions, props.programName?.(props.row.washOptions.program) ?? 'Custom') : props.row.instruction ?? '',
 ].filter(Boolean).join(' · '))
 const busyLabel = computed(() => props.row.status === 'In Progress' ? 'Unloading…' : props.row.status === 'Completed' ? 'Picking up…' : 'Updating…')
 const primaryPanels = {
@@ -116,6 +118,7 @@ defineExpose({ close, contains })
         </p>
         <div class="min-w-0">
           <p class="flex items-center gap-1.5 font-body text-sm font-extrabold">
+            <span v-if="row.tagCode" class="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-md bg-primary px-1 font-headline text-sm font-extrabold leading-none text-lime" :aria-label="`Tag ${row.tagCode}`">{{ row.tagCode }}</span>
             <span class="truncate">{{ sender }}</span>
             <BaseBadge v-if="mine" label="You" tone="brand" />
             <BaseBadge v-if="isNext" label="Next" tone="lime" uppercase />
