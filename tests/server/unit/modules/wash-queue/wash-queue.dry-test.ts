@@ -80,18 +80,18 @@ const light = data(await washQueueRoutes.collection.handleRequest(request('POST'
 assert.equal(light.weightBeforeKg, 0.1)
 
 const cases = [
-  { action: 'load', from: 'Pending', to: 'In Progress', at: 'loadedAt', by: 'loadedBy' },
-  { action: 'unload', from: 'In Progress', to: 'Completed', at: 'unloadedAt', by: 'unloadedBy' },
-  { action: 'collect', from: 'Completed', to: 'Collected', at: 'collectedAt', by: 'collectedBy' },
-  { action: 'cancel', from: 'Pending', to: 'Cancelled', at: 'cancelledAt', by: 'cancelledBy' },
+  { action: 'load', from: ['Pending'], to: 'In Progress', at: 'loadedAt', by: 'loadedBy' },
+  { action: 'unload', from: ['In Progress'], to: 'Completed', at: 'unloadedAt', by: 'unloadedBy' },
+  { action: 'collect', from: ['Completed'], to: 'Collected', at: 'collectedAt', by: 'collectedBy' },
+  { action: 'cancel', from: ['Pending', 'In Progress', 'Completed'], to: 'Cancelled', at: 'cancelledAt', by: 'cancelledBy' },
 ] as const
-for (const transition of cases) {
+for (const transition of cases) for (const from of transition.from) {
   const body = transition.action === 'unload'
     ? { action: transition.action, weightAfterKg: 15.4, unloadPhotoUrl: ' https://example.com/wet.jpg ' }
     : { action: transition.action }
   const basket = await create()
   const row = rows.find((row) => row.id === basket.id)!
-  row.status = transition.from
+  row.status = from
   row.created_by = 'STAFF-sender'
   const result = data(await washQueueRoutes.item.handleRequest(request('PATCH', body, basket.id)))
   assert.equal(result.status, transition.to)
@@ -109,7 +109,7 @@ for (const transition of cases) {
   }
   assert.equal(result.createdBy, 'STAFF-sender', 'ordinary staff may act on another sender basket')
   for (const status of ['Pending', 'In Progress', 'Completed', 'Collected', 'Cancelled']) {
-    if (status === transition.from) continue
+    if ((transition.from as readonly string[]).includes(status)) continue
     row.status = status
     const before = writes.length
     const rejected = await washQueueRoutes.item.handleRequest(request('PATCH', body, basket.id))
@@ -165,4 +165,4 @@ const numericList = (await washQueueRoutes.collection.handleRequest(request('GET
 const later = numericList.data.find((row) => row.id === 'later')!
 assert.equal(later.weightBeforeKg, null)
 assert.equal(later.weightAfterKg, 15.4)
-console.log('wash queue dry test passed (create, 4 transitions, 16 conflicts, 4 missing IDs, list, weight validation, strict payloads)')
+console.log('wash queue dry test passed (create, 6 transitions, 18 conflicts, 6 missing IDs, list, weight validation, strict payloads)')

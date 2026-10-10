@@ -9,7 +9,7 @@
 
 ## Pending work
 - **Wash queue (merged 2026-10-10, prod, not staff-tested)** — see `docs/features/wash-queue/wash-queue.md`
-  - Phone-test book → Load → Unload → Pick up → Cancel swipes; set Staff Position `WashOperator`; recheck Order Detail WEIGHT with the restyled WeightPrompt.
+  - Phone-test book → Load → Unload → Pick up → Cancel swipes (incl. admin-only Cancel on In machine/Ready, untested; then cancel the test basket); set Staff Position `WashOperator`; recheck Order Detail WEIGHT with the restyled WeightPrompt.
   - Open: keep action success notices? block backdrop-discard on booking? OrderBagRow may lose radius mid-swipe; KPI and machine_id deferred.
 
 - Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.

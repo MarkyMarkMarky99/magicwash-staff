@@ -49,10 +49,10 @@ function actor(req: ApiHandlerRequest): string {
 }
 
 const transitions = {
-  load: { from: 'Pending', to: 'In Progress', at: 'loaded_at', by: 'loaded_by', message: 'This basket is no longer waiting. It may already be loaded or cancelled.' },
-  unload: { from: 'In Progress', to: 'Completed', at: 'unloaded_at', by: 'unloaded_by', message: 'This basket is no longer in a machine. It may already be unloaded.' },
-  collect: { from: 'Completed', to: 'Collected', at: 'collected_at', by: 'collected_by', message: 'This basket is no longer ready for pickup. It may already be collected.' },
-  cancel: { from: 'Pending', to: 'Cancelled', at: 'cancelled_at', by: 'cancelled_by', message: 'Cannot cancel this basket. It may already be loaded or cancelled.' },
+  load: { from: ['Pending'], to: 'In Progress', at: 'loaded_at', by: 'loaded_by', message: 'This basket is no longer waiting. It may already be loaded or cancelled.' },
+  unload: { from: ['In Progress'], to: 'Completed', at: 'unloaded_at', by: 'unloaded_by', message: 'This basket is no longer in a machine. It may already be unloaded.' },
+  collect: { from: ['Completed'], to: 'Collected', at: 'collected_at', by: 'collected_by', message: 'This basket is no longer ready for pickup. It may already be collected.' },
+  cancel: { from: ['Pending', 'In Progress', 'Completed'], to: 'Cancelled', at: 'cancelled_at', by: 'cancelled_by', message: 'Cannot cancel this basket. It may already be collected or cancelled.' },
 } as const
 
 export const washQueueRoutes = {
@@ -89,7 +89,7 @@ export const washQueueRoutes = {
       const [row] = await getWashQueueRepository().read({ id })
       if (!row) throw ApiError.notFound('Basket not found.')
       const transition = transitions[body.action]
-      if (row.status !== transition.from) throw ApiError.conflict(transition.message)
+      if (!row.status || !(transition.from as readonly string[]).includes(row.status)) throw ApiError.conflict(transition.message)
       const updated = await getWashQueueRepository().update(id, {
         status: transition.to, [transition.at]: formatBangkokTimestamp(new Date()),
         [transition.by]: staffId, updated_by: staffId,

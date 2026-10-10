@@ -79,6 +79,9 @@ const images = computed(() => [...inMachine.value, ...waiting.value, ...ready.va
   { id: row.id, src: row.photoUrl, alt: 'Basket on the scale before washing' },
   ...(row.unloadPhotoUrl ? [{ id: `${row.id}:after`, src: row.unloadPhotoUrl, alt: 'Basket on the scale after washing' }] : []),
 ]))
+const cancelDescription = computed(() => cancelRow.value?.status === 'Pending'
+  ? 'This basket will leave the wash queue.'
+  : `This basket is already ${cancelRow.value?.status === 'Completed' ? 'ready for pickup' : 'in a machine'}. Cancelling closes it and removes it from the queue.`)
 const isOperator = computed(() => auth.isAdmin || (currentStaff.value?.position ?? '').trim().toLowerCase() === 'washoperator')
 const notice = computed(() => errorMessage.value ?? (store.items.length ? store.error : null))
 const showPlaceholder = computed(() => (store.loading && !store.items.length) || (Boolean(store.error) && !store.items.length) || queueEmpty.value)
@@ -88,7 +91,8 @@ const swipeHint = computed(() => {
   if (showWaiting.value && isOperator.value) rights.push('load')
   if (showMachine.value && isOperator.value) rights.push('unload')
   if (showReady.value && ready.value.some(canCollect)) rights.push('pick up')
-  const left = showWaiting.value && waiting.value.some(canCancel)
+  const left = (showWaiting.value && waiting.value.some(canCancel)) ||
+    (auth.isAdmin && (showMachine.value || showReady.value))
   return rights.length || left ? { left, right: rights.join(' / ') } : null
 })
 let timer: ReturnType<typeof setInterval> | undefined
@@ -97,8 +101,10 @@ let successTimer: ReturnType<typeof setTimeout> | undefined
 function isMine(row: WashQueueDto): boolean {
   return row.createdBy === auth.staff?.staffId
 }
+// Waiting: the sender or an operator. In machine and Ready: admin only, to close a stuck or test basket.
 function canCancel(row: WashQueueDto): boolean {
-  return row.status === 'Pending' && (isMine(row) || isOperator.value)
+  if (row.status === 'Pending') return isMine(row) || isOperator.value
+  return (row.status === 'In Progress' || row.status === 'Completed') && auth.isAdmin
 }
 function canCollect(row: WashQueueDto): boolean {
   return row.status === 'Completed' && (isMine(row) || isOperator.value)
@@ -284,7 +290,7 @@ onUnmounted(() => {
       </p>
 
       <WashQueueSection v-if="showMachine" title="In machine" subtitle="Unload when the cycle ends" :count="inMachine.length">
-        <WashQueueRow v-for="(row, index) in inMachine" :key="row.id" :row="row" :sender="staff.nameOf(row.createdBy)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row, index)" :cancellable="false" @photo="photo.open" @action="rowAction(row, $event)" />
+        <WashQueueRow v-for="(row, index) in inMachine" :key="row.id" :row="row" :sender="staff.nameOf(row.createdBy)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row, index)" :cancellable="canCancel(row)" @photo="photo.open" @action="rowAction(row, $event)" />
       </WashQueueSection>
 
       <WashQueueSection v-if="showWaiting" title="Waiting" subtitle="First in, first washed" :count="waiting.length">
@@ -292,7 +298,7 @@ onUnmounted(() => {
       </WashQueueSection>
 
       <WashQueueSection v-if="showReady" title="Ready for pickup" subtitle="Dry weight in, wet weight out" :count="ready.length" collapsible>
-        <WashQueueRow v-for="(row, index) in ready" :key="row.id" :row="row" :sender="staff.nameOf(row.createdBy)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row, index)" :cancellable="false" @photo="photo.open" @action="rowAction(row, $event)" />
+        <WashQueueRow v-for="(row, index) in ready" :key="row.id" :row="row" :sender="staff.nameOf(row.createdBy)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row, index)" :cancellable="canCancel(row)" @photo="photo.open" @action="rowAction(row, $event)" />
       </WashQueueSection>
     </template>
     <div class="h-8" aria-hidden="true" />
@@ -316,6 +322,6 @@ onUnmounted(() => {
       <FormTextarea id="wash-instruction" label="Note / wash program (optional)" :model-value="instruction" @update:model-value="inputInstruction" />
       <WashQueueNotice v-if="bookError" class="mb-3" tone="error" :message="bookError" />
     </ConfirmOverlay>
-    <ConfirmOverlay :open="Boolean(cancelRow)" title="Cancel this booking?" description="This basket will leave the wash queue." cancel-label="Keep booking" confirm-label="Cancel booking" @close="cancelRow = null" @confirm="confirmCancel" />
+    <ConfirmOverlay :open="Boolean(cancelRow)" title="Cancel this booking?" :description="cancelDescription" cancel-label="Keep booking" confirm-label="Cancel booking" @close="cancelRow = null" @confirm="confirmCancel" />
   </ListPageLayout>
 </template>
