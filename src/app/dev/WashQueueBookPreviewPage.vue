@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { parseWeightKg } from '@shared/utils/item-quantity'
 import type { MachineDto } from '@/data/machines/machines.service'
 import type { WashProductDto } from '@/data/wash-products/wash-products.service'
 import type { WashProgramDto } from '@/data/wash-programs/wash-programs.service'
@@ -34,8 +35,10 @@ const photoUrl = 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://
           <path d="M120 40c12-6 24-6 36 0M180 34c10-4 22-2 30 4" stroke="${palette.getPropertyValue('--color-outline').trim()}" stroke-width="2" fill="none" opacity=".7"/>
         </svg>`)
 const open = ref(true)
-const machineId = ref<string | null>('WSH15-01')
-const tagCode = ref<string | null>('B')
+const machineId = ref<string | null>(null)
+const tagCode = ref<string | null>(null)
+const rawWeight = ref('')
+const shot = ref('')
 const products: WashProductDto[] = [
   { id: 'DET-A', type: 'DETERGENT', name: 'Detergent A', status: 'ACTIVE', sortOrder: 1, note: null },
   { id: 'DET-B', type: 'DETERGENT', name: 'Detergent B', status: 'ACTIVE', sortOrder: 2, note: null },
@@ -67,6 +70,7 @@ const programs: WashProgramDto[] = [
 const washOptions = ref<WashOptions>(defaultWashOptions(programs))
 const productName = (id: string): string => products.find((product) => product.id === id)?.name ?? id
 const status = ref<string | null>(null)
+const weightValid = computed(() => parseWeightKg(rawWeight.value) !== null)
 </script>
 
 <template>
@@ -74,10 +78,10 @@ const status = ref<string | null>(null)
     <button type="button" class="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary" @click="open = true; status = null">Open booking dialog</button>
     <p v-if="status" class="mt-3 text-sm text-on-surface-variant">{{ status }}</p>
     <WashQueueBookDialog
-      :open="open" :photo-url="photoUrl" :weight="8.2" :machines="machines" :machine-id="machineId" :tag-code="tagCode"
-      :wash-options="washOptions" :programs="programs" :products="products" :product-name="productName" :error="null" :saving="false" :confirm-disabled="!machineId || !tagCode"
-      @close="open = false" @confirm="open = false; status = `Preview only, nothing saved: ${machineId} tag ${tagCode}`" @reweigh="status = 'Re-weigh pressed'"
-      @update:machine-id="machineId = $event" @update:tag-code="tagCode = $event" @update:wash-options="washOptions = $event"
+      :open="open" mode="washer" :photo-url="shot" :uploading="false" :raw-weight="rawWeight" :weight-error="null" :weight-valid="weightValid" :machines="machines" :machine-id="machineId" :tag-code="tagCode"
+      :wash-options="washOptions" :programs="programs" :product-name="productName" :error="null" :saving="false" :confirm-disabled="!shot || !weightValid || !machineId || !tagCode"
+      @close="open = false" @confirm="open = false; status = `Preview only, nothing saved: ${machineId} tag ${tagCode}`" @photo="shot = photoUrl"
+      @update:raw-weight="rawWeight = $event" @update:machine-id="machineId = $event" @update:tag-code="tagCode = $event" @update:wash-options="washOptions = $event"
     />
   </div>
 </template>

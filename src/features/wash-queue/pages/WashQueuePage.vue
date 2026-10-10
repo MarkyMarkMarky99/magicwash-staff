@@ -13,6 +13,7 @@ import { useAuthStore } from '@/data/auth/auth.store'
 import { useStaffStore } from '@/data/staff/staff.store'
 import { ApiError } from '@/shared/api/api-client'
 import { uploadWashQueuePhoto } from '@/data/wash-queue/wash-queue.service'
+import { MAX_ORDER_IMAGE_WEIGHT_KG, parseWeightKg } from '@shared/utils/item-quantity'
 import ConfirmOverlay from '@/shared/layouts/ConfirmOverlay.vue'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import CameraOverlay from '@/shared/components/CameraOverlay.vue'
@@ -41,14 +42,17 @@ const store = useWashQueueStore()
 const machines = useMachinesStore()
 const products = useWashProductsStore()
 const programs = useWashProgramsStore()
-const stepsValid = ref(true)
 const auth = useAuthStore()
 const staff = useStaffStore()
 const weigh = useWeighFlow()
 const now = useNow()
 const photo = useQueryOverlay('photo')
+// Booking camera: `?shoot=book` sits on top of the booking dialog and closes with Back.
+const shoot = useQueryOverlay('shoot')
 const photoUrl = ref('')
-const draftWeight = ref<number | null>(null)
+const rawWeight = ref('')
+const weightError = ref<string | null>(null)
+const draftWeight = computed(() => parseWeightKg(rawWeight.value))
 const draftMachineId = ref<string | null>(null)
 const draftTagCode = ref<string | null>(null)
 const draftWashOptions = ref<WashOptions | null>(null)
@@ -86,12 +90,11 @@ const waitingPosition = computed(() => {
   return positions
 })
 const pickerMachines = computed(() => machines.items.filter(machine => machine.status === 'ACTIVE' && machine.type === (mode.value === 'dryer' ? 'DRY' : 'WSH')))
-const chosenMachine = computed(() => machines.items.find(machine => machine.id === draftMachineId.value))
-watch(chosenMachine, (machine) => {
-  if (machine?.type === 'WSH' && draftWashOptions.value === null) draftWashOptions.value = defaultWashOptions(programs.active())
-  else if (machine?.type === 'DRY') draftWashOptions.value = null
-}, { flush: 'sync' })
-const washOptionsChosen = computed(() => chosenMachine.value?.type !== 'WSH' || (draftWashOptions.value !== null && draftWashOptions.value.steps.length > 0 && stepsValid.value))
+// Washer bookings start on the first active program; it may arrive after the dialog opens.
+watch(() => programs.items, () => {
+  if (draftOpen.value && mode.value === 'washer' && draftWashOptions.value === null) draftWashOptions.value = defaultWashOptions(programs.active())
+})
+const washOptionsChosen = computed(() => mode.value === 'dryer' || (draftWashOptions.value !== null && draftWashOptions.value.steps.length > 0))
 const machineChosen = computed(() => pickerMachines.value.some(machine => machine.id === draftMachineId.value))
 const tabKeys = ['all', 'waiting', 'in-machine', 'ready'] as const
 type TabKey = typeof tabKeys[number]
@@ -187,27 +190,40 @@ function setBusy(id: string, busy: boolean): void {
   busyIds.value = next
 }
 async function capture(file: File): Promise<void> {
-  const target = weigh.target.value
   const weight = weigh.weight.value
-  if (!target || weight === null) return
   const unloadId = unloadRowId.value
   const row = unloadId ? store.items.find(item => item.id === unloadId) : null
-  if (unloadId ? !row || busyIds.value.has(unloadId) : uploading.value) return
+  if (!row || weight === null || busyIds.value.has(row.id)) return
   weigh.close()
   errorMessage.value = null
-  if (row) {
-    await unload(row, weight, file)
-    return
-  }
+  await unload(row, weight, file)
+}
+function openDraft(): void {
+  if (saving.value || uploading.value) return
+  resetDraft()
+  if (mode.value === 'washer') draftWashOptions.value = defaultWashOptions(programs.active())
+  draftOpen.value = true
+}
+function showWeightError(): void {
+  weightError.value = `Enter a weight greater than 0 and up to ${MAX_ORDER_IMAGE_WEIGHT_KG} kg, with at most 1 decimal place`
+}
+function updateWeight(value: string): void {
+  rawWeight.value = value
+  weightError.value = null
+}
+function takePhoto(): void {
+  if (draftWeight.value === null) { showWeightError(); return }
+  if (!saving.value && !uploading.value) shoot.open('book')
+}
+async function captureBook(file: File): Promise<void> {
+  if (uploading.value) return
+  shoot.close()
   uploading.value = true
   bookError.value = null
-  photoUrl.value = ''
   try {
     photoUrl.value = await uploadWashQueuePhoto(file)
-    draftWeight.value = weight
-    draftOpen.value = true
   } catch {
-    errorMessage.value = 'Photo upload failed. Weigh the basket and take another photo.'
+    bookError.value = 'Photo upload failed. Take another photo.'
   } finally {
     uploading.value = false
   }
@@ -226,35 +242,31 @@ async function unload(row: WashQueueDto, weight: number, file: File): Promise<vo
     setBusy(row.id, false)
   }
 }
-function discardDraft(): void {
-  if (saving.value) return
-  draftOpen.value = false
+function resetDraft(): void {
   photoUrl.value = ''
-  draftWeight.value = null
+  rawWeight.value = ''
+  weightError.value = null
   draftMachineId.value = null
   draftTagCode.value = null
   draftWashOptions.value = null
   bookError.value = null
 }
-function reweigh(): void {
+function discardDraft(): void {
   if (saving.value) return
-  discardDraft()
-  weigh.open('book')
+  draftOpen.value = false
+  resetDraft()
 }
 async function submit(): Promise<void> {
   const machineId = draftMachineId.value
   const tagCode = draftTagCode.value
-  if (!photoUrl.value || draftWeight.value === null || !machineId || !machineChosen.value || !tagCode || !washOptionsChosen.value || saving.value) return
+  const weightBeforeKg = draftWeight.value
+  if (!photoUrl.value || weightBeforeKg === null || !machineId || !machineChosen.value || !tagCode || !washOptionsChosen.value || saving.value || uploading.value) return
   saving.value = true
   bookError.value = null
   try {
-    await store.create({ machineId, photoUrl: photoUrl.value, washOptions: draftWashOptions.value, weightBeforeKg: draftWeight.value, tagCode })
+    await store.create({ machineId, photoUrl: photoUrl.value, washOptions: mode.value === 'washer' ? draftWashOptions.value : null, weightBeforeKg, tagCode })
     draftOpen.value = false
-    photoUrl.value = ''
-    draftWeight.value = null
-    draftMachineId.value = null
-    draftTagCode.value = null
-    draftWashOptions.value = null
+    resetDraft()
     showSuccess(`Basket booked. ${waiting.value.length} waiting in the queue.`)
   } catch (reason) {
     bookError.value = reason instanceof ApiError ? reason.message : 'Booking failed. Check your connection and try again.'
@@ -330,7 +342,7 @@ onUnmounted(() => {
     </div>
 
     <div v-if="!topSection" class="flex justify-end px-4 pt-3">
-      <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="weigh.open('book')" />
+      <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="openDraft" />
     </div>
 
     <ListContainer
@@ -351,7 +363,7 @@ onUnmounted(() => {
 
       <WashQueueSection v-if="showMachine || emptySection === 'machine'" title="In machine" subtitle="Unload when the cycle ends" framed>
         <template v-if="topSection === 'machine'" #action>
-          <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="weigh.open('book')" />
+          <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="openDraft" />
         </template>
         <WashQueueRow v-for="row in inMachine" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :program-name="programs.nameOf" :now="now" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
         <li v-if="emptySection === 'machine'" class="px-1 py-4 text-sm italic text-on-surface-variant">{{ emptyText }}</li>
@@ -359,7 +371,7 @@ onUnmounted(() => {
 
       <WashQueueSection v-if="showWaiting || emptySection === 'waiting'" title="Waiting" subtitle="First in, first washed">
         <template v-if="topSection === 'waiting'" #action>
-          <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="weigh.open('book')" />
+          <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="openDraft" />
         </template>
         <WashQueueRow v-for="row in waiting" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :program-name="programs.nameOf" :position="waitingPosition.get(row.id)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
         <li v-if="emptySection === 'waiting'" class="px-1 py-4 text-sm italic text-on-surface-variant">{{ emptyText }}</li>
@@ -367,7 +379,7 @@ onUnmounted(() => {
 
       <WashQueueSection v-if="showReady || emptySection === 'ready'" title="Ready for pickup" subtitle="Dry weight in, wet weight out" collapsible>
         <template v-if="topSection === 'ready'" #action>
-          <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="weigh.open('book')" />
+          <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="openDraft" />
         </template>
         <WashQueueRow v-for="row in ready" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :program-name="programs.nameOf" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
         <li v-if="emptySection === 'ready'" class="px-1 py-4 text-sm italic text-on-surface-variant">{{ emptyText }}</li>
@@ -382,11 +394,13 @@ onUnmounted(() => {
 
     <WeightPrompt :open="weigh.promptOpen.value" input-id="wash-queue-weight" :title="weighTitle" :description="weighDescription" @submit="weigh.submit" @close="weigh.close" />
     <CameraOverlay :open="weigh.cameraOpen.value" @close="weigh.close" @capture="capture" />
+    <CameraOverlay :open="shoot.id.value === 'book'" @close="shoot.close" @capture="captureBook" />
     <PhotoViewer v-if="activePhoto" :images="images" :active-id="activePhoto" @change="photo.change" @close="photo.close" />
     <WashQueueBookDialog
-      :open="draftOpen" :photo-url="photoUrl" :weight="draftWeight" :machines="pickerMachines" :machine-id="draftMachineId" :tag-code="draftTagCode"
-      :wash-options="draftWashOptions" :programs="programs.active()" :products="products.items.filter((product) => product.status === 'ACTIVE')" :product-name="products.nameOf" @update:steps-valid="stepsValid = $event" :error="bookError" :saving="saving" :confirm-disabled="saving || !photoUrl || draftWeight === null || !machineChosen || !draftTagCode || !washOptionsChosen"
-      @close="discardDraft" @confirm="submit" @reweigh="reweigh" @update:machine-id="chooseMachine" @update:tag-code="chooseTag" @update:wash-options="draftWashOptions = $event"
+      :open="draftOpen" :mode="mode" :photo-url="photoUrl" :uploading="uploading" :raw-weight="rawWeight" :weight-error="weightError" :weight-valid="draftWeight !== null"
+      :machines="pickerMachines" :machine-id="draftMachineId" :tag-code="draftTagCode" :wash-options="draftWashOptions" :programs="programs.active()" :product-name="products.nameOf"
+      :error="bookError" :saving="saving" :confirm-disabled="saving || uploading || !photoUrl || draftWeight === null || !machineChosen || !draftTagCode || !washOptionsChosen"
+      @close="discardDraft" @confirm="submit" @photo="takePhoto" @weight-invalid="showWeightError" @update:raw-weight="updateWeight" @update:machine-id="chooseMachine" @update:tag-code="chooseTag" @update:wash-options="draftWashOptions = $event"
     />
     <ConfirmOverlay :open="Boolean(cancelRow)" title="Cancel this booking?" :description="cancelDescription" cancel-label="Keep booking" confirm-label="Cancel booking" @close="cancelRow = null" @confirm="confirmCancel" />
   </ListPageLayout>
