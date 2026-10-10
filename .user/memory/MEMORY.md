@@ -8,16 +8,10 @@
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 
 ## Pending work
-- **Wash queue + dryer queue (open access, A–Z tags, wash programs merged 2026-10-11)** — see `docs/features/wash-queue/wash-queue.md`
-  - Right after deploy: add WashQueue columns `tag_code` (V) and `wash_options` (W); bookings fail until then.
-  - Owner fills WashProducts (products) and WashPrograms (one row per step); WashPrograms G:H are Plain text.
-  - Next: drying steps (`tumble_dry` heat low/medium/high + minutes, `line_dry` reminder); unload auto-creates a dryer booking (same tag, wet weight).
-  - Open: owner wants the dryer machine in the program; WashPrograms has no column for it yet (owner avoids sheet edits).
-  - Open: invalid WashPrograms rows are skipped silently (owner chose to leave it).
-  - Debt: wash-program.css is a namespaced global file; booking dialog restyles the shared overlay via :global(:has()).
-  - Phone-test dryer mode, machine picker, In machine timer frame and tap-outside swipe close.
-  - Phone-test book (program steps, drag reorder, product dropdown) → Load → Unload → Pick up → Cancel; recheck Order Detail WEIGHT.
-  - Open: success notices? backdrop-discard on booking? OrderBagRow radius; >1:30 warning colour, dryer copy, Photo button edge; KPI deferred.
+- **Wash queue + dryer queue (one-sheet booking: weight, photo, tag wheel, washer menu, read-only program line — merged 2026-10-11)** — see `docs/features/wash-queue/wash-queue.md`
+  - NEXT: drying steps (tumble/line dry, auto dryer booking on unload) — full handoff in `.user/memory/wash-drying-steps-handoff.md`.
+  - Phone-test the new booking sheet (camera, upload, tag wheel, washer menu), then Load/Unload; prod programs/products still have Thai names, owner to OK English rename.
+  - Open: Hand wash option (needs a no-machine booking contract); tag label look not owner-approved; OrderBagRow radius; >1:30 warning colour, dryer copy, Photo button edge; KPI deferred.
 - Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
 - **Packaging bags + JobTickets store (merged 2026-10-09, staff trial in prod)**
   - Watch the first real Confirm: photo upload, sheet writes, LOG-BAG tickets, tag print with item count (`pcs`).
