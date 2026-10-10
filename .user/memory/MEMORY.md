@@ -6,12 +6,17 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
-- **`feat/wash-queue-open-access`** — WashQueue open access, A–Z `tag_code`, wash program steps + WashProducts/WashPrograms; not pushed; WashQueue columns only after deploy; see `.user/memory/feat-wash-queue-open-access.md`.
 
 ## Pending work
-- **Wash queue + dryer queue (merged 2026-10-10, prod, not staff-tested)** — see `docs/features/wash-queue/wash-queue.md`
+- **Wash queue + dryer queue (open access, A–Z tags, wash programs merged 2026-10-11)** — see `docs/features/wash-queue/wash-queue.md`
+  - Right after deploy: add WashQueue columns `tag_code` (V) and `wash_options` (W); bookings fail until then.
+  - Owner fills WashProducts (products) and WashPrograms (one row per step); WashPrograms G:H are Plain text.
+  - Next: drying steps (`tumble_dry` heat low/medium/high + minutes, `line_dry` reminder); unload auto-creates a dryer booking (same tag, wet weight).
+  - Open: owner wants the dryer machine in the program; WashPrograms has no column for it yet (owner avoids sheet edits).
+  - Open: invalid WashPrograms rows are skipped silently (owner chose to leave it).
+  - Debt: wash-program.css is a namespaced global file; booking dialog restyles the shared overlay via :global(:has()).
   - Phone-test dryer mode, machine picker, In machine timer frame and tap-outside swipe close.
-  - Phone-test book → Load → Unload → Pick up → Cancel swipes (then cancel the test basket); recheck Order Detail WEIGHT with the restyled WeightPrompt.
+  - Phone-test book (program steps, drag reorder, product dropdown) → Load → Unload → Pick up → Cancel; recheck Order Detail WEIGHT.
   - Open: success notices? backdrop-discard on booking? OrderBagRow radius; >1:30 warning colour, dryer copy, Photo button edge; KPI deferred.
 - Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
 - **Packaging bags + JobTickets store (merged 2026-10-09, staff trial in prod)**
