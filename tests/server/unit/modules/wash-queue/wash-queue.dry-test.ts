@@ -51,7 +51,7 @@ function data(result: { status: number; body: unknown }): WashQueueDto {
   return (result.body as { data: WashQueueDto }).data
 }
 async function create(): Promise<WashQueueDto> {
-  return data(await washQueueRoutes.collection.handleRequest(request('POST', { photoUrl: ' https://example.com/basket.jpg ', weightBeforeKg: 12.3, machineId: ' WSH15-01 ' })))
+  return data(await washQueueRoutes.collection.handleRequest(request('POST', { photoUrl: ' https://example.com/basket.jpg ', weightBeforeKg: 12.3, machineId: ' WSH15-01 ', tagCode: ' A ' })))
 }
 const invalidCreates = [
   { photoUrl: '', weightBeforeKg: 1 }, { photoUrl: '  ', weightBeforeKg: 1 },
@@ -59,16 +59,17 @@ const invalidCreates = [
   { photoUrl: 'x', weightBeforeKg: 1, workMinutes: 10 },
   { photoUrl: 'x', weightBeforeKg: 1, machineId: 'M-1' }, { photoUrl: 'x' },
   ...[0, -1, 200.1, 1.23, '1', null].map((weightBeforeKg) => ({ photoUrl: 'x', weightBeforeKg })),
+  ...['a', 'AB', '', '1', null, undefined].map((tagCode) => ({ photoUrl: 'x', weightBeforeKg: 1, tagCode })),
 ]
 for (const body of invalidCreates) {
   const before = writes.length
-  assert.equal((await washQueueRoutes.collection.handleRequest(request('POST', { machineId: 'WSH15-01', ...body }))).status, 422)
+  assert.equal((await washQueueRoutes.collection.handleRequest(request('POST', { machineId: 'WSH15-01', tagCode: 'A', ...body }))).status, 422)
   assert.equal(writes.length, before)
 }
 for (const machineId of [undefined, '', '  ', 'unknown', 'WSH15-02', 'DRY08-02']) {
   const before = writes.length
   const rejected = await washQueueRoutes.collection.handleRequest(request('POST', {
-    photoUrl: 'x', weightBeforeKg: 1, ...(machineId === undefined ? {} : { machineId }),
+    photoUrl: 'x', weightBeforeKg: 1, tagCode: 'A', ...(machineId === undefined ? {} : { machineId }),
   }))
   assert.equal(rejected.status, 422)
   if (machineId && machineId.trim()) {
@@ -89,15 +90,17 @@ assert.equal(created.weightAfterKg, null)
 assert.equal(created.unloadPhotoUrl, null)
 assert.equal(created.machineId, 'WSH15-01')
 assert.equal(writes[0]!.machine_id, 'WSH15-01')
+assert.equal(writes[0]!.tag_code, 'A')
+assert.equal(created.tagCode, 'A')
 assert.equal(created.instruction, null)
 assert.equal(created.createdAt, created.updatedAt)
 assert.match(created.createdAt, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
 assert.deepEqual(washQueueDbContract.audit.onAppend, ['created_at', 'updated_at'])
-const noted = data(await washQueueRoutes.collection.handleRequest(request('POST', { photoUrl: 'x', instruction: 'Gentle wash', weightBeforeKg: 200, machineId: 'DRY08-01' })))
+const noted = data(await washQueueRoutes.collection.handleRequest(request('POST', { photoUrl: 'x', instruction: 'Gentle wash', weightBeforeKg: 200, machineId: 'DRY08-01', tagCode: 'Z' })))
 assert.equal(noted.instruction, 'Gentle wash')
 assert.equal(noted.weightBeforeKg, 200)
 assert.equal(noted.machineId, 'DRY08-01')
-const light = data(await washQueueRoutes.collection.handleRequest(request('POST', { photoUrl: 'x', weightBeforeKg: 0.1, machineId: 'WSH15-01' })))
+const light = data(await washQueueRoutes.collection.handleRequest(request('POST', { photoUrl: 'x', weightBeforeKg: 0.1, machineId: 'WSH15-01', tagCode: 'B' })))
 assert.equal(light.weightBeforeKg, 0.1)
 
 const cases = [
@@ -168,7 +171,7 @@ for (const [id, status, createdAt, updatedAt] of [
   ['cancelled-today', 'Cancelled', '2026-01-05 01:00:00', `${today} 23:59:59`],
   ['collected-old', 'Collected', '2026-01-06 01:00:00', '2000-01-01 23:59:59'],
   ['cancelled-old', 'Cancelled', '2026-01-07 01:00:00', '2000-01-01 00:00:00'],
-]) rows.push({ id, status, created_at: createdAt, updated_at: updatedAt, photo_url: 'x', work_minutes: '', weight_before_kg: '12.3', weight_after_kg: '', unload_photo_url: '', machine_id: '' })
+]) rows.push({ id, status, created_at: createdAt, updated_at: updatedAt, photo_url: 'x', work_minutes: '', weight_before_kg: '12.3', weight_after_kg: '', unload_photo_url: '', machine_id: '', tag_code: '' })
 const response = await washQueueRoutes.collection.handleRequest(request('GET'))
 assert.equal(response.status, 200)
 const list = (response.body as { data: WashQueueDto[] }).data
@@ -180,6 +183,7 @@ assert.equal(list[0]!.weightBeforeKg, 12.3)
 assert.equal(list[0]!.weightAfterKg, null)
 assert.equal(list[0]!.unloadPhotoUrl, null)
 assert.equal(list[0]!.machineId, null)
+assert.equal(list[0]!.tagCode, null)
 rows[0]!.weight_before_kg = null
 rows[0]!.weight_after_kg = '15.4'
 const numericList = (await washQueueRoutes.collection.handleRequest(request('GET'))).body as { data: WashQueueDto[] }

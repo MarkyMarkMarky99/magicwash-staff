@@ -50,6 +50,13 @@ if (import.meta.env.DEV) {
   })
 
   routes.push({
+    path: '/dev/wash-queue-book',
+    name: 'wash-queue-book-preview',
+    component: () => import('@/app/dev/WashQueueBookPreviewPage.vue'),
+    meta: { public: true },
+  })
+
+  routes.push({
     path: '/dev/overlay-frame',
     name: 'overlay-frame-preview',
     component: () => import('@/app/dev/OverlayFramePreviewPage.vue'),

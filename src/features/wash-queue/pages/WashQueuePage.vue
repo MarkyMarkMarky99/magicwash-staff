@@ -13,7 +13,6 @@ import { uploadWashQueuePhoto } from '@/data/wash-queue/wash-queue.service'
 import ConfirmOverlay from '@/shared/layouts/ConfirmOverlay.vue'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import CameraOverlay from '@/shared/components/CameraOverlay.vue'
-import FormTextarea from '@/shared/components/FormTextarea.vue'
 import GenericTabs from '@/shared/components/GenericTabs.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import PhotoViewer from '@/shared/components/PhotoViewer.vue'
@@ -23,10 +22,10 @@ import { machineLabel, modeOfMachineId, type MachineMode } from '../machine-labe
 import { useQueryOverlay } from '../composables/useQueryOverlay'
 import { useNow } from '../composables/useNow'
 import { useWeighFlow } from '../composables/useWeighFlow'
-import WashQueueMachinePicker from '../components/WashQueueMachinePicker.vue'
 import WashQueueModeSwitch from '../components/WashQueueModeSwitch.vue'
 import WashQueueNotice from '../components/WashQueueNotice.vue'
 import WashQueuePhotoButton from '../components/WashQueuePhotoButton.vue'
+import WashQueueBookDialog from '../components/WashQueueBookDialog.vue'
 import WashQueueRow, { type WashQueueRowAction } from '../components/WashQueueRow.vue'
 import WashQueueSection from '../components/WashQueueSection.vue'
 
@@ -45,6 +44,7 @@ const photo = useQueryOverlay('photo')
 const photoUrl = ref('')
 const draftWeight = ref<number | null>(null)
 const draftMachineId = ref<string | null>(null)
+const draftTagCode = ref<string | null>(null)
 const instruction = ref('')
 const draftOpen = ref(false)
 const uploading = ref(false)
@@ -86,7 +86,7 @@ type TabKey = typeof tabKeys[number]
 const activeTab = computed<TabKey>(() => {
   const raw = route.query.tab
   const first = Array.isArray(raw) ? raw[0] : raw
-  return tabKeys.find(key => key === first) ?? 'all'
+  return tabKeys.find(key => key === first) ?? 'waiting'
 })
 const tabs = computed(() => [
   { key: 'all', label: 'All', count: inMachine.value.length + waiting.value.length + ready.value.length },
@@ -94,12 +94,17 @@ const tabs = computed(() => [
   { key: 'in-machine', label: 'In machine', count: inMachine.value.length },
   { key: 'ready', label: 'Ready', count: ready.value.length },
 ])
-const tabEmptyText = { all: '', waiting: 'No baskets waiting.', 'in-machine': 'No baskets in the machine.', ready: 'No baskets ready for pickup.' } as const
+const tabEmptyText = { all: 'No baskets in the queue. Tap Photo to book one.', waiting: 'No baskets waiting.', 'in-machine': 'No baskets in the machine.', ready: 'No baskets ready for pickup.' } as const
 const showMachine = computed(() => (activeTab.value === 'all' || activeTab.value === 'in-machine') && inMachine.value.length > 0)
 const showWaiting = computed(() => (activeTab.value === 'all' || activeTab.value === 'waiting') && waiting.value.length > 0)
 const showReady = computed(() => (activeTab.value === 'all' || activeTab.value === 'ready') && ready.value.length > 0)
-const topSection = computed(() => showMachine.value ? 'machine' : showWaiting.value ? 'waiting' : showReady.value ? 'ready' : null)
-const queueEmpty = computed(() => !inMachine.value.length && !waiting.value.length && !ready.value.length)
+const showPlaceholder = computed(() => (store.loading && !store.items.length) || (Boolean(store.error) && !store.items.length))
+// With nothing to list, the active tab's section still shows its header, the Photo button and an empty line.
+const emptySection = computed(() => showPlaceholder.value || showMachine.value || showWaiting.value || showReady.value
+  ? null
+  : activeTab.value === 'in-machine' ? 'machine' : activeTab.value === 'ready' ? 'ready' : 'waiting')
+const emptyText = computed(() => tabEmptyText[activeTab.value])
+const topSection = computed(() => showMachine.value ? 'machine' : showWaiting.value ? 'waiting' : showReady.value ? 'ready' : emptySection.value)
 const images = computed(() => ['In Progress', 'Pending', 'Completed'].flatMap(status => store.items.filter(row => row.status === status)).flatMap(row => [
   { id: row.id, src: row.photoUrl, alt: 'Basket on the scale before washing' },
   ...(row.unloadPhotoUrl ? [{ id: `${row.id}:after`, src: row.unloadPhotoUrl, alt: 'Basket on the scale after washing' }] : []),
@@ -108,16 +113,6 @@ const cancelDescription = computed(() => cancelRow.value?.status === 'Pending'
   ? 'This basket will leave the wash queue.'
   : `This basket is already ${cancelRow.value?.status === 'Completed' ? 'ready for pickup' : 'in a machine'}. Cancelling closes it and removes it from the queue.`)
 const notice = computed(() => errorMessage.value ?? (store.items.length ? store.error : null))
-const showPlaceholder = computed(() => (store.loading && !store.items.length) || (Boolean(store.error) && !store.items.length) || queueEmpty.value)
-const tabEmpty = computed(() => !showPlaceholder.value && !showMachine.value && !showWaiting.value && !showReady.value)
-const swipeHint = computed(() => {
-  const rights: string[] = []
-  if (showWaiting.value) rights.push('load')
-  if (showMachine.value) rights.push('unload')
-  if (showReady.value) rights.push('pick up')
-  const left = showWaiting.value || showMachine.value || showReady.value
-  return rights.length || left ? { left, right: rights.join(' / ') } : null
-})
 let timer: ReturnType<typeof setInterval> | undefined
 const rowHandles = new Map<string, { close: () => void; contains: (target: Node) => boolean }>()
 let openRowId: string | null = null
@@ -152,7 +147,7 @@ function machineOf(row: WashQueueDto): string {
 function changeTab(key: string): void {
   if (!tabKeys.includes(key as TabKey)) return
   const query: LocationQueryRaw = { ...route.query }
-  if (key === 'all') delete query.tab
+  if (key === 'waiting') delete query.tab
   else query.tab = key
   void router.replace({ query })
 }
@@ -164,6 +159,9 @@ function changeMode(next: MachineMode): void {
 }
 function chooseMachine(machineId: string): void {
   draftMachineId.value = machineId
+}
+function chooseTag(tagCode: string): void {
+  draftTagCode.value = tagCode
 }
 function showSuccess(text: string): void {
   clearTimeout(successTimer)
@@ -225,6 +223,7 @@ function discardDraft(): void {
   photoUrl.value = ''
   draftWeight.value = null
   draftMachineId.value = null
+  draftTagCode.value = null
   instruction.value = ''
   bookError.value = null
 }
@@ -235,15 +234,17 @@ function reweigh(): void {
 }
 async function submit(): Promise<void> {
   const machineId = draftMachineId.value
-  if (!photoUrl.value || draftWeight.value === null || !machineId || !machineChosen.value || saving.value) return
+  const tagCode = draftTagCode.value
+  if (!photoUrl.value || draftWeight.value === null || !machineId || !machineChosen.value || !tagCode || saving.value) return
   saving.value = true
   bookError.value = null
   try {
-    await store.create({ machineId, photoUrl: photoUrl.value, instruction: instruction.value.trim() || null, weightBeforeKg: draftWeight.value })
+    await store.create({ machineId, photoUrl: photoUrl.value, instruction: instruction.value.trim() || null, weightBeforeKg: draftWeight.value, tagCode })
     draftOpen.value = false
     photoUrl.value = ''
     draftWeight.value = null
     draftMachineId.value = null
+    draftTagCode.value = null
     instruction.value = ''
     showSuccess(`Basket booked. ${waiting.value.length} waiting in the queue.`)
   } catch (reason) {
@@ -322,8 +323,8 @@ onUnmounted(() => {
     <ListContainer
       v-if="showPlaceholder"
       title="Wash queue" icon="local_laundry_service" count-label="baskets"
-      :loading="store.loading && !store.items.length" :error="store.items.length ? null : store.error" :empty="queueEmpty"
-      empty-text="No baskets in the queue. Tap Photo to book one." :skeleton-rows="3" skeleton-avatar-class="h-14 w-14"
+      :loading="store.loading && !store.items.length" :error="store.items.length ? null : store.error"
+      :skeleton-rows="3" skeleton-avatar-class="h-14 w-14"
     >
       <template #error>
         <div class="px-4 py-6 text-center">
@@ -333,33 +334,30 @@ onUnmounted(() => {
       </template>
     </ListContainer>
 
-    <ListContainer v-else-if="tabEmpty" :title="tabs.find(tab => tab.key === activeTab)?.label ?? 'Wash queue'" icon="local_laundry_service" count-label="baskets" empty :empty-text="tabEmptyText[activeTab]" />
-
     <template v-else>
-      <p v-if="swipeHint" class="mx-4 mt-2.5 flex items-center justify-between gap-3 rounded-xl bg-surface-container-low px-3 py-2 font-label text-[10px] font-bold uppercase leading-tight tracking-wider text-on-surface-variant">
-        <span v-if="swipeHint.left" class="inline-flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-primary" aria-hidden="true">swipe_left</span>Left: cancel</span>
-        <span v-if="swipeHint.right" class="ml-auto inline-flex items-center gap-1">Right: {{ swipeHint.right }}<span class="material-symbols-outlined text-[16px] text-primary" aria-hidden="true">swipe_right</span></span>
-      </p>
 
-      <WashQueueSection v-if="showMachine" title="In machine" subtitle="Unload when the cycle ends" framed>
+      <WashQueueSection v-if="showMachine || emptySection === 'machine'" title="In machine" subtitle="Unload when the cycle ends" framed>
         <template v-if="topSection === 'machine'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="weigh.open('book')" />
         </template>
         <WashQueueRow v-for="row in inMachine" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :now="now" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
+        <li v-if="emptySection === 'machine'" class="px-1 py-4 text-sm italic text-on-surface-variant">{{ emptyText }}</li>
       </WashQueueSection>
 
-      <WashQueueSection v-if="showWaiting" title="Waiting" subtitle="First in, first washed">
+      <WashQueueSection v-if="showWaiting || emptySection === 'waiting'" title="Waiting" subtitle="First in, first washed">
         <template v-if="topSection === 'waiting'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="weigh.open('book')" />
         </template>
         <WashQueueRow v-for="row in waiting" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :position="waitingPosition.get(row.id)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
+        <li v-if="emptySection === 'waiting'" class="px-1 py-4 text-sm italic text-on-surface-variant">{{ emptyText }}</li>
       </WashQueueSection>
 
-      <WashQueueSection v-if="showReady" title="Ready for pickup" subtitle="Dry weight in, wet weight out" collapsible>
+      <WashQueueSection v-if="showReady || emptySection === 'ready'" title="Ready for pickup" subtitle="Dry weight in, wet weight out" collapsible>
         <template v-if="topSection === 'ready'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="weigh.open('book')" />
         </template>
         <WashQueueRow v-for="row in ready" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
+        <li v-if="emptySection === 'ready'" class="px-1 py-4 text-sm italic text-on-surface-variant">{{ emptyText }}</li>
       </WashQueueSection>
     </template>
     <div class="h-12" aria-hidden="true" />
@@ -372,16 +370,11 @@ onUnmounted(() => {
     <WeightPrompt :open="weigh.promptOpen.value" input-id="wash-queue-weight" :title="weighTitle" :description="weighDescription" @submit="weigh.submit" @close="weigh.close" />
     <CameraOverlay :open="weigh.cameraOpen.value" @close="weigh.close" @capture="capture" />
     <PhotoViewer v-if="activePhoto" :images="images" :active-id="activePhoto" @change="photo.change" @close="photo.close" />
-    <ConfirmOverlay :open="draftOpen" title="Book this basket?" cancel-label="Discard" confirm-label="Book" :confirm-disabled="saving || !photoUrl || draftWeight === null || !machineChosen" @close="discardDraft" @confirm="submit">
-      <img v-if="photoUrl" :src="photoUrl" alt="Basket on the scale preview" class="mb-3 h-40 w-full rounded-xl object-cover" />
-      <div v-if="draftWeight !== null" class="mb-3 flex items-center justify-between gap-3">
-        <p class="font-headline text-lg font-bold text-primary">{{ formatKg(draftWeight) }}</p>
-        <button type="button" class="flex h-11 items-center justify-center rounded-full border border-outline-variant px-5 font-label text-sm text-on-surface-variant focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime disabled:opacity-50" :disabled="saving" @click="reweigh">Re-weigh</button>
-      </div>
-      <WashQueueMachinePicker :machines="pickerMachines" :model-value="draftMachineId" @update:model-value="chooseMachine" />
-      <FormTextarea id="wash-instruction" label="Note / wash program (optional)" :model-value="instruction" @update:model-value="inputInstruction" />
-      <WashQueueNotice v-if="bookError" class="mb-3" tone="error" :message="bookError" />
-    </ConfirmOverlay>
+    <WashQueueBookDialog
+      :open="draftOpen" :photo-url="photoUrl" :weight="draftWeight" :machines="pickerMachines" :machine-id="draftMachineId" :tag-code="draftTagCode"
+      :instruction="instruction" :error="bookError" :saving="saving" :confirm-disabled="saving || !photoUrl || draftWeight === null || !machineChosen || !draftTagCode"
+      @close="discardDraft" @confirm="submit" @reweigh="reweigh" @update:machine-id="chooseMachine" @update:tag-code="chooseTag" @update:instruction="inputInstruction"
+    />
     <ConfirmOverlay :open="Boolean(cancelRow)" title="Cancel this booking?" :description="cancelDescription" cancel-label="Keep booking" confirm-label="Cancel booking" @close="cancelRow = null" @confirm="confirmCancel" />
   </ListPageLayout>
 </template>

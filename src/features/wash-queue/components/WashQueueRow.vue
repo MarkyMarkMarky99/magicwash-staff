@@ -116,6 +116,7 @@ defineExpose({ close, contains })
         </p>
         <div class="min-w-0">
           <p class="flex items-center gap-1.5 font-body text-sm font-extrabold">
+            <span v-if="row.tagCode" class="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-md bg-primary px-1 font-headline text-sm font-extrabold leading-none text-lime" :aria-label="`Tag ${row.tagCode}`">{{ row.tagCode }}</span>
             <span class="truncate">{{ sender }}</span>
             <BaseBadge v-if="mine" label="You" tone="brand" />
             <BaseBadge v-if="isNext" label="Next" tone="lime" uppercase />

@@ -41,6 +41,7 @@ function toDto(row: Partial<WashQueueDbRow>): WashQueueDto {
     weightAfterKg: toNullableNumber(row.weight_after_kg),
     unloadPhotoUrl: toNullableString(row.unload_photo_url),
     machineId: toNullableString(row.machine_id),
+    tagCode: toNullableString(row.tag_code),
   }
 }
 
@@ -81,7 +82,7 @@ export const washQueueRoutes = {
         collected_at: null, collected_by: null, cancelled_at: null, cancelled_by: null,
         created_by: staffId, updated_by: staffId,
         weight_before_kg: body.weightBeforeKg, weight_after_kg: null,
-        unload_photo_url: null, machine_id: body.machineId,
+        unload_photo_url: null, machine_id: body.machineId, tag_code: body.tagCode,
       })
       return created(toDto(row))
     },

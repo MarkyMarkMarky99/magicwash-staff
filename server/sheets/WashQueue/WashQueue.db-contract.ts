@@ -23,6 +23,7 @@ export const washQueueRowSchema = z.object({
   weight_after_kg: z.number().nullable(),
   unload_photo_url: z.string().nullable(),
   machine_id: z.string().nullable(),
+  tag_code: z.string().nullable(),
 }).strict()
 export const washQueueDbContract = {
   row: washQueueRowSchema,

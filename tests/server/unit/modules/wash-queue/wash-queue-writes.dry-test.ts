@@ -23,13 +23,13 @@ client.readColumn = async () => [['id'], ...(stored.length ? [[String(stored[0])
 client.readRange = async () => [stored as string[]]
 client.appendRows = async (rows, valueInput, width) => {
   assert.equal(valueInput, 'USER_ENTERED')
-  assert.equal(width, 21)
-  assert.equal(rows[0]!.length, 21)
+  assert.equal(width, 22)
+  assert.equal(rows[0]!.length, 22)
   assert.equal(rows[0]![4], '', 'reserved null uses existing serializer blank-cell behavior')
   assert.equal(rows[0]![13], '2026-10-10 07:00:00')
   assert.equal(rows[0]![15], rows[0]![13])
   assert.equal(rows[0]![17], 12.3)
-  assert.deepEqual(rows[0]!.slice(18), ['', '', 'WSH15-01'])
+  assert.deepEqual(rows[0]!.slice(18), ['', '', 'WSH15-01', 'C'])
   stored = [...rows[0]!]
   writes++
   return { spreadsheetId: 'wash-queue-wire-test', updates: {
@@ -65,7 +65,7 @@ Object.assign(getMachinesRepository(), {
 const staff = { staffId: 'STAFF-me', name: 'Me', email: 'me@example.test', role: 'staff' as const }
 const result = await washQueueRoutes.collection.handleRequest({
   method: 'POST', query: {}, headers: {}, params: {}, staff,
-  body: { photoUrl: 'https://example.test/basket.jpg', weightBeforeKg: 12.3, machineId: 'WSH15-01' },
+  body: { photoUrl: 'https://example.test/basket.jpg', weightBeforeKg: 12.3, machineId: 'WSH15-01', tagCode: 'C' },
 })
 assert.equal(result.status, 201)
 const created = (result.body as { data: Record<string, unknown> }).data
@@ -107,5 +107,6 @@ assert.equal(completed.unloadedBy, staff.staffId)
 assert.equal(stored[18], 15.4)
 assert.equal(stored[19], 'https://example.test/wet.jpg')
 assert.equal(stored[20], 'WSH15-01')
+assert.equal(stored[21], 'C')
 assert.equal(writes, 3)
-console.log('wash queue wire dry test passed (21 columns, repository audit, null echoes, load/unload writes)')
+console.log('wash queue wire dry test passed (22 columns, repository audit, null echoes, load/unload writes)')

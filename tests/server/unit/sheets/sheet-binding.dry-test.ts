@@ -199,7 +199,7 @@ assert.deepEqual(Object.keys(washQueueDbContract.row.shape), [
   'id', 'status', 'photo_url', 'instruction', 'work_minutes', 'loaded_at', 'loaded_by',
   'unloaded_at', 'unloaded_by', 'collected_at', 'collected_by', 'cancelled_at', 'cancelled_by',
   'created_at', 'created_by', 'updated_at', 'updated_by',
-  'weight_before_kg', 'weight_after_kg', 'unload_photo_url', 'machine_id',
+  'weight_before_kg', 'weight_after_kg', 'unload_photo_url', 'machine_id', 'tag_code',
 ])
 assert.deepEqual(washQueueDbContract.writes, { append: true, update: true, delete: false })
 assert.deepEqual(washQueueDbContract.audit, { onAppend: ['created_at', 'updated_at'], onUpdate: ['updated_at'] })
