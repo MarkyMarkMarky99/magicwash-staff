@@ -6,6 +6,7 @@ import BaseBadge from '@/shared/components/BaseBadge.vue'
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
 import { formatBookedAt, formatStartedAt } from '../format-booked-at'
 import { elapsedSeconds, formatElapsed, RUNNING_LONG_SECONDS } from '../format-elapsed'
+import { washOptionLabels } from '../wash-options'
 import { formatKgFigure } from '../format-weights'
 
 type WashQueueDto = z.infer<typeof washQueueRowSchema>
@@ -15,6 +16,7 @@ type PrimaryAction = Exclude<WashQueueRowAction, 'cancel'>
 const props = defineProps<{
   row: WashQueueDto
   sender: string
+  productName?: (id: string) => string
   position?: number
   machine: string
   now?: number
@@ -52,7 +54,7 @@ const figure = computed(() => {
 const meta = computed(() => [
   props.row.status === 'Completed' && props.row.weightBeforeKg !== null ? `Dry ${formatKgFigure(props.row.weightBeforeKg)} kg` : '',
   props.row.status === 'In Progress' && props.row.loadedAt ? formatStartedAt(props.row.loadedAt) : formatBookedAt(props.row.createdAt),
-  props.row.instruction ?? '',
+  props.row.washOptions !== null ? washOptionLabels(props.row.washOptions, props.productName ?? ((id) => id)).join(' · ') : props.row.instruction ?? '',
 ].filter(Boolean).join(' · '))
 const busyLabel = computed(() => props.row.status === 'In Progress' ? 'Unloading…' : props.row.status === 'Completed' ? 'Picking up…' : 'Updating…')
 const primaryPanels = {

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { MachineDto } from '@/data/machines/machines.service'
+import type { WashProductDto } from '@/data/wash-products/wash-products.service'
+import { defaultWashOptions, type WashOptions } from '@/features/wash-queue/wash-options'
 import WashQueueBookDialog from '@/features/wash-queue/components/WashQueueBookDialog.vue'
 
 defineOptions({ name: 'WashQueueBookPreviewPage' })
@@ -15,7 +17,13 @@ const photoUrl = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://
 const open = ref(true)
 const machineId = ref<string | null>(null)
 const tagCode = ref<string | null>(null)
-const instruction = ref('')
+const products: WashProductDto[] = [
+  { id: 'DET-01', type: 'DETERGENT', name: 'Detergent one', status: 'ACTIVE', sortOrder: 1, note: null },
+  { id: 'DET-02', type: 'DETERGENT', name: 'Detergent two', status: 'ACTIVE', sortOrder: 2, note: null },
+  { id: 'SOF-01', type: 'SOFTENER', name: 'Softener', status: 'ACTIVE', sortOrder: 1, note: null },
+  { id: 'BLC-01', type: 'BLEACH', name: 'Bleach', status: 'ACTIVE', sortOrder: 1, note: null },
+]
+const washOptions = ref<WashOptions>(defaultWashOptions(products))
 const status = ref<string | null>(null)
 </script>
 
@@ -25,9 +33,9 @@ const status = ref<string | null>(null)
     <p v-if="status" class="mt-3 text-sm text-on-surface-variant">{{ status }}</p>
     <WashQueueBookDialog
       :open="open" :photo-url="photoUrl" :weight="8.2" :machines="machines" :machine-id="machineId" :tag-code="tagCode"
-      :instruction="instruction" :error="null" :saving="false" :confirm-disabled="!machineId || !tagCode"
+      :wash-options="washOptions" :detergents="products.filter(product => product.type === 'DETERGENT')" :softeners="products.filter(product => product.type === 'SOFTENER')" :bleaches="products.filter(product => product.type === 'BLEACH')" :error="null" :saving="false" :confirm-disabled="!machineId || !tagCode"
       @close="open = false" @confirm="open = false; status = `Preview only, nothing saved: ${machineId} tag ${tagCode}`" @reweigh="status = 'Re-weigh pressed'"
-      @update:machine-id="machineId = $event" @update:tag-code="tagCode = $event" @update:instruction="instruction = $event"
+      @update:machine-id="machineId = $event" @update:tag-code="tagCode = $event" @update:wash-options="washOptions = $event"
     />
   </div>
 </template>

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { MachineDto } from '@/data/machines/machines.service'
 import ConfirmOverlay from '@/shared/layouts/ConfirmOverlay.vue'
-import FormTextarea from '@/shared/components/FormTextarea.vue'
+import type { WashProductDto } from '@/data/wash-products/wash-products.service'
+import type { WashOptions } from '../wash-options'
+import WashQueueWashOptionsForm from './WashQueueWashOptionsForm.vue'
 import { formatKg } from '../format-weights'
 import WashQueueMachinePicker from './WashQueueMachinePicker.vue'
 import WashQueueNotice from './WashQueueNotice.vue'
@@ -14,7 +16,10 @@ defineProps<{
   machines: readonly MachineDto[]
   machineId: string | null
   tagCode: string | null
-  instruction: string
+  washOptions: WashOptions | null
+  detergents: readonly WashProductDto[]
+  softeners: readonly WashProductDto[]
+  bleaches: readonly WashProductDto[]
   error: string | null
   saving: boolean
   confirmDisabled: boolean
@@ -25,7 +30,7 @@ const emit = defineEmits<{
   reweigh: []
   'update:machineId': [machineId: string]
   'update:tagCode': [tagCode: string]
-  'update:instruction': [value: string]
+  'update:washOptions': [value: WashOptions]
 }>()
 </script>
 
@@ -38,7 +43,7 @@ const emit = defineEmits<{
     </div>
     <WashQueueMachinePicker :machines="machines" :model-value="machineId" @update:model-value="emit('update:machineId', $event)" />
     <WashQueueTagPicker :model-value="tagCode" @update:model-value="emit('update:tagCode', $event)" />
-    <FormTextarea id="wash-instruction" label="Note / wash program (optional)" :model-value="instruction" @update:model-value="emit('update:instruction', $event)" />
+    <WashQueueWashOptionsForm v-if="washOptions !== null" :model-value="washOptions" :detergents="detergents" :softeners="softeners" :bleaches="bleaches" @update:model-value="emit('update:washOptions', $event)" />
     <WashQueueNotice v-if="error" class="mb-3" tone="error" :message="error" />
   </ConfirmOverlay>
 </template>

@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import type { z } from 'zod'
 import { washQueueRoutes } from '../../../../../server/modules/wash-queue/wash-queue.module.js'
+import { getWashProductsRepository } from '../../../../../server/sheets/WashProducts/WashProducts.repository.js'
+import { washOptionsSchema, washQueueCreateSchema } from '../../../../../contracts/wash-queue/wash-queue-api.schema.js'
 import { getMachinesRepository } from '../../../../../server/sheets/Machines/Machines.repository.js'
 import { getWashQueueRepository } from '../../../../../server/sheets/WashQueue/WashQueue.repository.js'
 import { washQueueDbContract } from '../../../../../server/sheets/WashQueue/WashQueue.db-contract.js'
@@ -36,11 +38,29 @@ Object.assign(getWashQueueRepository(), {
 })
 Object.assign(getMachinesRepository(), {
   read: async () => [
-    { id: 'WSH15-01', status: 'ACTIVE' },
-    { id: 'DRY08-01', status: 'ACTIVE' },
+    { id: 'WSH15-01', status: 'ACTIVE', type: 'WSH' },
+    { id: 'DRY08-01', status: 'ACTIVE', type: 'DRY' },
     { id: 'WSH15-02', status: 'MAINTENANCE' },
     { id: 'DRY08-02', status: 'RETIRED' },
   ],
+})
+const options = {
+  preRinse: false, soakMinutes: null, extraWash: false, temperature: 'cold',
+  bleach: 'BLC-01', detergent: 'DET-01', softener: 'SOF-01', rinses: 2,
+} as const
+let productReads = 0
+Object.assign(getWashProductsRepository(), {
+  read: async () => {
+    productReads++
+    return [
+      { id: 'DET-01', type: 'DETERGENT', status: 'ACTIVE' },
+      { id: 'SOF-01', type: 'SOFTENER', status: 'ACTIVE' },
+      { id: 'BLC-01', type: 'BLEACH', status: 'ACTIVE' },
+      { id: 'DET-02', type: 'DETERGENT', status: 'INACTIVE' },
+      { id: 'SOF-02', type: 'SOFTENER', status: 'INACTIVE' },
+      { id: 'BLC-02', type: 'BLEACH', status: 'INACTIVE' },
+    ]
+  },
 })
 const staff = { staffId: 'STAFF-operator', email: 'operator@example.com', name: 'Operator', role: 'staff' as const }
 function request(method: string, body?: unknown, id?: string): ApiHandlerRequest {
@@ -51,7 +71,7 @@ function data(result: { status: number; body: unknown }): WashQueueDto {
   return (result.body as { data: WashQueueDto }).data
 }
 async function create(): Promise<WashQueueDto> {
-  return data(await washQueueRoutes.collection.handleRequest(request('POST', { photoUrl: ' https://example.com/basket.jpg ', weightBeforeKg: 12.3, machineId: ' WSH15-01 ', tagCode: ' A ' })))
+  return data(await washQueueRoutes.collection.handleRequest(request('POST', { photoUrl: ' https://example.com/basket.jpg ', weightBeforeKg: 12.3, machineId: ' WSH15-01 ', tagCode: ' A ', washOptions: options, instruction: 'Ignored legacy input' })))
 }
 const invalidCreates = [
   { photoUrl: '', weightBeforeKg: 1 }, { photoUrl: '  ', weightBeforeKg: 1 },
@@ -63,13 +83,13 @@ const invalidCreates = [
 ]
 for (const body of invalidCreates) {
   const before = writes.length
-  assert.equal((await washQueueRoutes.collection.handleRequest(request('POST', { machineId: 'WSH15-01', tagCode: 'A', ...body }))).status, 422)
+  assert.equal((await washQueueRoutes.collection.handleRequest(request('POST', { machineId: 'WSH15-01', tagCode: 'A', washOptions: options, ...body }))).status, 422)
   assert.equal(writes.length, before)
 }
 for (const machineId of [undefined, '', '  ', 'unknown', 'WSH15-02', 'DRY08-02']) {
   const before = writes.length
   const rejected = await washQueueRoutes.collection.handleRequest(request('POST', {
-    photoUrl: 'x', weightBeforeKg: 1, tagCode: 'A', ...(machineId === undefined ? {} : { machineId }),
+    photoUrl: 'x', weightBeforeKg: 1, tagCode: 'A', washOptions: options, ...(machineId === undefined ? {} : { machineId }),
   }))
   assert.equal(rejected.status, 422)
   if (machineId && machineId.trim()) {
@@ -93,15 +113,59 @@ assert.equal(writes[0]!.machine_id, 'WSH15-01')
 assert.equal(writes[0]!.tag_code, 'A')
 assert.equal(created.tagCode, 'A')
 assert.equal(created.instruction, null)
+assert.equal(writes[0]!.instruction, null)
+assert.equal(writes[0]!.wash_options, JSON.stringify(options))
+assert.deepEqual(created.washOptions, options)
 assert.equal(created.createdAt, created.updatedAt)
 assert.match(created.createdAt, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
 assert.deepEqual(washQueueDbContract.audit.onAppend, ['created_at', 'updated_at'])
-const noted = data(await washQueueRoutes.collection.handleRequest(request('POST', { photoUrl: 'x', instruction: 'Gentle wash', weightBeforeKg: 200, machineId: 'DRY08-01', tagCode: 'Z' })))
-assert.equal(noted.instruction, 'Gentle wash')
+const noted = data(await washQueueRoutes.collection.handleRequest(request('POST', { photoUrl: 'x', instruction: 'Gentle wash', weightBeforeKg: 200, machineId: 'DRY08-01', tagCode: 'Z', washOptions: null })))
+assert.equal(noted.instruction, null)
+assert.equal(noted.washOptions, null)
+assert.equal(writes.at(-1)!.wash_options, null)
+assert.equal(productReads, 1, 'dryer does not read products')
 assert.equal(noted.weightBeforeKg, 200)
 assert.equal(noted.machineId, 'DRY08-01')
-const light = data(await washQueueRoutes.collection.handleRequest(request('POST', { photoUrl: 'x', weightBeforeKg: 0.1, machineId: 'WSH15-01', tagCode: 'B' })))
+const light = data(await washQueueRoutes.collection.handleRequest(request('POST', { photoUrl: 'x', weightBeforeKg: 0.1, machineId: 'WSH15-01', tagCode: 'B', washOptions: options })))
 assert.equal(light.weightBeforeKg, 0.1)
+
+const booking = { photoUrl: 'x', weightBeforeKg: 1, machineId: 'WSH15-01', tagCode: 'A', washOptions: options }
+for (const [body, message] of [
+  [{ ...booking, washOptions: null }, 'Choose the wash options.'],
+  [{ ...booking, machineId: 'DRY08-01' }, 'Dryer bookings have no wash options.'],
+] as const) {
+  const before = writes.length
+  const readsBefore: number = productReads
+  const rejected = await washQueueRoutes.collection.handleRequest(request('POST', body))
+  assert.equal(rejected.status, 422)
+  assert.equal((rejected.body as { error: { message: string } }).error.message, message)
+  assert.equal(writes.length, before)
+  assert.equal(productReads, readsBefore)
+}
+assert.equal(washQueueCreateSchema.safeParse({ photoUrl: 'x', weightBeforeKg: 1, machineId: 'WSH15-01', tagCode: 'A' }).success, false)
+for (const [field, ids] of [
+  ['detergent', ['unknown', 'SOF-01', 'DET-02']],
+  ['softener', ['unknown', 'BLC-01', 'SOF-02']],
+  ['bleach', ['unknown', 'DET-01', 'BLC-02']],
+] as const) for (const id of ids) {
+  const before = writes.length
+  const rejected = await washQueueRoutes.collection.handleRequest(request('POST', { ...booking, washOptions: { ...options, [field]: id } }))
+  assert.equal(rejected.status, 422)
+  assert.equal((rejected.body as { error: { message: string } }).error.message, 'Choose an available product.')
+  assert.equal(writes.length, before)
+}
+for (const patch of [
+  { soakMinutes: 0 }, { soakMinutes: 721 }, { soakMinutes: 1.5 }, { soakMinutes: '1' },
+  { preRinse: 'false' }, { extraWash: null }, { temperature: '30' }, { rinses: 4 },
+  { detergent: 1 }, { unknown: true },
+]) {
+  const before = writes.length
+  assert.equal((await washQueueRoutes.collection.handleRequest(request('POST', { ...booking, washOptions: { ...options, ...patch } }))).status, 422)
+  assert.equal(writes.length, before)
+}
+for (const soakMinutes of [null, 1, 720]) assert.ok(washOptionsSchema.safeParse({ ...options, soakMinutes }).success)
+const noProducts = { ...options, bleach: null, detergent: null, softener: null }
+assert.deepEqual(data(await washQueueRoutes.collection.handleRequest(request('POST', { ...booking, washOptions: noProducts }))).washOptions, noProducts)
 
 const cases = [
   { action: 'load', from: ['Pending'], to: 'In Progress', at: 'loadedAt', by: 'loadedBy' },
@@ -190,4 +254,17 @@ const numericList = (await washQueueRoutes.collection.handleRequest(request('GET
 const later = numericList.data.find((row) => row.id === 'later')!
 assert.equal(later.weightBeforeKg, null)
 assert.equal(later.weightAfterKg, 15.4)
+for (const [value, expected] of [
+  [JSON.stringify(options), options], ['', null], [null, null], [undefined, null],
+  ['{broken', null], ['{}', null], ['null', null],
+  [JSON.stringify({ ...options, rinses: 4 }), null],
+  [JSON.stringify({ ...options, unknown: true }), null],
+] as const) {
+  rows[0]!.wash_options = value
+  rows[0]!.instruction = 'Legacy note'
+  const result = (await washQueueRoutes.collection.handleRequest(request('GET'))).body as { data: WashQueueDto[] }
+  const row = result.data.find((row) => row.id === 'later')!
+  assert.deepEqual(row.washOptions, expected)
+  assert.equal(row.instruction, 'Legacy note')
+}
 console.log('wash queue dry test passed (create, 6 transitions, 18 conflicts, 6 missing IDs, list, weight validation, strict payloads)')

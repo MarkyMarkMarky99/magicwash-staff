@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import type { z } from 'zod'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { LocationQueryRaw } from 'vue-router'
 import { useRoute, useRouter } from 'vue-router'
 import type { washQueueRowSchema, washQueueUpdateSchema } from '@contracts/wash-queue/wash-queue-api.schema'
 import { useWashQueueStore } from '@/data/wash-queue/wash-queue.store'
+import { defaultWashOptions, type WashOptions } from '../wash-options'
+import { useWashProductsStore } from '@/data/wash-products/wash-products.store'
 import { useMachinesStore } from '@/data/machines/machines.store'
 import { useAuthStore } from '@/data/auth/auth.store'
 import { useStaffStore } from '@/data/staff/staff.store'
@@ -36,6 +38,7 @@ const route = useRoute()
 const router = useRouter()
 const store = useWashQueueStore()
 const machines = useMachinesStore()
+const products = useWashProductsStore()
 const auth = useAuthStore()
 const staff = useStaffStore()
 const weigh = useWeighFlow()
@@ -45,7 +48,7 @@ const photoUrl = ref('')
 const draftWeight = ref<number | null>(null)
 const draftMachineId = ref<string | null>(null)
 const draftTagCode = ref<string | null>(null)
-const instruction = ref('')
+const draftWashOptions = ref<WashOptions | null>(null)
 const draftOpen = ref(false)
 const uploading = ref(false)
 const saving = ref(false)
@@ -80,6 +83,12 @@ const waitingPosition = computed(() => {
   return positions
 })
 const pickerMachines = computed(() => machines.items.filter(machine => machine.status === 'ACTIVE' && machine.type === (mode.value === 'dryer' ? 'DRY' : 'WSH')))
+const chosenMachine = computed(() => machines.items.find(machine => machine.id === draftMachineId.value))
+watch(chosenMachine, (machine) => {
+  if (machine?.type === 'WSH' && draftWashOptions.value === null) draftWashOptions.value = defaultWashOptions(products.items)
+  else if (machine?.type === 'DRY') draftWashOptions.value = null
+}, { flush: 'sync' })
+const washOptionsChosen = computed(() => chosenMachine.value?.type !== 'WSH' || draftWashOptions.value !== null)
 const machineChosen = computed(() => pickerMachines.value.some(machine => machine.id === draftMachineId.value))
 const tabKeys = ['all', 'waiting', 'in-machine', 'ready'] as const
 type TabKey = typeof tabKeys[number]
@@ -174,9 +183,6 @@ function setBusy(id: string, busy: boolean): void {
   else next.delete(id)
   busyIds.value = next
 }
-function inputInstruction(value: string): void {
-  instruction.value = value
-}
 async function capture(file: File): Promise<void> {
   const target = weigh.target.value
   const weight = weigh.weight.value
@@ -224,7 +230,7 @@ function discardDraft(): void {
   draftWeight.value = null
   draftMachineId.value = null
   draftTagCode.value = null
-  instruction.value = ''
+  draftWashOptions.value = null
   bookError.value = null
 }
 function reweigh(): void {
@@ -235,17 +241,17 @@ function reweigh(): void {
 async function submit(): Promise<void> {
   const machineId = draftMachineId.value
   const tagCode = draftTagCode.value
-  if (!photoUrl.value || draftWeight.value === null || !machineId || !machineChosen.value || !tagCode || saving.value) return
+  if (!photoUrl.value || draftWeight.value === null || !machineId || !machineChosen.value || !tagCode || !washOptionsChosen.value || saving.value) return
   saving.value = true
   bookError.value = null
   try {
-    await store.create({ machineId, photoUrl: photoUrl.value, instruction: instruction.value.trim() || null, weightBeforeKg: draftWeight.value, tagCode })
+    await store.create({ machineId, photoUrl: photoUrl.value, washOptions: draftWashOptions.value, weightBeforeKg: draftWeight.value, tagCode })
     draftOpen.value = false
     photoUrl.value = ''
     draftWeight.value = null
     draftMachineId.value = null
     draftTagCode.value = null
-    instruction.value = ''
+    draftWashOptions.value = null
     showSuccess(`Basket booked. ${waiting.value.length} waiting in the queue.`)
   } catch (reason) {
     bookError.value = reason instanceof ApiError ? reason.message : 'Booking failed. Check your connection and try again.'
@@ -291,6 +297,7 @@ function refreshVisible(): void {
 onMounted(() => {
   void store.load()
   void machines.load()
+  void products.load()
   if (!staff.loaded) void staff.load()
   timer = setInterval(refresh, 30_000)
   document.addEventListener('visibilitychange', refreshVisible)
@@ -310,10 +317,11 @@ onUnmounted(() => {
       <GenericTabs :tabs="tabs" :active-key="activeTab" @select="changeTab" />
     </template>
 
-    <div v-if="notice || staff.error || machines.error" class="space-y-2 px-4 pt-3">
+    <div v-if="notice || staff.error || machines.error || products.error" class="space-y-2 px-4 pt-3">
       <WashQueueNotice v-if="notice" tone="error" :message="notice" :dismissible="Boolean(errorMessage)" @dismiss="errorMessage = null" />
       <WashQueueNotice v-if="staff.error" tone="warning" message="Could not load staff names." />
       <WashQueueNotice v-if="machines.error" tone="warning" :message="machines.error" />
+      <WashQueueNotice v-if="products.error" tone="warning" :message="products.error" />
     </div>
 
     <div v-if="!topSection" class="flex justify-end px-4 pt-3">
@@ -340,7 +348,7 @@ onUnmounted(() => {
         <template v-if="topSection === 'machine'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="weigh.open('book')" />
         </template>
-        <WashQueueRow v-for="row in inMachine" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :now="now" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
+        <WashQueueRow v-for="row in inMachine" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :product-name="products.nameOf" :now="now" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
         <li v-if="emptySection === 'machine'" class="px-1 py-4 text-sm italic text-on-surface-variant">{{ emptyText }}</li>
       </WashQueueSection>
 
@@ -348,7 +356,7 @@ onUnmounted(() => {
         <template v-if="topSection === 'waiting'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="weigh.open('book')" />
         </template>
-        <WashQueueRow v-for="row in waiting" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :position="waitingPosition.get(row.id)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
+        <WashQueueRow v-for="row in waiting" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :product-name="products.nameOf" :position="waitingPosition.get(row.id)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
         <li v-if="emptySection === 'waiting'" class="px-1 py-4 text-sm italic text-on-surface-variant">{{ emptyText }}</li>
       </WashQueueSection>
 
@@ -356,7 +364,7 @@ onUnmounted(() => {
         <template v-if="topSection === 'ready'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="weigh.open('book')" />
         </template>
-        <WashQueueRow v-for="row in ready" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
+        <WashQueueRow v-for="row in ready" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :product-name="products.nameOf" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
         <li v-if="emptySection === 'ready'" class="px-1 py-4 text-sm italic text-on-surface-variant">{{ emptyText }}</li>
       </WashQueueSection>
     </template>
@@ -372,8 +380,8 @@ onUnmounted(() => {
     <PhotoViewer v-if="activePhoto" :images="images" :active-id="activePhoto" @change="photo.change" @close="photo.close" />
     <WashQueueBookDialog
       :open="draftOpen" :photo-url="photoUrl" :weight="draftWeight" :machines="pickerMachines" :machine-id="draftMachineId" :tag-code="draftTagCode"
-      :instruction="instruction" :error="bookError" :saving="saving" :confirm-disabled="saving || !photoUrl || draftWeight === null || !machineChosen || !draftTagCode"
-      @close="discardDraft" @confirm="submit" @reweigh="reweigh" @update:machine-id="chooseMachine" @update:tag-code="chooseTag" @update:instruction="inputInstruction"
+      :wash-options="draftWashOptions" :detergents="products.activeOf('DETERGENT')" :softeners="products.activeOf('SOFTENER')" :bleaches="products.activeOf('BLEACH')" :error="bookError" :saving="saving" :confirm-disabled="saving || !photoUrl || draftWeight === null || !machineChosen || !draftTagCode || !washOptionsChosen"
+      @close="discardDraft" @confirm="submit" @reweigh="reweigh" @update:machine-id="chooseMachine" @update:tag-code="chooseTag" @update:wash-options="draftWashOptions = $event"
     />
     <ConfirmOverlay :open="Boolean(cancelRow)" title="Cancel this booking?" :description="cancelDescription" cancel-label="Keep booking" confirm-label="Cancel booking" @close="cancelRow = null" @confirm="confirmCancel" />
   </ListPageLayout>

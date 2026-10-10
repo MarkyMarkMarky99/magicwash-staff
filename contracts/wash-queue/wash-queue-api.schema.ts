@@ -9,9 +9,21 @@ const weightKgSchema = z.number().refine((value) => parseWeightKg(String(value))
   message: `Weight must be positive, at most ${MAX_ORDER_IMAGE_WEIGHT_KG} kg, with at most one decimal place.`,
 })
 
+export const washOptionsSchema = z.object({
+  preRinse: z.boolean(),
+  soakMinutes: z.number().int().min(1).max(720).nullable(),
+  extraWash: z.boolean(),
+  temperature: z.enum(['cold', '40', '60']),
+  bleach: z.string().nullable(),
+  detergent: z.string().nullable(),
+  softener: z.string().nullable(),
+  rinses: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+}).strict()
+
 export const washQueueCreateSchema = z.object({
   machineId: z.string().trim().min(1),
   photoUrl: z.string().trim().min(1),
+  washOptions: washOptionsSchema.nullable(),
   instruction: z.string().nullable().optional(),
   weightBeforeKg: weightKgSchema,
   tagCode: z.string().trim().regex(/^[A-Z]$/, 'Choose a tag from A to Z.'),
@@ -28,6 +40,7 @@ export const washQueueRowSchema = z.object({
   id: z.string(),
   status: washQueueStatusSchema,
   photoUrl: z.string(),
+  washOptions: washOptionsSchema.nullable(),
   instruction: z.string().nullable(),
   workMinutes: z.number().nullable(),
   loadedAt: z.string().nullable(),

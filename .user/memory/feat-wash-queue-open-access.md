@@ -3,6 +3,8 @@
 - Owner request 2026-10-10: every signed-in staff can book, load, unload, pick up, cancel any basket; FIFO load lock removed.
 - Swipe hint line removed; page opens on Waiting (`?tab=all` for All); empty Dryer/Washer views show the tab's section header + Photo button.
 - `tag_code` (A–Z, one pool for washer+dryer, no duplicate check, required on new bookings) in contracts, API, booking dialog, row badge; G Drive WashQueue.json updated.
-- Order: deploy first, then add sheet column `tag_code` (col V, after `machine_id`) — owner wants Sonnet to add it via browser; until then new bookings fail.
+- `wash_options` JSON (washer only) + read-only `WashProducts` sheet/API built; WashProducts tab created (headers only, owner fills products).
+- `WashQueueWashOptionsForm.vue` is a plain placeholder; design via fast-design (Sonnet) keeping its props/emits.
+- Order: deploy first, then add WashQueue columns `tag_code` (V) and `wash_options` (W); until then new bookings fail.
 - Dev preview of the booking dialog: `/#/dev/wash-queue-book` (dev only, saves nothing).
 - Not browser-checked on the real page as a non-admin.

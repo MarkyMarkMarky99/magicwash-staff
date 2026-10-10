@@ -24,6 +24,7 @@ export const washQueueRowSchema = z.object({
   unload_photo_url: z.string().nullable(),
   machine_id: z.string().nullable(),
   tag_code: z.string().nullable(),
+  wash_options: z.string().nullable(),
 }).strict()
 export const washQueueDbContract = {
   row: washQueueRowSchema,
