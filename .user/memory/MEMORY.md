@@ -6,7 +6,7 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
-- **`feat/wash-queue-open-access`** — WashQueue open access, A–Z `tag_code`, `wash_options` + WashProducts; not pushed; WashQueue columns only after deploy; see `.user/memory/feat-wash-queue-open-access.md`.
+- **`feat/wash-queue-open-access`** — WashQueue open access, A–Z `tag_code`, wash program steps + WashProducts/WashPrograms; not pushed; WashQueue columns only after deploy; see `.user/memory/feat-wash-queue-open-access.md`.
 
 ## Pending work
 - **Wash queue + dryer queue (merged 2026-10-10, prod, not staff-tested)** — see `docs/features/wash-queue/wash-queue.md`

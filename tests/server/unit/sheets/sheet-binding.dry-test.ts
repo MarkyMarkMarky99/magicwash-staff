@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { washProgramsDbContract } from '../../../../server/sheets/WashPrograms/WashPrograms.db-contract.js'
 import { washProductsDbContract } from '../../../../server/sheets/WashProducts/WashProducts.db-contract.js'
 import { machinesDbContract } from '../../../../server/sheets/Machines/Machines.db-contract.js'
 import { washQueueDbContract } from '../../../../server/sheets/WashQueue/WashQueue.db-contract.js'
@@ -29,7 +30,7 @@ import { jobTicketsDbContract } from '../../../../server/sheets/JobTickets/JobTi
 import { workTransactionsDbContract } from '../../../../server/sheets/WorkTransactions/WorkTransactions.db-contract.js'
 import { workRatesDbContract } from '../../../../server/sheets/WorkRates/WorkRates.db-contract.js'
 
-const expectedSheetCount = 26
+const expectedSheetCount = 27
 const expectedSheetDirectories = [
   'BagItems',
   'AfterPhoto',
@@ -53,6 +54,7 @@ const expectedSheetDirectories = [
   'Packages',
   'Payments',
   'PriceList',
+  'WashPrograms',
   'WashProducts',
   'WashQueue',
   'WorkRates',
@@ -60,6 +62,7 @@ const expectedSheetDirectories = [
 ] as const
 
 const bindings = [
+  { name: 'WashPrograms', contract: washProgramsDbContract, expectedSpreadsheetId: 'JOB_TICKETS_SPREADSHEET_ID', expectedSheetName: 'WashPrograms' },
   { name: 'WashProducts', contract: washProductsDbContract, expectedSpreadsheetId: 'JOB_TICKETS_SPREADSHEET_ID', expectedSheetName: 'WashProducts' },
   { name: 'Machines', contract: machinesDbContract, expectedSpreadsheetId: 'JOB_TICKETS_SPREADSHEET_ID', expectedSheetName: 'Machines' },
   { name: 'WashQueue', contract: washQueueDbContract, expectedSpreadsheetId: 'JOB_TICKETS_SPREADSHEET_ID', expectedSheetName: 'WashQueue' },
@@ -220,6 +223,12 @@ assert.deepEqual(Object.keys(washProductsDbContract.row.shape), [
 ])
 assert.deepEqual(washProductsDbContract.writes, { append: false, update: false, delete: false })
 assert.equal('audit' in washProductsDbContract, false)
+
+assert.deepEqual(Object.keys(washProgramsDbContract.row.shape), [
+  'id', 'program_id', 'program_name', 'step_no', 'step_type', 'products', 'temperature', 'duration', 'status', 'sort_order', 'created_at', 'updated_at',
+])
+assert.deepEqual(washProgramsDbContract.writes, { append: false, update: false, delete: false })
+assert.equal('audit' in washProgramsDbContract, false)
 
 const sheetRoot = fileURLToPath(new URL('../../../../server/sheets/', import.meta.url))
 const filesystemSheetDirectories = readdirSync(sheetRoot, { withFileTypes: true })

@@ -6,6 +6,7 @@ import { useRoute, useRouter } from 'vue-router'
 import type { washQueueRowSchema, washQueueUpdateSchema } from '@contracts/wash-queue/wash-queue-api.schema'
 import { useWashQueueStore } from '@/data/wash-queue/wash-queue.store'
 import { defaultWashOptions, type WashOptions } from '../wash-options'
+import { useWashProgramsStore } from '@/data/wash-programs/wash-programs.store'
 import { useWashProductsStore } from '@/data/wash-products/wash-products.store'
 import { useMachinesStore } from '@/data/machines/machines.store'
 import { useAuthStore } from '@/data/auth/auth.store'
@@ -39,6 +40,8 @@ const router = useRouter()
 const store = useWashQueueStore()
 const machines = useMachinesStore()
 const products = useWashProductsStore()
+const programs = useWashProgramsStore()
+const stepsValid = ref(true)
 const auth = useAuthStore()
 const staff = useStaffStore()
 const weigh = useWeighFlow()
@@ -85,10 +88,10 @@ const waitingPosition = computed(() => {
 const pickerMachines = computed(() => machines.items.filter(machine => machine.status === 'ACTIVE' && machine.type === (mode.value === 'dryer' ? 'DRY' : 'WSH')))
 const chosenMachine = computed(() => machines.items.find(machine => machine.id === draftMachineId.value))
 watch(chosenMachine, (machine) => {
-  if (machine?.type === 'WSH' && draftWashOptions.value === null) draftWashOptions.value = defaultWashOptions(products.items)
+  if (machine?.type === 'WSH' && draftWashOptions.value === null) draftWashOptions.value = defaultWashOptions(programs.active())
   else if (machine?.type === 'DRY') draftWashOptions.value = null
 }, { flush: 'sync' })
-const washOptionsChosen = computed(() => chosenMachine.value?.type !== 'WSH' || draftWashOptions.value !== null)
+const washOptionsChosen = computed(() => chosenMachine.value?.type !== 'WSH' || (draftWashOptions.value !== null && draftWashOptions.value.steps.length > 0 && stepsValid.value))
 const machineChosen = computed(() => pickerMachines.value.some(machine => machine.id === draftMachineId.value))
 const tabKeys = ['all', 'waiting', 'in-machine', 'ready'] as const
 type TabKey = typeof tabKeys[number]
@@ -298,6 +301,7 @@ onMounted(() => {
   void store.load()
   void machines.load()
   void products.load()
+  void programs.load()
   if (!staff.loaded) void staff.load()
   timer = setInterval(refresh, 30_000)
   document.addEventListener('visibilitychange', refreshVisible)
@@ -317,10 +321,11 @@ onUnmounted(() => {
       <GenericTabs :tabs="tabs" :active-key="activeTab" @select="changeTab" />
     </template>
 
-    <div v-if="notice || staff.error || machines.error || products.error" class="space-y-2 px-4 pt-3">
+    <div v-if="notice || staff.error || machines.error || products.error || programs.error" class="space-y-2 px-4 pt-3">
       <WashQueueNotice v-if="notice" tone="error" :message="notice" :dismissible="Boolean(errorMessage)" @dismiss="errorMessage = null" />
       <WashQueueNotice v-if="staff.error" tone="warning" message="Could not load staff names." />
       <WashQueueNotice v-if="machines.error" tone="warning" :message="machines.error" />
+      <WashQueueNotice v-if="programs.error" tone="warning" :message="programs.error" />
       <WashQueueNotice v-if="products.error" tone="warning" :message="products.error" />
     </div>
 
@@ -348,7 +353,7 @@ onUnmounted(() => {
         <template v-if="topSection === 'machine'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="weigh.open('book')" />
         </template>
-        <WashQueueRow v-for="row in inMachine" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :product-name="products.nameOf" :now="now" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
+        <WashQueueRow v-for="row in inMachine" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :program-name="programs.nameOf" :now="now" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
         <li v-if="emptySection === 'machine'" class="px-1 py-4 text-sm italic text-on-surface-variant">{{ emptyText }}</li>
       </WashQueueSection>
 
@@ -356,7 +361,7 @@ onUnmounted(() => {
         <template v-if="topSection === 'waiting'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="weigh.open('book')" />
         </template>
-        <WashQueueRow v-for="row in waiting" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :product-name="products.nameOf" :position="waitingPosition.get(row.id)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
+        <WashQueueRow v-for="row in waiting" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :program-name="programs.nameOf" :position="waitingPosition.get(row.id)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
         <li v-if="emptySection === 'waiting'" class="px-1 py-4 text-sm italic text-on-surface-variant">{{ emptyText }}</li>
       </WashQueueSection>
 
@@ -364,7 +369,7 @@ onUnmounted(() => {
         <template v-if="topSection === 'ready'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="weigh.open('book')" />
         </template>
-        <WashQueueRow v-for="row in ready" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :product-name="products.nameOf" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
+        <WashQueueRow v-for="row in ready" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :program-name="programs.nameOf" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
         <li v-if="emptySection === 'ready'" class="px-1 py-4 text-sm italic text-on-surface-variant">{{ emptyText }}</li>
       </WashQueueSection>
     </template>
@@ -380,7 +385,7 @@ onUnmounted(() => {
     <PhotoViewer v-if="activePhoto" :images="images" :active-id="activePhoto" @change="photo.change" @close="photo.close" />
     <WashQueueBookDialog
       :open="draftOpen" :photo-url="photoUrl" :weight="draftWeight" :machines="pickerMachines" :machine-id="draftMachineId" :tag-code="draftTagCode"
-      :wash-options="draftWashOptions" :detergents="products.activeOf('DETERGENT')" :softeners="products.activeOf('SOFTENER')" :bleaches="products.activeOf('BLEACH')" :error="bookError" :saving="saving" :confirm-disabled="saving || !photoUrl || draftWeight === null || !machineChosen || !draftTagCode || !washOptionsChosen"
+      :wash-options="draftWashOptions" :programs="programs.active()" :products="products.items.filter((product) => product.status === 'ACTIVE')" :product-name="products.nameOf" @update:steps-valid="stepsValid = $event" :error="bookError" :saving="saving" :confirm-disabled="saving || !photoUrl || draftWeight === null || !machineChosen || !draftTagCode || !washOptionsChosen"
       @close="discardDraft" @confirm="submit" @reweigh="reweigh" @update:machine-id="chooseMachine" @update:tag-code="chooseTag" @update:wash-options="draftWashOptions = $event"
     />
     <ConfirmOverlay :open="Boolean(cancelRow)" title="Cancel this booking?" :description="cancelDescription" cancel-label="Keep booking" confirm-label="Cancel booking" @close="cancelRow = null" @confirm="confirmCancel" />

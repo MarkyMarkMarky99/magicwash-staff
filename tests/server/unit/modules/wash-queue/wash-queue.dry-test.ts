@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import type { z } from 'zod'
 import { washQueueRoutes } from '../../../../../server/modules/wash-queue/wash-queue.module.js'
+import { getWashProgramsRepository } from '../../../../../server/sheets/WashPrograms/WashPrograms.repository.js'
 import { getWashProductsRepository } from '../../../../../server/sheets/WashProducts/WashProducts.repository.js'
 import { washOptionsSchema, washQueueCreateSchema } from '../../../../../contracts/wash-queue/wash-queue-api.schema.js'
 import { getMachinesRepository } from '../../../../../server/sheets/Machines/Machines.repository.js'
@@ -45,9 +46,22 @@ Object.assign(getMachinesRepository(), {
   ],
 })
 const options = {
-  preRinse: false, soakMinutes: null, extraWash: false, temperature: 'cold',
-  bleach: 'BLC-01', detergent: 'DET-01', softener: 'SOF-01', rinses: 2,
-} as const
+  program: 'SPA', steps: [
+    { type: 'quick_wash', products: ['BLC-01', 'SOF-01'], temperature: 'cold' },
+    { type: 'soak', products: ['DET-01'], duration: 'overnight' },
+    { type: 'rinse', products: [] },
+  ],
+}
+let programReads = 0
+Object.assign(getWashProgramsRepository(), {
+  read: async () => {
+    programReads++
+    return [
+      { id: 'SPA-01', program_id: 'SPA', program_name: 'Spa', step_no: 1, step_type: 'rinse', products: '', status: 'ACTIVE', sort_order: 1 },
+      { id: 'OLD-01', program_id: 'OLD', program_name: 'Old', step_no: 1, step_type: 'rinse', products: '', status: 'INACTIVE', sort_order: null },
+    ]
+  },
+})
 let productReads = 0
 Object.assign(getWashProductsRepository(), {
   read: async () => {
@@ -131,7 +145,7 @@ assert.equal(light.weightBeforeKg, 0.1)
 
 const booking = { photoUrl: 'x', weightBeforeKg: 1, machineId: 'WSH15-01', tagCode: 'A', washOptions: options }
 for (const [body, message] of [
-  [{ ...booking, washOptions: null }, 'Choose the wash options.'],
+  [{ ...booking, washOptions: null }, 'Choose the wash program.'],
   [{ ...booking, machineId: 'DRY08-01' }, 'Dryer bookings have no wash options.'],
 ] as const) {
   const before = writes.length
@@ -143,28 +157,57 @@ for (const [body, message] of [
   assert.equal(productReads, readsBefore)
 }
 assert.equal(washQueueCreateSchema.safeParse({ photoUrl: 'x', weightBeforeKg: 1, machineId: 'WSH15-01', tagCode: 'A' }).success, false)
-for (const [field, ids] of [
-  ['detergent', ['unknown', 'SOF-01', 'DET-02']],
-  ['softener', ['unknown', 'BLC-01', 'SOF-02']],
-  ['bleach', ['unknown', 'DET-01', 'BLC-02']],
-] as const) for (const id of ids) {
+assert.equal(programReads, 2, 'dryer does not read programs')
+for (const program of ['unknown', 'OLD']) {
   const before = writes.length
-  const rejected = await washQueueRoutes.collection.handleRequest(request('POST', { ...booking, washOptions: { ...options, [field]: id } }))
+  const rejected = await washQueueRoutes.collection.handleRequest(request('POST', { ...booking, washOptions: { ...options, program } }))
   assert.equal(rejected.status, 422)
-  assert.equal((rejected.body as { error: { message: string } }).error.message, 'Choose an available product.')
+  assert.equal((rejected.body as { error: { message: string } }).error.message, 'Choose an available program.')
   assert.equal(writes.length, before)
 }
-for (const patch of [
-  { soakMinutes: 0 }, { soakMinutes: 721 }, { soakMinutes: 1.5 }, { soakMinutes: '1' },
-  { preRinse: 'false' }, { extraWash: null }, { temperature: '30' }, { rinses: 4 },
-  { detergent: 1 }, { unknown: true },
+for (const type of ['stain_removal', 'normal_wash', 'quick_wash', 'rinse', 'soak']) for (const id of ['unknown', 'DET-02', 'SOF-02', 'BLC-02']) {
+  const step = { type, products: [id], ...(type === 'soak' ? { duration: 'overnight' } : type === 'stain_removal' || type === 'rinse' ? {} : { temperature: 'cold' }) }
+  const before = writes.length
+  const rejected = await washQueueRoutes.collection.handleRequest(request('POST', { ...booking, washOptions: { program: 'CUSTOM', steps: [step] } }))
+  assert.equal(rejected.status, 422)
+  const message = (rejected.body as { error: { message: string } }).error.message
+  assert.ok(message.includes(id) && message.endsWith(' is not an available product. Remove it from the step.'), message)
+  assert.equal(writes.length, before)
+}
+for (const invalid of [
+  { program: '', steps: options.steps }, { program: 'CUSTOM', steps: [] },
+  { program: 'CUSTOM', steps: Array.from({ length: 21 }, () => ({ type: 'rinse', products: [] })) },
+  { program: 'CUSTOM', steps: [{ type: 'rinse', products: ['DET-01', ' DET-01 '] }] },
+  { program: 'CUSTOM', steps: [{ type: 'rinse', products: [''] }] },
+  { program: 'CUSTOM', steps: [{ type: 'rinse', products: Array.from({ length: 11 }, (_, i) => String(i)) }] },
+  ...[0, 721, 1.5, '1', 'OVERNIGHT'].map((duration) => ({ program: 'CUSTOM', steps: [{ type: 'soak', products: [], duration }] })),
+  { program: 'CUSTOM', steps: [{ type: 'normal_wash', products: [], temperature: '30' }] },
+  { program: 'CUSTOM', steps: [{ type: 'normal_wash', products: [] }] },
+  { program: 'CUSTOM', steps: [{ type: 'rinse', products: [], temperature: 'cold' }] },
+  { program: 'CUSTOM', steps: [{ type: 'soak', products: [], duration: 30, unknown: true }] },
+  { program: 'CUSTOM', steps: [{ type: 'stain_removal', products: [], temperature: 'cold' }] },
+  { program: 'CUSTOM', steps: [{ type: 'stain_removal', products: [], duration: 30 }] },
+  { program: 'CUSTOM', steps: [{ type: 'stain_removal', products: ['DET-01', ' DET-01 '] }] },
+  { program: 'CUSTOM', steps: [{ type: 'stain_removal', products: [''] }] },
+  { program: 'CUSTOM', steps: [{ type: 'stain_removal', products: Array.from({ length: 11 }, (_, i) => String(i)) }] },
+  { ...options, unknown: true },
 ]) {
   const before = writes.length
-  assert.equal((await washQueueRoutes.collection.handleRequest(request('POST', { ...booking, washOptions: { ...options, ...patch } }))).status, 422)
+  assert.equal(washOptionsSchema.safeParse(invalid).success, false)
+  assert.equal((await washQueueRoutes.collection.handleRequest(request('POST', { ...booking, washOptions: invalid }))).status, 422)
   assert.equal(writes.length, before)
 }
-for (const soakMinutes of [null, 1, 720]) assert.ok(washOptionsSchema.safeParse({ ...options, soakMinutes }).success)
-const noProducts = { ...options, bleach: null, detergent: null, softener: null }
+for (const duration of [1, 720, 'overnight']) assert.ok(washOptionsSchema.safeParse({ program: 'CUSTOM', steps: [{ type: 'soak', products: [], duration }] }).success)
+assert.ok(washOptionsSchema.safeParse({ program: 'CUSTOM', steps: [{ type: 'stain_removal', products: [] }] }).success)
+assert.ok(washOptionsSchema.safeParse({ program: 'CUSTOM', steps: [{ type: 'stain_removal', products: Array.from({ length: 10 }, (_, i) => String(i)) }] }).success)
+const readsBeforeCustom = programReads
+for (const type of ['stain_removal', 'quick_wash', 'normal_wash', 'rinse', 'soak']) {
+  const step = { type, products: ['DET-01', 'BLC-01', 'SOF-01'], ...(type === 'soak' ? { duration: 'overnight' } : type === 'stain_removal' || type === 'rinse' ? {} : { temperature: 'cold' }) }
+  const custom = { program: 'CUSTOM', steps: [step] }
+  assert.deepEqual(data(await washQueueRoutes.collection.handleRequest(request('POST', { ...booking, washOptions: custom }))).washOptions, custom, 'any product type is accepted in any step')
+}
+assert.equal(programReads, readsBeforeCustom, 'CUSTOM does not read WashPrograms')
+const noProducts = { program: 'CUSTOM', steps: [{ type: 'rinse', products: [] }] }
 assert.deepEqual(data(await washQueueRoutes.collection.handleRequest(request('POST', { ...booking, washOptions: noProducts }))).washOptions, noProducts)
 
 const cases = [
@@ -257,7 +300,7 @@ assert.equal(later.weightAfterKg, 15.4)
 for (const [value, expected] of [
   [JSON.stringify(options), options], ['', null], [null, null], [undefined, null],
   ['{broken', null], ['{}', null], ['null', null],
-  [JSON.stringify({ ...options, rinses: 4 }), null],
+  [JSON.stringify({ ...options, steps: [] }), null],
   [JSON.stringify({ ...options, unknown: true }), null],
 ] as const) {
   rows[0]!.wash_options = value

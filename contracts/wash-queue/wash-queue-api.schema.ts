@@ -9,15 +9,16 @@ const weightKgSchema = z.number().refine((value) => parseWeightKg(String(value))
   message: `Weight must be positive, at most ${MAX_ORDER_IMAGE_WEIGHT_KG} kg, with at most one decimal place.`,
 })
 
+const stepProductsSchema = z.array(z.string().trim().min(1)).max(10)
+  .refine((products) => new Set(products).size === products.length, 'Products must be unique within a step.')
+export const washStepSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('stain_removal'), products: stepProductsSchema }).strict(),
+  z.object({ type: z.enum(['quick_wash', 'normal_wash']), products: stepProductsSchema, temperature: z.enum(['cold', '40', '60']) }).strict(),
+  z.object({ type: z.literal('rinse'), products: stepProductsSchema }).strict(),
+  z.object({ type: z.literal('soak'), products: stepProductsSchema, duration: z.union([z.number().int().min(1).max(720), z.literal('overnight')]) }).strict(),
+])
 export const washOptionsSchema = z.object({
-  preRinse: z.boolean(),
-  soakMinutes: z.number().int().min(1).max(720).nullable(),
-  extraWash: z.boolean(),
-  temperature: z.enum(['cold', '40', '60']),
-  bleach: z.string().nullable(),
-  detergent: z.string().nullable(),
-  softener: z.string().nullable(),
-  rinses: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  program: z.string().trim().min(1), steps: z.array(washStepSchema).min(1).max(20),
 }).strict()
 
 export const washQueueCreateSchema = z.object({

@@ -7,6 +7,7 @@ import { ApiError } from '../../shared/http/api-error.js'
 import { ok, created } from '../../shared/http/response.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
+import { listWashPrograms } from '../wash-programs/wash-programs.module.js'
 import { getWashProductsRepository } from '../../sheets/WashProducts/WashProducts.repository.js'
 import { getMachinesRepository } from '../../sheets/Machines/Machines.repository.js'
 import { getWashQueueRepository } from '../../sheets/WashQueue/WashQueue.repository.js'
@@ -89,21 +90,25 @@ export const washQueueRoutes = {
         throw ApiError.validation('Choose an available machine.')
       }
       if (machine.type === 'WSH' && body.washOptions === null) {
-        throw ApiError.validation('Choose the wash options.')
+        throw ApiError.validation('Choose the wash program.')
       }
       if (machine.type === 'DRY' && body.washOptions !== null) {
         throw ApiError.validation('Dryer bookings have no wash options.')
       }
       if (body.washOptions !== null) {
         const products = await getWashProductsRepository().read()
-        const selections = [
-          [body.washOptions.bleach, 'BLEACH'],
-          [body.washOptions.detergent, 'DETERGENT'],
-          [body.washOptions.softener, 'SOFTENER'],
-        ] as const
-        for (const [id, type] of selections) {
-          if (id !== null && !products.some((product) => product.id === id && product.type === type && product.status === 'ACTIVE')) {
-            throw ApiError.validation('Choose an available product.')
+        for (const step of body.washOptions.steps) {
+          for (const id of step.products) {
+            if (!products.some((product) => product.id === id && product.status === 'ACTIVE')) {
+              const name = products.find((product) => product.id === id)?.name
+              throw ApiError.validation(`${name ? `${name} (${id})` : id} is not an available product. Remove it from the step.`)
+            }
+          }
+        }
+        if (body.washOptions.program !== 'CUSTOM') {
+          const programs = await listWashPrograms()
+          if (!programs.some((program) => program.id === body.washOptions!.program && program.status === 'ACTIVE')) {
+            throw ApiError.validation('Choose an available program.')
           }
         }
       }

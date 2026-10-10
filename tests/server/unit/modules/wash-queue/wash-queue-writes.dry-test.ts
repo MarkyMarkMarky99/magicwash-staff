@@ -19,9 +19,12 @@ const client = new SheetsApiClient({
   fetchImpl: async () => { throw new Error('no network allowed') },
 })
 const options = {
-  preRinse: true, soakMinutes: 30, extraWash: false, temperature: '40',
-  bleach: null, detergent: null, softener: null, rinses: 2,
-} as const
+  program: 'CUSTOM', steps: [
+    { type: 'normal_wash', products: [], temperature: '40' },
+    { type: 'soak', products: [], duration: 30 },
+    { type: 'rinse', products: [] },
+  ],
+}
 Object.assign(getWashProductsRepository(), { read: async () => [] })
 let stored: unknown[] = []
 let writes = 0
