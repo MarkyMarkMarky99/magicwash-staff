@@ -250,10 +250,21 @@ for (const transition of cases) for (const from of transition.from) {
   }
   assert.equal((await washQueueRoutes.item.handleRequest(request('PATCH', body, 'missing'))).status, 404)
 }
+const bareUnloadBasket = await create()
+rows.find((row) => row.id === bareUnloadBasket.id)!.status = 'In Progress'
+const bareUnloadResponse = await washQueueRoutes.item.handleRequest(request('PATCH', { action: 'unload' }, bareUnloadBasket.id))
+assert.equal(bareUnloadResponse.status, 200)
+const bareUnload = data(bareUnloadResponse)
+assert.equal(bareUnload.status, 'Completed')
+assert.equal(bareUnload.weightAfterKg, null)
+assert.equal(bareUnload.unloadPhotoUrl, null)
+assert.equal(Object.hasOwn(writes.at(-1)!, 'weight_after_kg'), false)
+assert.equal(Object.hasOwn(writes.at(-1)!, 'unload_photo_url'), false)
+
 const id = created.id
 const invalidUpdates = [
   { action: 'delete' }, { action: 'load', updatedBy: 'spoof' }, {},
-  { action: 'unload' }, { action: 'unload', weightAfterKg: 1 },
+  { action: 'unload', weightAfterKg: 1 },
   { action: 'unload', unloadPhotoUrl: 'x' },
   { action: 'unload', weightAfterKg: 1, unloadPhotoUrl: '  ' },
   { action: 'unload', weightAfterKg: 1, unloadPhotoUrl: 'x', machineId: 'M-1' },

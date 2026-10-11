@@ -96,7 +96,11 @@ export const washQueueRoutes = {
         throw ApiError.validation('Dryer bookings have no wash options.')
       }
       if (body.washOptions !== null) {
-        const products = await getWashProductsRepository().read()
+        // Products and programs are read together, only after the machine rules pass.
+        const [products, programs] = await Promise.all([
+          getWashProductsRepository().read(),
+          body.washOptions.program === 'CUSTOM' ? [] : listWashPrograms(),
+        ])
         for (const step of body.washOptions.steps) {
           for (const id of step.products) {
             if (!products.some((product) => product.id === id && product.status === 'ACTIVE')) {
@@ -106,7 +110,6 @@ export const washQueueRoutes = {
           }
         }
         if (body.washOptions.program !== 'CUSTOM') {
-          const programs = await listWashPrograms()
           if (!programs.some((program) => program.id === body.washOptions!.program && program.status === 'ACTIVE')) {
             throw ApiError.validation('Choose an available program.')
           }
@@ -129,6 +132,9 @@ export const washQueueRoutes = {
     PATCH: async (req) => {
       const id = parseOrThrow(z.string().trim().min(1), req.params.id)
       const body = parseOrThrow(washQueueApiContract.request.update, req.body)
+      if (body.action === 'unload' && (body.weightAfterKg !== undefined) !== (body.unloadPhotoUrl !== undefined)) {
+        throw ApiError.validation('Send both the washed weight and the unload photo, or neither.')
+      }
       const staffId = actor(req)
       const [row] = await getWashQueueRepository().read({ id })
       if (!row) throw ApiError.notFound('Basket not found.')
@@ -137,9 +143,8 @@ export const washQueueRoutes = {
       const updated = await getWashQueueRepository().update(id, {
         status: transition.to, [transition.at]: formatBangkokTimestamp(new Date()),
         [transition.by]: staffId, updated_by: staffId,
-        ...(body.action === 'unload' ? {
-          weight_after_kg: body.weightAfterKg, unload_photo_url: body.unloadPhotoUrl,
-        } : {}),
+        ...(body.action === 'unload' && body.weightAfterKg !== undefined ? { weight_after_kg: body.weightAfterKg } : {}),
+        ...(body.action === 'unload' && body.unloadPhotoUrl !== undefined ? { unload_photo_url: body.unloadPhotoUrl } : {}),
       })
       return ok(toDto(updated))
     },
