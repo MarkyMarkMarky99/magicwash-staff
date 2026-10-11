@@ -397,7 +397,7 @@ onUnmounted(() => {
     <CameraOverlay :open="shoot.id.value === 'book'" @close="shoot.close" @capture="captureBook" />
     <PhotoViewer v-if="activePhoto" :images="images" :active-id="activePhoto" @change="photo.change" @close="photo.close" />
     <WashQueueBookDialog
-      :open="draftOpen" :mode="mode" :photo-url="photoUrl" :uploading="uploading" :raw-weight="rawWeight" :weight-error="weightError" :weight-valid="draftWeight !== null"
+      :open="draftOpen && shoot.id.value !== 'book'" :mode="mode" :photo-url="photoUrl" :uploading="uploading" :raw-weight="rawWeight" :weight-error="weightError" :weight-valid="draftWeight !== null"
       :machines="pickerMachines" :machine-id="draftMachineId" :tag-code="draftTagCode" :wash-options="draftWashOptions" :programs="programs.active()" :product-name="products.nameOf"
       :error="bookError" :saving="saving" :confirm-disabled="saving || uploading || !photoUrl || draftWeight === null || !machineChosen || !draftTagCode || !washOptionsChosen"
       @close="discardDraft" @confirm="submit" @photo="takePhoto" @weight-invalid="showWeightError" @update:raw-weight="updateWeight" @update:machine-id="chooseMachine" @update:tag-code="chooseTag" @update:wash-options="draftWashOptions = $event"

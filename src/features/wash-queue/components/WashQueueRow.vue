@@ -63,6 +63,18 @@ const primaryPanels = {
   collect: { icon: 'shopping_bag', label: 'Pick up' },
 } as const
 
+let photoTouchStartX = 0
+let photoTouchStartY = 0
+
+function photoTouchStart(event: TouchEvent): void {
+  photoTouchStartX = event.touches[0].clientX
+  photoTouchStartY = event.touches[0].clientY
+}
+function photoTouchEnd(event: TouchEvent): void {
+  const touch = event.changedTouches[0]
+  if (Math.hypot(touch.clientX - photoTouchStartX, touch.clientY - photoTouchStartY) <= 8) event.stopPropagation()
+}
+
 function trigger(action: WashQueueRowAction): void {
   swipe.value?.snapCard('none')
   emit('action', action)
@@ -93,7 +105,7 @@ defineExpose({ close, contains })
     <component
       :is="swipeable ? BaseSwipeCard : 'div'"
       ref="swipe"
-      v-bind="swipeable ? { disabled: busy, rightActions: primary ? 2 : 0, leftActions: cancellable ? 1 : 0 } : {}"
+      v-bind="swipeable ? { disabled: busy, rightActions: primary ? 2 : 0, leftActions: cancellable ? 2 : 0, threshold: 40 } : {}"
       class="relative overflow-hidden [border-radius:var(--wq-radius,14px)] bg-white shadow-[0_1px_0_rgba(7,63,56,0.05)]"
       @swipe-right="rejectRight"
       @swipe-left="rejectLeft"
@@ -104,7 +116,7 @@ defineExpose({ close, contains })
         </button>
       </template>
       <template v-if="swipeable && cancellable" #left-panel>
-        <button type="button" tabindex="-1" class="absolute inset-y-0 right-0 flex w-20 flex-col items-center justify-center gap-0.5 bg-error pl-4 font-label text-[10px] font-bold uppercase text-on-error" aria-label="Cancel booking" @click="trigger('cancel')">
+        <button type="button" tabindex="-1" class="absolute inset-y-0 right-0 flex w-36 flex-col items-center justify-center gap-0.5 bg-error pl-4 font-label text-[10px] font-bold uppercase text-on-error" aria-label="Cancel booking" @click="trigger('cancel')">
           <span class="material-symbols-outlined" aria-hidden="true">close</span>Cancel
         </button>
       </template>
@@ -127,10 +139,10 @@ defineExpose({ close, contains })
           <p class="mt-1 truncate font-label text-[11px] text-on-surface-variant">{{ meta }}</p>
         </div>
         <div class="relative h-14 w-14">
-          <button type="button" class="block h-full w-full overflow-hidden rounded-[10px] bg-surface-container focus-visible:outline-2 focus-visible:outline-lime" :aria-label="`View basket photo for ${sender}`" @touchstart.stop @touchmove.stop @touchend.stop @mousedown.stop @click="emit('photo', row.id)">
+          <button type="button" class="block h-full w-full overflow-hidden rounded-[10px] bg-surface-container focus-visible:outline-2 focus-visible:outline-lime" :aria-label="`View basket photo for ${sender}`" @touchstart="photoTouchStart" @touchend="photoTouchEnd" @click="emit('photo', row.id)">
             <img :src="row.photoUrl" alt="" class="h-full w-full object-cover" loading="lazy" />
           </button>
-          <button v-if="row.unloadPhotoUrl" type="button" class="absolute -bottom-1.5 -left-1.5 h-[26px] w-[26px] overflow-hidden rounded-lg border-2 border-white bg-surface-container focus-visible:outline-2 focus-visible:outline-lime" :aria-label="`View washed basket photo for ${sender}`" @touchstart.stop @touchmove.stop @touchend.stop @mousedown.stop @click="emit('photo', `${row.id}:after`)">
+          <button v-if="row.unloadPhotoUrl" type="button" class="absolute -bottom-1.5 -left-1.5 h-[26px] w-[26px] overflow-hidden rounded-lg border-2 border-white bg-surface-container focus-visible:outline-2 focus-visible:outline-lime" :aria-label="`View washed basket photo for ${sender}`" @touchstart="photoTouchStart" @touchend="photoTouchEnd" @click="emit('photo', `${row.id}:after`)">
             <img :src="row.unloadPhotoUrl" alt="" class="h-full w-full object-cover" loading="lazy" />
           </button>
           <span v-if="row.status === 'Completed'" class="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-surface bg-lime text-primary" aria-hidden="true"><span class="material-symbols-outlined block text-[14px] leading-none">check</span></span>
