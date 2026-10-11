@@ -6,12 +6,13 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
-- **`fix/wash-queue-camera-swipe`** — booking-camera shutter, swipe-action fixes, temporary no-weigh unload and faster row actions committed; row actions owner-tested; see `.user/memory/fix-wash-queue-camera-swipe.md`.
 
 ## Pending work
 - **Wash queue + dryer queue (one-sheet booking: weight, photo, tag wheel, washer menu, read-only program line — merged 2026-10-11)** — see `docs/features/wash-queue/wash-queue.md`
   - NEXT: drying steps (tumble/line dry, auto dryer booking on unload) — full handoff in `.user/memory/wash-drying-steps-handoff.md`.
-  - Phone-test the new booking sheet (camera, upload, tag wheel, washer menu), then Load/Unload; prod programs/products still have Thai names, owner to OK English rename.
+  - Phone-test on prod (merged 2026-10-12): booking camera shutter, swipe starting on the photo, card tap → `?basket=` detail sheet; prod programs/products still have Thai names, owner to OK English rename.
+  - Unload weighing + photo temporarily OFF (owner, 2026-10-12): flag `UNLOAD_WEIGH_REQUIRED` in `src/features/wash-queue/unload-policy.ts`; swipe-unload has no confirm/undo.
+  - Book save measured ~4 s on `vercel dev` (adds ~1.1 s/request); not yet timed on prod, estimate 2–2.5 s.
   - Open: Hand wash option (needs a no-machine booking contract); tag label look not owner-approved; OrderBagRow radius; >1:30 warning colour, dryer copy, Photo button edge; KPI deferred.
 - Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
 - **Packaging bags + JobTickets store (merged 2026-10-09, staff trial in prod)**
