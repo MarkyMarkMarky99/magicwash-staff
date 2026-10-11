@@ -96,7 +96,11 @@ export const washQueueRoutes = {
         throw ApiError.validation('Dryer bookings have no wash options.')
       }
       if (body.washOptions !== null) {
-        const products = await getWashProductsRepository().read()
+        // Products and programs are read together, only after the machine rules pass.
+        const [products, programs] = await Promise.all([
+          getWashProductsRepository().read(),
+          body.washOptions.program === 'CUSTOM' ? [] : listWashPrograms(),
+        ])
         for (const step of body.washOptions.steps) {
           for (const id of step.products) {
             if (!products.some((product) => product.id === id && product.status === 'ACTIVE')) {
@@ -106,7 +110,6 @@ export const washQueueRoutes = {
           }
         }
         if (body.washOptions.program !== 'CUSTOM') {
-          const programs = await listWashPrograms()
           if (!programs.some((program) => program.id === body.washOptions!.program && program.status === 'ACTIVE')) {
             throw ApiError.validation('Choose an available program.')
           }
