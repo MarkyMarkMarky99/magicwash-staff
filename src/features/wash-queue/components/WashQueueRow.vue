@@ -27,7 +27,7 @@ const props = defineProps<{
   primary: PrimaryAction | null
   cancellable: boolean
 }>()
-const emit = defineEmits<{ photo: [id: string]; action: [action: WashQueueRowAction]; opened: [] }>()
+const emit = defineEmits<{ photo: [id: string]; action: [action: WashQueueRowAction]; opened: []; open: [] }>()
 
 const root = ref<HTMLElement | null>(null)
 const swipe = ref<{ snapCard: (direction: string) => void } | null>(null)
@@ -65,6 +65,7 @@ const primaryPanels = {
   collect: { icon: 'shopping_bag', label: 'Pick up' },
 } as const
 
+const suppressTap = ref(false)
 let photoTouchStartX = 0
 let photoTouchStartY = 0
 
@@ -75,6 +76,14 @@ function photoTouchStart(event: TouchEvent): void {
 function photoTouchEnd(event: TouchEvent): void {
   const touch = event.changedTouches[0]
   if (Math.hypot(touch.clientX - photoTouchStartX, touch.clientY - photoTouchStartY) <= 8) event.stopPropagation()
+}
+
+function tap(): void {
+  if (suppressTap.value) {
+    suppressTap.value = false
+    return
+  }
+  emit('open')
 }
 
 function trigger(action: WashQueueRowAction): void {
@@ -108,11 +117,11 @@ defineExpose({ close, contains })
     <span v-if="elapsed !== null" role="timer" class="pointer-events-none absolute -top-3 left-2.5 z-40 inline-flex -rotate-3 items-center gap-1 rounded-[6px_8px_6px_7px] bg-[color:var(--wq-edge)] px-[9px] pb-1 pt-[3px] font-headline text-[11px] font-bold leading-[1.1] tabular-nums text-white shadow-[1px_1px_0_var(--wq-shade)]">
       <span class="material-symbols-outlined text-[11px] leading-none" aria-hidden="true">timer</span>{{ formatElapsed(elapsed) }}
     </span>
-    <component
-      :is="swipeable ? BaseSwipeCard : 'div'"
+    <BaseSwipeCard
       ref="swipe"
-      v-bind="swipeable ? { disabled: busy, rightActions: primary ? 2 : 0, leftActions: cancellable ? 2 : 0, threshold: 40 } : {}"
+      :disabled="busy" :swipeable="swipeable" pressable :right-actions="primary ? 2 : 0" :left-actions="cancellable ? 2 : 0" :threshold="40"
       class="relative overflow-hidden [border-radius:var(--wq-radius,14px)] bg-white shadow-[0_1px_0_rgba(7,63,56,0.05)]"
+      @tap="tap"
       @swipe-right="rejectRight"
       @swipe-left="rejectLeft"
     >
@@ -129,14 +138,13 @@ defineExpose({ close, contains })
 
       <span v-if="swipeable && primary" class="material-symbols-outlined pointer-events-none absolute left-px top-1/2 z-20 -translate-y-1/2 text-[14px] text-primary opacity-30" aria-hidden="true">chevron_right</span>
       <span v-if="swipeable && cancellable" class="material-symbols-outlined pointer-events-none absolute right-px top-1/2 z-20 -translate-y-1/2 text-[14px] text-primary opacity-30" aria-hidden="true">chevron_left</span>
-      <div class="grid grid-cols-[52px_minmax(0,1fr)_56px] items-center gap-2.5 px-3 py-2.5">
-        <p class="flex flex-col items-end border-r border-outline-variant pr-2 text-primary">
-          <span class="font-headline text-[22px] font-extrabold leading-none tabular-nums">{{ figure }}</span>
-          <span class="mt-1 font-label text-[11px] text-on-surface-variant">kg</span>
+      <div class="grid grid-cols-[56px_minmax(0,1fr)_56px] items-center gap-2.5 px-3 py-2.5">
+        <p class="flex flex-col items-center self-stretch justify-center border-r border-outline-variant pr-2 text-primary">
+          <span class="font-headline text-[36px] font-extrabold leading-none" :class="{ 'text-on-surface-variant opacity-60': !row.tagCode }" :aria-label="row.tagCode ? `Tag ${row.tagCode}` : 'No tag'">{{ row.tagCode || '–' }}</span>
+          <span class="mt-1.5 whitespace-nowrap font-label text-xs font-bold leading-none tabular-nums text-on-surface-variant">{{ figure }} <span class="text-[10px] font-medium">kg</span></span>
         </p>
         <div class="min-w-0">
           <p class="flex items-center gap-1.5 font-body text-sm font-extrabold">
-            <span v-if="row.tagCode" class="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-md bg-primary px-1 font-headline text-sm font-extrabold leading-none text-lime" :aria-label="`Tag ${row.tagCode}`">{{ row.tagCode }}</span>
             <span class="truncate">{{ sender }}</span>
             <BaseBadge v-if="mine" label="You" tone="brand" />
             <BaseBadge v-if="isNext" label="Next" tone="lime" uppercase />
@@ -145,10 +153,10 @@ defineExpose({ close, contains })
           <p class="mt-1 truncate font-label text-[11px] text-on-surface-variant">{{ meta }}</p>
         </div>
         <div class="relative h-14 w-14">
-          <button type="button" class="block h-full w-full overflow-hidden rounded-[10px] bg-surface-container focus-visible:outline-2 focus-visible:outline-lime" :aria-label="`View basket photo for ${sender}`" @touchstart="photoTouchStart" @touchend="photoTouchEnd" @click="emit('photo', row.id)">
+          <button type="button" class="block h-full w-full overflow-hidden rounded-[10px] bg-surface-container focus-visible:outline-2 focus-visible:outline-lime" :aria-label="`View basket photo for ${sender}`" @mousedown="suppressTap = true" @touchstart="photoTouchStart" @touchend="photoTouchEnd" @click="suppressTap = false; emit('photo', row.id)">
             <img :src="row.photoUrl" alt="" class="h-full w-full object-cover" loading="lazy" />
           </button>
-          <button v-if="row.unloadPhotoUrl" type="button" class="absolute -bottom-1.5 -left-1.5 h-[26px] w-[26px] overflow-hidden rounded-lg border-2 border-white bg-surface-container focus-visible:outline-2 focus-visible:outline-lime" :aria-label="`View washed basket photo for ${sender}`" @touchstart="photoTouchStart" @touchend="photoTouchEnd" @click="emit('photo', `${row.id}:after`)">
+          <button v-if="row.unloadPhotoUrl" type="button" class="absolute -bottom-1.5 -left-1.5 h-[26px] w-[26px] overflow-hidden rounded-lg border-2 border-white bg-surface-container focus-visible:outline-2 focus-visible:outline-lime" :aria-label="`View washed basket photo for ${sender}`" @mousedown="suppressTap = true" @touchstart="photoTouchStart" @touchend="photoTouchEnd" @click="suppressTap = false; emit('photo', `${row.id}:after`)">
             <img :src="row.unloadPhotoUrl" alt="" class="h-full w-full object-cover" loading="lazy" />
           </button>
           <span v-if="row.status === 'Completed'" class="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-surface bg-lime text-primary" aria-hidden="true"><span class="material-symbols-outlined block text-[14px] leading-none">check</span></span>
@@ -169,7 +177,7 @@ defineExpose({ close, contains })
       <div v-else-if="error" class="pointer-events-none absolute inset-0 z-30 flex items-center justify-center gap-2 bg-white/90 px-4 text-center font-label text-xs font-bold text-error" role="alert">
         <span class="material-symbols-outlined shrink-0 text-[18px]" aria-hidden="true">error</span>{{ error }}
       </div>
-    </component>
+    </BaseSwipeCard>
   </li>
 </template>
 

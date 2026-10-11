@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wash queue card prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block" rel="stylesheet">
+<style>
+:root {
+  --color-primary: #00564b;
+  --color-on-primary: #ffffff;
+  --color-secondary: #007a69;
+  --color-secondary-container: #eef6d3;
+  --color-on-secondary-container: #3f5a06;
+  --color-surface: #f8fafa;
+  --color-on-surface: #073f38;
+  --color-on-surface-variant: #5f7772;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f2f4f4;
+  --color-surface-container: #eceeee;
+  --color-surface-container-high: #e6e8e8;
+  --color-outline-variant: #cae0dc;
+  --color-error: #c94e3d;
+  --color-on-error: #ffffff;
+  --color-success: #15803d;
+  --color-warning: #b45309;
+  --color-warning-container: #fef3c7;
+  --color-on-warning-container: #78350f;
+  --color-lime: #b2df26;
+  --font-headline: "Noto Sans Thai", Manrope, sans-serif;
+  --font-body: "Noto Sans Thai", Inter, sans-serif;
+  --font-label: "Noto Sans Thai", Inter, sans-serif;
+  --hard: color-mix(in srgb, var(--color-primary) 70%, black);
+}
+* { box-sizing: border-box; margin: 0; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+ul, ol { list-style: none; padding: 0; }
+body { font-family: var(--font-body); background: #dfe7e6; color: var(--color-on-surface); padding: 28px 16px 56px; }
+.ms { font-family: "Material Symbols Outlined"; font-weight: 400; font-style: normal; font-size: 24px; line-height: 1; display: inline-block; white-space: nowrap; user-select: none; font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+.ms.fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+
+/* ===== prototype page ===== */
+.page-title { text-align: center; font: 800 22px/1.2 var(--font-headline); color: var(--color-primary); }
+.page-sub { text-align: center; margin: 6px auto 26px; max-width: 640px; font: 500 14px/1.45 var(--font-body); color: var(--color-on-surface-variant); }
+.variants { display: flex; flex-wrap: wrap; justify-content: center; gap: 36px; }
+.variant h2 { font: 800 18px/1.2 var(--font-headline); color: var(--color-primary); margin-bottom: 4px; text-align: center; }
+.variant .hint { text-align: center; font: 600 12px/1.3 var(--font-body); color: var(--color-on-surface-variant); margin-bottom: 12px; }
+.phone { position: relative; width: 390px; height: 820px; border: 8px solid #0d1f1c; border-radius: 38px; overflow: hidden; background: var(--color-surface); box-shadow: 0 18px 40px -12px rgba(0,0,0,.35); margin: 0 auto; }
+.app { height: 100%; display: flex; flex-direction: column; position: relative; overflow: hidden; font-family: var(--font-body); }
+.legend { max-width: 860px; margin: 40px auto 0; background: #fff; border-radius: 18px; padding: 20px 24px; box-shadow: 0 1px 0 rgba(7,63,56,.08); }
+.legend h3 { font: 800 17px/1.2 var(--font-headline); color: var(--color-primary); margin-bottom: 10px; }
+.legend li { position: relative; padding-left: 18px; margin-top: 8px; font: 500 14px/1.5 var(--font-body); }
+.legend li::before { content: ""; position: absolute; left: 0; top: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-lime); box-shadow: 0 0 0 2px var(--color-primary) inset; }
+.legend b { color: var(--color-primary); }
+
+/* ===== page chrome (AppHeader, GenericTabs, section header, photo sticker, mode switch) ===== */
+.hdr { flex: none; background: var(--color-primary); color: #fff; padding: 12px 16px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,.18); position: relative; z-index: 5; }
+.sticker-btn { display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 40px; border: 2px solid var(--color-lime); border-radius: 15px; color: var(--color-lime); transform: rotate(-7deg); transition: background-color 130ms, color 130ms, box-shadow 130ms; }
+.sticker-btn:hover { background: var(--color-lime); color: var(--color-primary); box-shadow: 3px 3px 0 var(--hard); }
+.sticker-btn svg { width: 25px; height: 25px; overflow: visible; transform: rotate(7deg); }
+.sticker-btn path { fill: none; stroke: currentColor; stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round; }
+.logo { width: 36px; height: 36px; border-radius: 11px; background: var(--color-lime); color: var(--color-primary); display: grid; place-items: center; }
+.logo .ms { font-size: 22px; font-variation-settings: 'FILL' 1, 'wght' 500; }
+.hdr h1 { font: 700 18px/1.2 var(--font-headline); letter-spacing: -.01em; }
+.tabs { flex: none; background: var(--color-primary); display: flex; gap: 4px; padding: 8px 16px 0; overflow: hidden; }
+.tab-btn { flex: none; display: flex; align-items: center; gap: 6px; padding: 4px 12px 6px; border-bottom: 2px solid transparent; color: rgba(255,255,255,.7); }
+.tab-btn.on { border-color: #fff; color: #fff; }
+.tab-btn span:first-child { font: 600 11px/1.3 var(--font-label); letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+.tab-btn .cnt { font: 700 9px/1 var(--font-label); background: rgba(255,255,255,.2); border-radius: 999px; padding: 3px 6px; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; background: var(--color-surface); padding-bottom: 110px; scrollbar-width: none; }
+.scroll::-webkit-scrollbar { display: none; }
+.sec-head { display: flex; align-items: flex-start; gap: 12px; padding: 16px 16px 8px; }
+.sec-head .t { flex: 1; min-width: 0; border-left: 4px solid var(--color-lime); padding-left: 8px; }
+.sec-head h2 { font: 700 20px/1.25 var(--font-headline); color: var(--color-primary); }
+.sec-head .t small { display: block; margin-top: 2px; font: 800 10px/1.4 var(--font-label); letter-spacing: .08em; text-transform: uppercase; color: var(--color-on-surface-variant); }
+.sticker-fab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 48px; height: 48px; margin-top: -4px; border-radius: 17px 20px 17px 19px; background: var(--color-lime); color: var(--color-primary); box-shadow: 4px 4px 0 var(--hard); transform: rotate(-7deg); transition: transform 160ms, box-shadow 160ms; }
+.sticker-fab:hover { transform: rotate(-7deg) translate(-1px,-1px); box-shadow: 6px 6px 0 var(--hard); }
+.sticker-fab:active { transform: rotate(-7deg) scale(.92) translate(2px,2px); box-shadow: 1px 1px 0 var(--hard); }
+.sticker-fab .ms { font-size: 22px; }
+.sticker-fab .lb { transform: rotate(7deg); font: 700 10px/1 var(--font-label); }
+.cards { display: grid; gap: 24px; padding: 12px 16px 4px 12px; }
+.modesw { position: absolute; left: 0; right: 0; bottom: 16px; z-index: 10; display: flex; justify-content: center; pointer-events: none; }
+.modesw > div { pointer-events: auto; position: relative; display: grid; grid-template-columns: 1fr 1fr; width: 300px; max-width: calc(100% - 24px); height: 60px; border-radius: 16px; background: var(--color-primary); padding: 4px; box-shadow: 0 8px 16px -4px rgba(0,0,0,.3); }
+.modesw .pill { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 12px; background: var(--color-lime); }
+.modesw button { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; font: 700 16px/1 var(--font-label); color: rgba(255,255,255,.6); }
+.modesw button.on { color: var(--color-primary); }
+.toast { position: absolute; left: 50%; bottom: 90px; z-index: 80; transform: translate(-50%, 12px); opacity: 0; pointer-events: none; background: #0d1f1c; color: #fff; font: 600 12px/1.3 var(--font-body); padding: 9px 14px; border-radius: 12px; transition: opacity .2s, transform .2s; max-width: 86%; text-align: center; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ===== WashQueueRow ===== */
+.row { position: relative; border: 2px solid var(--wq-edge); border-radius: 11px 15px 12px 14px; background: #fff; box-shadow: 4px 4px 0 var(--wq-shade); --wq-radius: 9px 13px 10px 12px; --wq-edge: var(--color-primary); --wq-shade: color-mix(in srgb, var(--wq-edge) 70%, black); }
+.row.long { --wq-edge: var(--color-warning); }
+.timer { position: absolute; top: -12px; left: 10px; z-index: 40; pointer-events: none; display: inline-flex; align-items: center; gap: 4px; transform: rotate(-3deg); background: var(--wq-edge); color: #fff; border-radius: 6px 8px 6px 7px; padding: 3px 9px 4px; font: 700 11px/1.1 var(--font-headline); font-variant-numeric: tabular-nums; box-shadow: 1px 1px 0 var(--wq-shade); }
+.timer .ms { font-size: 11px; }
+.swipe-wrap { position: relative; overflow: hidden; border-radius: var(--wq-radius); background: var(--color-surface-container-lowest); box-shadow: 0 1px 0 rgba(7,63,56,.05); }
+.panel { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; font: 700 11px/1 var(--font-label); text-transform: uppercase; }
+.panel-r { left: 0; width: 160px; gap: 8px; padding: 0 20px; background: var(--color-lime); color: var(--color-primary); }
+.panel-r .ms { font-size: 26px; }
+.panel-l { right: 0; width: 144px; flex-direction: column; justify-content: center; gap: 2px; padding-left: 16px; background: var(--color-error); color: var(--color-on-error); font-size: 10px; }
+.panel-l .ms { font-size: 24px; }
+.swipe-card { position: relative; z-index: 1; background: var(--color-surface-container-lowest); border-radius: var(--wq-radius); box-shadow: 0 0 0 1px var(--color-surface-container-lowest); touch-action: pan-y; user-select: none; -webkit-user-select: none; transition: transform .25s ease; cursor: pointer; }
+.swipe-card.drag { transition: none; }
+.chev { position: absolute; top: 50%; z-index: 20; transform: translateY(-50%); font-size: 14px; color: var(--color-primary); opacity: .3; pointer-events: none; }
+.chev.l { left: 1px; } .chev.r { right: 1px; }
+.main { position: relative; display: grid; grid-template-columns: 56px minmax(0,1fr) 56px; align-items: center; gap: 10px; padding: 10px 12px; }
+
+/* NEW left column: tag code big, weight under it */
+.lc { display: flex; flex-direction: column; align-items: center; align-self: stretch; justify-content: center; border-right: 1px solid var(--color-outline-variant); padding-right: 8px; color: var(--color-primary); }
+.lc .tag { font: 800 36px/1 var(--font-headline); }
+.lc .tag.none { color: var(--color-on-surface-variant); opacity: .6; }
+.lc .wt { margin-top: 6px; font: 700 12px/1 var(--font-label); font-variant-numeric: tabular-nums; color: var(--color-on-surface-variant); white-space: nowrap; }
+.lc .wt i { font-style: normal; font-weight: 500; font-size: 10px; margin-left: 2px; }
+
+.mid { min-width: 0; }
+.name { display: flex; align-items: center; gap: 6px; font: 800 14px/1.4 var(--font-body); }
+.name .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badge { display: inline-flex; align-items: center; flex: none; border-radius: 999px; padding: 3px 8px; font: 700 9px/1 var(--font-label); background: color-mix(in srgb, var(--color-primary) 10%, transparent); color: var(--color-primary); }
+.status { margin-top: 4px; font: 800 10px/1.4 var(--font-label); text-transform: uppercase; color: var(--color-secondary); }
+.meta { margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 11px/1.4 var(--font-label); color: var(--color-on-surface-variant); }
+.ph { position: relative; width: 56px; height: 56px; }
+.ph .photo { display: block; width: 100%; height: 100%; overflow: hidden; border-radius: 10px; background: var(--color-surface-container); }
+.ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ph .dot { position: absolute; right: -6px; top: -6px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--color-surface); background: var(--color-primary); color: var(--color-lime); display: grid; place-items: center; }
+.ph .dot .ms { font-size: 14px; }
+
+/* ===== Variant A: expand in place ===== */
+.exp { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .26s ease; }
+.row.open .exp { grid-template-rows: 1fr; }
+.exp-clip { overflow: hidden; min-height: 0; }
+.exp-body { margin: 0 12px; padding-bottom: 14px; border-top: 1px dashed var(--color-outline-variant); }
+.exp-body .sum-col { padding-top: 20px; }
+.empty-prog { margin-top: 14px; display: flex; align-items: center; gap: 8px; border: 1.5px dashed var(--color-outline-variant); border-radius: 12px; padding: 11px 12px; font: 600 13px/1.35 var(--font-body); color: var(--color-on-surface-variant); }
+.empty-prog .ms { font-size: 20px; }
+.note { margin-top: 14px; display: flex; gap: 10px; align-items: flex-start; background: var(--color-warning-container); color: var(--color-on-warning-container); border-radius: 12px; padding: 10px 12px; }
+.note .ms { font-size: 20px; margin-top: 1px; flex: none; }
+.note b { display: block; font: 800 10px/1.2 var(--font-label); letter-spacing: .08em; text-transform: uppercase; }
+.note p { margin-top: 3px; font: 600 13px/1.4 var(--font-body); }
+
+/* ===== Read-only wash program look (wash-program.css, verbatim values) ===== */
+.wq-options { --wash-hard: color-mix(in srgb,var(--color-primary) 70%,black); }
+.wq-options .sec { display: flex; align-items: stretch; margin: 24px 0 4px; }
+.wq-options .sec .bar { width: 4px; background: var(--color-lime); border-radius: 2px; margin-right: 10px; }
+.wq-options .sec .tt { flex: 1; min-width: 0; }
+.wq-options .sec h3 { margin: 0; font: 800 20px/1.1 var(--font-headline); color: var(--color-primary); }
+.wq-options .sec small { display: block; margin-top: 3px; font: 800 10px/1 var(--font-body); letter-spacing: .08em; text-transform: uppercase; color: var(--color-on-surface-variant); }
+.wq-options .sum-col { padding-top: 18px; }
+.wq-options .sum { position: relative; background: white; border: 2px solid var(--color-primary); border-radius: 11px 15px 12px 14px; box-shadow: 4px 4px 0 var(--wash-hard); padding: 15px 12px 10px; }
+.wq-options .sum .tab { position: absolute; z-index: 2; left: 10px; top: -12px; padding: 3px 9px 4px; border-radius: 6px 8px 6px 7px; background: var(--color-primary); color: white; font: 700 11px/1.1 var(--font-headline); box-shadow: 1px 1px 0 var(--wash-hard); transform: rotate(-3deg); }
+.wq-options .sum-line { font: 700 14px/1.3 var(--font-headline); color: var(--color-on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wq-options .sum-line b { font-weight: 800; color: var(--color-primary); }
+.wq-options .sum-line.has-mach { display: flex; align-items: center; gap: 8px; }
+.wq-options .sum-line .pn { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.wq-options .sum-line .mach { flex: none; display: inline-flex; align-items: center; gap: 4px; margin-left: auto; font: 700 13px/1 var(--font-headline); color: var(--color-primary); }
+.wq-options .sum-line .mach .ms { font-size: 16px; }
+.wq-options .line { list-style: none; margin: 10px 0 0; padding: 12px 4px 4px 6px; border-top: 1px dashed var(--color-outline-variant); }
+.wq-options .st { position: relative; padding: 0 0 14px 26px; }
+.wq-options .st:last-child { padding-bottom: 0; }
+.wq-options .st::after { content: ""; position: absolute; left: 4px; top: 10px; width: 2px; height: 100%; background: var(--color-outline-variant); }
+.wq-options .st:last-child::after { display: none; }
+.wq-options .st .dot { position: absolute; left: 0; top: 6px; z-index: 1; width: 10px; height: 10px; border-radius: 50%; background: var(--color-primary); box-shadow: 0 0 0 4px white; }
+.wq-options .st:last-child .dot { background: var(--color-lime); box-shadow: 0 0 0 2px var(--color-primary) inset, 0 0 0 4px white; }
+.wq-options .st .ttl { font: 800 15px/21px var(--font-headline); color: var(--color-primary); }
+.wq-options .st .sub { margin-top: 1px; font: 600 13px/18px var(--font-body); color: var(--color-on-surface-variant); }
+.sub span + span::before { content: "·"; margin: 0 6px; color: var(--color-outline-variant); font-weight: 800; }
+
+/* ===== Variant B: bottom sheet (match WashQueueBookDialog / BaseOverlayFrame) ===== */
+.ov { position: absolute; inset: 0; z-index: 60; display: flex; align-items: flex-end; pointer-events: none; visibility: hidden; transition: visibility 0s linear .4s; }
+.ov.show { pointer-events: auto; visibility: visible; transition-delay: 0s; }
+.ov .bd { position: absolute; inset: 0; background: rgba(0,0,0,.4); opacity: 0; transition: opacity .18s ease; }
+.ov.show .bd { opacity: 1; }
+.ov .sheet { position: relative; z-index: 1; width: 100%; max-height: calc(100% - 30px); display: flex; flex-direction: column; background: var(--color-surface); border-radius: 28px 28px 0 0; box-shadow: 0 25px 50px -12px rgba(0,0,0,.35); transform: translateY(100%); transition: transform .38s cubic-bezier(.25,.46,.45,.94); outline: none; overflow: hidden; }
+.ov.show .sheet { transform: none; }
+.sheet .close { position: absolute; right: 16px; top: 12px; z-index: 5; width: 40px; height: 40px; border-radius: 999px; display: grid; place-items: center; color: var(--color-on-surface-variant); transition: background-color .15s; }
+.sheet .close:hover { background: rgba(0,0,0,.05); }
+.sheet .close svg { width: 25px; height: 25px; overflow: visible; }
+.sheet .close path { fill: none; stroke: currentColor; stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round; }
+.sheet header { flex: none; display: flex; align-items: center; gap: 14px; padding: 18px 60px 8px 20px; }
+.bigtag { flex: none; width: 60px; height: 60px; border-radius: 16px; background: var(--color-primary); color: var(--color-lime); display: grid; place-items: center; font: 800 38px/1 var(--font-headline); box-shadow: 3px 3px 0 var(--hard); transform: rotate(-4deg); }
+.bigtag.none { background: var(--color-surface-container); color: var(--color-on-surface-variant); box-shadow: 3px 3px 0 var(--color-outline-variant); }
+.sheet h2 { font: 800 22px/1.15 var(--font-headline); color: var(--color-primary); overflow-wrap: anywhere; }
+.sheet header .sb { margin-top: 4px; font: 800 10px/1.3 var(--font-label); letter-spacing: .06em; text-transform: uppercase; color: var(--color-secondary); }
+.sheet .body { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 16px 24px; scrollbar-width: none; }
+.sheet .body::-webkit-scrollbar { display: none; }
+.photos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+.pt { position: relative; aspect-ratio: 1; border-radius: 18px; overflow: hidden; background: var(--color-surface-container-low); }
+.pt img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pt .cap { position: absolute; left: 8px; bottom: 8px; background: rgba(13,31,28,.78); color: #fff; border-radius: 999px; padding: 4px 9px; font: 700 10px/1.1 var(--font-label); }
+.pt.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 12px; border: 2px dashed color-mix(in srgb, var(--color-primary) 40%, white); background: transparent; font: 800 13px/1.3 var(--font-body); color: var(--color-on-surface); }
+.pt.empty .ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: var(--color-secondary-container); color: var(--color-on-secondary-container); transform: rotate(-7deg); margin-bottom: 8px; }
+.pt.empty .ic .ms { font-size: 22px; }
+.pt.empty small { font: 400 12px/1.3 var(--font-body); color: var(--color-on-surface-variant); margin-top: 2px; }
+.facts { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--color-outline-variant); border-radius: 16px; overflow: hidden; }
+.fact { background: #fff; padding: 11px 13px; min-width: 0; }
+.fact.wide { grid-column: 1 / -1; }
+.fact small { display: block; font: 800 10px/1.2 var(--font-label); letter-spacing: .08em; text-transform: uppercase; color: var(--color-on-surface-variant); }
+.fact b { display: block; margin-top: 4px; font: 800 16px/1.25 var(--font-headline); color: var(--color-primary); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.fact b.mut { color: var(--color-on-surface-variant); opacity: .7; }
+.sheet .wq-options { padding-bottom: 4px; }
+.sheet .wq-options .sec { margin-top: 22px; }
+
+@media (max-width: 860px) {
+  body { padding: 20px 8px 48px; }
+  .variants { gap: 28px; }
+}
+@media (max-width: 420px) {
+  .phone { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+<h1 class="page-title">Wash queue card: tap for detail</h1>
+<p class="page-sub">Both phones are live. New left column: tag code big, weight under it. Tap a card to open its detail. Swipe a card sideways to see the Unload / Cancel panels still work. Tap a photo to see that it stays separate.</p>
+
+<div class="variants">
+  <section class="variant">
+    <h2>A — Expand in place</h2>
+    <p class="hint">Tap a card: it grows to show the program. One open at a time.</p>
+    <div class="phone" id="phoneA"></div>
+  </section>
+  <section class="variant">
+    <h2>B — Overlay</h2>
+    <p class="hint">Tap a card: a bottom sheet opens. X or backdrop closes.</p>
+    <div class="phone" id="phoneB"></div>
+  </section>
+</div>
+
+<section class="legend">
+  <h3>Trade-offs we noticed</h3>
+  <ul>
+    <li><b>A stays in context.</b> No new layer and nothing to close, but a 4-step program adds roughly 260px, so the open card pushes the other baskets down and often off screen. The program frame also sits inside the card frame, two hard-shadow boxes in one.</li>
+    <li><b>B has room.</b> Both photos, before/after weight and all three times fit without cramming the card, and the long program never moves the list. The cost: it hides the list, and every look needs a close tap. It would be a route-owned overlay (like <code>?photo=</code>) so Back closes it.</li>
+    <li><b>A can only show what the card already knows.</b> It has no room for both photos or the time stamps. If staff will want those from the list, B is the only variant that carries them.</li>
+    <li><b>Both give the whole card one more meaning.</b> Tap now means detail, swipe means actions, photo tile means viewer. Neither shows a visible hint that the card is tappable (not asked for here); a first-time user may not find it.</li>
+    <li><b>The note is rare.</b> Only the legacy row (third card) has one, so the note block exists only there. In the list it is cut off by the meta line, which is the only place detail is really missing today.</li>
+  </ul>
+</section>
+
+<script>
+/* ---------- helpers ---------- */
+const pad = n => String(n).padStart(2, '0');
+const hms = d => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+const hm = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const fmtElapsed = s => `${Math.floor(s / 3600)}:${pad(Math.floor(s % 3600 / 60))}:${pad(s % 60)}`;
+const LONG = 90 * 60;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function photoSvg(hue, kg) {
+  const c1 = `hsl(${hue} 45% 62%)`, c2 = `hsl(${(hue + 40) % 360} 50% 74%)`, c3 = `hsl(${(hue + 200) % 360} 40% 58%)`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9e4dc"/><stop offset="1" stop-color="#cfc8bc"/></linearGradient></defs>
+  <rect width="120" height="120" fill="url(#g)"/>
+  <rect x="14" y="80" width="92" height="30" rx="8" fill="#2b3a37"/>
+  <rect x="38" y="87" width="44" height="14" rx="3" fill="#b2df26"/>
+  <text x="60" y="98" font-family="monospace" font-size="10" font-weight="700" text-anchor="middle" fill="#073f38">${kg}</text>
+  <path d="M24 44 h72 l-6 40 h-60z" fill="#8a6a4a"/>
+  <ellipse cx="46" cy="42" rx="22" ry="13" fill="${c1}"/>
+  <ellipse cx="72" cy="38" rx="24" ry="14" fill="${c2}"/>
+  <ellipse cx="58" cy="33" rx="18" ry="10" fill="${c3}"/>
+  </svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+
+/* ---------- sample data (times are relative to page load so timers tick) ---------- */
+const t0 = Date.now();
+const P = {
+  stain: { name: 'Stain care', steps: [
+    { title: 'Stain removal', chips: ['Vanish Oxi Spray'] },
+    { title: 'Normal wash', chips: ['40°C', 'Persil Gel'] },
+    { title: 'Rinse', chips: ['Comfort Softener'] },
+    { title: 'Soak', chips: ['30 min', 'Oxi Boost'] },
+  ], rest: ' · 4 steps · 30 min soak' },
+  every: { name: 'Everyday', steps: [
+    { title: 'Normal wash', chips: ['30°C', 'Persil Gel'] },
+    { title: 'Rinse', chips: ['Water only'] },
+  ], rest: ' · 2 steps' },
+  delicate: { name: 'Delicates', steps: [
+    { title: 'Normal wash', chips: ['Cold', 'Woolite Delicate'] },
+    { title: 'Rinse', chips: ['Comfort Softener'] },
+    { title: 'Soak', chips: ['Overnight', 'No product'] },
+  ], rest: ' · 3 steps · overnight soak' },
+};
+const ROWS = [
+  { id: 'r1', tag: 'K', sender: 'Sai Sar Sein', mine: true, kg: '6.2', machine: 'Washer 10 kg', ago: 2012, booked: 600, hue: 205, program: P.stain, note: null },
+  { id: 'r2', tag: 'B', sender: 'Kanokwan Suksai', mine: false, kg: '8.5', machine: 'Washer 10 kg', ago: 6130, booked: 540, hue: 30, program: P.every, note: null },
+  { id: 'r3', tag: null, sender: 'Somchai Wongsa', mine: false, kg: '4.0', machine: '', ago: 3140, booked: 420, hue: 340, program: null, note: 'No softener. Silk blouse inside, wash gently.' },
+  { id: 'r4', tag: 'R', sender: 'จารุวรรณ ภูทองเงิน', mine: false, kg: '11.3', machine: 'Washer 15 kg', ago: 520, booked: 480, hue: 150, program: P.delicate, note: null },
+];
+ROWS.forEach(r => {
+  r.loaded = new Date(t0 - r.ago * 1000);
+  r.bookedAt = new Date(r.loaded.getTime() - r.booked * 1000);
+  r.photo = photoSvg(r.hue, r.kg + ' kg');
+  r.metaText = [`Started at ${hms(r.loaded)}`, r.program ? r.program.name + r.program.rest : (r.note || '')].filter(Boolean).join(' · ');
+});
+
+/* ---------- shared pieces ---------- */
+const programBlock = (r) => `
+  <div class="sum-col"><div class="sum">
+    <span class="tab">Program</span>
+    <div class="sum-line ${r.machine ? 'has-mach' : ''}"><span class="pn"><b>${esc(r.program.name)}</b>${esc(r.program.rest)}</span>${r.machine ? `<span class="mach"><span class="ms fill">local_laundry_service</span>${esc(r.machine)}</span>` : ''}</div>
+    <ol class="line">${r.program.steps.map(s => `<li class="st"><span class="dot"></span><div class="ttl">${esc(s.title)}</div><div class="sub">${s.chips.map(c => `<span>${esc(c)}</span>`).join('')}</div></li>`).join('')}</ol>
+  </div></div>`;
+const noProgramBlock = `<div class="empty-prog"><span class="ms">history</span>Booked before wash programs existed. No program recorded.</div>`;
+const noteBlock = (r) => r.note ? `<div class="note"><span class="ms fill">sticky_note_2</span><div><b>Note</b><p>${esc(r.note)}</p></div></div>` : '';
+
+function rowHtml(r, variant) {
+  const long = r.ago > LONG;
+  return `
+  <li class="row ${long ? 'long' : ''}" data-id="${r.id}" ${variant === 'A' ? 'aria-expanded="false"' : ''}>
+    <span class="timer" role="timer"><span class="ms">timer</span><span class="tt" data-loaded="${r.loaded.getTime()}">${fmtElapsed(r.ago)}</span></span>
+    <div class="swipe-wrap">
+      <button class="panel panel-r" type="button" tabindex="-1" data-act="Unload"><span class="ms">eject</span>Unload</button>
+      <button class="panel panel-l" type="button" tabindex="-1" data-act="Cancel"><span class="ms">close</span>Cancel</button>
+      <div class="swipe-card" tabindex="0" role="button" aria-label="Open details for ${esc(r.sender)}">
+        <div class="main">
+          <span class="ms chev r">chevron_left</span><span class="ms chev l">chevron_right</span>
+          <p class="lc">
+            <span class="tag ${r.tag ? '' : 'none'}" ${r.tag ? `aria-label="Tag ${r.tag}"` : 'aria-label="No tag"'}>${r.tag || '–'}</span>
+            <span class="wt">${r.kg}<i>kg</i></span>
+          </p>
+          <div class="mid">
+            <p class="name"><span class="nm">${esc(r.sender)}</span>${r.mine ? '<span class="badge">You</span>' : ''}</p>
+            <p class="status">${esc(r.machine || 'In machine')}</p>
+            <p class="meta">${esc(r.metaText)}</p>
+          </div>
+          <div class="ph">
+            <button class="photo" type="button" aria-label="View basket photo for ${esc(r.sender)}" data-photo><img src="${r.photo}" alt=""></button>
+            <span class="dot"><span class="ms">sync</span></span>
+          </div>
+        </div>
+        ${variant === 'A' ? `<div class="exp"><div class="exp-clip"><div class="exp-body wq-options">${r.program ? programBlock(r) : noProgramBlock}${noteBlock(r)}</div></div></div>` : ''}
+      </div>
+    </div>
+  </li>`;
+}
+
+function chromeHtml(variant) {
+  return `
+  <div class="app">
+    <header class="hdr">
+      <button class="sticker-btn" type="button" aria-label="Open menu" data-toast="Menu is not part of this prototype"><svg viewBox="0 0 28 28"><path d="M5 7h18M5 14h14M5 21h9"/></svg></button>
+      <span class="logo"><span class="ms">local_laundry_service</span></span>
+      <h1>Magicwash Laundry</h1>
+    </header>
+    <nav class="tabs" aria-label="Queue tabs">
+      <button class="tab-btn" data-toast="Only the In machine tab is mocked"><span>All</span><span class="cnt">6</span></button>
+      <button class="tab-btn" data-toast="Only the In machine tab is mocked"><span>Waiting</span><span class="cnt">1</span></button>
+      <button class="tab-btn on"><span>In machine</span><span class="cnt">4</span></button>
+      <button class="tab-btn" data-toast="Only the In machine tab is mocked"><span>Ready</span><span class="cnt">1</span></button>
+    </nav>
+    <main class="scroll">
+      <section>
+        <div class="sec-head">
+          <div class="t"><h2>In machine</h2><small>Unload when the cycle ends</small></div>
+          <button class="sticker-fab" type="button" aria-label="Book a basket: take photo" data-toast="Booking sheet is not part of this prototype"><span class="ms">photo_camera</span><span class="lb">Photo</span></button>
+        </div>
+        <ul class="cards">${ROWS.map(r => rowHtml(r, variant)).join('')}</ul>
+      </section>
+    </main>
+    <div class="modesw"><div role="radiogroup" aria-label="Machine type">
+      <span class="pill"></span>
+      <button type="button" class="on" role="radio" aria-checked="true"><span class="ms">local_laundry_service</span>Washer</button>
+      <button type="button" role="radio" aria-checked="false" data-toast="Dryer list is not mocked"><span class="ms">mode_heat</span>Dryer</button>
+    </div></div>
+  </div>
+  <div class="toast" role="status"></div>`;
+}
+
+/* ---------- per-phone behaviour ---------- */
+function setupPhone(root, variant) {
+  root.innerHTML = chromeHtml(variant) + (variant === 'B' ? '<div class="ov" aria-hidden="true"><div class="bd"></div><section class="sheet" role="dialog" aria-modal="true" tabindex="-1"></section></div>' : '');
+  const toastEl = root.querySelector('.toast');
+  let toastTimer;
+  const toast = msg => { toastEl.textContent = msg; toastEl.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800); };
+  root.addEventListener('click', e => { const t = e.target.closest('[data-toast]'); if (t) toast(t.dataset.toast); });
+
+  const rows = [...root.querySelectorAll('.row')];
+  const swipes = new Map();
+  let expanded = null;
+  const ov = root.querySelector('.ov');
+  const sheet = root.querySelector('.sheet');
+  let lastFocus = null;
+
+  function openA(id) {
+    expanded = expanded === id ? null : id;
+    rows.forEach(li => {
+      const on = li.dataset.id === expanded;
+      li.classList.toggle('open', on);
+      li.setAttribute('aria-expanded', String(on));
+    });
+    if (expanded) {
+      const li = rows.find(x => x.dataset.id === expanded);
+      setTimeout(() => li.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 280);
+    }
+  }
+
+  function sheetHtml(r) {
+    const status = [r.machine || 'In machine', r.machine ? 'In machine' : ''].filter(Boolean).join(' · ');
+    return `
+      <button class="close" type="button" aria-label="Close"><svg viewBox="0 0 28 28"><path d="m8 8 12 12M20 8 8 20"/></svg></button>
+      <header>
+        <div class="bigtag ${r.tag ? '' : 'none'}" aria-label="${r.tag ? 'Tag ' + r.tag : 'No tag'}">${r.tag || '–'}</div>
+        <div style="min-width:0"><h2>${esc(r.sender)}</h2><p class="sb">${esc(status)}</p></div>
+      </header>
+      <div class="body wq-options">
+        <div class="photos">
+          <div class="pt"><img src="${r.photo}" alt="Basket on the scale before washing"><span class="cap">Before wash</span></div>
+          <div class="pt empty"><span class="ic"><span class="ms fill">photo_camera</span></span>No unload photo<small>Taken when the basket is unloaded</small></div>
+        </div>
+        <div class="facts">
+          <div class="fact"><small>Weight before</small><b>${r.kg} kg</b></div>
+          <div class="fact"><small>Weight after</small><b class="mut">–</b></div>
+          <div class="fact"><small>Machine</small>${r.machine ? `<b>${esc(r.machine)}</b>` : '<b class="mut">Not recorded</b>'}</div>
+          <div class="fact"><small>Sender</small><b>${esc(r.sender)}</b></div>
+          <div class="fact"><small>Booked</small><b>today ${hm(r.bookedAt)}</b></div>
+          <div class="fact"><small>Loaded</small><b>${hms(r.loaded)}</b></div>
+          <div class="fact wide"><small>Unloaded</small><b class="mut">–</b></div>
+        </div>
+        <div class="sec"><div class="bar"></div><div class="tt"><h3>Wash program</h3><small>${r.program ? r.program.steps.length + (r.program.steps.length === 1 ? ' step' : ' steps') : 'None recorded'}</small></div></div>
+        ${r.program ? programBlock(r) : noProgramBlock}
+        ${noteBlock(r)}
+      </div>`;
+  }
+  function openB(id, from) {
+    const r = ROWS.find(x => x.id === id);
+    lastFocus = from;
+    sheet.setAttribute('aria-label', 'Basket details for ' + r.sender);
+    sheet.innerHTML = sheetHtml(r);
+    ov.setAttribute('aria-hidden', 'false');
+    ov.classList.add('show');
+    setTimeout(() => sheet.querySelector('.close').focus({ preventScroll: true }), 50);
+  }
+  function closeB() {
+    ov.classList.remove('show');
+    ov.setAttribute('aria-hidden', 'true');
+    if (lastFocus) lastFocus.focus({ preventScroll: true });
+  }
+  if (variant === 'B') {
+    ov.querySelector('.bd').addEventListener('click', closeB);
+    sheet.addEventListener('click', e => { if (e.target.closest('.close')) closeB(); });
+    root.addEventListener('keydown', e => { if (e.key === 'Escape' && ov.classList.contains('show')) closeB(); });
+  }
+
+  /* swipe + tap */
+  const SNAP_R = 128, SNAP_L = 144;
+  rows.forEach(li => {
+    const id = li.dataset.id;
+    const card = li.querySelector('.swipe-card');
+    let state = 'none', down = false, moved = false, sx = 0, sy = 0, dx = 0, pid = null;
+    const base = () => state === 'right' ? SNAP_R : state === 'left' ? -SNAP_L : 0;
+    const snap = next => {
+      state = next;
+      card.classList.remove('drag');
+      card.style.transform = next === 'right' ? `translateX(${SNAP_R}px)` : next === 'left' ? `translateX(${-SNAP_L}px)` : '';
+      if (next !== 'none') swipes.forEach((fn, k) => { if (k !== id) fn('none'); });
+    };
+    swipes.set(id, snap);
+    const tap = () => variant === 'A' ? openA(id) : openB(id, card);
+
+    card.addEventListener('pointerdown', e => {
+      if (e.button > 0 || e.target.closest('[data-photo]')) return;
+      down = true; moved = false; sx = e.clientX; sy = e.clientY; dx = 0; pid = e.pointerId;
+    });
+    card.addEventListener('pointermove', e => {
+      if (!down || e.pointerId !== pid) return;
+      dx = e.clientX - sx;
+      if (!moved && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(e.clientY - sy)) { moved = true; card.classList.add('drag'); try { card.setPointerCapture(pid); } catch (_) {} }
+      if (moved) card.style.transform = `translateX(${Math.max(-SNAP_L - 16, Math.min(SNAP_R + 16, base() + dx))}px)`;
+    });
+    const end = e => {
+      if (!down || e.pointerId !== pid) return;
+      down = false;
+      if (!moved) {
+        if (e.type === 'pointercancel') return;
+        if (state !== 'none') snap('none'); else tap();
+        return;
+      }
+      const x = base() + dx;
+      snap(x > 56 ? 'right' : x < -64 ? 'left' : 'none');
+    };
+    card.addEventListener('pointerup', end);
+    card.addEventListener('pointercancel', end);
+    card.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === card) { e.preventDefault(); tap(); } });
+    li.querySelectorAll('.panel').forEach(b => b.addEventListener('click', () => { snap('none'); toast(`${b.dataset.act} would run here (prototype)`); }));
+    li.querySelector('[data-photo]').addEventListener('click', e => { e.stopPropagation(); toast('Photo viewer opens (unchanged)'); });
+  });
+}
+
+setupPhone(document.getElementById('phoneA'), 'A');
+setupPhone(document.getElementById('phoneB'), 'B');
+
+/* timers */
+setInterval(() => {
+  const now = Date.now();
+  document.querySelectorAll('.tt[data-loaded]').forEach(el => {
+    const s = Math.max(0, Math.floor((now - Number(el.dataset.loaded)) / 1000));
+    el.textContent = fmtElapsed(s);
+    el.closest('.row').classList.toggle('long', s > LONG);
+  });
+}, 1000);
+</script>
+</body>
+</html>

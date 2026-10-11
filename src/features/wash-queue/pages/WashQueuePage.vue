@@ -30,6 +30,7 @@ import WashQueueModeSwitch from '../components/WashQueueModeSwitch.vue'
 import WashQueueNotice from '../components/WashQueueNotice.vue'
 import WashQueuePhotoButton from '../components/WashQueuePhotoButton.vue'
 import WashQueueBookDialog from '../components/WashQueueBookDialog.vue'
+import WashQueueDetailSheet from '../components/WashQueueDetailSheet.vue'
 import WashQueueRow, { type WashQueueRowAction } from '../components/WashQueueRow.vue'
 import WashQueueSection from '../components/WashQueueSection.vue'
 
@@ -47,6 +48,8 @@ const staff = useStaffStore()
 const weigh = useWeighFlow()
 const now = useNow()
 const photo = useQueryOverlay('photo')
+const detail = useQueryOverlay('basket')
+const detailRow = computed(() => store.items.find(row => row.id === detail.id.value))
 // Booking camera: `?shoot=book` sits on top of the booking dialog and closes with Back.
 const shoot = useQueryOverlay('shoot')
 const photoUrl = ref('')
@@ -379,7 +382,7 @@ onUnmounted(() => {
         <template v-if="topSection === 'machine'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="openDraft" />
         </template>
-        <WashQueueRow v-for="row in inMachine" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :program-name="programs.nameOf" :now="now" :mine="isMine(row)" :busy="busyIds.has(row.id)" :error="rowErrors.get(row.id) ?? null" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
+        <WashQueueRow v-for="row in inMachine" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :program-name="programs.nameOf" :now="now" :mine="isMine(row)" :busy="busyIds.has(row.id)" :error="rowErrors.get(row.id) ?? null" :primary="primaryAction(row)" :cancellable="true" @open="detail.open(row.id)" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
         <li v-if="emptySection === 'machine'" class="px-1 py-4 text-sm italic text-on-surface-variant">{{ emptyText }}</li>
       </WashQueueSection>
 
@@ -387,7 +390,7 @@ onUnmounted(() => {
         <template v-if="topSection === 'waiting'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="openDraft" />
         </template>
-        <WashQueueRow v-for="row in waiting" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :program-name="programs.nameOf" :position="waitingPosition.get(row.id)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :error="rowErrors.get(row.id) ?? null" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
+        <WashQueueRow v-for="row in waiting" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :program-name="programs.nameOf" :position="waitingPosition.get(row.id)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :error="rowErrors.get(row.id) ?? null" :primary="primaryAction(row)" :cancellable="true" @open="detail.open(row.id)" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
         <li v-if="emptySection === 'waiting'" class="px-1 py-4 text-sm italic text-on-surface-variant">{{ emptyText }}</li>
       </WashQueueSection>
 
@@ -395,7 +398,7 @@ onUnmounted(() => {
         <template v-if="topSection === 'ready'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="openDraft" />
         </template>
-        <WashQueueRow v-for="row in ready" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :program-name="programs.nameOf" :mine="isMine(row)" :busy="busyIds.has(row.id)" :error="rowErrors.get(row.id) ?? null" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
+        <WashQueueRow v-for="row in ready" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :program-name="programs.nameOf" :mine="isMine(row)" :busy="busyIds.has(row.id)" :error="rowErrors.get(row.id) ?? null" :primary="primaryAction(row)" :cancellable="true" @open="detail.open(row.id)" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
         <li v-if="emptySection === 'ready'" class="px-1 py-4 text-sm italic text-on-surface-variant">{{ emptyText }}</li>
       </WashQueueSection>
     </template>
@@ -406,6 +409,7 @@ onUnmounted(() => {
     <WeightPrompt :open="weigh.promptOpen.value" input-id="wash-queue-weight" :title="weighTitle" :description="weighDescription" @submit="weigh.submit" @close="weigh.close" />
     <CameraOverlay :open="weigh.cameraOpen.value" @close="weigh.close" @capture="capture" />
     <CameraOverlay :open="shoot.id.value === 'book'" @close="shoot.close" @capture="captureBook" />
+    <WashQueueDetailSheet v-if="detailRow" :open="!activePhoto" :row="detailRow" :sender="staff.nameOf(detailRow.createdBy)" :machine="machineOf(detailRow)" :program-name="programs.nameOf" :product-name="products.nameOf" @photo="photo.open" @close="detail.close" />
     <PhotoViewer v-if="activePhoto" :images="images" :active-id="activePhoto" @change="photo.change" @close="photo.close" />
     <WashQueueBookDialog
       :open="draftOpen && shoot.id.value !== 'book'" :mode="mode" :photo-url="photoUrl" :uploading="uploading" :raw-weight="rawWeight" :weight-error="weightError" :weight-valid="draftWeight !== null"
