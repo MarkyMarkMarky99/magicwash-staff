@@ -23,6 +23,7 @@ const props = defineProps<{
   now?: number
   mine: boolean
   busy: boolean
+  error?: string | null
   primary: PrimaryAction | null
   cancellable: boolean
 }>()
@@ -164,6 +165,9 @@ defineExpose({ close, contains })
 
       <div v-if="busy" class="absolute inset-0 z-30 flex items-center justify-center gap-2 bg-white/85 font-label text-xs font-bold text-primary" role="status">
         <span class="material-symbols-outlined animate-spin text-[18px]" aria-hidden="true">sync</span>{{ busyLabel }}
+      </div>
+      <div v-else-if="error" class="pointer-events-none absolute inset-0 z-30 flex items-center justify-center gap-2 bg-white/90 px-4 text-center font-label text-xs font-bold text-error" role="alert">
+        <span class="material-symbols-outlined shrink-0 text-[18px]" aria-hidden="true">error</span>{{ error }}
       </div>
     </component>
   </li>

@@ -21,7 +21,6 @@ import GenericTabs from '@/shared/components/GenericTabs.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import PhotoViewer from '@/shared/components/PhotoViewer.vue'
 import WeightPrompt from '@/shared/components/WeightPrompt.vue'
-import { formatKg } from '../format-weights'
 import { UNLOAD_WEIGH_REQUIRED } from '../unload-policy'
 import { machineLabel, modeOfMachineId, type MachineMode } from '../machine-label'
 import { useQueryOverlay } from '../composables/useQueryOverlay'
@@ -61,10 +60,11 @@ const draftOpen = ref(false)
 const uploading = ref(false)
 const saving = ref(false)
 const busyIds = ref(new Set<string>())
+const pendingActs = new Set<string>()
 const cancelRow = ref<WashQueueDto | null>(null)
 const errorMessage = ref<string | null>(null)
 const bookError = ref<string | null>(null)
-const successMessage = ref<string | null>(null)
+const rowErrors = ref(new Map<string, string>())
 const unloadRowId = computed(() => weigh.target.value?.startsWith('unload:') ? weigh.target.value.slice('unload:'.length) : null)
 const weighTitle = computed(() => unloadRowId.value ? 'Weigh the washed basket' : 'Weigh the basket')
 const weighDescription = computed(() => `Put the ${unloadRowId.value ? 'washed ' : ''}basket on the scale and enter its weight. The photo you take next must show the basket on the scale.`)
@@ -132,7 +132,7 @@ const notice = computed(() => errorMessage.value ?? (store.items.length ? store.
 let timer: ReturnType<typeof setInterval> | undefined
 const rowHandles = new Map<string, { close: () => void; contains: (target: Node) => boolean }>()
 let openRowId: string | null = null
-let successTimer: ReturnType<typeof setTimeout> | undefined
+const rowErrorTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
 function isMine(row: WashQueueDto): boolean {
   return row.createdBy === auth.staff?.staffId
@@ -179,10 +179,20 @@ function chooseMachine(machineId: string): void {
 function chooseTag(tagCode: string): void {
   draftTagCode.value = tagCode
 }
-function showSuccess(text: string): void {
-  clearTimeout(successTimer)
-  successMessage.value = text
-  successTimer = setTimeout(() => { successMessage.value = null }, 5000)
+// A failed row action shows on its card for six seconds; the page notice is the fallback when the row is no longer listed.
+function setRowError(id: string, text: string | null): void {
+  clearTimeout(rowErrorTimers.get(id))
+  rowErrorTimers.delete(id)
+  const next = new Map(rowErrors.value)
+  if (text) {
+    next.set(id, text)
+    rowErrorTimers.set(id, setTimeout(() => setRowError(id, null), 6000))
+  } else next.delete(id)
+  rowErrors.value = next
+}
+function showRowError(id: string, text: string): void {
+  if ([...inMachine.value, ...waiting.value, ...ready.value].some(row => row.id === id)) setRowError(id, text)
+  else errorMessage.value = text
 }
 function setBusy(id: string, busy: boolean): void {
   const next = new Set(busyIds.value)
@@ -231,14 +241,14 @@ async function captureBook(file: File): Promise<void> {
 }
 async function unload(row: WashQueueDto, weight: number, file: File): Promise<void> {
   if (row.status !== 'In Progress') return
+  setRowError(row.id, null)
   setBusy(row.id, true)
   try {
     const unloadPhotoUrl = await uploadWashQueuePhoto(file)
     await store.action(row.id, { action: 'unload', weightAfterKg: weight, unloadPhotoUrl })
-    showSuccess(`Basket unloaded at ${formatKg(weight)}. Ready for pickup.`)
   } catch (reason) {
-    errorMessage.value = reason instanceof ApiError ? reason.message : 'Unload failed. Nothing was saved. Weigh the basket and try again.'
     await store.load()
+    showRowError(row.id, reason instanceof ApiError ? reason.message : 'Unload failed. Nothing was saved. Weigh the basket and try again.')
   } finally {
     setBusy(row.id, false)
   }
@@ -268,31 +278,30 @@ async function submit(): Promise<void> {
     await store.create({ machineId, photoUrl: photoUrl.value, washOptions: mode.value === 'washer' ? draftWashOptions.value : null, weightBeforeKg, tagCode })
     draftOpen.value = false
     resetDraft()
-    showSuccess(`Basket booked. ${waiting.value.length} waiting in the queue.`)
   } catch (reason) {
     bookError.value = reason instanceof ApiError ? reason.message : 'Booking failed. Check your connection and try again.'
   } finally {
     saving.value = false
   }
 }
-const successText = {
-  load: 'Basket loaded into the machine.',
-  unload: 'Basket unloaded. Ready for pickup.',
-  collect: 'Basket picked up.',
-  cancel: 'Booking cancelled.',
-} as const
-async function act(row: WashQueueDto, kind: keyof typeof successText): Promise<void> {
-  if (busyIds.value.has(row.id)) return
+// The busy veil shows for at most this long; the row then moves while the save finishes in the background.
+const ROW_MOVE_HOLD_MS = 1200
+async function act(row: WashQueueDto, kind: WashQueueRowAction): Promise<void> {
+  if (busyIds.value.has(row.id) || pendingActs.has(row.id)) return
+  setRowError(row.id, null)
+  pendingActs.add(row.id)
   setBusy(row.id, true)
   errorMessage.value = null
+  const done = store.action(row.id, { action: kind } satisfies WashQueueUpdate, ROW_MOVE_HOLD_MS)
   try {
-    await store.action(row.id, { action: kind } satisfies WashQueueUpdate)
-    showSuccess(successText[kind])
+    await Promise.race([done, new Promise(resolve => setTimeout(resolve, ROW_MOVE_HOLD_MS))]).catch(() => undefined)
+    setBusy(row.id, false)
+    await done
   } catch (reason) {
-    errorMessage.value = reason instanceof ApiError ? reason.message : 'Action failed. The queue was reloaded; try again.'
-    await store.load()
+    showRowError(row.id, reason instanceof ApiError ? reason.message : 'Action failed. The queue was reloaded; try again.')
   } finally {
     setBusy(row.id, false)
+    pendingActs.delete(row.id)
   }
 }
 function rowAction(row: WashQueueDto, kind: WashQueueRowAction): void {
@@ -309,7 +318,7 @@ function confirmCancel(): void {
   if (row) void act(row, 'cancel')
 }
 function refresh(): void {
-  if (!store.loading && !busyIds.value.size && !saving.value) void store.load()
+  if (!store.loading && !busyIds.value.size && !pendingActs.size && !saving.value) void store.load()
 }
 function refreshVisible(): void {
   if (document.visibilityState === 'visible') refresh()
@@ -326,7 +335,7 @@ onMounted(() => {
 })
 onUnmounted(() => {
   clearInterval(timer)
-  clearTimeout(successTimer)
+  for (const pending of rowErrorTimers.values()) clearTimeout(pending)
   document.removeEventListener('visibilitychange', refreshVisible)
   document.removeEventListener('pointerdown', closeOpenRow, true)
 })
@@ -370,7 +379,7 @@ onUnmounted(() => {
         <template v-if="topSection === 'machine'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="openDraft" />
         </template>
-        <WashQueueRow v-for="row in inMachine" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :program-name="programs.nameOf" :now="now" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
+        <WashQueueRow v-for="row in inMachine" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :program-name="programs.nameOf" :now="now" :mine="isMine(row)" :busy="busyIds.has(row.id)" :error="rowErrors.get(row.id) ?? null" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
         <li v-if="emptySection === 'machine'" class="px-1 py-4 text-sm italic text-on-surface-variant">{{ emptyText }}</li>
       </WashQueueSection>
 
@@ -378,7 +387,7 @@ onUnmounted(() => {
         <template v-if="topSection === 'waiting'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="openDraft" />
         </template>
-        <WashQueueRow v-for="row in waiting" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :program-name="programs.nameOf" :position="waitingPosition.get(row.id)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
+        <WashQueueRow v-for="row in waiting" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :program-name="programs.nameOf" :position="waitingPosition.get(row.id)" :mine="isMine(row)" :busy="busyIds.has(row.id)" :error="rowErrors.get(row.id) ?? null" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
         <li v-if="emptySection === 'waiting'" class="px-1 py-4 text-sm italic text-on-surface-variant">{{ emptyText }}</li>
       </WashQueueSection>
 
@@ -386,16 +395,13 @@ onUnmounted(() => {
         <template v-if="topSection === 'ready'" #action>
           <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="openDraft" />
         </template>
-        <WashQueueRow v-for="row in ready" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :program-name="programs.nameOf" :mine="isMine(row)" :busy="busyIds.has(row.id)" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
+        <WashQueueRow v-for="row in ready" :key="row.id" :ref="(handle) => bindRow(row.id, handle)" :row="row" :sender="staff.nameOf(row.createdBy)" :machine="machineOf(row)" :program-name="programs.nameOf" :mine="isMine(row)" :busy="busyIds.has(row.id)" :error="rowErrors.get(row.id) ?? null" :primary="primaryAction(row)" :cancellable="true" @photo="photo.open" @action="rowAction(row, $event)" @opened="rowOpened(row.id)" />
         <li v-if="emptySection === 'ready'" class="px-1 py-4 text-sm italic text-on-surface-variant">{{ emptyText }}</li>
       </WashQueueSection>
     </template>
     <div class="h-12" aria-hidden="true" />
 
     <WashQueueModeSwitch :mode="mode" @select="changeMode" />
-    <div v-if="successMessage" class="pointer-events-none absolute inset-x-4 bottom-[calc(max(1rem,env(safe-area-inset-bottom))+5.25rem)] z-20 flex justify-center">
-      <div class="pointer-events-auto w-full max-w-sm rounded-xl shadow-lg"><WashQueueNotice tone="success" :message="successMessage" dismissible @dismiss="successMessage = null" /></div>
-    </div>
 
     <WeightPrompt :open="weigh.promptOpen.value" input-id="wash-queue-weight" :title="weighTitle" :description="weighDescription" @submit="weigh.submit" @close="weigh.close" />
     <CameraOverlay :open="weigh.cameraOpen.value" @close="weigh.close" @capture="capture" />

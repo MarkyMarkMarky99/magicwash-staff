@@ -6,7 +6,7 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
-- **`fix/wash-queue-camera-swipe`** — booking-camera shutter, swipe-action fixes and temporary no-weigh unload committed, not browser-tested; see `.user/memory/fix-wash-queue-camera-swipe.md`.
+- **`fix/wash-queue-camera-swipe`** — booking-camera shutter, swipe-action fixes, temporary no-weigh unload and faster row actions committed; row actions owner-tested; see `.user/memory/fix-wash-queue-camera-swipe.md`.
 
 ## Pending work
 - **Wash queue + dryer queue (one-sheet booking: weight, photo, tag wheel, washer menu, read-only program line — merged 2026-10-11)** — see `docs/features/wash-queue/wash-queue.md`
