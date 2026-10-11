@@ -33,8 +33,8 @@ export const washQueueUpdateSchema = z.discriminatedUnion('action', [
   z.object({ action: z.enum(['load', 'collect', 'cancel']) }).strict(),
   z.object({
     action: z.literal('unload'),
-    weightAfterKg: weightKgSchema,
-    unloadPhotoUrl: z.string().trim().min(1),
+    weightAfterKg: weightKgSchema.optional(),
+    unloadPhotoUrl: z.string().trim().min(1).optional(),
   }).strict(),
 ])
 export const washQueueRowSchema = z.object({

@@ -22,6 +22,7 @@ import ListContainer from '@/shared/components/ListContainer.vue'
 import PhotoViewer from '@/shared/components/PhotoViewer.vue'
 import WeightPrompt from '@/shared/components/WeightPrompt.vue'
 import { formatKg } from '../format-weights'
+import { UNLOAD_WEIGH_REQUIRED } from '../unload-policy'
 import { machineLabel, modeOfMachineId, type MachineMode } from '../machine-label'
 import { useQueryOverlay } from '../composables/useQueryOverlay'
 import { useNow } from '../composables/useNow'
@@ -276,6 +277,7 @@ async function submit(): Promise<void> {
 }
 const successText = {
   load: 'Basket loaded into the machine.',
+  unload: 'Basket unloaded. Ready for pickup.',
   collect: 'Basket picked up.',
   cancel: 'Booking cancelled.',
 } as const
@@ -295,7 +297,10 @@ async function act(row: WashQueueDto, kind: keyof typeof successText): Promise<v
 }
 function rowAction(row: WashQueueDto, kind: WashQueueRowAction): void {
   if (kind === 'cancel') cancelRow.value = row
-  else if (kind === 'unload') weigh.open(`unload:${row.id}`)
+  else if (kind === 'unload') {
+    if (UNLOAD_WEIGH_REQUIRED) weigh.open(`unload:${row.id}`)
+    else void act(row, 'unload')
+  }
   else void act(row, kind)
 }
 function confirmCancel(): void {
