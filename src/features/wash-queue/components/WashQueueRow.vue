@@ -140,7 +140,7 @@ defineExpose({ close, contains })
       <span v-if="swipeable && cancellable" class="material-symbols-outlined pointer-events-none absolute right-px top-1/2 z-20 -translate-y-1/2 text-[14px] text-primary opacity-30" aria-hidden="true">chevron_left</span>
       <div class="grid grid-cols-[56px_minmax(0,1fr)_56px] items-center gap-2.5 px-3 py-2.5">
         <p class="flex flex-col items-center self-stretch justify-center border-r border-outline-variant pr-2 text-primary">
-          <span class="font-headline text-[36px] font-extrabold leading-none" :class="{ 'text-on-surface-variant opacity-60': !row.tagCode }" :aria-label="row.tagCode ? `Tag ${row.tagCode}` : 'No tag'">{{ row.tagCode || '–' }}</span>
+          <span class="font-headline font-extrabold leading-none tabular-nums" :class="[row.tagCode && row.tagCode.length > 1 ? 'text-[17px]' : 'text-[36px]', { 'text-on-surface-variant opacity-60': !row.tagCode }]" :aria-label="row.tagCode ? `Tag ${row.tagCode}` : 'No tag'">{{ row.tagCode || '–' }}</span>
           <span class="mt-1.5 whitespace-nowrap font-label text-xs font-bold leading-none tabular-nums text-on-surface-variant">{{ figure }} <span class="text-[10px] font-medium">kg</span></span>
         </p>
         <div class="min-w-0">

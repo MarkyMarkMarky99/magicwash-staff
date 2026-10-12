@@ -10,7 +10,6 @@ export const machinesRoutes = {
     GET: async (req) => {
       parseOrThrow(machinesApiContract.query.list, req.query)
       const rows = (await getMachinesRepository().read())
-        .filter((row) => row.status === 'ACTIVE')
         .map((row) => ({
           id: String(row.id ?? ''),
           type: row.type!,

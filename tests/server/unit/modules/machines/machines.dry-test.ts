@@ -32,13 +32,14 @@ const body = response.body as { success: boolean; data: unknown[]; meta: Record<
 assert.equal(body.success, true)
 const rows = body.data.map((row) => machinesApiContract.response.list.parse(row))
 assert.deepEqual(rows.map((row) => row.id), [
-  'WSH15-04', 'WSH15-01', 'WSH15-02', 'legacy-id', 'WSH15-03',
-  'DRY08-01', 'DRY08-02', 'DRY08-03',
+  'WSH15-05', 'WSH15-04', 'WSH15-01', 'WSH15-02', 'legacy-id', 'WSH15-03',
+  'DRY08-01', 'DRY08-04', 'DRY08-02', 'DRY08-03',
 ])
 assert.deepEqual(Object.keys(body.data[0] as object), ['id', 'type', 'name', 'capacityKg', 'status', 'sortOrder', 'note'])
 assert.equal(rows[0]!.name, 'เครื่องอบ 15 kg')
-assert.equal(rows[3]!.capacityKg, null)
-assert.equal(rows[3]!.note, null)
+assert.equal(rows[4]!.capacityKg, null)
+assert.equal(rows[4]!.note, null)
+assert.equal(rows[0]!.status, 'RETIRED')
 assert.equal('pagination' in body.meta, false)
 for (const method of ['POST', 'PATCH', 'PUT', 'DELETE', 'HEAD', 'OPTIONS']) {
   const rejected = await machinesRoutes.collection.handleRequest({ ...request, method })
@@ -52,4 +53,4 @@ for (const operation of [
   () => getMachinesRepository().update('WSH15-01', { name: 'Changed' }),
   () => getMachinesRepository().delete('WSH15-01', staff.staffId),
 ]) await assert.rejects(operation)
-console.log('machines dry test passed (ACTIVE filtering, type/order/id sorting, DTO, lazy route, 405, read-only writes)')
+console.log('machines dry test passed (every status, type/order/id sorting, DTO, lazy route, 405, read-only writes)')

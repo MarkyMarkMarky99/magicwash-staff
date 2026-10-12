@@ -38,7 +38,7 @@ client.appendRows = async (rows, valueInput, width) => {
   assert.equal(rows[0]![13], '2026-10-10 07:00:00')
   assert.equal(rows[0]![15], rows[0]![13])
   assert.equal(rows[0]![17], 12.3)
-  assert.deepEqual(rows[0]!.slice(18), ['', '', 'WSH15-01', 'C', JSON.stringify(options)])
+  assert.deepEqual(rows[0]!.slice(18), ['', '', 'WSH15-01', 'C001', JSON.stringify(options)])
   stored = [...rows[0]!]
   writes++
   return { spreadsheetId: 'wash-queue-wire-test', updates: {
@@ -74,7 +74,7 @@ Object.assign(getMachinesRepository(), {
 const staff = { staffId: 'STAFF-me', name: 'Me', email: 'me@example.test', role: 'staff' as const }
 const result = await washQueueRoutes.collection.handleRequest({
   method: 'POST', query: {}, headers: {}, params: {}, staff,
-  body: { photoUrl: 'https://example.test/basket.jpg', weightBeforeKg: 12.3, machineId: 'WSH15-01', tagCode: 'C', washOptions: options, instruction: 'Ignored' },
+  body: { photoUrl: 'https://example.test/basket.jpg', weightBeforeKg: 12.3, machineId: 'WSH15-01', tagCode: 'C001', washOptions: options, instruction: 'Ignored' },
 })
 assert.equal(result.status, 201)
 const created = (result.body as { data: Record<string, unknown> }).data
@@ -119,7 +119,7 @@ assert.equal(completed.unloadedBy, staff.staffId)
 assert.equal(stored[18], 15.4)
 assert.equal(stored[19], 'https://example.test/wet.jpg')
 assert.equal(stored[20], 'WSH15-01')
-assert.equal(stored[21], 'C')
+assert.equal(stored[21], 'C001')
 assert.deepEqual(completed.washOptions, options)
 assert.equal(stored[22], JSON.stringify(options))
 assert.equal(writes, 3)

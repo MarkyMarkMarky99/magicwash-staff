@@ -3,7 +3,6 @@ import { parseWeightKg, MAX_ORDER_IMAGE_WEIGHT_KG } from '../../shared/utils/ite
 import type { ModuleApiContract } from '../shared/module-api-contract.js'
 
 export const washQueueStatusSchema = z.enum(['Pending', 'In Progress', 'Completed', 'Collected', 'Cancelled'])
-export const washQueueTagCodes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
 export const washQueueActionSchema = z.enum(['load', 'unload', 'collect', 'cancel'])
 const weightKgSchema = z.number().refine((value) => parseWeightKg(String(value)) !== null, {
   message: `Weight must be positive, at most ${MAX_ORDER_IMAGE_WEIGHT_KG} kg, with at most one decimal place.`,
@@ -26,8 +25,8 @@ export const washQueueCreateSchema = z.object({
   photoUrl: z.string().trim().min(1),
   washOptions: washOptionsSchema.nullable(),
   instruction: z.string().nullable().optional(),
-  weightBeforeKg: weightKgSchema,
-  tagCode: z.string().trim().regex(/^[A-Z]$/, 'Choose a tag from A to Z.'),
+  weightBeforeKg: weightKgSchema.nullable(),
+  tagCode: z.string().trim().regex(/^[A-Z]\d{3}$/, 'Tag must be one letter and three digits, for example A001.'),
 }).strict()
 export const washQueueUpdateSchema = z.discriminatedUnion('action', [
   z.object({ action: z.enum(['load', 'collect', 'cancel']) }).strict(),

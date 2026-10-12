@@ -47,8 +47,8 @@ const summaryRest = computed(() => props.row.washOptions === null ? '' : washOpt
     :ariaLabel="`Basket details for ${sender}`" @close="emit('close')"
   >
     <header class="flex flex-none items-center gap-3.5 pb-2 pl-5 pr-[60px] pt-[18px]">
-      <div class="grid h-[60px] w-[60px] shrink-0 -rotate-4 place-items-center rounded-2xl font-headline text-[38px] font-extrabold leading-none"
-        :class="row.tagCode ? 'bg-primary text-lime shadow-[3px_3px_0_color-mix(in_srgb,var(--color-primary)_70%,black)]' : 'bg-surface-container text-on-surface-variant shadow-[3px_3px_0_var(--color-outline-variant)]'"
+      <div class="grid h-[60px] w-[60px] shrink-0 -rotate-4 place-items-center rounded-2xl font-headline font-extrabold leading-none tabular-nums"
+        :class="[row.tagCode && row.tagCode.length > 1 ? 'text-[19px]' : 'text-[38px]', row.tagCode ? 'bg-primary text-lime shadow-[3px_3px_0_color-mix(in_srgb,var(--color-primary)_70%,black)]' : 'bg-surface-container text-on-surface-variant shadow-[3px_3px_0_var(--color-outline-variant)]']"
         :aria-label="row.tagCode ? `Tag ${row.tagCode}` : 'No tag'"
       >{{ row.tagCode || '–' }}</div>
       <div class="min-w-0">

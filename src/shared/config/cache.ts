@@ -32,6 +32,8 @@ const CACHE_HOURS: Record<string, number> = {
   '/api/after-photos': 1,
   '/api/customers': 1,
   '/api/laundry-photos': 1,
+  // Machines are typed into the sheet and almost never change; the app has no write path for them.
+  '/api/machines': 24,
   '/api/order-reports': 1,
   '/api/price-list': 1,
 }
@@ -44,7 +46,7 @@ const CACHE_HOURS: Record<string, number> = {
  * (30 KB) barely change, while invoices and orders change daily and are queried
  * under many filter combinations, which would only churn the store.
  */
-const PERSIST_ENDPOINTS: readonly string[] = ['/api/customers', '/api/price-list']
+const PERSIST_ENDPOINTS: readonly string[] = ['/api/customers', '/api/machines', '/api/price-list']
 
 /** Endpoints that must never be served from cache, not even stale. */
 const NEVER_CACHE: readonly string[] = ['/api/order-snapshots', '/api/job-tickets', '/api/auth', '/api/staff', '/api/work-transactions']

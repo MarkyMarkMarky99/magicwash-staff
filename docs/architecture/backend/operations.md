@@ -77,7 +77,7 @@ retains partial writes for an explicit staff retry; it does not roll back. See
 [Packaging Confirm](../../features/packaging/confirm.md) for its request and response contracts.
 
 The staff-authenticated `machines` module exposes only `GET /api/machines`, returning
-ACTIVE washers and dryers without pagination, ordered by type (WSH before DRY),
+washers and dryers of every status without pagination, ordered by type (WSH before DRY),
 sortOrder ascending (null last), then id. WashQueue POST requires `machineId`, checks
 that the Machines row is ACTIVE before any write, and stores `machine_id`. Unknown or
 unavailable machines return 422. Each machine has its own FIFO queue in the frontend;

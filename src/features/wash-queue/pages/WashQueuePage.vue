@@ -14,6 +14,7 @@ import { useStaffStore } from '@/data/staff/staff.store'
 import { ApiError } from '@/shared/api/api-client'
 import { uploadWashQueuePhoto } from '@/data/wash-queue/wash-queue.service'
 import { MAX_ORDER_IMAGE_WEIGHT_KG, parseWeightKg } from '@shared/utils/item-quantity'
+import { bangkokToday } from '@shared/utils/bangkok-datetime'
 import ConfirmOverlay from '@/shared/layouts/ConfirmOverlay.vue'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import CameraOverlay from '@/shared/components/CameraOverlay.vue'
@@ -23,6 +24,7 @@ import PhotoViewer from '@/shared/components/PhotoViewer.vue'
 import WeightPrompt from '@/shared/components/WeightPrompt.vue'
 import { UNLOAD_WEIGH_REQUIRED } from '../unload-policy'
 import { machineLabel, modeOfMachineId, type MachineMode } from '../machine-label'
+import { machineTagLetter, nextTagCode, TAG_CODE_PATTERN } from '../tag-code'
 import { useQueryOverlay } from '../composables/useQueryOverlay'
 import { useNow } from '../composables/useNow'
 import { useWeighFlow } from '../composables/useWeighFlow'
@@ -56,8 +58,12 @@ const photoUrl = ref('')
 const rawWeight = ref('')
 const weightError = ref<string | null>(null)
 const draftWeight = computed(() => parseWeightKg(rawWeight.value))
+// Weight is optional: only a typed value that does not parse blocks the photo and the booking.
+const weightValid = computed(() => !rawWeight.value.trim() || draftWeight.value !== null)
 const draftMachineId = ref<string | null>(null)
 const draftTagCode = ref<string | null>(null)
+// Once staff type a tag, the automatic one stops following the machine and the queue.
+const draftTagEdited = ref(false)
 const draftWashOptions = ref<WashOptions | null>(null)
 const draftOpen = ref(false)
 const uploading = ref(false)
@@ -100,6 +106,17 @@ watch(() => programs.items, () => {
 })
 const washOptionsChosen = computed(() => mode.value === 'dryer' || (draftWashOptions.value !== null && draftWashOptions.value.steps.length > 0))
 const machineChosen = computed(() => pickerMachines.value.some(machine => machine.id === draftMachineId.value))
+const tagValid = computed(() => draftTagCode.value !== null && TAG_CODE_PATTERN.test(draftTagCode.value))
+// The booking starts on the first machine of the mode and the next free tag for that machine today; both may
+// arrive after the dialog opens, and the tag follows machine changes and queue reloads until staff edit it.
+watch([draftOpen, pickerMachines], () => {
+  if (draftOpen.value && !machineChosen.value) draftMachineId.value = pickerMachines.value[0]?.id ?? null
+})
+watch([draftOpen, draftMachineId, () => machines.items, () => store.items], () => {
+  if (!draftOpen.value || draftTagEdited.value) return
+  const letter = machineTagLetter(draftMachineId.value, machines.items)
+  draftTagCode.value = letter ? nextTagCode(letter, store.items, bangkokToday()) : null
+})
 const tabKeys = ['all', 'waiting', 'in-machine', 'ready'] as const
 type TabKey = typeof tabKeys[number]
 const activeTab = computed<TabKey>(() => {
@@ -180,7 +197,8 @@ function chooseMachine(machineId: string): void {
   draftMachineId.value = machineId
 }
 function chooseTag(tagCode: string): void {
-  draftTagCode.value = tagCode
+  draftTagEdited.value = true
+  draftTagCode.value = tagCode.trim().toUpperCase() || null
 }
 // A failed row action shows on its card for six seconds; the page notice is the fallback when the row is no longer listed.
 function setRowError(id: string, text: string | null): void {
@@ -217,6 +235,7 @@ function openDraft(): void {
   resetDraft()
   if (mode.value === 'washer') draftWashOptions.value = defaultWashOptions(programs.active())
   draftOpen.value = true
+  refresh()
 }
 function showWeightError(): void {
   weightError.value = `Enter a weight greater than 0 and up to ${MAX_ORDER_IMAGE_WEIGHT_KG} kg, with at most 1 decimal place`
@@ -226,7 +245,7 @@ function updateWeight(value: string): void {
   weightError.value = null
 }
 function takePhoto(): void {
-  if (draftWeight.value === null) { showWeightError(); return }
+  if (!weightValid.value) { showWeightError(); return }
   if (!saving.value && !uploading.value) shoot.open('book')
 }
 async function captureBook(file: File): Promise<void> {
@@ -262,6 +281,7 @@ function resetDraft(): void {
   weightError.value = null
   draftMachineId.value = null
   draftTagCode.value = null
+  draftTagEdited.value = false
   draftWashOptions.value = null
   bookError.value = null
 }
@@ -274,7 +294,7 @@ async function submit(): Promise<void> {
   const machineId = draftMachineId.value
   const tagCode = draftTagCode.value
   const weightBeforeKg = draftWeight.value
-  if (!photoUrl.value || weightBeforeKg === null || !machineId || !machineChosen.value || !tagCode || !washOptionsChosen.value || saving.value || uploading.value) return
+  if (!photoUrl.value || !weightValid.value || !machineId || !machineChosen.value || !tagCode || !tagValid.value || !washOptionsChosen.value || saving.value || uploading.value) return
   saving.value = true
   bookError.value = null
   try {
@@ -412,9 +432,9 @@ onUnmounted(() => {
     <WashQueueDetailSheet v-if="detailRow" :open="!activePhoto" :row="detailRow" :sender="staff.nameOf(detailRow.createdBy)" :machine="machineOf(detailRow)" :program-name="programs.nameOf" :product-name="products.nameOf" @photo="photo.open" @close="detail.close" />
     <PhotoViewer v-if="activePhoto" :images="images" :active-id="activePhoto" @change="photo.change" @close="photo.close" />
     <WashQueueBookDialog
-      :open="draftOpen && shoot.id.value !== 'book'" :mode="mode" :photo-url="photoUrl" :uploading="uploading" :raw-weight="rawWeight" :weight-error="weightError" :weight-valid="draftWeight !== null"
+      :open="draftOpen && shoot.id.value !== 'book'" :mode="mode" :photo-url="photoUrl" :uploading="uploading" :raw-weight="rawWeight" :weight-error="weightError" :weight-valid="weightValid"
       :machines="pickerMachines" :machine-id="draftMachineId" :tag-code="draftTagCode" :wash-options="draftWashOptions" :programs="programs.active()" :product-name="products.nameOf"
-      :error="bookError" :saving="saving" :confirm-disabled="saving || uploading || !photoUrl || draftWeight === null || !machineChosen || !draftTagCode || !washOptionsChosen"
+      :error="bookError" :saving="saving" :confirm-disabled="saving || uploading || !photoUrl || !weightValid || !machineChosen || !tagValid || !washOptionsChosen"
       @close="discardDraft" @confirm="submit" @photo="takePhoto" @weight-invalid="showWeightError" @update:raw-weight="updateWeight" @update:machine-id="chooseMachine" @update:tag-code="chooseTag" @update:wash-options="draftWashOptions = $event"
     />
     <ConfirmOverlay :open="Boolean(cancelRow)" title="Cancel this booking?" :description="cancelDescription" cancel-label="Keep booking" confirm-label="Cancel booking" @close="cancelRow = null" @confirm="confirmCancel" />
