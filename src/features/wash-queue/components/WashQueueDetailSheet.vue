@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { z } from 'zod'
 import type { washQueueRowSchema } from '@contracts/wash-queue/wash-queue-api.schema'
 import BaseOverlayFrame from '@/shared/layouts/BaseOverlayFrame.vue'
@@ -36,6 +36,59 @@ const facts = computed(() => [
   { label: 'Loaded', value: props.row.loadedAt === null ? null : formatStartedAt(props.row.loadedAt) },
   { label: 'Unloaded', value: props.row.unloadedAt === null ? null : formatBookedAt(props.row.unloadedAt), wide: true },
 ])
+// One large photo; when there is an unload photo it slides in after the booking photo (swipe, drag, wheel or the dots).
+const slides = computed(() => [
+  { id: props.row.id, src: props.row.photoUrl, alt: 'Basket on the scale before washing', label: 'Before wash', view: 'View booking photo' },
+  ...(props.row.unloadPhotoUrl ? [{ id: `${props.row.id}:after`, src: props.row.unloadPhotoUrl, alt: 'Basket on the scale after washing', label: 'After wash', view: 'View unload photo' }] : []),
+])
+const track = ref<HTMLElement | null>(null)
+const current = ref(0)
+const dragging = ref(false)
+let drag: { x: number; left: number; moved: boolean } | null = null
+let wheelLock = 0
+watch(() => props.row.id, () => { current.value = 0; track.value?.scrollTo({ left: 0 }) })
+function go(index: number): void {
+  const el = track.value
+  if (el) el.scrollTo({ left: index * el.clientWidth, behavior: 'smooth' })
+}
+function onScroll(): void {
+  const el = track.value
+  if (el && el.clientWidth) current.value = Math.round(el.scrollLeft / el.clientWidth)
+}
+function onWheel(event: WheelEvent): void {
+  if (slides.value.length < 2 || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return
+  const next = current.value + Math.sign(event.deltaY)
+  if (next < 0 || next >= slides.value.length) return
+  event.preventDefault()
+  if (Date.now() < wheelLock) return
+  wheelLock = Date.now() + 400
+  go(next)
+}
+// Touch scrolls natively; a mouse drags the track by hand and snaps to the nearest photo on release.
+function dragStart(event: PointerEvent): void {
+  if (event.pointerType !== 'mouse' || slides.value.length < 2 || !track.value) return
+  drag = { x: event.clientX, left: track.value.scrollLeft, moved: false }
+}
+function dragMove(event: PointerEvent): void {
+  if (!drag || !track.value) return
+  const dx = event.clientX - drag.x
+  if (!drag.moved && Math.abs(dx) < 5) return
+  if (!drag.moved) { drag.moved = true; dragging.value = true; track.value.setPointerCapture(event.pointerId) }
+  track.value.scrollLeft = drag.left - dx
+}
+function dragEnd(): void {
+  if (!drag) return
+  const moved = drag.moved
+  drag = null
+  if (!moved || !track.value) return
+  dragging.value = false
+  go(Math.round(track.value.scrollLeft / track.value.clientWidth))
+  // Swallow the click that follows a drag so it does not open the viewer.
+  track.value.addEventListener('click', event => event.stopPropagation(), { capture: true, once: true })
+}
+function openPhoto(id: string): void {
+  emit('photo', id)
+}
 const summaryTitle = computed(() => props.row.washOptions === null ? '' : props.row.washOptions.program === 'CUSTOM' ? 'Custom' : props.programName(props.row.washOptions.program))
 const summaryRest = computed(() => props.row.washOptions === null ? '' : washOptionsSummary(props.row.washOptions, summaryTitle.value).slice(summaryTitle.value.length))
 </script>
@@ -57,18 +110,15 @@ const summaryRest = computed(() => props.row.washOptions === null ? '' : washOpt
       </div>
     </header>
     <ScrollRegion class="wq-options px-4 pb-[max(24px,env(safe-area-inset-bottom))] pt-1">
-      <div class="mt-2 grid grid-cols-2 gap-2.5">
-        <button type="button" class="relative aspect-square overflow-hidden rounded-[18px] bg-surface-container-low focus-visible:outline-2 focus-visible:outline-lime" aria-label="View booking photo" @click="emit('photo', row.id)">
-          <img :src="row.photoUrl" alt="Basket on the scale before washing" class="h-full w-full object-cover" />
-          <span class="absolute bottom-2 left-2 rounded-full bg-on-surface/80 px-[9px] py-1 font-label text-[10px] font-bold leading-[1.1] text-white">Before wash</span>
-        </button>
-        <button v-if="row.unloadPhotoUrl" type="button" class="relative aspect-square overflow-hidden rounded-[18px] bg-surface-container-low focus-visible:outline-2 focus-visible:outline-lime" aria-label="View unload photo" @click="emit('photo', `${row.id}:after`)">
-          <img :src="row.unloadPhotoUrl" alt="Basket on the scale after washing" class="h-full w-full object-cover" />
-          <span class="absolute bottom-2 left-2 rounded-full bg-on-surface/80 px-[9px] py-1 font-label text-[10px] font-bold leading-[1.1] text-white">After wash</span>
-        </button>
-        <div v-else class="flex aspect-square flex-col items-center justify-center rounded-[18px] border-2 border-dashed border-primary/40 px-3 text-center font-body text-[13px] font-extrabold leading-[1.3]">
-          <span class="mb-2 grid h-11 w-11 -rotate-7 place-items-center rounded-[14px] bg-secondary-container text-on-secondary-container"><span class="material-symbols-outlined fill text-[22px]" aria-hidden="true">photo_camera</span></span>
-          No unload photo
+      <div class="relative mt-2">
+        <div ref="track" class="wq-photos flex overflow-x-auto rounded-[18px] bg-surface-container-low" :class="{ dragging }" @scroll="onScroll" @wheel="onWheel" @pointerdown="dragStart" @pointermove="dragMove" @pointerup="dragEnd" @pointercancel="dragEnd">
+          <button v-for="slide in slides" :key="slide.id" type="button" class="relative aspect-square w-full shrink-0 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-lime" :aria-label="slide.view" @click="openPhoto(slide.id)">
+            <img :src="slide.src" :alt="slide.alt" class="pointer-events-none h-full w-full select-none object-cover" draggable="false" />
+            <span class="absolute bottom-2 left-2 rounded-full bg-on-surface/80 px-[9px] py-1 font-label text-[10px] font-bold leading-[1.1] text-white">{{ slide.label }}</span>
+          </button>
+        </div>
+        <div v-if="slides.length > 1" class="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
+          <button v-for="(slide, index) in slides" :key="slide.id" type="button" class="h-2 w-2 rounded-full shadow-[0_1px_3px_rgb(0_0_0/40%)]" :class="index === current ? 'bg-white' : 'bg-white/50'" :aria-label="`Show ${slide.label.toLowerCase()} photo`" :aria-current="index === current" @click="go(index)" />
         </div>
       </div>
       <dl class="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-outline-variant">
@@ -105,6 +155,25 @@ const summaryRest = computed(() => props.row.washOptions === null ? '' : washOpt
 </template>
 
 <style scoped>
+.wq-photos {
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.wq-photos::-webkit-scrollbar {
+  display: none;
+}
+
+.wq-photos > button {
+  scroll-snap-align: center;
+}
+
+.wq-photos.dragging {
+  scroll-snap-type: none;
+  cursor: grabbing;
+}
+
 .sub span + span::before {
   content: "·";
   margin: 0 6px;
