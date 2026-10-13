@@ -4,6 +4,7 @@ import { CustomerRegistrationService } from '../../../../../server/modules/custo
 import { ApiError } from '../../../../../server/shared/http/api-error.js'
 import { WriteRejectedError, WriteTransportError } from '../../../../../server/shared/repositories/sheets-api.client.js'
 import { customerIdMappingRowSchema } from '../../../../../server/sheets/CustomerIDMapping/CustomerIDMapping.db-contract.js'
+import { customerCreateSchema, customerUpdateSchema } from '../../../../../contracts/customers/customer-api.schema.js'
 import { customersRowSchema } from '../../../../../server/sheets/Customers/Customers.db-contract.js'
 
 type CustomerRow = z.infer<typeof customersRowSchema>
@@ -59,6 +60,8 @@ async function successPath() {
   assert.equal(created.customerId, 'new-id')
   assert.equal(created.customerIndex, 'ABC')
   assert.equal(created.phone, request.phone)
+  assert.equal(fake.appended[0].PriceGroup, null)
+  assert.equal(created.priceGroup, null)
 }
 
 async function duplicatePhone() {
@@ -140,10 +143,28 @@ async function keepLabelOnUnknownAppend() {
   }
 }
 
+async function priceGroupContract() {
+  for (const priceGroup of [undefined, null, '', 'Wholesale free text']) {
+    assert.equal(customerCreateSchema.parse({ ...request, priceGroup }).priceGroup, priceGroup)
+    if (priceGroup !== undefined) {
+      assert.equal(customerUpdateSchema.parse({ updatedBy: 'staff', priceGroup }).priceGroup, priceGroup)
+    } else {
+      assert.equal(customerUpdateSchema.parse({ updatedBy: 'staff', customerName: 'Somjai' }).priceGroup, undefined)
+    }
+    const fake = setup([], [{ CustomerLabel: 'ABC', CustomerID: null }])
+    const created = await fake.service.create({ ...request, priceGroup })
+    assert.equal(fake.appended[0].PriceGroup, priceGroup ?? null)
+    assert.equal(created.priceGroup, priceGroup ?? null)
+  }
+  assert.equal(customerCreateSchema.safeParse({ ...request, priceGroup: 123 }).success, false)
+  assert.equal(customerUpdateSchema.safeParse({ updatedBy: 'staff', priceGroup: 123 }).success, false)
+}
+
+await priceGroupContract()
 await successPath()
 await duplicatePhone()
 await rejectsFormattedPhone()
 await randomFreeLabel()
 await releaseOnRejectedAppend()
 await keepLabelOnUnknownAppend()
-console.log('6 customer registration dry tests passed')
+console.log('7 customer registration dry tests passed')

@@ -26,6 +26,13 @@ Staff register a new customer from `/customers/new`. The server assigns the cust
 
 Random choice from ~17,000 free labels makes two concurrent registrations picking the same label unlikely. The reservation does not fully prevent it: two requests can still pick and write the same row. Accepted risk.
 
+## Price group contract
+
+Customers column U is `PriceGroup`, after column T `DeletedAt`, and maps to API `priceGroup`.
+List, detail, create, and update responses include it as a nullable string. Create and update
+payloads accept an optional nullable string with unrestricted text. Registration defaults an
+omitted or null value to null and preserves an empty string; DEFAULT pricing behavior is deferred.
+
 ## Sheet capabilities
 
 - Customers: `append: true`, `update: false`, `delete: false`.

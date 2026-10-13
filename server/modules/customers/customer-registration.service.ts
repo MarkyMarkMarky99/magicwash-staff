@@ -82,6 +82,7 @@ export class CustomerRegistrationService {
       UpdatedAt: null,
       UpdatedBy: data.updatedBy,
       DeletedAt: null,
+      PriceGroup: data.priceGroup ?? null,
     }
 
     try {
@@ -109,6 +110,7 @@ export class CustomerRegistrationService {
       lineId: row.Line,
       whatsapp: row.Whatsapp,
       email: row.Email,
+      priceGroup: row.PriceGroup,
     }
   }
 }

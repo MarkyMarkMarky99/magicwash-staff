@@ -78,7 +78,7 @@ test('Customers service wiring maps rows, folds detail ids, and declares registr
   process.env.CUSTOMERS_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 
   const body = gvizBody(
-    ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'],
+    ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U'],
     [
       '2026-08-08 10:00:00',
       'e6741c92',
@@ -100,6 +100,7 @@ test('Customers service wiring maps rows, folds detail ids, and declares registr
       null,
       null,
       null,
+      'Wholesale free text',
     ],
   )
 
@@ -117,9 +118,11 @@ test('Customers service wiring maps rows, folds detail ids, and declares registr
         address: null,
         location: null,
         customerType: 'Regular',
+        priceGroup: 'Wholesale free text',
       })
 
-      await service.getById('e6741c92')
+      const detail = await service.getById('e6741c92')
+      assert.equal(detail.priceGroup, 'Wholesale free text')
       assert.equal(calls.length, 2)
       const detailQuery = new URL(calls[1].url).searchParams.get('tq')
       assert.ok(detailQuery?.includes("where B = 'e6741c92'"))
@@ -153,6 +156,21 @@ test('Customers service wiring maps rows, folds detail ids, and declares registr
       assert.equal(calls.length, 0)
     },
   )
+})
+
+test('Customers GViz column U maps nullable and empty PriceGroup cells to priceGroup', async () => {
+  process.env.CUSTOMERS_SPREADSHEET_ID = 'characterization-spreadsheet-id'
+  for (const value of [null, '']) {
+    await withMockFetch(
+      async () => response(gvizBody(['B', 'U'], ['e6741c92', value])),
+      async () => {
+        const repository = await productionCustomersRepository()
+        assert.deepEqual(await repository.read(), [{ CustomerID: 'e6741c92', PriceGroup: value }])
+        const service = await productionCustomerService()
+        assert.equal((await service.getById('e6741c92')).priceGroup, value)
+      },
+    )
+  }
 })
 
 async function main(): Promise<void> {

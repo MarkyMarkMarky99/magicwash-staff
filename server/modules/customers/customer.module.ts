@@ -32,6 +32,7 @@ export const customerFieldMap = {
   UpdatedAt: 'updatedAt',
   UpdatedBy: 'updatedBy',
   DeletedAt: 'deletedAt',
+  PriceGroup: 'priceGroup',
 } as const satisfies Record<keyof CustomerDbRow & string, string>
 
 type CustomerApiRow = ApiRowFromFieldMap<CustomerDbRow, typeof customerFieldMap>

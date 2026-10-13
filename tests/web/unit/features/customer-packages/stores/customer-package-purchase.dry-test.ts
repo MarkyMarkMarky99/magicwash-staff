@@ -8,7 +8,7 @@ import { useCustomerPackagePurchaseStore } from '@/features/customer-packages/st
 const customer = customerDetailResponseSchema.parse({
   customerId: 'CUS-1', customerIndex: '1', customerName: 'Customer', phone: null, address: null,
   location: null, customerType: null, registeredDate: null, facebook: null, lineId: null,
-  whatsapp: null, email: null,
+  whatsapp: null, email: null, priceGroup: null,
 })
 const catalog = packageResponseSchema.parse({
   packageCode: 'PKG-1', name: 'Ten credits', eligibleService: 'WASH', includedCredit: 10,

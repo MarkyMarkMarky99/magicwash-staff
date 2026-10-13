@@ -702,7 +702,7 @@ test('customer-package read service assembles list and detail from four source s
         case 'Customers':
           return response(sheetGvizBody(customersRowSchema, [
             '2026-07-01 09:00:00', 'd2ec63e7', '1', 'Punch Aonny', '0812345678', '123 Main Road',
-            null, null, null, null, null, null, 'Regular', null, null, null, null, null, null, null,
+            null, null, null, null, null, null, 'Regular', null, null, null, null, null, null, null, null,
           ]))
         default:
           throw new Error(`Unexpected customer-package sheet: ${new URL(url).searchParams.get('sheet')}`)

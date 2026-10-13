@@ -196,6 +196,7 @@ const tests: ColumnOrderTest[] = [
       UpdatedAt: 'R',
       UpdatedBy: 'S',
       DeletedAt: 'T',
+      PriceGroup: 'U',
     },
     primaryKeyColumn: 'B',
   },

@@ -26,6 +26,7 @@ export const customersRowSchema = z.object({
   UpdatedAt: z.string().nullable(),
   UpdatedBy: z.string().nullable(),
   DeletedAt: z.string().nullable(),
+  PriceGroup: z.string().nullable(),
 })
 
 export const customersDbContract = {

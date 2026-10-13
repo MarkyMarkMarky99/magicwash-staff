@@ -22,6 +22,7 @@ export const customerCreateSchema = z.object({
   email: z.string().nullish(),
   customerType: customerTypeSchema.nullish(),
   source: customerSourceSchema.nullish(),
+  priceGroup: z.string().nullish(),
   updatedBy: z.string().min(1),
 })
 
@@ -38,6 +39,7 @@ export const customerUpdateSchema = z
     email: z.string().nullable().optional(),
     customerType: customerTypeSchema.nullable().optional(),
     source: customerSourceSchema.nullable().optional(),
+    priceGroup: z.string().nullable().optional(),
     updatedBy: z.string().min(1),
   })
   .refine(
@@ -71,6 +73,7 @@ export const customerListResponseSchema = z.object({
   address: z.string().nullable(),
   location: z.string().nullable(),
   customerType: customerTypeSchema.nullable(),
+  priceGroup: z.string().nullable(),
 })
 
 export const customerDetailResponseSchema = customerListResponseSchema.extend({

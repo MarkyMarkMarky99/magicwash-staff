@@ -95,6 +95,7 @@
   - Consolidate datetime helpers in a dedicated pass; `SheetRepository` is shared by every module.
   - App-wide GViz read normalization is deferred by the user; do not start or re-propose it. See `.user/memory/gviz-read-normalization.md`.
 - **Prices, invoices, and sheet data**
+  - Customer price groups: `Customers.PriceGroup` (col U) is in the contract (2026-10-13); picker/invoice lookup by group (fallback `DEFAULT`) not designed or built.
   - Resolve concurrent item-code allocation before production use.
   - Defer mixed-service orders to a separate branch after the price-list photo release; see `.user/memory/mixed-service-orders.md`.
   - Fill real prices for the 33 inactive price-list rows with `price: 0`.
