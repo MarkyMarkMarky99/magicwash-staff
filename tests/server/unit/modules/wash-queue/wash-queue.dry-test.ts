@@ -85,25 +85,25 @@ function data(result: { status: number; body: unknown }): WashQueueDto {
   return (result.body as { data: WashQueueDto }).data
 }
 async function create(): Promise<WashQueueDto> {
-  return data(await washQueueRoutes.collection.handleRequest(request('POST', { photoUrl: ' https://example.com/basket.jpg ', weightBeforeKg: 12.3, machineId: ' WSH15-01 ', tagCode: ' A ', washOptions: options, instruction: 'Ignored legacy input' })))
+  return data(await washQueueRoutes.collection.handleRequest(request('POST', { photoUrl: ' https://example.com/basket.jpg ', weightBeforeKg: 12.3, machineId: ' WSH15-01 ', tagCode: ' A001 ', washOptions: options, instruction: 'Ignored legacy input' })))
 }
 const invalidCreates = [
   { photoUrl: '', weightBeforeKg: 1 }, { photoUrl: '  ', weightBeforeKg: 1 },
   { photoUrl: 7, weightBeforeKg: 1 }, { photoUrl: 'x', weightBeforeKg: 1, createdBy: 'spoof' },
   { photoUrl: 'x', weightBeforeKg: 1, workMinutes: 10 },
   { photoUrl: 'x', weightBeforeKg: 1, machineId: 'M-1' }, { photoUrl: 'x' },
-  ...[0, -1, 200.1, 1.23, '1', null].map((weightBeforeKg) => ({ photoUrl: 'x', weightBeforeKg })),
-  ...['a', 'AB', '', '1', null, undefined].map((tagCode) => ({ photoUrl: 'x', weightBeforeKg: 1, tagCode })),
+  ...[0, -1, 200.1, 1.23, '1'].map((weightBeforeKg) => ({ photoUrl: 'x', weightBeforeKg })),
+  ...['A', 'a001', 'AB', 'A01', 'A0001', '001', '', '1', null, undefined].map((tagCode) => ({ photoUrl: 'x', weightBeforeKg: 1, tagCode })),
 ]
 for (const body of invalidCreates) {
   const before = writes.length
-  assert.equal((await washQueueRoutes.collection.handleRequest(request('POST', { machineId: 'WSH15-01', tagCode: 'A', washOptions: options, ...body }))).status, 422)
+  assert.equal((await washQueueRoutes.collection.handleRequest(request('POST', { machineId: 'WSH15-01', tagCode: 'A001', washOptions: options, ...body }))).status, 422)
   assert.equal(writes.length, before)
 }
 for (const machineId of [undefined, '', '  ', 'unknown', 'WSH15-02', 'DRY08-02']) {
   const before = writes.length
   const rejected = await washQueueRoutes.collection.handleRequest(request('POST', {
-    photoUrl: 'x', weightBeforeKg: 1, tagCode: 'A', washOptions: options, ...(machineId === undefined ? {} : { machineId }),
+    photoUrl: 'x', weightBeforeKg: 1, tagCode: 'A001', washOptions: options, ...(machineId === undefined ? {} : { machineId }),
   }))
   assert.equal(rejected.status, 422)
   if (machineId && machineId.trim()) {
@@ -124,8 +124,8 @@ assert.equal(created.weightAfterKg, null)
 assert.equal(created.unloadPhotoUrl, null)
 assert.equal(created.machineId, 'WSH15-01')
 assert.equal(writes[0]!.machine_id, 'WSH15-01')
-assert.equal(writes[0]!.tag_code, 'A')
-assert.equal(created.tagCode, 'A')
+assert.equal(writes[0]!.tag_code, 'A001')
+assert.equal(created.tagCode, 'A001')
 assert.equal(created.instruction, null)
 assert.equal(writes[0]!.instruction, null)
 assert.equal(writes[0]!.wash_options, JSON.stringify(options))
@@ -133,17 +133,20 @@ assert.deepEqual(created.washOptions, options)
 assert.equal(created.createdAt, created.updatedAt)
 assert.match(created.createdAt, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
 assert.deepEqual(washQueueDbContract.audit.onAppend, ['created_at', 'updated_at'])
-const noted = data(await washQueueRoutes.collection.handleRequest(request('POST', { photoUrl: 'x', instruction: 'Gentle wash', weightBeforeKg: 200, machineId: 'DRY08-01', tagCode: 'Z', washOptions: null })))
+const noted = data(await washQueueRoutes.collection.handleRequest(request('POST', { photoUrl: 'x', instruction: 'Gentle wash', weightBeforeKg: 200, machineId: 'DRY08-01', tagCode: 'N001', washOptions: null })))
 assert.equal(noted.instruction, null)
 assert.equal(noted.washOptions, null)
 assert.equal(writes.at(-1)!.wash_options, null)
 assert.equal(productReads, 1, 'dryer does not read products')
 assert.equal(noted.weightBeforeKg, 200)
 assert.equal(noted.machineId, 'DRY08-01')
-const light = data(await washQueueRoutes.collection.handleRequest(request('POST', { photoUrl: 'x', weightBeforeKg: 0.1, machineId: 'WSH15-01', tagCode: 'B', washOptions: options })))
+const light = data(await washQueueRoutes.collection.handleRequest(request('POST', { photoUrl: 'x', weightBeforeKg: 0.1, machineId: 'WSH15-01', tagCode: 'A002', washOptions: options })))
 assert.equal(light.weightBeforeKg, 0.1)
+const unweighed = data(await washQueueRoutes.collection.handleRequest(request('POST', { photoUrl: 'x', weightBeforeKg: null, machineId: 'WSH15-01', tagCode: 'A003', washOptions: options })))
+assert.equal(unweighed.weightBeforeKg, null)
+assert.equal(writes.at(-1)!.weight_before_kg, null)
 
-const booking = { photoUrl: 'x', weightBeforeKg: 1, machineId: 'WSH15-01', tagCode: 'A', washOptions: options }
+const booking = { photoUrl: 'x', weightBeforeKg: 1, machineId: 'WSH15-01', tagCode: 'A001', washOptions: options }
 for (const [body, message] of [
   [{ ...booking, washOptions: null }, 'Choose the wash program.'],
   [{ ...booking, machineId: 'DRY08-01' }, 'Dryer bookings have no wash options.'],
@@ -156,8 +159,8 @@ for (const [body, message] of [
   assert.equal(writes.length, before)
   assert.equal(productReads, readsBefore)
 }
-assert.equal(washQueueCreateSchema.safeParse({ photoUrl: 'x', weightBeforeKg: 1, machineId: 'WSH15-01', tagCode: 'A' }).success, false)
-assert.equal(programReads, 2, 'dryer does not read programs')
+assert.equal(washQueueCreateSchema.safeParse({ photoUrl: 'x', weightBeforeKg: 1, machineId: 'WSH15-01', tagCode: 'A001' }).success, false)
+assert.equal(programReads, 3, 'dryer does not read programs')
 for (const program of ['unknown', 'OLD']) {
   const before = writes.length
   const rejected = await washQueueRoutes.collection.handleRequest(request('POST', { ...booking, washOptions: { ...options, program } }))

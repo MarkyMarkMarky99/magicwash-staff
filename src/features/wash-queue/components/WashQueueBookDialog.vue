@@ -12,7 +12,7 @@ import WashQueueWashOptionsForm from './WashQueueWashOptionsForm.vue'
 import WashQueueMachineMenu from './WashQueueMachineMenu.vue'
 import WashQueueMachinePicker from './WashQueueMachinePicker.vue'
 import WashQueueNotice from './WashQueueNotice.vue'
-import WashQueueTagWheel from './WashQueueTagWheel.vue'
+import WashQueueTagLabel from './WashQueueTagLabel.vue'
 
 // One screen: weigh, photograph, tag and choose the washer and program. Washers pick the machine from the
 // Wash program header; dryers have no program and keep the capacity tiles.
@@ -53,7 +53,7 @@ const chosenLabel = computed(() => props.machineId ? machineLabel(props.machineI
     <div class="wq-book-content">
       <div v-if="photoUrl" class="relative aspect-square overflow-hidden rounded-[18px] bg-surface-container-low">
         <img :src="photoUrl" alt="Basket on the scale preview" class="h-full w-full object-cover" />
-        <WashQueueTagWheel :model-value="tagCode" :disabled="saving" @update:model-value="emit('update:tagCode', $event)" />
+        <WashQueueTagLabel :model-value="tagCode" :disabled="saving" @update:model-value="emit('update:tagCode', $event)" />
       </div>
       <div v-else class="wq-book-empty">
         <span class="wq-book-empty__icon"><span class="material-symbols-outlined fill" aria-hidden="true">{{ uploading ? 'cloud_upload' : 'photo_camera' }}</span></span>

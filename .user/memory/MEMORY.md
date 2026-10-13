@@ -6,11 +6,12 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
+- **`feat/wash-queue-auto-tag`** — auto tag `A001`, default washer, optional weight; committed, not pushed; owner checking the form; see `.user/memory/feat-wash-queue-auto-tag.md`.
 
 ## Pending work
-- **Wash queue + dryer queue (one-sheet booking: weight, photo, tag wheel, washer menu, read-only program line — merged 2026-10-11)** — see `docs/features/wash-queue/wash-queue.md`
+- **Wash queue + dryer queue (one-sheet booking: photo, optional weight, auto tag, washer menu, read-only program line — merged 2026-10-11)** — see `docs/features/wash-queue/wash-queue.md`
   - NEXT: drying steps (tumble/line dry, auto dryer booking on unload) — full handoff in `.user/memory/wash-drying-steps-handoff.md`.
-  - Phone-test on prod (merged 2026-10-12): booking camera shutter, swipe starting on the photo, card tap → `?basket=` detail sheet; prod programs/products still have Thai names, owner to OK English rename.
+  - Phone-test on prod (merged 2026-10-12): booking camera shutter, swipe starting on the photo, card tap → `?basket=` detail sheet.
   - Unload weighing + photo temporarily OFF (owner, 2026-10-12): flag `UNLOAD_WEIGH_REQUIRED` in `src/features/wash-queue/unload-policy.ts`; swipe-unload has no confirm/undo.
   - Book save measured ~4 s on `vercel dev` (adds ~1.1 s/request); not yet timed on prod, estimate 2–2.5 s.
   - Open: Hand wash option (needs a no-machine booking contract); tag label look not owner-approved; OrderBagRow radius; >1:30 warning colour, dryer copy, Photo button edge; KPI deferred.
@@ -44,15 +45,7 @@
 - Packages: review raw service-code labels, browser-check the service picker, and decide deletion of the unverified live `CustomerPackageView` sheet.
 - 10 dry-test files fail regardless of wash-queue (checked 2026-10-10): invoice workflows x2, order-item contract, data-boundaries, customer-package service, customer-scoped reloads, appointment store, customer history race, order store, form-route integrations.
 - **Customer detail and visual system** (merged 2026-09-27)
-  - Browser-verify create dropdowns open, order swipe "Order detail", and appointment date order; the ui-shots run failed to capture these.
-  - Pill shows `0 PACKAGES` while the list is still loading.
-  - Order rows show `—` as line 2 when there is no note; long invoice numbers truncate (`INV20260905-41f3…`).
-  - Package names are long in the `Packages` sheet itself; user to choose renaming them there or showing `packageCode`.
-  - Browser-check customer detail `BottomNavBar` on a phone: floating lime sticker + pop animation, custom section icons, `pb-14` list clearance.
-  - Phone-check the push drawer (open, drag-close, Back) and swipe cards no longer moving on scroll.
-  - Deferred by user: the push drawer's rounded corner sits below the iOS status bar because status-bar-style `black` keeps the page under it; reaching the top edge needs `black-translucent` plus a new height fix.
-  - Browser-check `CloseButton` onDark sticker style (lime outline squircle, solid lime + offset shadow when active) on header (menu, back, pending with badge) and the 6 dark-overlay X buttons; hover/focus pop animation; also check every shared `CloseButton` placement (forms, sheets, pickers, nav, scanners, invoice proof lightbox).
-  - Browser-check the palette move (mint/tertiary removed, info = steel blue) and `BaseBadge` sm/lg sizes on order hero card, scanner, form controls.
+  - 9 open browser/phone checks and decisions: see `.user/memory/customer-detail-visual-checks.md`.
 - **Garment tracking and job tickets**
   - Scan FAB sits below the screen edge on some phones; cause unknown, awaiting the user's device/browser details.
   - Overlapping order Start notices share one page-notice slot; the later replaces the earlier.
