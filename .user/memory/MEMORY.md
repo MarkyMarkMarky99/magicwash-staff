@@ -6,10 +6,10 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
-- **`feat/wash-queue-auto-tag`** — auto tag `A001`, default washer, optional weight; committed, not pushed; owner checking the form; see `.user/memory/feat-wash-queue-auto-tag.md`.
 
 ## Pending work
-- **Wash queue + dryer queue (one-sheet booking: photo, optional weight, auto tag, washer menu, read-only program line — merged 2026-10-11)** — see `docs/features/wash-queue/wash-queue.md`
+- **Wash queue + dryer queue (one-sheet booking: photo, optional weight, auto tag, washer menu, read-only program line — merged 2026-10-11; auto tag + photo slides merged 2026-10-13)** — see `docs/features/wash-queue/wash-queue.md`
+  - Owner: update G Drive `WashQueue.json` `tag_code` description (still says one A-Z letter); phone-check auto tag and detail photo slides on prod.
   - NEXT: drying steps (tumble/line dry, auto dryer booking on unload) — full handoff in `.user/memory/wash-drying-steps-handoff.md`.
   - Phone-test on prod (merged 2026-10-12): booking camera shutter, swipe starting on the photo, card tap → `?basket=` detail sheet.
   - Unload weighing + photo temporarily OFF (owner, 2026-10-12): flag `UNLOAD_WEIGH_REQUIRED` in `src/features/wash-queue/unload-policy.ts`; swipe-unload has no confirm/undo.
