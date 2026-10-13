@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict'
 import {
   APPOINTMENT_CREATE_ROUTE_NAME,
+  CORPORATE_ORDER_CREATE_ROUTE_NAME,
   CUSTOMER_PACKAGE_CREATE_ROUTE_NAME,
   INVOICE_CREATE_ROUTE_NAME,
   ORDER_CREATE_ROUTE_NAME,
   ORDER_EDIT_ROUTE_NAME,
   PRICE_LIST_ITEM_CREATE_ROUTE_NAME,
   appointmentCreateRoute,
+  corporateOrderCreateRoute,
   customerPackageCreateRoute,
   invoiceCreateRoute,
   orderCreateRoute,
@@ -30,6 +32,10 @@ assert.deepEqual(orderCreateRoute({ customerId: 'C-1' }), {
 assert.deepEqual(orderEditRoute('O-2'), {
   name: ORDER_EDIT_ROUTE_NAME,
   params: { orderId: 'O-2' },
+})
+assert.deepEqual(corporateOrderCreateRoute('C-1'), {
+  name: CORPORATE_ORDER_CREATE_ROUTE_NAME,
+  params: { customerId: 'C-1' },
 })
 assert.deepEqual(customerPackageCreateRoute(), {
   name: CUSTOMER_PACKAGE_CREATE_ROUTE_NAME,
@@ -56,4 +62,4 @@ assert.deepEqual(priceListItemCreateRoute({ orderId: 'O-2', category: 'CLOTHING'
   query: { orderId: 'O-2', category: 'CLOTHING', subcategory: 'Tops' },
 })
 
-console.log('10 form-route builder dry tests passed')
+console.log('11 form-route builder dry tests passed')

@@ -60,3 +60,7 @@ provisioning failure in a closeable inline message at the top of order detail. T
 that result through Vue Router history state when replacing the form route. The detail page
 consumes and clears the history state on arrival, so closing the message or reloading does not
 show it again.
+
+## See also
+
+- [Corporate order form](./corporate-order-form.md) is the separate count-sheet page for corporate customers.
