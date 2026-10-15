@@ -54,6 +54,8 @@ export function createIssueReportId(): string {
 // Server-owned columns are filled here, not in the request schema: the client
 // never picks an id and never picks the initial status.
 const issueReportRepository: SheetRepositoryContract<IssueReportDbRow> = {
+  readRaw: (query) => getIssueReportsRepository().readRaw(query),
+  queryBuilder: () => getIssueReportsRepository().queryBuilder(),
   read: (query) => getIssueReportsRepository().read(query),
   append: (row) =>
     getIssueReportsRepository().append({

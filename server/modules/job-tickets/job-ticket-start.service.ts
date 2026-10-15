@@ -5,19 +5,14 @@ import {
 } from '../../../contracts/job-tickets/job-ticket-api.schema.js'
 import { jobTicketsRowSchema } from '../../sheets/JobTickets/JobTickets.db-contract.js'
 import { getJobTicketsRepository } from '../../sheets/JobTickets/JobTickets.repository.js'
-import type { SheetRowUpdate } from '../../shared/repositories/sheet-repository.contract.js'
-import type { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 
-import { JobTicketTransitionService } from './job-ticket-transition.service.js'
+import { JobTicketTransitionService, type JobTicketAdvanceRepository } from './job-ticket-transition.service.js'
 
 type JobTicketDbRow = z.infer<typeof jobTicketsRowSchema>
 export type JobTicketStartOrderResponse = z.infer<typeof jobTicketStartOrderResponseSchema>
 
-export interface JobTicketStartRepository {
-  read(query?: ReadQueryDTO<Partial<JobTicketDbRow>>): Promise<Array<Partial<JobTicketDbRow>>>
-  updateMany(updates: ReadonlyArray<SheetRowUpdate<JobTicketDbRow>>): Promise<unknown>
-}
+export type JobTicketStartRepository = JobTicketAdvanceRepository
 
 export interface JobTicketStartServiceOptions {
   repository?: () => JobTicketStartRepository

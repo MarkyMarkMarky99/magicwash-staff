@@ -119,7 +119,7 @@ async function run(): Promise<void> {
       const url = new URL(calls[0].url)
 
       assert.equal(url.searchParams.get('sheet'), 'Widgets')
-      assert.match(url.searchParams.get('tq') ?? '', /where A = 'W-1'/)
+      assert.equal(url.searchParams.get('tq'), "select *\nwhere A = 'W-1'")
       assert.deepEqual(rows, [
         { WidgetID: 'W-1', NestedData: '{"items":[1]}', Label: 'Ready' },
       ])
@@ -209,6 +209,44 @@ async function run(): Promise<void> {
       }),
     /SheetRepository Sheets API writes require a spreadsheetId environment variable name/,
   )
+
+  await withMockFetch(
+    async () => gvizResponse(['C', 'A', 'B'], ['Raw', 'W-raw', '{"items":[3]}']),
+    async (calls) => {
+      const query = "select C, A, B\nwhere (A = 'W-raw' or C = 'Raw')  "
+      assert.deepEqual(await repository.readRaw(query), [
+        { Label: 'Raw', WidgetID: 'W-raw', NestedData: '{"items":[3]}' },
+      ])
+      assert.equal(calls.length, 1)
+      assert.equal(new URL(calls[0].url).searchParams.get('tq'), query)
+    },
+  )
+  await withMockFetch(
+    async () => gvizResponse(['A', 'B', 'C'], ['W-1', '{}', 'Ready']),
+    async (calls) => {
+      await repository.read(new ReadQueryDTO({ where: { Label: 'Ready' } }))
+      assert.equal(new URL(calls[0].url).searchParams.get('tq'), "select *\nwhere C = 'Ready'")
+      await repository.read(new ReadQueryDTO({
+        search: { keyword: "O'Brien", fields: ['WidgetID', 'Label'] },
+        sort: { field: 'Label', order: 'desc' }, pagination: { page: 3, perPage: 20 },
+      }))
+      assert.equal(new URL(calls[1].url).searchParams.get('tq'),
+        "select *\nwhere (A contains 'OBrien' or C contains 'OBrien')\norder by C desc\nlimit 20\noffset 40")
+    },
+  )
+  await withMockFetch(
+    async () => { throw new Error('missing spreadsheetId must not fetch') },
+    async (calls) => {
+      const missing = new SheetRepository<WidgetRow>({ contract: { ...readOnlyContract, spreadsheetId: undefined } })
+      await assert.rejects(missing.readRaw('select *'), {
+        message: 'SheetRepository reads require a spreadsheetId environment variable name',
+      })
+      assert.equal(calls.length, 0)
+    },
+  )
+  const q = new SheetRepository<DatedRow>({ contract: datedContract }).queryBuilder()
+  assert.equal(q.col('DueDate'), 'B')
+  assert.equal(q.lit('DueDate', '2026-10-15'), "date '2026-10-15'")
 
   console.log('sheet repository dry tests passed')
 }

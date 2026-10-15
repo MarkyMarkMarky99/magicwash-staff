@@ -26,6 +26,8 @@ function fixture(options: { active?: boolean; rate?: boolean; department?: 'Pack
   }
   const service = new OrderImageService({ bagLogisticsTicketService: { async provision() {} },
     repository: {
+      async readRaw(): Promise<never> { throw new Error('not implemented') },
+      queryBuilder(): never { throw new Error('not implemented') },
       async read() { return [] },
       async append(row) {
         events.push('image')

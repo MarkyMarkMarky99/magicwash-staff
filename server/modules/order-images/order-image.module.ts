@@ -85,6 +85,8 @@ function createOrderImageTransformer(): RepositoryTransformer {
 
 export function createOrderImageRepository(): SheetRepositoryContract<OrderImagesDbRow> {
   return {
+    readRaw: (query) => getOrderImagesRepository().readRaw(query),
+    queryBuilder: () => getOrderImagesRepository().queryBuilder(),
     read: (query) => getOrderImagesRepository().read(query),
     append: (row) => getOrderImagesRepository().append(prepareOrderImageAppendRow(row)),
     batchAppend: (rows) =>

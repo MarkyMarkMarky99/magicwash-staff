@@ -31,6 +31,6 @@ For other `GET /api/work-orders` callers, the same matching rules remain in `Wor
 
 ## Limits
 
-- **No date-range search in the query layer.** `ReadQueryDTO` does not support range filters and `GvizQueryBuilder` exposes no range method — every non-reserved query key becomes an equality filter. The order list filters its snapshot in the browser; other `/api/work-orders` callers use the in-memory filtering in `WorkOrderService`.
+- **No date-range search in the `ReadQueryDTO`/`where` path.** Range filters remain unsupported there — every non-reserved query key becomes an equality filter. `readRaw` supports custom queries. The order list filters its snapshot in the browser; other `/api/work-orders` callers use the in-memory filtering in `WorkOrderService`.
 - **A keyword ignores the selected day.** The browser ignores the date filter while a trimmed keyword is non-empty, so search covers every day.
 - **Server keyword searches read both sheets in full.** This remains true for `/api/work-orders` callers. The order list searches its loaded snapshot and customer store without another request.

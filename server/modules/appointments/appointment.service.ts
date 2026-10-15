@@ -143,6 +143,8 @@ function classifyAppointmentWrites(
     const repository = resolve()
 
     return {
+      readRaw: (query) => repository.readRaw(query),
+      queryBuilder: () => repository.queryBuilder(),
       read: (query) => repository.read(query),
       append: (row) => runAppointmentWrite(() => repository.append(row)),
       batchAppend: (rows) => repository.batchAppend(rows),

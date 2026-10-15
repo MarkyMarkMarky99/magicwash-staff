@@ -51,6 +51,8 @@ await missingHeader.provision(image)
 
 const calls: string[] = []
 const repository: SheetRepositoryContract<z.infer<typeof orderImagesRowSchema>> = {
+  async readRaw(): Promise<never> { throw new Error('not implemented') },
+  queryBuilder(): never { throw new Error('not implemented') },
   async read() { throw new Error('unexpected read') },
   async append(row) { calls.push('save'); return { id: image.orderImageId, order_id: image.orderId,
     customer_id: null, delivery_id: null, image_type: 'WEIGHT', image_path: image.imagePath,

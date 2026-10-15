@@ -63,6 +63,8 @@ export function createOrderItemId(): string {
 
 export function createOrderItemRepository(): OrderItemRepository {
   return {
+    readRaw: (query) => getOrderItemFormsRepository().readRaw(query),
+    queryBuilder: () => getOrderItemFormsRepository().queryBuilder(),
     read: (query) => getOrderItemFormsRepository().read(query),
     append: (row) =>
       getOrderItemFormsRepository().append({

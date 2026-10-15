@@ -6,6 +6,7 @@ import { workTransactionsRowSchema } from '../../sheets/WorkTransactions/WorkTra
 import { getWorkTransactionsRepository } from '../../sheets/WorkTransactions/WorkTransactions.repository.js'
 import type { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
+import type { GVizQueryBuilder } from '../../shared/repositories/utils/gviz-query.builder.js'
 import type { SheetRowUpdate } from '../../shared/repositories/sheet-repository.contract.js'
 import { classifySheetWriteFailure } from '../../shared/repositories/write-failure.js'
 import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
@@ -19,6 +20,8 @@ export type JobTicketAdvanceResponse = z.infer<typeof jobTicketAdvanceResponseSc
 
 export interface JobTicketAdvanceRepository {
   read(query?: ReadQueryDTO<Partial<JobTicketDbRow>>): Promise<Array<Partial<JobTicketDbRow>>>
+  readRaw(query: string): Promise<Array<Partial<JobTicketDbRow>>>
+  queryBuilder(): GVizQueryBuilder
   updateMany(updates: ReadonlyArray<SheetRowUpdate<JobTicketDbRow>>): Promise<unknown>
 }
 
@@ -112,15 +115,23 @@ export class JobTicketTransitionService {
     return { kind: 'completed', advanced, blocked, skipped, scoreFailed }
   }
 
-  // Gating needs only tickets that are not Completed; three status reads cover any number of orders.
   private async readOrderTickets(
     repository: JobTicketAdvanceRepository,
     requested: ReadonlyArray<{ ticketId: string; orderId: string }>,
   ): Promise<Map<string, Array<Partial<JobTicketDbRow>>>> {
     const live = (ticket: Partial<JobTicketDbRow>) => ticket.deleted_at == null || ticket.deleted_at === ''
     const orderIds = new Set(requested.map(ticket => ticket.orderId))
-    const unfinished = (await Promise.all((['Pending', 'In Progress', 'Cancelled'] as const)
-      .map(status => repository.read({ where: { status } })))).flat()
+    const q = repository.queryBuilder()
+    const statuses = ['Pending', 'In Progress', 'Cancelled']
+      .map(status => `${q.col('status')} = ${q.lit('status', status)}`).join(' or ')
+    const ids = [...orderIds]
+    const queries: string[] = []
+    for (let index = 0; index < ids.length; index += 50) {
+      const orders = ids.slice(index, index + 50)
+        .map(id => `${q.col('order_id')} = ${q.lit('order_id', id)}`).join(' or ')
+      queries.push(`select * where (${statuses}) and (${orders})`)
+    }
+    const unfinished = (await Promise.all(queries.map(query => repository.readRaw(query)))).flat()
     const orders = new Map([...orderIds].map(orderId => [orderId, [] as Array<Partial<JobTicketDbRow>>]))
     for (const ticket of unfinished) {
       // GViz can type a numeric-looking order id as a number.

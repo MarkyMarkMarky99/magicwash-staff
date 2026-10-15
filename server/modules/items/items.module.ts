@@ -30,6 +30,8 @@ type ItemsUpdate = z.infer<typeof itemsApiContract.request.update>
 type ItemsResponse = z.infer<typeof itemsApiContract.response.list>
 
 const itemsRepository: SheetRepositoryContract<ItemsDbRow> = {
+  readRaw: (query) => getItemsRepository().readRaw(query),
+  queryBuilder: () => getItemsRepository().queryBuilder(),
   read: (query) => getItemsRepository().read(query),
   append: async (row) => {
     const existingRows = await getItemsRepository().read()

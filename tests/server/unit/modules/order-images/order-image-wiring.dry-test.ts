@@ -37,6 +37,8 @@ function makeRepository(): FakeRepository {
   const repository = {
     readRows: [] as OrderImagesDbRow[],
     appendRows: [] as Array<Partial<OrderImagesDbRow>>,
+    async readRaw(): Promise<never> { throw new Error('not implemented') },
+    queryBuilder(): never { throw new Error('not implemented') },
     async read() {
       return repository.readRows
     },

@@ -29,6 +29,8 @@ export function createBagItemService(
   getRepository: () => SheetRepositoryContract<BagItemsDbRow> = getBagItemsRepository,
 ) {
   const repository: SheetRepositoryContract<BagItemsDbRow> = {
+    readRaw: (query) => getRepository().readRaw(query),
+    queryBuilder: () => getRepository().queryBuilder(),
     read: (query) => getRepository().read(query),
     append: async (row) => {
       const source = getRepository()

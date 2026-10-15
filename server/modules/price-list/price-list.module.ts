@@ -65,6 +65,8 @@ type PriceListService = BaseCrudService<
 >
 
 const priceListRepository: SheetRepositoryContract<PriceListDbRow> = {
+  readRaw: (query) => getPriceListRepository().readRaw(query),
+  queryBuilder: () => getPriceListRepository().queryBuilder(),
   read: (query) => getPriceListRepository().read(query),
   append: async (row) => {
     const existingRows = await getPriceListRepository().read()

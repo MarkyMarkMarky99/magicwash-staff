@@ -69,6 +69,8 @@ interface Failures {
 
 function makeRoutes(failures: Failures = {}) {
   const repository: SheetRepositoryContract<AppointmentRow> = {
+    async readRaw(): Promise<never> { throw new Error('not implemented') },
+    queryBuilder(): never { throw new Error('not implemented') },
     read: async () => [persistedRow],
     append: async () => {
       if (failures.append !== undefined) throw failures.append

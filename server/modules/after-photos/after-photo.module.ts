@@ -73,6 +73,8 @@ function prepareAfterPhotoAppendRow(row: Partial<AfterPhotoDbRow>): Partial<Afte
 
 export function createAfterPhotoRepository(): AfterPhotoRepository {
   return {
+    readRaw: (query) => getAfterPhotoRepository().readRaw(query),
+    queryBuilder: () => getAfterPhotoRepository().queryBuilder(),
     read: (query) => getAfterPhotoRepository().read(query),
     append: (row) => getAfterPhotoRepository().append(prepareAfterPhotoAppendRow(row)),
     batchAppend: (rows) =>

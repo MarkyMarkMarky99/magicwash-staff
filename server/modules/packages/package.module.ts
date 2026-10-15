@@ -56,6 +56,8 @@ type PackageService = BaseCrudService<
 >
 
 const packageRepository: SheetRepositoryContract<PackagesDbRow> = {
+  readRaw: (query) => getPackagesRepository().readRaw(query),
+  queryBuilder: () => getPackagesRepository().queryBuilder(),
   read: (query) => getPackagesRepository().read(query),
   append: (row) => appendPackage(row),
   batchAppend: (rows) => getPackagesRepository().batchAppend(rows),

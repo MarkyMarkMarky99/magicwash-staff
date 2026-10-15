@@ -6,6 +6,9 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
+- **`feat/corporate-order-form`** — corporate count-sheet order page built UI-only, committed unmerged; needs entry point, real-login check, save design; see `.user/memory/feat-corporate-order-form.md`.
+- **`feat/scanner-gun-input`** — barcode-gun scanning on department pages + louder scan beeps, owner-tested locally, not merged; see `.user/memory/feat-scanner-gun-input.md`.
+- **`feat/repository-read-raw`** — `readRaw`/`queryBuilder` added, job-ticket advance reads once; typecheck:api fails in test fakes until the narrow-repository refactor; see `.user/memory/feat-repository-read-raw.md`.
 
 ## Pending work
 - **Wash queue + dryer queue (one-sheet booking: photo, optional weight, auto tag, washer menu, read-only program line — merged 2026-10-11; auto tag + photo slides merged 2026-10-13)** — see `docs/features/wash-queue/wash-queue.md`

@@ -64,6 +64,14 @@ export class GVizQueryBuilder {
     return new GVizQueryBuilder(columns, cellTypes)
   }
 
+  col(field: string): string {
+    return this.resolveColumn(field)
+  }
+
+  lit(field: string, value: unknown): string {
+    return this.renderLiteral(field, value)
+  }
+
   fromQuery(query?: MappedReadQuery<Record<string, unknown>>): this {
     return this
       .select(query?.select)

@@ -75,6 +75,8 @@ function prepareLaundryPhotoAppendRow(
 
 export function createLaundryPhotoRepository(): LaundryPhotoRepository {
   return {
+    readRaw: (query) => getLaundryPhotosRepository().readRaw(query),
+    queryBuilder: () => getLaundryPhotosRepository().queryBuilder(),
     read: (query) => getLaundryPhotosRepository().read(query),
     append: (row) => getLaundryPhotosRepository().append(prepareLaundryPhotoAppendRow(row)),
     batchAppend: (rows) =>
