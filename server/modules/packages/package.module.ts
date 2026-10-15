@@ -55,14 +55,10 @@ type PackageService = BaseCrudService<
   typeof packageFieldMap
 >
 
-const packageRepository: SheetRepositoryContract<PackagesDbRow> = {
-  readRaw: (query) => getPackagesRepository().readRaw(query),
-  queryBuilder: () => getPackagesRepository().queryBuilder(),
+const packageRepository: Pick<SheetRepositoryContract<PackagesDbRow>, 'read' | 'append' | 'update'> = {
   read: (query) => getPackagesRepository().read(query),
   append: (row) => appendPackage(row),
-  batchAppend: (rows) => getPackagesRepository().batchAppend(rows),
   update: (keyValue, patch) => updatePackage(keyValue, patch),
-  delete: (keyValue, deletedBy) => getPackagesRepository().delete(keyValue, deletedBy),
 }
 
 export const packageService: PackageService = new BaseCrudService({

@@ -86,7 +86,7 @@ export type JobTicketCompletionRepository = Pick<JobTicketProvisioningRepository
 
 export interface WorkOrderServiceOptions {
   jobTicketCompletionRepository?: () => JobTicketCompletionRepository
-  orderFormRepository?: () => SheetRepositoryContract<OrderFormDbRow>
+  orderFormRepository?: () => Pick<SheetRepositoryContract<OrderFormDbRow>, 'read' | 'append' | 'update'>
   orderItemPort?: OrderItemPort
   orderItemWriter?: OrderItemWriter
   laundryPhotoRepository?: () => LaundryPhotoReader
@@ -133,7 +133,7 @@ export class WorkOrderService extends BaseCrudService<
   OrderFormDbRow,
   typeof orderFormFieldMap
 > {
-  private readonly orderFormRepository: () => SheetRepositoryContract<OrderFormDbRow>
+  private readonly orderFormRepository: () => Pick<SheetRepositoryContract<OrderFormDbRow>, 'read' | 'append' | 'update'>
   private readonly orderItemPort: OrderItemPort
   private readonly orderItemWriter: OrderItemWriter
   private readonly laundryPhotoRepository: () => LaundryPhotoReader

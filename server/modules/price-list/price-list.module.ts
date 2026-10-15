@@ -64,9 +64,7 @@ type PriceListService = BaseCrudService<
   typeof priceListFieldMap
 >
 
-const priceListRepository: SheetRepositoryContract<PriceListDbRow> = {
-  readRaw: (query) => getPriceListRepository().readRaw(query),
-  queryBuilder: () => getPriceListRepository().queryBuilder(),
+const priceListRepository: Pick<SheetRepositoryContract<PriceListDbRow>, 'read' | 'append' | 'update'> = {
   read: (query) => getPriceListRepository().read(query),
   append: async (row) => {
     const existingRows = await getPriceListRepository().read()
@@ -79,9 +77,7 @@ const priceListRepository: SheetRepositoryContract<PriceListDbRow> = {
       item_code: itemCode,
     })
   },
-  batchAppend: (rows) => getPriceListRepository().batchAppend(rows),
   update: (keyValue, patch) => getPriceListRepository().update(keyValue, patch),
-  delete: (keyValue, deletedBy) => getPriceListRepository().delete(keyValue, deletedBy),
 }
 
 export const priceListService: PriceListService = new BaseCrudService({

@@ -68,7 +68,7 @@ export interface BaseCrudServiceOptions<
    */
   repository: RepositoryProvider<
     | BaseRepository<TApiRow, OmitReservedQueryFields<TListQuery>, TCreate, TUpdate>
-    | SheetRepositoryContract<TDbRow>
+    | Pick<SheetRepositoryContract<TDbRow>, 'read' | 'append' | 'update'>
   >
 
   /**
@@ -119,7 +119,7 @@ export class BaseCrudService<
     TCreate,
     TUpdate
   >>
-  private readonly dbRepository?: RepositoryProvider<SheetRepositoryContract<TDbRow>>
+  private readonly dbRepository?: RepositoryProvider<Pick<SheetRepositoryContract<TDbRow>, 'read' | 'append' | 'update'>>
   private readonly mapper: Mapper
   private readonly jsonColumns: JsonColumnMap
   private readonly transformer?: RepositoryTransformer
@@ -160,7 +160,7 @@ export class BaseCrudService<
       input.jsonColumns !== undefined ||
       input.transformer !== undefined
     ) {
-      this.dbRepository = input.repository as SheetRepositoryContract<TDbRow>
+      this.dbRepository = input.repository as Pick<SheetRepositoryContract<TDbRow>, 'read' | 'append' | 'update'>
     } else {
       this.apiRepository = input.repository as BaseRepository<
         TApiRow,

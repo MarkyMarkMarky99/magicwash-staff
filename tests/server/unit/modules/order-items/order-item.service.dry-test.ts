@@ -12,14 +12,14 @@ type OrderItemFormsDbRow = z.infer<typeof import('../../../../../server/sheets/O
 type OrderFormDbRow = z.infer<typeof orderFormRowSchema>
 type ItemReadRow = Omit<Partial<OrderItemFormsDbRow>, 'id'> & { id?: string | null }
 
-interface FakeItemRepository extends SheetRepositoryContract<OrderItemFormsDbRow>, SheetBatchUpdateContract<OrderItemFormsDbRow> {
+interface FakeItemRepository extends Pick<SheetRepositoryContract<OrderItemFormsDbRow>, 'read' | 'append' | 'update' | 'batchAppend'>, SheetBatchUpdateContract<OrderItemFormsDbRow> {
   events: string[]
   readRows: Array<ItemReadRow>
   readQueries: Array<unknown>
   appendRows: Array<Partial<OrderItemFormsDbRow>>
   batchAppendRows: Array<Array<Partial<OrderItemFormsDbRow>>>
 }
-interface FakeOrderRepository extends SheetRepositoryContract<OrderFormDbRow> {
+interface FakeOrderRepository extends Pick<SheetRepositoryContract<OrderFormDbRow>, 'read'> {
   events: string[]
   readRows: Array<Partial<OrderFormDbRow>>
   readQueries: Array<unknown>
@@ -40,7 +40,6 @@ function makeItemRepository(): FakeItemRepository {
     async batchAppend(rows: Array<Partial<OrderItemFormsDbRow>>) { repository.events.push('item-batchAppend'); repository.batchAppendRows.push(rows); return rows as OrderItemFormsDbRow[] },
     async update() { throw new Error('not used') },
     async updateMany() { throw new Error('not used') },
-    async delete() { throw new Error('not used') },
   }
   return repository as FakeItemRepository
 }
@@ -51,10 +50,6 @@ function makeOrderRepository(): FakeOrderRepository {
     events: [] as string[],
     readQueries: [] as Array<unknown>,
     async read(query?: unknown) { repository.events.push('order-read'); repository.readQueries.push(query); return repository.readRows },
-    async append() { throw new Error('not used') },
-    async batchAppend() { throw new Error('not used') },
-    async update() { throw new Error('not used') },
-    async delete() { throw new Error('not used') },
   }
   return repository as FakeOrderRepository
 }

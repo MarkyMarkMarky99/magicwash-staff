@@ -53,9 +53,7 @@ export function createIssueReportId(): string {
 
 // Server-owned columns are filled here, not in the request schema: the client
 // never picks an id and never picks the initial status.
-const issueReportRepository: SheetRepositoryContract<IssueReportDbRow> = {
-  readRaw: (query) => getIssueReportsRepository().readRaw(query),
-  queryBuilder: () => getIssueReportsRepository().queryBuilder(),
+const issueReportRepository: Pick<SheetRepositoryContract<IssueReportDbRow>, 'read' | 'append' | 'update'> = {
   read: (query) => getIssueReportsRepository().read(query),
   append: (row) =>
     getIssueReportsRepository().append({
@@ -63,9 +61,7 @@ const issueReportRepository: SheetRepositoryContract<IssueReportDbRow> = {
       IssueReportID: createIssueReportId(),
       Status: 'OPEN',
     }),
-  batchAppend: (rows) => getIssueReportsRepository().batchAppend(rows),
   update: (keyValue, patch) => getIssueReportsRepository().update(keyValue, patch),
-  delete: (keyValue, deletedBy) => getIssueReportsRepository().delete(keyValue, deletedBy),
 }
 
 export const issueReportService: IssueReportService = new BaseCrudService({

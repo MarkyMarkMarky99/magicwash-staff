@@ -8,7 +8,7 @@ import { ApiError } from '../../../../../server/shared/http/api-error.js'
 
 type OrderFormDbRow = z.infer<typeof orderFormRowSchema>
 
-class RecordingRepository implements SheetRepositoryContract<OrderFormDbRow> {
+class RecordingRepository implements Pick<SheetRepositoryContract<OrderFormDbRow>, 'read' | 'append' | 'update'> {
   readonly updateCalls: Array<{ id: string; data: Partial<OrderFormDbRow> }> = []
   readRows: Array<Partial<OrderFormDbRow>> = []
 
@@ -20,17 +20,9 @@ class RecordingRepository implements SheetRepositoryContract<OrderFormDbRow> {
     return orderRow(row)
   }
 
-  async batchAppend(rows: Array<Partial<OrderFormDbRow>>): Promise<OrderFormDbRow[]> {
-    return rows.map(orderRow)
-  }
-
   async update(id: string, data: Partial<OrderFormDbRow>): Promise<OrderFormDbRow> {
     this.updateCalls.push({ id, data })
     return orderRow({ id, ...data })
-  }
-
-  async delete(): Promise<OrderFormDbRow> {
-    return orderRow()
   }
 }
 

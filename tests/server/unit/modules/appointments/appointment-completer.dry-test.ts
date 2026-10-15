@@ -34,10 +34,9 @@ function responseRow(appointmentId: string): AppointmentSheetDbRow {
 
 let row = responseRow('APPT-existing')
 let updateFails = false
-const repository: SheetRepositoryContract<AppointmentSheetDbRow> = {
+const repository: Pick<SheetRepositoryContract<AppointmentSheetDbRow>, 'read' | 'append' | 'update' | 'delete'> = {
   async read() { return [row] },
   async append() { throw new Error('unexpected append') },
-  async batchAppend() { throw new Error('unexpected batch') },
   async update(id, patch) { if (updateFails) throw new Error('update failed'); row = { ...row, ...patch }; return row },
   async delete() { throw new Error('unexpected delete') },
 }

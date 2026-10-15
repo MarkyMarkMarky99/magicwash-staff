@@ -28,12 +28,10 @@ const standardRates = () => [
 
 function createService(appendError?: Error, workRateError?: Error, scoreError?: Error, staffError?: Error, rateRows: Array<Record<string, unknown>> = standardRates()) {
   resetWorkRatesCache()
-  const orderRepository: SheetRepositoryContract<OrderFormRow> = {
+  const orderRepository: Pick<SheetRepositoryContract<OrderFormRow>, 'read' | 'append' | 'update'> = {
     async read() { return [orderRow()] },
     async append(row) { return orderRow(row) },
-    async batchAppend(rows) { return rows.map((row) => orderRow(row)) },
     async update(_id, patch) { return orderRow(patch) },
-    async delete() { return orderRow() },
   }
   const appendCalls: Array<Array<Record<string, unknown>>> = []
   const scoreCalls: Array<Array<Record<string, unknown>>> = []

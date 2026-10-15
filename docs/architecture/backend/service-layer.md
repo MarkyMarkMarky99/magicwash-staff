@@ -23,13 +23,15 @@ It validates requests, maps database rows to API DTOs, and owns multi-sheet writ
 
 Route (`createCrudRoutes`, or a hand-rolled `ApiHandler`)
 → Service (`BaseCrudService`, or a named class)
-→ Sheet Repository (`SheetRepositoryContract`)
+→ Sheet Repository (`Pick<SheetRepositoryContract<Row>, ...>`)
 
 Most modules instantiate `BaseCrudService` directly in their `<feature>.module.ts`.
 
 A named service class is used when a module needs something `BaseCrudService` doesn't provide — multi-sheet write orchestration (`InvoiceService`, `PackageTransactionService`) or single-sheet custom write policy (`AppointmentService`).
 
-A third option sits between the two: the module keeps `BaseCrudService` but passes a module-local object implementing `SheetRepositoryContract` that delegates to the sheet repository getter and fills server-owned columns on `append`. `server/modules/items/items.module.ts` uses this to allocate `id` and `item_code` and to apply nullable defaults. Use it when the only extra behavior is server-owned identity or defaults on write.
+A third option sits between the two: the module keeps `BaseCrudService` but passes a module-local wrapper typed as `Pick<SheetRepositoryContract<Row>, ...>` that delegates to the sheet repository getter and fills server-owned columns on `append`. `server/modules/items/items.module.ts` uses this to allocate `id` and `item_code` and to apply nullable defaults. Use it when the only extra behavior is server-owned identity or defaults on write.
+
+Services and wrappers declare only the repository methods they call, including inherited service paths; intersect with `SheetBatchUpdateContract<Row>` when calling `updateMany`. Wrappers also retain methods exercised by existing tests. `SheetRepository` implements the full `SheetRepositoryContract` and `SheetBatchUpdateContract`.
 
 ## Responsibilities
 

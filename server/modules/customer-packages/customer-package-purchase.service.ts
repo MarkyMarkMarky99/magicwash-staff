@@ -27,15 +27,15 @@ function classifyWriteFailure(error: unknown): WriteFailure {
 function issues(error: z.ZodError): Array<{ path: string; message: string }> { return error.issues.map((issue) => ({ path: issue.path.join('.') || '(root)', message: issue.message })) }
 
 export interface CustomerPackagePurchaseServiceOptions {
-  packageRepository: () => SheetRepositoryContract<CustomerPackagesDbRow>
-  catalogRepository: () => SheetRepositoryContract<PackagesDbRow>
+  packageRepository: () => Pick<SheetRepositoryContract<CustomerPackagesDbRow>, 'read' | 'append'>
+  catalogRepository: () => Pick<SheetRepositoryContract<PackagesDbRow>, 'read'>
   transactionService: PackageTransactionService
   generateCustomerPackageId?: () => string
 }
 
 export class CustomerPackagePurchaseService {
-  private readonly packageRepository: () => SheetRepositoryContract<CustomerPackagesDbRow>
-  private readonly catalogRepository: () => SheetRepositoryContract<PackagesDbRow>
+  private readonly packageRepository: () => Pick<SheetRepositoryContract<CustomerPackagesDbRow>, 'read' | 'append'>
+  private readonly catalogRepository: () => Pick<SheetRepositoryContract<PackagesDbRow>, 'read'>
   private readonly transactionService: PackageTransactionService
   private readonly generateCustomerPackageId: () => string
   constructor(input: CustomerPackagePurchaseServiceOptions) { this.packageRepository = input.packageRepository; this.catalogRepository = input.catalogRepository; this.transactionService = input.transactionService; this.generateCustomerPackageId = input.generateCustomerPackageId ?? generateShortId }

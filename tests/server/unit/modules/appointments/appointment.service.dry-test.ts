@@ -11,7 +11,7 @@ import { appointmentsFieldMap } from '../../../../../server/modules/appointments
 import { createAppointmentTransformer } from '../../../../../server/modules/appointments/appointment.transformer.js'
 import { formatBangkokTimestamp } from '../../../../../server/shared/utils/bangkok-timestamp.js'
 
-class RecordingRepository implements SheetRepositoryContract<AppointmentSheetDbRow> {
+class RecordingRepository implements Pick<SheetRepositoryContract<AppointmentSheetDbRow>, 'read' | 'append' | 'update' | 'delete'> {
   readonly appendCalls: Record<string, unknown>[] = []
   readonly updateCalls: Array<{ id: string; data: Record<string, unknown> }> = []
   readonly readCalls: unknown[] = []
@@ -26,10 +26,6 @@ class RecordingRepository implements SheetRepositoryContract<AppointmentSheetDbR
   async append(row: Partial<AppointmentSheetDbRow>): Promise<AppointmentSheetDbRow> {
     this.appendCalls.push(row as Record<string, unknown>)
     return responseRow('APPT-created')
-  }
-
-  async batchAppend(_rows: Array<Partial<AppointmentSheetDbRow>>): Promise<AppointmentSheetDbRow[]> {
-    throw new Error('RecordingRepository.batchAppend is not used by this test')
   }
 
   async update(id: string, data: Partial<AppointmentSheetDbRow>): Promise<AppointmentSheetDbRow> {

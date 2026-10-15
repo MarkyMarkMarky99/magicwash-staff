@@ -9,15 +9,13 @@ import type { SheetRepositoryContract } from '../../../../../server/shared/repos
 
 type Row = z.infer<typeof paymentsRowSchema>
 const appended: Array<Partial<Row>> = []
-const repository: SheetRepositoryContract<Row> = {
+const repository: Pick<SheetRepositoryContract<Row>, 'read' | 'append' | 'update'> = {
   async read() { return [] },
   async append(row) {
     appended.push(row)
     return row as Row
   },
-  async batchAppend() { throw new Error('not used') },
   async update() { throw new Error('not used') },
-  async delete() { throw new Error('not used') },
 }
 const service = new PaymentService({
   repository,

@@ -24,18 +24,18 @@ type CustomerPackageListResponse = z.infer<typeof customerPackageApiContract.res
 type CustomerPackageDetailResponse = z.infer<typeof customerPackageApiContract.response.detail>
 
 export interface CustomerPackageReadServiceOptions {
-  packageRepository: () => SheetRepositoryContract<CustomerPackagesDbRow>
-  transactionRepository: () => SheetRepositoryContract<PackageTransactionsDbRow>
-  catalogRepository: () => SheetRepositoryContract<PackagesDbRow>
-  customerRepository: () => SheetRepositoryContract<CustomersDbRow>
+  packageRepository: () => Pick<SheetRepositoryContract<CustomerPackagesDbRow>, 'read'>
+  transactionRepository: () => Pick<SheetRepositoryContract<PackageTransactionsDbRow>, 'read'>
+  catalogRepository: () => Pick<SheetRepositoryContract<PackagesDbRow>, 'read'>
+  customerRepository: () => Pick<SheetRepositoryContract<CustomersDbRow>, 'read'>
   now?: () => Date
 }
 
 export class CustomerPackageReadService {
-  private readonly packageRepository: () => SheetRepositoryContract<CustomerPackagesDbRow>
-  private readonly transactionRepository: () => SheetRepositoryContract<PackageTransactionsDbRow>
-  private readonly catalogRepository: () => SheetRepositoryContract<PackagesDbRow>
-  private readonly customerRepository: () => SheetRepositoryContract<CustomersDbRow>
+  private readonly packageRepository: () => Pick<SheetRepositoryContract<CustomerPackagesDbRow>, 'read'>
+  private readonly transactionRepository: () => Pick<SheetRepositoryContract<PackageTransactionsDbRow>, 'read'>
+  private readonly catalogRepository: () => Pick<SheetRepositoryContract<PackagesDbRow>, 'read'>
+  private readonly customerRepository: () => Pick<SheetRepositoryContract<CustomersDbRow>, 'read'>
   private readonly now: () => Date
 
   constructor(input: CustomerPackageReadServiceOptions) {

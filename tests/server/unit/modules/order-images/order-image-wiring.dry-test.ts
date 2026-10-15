@@ -12,7 +12,7 @@ import { BaseCrudService } from '../../../../../server/shared/services/base-crud
 type OrderImagesDbRow = z.infer<typeof orderImagesRowSchema>
 type OrderImageAppendFixture = Omit<Partial<OrderImagesDbRow>, 'id'> & { id?: string | null }
 
-interface FakeRepository extends SheetRepositoryContract<OrderImagesDbRow> {
+interface FakeRepository extends Pick<SheetRepositoryContract<OrderImagesDbRow>, 'read' | 'append' | 'update'> {
   readRows: OrderImagesDbRow[]
   appendRows: Array<Partial<OrderImagesDbRow>>
 }
@@ -37,8 +37,6 @@ function makeRepository(): FakeRepository {
   const repository = {
     readRows: [] as OrderImagesDbRow[],
     appendRows: [] as Array<Partial<OrderImagesDbRow>>,
-    async readRaw(): Promise<never> { throw new Error('not implemented') },
-    queryBuilder(): never { throw new Error('not implemented') },
     async read() {
       return repository.readRows
     },
@@ -47,13 +45,7 @@ function makeRepository(): FakeRepository {
       repository.appendRows.push(persisted)
       return makeRow(persisted)
     },
-    async batchAppend(rows: Array<Partial<OrderImagesDbRow>>) {
-      return rows.map((row) => makeRow({ ...row, id: row.id ?? 'deadbeef' }))
-    },
     async update() {
-      throw new Error('not used')
-    },
-    async delete() {
       throw new Error('not used')
     },
   }

@@ -11,13 +11,13 @@ import { ApiError } from '../../../../../server/shared/http/api-error.js'
 type PhotoRow = z.infer<typeof laundryPhotosRowSchema>
 type ItemRow = z.infer<typeof orderItemFormsRowSchema>
 
-interface FakePhotoRepository extends SheetRepositoryContract<PhotoRow>, SheetBatchUpdateContract<PhotoRow> {
+interface FakePhotoRepository extends Pick<SheetRepositoryContract<PhotoRow>, 'read' | 'append' | 'update'>, SheetBatchUpdateContract<PhotoRow> {
   rows: Array<Partial<PhotoRow>>
   updateCalls: Array<{ id: string; patch: Partial<PhotoRow> }>
   readIds: Array<string | undefined>
 }
 
-interface FakeItemRepository extends SheetRepositoryContract<ItemRow> {
+interface FakeItemRepository extends Pick<SheetRepositoryContract<ItemRow>, 'read'> {
   rows: Array<Partial<ItemRow>>
   readIds: Array<string | undefined>
 }
@@ -56,17 +56,11 @@ function makePhotoRepository(rows: Array<Partial<PhotoRow>>): FakePhotoRepositor
     async append() {
       throw new Error('not used')
     },
-    async batchAppend() {
-      throw new Error('not used')
-    },
     async update(id: string, patch: Partial<PhotoRow>) {
       repository.updateCalls.push({ id, patch })
       return makePhotoRow({ id, ...patch })
     },
     async updateMany() {
-      throw new Error('not used')
-    },
-    async delete() {
       throw new Error('not used')
     },
   }
@@ -80,18 +74,6 @@ function makeItemRepository(rows: Array<Partial<ItemRow>>): FakeItemRepository {
     async read(query?: ReadQueryDTO<Partial<ItemRow>>) {
       repository.readIds.push(query?.id)
       return repository.rows
-    },
-    async append() {
-      throw new Error('not used')
-    },
-    async batchAppend() {
-      throw new Error('not used')
-    },
-    async update() {
-      throw new Error('not used')
-    },
-    async delete() {
-      throw new Error('not used')
     },
   }
   return repository as FakeItemRepository

@@ -26,8 +26,6 @@ function fixture(options: { active?: boolean; rate?: boolean; department?: 'Pack
   }
   const service = new OrderImageService({ bagLogisticsTicketService: { async provision() {} },
     repository: {
-      async readRaw(): Promise<never> { throw new Error('not implemented') },
-      queryBuilder(): never { throw new Error('not implemented') },
       async read() { return [] },
       async append(row) {
         events.push('image')
@@ -36,9 +34,7 @@ function fixture(options: { active?: boolean; rate?: boolean; department?: 'Pack
         if ('quantity' in options) saved.quantity = options.quantity ?? null
         return saved
       },
-      async batchAppend() { throw new Error('unused') },
       async update() { throw new Error('unused') },
-      async delete() { throw new Error('unused') },
     },
     weightPhotoTicketService: new WeightPhotoTicketService({
       orderFormRepository: () => ({ async read(query) {

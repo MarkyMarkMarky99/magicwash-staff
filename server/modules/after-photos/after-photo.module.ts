@@ -53,11 +53,11 @@ type AfterPhotoDetailResponse = z.infer<typeof afterPhotoApiContract.response.de
 type AfterPhotoCreateResponse = z.infer<typeof afterPhotoApiContract.response.create>
 type AfterPhotoUpdateResponse = z.infer<typeof afterPhotoApiContract.response.update>
 type AfterPhotoReassignResponse = z.infer<typeof afterPhotoReassignResponseSchema>
-type AfterPhotoRepository = SheetRepositoryContract<AfterPhotoDbRow> & SheetBatchUpdateContract<AfterPhotoDbRow>
+type AfterPhotoRepository = Pick<SheetRepositoryContract<AfterPhotoDbRow>, 'read' | 'append' | 'update'> & SheetBatchUpdateContract<AfterPhotoDbRow>
 
 export interface AfterPhotoServiceOptions {
   repository?: AfterPhotoRepository
-  orderItemFormsRepository?: () => SheetRepositoryContract<OrderItemFormsDbRow>
+  orderItemFormsRepository?: () => Pick<SheetRepositoryContract<OrderItemFormsDbRow>, 'read'>
 }
 
 export function createAfterPhotoId(): string {
@@ -71,17 +71,14 @@ function prepareAfterPhotoAppendRow(row: Partial<AfterPhotoDbRow>): Partial<Afte
   }
 }
 
-export function createAfterPhotoRepository(): AfterPhotoRepository {
+export function createAfterPhotoRepository(): Pick<SheetRepositoryContract<AfterPhotoDbRow>, 'read' | 'append' | 'update' | 'batchAppend'> & SheetBatchUpdateContract<AfterPhotoDbRow> {
   return {
-    readRaw: (query) => getAfterPhotoRepository().readRaw(query),
-    queryBuilder: () => getAfterPhotoRepository().queryBuilder(),
     read: (query) => getAfterPhotoRepository().read(query),
     append: (row) => getAfterPhotoRepository().append(prepareAfterPhotoAppendRow(row)),
     batchAppend: (rows) =>
       getAfterPhotoRepository().batchAppend(rows.map(prepareAfterPhotoAppendRow)),
     update: (keyValue, patch) => getAfterPhotoRepository().update(keyValue, patch),
     updateMany: (updates) => getAfterPhotoRepository().updateMany(updates),
-    delete: (keyValue, deletedBy) => getAfterPhotoRepository().delete(keyValue, deletedBy),
   }
 }
 
@@ -100,7 +97,7 @@ export class AfterPhotoService extends BaseCrudService<
   typeof afterPhotoFieldMap
 > {
   private readonly photoRepository: AfterPhotoRepository
-  private readonly orderItemFormsRepository: () => SheetRepositoryContract<OrderItemFormsDbRow>
+  private readonly orderItemFormsRepository: () => Pick<SheetRepositoryContract<OrderItemFormsDbRow>, 'read'>
 
   constructor(input: AfterPhotoServiceOptions = {}) {
     const repository = input.repository ?? createAfterPhotoRepository()

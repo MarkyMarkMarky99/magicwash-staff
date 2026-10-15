@@ -50,21 +50,19 @@ type OrderItemDetailResponse = z.infer<typeof orderItemApiContract.response.deta
 type OrderItemCreateResponse = z.infer<typeof orderItemApiContract.response.create>
 type OrderItemUpdate = z.infer<typeof orderItemApiContract.request.update>
 type OrderItemUpdateResponse = z.infer<typeof orderItemApiContract.response.update>
-type OrderItemRepository = SheetRepositoryContract<OrderItemFormsDbRow> & SheetBatchUpdateContract<OrderItemFormsDbRow>
+type OrderItemRepository = Pick<SheetRepositoryContract<OrderItemFormsDbRow>, 'read' | 'append' | 'update' | 'batchAppend'> & SheetBatchUpdateContract<OrderItemFormsDbRow>
 
 export interface OrderItemServiceOptions {
   repository?: OrderItemRepository
-  orderFormRepository?: () => SheetRepositoryContract<OrderFormDbRow>
+  orderFormRepository?: () => Pick<SheetRepositoryContract<OrderFormDbRow>, 'read'>
 }
 
 export function createOrderItemId(): string {
   return generateShortId()
 }
 
-export function createOrderItemRepository(): OrderItemRepository {
+export function createOrderItemRepository(): Pick<SheetRepositoryContract<OrderItemFormsDbRow>, 'read' | 'append' | 'update' | 'batchAppend' | 'delete'> & SheetBatchUpdateContract<OrderItemFormsDbRow> {
   return {
-    readRaw: (query) => getOrderItemFormsRepository().readRaw(query),
-    queryBuilder: () => getOrderItemFormsRepository().queryBuilder(),
     read: (query) => getOrderItemFormsRepository().read(query),
     append: (row) =>
       getOrderItemFormsRepository().append({
@@ -99,7 +97,7 @@ export class OrderItemService extends BaseCrudService<
   typeof orderItemFieldMap
 > {
   private readonly writeRepository: OrderItemRepository
-  private readonly orderFormRepository: () => SheetRepositoryContract<OrderFormDbRow>
+  private readonly orderFormRepository: () => Pick<SheetRepositoryContract<OrderFormDbRow>, 'read'>
 
   constructor(input: OrderItemServiceOptions = {}) {
     const repository = input.repository ?? createOrderItemRepository()

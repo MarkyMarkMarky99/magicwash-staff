@@ -26,11 +26,9 @@ type BagItemCreate = z.infer<typeof bagItemApiContract.request.create>
 type BagItemResponse = z.infer<typeof bagItemApiContract.response.list>
 
 export function createBagItemService(
-  getRepository: () => SheetRepositoryContract<BagItemsDbRow> = getBagItemsRepository,
+  getRepository: () => Pick<SheetRepositoryContract<BagItemsDbRow>, 'read' | 'append' | 'update'> = getBagItemsRepository,
 ) {
-  const repository: SheetRepositoryContract<BagItemsDbRow> = {
-    readRaw: (query) => getRepository().readRaw(query),
-    queryBuilder: () => getRepository().queryBuilder(),
+  const repository: Pick<SheetRepositoryContract<BagItemsDbRow>, 'read' | 'append' | 'update'> = {
     read: (query) => getRepository().read(query),
     append: async (row) => {
       const source = getRepository()
@@ -40,9 +38,7 @@ export function createBagItemService(
       if (existing !== undefined) return existing as BagItemsDbRow
       return source.append({ ...row, id: generateShortId() })
     },
-    batchAppend: (rows) => getRepository().batchAppend(rows),
     update: (keyValue, patch) => getRepository().update(keyValue, patch),
-    delete: (keyValue, deletedBy) => getRepository().delete(keyValue, deletedBy),
   }
 
   return new BaseCrudService<

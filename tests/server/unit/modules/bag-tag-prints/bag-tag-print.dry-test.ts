@@ -27,7 +27,7 @@ const payload = {
   orderId: 'order-1', customerId: 'customer-1', imageType: 'WEIGHT',
   imagePath: 'https://storage.example/weight.jpg', quantity: 2.5, createdBy: 'staff-1',
 }
-const repository: SheetRepositoryContract<Row> = {
+const repository: Pick<SheetRepositoryContract<Row>, 'read' | 'append' | 'update'> = {
   async read() { throw new Error('unexpected read') },
   async append(row) {
     appendRows.push(row)
@@ -35,9 +35,7 @@ const repository: SheetRepositoryContract<Row> = {
       image_type: 'WEIGHT', image_path: payload.imagePath, notes: null, quantity: 2.5,
       created_at: '2026-10-07 12:34:56', created_by: 'staff-1', ...row, ...savedOverrides }
   },
-  async batchAppend() { throw new Error('unexpected batch') },
   async update() { throw new Error('unexpected update') },
-  async delete() { throw new Error('unexpected delete') },
 }
 const printer = new BagTagPrintService({
   async customerReader(id) {

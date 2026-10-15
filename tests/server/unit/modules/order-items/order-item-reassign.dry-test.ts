@@ -27,8 +27,7 @@ const repository = {
     if (rejectBatch) throw new Error('batch rejected')
     return updates.map(({ keyValue, patch }) => ({ ...row(keyValue, patch.quantity ?? 1), ...patch }))
   },
-  async delete(): Promise<ItemRow> { throw new Error('not used') },
-} satisfies SheetRepositoryContract<ItemRow> & SheetBatchUpdateContract<ItemRow>
+} satisfies Pick<SheetRepositoryContract<ItemRow>, 'read' | 'append' | 'update' | 'batchAppend'> & SheetBatchUpdateContract<ItemRow>
 const service = new OrderItemService({ repository })
 
 const updated = await service.update(' item-1 ', { quantity: 3, updatedBy: ' staff-1 ' })
