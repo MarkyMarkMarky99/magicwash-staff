@@ -26,8 +26,8 @@ const blockedStorage = {
 assert.equal(readFeedbackPreference(blockedStorage, 'sound'), true)
 assert.doesNotThrow(() => writeFeedbackPreference(blockedStorage, 'sound', false))
 
-assert.deepEqual(feedbackPattern('success'), { vibration: 70, beepOffsets: [0] })
-assert.deepEqual(feedbackPattern('failure'), { vibration: [80, 60, 80], beepOffsets: [0, 0.15] })
+assert.deepEqual(feedbackPattern('success'), { vibration: 70, beepOffsets: [0], frequency: 400, duration: 0.25 })
+assert.deepEqual(feedbackPattern('failure'), { vibration: [80, 60, 80], beepOffsets: [0, 0.35], frequency: 400, duration: 0.25 })
 
 const previousSound = soundEnabled.value
 const previousVibration = vibrationEnabled.value

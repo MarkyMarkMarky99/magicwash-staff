@@ -5,10 +5,13 @@ type PreferenceStorage = Pick<Storage, 'getItem' | 'setItem'>
 
 const SOUND_KEY = 'magicwash.scan-feedback.sound'
 const VIBRATION_KEY = 'magicwash.scan-feedback.vibration'
-const PATTERNS: Record<FeedbackOutcome, { vibration: number | number[]; beepOffsets: number[] }> = {
-  success: { vibration: 70, beepOffsets: [0] },
-  failure: { vibration: [80, 60, 80], beepOffsets: [0, 0.15] },
+type FeedbackPattern = { vibration: number | number[]; beepOffsets: number[]; frequency: number; duration: number }
+
+const PATTERNS: Record<FeedbackOutcome, FeedbackPattern> = {
+  success: { vibration: 70, beepOffsets: [0], frequency: 400, duration: 0.25 },
+  failure: { vibration: [80, 60, 80], beepOffsets: [0, 0.35], frequency: 400, duration: 0.25 },
 }
+const BEEP_GAIN = 0.3
 
 function browserStorage(): PreferenceStorage | null {
   try {
@@ -56,7 +59,7 @@ export function canVibrate(): boolean {
   }
 }
 
-export function feedbackPattern(outcome: FeedbackOutcome): { vibration: number | number[]; beepOffsets: number[] } {
+export function feedbackPattern(outcome: FeedbackOutcome): FeedbackPattern {
   return PATTERNS[outcome]
 }
 
@@ -85,15 +88,17 @@ async function playBeeps(outcome: FeedbackOutcome): Promise<void> {
   const context = await readyAudioContext()
   if (!context || !soundEnabled.value) return
   try {
-    for (const offset of feedbackPattern(outcome).beepOffsets) {
+    const { beepOffsets, frequency, duration } = feedbackPattern(outcome)
+    for (const offset of beepOffsets) {
       const start = context.currentTime + offset
       const oscillator = context.createOscillator()
       const gain = context.createGain()
-      oscillator.type = 'sine'
-      oscillator.frequency.setValueAtTime(outcome === 'success' ? 880 : 440, start)
+      oscillator.type = 'square'
+      oscillator.frequency.setValueAtTime(frequency, start)
       gain.gain.setValueAtTime(0.0001, start)
-      gain.gain.exponentialRampToValueAtTime(0.08, start + 0.01)
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.1)
+      gain.gain.exponentialRampToValueAtTime(BEEP_GAIN, start + 0.01)
+      gain.gain.setValueAtTime(BEEP_GAIN, start + duration - 0.02)
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
       oscillator.connect(gain)
       gain.connect(context.destination)
       oscillator.onended = () => {
@@ -101,7 +106,7 @@ async function playBeeps(outcome: FeedbackOutcome): Promise<void> {
         gain.disconnect()
       }
       oscillator.start(start)
-      oscillator.stop(start + 0.11)
+      oscillator.stop(start + duration + 0.01)
     }
   } catch {
     return
