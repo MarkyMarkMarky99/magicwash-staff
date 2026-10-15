@@ -11,7 +11,7 @@ import { appointmentsFieldMap } from '../../../../../server/modules/appointments
 import { createAppointmentTransformer } from '../../../../../server/modules/appointments/appointment.transformer.js'
 import { formatBangkokTimestamp } from '../../../../../server/shared/utils/bangkok-timestamp.js'
 
-class RecordingRepository implements Pick<SheetRepositoryContract<AppointmentSheetDbRow>, 'read' | 'append' | 'update' | 'delete'> {
+class RecordingRepository implements Pick<SheetRepositoryContract<AppointmentSheetDbRow>, 'read' | 'append' | 'update'> {
   readonly appendCalls: Record<string, unknown>[] = []
   readonly updateCalls: Array<{ id: string; data: Record<string, unknown> }> = []
   readonly readCalls: unknown[] = []
@@ -33,9 +33,6 @@ class RecordingRepository implements Pick<SheetRepositoryContract<AppointmentShe
     return responseRow(id)
   }
 
-  async delete(_id: string, _deletedBy: string): Promise<AppointmentSheetDbRow> {
-    throw new Error('RecordingRepository.delete is not used by this test')
-  }
 }
 
 function responseRow(appointmentId: string): AppointmentSheetDbRow {

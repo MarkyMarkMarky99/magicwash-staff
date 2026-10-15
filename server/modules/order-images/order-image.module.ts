@@ -83,14 +83,11 @@ function createOrderImageTransformer(): RepositoryTransformer {
   }
 }
 
-export function createOrderImageRepository(): Pick<SheetRepositoryContract<OrderImagesDbRow>, 'read' | 'append' | 'update' | 'batchAppend' | 'delete'> {
+export function createOrderImageRepository(): Pick<SheetRepositoryContract<OrderImagesDbRow>, 'read' | 'append' | 'update'> {
   return {
     read: (query) => getOrderImagesRepository().read(query),
     append: (row) => getOrderImagesRepository().append(prepareOrderImageAppendRow(row)),
-    batchAppend: (rows) =>
-      getOrderImagesRepository().batchAppend(rows.map(prepareOrderImageAppendRow)),
     update: (keyValue, patch) => getOrderImagesRepository().update(keyValue, patch),
-    delete: (keyValue, deletedBy) => getOrderImagesRepository().delete(keyValue, deletedBy),
   }
 }
 

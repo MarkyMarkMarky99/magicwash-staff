@@ -71,12 +71,10 @@ function prepareAfterPhotoAppendRow(row: Partial<AfterPhotoDbRow>): Partial<Afte
   }
 }
 
-export function createAfterPhotoRepository(): Pick<SheetRepositoryContract<AfterPhotoDbRow>, 'read' | 'append' | 'update' | 'batchAppend'> & SheetBatchUpdateContract<AfterPhotoDbRow> {
+export function createAfterPhotoRepository(): AfterPhotoRepository {
   return {
     read: (query) => getAfterPhotoRepository().read(query),
     append: (row) => getAfterPhotoRepository().append(prepareAfterPhotoAppendRow(row)),
-    batchAppend: (rows) =>
-      getAfterPhotoRepository().batchAppend(rows.map(prepareAfterPhotoAppendRow)),
     update: (keyValue, patch) => getAfterPhotoRepository().update(keyValue, patch),
     updateMany: (updates) => getAfterPhotoRepository().updateMany(updates),
   }

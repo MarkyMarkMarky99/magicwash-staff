@@ -68,7 +68,7 @@ interface Failures {
 }
 
 function makeRoutes(failures: Failures = {}) {
-  const repository: Pick<SheetRepositoryContract<AppointmentRow>, 'read' | 'append' | 'update' | 'delete'> = {
+  const repository: Pick<SheetRepositoryContract<AppointmentRow>, 'read' | 'append' | 'update'> = {
     read: async () => [persistedRow],
     append: async () => {
       if (failures.append !== undefined) throw failures.append
@@ -78,7 +78,6 @@ function makeRoutes(failures: Failures = {}) {
       if (failures.update !== undefined) throw failures.update
       return persistedRow
     },
-    delete: async () => persistedRow,
   }
 
   const service = new AppointmentService({

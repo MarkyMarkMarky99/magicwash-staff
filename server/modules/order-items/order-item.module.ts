@@ -61,7 +61,7 @@ export function createOrderItemId(): string {
   return generateShortId()
 }
 
-export function createOrderItemRepository(): Pick<SheetRepositoryContract<OrderItemFormsDbRow>, 'read' | 'append' | 'update' | 'batchAppend' | 'delete'> & SheetBatchUpdateContract<OrderItemFormsDbRow> {
+export function createOrderItemRepository(): OrderItemRepository {
   return {
     read: (query) => getOrderItemFormsRepository().read(query),
     append: (row) =>
@@ -78,7 +78,6 @@ export function createOrderItemRepository(): Pick<SheetRepositoryContract<OrderI
       ),
     update: (keyValue, patch) => getOrderItemFormsRepository().update(keyValue, patch),
     updateMany: (updates) => getOrderItemFormsRepository().updateMany(updates),
-    delete: (keyValue, deletedBy) => getOrderItemFormsRepository().delete(keyValue, deletedBy),
   }
 }
 

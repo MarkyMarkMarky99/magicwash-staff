@@ -143,7 +143,6 @@ try {
   await wrapped.batchAppend([{ order_id: 'order-1' }, { order_id: 'order-1' }])
   await wrapped.update('item-1', { quantity: 2 })
   await wrapped.updateMany([{ keyValue: 'item-1', patch: { quantity: 2 } }])
-  await wrapped.delete('item-1', 'staff-1')
 } finally {
   formsRepository.read = originalMethods.read
   formsRepository.append = originalMethods.append
@@ -160,7 +159,7 @@ try {
 
 assert.deepEqual(
   delegatedCalls.map((call) => call.method),
-  ['read', 'append', 'batchAppend', 'update', 'updateMany', 'delete'],
+  ['read', 'append', 'batchAppend', 'update', 'updateMany'],
 )
 assert.deepEqual(delegatedCalls[0]!.value, readQuery)
 assert.match(String((delegatedCalls[1]!.value as Record<string, unknown>).id), /^[0-9a-f]{8}$/)

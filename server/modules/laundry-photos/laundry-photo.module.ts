@@ -73,12 +73,10 @@ function prepareLaundryPhotoAppendRow(
   }
 }
 
-export function createLaundryPhotoRepository(): Pick<SheetRepositoryContract<LaundryPhotosDbRow>, 'read' | 'append' | 'update' | 'batchAppend'> & SheetBatchUpdateContract<LaundryPhotosDbRow> {
+export function createLaundryPhotoRepository(): LaundryPhotoRepository {
   return {
     read: (query) => getLaundryPhotosRepository().read(query),
     append: (row) => getLaundryPhotosRepository().append(prepareLaundryPhotoAppendRow(row)),
-    batchAppend: (rows) =>
-      getLaundryPhotosRepository().batchAppend(rows.map(prepareLaundryPhotoAppendRow)),
     update: (keyValue, patch) => getLaundryPhotosRepository().update(keyValue, patch),
     updateMany: (updates) => getLaundryPhotosRepository().updateMany(updates),
   }

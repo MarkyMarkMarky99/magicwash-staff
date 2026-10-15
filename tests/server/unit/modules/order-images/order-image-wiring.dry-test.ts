@@ -157,9 +157,7 @@ try {
   await appendFixture({ id: null, order_id: 'order-1' })
   await wrapped.append({ id: '', order_id: 'order-1' })
   await wrapped.append({ id: '   ', order_id: 'order-1' })
-  await wrapped.batchAppend([{ order_id: 'order-1' }, { order_id: 'order-1' }])
   await wrapped.update('image-1', { notes: 'updated' })
-  await wrapped.delete('image-1', 'staff-1')
 } finally {
   backingRepository.read = originalMethods.read
   backingRepository.append = originalMethods.append
@@ -175,7 +173,7 @@ try {
 
 assert.deepEqual(
   delegatedCalls.map((call) => call.method),
-  ['read', 'append', 'append', 'append', 'append', 'append', 'batchAppend', 'update', 'delete'],
+  ['read', 'append', 'append', 'append', 'append', 'append', 'update'],
 )
 assert.deepEqual(delegatedCalls[0]!.value, ReadQueryDTO.fromId('image-1'))
 assert.match(String((delegatedCalls[1]!.value as Record<string, unknown>).id), /^[0-9a-f]{8}$/)
@@ -185,12 +183,7 @@ assert.equal('created_at' in (delegatedCalls[2]!.value as Record<string, unknown
 assert.match(String((delegatedCalls[3]!.value as Record<string, unknown>).id), /^[0-9a-f]{8}$/)
 assert.match(String((delegatedCalls[4]!.value as Record<string, unknown>).id), /^[0-9a-f]{8}$/)
 assert.match(String((delegatedCalls[5]!.value as Record<string, unknown>).id), /^[0-9a-f]{8}$/)
-const wrappedBatch = delegatedCalls[6]!.value as Array<Record<string, unknown>>
-assert.equal(wrappedBatch.length, 2)
-assert.ok(wrappedBatch.every((row) => /^[0-9a-f]{8}$/.test(String(row.id))))
-assert.notEqual(wrappedBatch[0]!.id, wrappedBatch[1]!.id)
-assert.deepEqual(delegatedCalls[7]!.value, ['image-1', { notes: 'updated' }])
-assert.deepEqual(delegatedCalls[8]!.value, ['image-1', 'staff-1'])
+assert.deepEqual(delegatedCalls[6]!.value, ['image-1', { notes: 'updated' }])
 
 const repository = makeRepository()
 repository.readRows = [

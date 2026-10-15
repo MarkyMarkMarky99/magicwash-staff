@@ -31,7 +31,7 @@ A named service class is used when a module needs something `BaseCrudService` do
 
 A third option sits between the two: the module keeps `BaseCrudService` but passes a module-local wrapper typed as `Pick<SheetRepositoryContract<Row>, ...>` that delegates to the sheet repository getter and fills server-owned columns on `append`. `server/modules/items/items.module.ts` uses this to allocate `id` and `item_code` and to apply nullable defaults. Use it when the only extra behavior is server-owned identity or defaults on write.
 
-Services and wrappers declare only the repository methods they call, including inherited service paths; intersect with `SheetBatchUpdateContract<Row>` when calling `updateMany`. Wrappers also retain methods exercised by existing tests. `SheetRepository` implements the full `SheetRepositoryContract` and `SheetBatchUpdateContract`.
+Services and wrappers declare only the repository methods they call, including inherited service paths; intersect with `SheetBatchUpdateContract<Row>` when calling `updateMany`. `SheetRepository` implements the full `SheetRepositoryContract` and `SheetBatchUpdateContract`.
 
 ## Responsibilities
 
