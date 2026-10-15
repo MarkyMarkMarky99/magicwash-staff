@@ -8,7 +8,6 @@
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 - **`feat/corporate-order-form`** — corporate count-sheet order page built UI-only, committed unmerged; needs entry point, real-login check, save design; see `.user/memory/feat-corporate-order-form.md`.
 - **`feat/scanner-gun-input`** — barcode-gun scanning on department pages + louder scan beeps, owner-tested locally, not merged; see `.user/memory/feat-scanner-gun-input.md`.
-- **`feat/repository-read-raw`** — `readRaw`/`queryBuilder` added, job-ticket advance reads once, repository deps narrowed to `Pick`; not merged; see `.user/memory/feat-repository-read-raw.md`.
 
 ## Pending work
 - **Wash queue + dryer queue (one-sheet booking: photo, optional weight, auto tag, washer menu, read-only program line — merged 2026-10-11; auto tag + photo slides merged 2026-10-13)** — see `docs/features/wash-queue/wash-queue.md`
@@ -50,6 +49,7 @@
 - **Customer detail and visual system** (merged 2026-09-27)
   - 9 open browser/phone checks and decisions: see `.user/memory/customer-detail-visual-checks.md`.
 - **Garment tracking and job tickets**
+  - Merged 2026-10-15: advance reads JobTickets once via `readRaw` (owner-tested on vercel dev); watch the first prod Start/Complete.
   - Scan FAB sits below the screen edge on some phones; cause unknown, awaiting the user's device/browser details.
   - Overlapping order Start notices share one page-notice slot; the later replaces the earlier.
   - `/api/job-tickets/scan` and its service have no caller since batch advance; delete in a later pass.
