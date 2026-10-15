@@ -183,6 +183,7 @@ const departmentRoute = reactive({ params: { department: 'logistics' }, query: {
 const destinations: any[] = []
 const ticketStore = { tickets: local.page.tickets.value, loading: false, error: null, loadDepartment: async () => {}, activateDepartment: () => {}, releaseDepartment: () => {} }
 const departmentDependencies = { ...departmentWork, computed, ref, watch,
+  useScannerGunInput: () => {},
   useAuthStore: () => ({ isAdmin: false }),
   useRoute: () => departmentRoute, useRouter: () => ({ push: async (to: any) => { destinations.push(to) } }),
   useJobTicketStore: () => ticketStore, useCustomerStore: () => ({ customers: [] }),

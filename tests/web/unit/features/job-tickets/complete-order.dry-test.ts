@@ -37,8 +37,10 @@ function harness() {
   const tickets = ref([job('pending'), job('progress', 'In Progress'), { ...job('no-tag'), laundryItemId: null },
     { ...job('weight'), scope: 'ORDER' as const, taskCode: 'PCK-WEIGHT-KG' }, job('done', 'Completed')])
   let result: unknown = { kind: 'completed', completed: ['pending', 'progress', 'no-tag'].map(ticketId => ({ ticketId })) }
+  let scanGun!: (value: string) => void
   const dependencies = {
     ...departmentWork, computed, ref, watch,
+    useScannerGunInput: (onScan: (value: string) => void) => { scanGun = onScan },
     useAuthStore: () => auth, useCustomerStore: () => ({ customers: [] }),
     useJobTicketStore: () => ({
       get tickets() { return tickets.value }, loadDepartment: async () => {}, releaseDepartment: () => {},
@@ -56,9 +58,31 @@ function harness() {
     localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
   }
   const page = scope.run(() => new Function(...Object.keys(dependencies),
-    code + '; return { showStartOrder, showCompleteOrder, completeOrderId, completeOrderJobs, completeOrder, sendConfirmed, syncingOrderIds, selectedTicketIds, scanQueue, pageNotice, submitting };')(...Object.values(dependencies)))!
-  return { page, route, auth, tickets, requests, navigation, scope, setResult(value: unknown) { result = value } }
+    code + '; return { showStartOrder, showCompleteOrder, completeOrderId, completeOrderJobs, completeOrder, sendConfirmed, syncingOrderIds, selectedTicketIds, scanQueue, pageNotice, submitting, pendingTickets, toggleTicket };')(...Object.values(dependencies)))!
+  return { page, route, auth, tickets, requests, navigation, scope, scanGun, setResult(value: unknown) { result = value } }
 }
+const gun = harness()
+gun.scanGun('progress')
+assert.deepEqual([...gun.page.selectedTicketIds.value], ['progress'])
+assert.deepEqual(gun.page.scanQueue.value, [])
+assert.deepEqual(gun.page.pendingTickets.value.map((entry: { ticketId: string }) => entry.ticketId), ['progress'])
+const selectedBeforeDuplicate = gun.page.selectedTicketIds.value
+const queueBeforeDuplicate = gun.page.scanQueue.value
+gun.scanGun('progress')
+assert.equal(gun.page.selectedTicketIds.value, selectedBeforeDuplicate)
+assert.equal(gun.page.scanQueue.value, queueBeforeDuplicate)
+assert.deepEqual(gun.page.pageNotice.value, { title: 'progress', message: 'Already selected', tone: 'warning' })
+gun.page.toggleTicket(gun.tickets.value[1])
+assert.deepEqual(gun.page.pendingTickets.value, [], 'deselecting a gun scan removes it from pending work')
+gun.scanGun('progress')
+gun.page.selectedTicketIds.value = new Set()
+assert.deepEqual(gun.page.pendingTickets.value, [], 'Clear selection removes gun scans from pending work')
+gun.page.scanQueue.value = [{ ticketId: 'camera-ticket', orderId: '123', tag: 'camera-tag' }]
+gun.scanGun('progress')
+assert.deepEqual(gun.page.scanQueue.value, [{ ticketId: 'camera-ticket', orderId: '123', tag: 'camera-tag' }])
+assert.equal(gun.page.pageNotice.value.message, 'Queued')
+gun.scope.stop()
+
 const ui = harness()
 for (const department of ['washing', 'drycleaning', 'ironing', 'packaging', 'logistics']) {
   ui.route.params.department = department

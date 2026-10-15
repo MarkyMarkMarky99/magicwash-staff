@@ -25,6 +25,7 @@ import { formatSheetDate } from '@/shared/utils/sheet-date'
 import { advanceSummary, countDepartmentStatuses, filterTickets, groupDepartmentOrders, readDepartment, readGrouper, readStatusFilter, resolveScanTag, restoreScanQueue, sortDepartmentTickets, statusFilters, statusForFilter, taskLabel, ticketSelectLabel, toggleTicketSelection } from '../department-work'
 import type { AdvanceStatus, Grouper, OrderInfo, ScanQueueEntry, TicketStatus } from '../department-work'
 import { presentStartOrderResult, type ScanDisplay } from '../scan-result'
+import { useScannerGunInput } from '../composables/useScannerGunInput'
 
 const route = useRoute()
 const router = useRouter()
@@ -59,6 +60,27 @@ let replacingLeave = false
 let pageActive = true
 let loadedDepartment: string | undefined
 let noticeTimer: ReturnType<typeof setTimeout> | undefined
+
+useScannerGunInput(value => {
+  const status = fromStatus.value
+  const code = department.value?.code
+  if (!status || !code) return
+  const result = resolveScanTag(value, departmentTickets.value, status, scanQueue.value, code)
+  if (result.entry && selectedTicketIds.value.has(result.entry.ticketId)) {
+    feedback('failure')
+    showPageNotice({ title: value, message: 'Already selected', tone: 'warning' })
+    return
+  }
+  const queueLength = scanQueue.value.length
+  handleScan(value)
+  const entry = scanQueue.value[queueLength]
+  if (entry) {
+    setScanQueue(scanQueue.value.slice(0, queueLength))
+    selectedTicketIds.value = new Set([...selectedTicketIds.value, entry.ticketId])
+  }
+  if (scanResult.value) showPageNotice(scanResult.value)
+}, () => pageActive && !!department.value && !!fromStatus.value && !scannerOpen.value
+  && confirmIntent.value === null && completeOrderId.value === null && !submitting.value)
 
 const filterLabels = { ALL: 'All', PENDING: 'Pending', 'IN PROGRESS': 'In Progress', COMPLETED: 'Completed' } as const
 const departmentTickets = computed(() => filterTickets(ticketStore.tickets, 'ALL', department.value?.code))
