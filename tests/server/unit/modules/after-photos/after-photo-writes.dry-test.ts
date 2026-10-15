@@ -118,9 +118,6 @@ try {
   await repository.append({ id: 'server-provided-id' })
   assert.equal(rows[2]![0], 'server-provided-id')
 
-  await repository.batchAppend([{ id: 'batch-provided-id' }, {}])
-  assert.equal(rows[3]![0], 'batch-provided-id')
-  assert.match(String(rows[4]![0]), /^[0-9a-f]{8}$/)
 } finally {
   globalThis.fetch = originalFetch
 }

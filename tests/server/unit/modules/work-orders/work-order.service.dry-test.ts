@@ -14,7 +14,7 @@ type OrderFormDbRow = z.infer<typeof orderFormRowSchema>
 type CustomersDbRow = z.infer<typeof customersRowSchema>
 type OrderItemResponse = z.infer<typeof orderItemResponseSchema>
 
-interface FakeOrderRepository extends SheetRepositoryContract<OrderFormDbRow> {
+interface FakeOrderRepository extends Pick<SheetRepositoryContract<OrderFormDbRow>, 'read' | 'append' | 'update'> {
   readRows: Array<Partial<OrderFormDbRow>>
   readQueries: Array<unknown>
 }
@@ -63,14 +63,8 @@ function makeOrderRepository(): FakeOrderRepository {
     async append(row) {
       return makeOrderRow(row)
     },
-    async batchAppend(rows) {
-      return rows.map((row) => makeOrderRow(row))
-    },
     async update(_keyValue, patch) {
       return makeOrderRow(patch)
-    },
-    async delete() {
-      return makeOrderRow()
     },
   }
   return repository

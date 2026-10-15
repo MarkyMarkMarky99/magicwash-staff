@@ -19,15 +19,13 @@ function pendingRow(overrides: Partial<Row> = {}): Row {
 
 function serviceWith(row: Row | null) {
   const updates: Array<{ id: string, patch: Partial<Row> }> = []
-  const repository: SheetRepositoryContract<Row> = {
+  const repository: Pick<SheetRepositoryContract<Row>, 'read' | 'append' | 'update'> = {
     async read() { return row ? [row] : [] },
     async append() { throw new Error('not used') },
-    async batchAppend() { throw new Error('not used') },
     async update(id, patch) {
       updates.push({ id, patch })
       return { ...row!, ...patch } as Row
     },
-    async delete() { throw new Error('not used') },
   }
   const service = new PaymentService({ repository, now: () => new Date('2026-10-02T05:34:56Z') })
   return { service, updates }

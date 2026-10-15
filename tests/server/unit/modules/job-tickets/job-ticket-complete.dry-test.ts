@@ -16,6 +16,8 @@ function setup(rows: Row[], failure?: Error) {
   let scores = 0
   const options: JobTicketTransitionServiceOptions = {
     repository: () => ({
+      async readRaw(): Promise<never> { throw new Error('not implemented') },
+      queryBuilder(): never { throw new Error('not implemented') },
       async read(query) { reads.push(query); return rows },
       async updateMany(batch) {
         updates.push(batch)

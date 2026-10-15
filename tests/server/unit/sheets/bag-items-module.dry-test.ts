@@ -20,15 +20,13 @@ let rows: Row[] = []
 const reads: Array<ReadQueryDTO<Partial<Row>> | undefined> = []
 const appends: Array<Partial<Row>> = []
 let getterCalls = 0
-const repository: SheetRepositoryContract<Row> = {
+const repository: Pick<SheetRepositoryContract<Row>, 'read' | 'append' | 'update'> = {
   read: async (query) => { reads.push(query); return rows },
   append: async (row) => {
     appends.push(row)
     return { ...row, created_at: '2026-10-08 11:00:00' } as Row
   },
-  batchAppend: async () => { throw new Error('Unexpected batch append') },
   update: async () => { throw new Error('Unexpected update') },
-  delete: async () => { throw new Error('Unexpected delete') },
 }
 const service = createBagItemService(() => { getterCalls++; return repository })
 const routes = createCrudRoutes(service, bagItemApiContract)

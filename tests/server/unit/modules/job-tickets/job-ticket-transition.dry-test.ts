@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
+import { deriveGVizColumns, GVizQueryBuilder } from '../../../../../server/shared/repositories/utils/gviz-query.builder.js'
 import type { z } from 'zod'
-import type { jobTicketsRowSchema } from '../../../../../server/sheets/JobTickets/JobTickets.db-contract.js'
+import { jobTicketsRowSchema } from '../../../../../server/sheets/JobTickets/JobTickets.db-contract.js'
 import { JobTicketTransitionService, type WorkTransactionAppender } from '../../../../../server/modules/job-tickets/job-ticket-transition.service.js'
 
 type Row = Partial<z.infer<typeof jobTicketsRowSchema>>
@@ -8,11 +9,19 @@ const timestamp = '2026-10-09 12:34:56'
 const row = (id: string, values: Row = {}): Row => ({ id, order_id: '123', laundry_item_id: id,
   department: 'Packaging', step_no: 3, status: 'Pending', work_minutes: 5, ...values })
 function setup(rows: Row[]) {
+  const rawReads: string[] = []
   const reads: unknown[] = []
   const updates: unknown[] = []
   const scores: Parameters<WorkTransactionAppender['batchAppend']>[0][] = []
   const service = new JobTicketTransitionService({
     repository: () => ({
+      queryBuilder() { return GVizQueryBuilder.fromColumns(deriveGVizColumns(jobTicketsRowSchema)) },
+      async readRaw(query: string) {
+        rawReads.push(query)
+        const orderIds = [...query.matchAll(/B = '([^']*)'/g)].map(match => match[1])
+        return rows.filter(ticket => ['Pending', 'In Progress', 'Cancelled'].includes(ticket.status ?? '')
+          && orderIds.includes(String(ticket.order_id ?? '')))
+      },
       async read(query) {
         reads.push(query)
         return rows.filter(row => Object.entries(query?.where ?? {}).every(([key, value]) => String(row[key as keyof Row]) === String(value)))
@@ -22,7 +31,7 @@ function setup(rows: Row[]) {
     workTransactionRepository: () => ({ async batchAppend(batch) { scores.push(batch) } }),
     now: () => new Date('2026-10-09T05:34:56Z'),
   })
-  return { service, reads, updates, scores }
+  return { service, rawReads, reads, updates, scores }
 }
 const request = (ids: string[], sources: string[] = ['Pending', 'In Progress']) => ({ department: 'Packaging',
   targetStatus: 'Completed', allowedSourceStatuses: sources, scannedBy: ' staff-1 ',
@@ -60,10 +69,12 @@ const rejected = await disallowed.service.transition(request(['pending'], ['In P
 assert.deepEqual(rejected, { kind: 'completed', advanced: [], blocked: [], skipped: [{ ticketId: 'pending', reason: 'status_changed' }], scoreFailed: 0 })
 assert.equal(disallowed.updates.length, 0)
 assert.equal(disallowed.scores.length, 0)
-assert.deepEqual(disallowed.reads, ['Pending', 'In Progress', 'Cancelled'].map(status => ({ where: { status } })))
+assert.deepEqual(disallowed.reads, [])
+assert.deepEqual(disallowed.rawReads, ["select * where (M = 'Pending' or M = 'In Progress' or M = 'Cancelled') and (B = '123')"])
 const fallback = setup([row('done', { status: 'Completed', order_id: 123 as unknown as string })])
 await fallback.service.transition(request(['done', 'missing']))
-assert.deepEqual(fallback.reads, [...['Pending', 'In Progress', 'Cancelled'].map(status => ({ where: { status } })), { where: { order_id: '123' } }])
+assert.deepEqual(fallback.reads, [{ where: { order_id: '123' } }])
+assert.equal(fallback.rawReads.length, 1)
 for (const invalid of [{ ...request(['pending']), scannedBy: ' ' }, { ...request(['pending']), targetStatus: 'Cancelled' },
   { ...request(['pending']), allowedSourceStatuses: ['Completed'] }]) await assert.rejects(context.service.transition(invalid, rows))
 for (const department of ['Tagging', 'Washing', 'DryCleaning', 'Ironing', 'Packaging', 'Logistics'] as const) {
@@ -77,5 +88,22 @@ for (const department of ['Tagging', 'Washing', 'DryCleaning', 'Ironing', 'Packa
   }
   assert.equal(context.updates.length, 1)
   assert.equal(context.scores.length, 0)
+}
+for (const count of [50, 51]) {
+  const tickets = Array.from({ length: count }, (_, index) => row(`ticket-${index}`, { order_id: `order-${index}` }))
+  tickets.push(row('same-order', { order_id: 'order-0' }))
+  const context = setup(tickets)
+  const result = await context.service.transition({ ...request([]),
+    tickets: tickets.map(ticket => ({ ticketId: ticket.id, orderId: ticket.order_id })),
+  })
+  assert.equal(result.kind, 'completed')
+  if (result.kind === 'completed') assert.equal(result.advanced.length, count + 1)
+  assert.equal(context.rawReads.length, count === 50 ? 1 : 2)
+  assert.deepEqual(context.reads, [])
+  for (const [index, query] of context.rawReads.entries()) {
+    const ids = Array.from({ length: Math.min(50, count - index * 50) }, (_, offset) => `B = 'order-${index * 50 + offset}'`)
+    assert.equal(query, `select * where (M = 'Pending' or M = 'In Progress' or M = 'Cancelled') and (${ids.join(' or ')})`)
+  }
+  assert.equal(context.rawReads.join(' ').split("B = 'order-0'").length - 1, 1)
 }
 console.log('job-ticket-transition.dry-test: OK')

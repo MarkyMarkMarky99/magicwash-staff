@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import {
   deriveGVizCellTypes,
+  deriveGVizColumns,
   GVizQueryBuilder,
 } from '../../../../../server/shared/repositories/utils/gviz-query.builder.js'
 import { sheetDate, sheetDateTime } from '../../../../../server/shared/contracts/sheet-cell-type.js'
@@ -83,6 +84,23 @@ test('sanitization still applies inside a typed literal', async () => {
     .build()
 
   assert.equal(query, "select *\nwhere B = date '2026-09-07'")
+})
+
+test('col resolves contract columns and rejects unknown fields', async () => {
+  const q = GVizQueryBuilder.fromColumns(columns)
+  assert.equal(q.col('AppointmentID'), 'A')
+  assert.equal(q.col('Notes'), 'D')
+  assert.throws(() => q.col('missing'), { message: "No GViz column resolves for field 'missing'" })
+})
+
+test('lit uses existing sanitization and schema cell types', async () => {
+  const schema = z.object({ Notes: z.string(), DueDate: sheetDate(), CreatedAt: sheetDateTime(), active: z.boolean() })
+  const q = GVizQueryBuilder.fromColumns(deriveGVizColumns(schema), deriveGVizCellTypes(schema))
+  assert.equal(q.lit('Notes', "O'Brien"), "'OBrien'")
+  assert.equal(q.lit('DueDate', '2026-10-15'), "date '2026-10-15'")
+  assert.equal(q.lit('CreatedAt', '2026-10-15 10:00:00'), "datetime '2026-10-15 10:00:00'")
+  assert.equal(q.lit('active', false), 'false')
+  assert.equal(q.build(), 'select *')
 })
 
 const orderedTests = process.env.REVERSE_TESTS === '1' ? [...tests].reverse() : tests

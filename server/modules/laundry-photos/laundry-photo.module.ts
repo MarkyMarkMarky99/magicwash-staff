@@ -53,11 +53,11 @@ type LaundryPhotoDetailResponse = z.infer<typeof laundryPhotoApiContract.respons
 type LaundryPhotoCreateResponse = z.infer<typeof laundryPhotoApiContract.response.create>
 type LaundryPhotoUpdateResponse = z.infer<typeof laundryPhotoApiContract.response.update>
 type LaundryPhotoReassignResponse = z.infer<typeof laundryPhotoReassignResponseSchema>
-type LaundryPhotoRepository = SheetRepositoryContract<LaundryPhotosDbRow> & SheetBatchUpdateContract<LaundryPhotosDbRow>
+type LaundryPhotoRepository = Pick<SheetRepositoryContract<LaundryPhotosDbRow>, 'read' | 'append' | 'update'> & SheetBatchUpdateContract<LaundryPhotosDbRow>
 
 export interface LaundryPhotoServiceOptions {
   repository?: LaundryPhotoRepository
-  orderItemFormsRepository?: () => SheetRepositoryContract<OrderItemFormsDbRow>
+  orderItemFormsRepository?: () => Pick<SheetRepositoryContract<OrderItemFormsDbRow>, 'read'>
 }
 
 export function createLaundryPhotoId(): string {
@@ -77,11 +77,8 @@ export function createLaundryPhotoRepository(): LaundryPhotoRepository {
   return {
     read: (query) => getLaundryPhotosRepository().read(query),
     append: (row) => getLaundryPhotosRepository().append(prepareLaundryPhotoAppendRow(row)),
-    batchAppend: (rows) =>
-      getLaundryPhotosRepository().batchAppend(rows.map(prepareLaundryPhotoAppendRow)),
     update: (keyValue, patch) => getLaundryPhotosRepository().update(keyValue, patch),
     updateMany: (updates) => getLaundryPhotosRepository().updateMany(updates),
-    delete: (keyValue, deletedBy) => getLaundryPhotosRepository().delete(keyValue, deletedBy),
   }
 }
 
@@ -100,7 +97,7 @@ export class LaundryPhotoService extends BaseCrudService<
   typeof laundryPhotoFieldMap
 > {
   private readonly photoRepository: LaundryPhotoRepository
-  private readonly orderItemFormsRepository: () => SheetRepositoryContract<OrderItemFormsDbRow>
+  private readonly orderItemFormsRepository: () => Pick<SheetRepositoryContract<OrderItemFormsDbRow>, 'read'>
 
   constructor(input: LaundryPhotoServiceOptions = {}) {
     const repository = input.repository ?? createLaundryPhotoRepository()

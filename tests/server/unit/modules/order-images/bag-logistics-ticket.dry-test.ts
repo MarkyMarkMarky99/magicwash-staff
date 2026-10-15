@@ -50,14 +50,12 @@ const missingHeader = new BagLogisticsTicketService({
 await missingHeader.provision(image)
 
 const calls: string[] = []
-const repository: SheetRepositoryContract<z.infer<typeof orderImagesRowSchema>> = {
+const repository: Pick<SheetRepositoryContract<z.infer<typeof orderImagesRowSchema>>, 'read' | 'append' | 'update'> = {
   async read() { throw new Error('unexpected read') },
   async append(row) { calls.push('save'); return { id: image.orderImageId, order_id: image.orderId,
     customer_id: null, delivery_id: null, image_type: 'WEIGHT', image_path: image.imagePath,
     notes: null, quantity: image.quantity, created_at: image.createdAt, created_by: image.createdBy, ...row } },
-  async batchAppend() { throw new Error('unexpected batch') },
   async update() { throw new Error('unexpected update') },
-  async delete() { throw new Error('unexpected delete') },
 }
 let fail = false
 const logs: unknown[][] = []

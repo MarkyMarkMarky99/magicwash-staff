@@ -34,9 +34,7 @@ function fixture(options: { active?: boolean; rate?: boolean; department?: 'Pack
         if ('quantity' in options) saved.quantity = options.quantity ?? null
         return saved
       },
-      async batchAppend() { throw new Error('unused') },
       async update() { throw new Error('unused') },
-      async delete() { throw new Error('unused') },
     },
     weightPhotoTicketService: new WeightPhotoTicketService({
       orderFormRepository: () => ({ async read(query) {

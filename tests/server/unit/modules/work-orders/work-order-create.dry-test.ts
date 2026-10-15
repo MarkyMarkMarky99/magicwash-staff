@@ -14,7 +14,7 @@ import type { SheetRepositoryContract } from '../../../../../server/shared/repos
 type OrderFormDbRow = z.infer<typeof orderFormRowSchema>
 type OrderItemFormsDbRow = z.infer<typeof orderItemFormsRowSchema>
 
-interface FakeOrderRepository extends SheetRepositoryContract<OrderFormDbRow> {
+interface FakeOrderRepository extends Pick<SheetRepositoryContract<OrderFormDbRow>, 'read' | 'append' | 'update'> {
   events: string[]
   appendRows: Array<Partial<OrderFormDbRow>>
   shouldFailAppend: boolean
@@ -69,13 +69,7 @@ function makeOrderRepository(events: string[]): FakeOrderRepository {
       }
       return makeOrderRow(row)
     },
-    async batchAppend() {
-      return []
-    },
     async update() {
-      return makeOrderRow()
-    },
-    async delete() {
       return makeOrderRow()
     },
   }

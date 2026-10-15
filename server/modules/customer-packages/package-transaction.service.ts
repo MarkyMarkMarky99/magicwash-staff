@@ -30,16 +30,16 @@ function issues(error: z.ZodError): Array<{ path: string; message: string }> {
 }
 
 export interface PackageTransactionServiceOptions {
-  transactionRepository: () => SheetRepositoryContract<PackageTransactionsDbRow>
-  packageRepository: () => SheetRepositoryContract<CustomerPackagesDbRow>
+  transactionRepository: () => Pick<SheetRepositoryContract<PackageTransactionsDbRow>, 'append'>
+  packageRepository: () => Pick<SheetRepositoryContract<CustomerPackagesDbRow>, 'read'>
   generateTransactionId?: () => string
 }
 
 export interface ResolvedParentPackage { customerPackageId: string; customerId: string }
 
 export class PackageTransactionService {
-  private readonly transactionRepository: () => SheetRepositoryContract<PackageTransactionsDbRow>
-  private readonly packageRepository: () => SheetRepositoryContract<CustomerPackagesDbRow>
+  private readonly transactionRepository: () => Pick<SheetRepositoryContract<PackageTransactionsDbRow>, 'append'>
+  private readonly packageRepository: () => Pick<SheetRepositoryContract<CustomerPackagesDbRow>, 'read'>
   private readonly generateTransactionId: () => string
 
   constructor(input: PackageTransactionServiceOptions) {

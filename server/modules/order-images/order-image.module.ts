@@ -37,7 +37,7 @@ type OrderImageDetailResponse = z.infer<typeof orderImageApiContract.response.de
 type OrderImageCreateResponse = z.infer<typeof orderImageApiContract.response.create>
 
 export interface OrderImageServiceOptions {
-  repository?: SheetRepositoryContract<OrderImagesDbRow>
+  repository?: Pick<SheetRepositoryContract<OrderImagesDbRow>, 'read' | 'append' | 'update'>
   bagTagPrintService?: Pick<BagTagPrintService, 'print'>
   bagLogisticsTicketService?: Pick<BagLogisticsTicketService, 'provision'>
   weightPhotoTicketService?: Pick<WeightPhotoTicketService, 'provision'>
@@ -83,14 +83,11 @@ function createOrderImageTransformer(): RepositoryTransformer {
   }
 }
 
-export function createOrderImageRepository(): SheetRepositoryContract<OrderImagesDbRow> {
+export function createOrderImageRepository(): Pick<SheetRepositoryContract<OrderImagesDbRow>, 'read' | 'append' | 'update'> {
   return {
     read: (query) => getOrderImagesRepository().read(query),
     append: (row) => getOrderImagesRepository().append(prepareOrderImageAppendRow(row)),
-    batchAppend: (rows) =>
-      getOrderImagesRepository().batchAppend(rows.map(prepareOrderImageAppendRow)),
     update: (keyValue, patch) => getOrderImagesRepository().update(keyValue, patch),
-    delete: (keyValue, deletedBy) => getOrderImagesRepository().delete(keyValue, deletedBy),
   }
 }
 

@@ -47,7 +47,7 @@ export type AppointmentCreateCommand = AppointmentCreateInput & {
 
 export type AppointmentUpdateCommand = AppointmentUpdateInput
 
-export type AppointmentSheetRepository = SheetRepositoryContract<AppointmentSheetDbRow>
+export type AppointmentSheetRepository = Pick<SheetRepositoryContract<AppointmentSheetDbRow>, 'read' | 'append' | 'update'>
 
 export interface AppointmentServiceOptions {
   repository: AppointmentSheetRepository | (() => AppointmentSheetRepository)
@@ -145,9 +145,7 @@ function classifyAppointmentWrites(
     return {
       read: (query) => repository.read(query),
       append: (row) => runAppointmentWrite(() => repository.append(row)),
-      batchAppend: (rows) => repository.batchAppend(rows),
       update: (keyValue, patch) => runAppointmentWrite(() => repository.update(keyValue, patch)),
-      delete: (keyValue, deletedBy) => repository.delete(keyValue, deletedBy),
     }
   }
 }

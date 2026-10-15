@@ -23,9 +23,7 @@ function setup(itemRows: Array<Partial<ItemRow>> = [item], reject = false) {
       return []
     },
     async append(): Promise<PhotoRow> { throw new Error('not used') },
-    async batchAppend(): Promise<PhotoRow[]> { throw new Error('not used') },
     async update(): Promise<PhotoRow> { throw new Error('not used') },
-    async delete(): Promise<PhotoRow> { throw new Error('not used') },
     async updateMany(updates: ReadonlyArray<SheetRowUpdate<PhotoRow>>): Promise<PhotoRow[]> {
       batches.push(updates)
       if (reject) throw failure
@@ -37,17 +35,13 @@ function setup(itemRows: Array<Partial<ItemRow>> = [item], reject = false) {
         deleted_at: null, deleted_by: null,
       }))
     },
-  } satisfies SheetRepositoryContract<PhotoRow> & SheetBatchUpdateContract<PhotoRow>
+  } satisfies Pick<SheetRepositoryContract<PhotoRow>, 'read' | 'append' | 'update'> & SheetBatchUpdateContract<PhotoRow>
   const itemRepository = {
     async read(query?: ReadQueryDTO<Partial<ItemRow>>) {
       itemReads.push(query?.id)
       return itemRows
     },
-    async append(): Promise<ItemRow> { throw new Error('not used') },
-    async batchAppend(): Promise<ItemRow[]> { throw new Error('not used') },
-    async update(): Promise<ItemRow> { throw new Error('not used') },
-    async delete(): Promise<ItemRow> { throw new Error('not used') },
-  } satisfies SheetRepositoryContract<ItemRow>
+  } satisfies Pick<SheetRepositoryContract<ItemRow>, 'read'>
   return {
     service: new AfterPhotoService({ repository: photoRepository, orderItemFormsRepository: () => itemRepository }),
     photoReads, itemReads, batches,

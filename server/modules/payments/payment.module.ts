@@ -63,7 +63,7 @@ function appendNote(existing: unknown, note: string | null): string | undefined 
 }
 
 export interface PaymentServiceOptions {
-  repository?: SheetRepositoryContract<PaymentsDbRow>
+  repository?: Pick<SheetRepositoryContract<PaymentsDbRow>, 'read' | 'append' | 'update'>
   now?: () => Date
   generateId?: () => string
 }
@@ -73,7 +73,7 @@ export class PaymentService extends BaseCrudService<
   PaymentResponse, never, PaymentResponse, PaymentReviewResponse,
   PaymentsDbRow, typeof paymentFieldMap
 > {
-  private readonly repository: SheetRepositoryContract<PaymentsDbRow> | (() => SheetRepositoryContract<PaymentsDbRow>)
+  private readonly repository: Pick<SheetRepositoryContract<PaymentsDbRow>, 'read' | 'update'> | (() => Pick<SheetRepositoryContract<PaymentsDbRow>, 'read' | 'update'>)
   private readonly reviewMapper = new Mapper(paymentFieldMap)
   private readonly now: () => Date
   private readonly generateId: () => string

@@ -29,7 +29,7 @@ type ItemsCreate = z.infer<typeof itemsApiContract.request.create>
 type ItemsUpdate = z.infer<typeof itemsApiContract.request.update>
 type ItemsResponse = z.infer<typeof itemsApiContract.response.list>
 
-const itemsRepository: SheetRepositoryContract<ItemsDbRow> = {
+const itemsRepository: Pick<SheetRepositoryContract<ItemsDbRow>, 'read' | 'append' | 'update'> = {
   read: (query) => getItemsRepository().read(query),
   append: async (row) => {
     const existingRows = await getItemsRepository().read()
@@ -57,9 +57,7 @@ const itemsRepository: SheetRepositoryContract<ItemsDbRow> = {
       image_url: row.image_url ?? null,
     })
   },
-  batchAppend: (rows) => getItemsRepository().batchAppend(rows),
   update: (keyValue, patch) => getItemsRepository().update(keyValue, patch),
-  delete: (keyValue, deletedBy) => getItemsRepository().delete(keyValue, deletedBy),
 }
 
 const nullableColumns = ['variant', 'display_name_en', 'image_url'] as const

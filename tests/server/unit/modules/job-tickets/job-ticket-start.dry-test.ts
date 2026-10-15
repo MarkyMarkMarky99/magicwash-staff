@@ -19,6 +19,8 @@ function serviceWith(rows: Array<Partial<JobTicketRow>>, updateError?: Error) {
   const batches: unknown[] = []
   const service = new JobTicketStartService({
     repository: () => ({
+      async readRaw(): Promise<never> { throw new Error('not implemented') },
+      queryBuilder(): never { throw new Error('not implemented') },
       async read(query) { reads.push(query); return rows.filter(row => row.order_id === query?.where?.order_id) },
       async updateMany(updates) { batches.push(updates); if (updateError) throw updateError },
     }),

@@ -137,6 +137,18 @@ export class SheetRepository<TDbRow extends object>
   }
 
   async read(query?: ReadQueryDTO<Partial<TDbRow>>): Promise<Array<Partial<TDbRow>>> {
+    const gvizQuery = GVizQueryBuilder.fromColumns(this.columns, this.cellTypes)
+      .fromQuery(this.normalizeReadQuery(query))
+      .build()
+
+    return this.readRaw(gvizQuery)
+  }
+
+  queryBuilder(): GVizQueryBuilder {
+    return GVizQueryBuilder.fromColumns(this.columns, this.cellTypes)
+  }
+
+  async readRaw(query: string): Promise<Array<Partial<TDbRow>>> {
     if (
       typeof this.contract.spreadsheetId !== 'string' ||
       this.contract.spreadsheetId.trim() === ''
@@ -146,14 +158,10 @@ export class SheetRepository<TDbRow extends object>
       )
     }
 
-    const gvizQuery = GVizQueryBuilder.fromColumns(this.columns, this.cellTypes)
-      .fromQuery(this.normalizeReadQuery(query))
-      .build()
-
     return (await fetchGVizRows({
       spreadsheetId: requireEnv(this.contract.spreadsheetId),
       sheetName: this.contract.sheetName,
-      query: gvizQuery,
+      query,
       columns: this.columns,
       decodeJsonCells: false,
     })) as Array<Partial<TDbRow>>

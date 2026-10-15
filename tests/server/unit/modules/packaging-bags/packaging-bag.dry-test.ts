@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { deriveGVizColumns, GVizQueryBuilder } from '../../../../../server/shared/repositories/utils/gviz-query.builder.js'
 import type { z } from 'zod'
 import { PackagingBagService } from '../../../../../server/modules/packaging-bags/packaging-bag.service.js'
 import { packagingBagRoutes } from '../../../../../server/modules/packaging-bags/packaging-bag.module.js'
@@ -6,7 +7,7 @@ import type { PackagingBagServiceOptions } from '../../../../../server/modules/p
 import { JobTicketTransitionService } from '../../../../../server/modules/job-tickets/job-ticket-transition.service.js'
 import { BagTagPrintService } from '../../../../../server/modules/bag-tag-prints/bag-tag-print.service.js'
 import { packagingBagConfirmRequestSchema } from '../../../../../contracts/packaging-bags/packaging-bag-api.schema.js'
-import type { jobTicketsRowSchema } from '../../../../../server/sheets/JobTickets/JobTickets.db-contract.js'
+import { jobTicketsRowSchema } from '../../../../../server/sheets/JobTickets/JobTickets.db-contract.js'
 import type { orderImagesRowSchema } from '../../../../../server/sheets/OrderImages/OrderImages.db-contract.js'
 import type { bagItemsRowSchema } from '../../../../../server/sheets/BagItems/BagItems.db-contract.js'
 import type { workTransactionsRowSchema } from '../../../../../server/sheets/WorkTransactions/WorkTransactions.db-contract.js'
@@ -43,6 +44,13 @@ function setup(failAt?: string, afterCommit = false, printerThrows = false) {
     return rows
   }
   const ticketRepository = {
+    queryBuilder() { return GVizQueryBuilder.fromColumns(deriveGVizColumns(jobTicketsRowSchema)) },
+    async readRaw(query: string) {
+      reads.JobTickets += 1
+      const orderIds = [...query.matchAll(/B = '([^']*)'/g)].map(match => match[1])
+      return tickets.filter(ticket => ['Pending', 'In Progress', 'Cancelled'].includes(ticket.status ?? '')
+        && orderIds.includes(String(ticket.order_id ?? '')))
+    },
     async read(query?: { id?: string; where?: { order_id?: string } }) {
       reads.JobTickets += 1
       return tickets.filter(ticket => (!query?.id || ticket.id === query.id) && (!query?.where?.order_id || ticket.order_id === query.where.order_id))

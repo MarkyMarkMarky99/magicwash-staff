@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { deriveGVizColumns, GVizQueryBuilder } from '../../../../../server/shared/repositories/utils/gviz-query.builder.js'
 import type { z } from 'zod'
 import { JobTicketAdvanceService, type WorkTransactionAppender } from '../../../../../server/modules/job-tickets/job-ticket-advance.service.js'
 import { jobTicketsRowSchema } from '../../../../../server/sheets/JobTickets/JobTickets.db-contract.js'
@@ -10,6 +11,7 @@ const row = (values: Row = {}): Row => ({
   step_no: 2, status: 'Pending', started_at: null, completed_at: null, deleted_at: null, work_minutes: 12, ...values,
 })
 function setup(rows: Row[], error?: Error, scoreError?: Error) {
+  const rawReads: string[] = []
   const reads: string[] = []
   const batches: unknown[] = []
   const earnBatches: Parameters<WorkTransactionAppender['batchAppend']>[0][] = []
@@ -17,6 +19,13 @@ function setup(rows: Row[], error?: Error, scoreError?: Error) {
   let updateSucceeded = false
   const service = new JobTicketAdvanceService({
     repository: () => ({
+      queryBuilder() { return GVizQueryBuilder.fromColumns(deriveGVizColumns(jobTicketsRowSchema)) },
+      async readRaw(query: string) {
+        rawReads.push(query)
+        const orderIds = [...query.matchAll(/B = '([^']*)'/g)].map(match => match[1])
+        return rows.filter(ticket => ['Pending', 'In Progress', 'Cancelled'].includes(ticket.status ?? '')
+          && orderIds.includes(String(ticket.order_id ?? '')))
+      },
       async read(query) {
         const where = (query?.where ?? {}) as Record<string, unknown>
         reads.push(where.status !== undefined ? `status:${where.status}` : String(where.order_id))
@@ -33,7 +42,7 @@ function setup(rows: Row[], error?: Error, scoreError?: Error) {
     },
     now: () => new Date('2026-09-23T03:00:00Z'),
   })
-  return { service, reads, batches, earnBatches, get workRepositoryCalls() { return workRepositoryCalls } }
+  return { service, rawReads, reads, batches, earnBatches, get workRepositoryCalls() { return workRepositoryCalls } }
 }
 const request = (tickets: { ticketId: string; orderId: string }[], fromStatus: 'Pending' | 'In Progress' = 'Pending') =>
   ({ department: 'Washing', fromStatus, tickets, scannedBy: ' staff ' })
@@ -56,7 +65,8 @@ if (pendingResult.kind === 'completed') {
   assert.equal(pendingResult.advanced[1]?.startedAt, 'previous')
   assert.equal(pendingResult.advanced[0]?.completedAt, null)
 }
-assert.deepEqual(pending.reads, ['status:Pending', 'status:In Progress', 'status:Cancelled'], 'one status read each, whatever the number of orders')
+assert.deepEqual(pending.reads, [])
+assert.equal(pending.rawReads.length, 1)
 assert.equal(pending.earnBatches.length, 0)
 assert.equal(pending.workRepositoryCalls, 0)
 assert.deepEqual(pending.batches[0], [
@@ -74,7 +84,8 @@ const mixed = setup([
 ])
 const result = await mixed.service.advance(request(['done', 'blocked', 'missing'].map(ticketId => ({ ticketId, orderId: '1' }))
   .concat(['wrong', 'changed', 'deleted'].map(ticketId => ({ ticketId, orderId: '2' }))), 'In Progress'))
-assert.deepEqual(mixed.reads.sort(), ['1', '2', 'status:Cancelled', 'status:In Progress', 'status:Pending'], 'orders with a requested ticket outside the status reads are read in full')
+assert.deepEqual(mixed.reads.sort(), ['1', '2'], 'orders with a requested ticket outside the raw read are read in full')
+assert.equal(mixed.rawReads.length, 1)
 assert.deepEqual(result, {
   kind: 'completed',
   scoreFailed: 0,
@@ -120,7 +131,8 @@ const completion = await complete.service.advance(request([
 ], 'In Progress'))
 assert.equal(completion.kind, 'completed')
 if (completion.kind === 'completed') assert.equal(completion.scoreFailed, 0)
-assert.deepEqual(complete.reads, ['status:Pending', 'status:In Progress', 'status:Cancelled'])
+assert.deepEqual(complete.reads, [])
+assert.equal(complete.rawReads.length, 1)
 assert.equal(complete.earnBatches.length, 1)
 assert.equal(complete.workRepositoryCalls, 1)
 assert.deepEqual(complete.earnBatches[0]!.map(({ id, ...row }) => row), [
@@ -205,6 +217,7 @@ const cancelledGate = setup([
 const cancelledResult = await cancelledGate.service.advance(request([{ ticketId: 'next', orderId: '12345678' }]))
 assert.deepEqual(cancelledResult.kind === 'completed' ? cancelledResult.blocked : null,
   [{ ticketId: 'next', laundryItemId: 'tag-9', blockedByDepartment: 'Tagging' }], 'a Cancelled earlier ticket still blocks; numeric order ids match')
-assert.deepEqual(cancelledGate.reads, ['status:Pending', 'status:In Progress', 'status:Cancelled'])
+assert.deepEqual(cancelledGate.reads, [])
+assert.equal(cancelledGate.rawReads.length, 1)
 
 console.log('job-ticket-advance.dry-test: OK')
