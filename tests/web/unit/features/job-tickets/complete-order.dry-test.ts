@@ -7,6 +7,7 @@ import { transpileModule, ScriptTarget } from 'typescript'
 import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
 import type { JobTicketDto } from '@/data/job-tickets/job-ticket.service'
 import * as departmentWork from '@/features/job-tickets/department-work'
+import { useScanNotice } from '@/features/job-tickets/composables/useScanNotice'
 
 const source = readFileSync(new URL('../../../../../src/features/job-tickets/pages/DepartmentWorkPage.vue', import.meta.url), 'utf8')
 const sfc = parse(source).descriptor
@@ -39,8 +40,8 @@ function harness() {
   let result: unknown = { kind: 'completed', completed: ['pending', 'progress', 'no-tag'].map(ticketId => ({ ticketId })) }
   let scanGun!: (value: string) => void
   const dependencies = {
-    ...departmentWork, computed, ref, watch,
-    useScannerGunInput: (onScan: (value: string) => void) => { scanGun = onScan },
+    ...departmentWork, computed, nextTick, ref, watch,
+    useScannerGunInput: (onScan: (value: string) => void) => { scanGun = onScan }, useScanNotice,
     useAuthStore: () => auth, useCustomerStore: () => ({ customers: [] }),
     useJobTicketStore: () => ({
       get tickets() { return tickets.value }, loadDepartment: async () => {}, releaseDepartment: () => {},
@@ -58,7 +59,7 @@ function harness() {
     localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
   }
   const page = scope.run(() => new Function(...Object.keys(dependencies),
-    code + '; return { showStartOrder, showCompleteOrder, completeOrderId, completeOrderJobs, completeOrder, sendConfirmed, syncingOrderIds, selectedTicketIds, scanQueue, pageNotice, submitting, pendingTickets, toggleTicket };')(...Object.values(dependencies)))!
+    code + '; return { showStartOrder, showCompleteOrder, completeOrderId, completeOrderJobs, completeOrder, sendConfirmed, syncingOrderIds, selectedTicketIds, scannedTicketIds, scanQueue, pageNotice, submitting, pendingTickets, toggleTicket };')(...Object.values(dependencies)))!
   return { page, route, auth, tickets, requests, navigation, scope, scanGun, setResult(value: unknown) { result = value } }
 }
 const gun = harness()
@@ -71,7 +72,8 @@ const queueBeforeDuplicate = gun.page.scanQueue.value
 gun.scanGun('progress')
 assert.equal(gun.page.selectedTicketIds.value, selectedBeforeDuplicate)
 assert.equal(gun.page.scanQueue.value, queueBeforeDuplicate)
-assert.deepEqual(gun.page.pageNotice.value, { title: 'progress', message: 'Already selected', tone: 'warning' })
+assert.deepEqual(gun.page.pageNotice.value, { title: 'progress', customerName: '123', message: 'Already selected', tone: 'warning', scan: { customerIndex: null, photoUrl: null, matched: true } })
+assert.deepEqual(gun.page.scannedTicketIds.value, ['progress'])
 gun.page.toggleTicket(gun.tickets.value[1])
 assert.deepEqual(gun.page.pendingTickets.value, [], 'deselecting a gun scan removes it from pending work')
 gun.scanGun('progress')

@@ -53,7 +53,7 @@ header.app h1{font-size:18px;font-weight:700;letter-spacing:-.025em;white-space:
 .gtabs button{flex:none;display:flex;align-items:center;gap:6px;padding:4px 12px 6px;border:0;border-bottom:2px solid transparent;background:none;color:rgba(255,255,255,.7);font:600 11px var(--font);letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
 .gtabs button.on{border-color:#fff;color:#fff}
 .gtabs b{font-size:9px;font-weight:700;background:rgba(255,255,255,.2);border-radius:99px;padding:2px 6px;line-height:1}
-main.sr{flex:1;min-height:0;overflow:hidden;background:var(--surface);padding-bottom:80px}
+main.sr{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none;background:var(--surface);padding-bottom:80px}
 section.lc{background:#fff;width:100%}
 .lc-h{padding:8px 16px;background:var(--sc-low);color:var(--primary);display:flex;align-items:center;justify-content:space-between}
 .lc-h .l{display:flex;align-items:center;gap:10px}
@@ -179,6 +179,27 @@ section.lc{background:#fff;width:100%}
 @keyframes eDraw{to{stroke-dashoffset:0}}
 @keyframes eFade{from{opacity:0}to{opacity:1}}
 @keyframes eFlick{0%{opacity:1}30%{opacity:.35}60%{opacity:1}80%{opacity:.6}100%{opacity:1}}
+/* ---------- ticket tiles (real SquareImageCard look) + scan-to-top list ---------- */
+main.sr::-webkit-scrollbar{display:none}
+[data-flip]{position:relative}
+.seg span{cursor:pointer}
+.ord{cursor:pointer}
+.tiles{display:none;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px;cursor:default}
+.ord.open .tiles{display:grid}
+#grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:16px}
+#grid.hidden{display:none}
+.tile{position:relative;min-width:0;border-radius:24px}
+.tile .sq{position:relative;aspect-ratio:1/1;border-radius:24px;overflow:hidden;background:var(--sc-low)}
+.tile .sq svg{display:block;width:100%;height:100%}
+.tile .sq.none{display:flex;align-items:center;justify-content:center;color:var(--on-surface-variant)}
+.tile .sq.none .ms{font-size:36px}
+.tile .st{position:absolute;left:8px;top:8px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:var(--sc-low);filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.45))}
+.tile .st .ms{font-size:16px}
+.tile .chip{position:absolute;left:8px;bottom:8px;max-width:calc(100% - 56px);border-radius:99px;background:rgba(248,250,250,.9);padding:2px 8px;font-size:10px;font-weight:600;line-height:16px;color:var(--on-surface);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile.sel{box-shadow:0 0 0 4px var(--lime)}
+.tile .ck{display:none;position:absolute;right:8px;bottom:8px;border-radius:50%;background:var(--lime);color:var(--primary);padding:4px}
+.tile .ck .ms{display:block;font-size:24px}
+.tile.sel .ck{display:block}
 </style>
 </head>
 <body>
@@ -209,16 +230,17 @@ section.lc{background:#fff;width:100%}
 
   <div class="layout">
     <div class="gtabs">
-      <button>All <b>14</b></button><button class="on">Pending <b>9</b></button><button>In Progress <b>3</b></button><button>Completed <b>2</b></button>
+      <button>All <b>16</b></button><button class="on">Pending <b>11</b></button><button>In Progress <b>3</b></button><button>Completed <b>2</b></button>
     </div>
     <main class="sr">
       <section class="lc">
         <div class="lc-h">
           <div class="l"><span class="ms">assignment</span><h2>Washing</h2></div>
-          <div class="r"><span class="badge">2 orders</span>
-            <div class="seg"><span><span class="ms">grid_view</span></span><span class="on"><span class="ms">view_agenda</span></span></div></div>
+          <div class="r"><span class="badge" id="cnt">5 orders</span>
+            <div class="seg"><span id="vItem"><span class="ms">grid_view</span></span><span id="vOrder" class="on"><span class="ms">view_agenda</span></span></div></div>
         </div>
         <div id="orders"></div>
+        <div id="grid" class="hidden"></div>
       </section>
     </main>
 
@@ -228,7 +250,7 @@ section.lc{background:#fff;width:100%}
   </div>
 </div>
 
-<p class="note">Everything behind the popup reproduces today's Pending tab in the order view (the default). Scanning does not change the order cards; it only turns the Scan button into "Start N" and shows the clear button, exactly as now. Only the popup is new.<br>Placeholder photos are inline SVG; the real app uses <code>photoEvidenceUrl</code>.</p>
+<p class="note">Everything behind the popup reproduces today's Pending tab in the order view (the default). Scanning turns the Scan button into "Start N" and shows the clear button, exactly as now. New: each scanned item moves to the first place (newest first, then earlier scans, then the normal sort) in both the order view (cards; tap a card to open its tickets) and the grid view (toggle at the top right).<br>Placeholder photos are inline SVG; the real app uses <code>photoEvidenceUrl</code>.</p>
 
 <script>
 /* ---------- placeholder garment photos ---------- */
@@ -267,13 +289,18 @@ const S = {
   d:{tag:'TAG-1056',customer:'คุณสมชาย ใจดี',order:'ORD-20261016-007',photo:['jacket','#8a7a5a','#5e5238',3]},
   e:{tag:'TAG-1060',customer:'Villa Residence',order:'ORD-20261016-004',photo:['towel','#e8eef0','#b9c6ca',0]},
   f:{tag:'TAG-1063',customer:'คุณวิภา รัตนากร',order:'ORD-20261015-012',photo:['sweater','#7aa86a','#4d7a45',1]},
+  g:{tag:'TAG-1066',customer:'Villa Residence',order:'ORD-20261016-004',photo:['trousers','#6b7f5a','#44563a',1]},
+  h:{tag:'TAG-1067',customer:'คุณสมชาย ใจดี',order:'ORD-20261016-007',photo:['dress','#7a68b3','#53428a',2]},
+  i:{tag:'TAG-1072',customer:'บริษัท สยามโฮเต็ล จำกัด',order:'ORD-20261016-011',photo:['shirt','#d8d8d4','#a9a9a3',3]},
+  j:{tag:'TAG-1080',customer:'คุณมาลี สุขใจ',order:'ORD-20261017-002',photo:['sweater','#c96a4a','#9a4630',0]},
   wrongtab:{tag:'TAG-1019',customer:'คุณธนา วงศ์สุวรรณ',order:'ORD-20261014-003',photo:['shirt','#c9a24a','#9a7626',2]},
   multi:{tag:'TAG-1044',customer:'คุณสมชาย ใจดี',order:'ORD-20261016-007',photo:['jacket','#8a7a5a','#5e5238',3]},
   nojob:{tag:'TAG-9999',customer:null,order:null,photo:null}
 };
-const SEQ=['a','b','nophoto','c','d','e','f'];
+/* scripted scans: later ones pull items from lower in the list; re:1 = re-scan of an already selected item */
+const EV=[{k:'a'},{k:'j'},{k:'b'},{k:'nophoto'},{k:'f'},{k:'b',re:1},{k:'e'},{k:'h'},{k:'a',re:1},{k:'c'}];
 const STATES=[['ok','Scan success'],['nophoto','Photo missing'],['fail','Scan failed'],['multi','Several scans in a row']];
-const st={state:'ok',fail:'nojob',n:1};
+const st={state:'ok',fail:'nojob',n:5};
 let timer;
 
 /* ---------- page replica ---------- */
@@ -286,33 +313,124 @@ function ring(pct,done,total,label,id){
   <text fill="#007a69" font-size="6.5" font-weight="700" letter-spacing="0.2"><textPath href="#${id}b" startOffset="50%" text-anchor="middle">${done} of ${total}</textPath></text></svg>
   <span class="lbl">${label}</span><span class="pct" style="transform:rotate(${L}deg)"><span style="${flip?'transform:translate(-50%,-50%) rotate(180deg)':''}">${pct}%</span></span></span>`;
 }
-function orderCard(name,id,due,p,ip,c,label,k){
+const ORDERS=[
+  {id:'ORD-20261016-004',name:'Villa Residence',due:'17 Oct',dueIso:'2026-10-17',ip:2,c:1,label:'V-02'},
+  {id:'ORD-20261016-007',name:'คุณสมชาย ใจดี',due:'17 Oct',dueIso:'2026-10-17',ip:1,c:1,label:'C-07'},
+  {id:'ORD-20261015-012',name:'คุณวิภา รัตนากร',due:'18 Oct',dueIso:'2026-10-18',ip:0,c:0,label:'-'},
+  {id:'ORD-20261016-011',name:'บริษัท สยามโฮเต็ล จำกัด',due:'18 Oct',dueIso:'2026-10-18',ip:1,c:0,label:'S-05'},
+  {id:'ORD-20261017-002',name:'คุณมาลี สุขใจ',due:'19 Oct',dueIso:'2026-10-19',ip:0,c:0,label:'M-01'}
+];
+const TICKETS=['a','b','c','d','e','f','g','h','i','j','nophoto'];
+const byTag=(x,y)=>S[x].tag.localeCompare(S[y].tag);
+const orderOf=k=>S[k].order;
+/* normal sort: due date, then order id; tickets by tag */
+const NORMAL_ORDERS=[...ORDERS].sort((x,y)=>x.dueIso.localeCompare(y.dueIso)||x.id.localeCompare(y.id));
+const NORMAL_TICKETS=[...TICKETS].sort((x,y)=>{
+  const ox=NORMAL_ORDERS.findIndex(o=>o.id===orderOf(x)), oy=NORMAL_ORDERS.findIndex(o=>o.id===orderOf(y));
+  return ox-oy||byTag(x,y);
+});
+function orderCardHtml(o,k){
+  const mine=TICKETS.filter(t=>orderOf(t)===o.id), p=mine.length, ip=o.ip, c=o.c;
   const tot=p+ip+c, pct=Math.round(100*c/tot);
   const row=(bg,bar,ic,icon,lab,n,w)=>`<span class="sr-row" style="background:${bg}"><span class="bar" style="background:${bar};width:${w}%"></span><span class="ic" style="background:${ic}"><span class="ms">${icon}</span></span><span class="tx"><span>${lab}</span><strong>${n}</strong></span></span>`;
-  return `<div class="ordw"><div class="ord"><span class="nm">${name}</span><span class="sb">${id} · Due ${due}</span>
-  <div class="bd">${ring(pct,c,tot,label,'r'+k)}<span class="stk">
+  return `<div class="ord"><span class="nm">${o.name}</span><span class="sb">${o.id} · Due ${o.due}</span>
+  <div class="bd">${ring(pct,c,tot,o.label,'r'+k)}<span class="stk">
    ${row('#fef3c7','rgba(180,83,9,.15)','rgba(180,83,9,.25)','schedule','Pending',p,Math.round(100*p/tot))}
    ${row('rgba(238,246,211,.4)','rgba(0,122,105,.1)','rgba(0,122,105,.25)','autorenew','In Progress',ip,Math.round(100*ip/tot))}
    ${row('rgba(178,223,38,.2)','rgba(178,223,38,.25)','rgba(178,223,38,.6)','check_circle','Completed',c,Math.round(100*c/tot))}
   </span></div>
-  <span class="play"><svg viewBox="0 0 24 24"><path d="M8.5 6v12l9.5-6z" fill="currentColor" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/></svg></span></div></div>`;
+  <span class="play"><svg viewBox="0 0 24 24"><path d="M8.5 6v12l9.5-6z" fill="currentColor" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/></svg></span>
+  <div class="tiles"></div></div>`;
 }
-document.getElementById('orders').innerHTML=
-  orderCard('คุณสมชาย ใจดี','ORD-20261016-007','17 Oct',4,1,1,'C-07',1)+
-  orderCard('Villa Residence','ORD-20261016-004','17 Oct',3,2,1,'V-02',2)+
-  orderCard('คุณวิภา รัตนากร','ORD-20261015-012','18 Oct',2,0,0,'-',3);
+function tileEl(k,flipKey){
+  const t=S[k], el=document.createElement('div');
+  el.className='tile'; el.dataset.t=k; el.dataset.flip=flipKey+':'+k;
+  el.innerHTML=`<div class="sq ${t.photo?'':'none'}">${t.photo?photo(...t.photo):'<span class="ms" aria-hidden="true">image</span>'}<span class="st"><span class="ms">schedule</span></span><span class="chip">WASH</span></div><span class="ck"><span class="ms">check</span></span>`;
+  return el;
+}
+const ordersBox=document.getElementById('orders'), gridBox=document.getElementById('grid'), mainEl=document.querySelector('main.sr');
+const orderEls=new Map(), cardTiles=new Map(), gridTiles=new Map();
+ORDERS.forEach((o,i)=>{
+  const w=document.createElement('div'); w.className='ordw'; w.dataset.flip='o:'+o.id; w.innerHTML=orderCardHtml(o,i+1);
+  orderEls.set(o.id,w);
+  TICKETS.filter(t=>orderOf(t)===o.id).forEach(t=>{const e=tileEl(t,'c'); cardTiles.set(t,e); w.querySelector('.tiles').append(e);});
+});
+TICKETS.forEach(t=>{const e=tileEl(t,'g'); gridTiles.set(t,e); gridBox.append(e);});
+let openOrder=null;
+
+/* scan-to-top ordering: newest scan first, earlier scans next (newest to oldest), then the normal sort */
+function arrange(scanned){
+  const rank=k=>scanned.indexOf(k);            /* higher = newer, -1 = not scanned */
+  const ticketsFor=list=>[...list.filter(k=>rank(k)>=0).sort((x,y)=>rank(y)-rank(x)), ...list.filter(k=>rank(k)<0)];
+  const newest=o=>Math.max(-1,...TICKETS.filter(t=>orderOf(t)===o.id).map(rank));
+  const ords=[...NORMAL_ORDERS.filter(o=>newest(o)>=0).sort((x,y)=>newest(y)-newest(x)), ...NORMAL_ORDERS.filter(o=>newest(o)<0)];
+  ords.forEach(o=>{
+    ordersBox.append(orderEls.get(o.id));
+    const box=orderEls.get(o.id).querySelector('.tiles');
+    ticketsFor(NORMAL_TICKETS.filter(t=>orderOf(t)===o.id)).forEach(t=>box.append(cardTiles.get(t)));
+  });
+  ticketsFor(NORMAL_TICKETS).forEach(t=>gridBox.append(gridTiles.get(t)));
+  [...cardTiles,...gridTiles].forEach(([k,e])=>e.classList.toggle('sel',rank(k)>=0));
+}
+
+/* FLIP: measure in scroll-content coordinates, reorder, then slide each element from its old spot */
+function snap(){
+  const m=new Map(), mr=mainEl.getBoundingClientRect();
+  mainEl.querySelectorAll('[data-flip]').forEach(el=>{ el.style.transition='none'; el.style.transform=''; });
+  mainEl.querySelectorAll('[data-flip]').forEach(el=>{
+    if(!el.offsetParent) return;
+    const r=el.getBoundingClientRect();
+    m.set(el,{x:r.left-mr.left+mainEl.scrollLeft,y:r.top-mr.top+mainEl.scrollTop});
+  });
+  return m;
+}
+function flip(before){
+  const after=snap(), moved=[];
+  after.forEach((n,el)=>{
+    const o=before.get(el); if(!o) return;
+    const dx=o.x-n.x, dy=o.y-n.y;
+    if(Math.abs(dx)<1&&Math.abs(dy)<1) return;
+    el.style.transform=`translate(${dx}px,${dy}px)`; el.style.zIndex='2'; moved.push(el);
+  });
+  void mainEl.offsetWidth;
+  requestAnimationFrame(()=>moved.forEach(el=>{
+    el.style.transition='transform 300ms cubic-bezier(.22,1,.36,1)'; el.style.transform='';
+    setTimeout(()=>{el.style.zIndex='';},320);
+  }));
+  mainEl.scrollTo({top:0,behavior:'smooth'});   /* the newest scan is the first item */
+}
+function setView(v){
+  ordersBox.classList.toggle('hidden',v!=='order'); gridBox.classList.toggle('hidden',v!=='item');
+  document.getElementById('vItem').classList.toggle('on',v==='item'); document.getElementById('vOrder').classList.toggle('on',v==='order');
+  document.getElementById('cnt').textContent=v==='order'?ORDERS.length+' orders':TICKETS.length+' items';
+  mainEl.scrollTop=0;
+}
+document.getElementById('vItem').addEventListener('click',()=>setView('item'));
+document.getElementById('vOrder').addEventListener('click',()=>setView('order'));
+ordersBox.addEventListener('click',e=>{
+  if(e.target.closest('.tiles')||e.target.closest('.play')) return;
+  const w=e.target.closest('.ordw'); if(!w) return;
+  const id=w.dataset.flip.slice(2);
+  openOrder=openOrder===id?null:id;
+  orderEls.forEach((el,k)=>el.querySelector('.ord').classList.toggle('open',k===openOrder));
+});
 
 /* ---------- the popup ---------- */
+function replay(n){ let arr=[]; EV.slice(0,n).forEach(e=>{ arr=arr.filter(x=>x!==e.k); arr.push(e.k); }); return arr; }
 function model(){
-  if(st.state==='ok') return {tone:'success',msg:'Queued',scan:S.a,sel:1};
-  if(st.state==='nophoto') return {tone:'success',msg:'Queued',scan:S.nophoto,sel:3};
-  if(st.state==='multi'){ const k=SEQ[st.n-1]; return {tone:'success',msg:'Queued',scan:S[k],sel:st.n}; }
+  const evModel=n=>{ const e=EV[n-1], sc=replay(n); return e.re
+    ?{tone:'warning',msg:'Already selected',scan:S[e.k],sel:sc.length,scanned:sc}
+    :{tone:'success',msg:'Queued',scan:S[e.k],sel:sc.length,scanned:sc}; };
+  if(st.state==='ok') return evModel(1);
+  if(st.state==='nophoto') return evModel(4);
+  if(st.state==='multi') return evModel(st.n);
+  const base=replay(3), re=k=>[...base.filter(x=>x!==k),k];
   switch(st.fail){
-    case 'nojob': return {tone:'error',msg:'No job for this tag',scan:S.nojob,sel:2};
-    case 'wrongtab': return {tone:'error',msg:'Not in this tab',scan:S.wrongtab,sel:2,dim:true};
-    case 'queued': return {tone:'error',msg:'Already queued',scan:S.a,sel:2};
-    case 'selected': return {tone:'warning',msg:'Already selected',scan:S.b,sel:2};
-    default: return {tone:'error',msg:'2 tasks for this tag',detail:'(WASH, IRON). Select them from the list',scan:S.multi,sel:2,dim:true};
+    case 'nojob': return {tone:'error',msg:'No job for this tag',scan:S.nojob,sel:3,scanned:base};
+    case 'wrongtab': return {tone:'error',msg:'Not in this tab',scan:S.wrongtab,sel:3,dim:true,scanned:base};
+    case 'queued': return {tone:'error',msg:'Already queued',scan:S.a,sel:3,scanned:re('a')};
+    case 'selected': return {tone:'warning',msg:'Already selected',scan:S.j,sel:3,scanned:re('j')};
+    default: return {tone:'error',msg:'2 tasks for this tag',detail:'(WASH, IRON). Select them from the list',scan:S.multi,sel:3,dim:true,scanned:base};
   }
 }
 function popup(m){
@@ -345,6 +463,7 @@ function render(){
   document.getElementById('failrow').classList.toggle('hidden',st.state!=='fail');
   document.querySelectorAll('[data-fail]').forEach(b=>b.classList.toggle('on',b.dataset.fail===st.fail));
   const m=model();
+  const before=snap(); arrange(m.scanned); flip(before);
   document.getElementById('notice').innerHTML=popup(m);
   document.getElementById('fabIcon').textContent='check';
   document.getElementById('fabLabel').textContent='Start '+m.sel;
@@ -354,13 +473,13 @@ function render(){
 document.addEventListener('click',e=>{
   if(e.target.closest('.x')){ document.getElementById('notice').innerHTML=''; return; }
   const b=e.target.closest('button'); if(!b) return;
-  if(b.dataset.s){ st.state=b.dataset.s; if(st.state==='multi') st.n=4; render(); }
+  if(b.dataset.s){ st.state=b.dataset.s; if(st.state==='multi') st.n=5; render(); }
   else if(b.dataset.fail){ st.fail=b.dataset.fail; render(); }
   else if(b.id==='next'){
     if(st.state==='fail'){ const o=['nojob','wrongtab','queued','selected','multi']; st.fail=o[(o.indexOf(st.fail)+1)%o.length]; }
     else if(st.state==='ok'){ st.state='multi'; st.n=2; }
-    else if(st.state==='nophoto'){ st.state='multi'; st.n=4; }
-    else st.n= st.n>=SEQ.length?2:st.n+1;
+    else if(st.state==='nophoto'){ st.state='multi'; st.n=5; }
+    else st.n= st.n>=EV.length?2:st.n+1;
     render();
   }
 });

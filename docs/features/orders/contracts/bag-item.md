@@ -3,7 +3,7 @@
 The staff-authenticated `bag-items` module uses the append-only `BagItems` sheet in
 `ORDERS_SPREADSHEET_ID`, the same workbook as `OrderImages`.
 
-`bagId` references an `OrderImages.id` for a WEIGHT or BAG bag. `orderId` references
+`bagId` references an `OrderImages.id` for a WEIGHT bag (Packaging Confirm writes WEIGHT; older confirmations left BAG rows). `orderId` references
 `OrderForm.id` and must equal that bag's order. `laundryItemId` is the garment tag shared
 by `LaundryPhotos.item_id` and `JobTickets.laundry_item_id`; garment identity is the
 order and garment tag pair. The API accepts these references without cross-sheet lookup.

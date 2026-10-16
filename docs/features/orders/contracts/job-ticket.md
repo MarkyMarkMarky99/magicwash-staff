@@ -111,7 +111,7 @@ persistence. Failed responses do not claim closed tickets.
 
 ## Weight photo credit
 
-After a WEIGHT order image is appended, one ticket uses id
+After a WEIGHT order image is appended (also by Packaging Confirm, once per bag), one ticket uses id
 `PCK-<orderId>-<orderImageId>-PCK-WEIGHT-KG`, Packaging, ORDER scope, and step 0. Start and
 completion timestamps use the image creation time in Bangkok. Scan, update, and creation actors
 are the photographer; evidence is the stored image path. Customer, order name, due date, and notes

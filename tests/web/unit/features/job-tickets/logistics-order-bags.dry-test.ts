@@ -5,6 +5,7 @@ import { transpileModule, ScriptTarget } from 'typescript'
 import { parse } from '@vue/compiler-sfc'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { normalizeSheetTimestamp } from '@shared/utils/bangkok-datetime'
+import { useScanNotice } from '@/features/job-tickets/composables/useScanNotice'
 
 const source = readFileSync(new URL('../../../../../src/features/job-tickets/composables/useLogisticsBags.ts', import.meta.url), 'utf8')
 const viewSource = readFileSync(new URL('../../../../../src/features/job-tickets/components/OrderBagsView.vue', import.meta.url), 'utf8')
@@ -183,7 +184,7 @@ const departmentRoute = reactive({ params: { department: 'logistics' }, query: {
 const destinations: any[] = []
 const ticketStore = { tickets: local.page.tickets.value, loading: false, error: null, loadDepartment: async () => {}, activateDepartment: () => {}, releaseDepartment: () => {} }
 const departmentDependencies = { ...departmentWork, computed, ref, watch,
-  useScannerGunInput: () => {},
+  useScannerGunInput: () => {}, useScanNotice,
   useAuthStore: () => ({ isAdmin: false }),
   useRoute: () => departmentRoute, useRouter: () => ({ push: async (to: any) => { destinations.push(to) } }),
   useJobTicketStore: () => ticketStore, useCustomerStore: () => ({ customers: [] }),

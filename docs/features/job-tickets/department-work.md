@@ -31,13 +31,15 @@ Order due dates and customer IDs come directly from the loaded tickets. Names co
 
 In the four garment departments, the Pending tab selects jobs to move to In Progress; the In Progress tab selects jobs to complete. Tapping an eligible image toggles its selection and marks it with a lime ring and check badge. The action button shows the selected count and asks for confirmation before one batch submission. All and Completed tabs do not permit image updates or show the scanner button. The selected tickets must have the active tab status in this department. Changing tabs clears the selection after Send or Discard confirmation when anything is pending.
 
-A keyboard-wedge barcode gun can scan directly on the list page in the Pending and In Progress tabs when the camera and confirmation dialogs are closed.
+A keyboard-wedge barcode gun can scan directly on the list page in the Pending and In Progress tabs when the camera and confirmation dialogs are closed. Each gun read shows a compact dark glass popup (5 s, replaced by the next read, dismissible) with the matched ticket's photo flush on the left, the customer name and the customer index; order IDs and tag codes are not shown because staff cannot read them. Success draws an animated neon check over the photo and shows no message; a rejected or repeated read shows the message in a tone-coloured pill and a warning or error mark. A ticket without a photo shows a striped "No photo" block; a tag with no ticket in the department shows an error block and "Not found in this department". Tickets matched by a rejected read (wrong tab, already queued, several tasks) still show their data. The camera overlay keeps the plain text result card.
+
+A gun read that selects a ticket, or repeats a selected one ("Already selected"), moves that ticket to the top of the list and scrolls the list to the top; earlier reads follow, newest first, then the normal order. In the order view, order cards sort by their newest read ticket and each expanded card lists its read tickets first. Tapping a ticket never reorders. Clearing the selection, deselecting the ticket, switching tab, or sending restores the normal order. The move animates over 300 ms and is instant under `prefers-reduced-motion`.
 
 In the four garment departments, the scan button opens the shared scanner with `scan=1` in the query. Browser Back closes an overlay opened from the page; closing a refreshed scanner deep link removes the query with replace. Each read resolves a loaded ticket in this department and the active status tab, adds it to a deduplicated queue, and gives success or failure feedback. When a tag has more than one ticket with the active status in the department, the read is rejected and names the task codes, so staff pick the tasks from the list; a scan never queues the first of several tasks. The result explains tags outside the tab, duplicate reads, ambiguous tags, and unknown tags. The queue count appears in the scanner. A queue is saved locally by department and status, keyed by ticket id, and restored only for tickets still loaded with that status. Queues saved before task codes hold ticket ids and restore unchanged; an entry is never remapped by garment alone, so a sibling task of the same garment is not restored in its place. Closing with queued scans asks staff to Send, Discard, or Cancel. Leaving the page, changing department, or switching tabs with a selection or queue also asks for confirmation. A rejected write or connection error keeps the pending work for retry. An uncertain write clears it and reloads the department so staff can check the jobs before sending again. A successful batch updates the loaded statuses, timestamps, and actor and shows one summary notice with advanced, blocked, and skipped counts.
 
 Completing a ticket through `/api/job-tickets/advance` appends one WorkTransactions EARN row with the ticket's `work_minutes` and `created_by` set to the staff StaffId; accepting work (Pending → In Progress) earns nothing. Tickets without `work_minutes` (created before the column existed) earn nothing and are not reported. If the score write fails, the affected tickets are counted in `scoreFailed` and the page shows “Score not saved … Tell an admin”; completion itself still succeeds.
 
-Packaging weight-photo scores come from successful WEIGHT order-image saves: a Completed ORDER
+Packaging weight-photo scores come from successful WEIGHT order-image saves and from Packaging Confirm (one per confirmed bag, same service): a Completed ORDER
 ticket stores kg times the `PCK-WEIGHT-KG` Packaging rate and earns one EARN for an active
 photographer StaffId. Missing rates leave minutes null and earn nothing; inactive or unknown
 photographers still receive a ticket without EARN. Failures are logged and do not fail the image save.
@@ -84,7 +86,8 @@ Logistics and Packaging share one order bag page, `OrderBagsPage.vue`, which key
 by department. Both departments use the same summary card (`OrderBagSummary.vue`) and bag row
 (`OrderBagRow.vue`); the department only selects the workflow composable (`useLogisticsBags` or
 `usePackagingBags`), the wording, and the bottom action (Scan or Confirm). Neither shows an
-order-status badge or reads the work order; the customer comes from the order's tickets.
+order-status badge; the customer comes from the order's tickets. Only Packaging reads the work order,
+and only for item names (below).
 
 The Logistics bag page loads all pages of that order's Logistics tickets and its order images
 through the data layer. Tickets use `loadOrder(orderId, 'Logistics')` in the resource store;
@@ -125,21 +128,32 @@ immediately, then the page rebuilds as the reads finish. Garments use their disa
 be selected or scanned until the full order ticket load succeeds; invalidation reloads disable them
 again until earlier-department gates and older Completed tickets are known. Non-deleted Packaging ITEM tickets
 define garments; the shared advance gate identifies the earliest unfinished department. A garment's
-photo is its Packaging ticket's `photoEvidenceUrl`, as on the department page; LaundryPhotos is not
-read. Garments sort by tag ID, independent of preview or full-load ticket order. BagItems defines
+photo is its Packaging ticket's `photoEvidenceUrl`, as on the department page. Garments sort by tag ID, independent of preview or full-load ticket order. BagItems defines
 confirmed assignments, bag counts, and the earliest timestamp for each bag. A confirmed bag photo
 comes from the matching `LOG-<orderId>-<bagId>-LOG-BAG` Logistics ticket’s `photoEvidenceUrl`,
 or is null when the ticket is absent. Packaging does not read OrderImages. The customer comes from the tickets' `customerId` and the preloaded
-customer store. The summary card shows the bag count and garments packed; the work order is not read.
+customer store. The summary card shows the bag count and garments packed; the page shows no order
+status.
 
-New bag IDs use the browser-safe short-ID generator. IDs, garment tags, and photo URLs are kept
+Staff cannot read tag codes, so the page never shows a garment tag: it shows the garment's item name
+instead. `loadItemNames` in `packaging-bag-source.ts` joins two reads once per order when the page
+opens, in parallel and without blocking the garment list: the order's LaundryPhotos rows, which map a
+tag (the row's `itemId`) to an `orderItemId`, and the work-order detail (`/api/work-orders/:id`),
+whose order items map `orderItemId` to `description`. The photo read uses the same cached request as
+the gallery; a work order already held by the work-order store is reused without a request. Rows
+whose `itemId` is not a garment tag (a reassigned photo holds a catalog id there) are ignored, as are
+links to unknown order items. `buildItemNames` in `packaging-item-names.ts` is the pure join. A name
+that cannot be resolved, or a failed read, shows the neutral name “Item”. Reloading the same order
+(for example after Confirm) does not read the names again.
+
+New bag IDs use the browser-safe short-ID generator. IDs, garment tags, photo URLs, and the typed weight are kept
 per order in localStorage. Taking a photo immediately uploads to `order-images/<orderId>` in
 Firebase Storage; only the returned URL is saved on the device. The photo slot shows uploading,
 upload failures show a notice, and Confirm is disabled during uploads or a save.
 
 Confirm sends every new bag in one `POST /api/packaging-bags/confirm` request with the current
-StaffId. The endpoint validates the whole request, appends missing BAG images and BagItems,
-provisions LOG-BAG tickets, completes garment Packaging tickets through the shared transition core,
+StaffId. The endpoint validates the whole request, appends missing WEIGHT images (kg in `quantity`) and BagItems,
+provisions LOG-BAG tickets and the weight-photo ticket and score of each bag, completes garment Packaging tickets through the shared transition core,
 and then attempts printing. Failure retains the device bags for retry, including after a reload
 following partial writes. Success clears stored bags, reloads the order, and reports printed and
 unprinted tags. Job-ticket, bag-item, and order-image caches invalidate on both success and failure.
@@ -147,7 +161,27 @@ See [Confirm contract](../packaging/confirm.md) for validation, write order, and
 
 The bag sheet is the shared `DetailOverlay` with its close button off, opened by `?bag=<bagId>`. The
 tag scanner adds `scan=1` on top of it and the bag camera uses `?photo=<bagId>`; each is a route-owned
-query overlay (`useQueryOverlay`) that closes with Back.
+query overlay (`useQueryOverlay`) that closes with Back. Each garment in the sheet's grid is labelled
+with its item name under the photo.
+
+The page shows no banner above the bag list: a new bag with no garments shows “Empty · delete or add
+garments” on its row, a bag without a photo shows “Add bag photo”, and Confirm stays disabled until
+every new bag has a garment and a photo.
+
+A keyboard-wedge barcode gun can add garments while a bag's sheet is open and neither the camera
+scanner, the bag camera nor the Confirm dialog is open (`useScannerGunInput`, the same hook as the
+department page). A gun read goes through the same `scan` call as a camera read, so it adds the
+garment to the open bag, rejects the same cases (not in this order, already in a confirmed bag, in
+another bag, waiting for an earlier department), and plays the same success or failure sounds.
+Reading a garment already in this bag shows the warning “Already in this bag” and keeps it selected;
+a read never removes a garment. Each read shows the department page's compact dark popup
+(`ScanNotice` with `ScanResultCard`, state in `useScanNotice`: 5 s, replaced by the next read,
+dismissible) with the garment photo, its item name, and the neon check on success or the message in a
+tone-coloured pill on a rejection. A tag that is not in the order shows an error block with no name.
+The popup is rendered in the overlay layer at the top of the screen so it stays visible and
+clickable above the open sheet, and it is dismissed when the sheet or the tag scanner opens or
+closes. The camera scanner keeps the plain text result card, titled with the item name. The kept-alive
+department page ignores gun reads while this page is active.
 
 The Packaging bag workflow (create bags, assign garments, confirm, print tags) is in
 [Packaging workflow](../packaging/workflow.md).

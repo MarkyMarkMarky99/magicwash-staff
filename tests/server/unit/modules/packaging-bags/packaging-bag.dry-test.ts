@@ -5,6 +5,8 @@ import { PackagingBagService } from '../../../../../server/modules/packaging-bag
 import { packagingBagRoutes } from '../../../../../server/modules/packaging-bags/packaging-bag.module.js'
 import type { PackagingBagServiceOptions } from '../../../../../server/modules/packaging-bags/packaging-bag.service.js'
 import { JobTicketTransitionService } from '../../../../../server/modules/job-tickets/job-ticket-transition.service.js'
+import { WeightPhotoTicketService } from '../../../../../server/modules/order-images/weight-photo-ticket.service.js'
+import { resetWorkRatesCache } from '../../../../../server/modules/work-orders/work-rate-lookup.js'
 import { BagTagPrintService } from '../../../../../server/modules/bag-tag-prints/bag-tag-print.service.js'
 import { packagingBagConfirmRequestSchema } from '../../../../../contracts/packaging-bags/packaging-bag-api.schema.js'
 import { jobTicketsRowSchema } from '../../../../../server/sheets/JobTickets/JobTickets.db-contract.js'
@@ -16,11 +18,12 @@ import type { BagTagPrintRequest } from '../../../../../contracts/bag-tag-prints
 type Ticket = Partial<z.infer<typeof jobTicketsRowSchema>>
 const now = () => new Date('2026-10-09T05:34:56Z')
 const request = { orderId: 'order-1', createdBy: 'staff-1', bags: [
-  { orderImageId: 'aabbccdd', imagePath: 'https://storage.example/a.jpg', laundryItemIds: ['tag-1', 'tag-2'] },
-  { orderImageId: 'deadbeef', imagePath: 'https://storage.example/b.jpg', laundryItemIds: ['tag-3'] },
+  { orderImageId: 'aabbccdd', imagePath: 'https://storage.example/a.jpg', laundryItemIds: ['tag-1', 'tag-2'], weightKg: 2.5 },
+  { orderImageId: 'deadbeef', imagePath: 'https://storage.example/b.jpg', laundryItemIds: ['tag-3'], weightKg: 1.2 },
 ] }
 
 function setup(failAt?: string, afterCommit = false, printerThrows = false) {
+  resetWorkRatesCache()
   const images: Partial<z.infer<typeof orderImagesRowSchema>>[] = []
   const items: Partial<z.infer<typeof bagItemsRowSchema>>[] = []
   const scores: Partial<z.infer<typeof workTransactionsRowSchema>>[] = []
@@ -29,6 +32,7 @@ function setup(failAt?: string, afterCommit = false, printerThrows = false) {
     customer_id: 'customer-1', order_name: 'Order one', due_date: '2026-10-10', notes: 'Care', step_no: 3, status: 'Pending', work_minutes: 5, deleted_at: null,
   }))
   const reads = { JobTickets: 0, BagItems: 0, OrderImages: 0, OrderForm: 0, WorkTransactions: 0, Customers: 0 }
+  const weightReads = { OrderForm: 0, WorkRates: 0 }
   const events: string[] = []
   const prints: BagTagPrintRequest[] = []
   let failed = false
@@ -55,7 +59,7 @@ function setup(failAt?: string, afterCommit = false, printerThrows = false) {
       reads.JobTickets += 1
       return tickets.filter(ticket => (!query?.id || ticket.id === query.id) && (!query?.where?.order_id || ticket.order_id === query.where.order_id))
     },
-    async batchAppend(rows: Ticket[]) { return append('logistics', tickets, rows) },
+    async batchAppend(rows: Ticket[]) { return append(rows[0]?.task_code === 'PCK-WEIGHT-KG' ? 'weight-ticket' : 'logistics', tickets, rows) },
     async updateMany(updates: { keyValue: string; patch: Ticket }[]) {
       const stage = updates[0]?.patch.status === 'In Progress' ? 'start' : 'complete'
       events.push(stage)
@@ -69,8 +73,26 @@ function setup(failAt?: string, afterCommit = false, printerThrows = false) {
       reads.WorkTransactions += 1
       return query?.where ? scores.filter(row => row.job_ticket_id === query.where?.job_ticket_id) : scores
     },
-    async batchAppend(rows: typeof scores) { append('earn', scores, rows) },
+    async batchAppend(rows: typeof scores) { return append(rows[0]?.job_ticket_id?.includes('PCK-WEIGHT-KG') ? 'weight-earn' : 'earn', scores, rows) },
   }
+  // The real order-detail weight-photo side effect, wired to the same fake sheets.
+  const weightPhotoTicket = new WeightPhotoTicketService({
+    orderFormRepository: () => ({ async read(query) {
+      weightReads.OrderForm += 1
+      assert.equal(query?.id, 'order-1')
+      return [{ customer_id: 'customer-1', order_name: 'Order one', due_date: '2026-10-10', note: 'Care' }]
+    } }),
+    jobTicketRepository: () => ({
+      async read(query) { return tickets.filter(ticket => ticket.id === query?.id) },
+      batchAppend: rows => ticketRepository.batchAppend(rows),
+    }),
+    workRateRepository: () => ({ async read() {
+      weightReads.WorkRates += 1
+      return [{ task_code: 'PCK-WEIGHT-KG', department: 'Packaging', active: true, minutes: 2 }]
+    } }),
+    staffReader: async () => new Map([['staff@example.test', { staffId: 'staff-1', email: 'staff@example.test', name: 'Staff', role: 'staff' as const }]]),
+    workTransactionRepository: () => scoreRepository,
+  })
   const printer = new BagTagPrintService({
     async orderCustomerIdReader(orderId) { reads.OrderForm += 1; throw new Error('Packaging must not read OrderForm') },
     async customerReader(id) { assert.equal(id, 'customer-1'); reads.Customers += 1; return { customerIndex: '12' } },
@@ -86,15 +108,15 @@ function setup(failAt?: string, afterCommit = false, printerThrows = false) {
   })
   const options: PackagingBagServiceOptions = {
     images: () => ({ async read(query) { reads.OrderImages += 1; assert.deepEqual(query, { where: { order_id: 'order-1' } }); return images.filter(row => row.order_id === query?.where?.order_id) },
-      async batchAppend(rows) { return append('images', images, rows) as z.infer<typeof orderImagesRowSchema>[] } }),
+      async batchAppend(rows) { return append('images', images, rows.map(row => ({ ...row, created_at: '2026-10-09 12:34:50' }))) as z.infer<typeof orderImagesRowSchema>[] } }),
     bagItems: () => ({ async read() { reads.BagItems += 1; return items },
       async batchAppend(rows) { return append('items', items, rows) as z.infer<typeof bagItemsRowSchema>[] } }),
     tickets: () => ticketRepository,
     transition: new JobTicketTransitionService({ repository: () => ticketRepository, workTransactionRepository: () => scoreRepository,
       now }),
-    printer, now,
+    weightPhotoTicket, printer, now,
   }
-  return { service: new PackagingBagService(options), images, items, scores, tickets, events, prints, reads }
+  return { service: new PackagingBagService(options), images, items, scores, tickets, events, prints, reads, weightReads }
 }
 
 const originalFlag = process.env.BAG_TAG_PRINT_ENABLED
@@ -104,17 +126,18 @@ try {
   process.env.BAG_TAG_PRINT_ENABLED = 'true'
   process.env.BAG_TAG_TRACKING_URL_BASE = 'https://shop.example/b/'
   console.error = () => {}
-  for (const scenario of ['wrong order', 'another bag', 'waiting', 'deleted', 'cancelled', 'different photo', 'different image type', 'different garments']) {
+  for (const scenario of ['wrong order', 'another bag', 'waiting', 'deleted', 'cancelled', 'different photo', 'legacy BAG row', 'different weight', 'different garments']) {
     const context = setup()
     if (scenario === 'wrong order') context.tickets[0]!.order_id = 'other'
     if (scenario === 'another bag') context.items.push({ bag_id: 'other', laundry_item_id: 'tag-1' })
     if (scenario === 'waiting') context.tickets.push({ id: 'IRN-tag-1', order_id: 'order-1', laundry_item_id: 'tag-1', department: 'Ironing', step_no: 2, status: 'Pending' })
     if (scenario === 'deleted') context.tickets[0]!.deleted_at = '2026-10-09 10:00:00'
     if (scenario === 'cancelled') context.tickets[0]!.status = 'Cancelled'
-    if (scenario === 'different photo' || scenario === 'different image type') context.images.push({
+    if (scenario === 'different photo' || scenario === 'legacy BAG row' || scenario === 'different weight') context.images.push({
       id: request.bags[0]!.orderImageId, order_id: request.orderId,
-      image_type: scenario === 'different image type' ? 'WEIGHT' : 'BAG',
+      image_type: scenario === 'legacy BAG row' ? 'BAG' : 'WEIGHT',
       image_path: scenario === 'different photo' ? 'https://storage.example/other.jpg' : request.bags[0]!.imagePath,
+      quantity: scenario === 'different weight' ? 9 : request.bags[0]!.weightKg,
     })
     if (scenario === 'different garments') context.items.push({ bag_id: request.bags[0]!.orderImageId, order_id: request.orderId, laundry_item_id: 'other-tag' })
     await assert.rejects(context.service.confirm(request), error => error instanceof Error && 'status' in error && Number(error.status) >= 400 && Number(error.status) < 500)
@@ -124,10 +147,16 @@ try {
     const context = setup('earn', false)
     const response = await context.service.confirm(request)
     assert.deepEqual(response.bags, request.bags.map(bag => ({ orderImageId: bag.orderImageId, printed: true })), 'a failed score write does not fail Confirm or skip printing')
-    assert.equal(context.scores.length, 0)
+    assert.deepEqual(context.scores.map(score => score.job_ticket_id?.includes('PCK-WEIGHT-KG')), [true, true], 'only the weight scores were saved')
     assert.ok(context.tickets.filter(ticket => ticket.department === 'Packaging').every(ticket => ticket.status === 'Completed'))
   }
-  for (const stage of ['images', 'items', 'logistics', 'complete']) {
+  {
+    const context = setup('weight-earn', false)
+    const response = await context.service.confirm(request)
+    assert.ok(response.bags.every(bag => bag.printed), 'a failed weight score write does not fail Confirm')
+    assert.equal(context.tickets.filter(ticket => ticket.task_code === 'PCK-WEIGHT-KG').length, 2)
+  }
+  for (const stage of ['images', 'items', 'logistics', 'weight-ticket', 'complete']) {
     for (const afterCommit of [false, true]) {
       const context = setup(stage, afterCommit)
       await assert.rejects(context.service.confirm(request), /press Confirm again/)
@@ -138,8 +167,13 @@ try {
       assert.deepEqual(context.reads, { JobTickets: 2, BagItems: 2, OrderImages: 2, OrderForm: 0, WorkTransactions: 0, Customers: 1 })
       assert.equal(context.images.length, 2, `${stage}: image retry must not duplicate`)
       assert.equal(context.items.length, 3, `${stage}: item retry must not duplicate`)
-      assert.equal(context.tickets.filter(ticket => ticket.scope === 'ORDER').length, 2)
-      const expectedScores = stage === 'complete' && afterCommit ? 2 : 3
+      assert.equal(context.tickets.filter(ticket => ticket.task_code === 'LOG-BAG').length, 2, `${stage}: one LOG-BAG ticket per bag`)
+      assert.equal(context.tickets.filter(ticket => ticket.task_code === 'PCK-WEIGHT-KG').length, 2, `${stage}: one weight ticket per bag`)
+      assert.equal(context.tickets.filter(ticket => ticket.scope === 'ORDER').length, 4)
+      const itemScores = stage === 'complete' && afterCommit ? 2 : 3
+      // A weight ticket created before the failure is never scored again on retry (no repair), as in order-detail.
+      const weightScores = stage === 'weight-ticket' && afterCommit ? 1 : 2
+      const expectedScores = itemScores + weightScores
       assert.equal(context.scores.length, expectedScores, `${stage}: already Completed tickets never earn on retry`)
       assert.equal(new Set(context.scores.map(score => score.job_ticket_id)).size, expectedScores)
       assert.equal(new Set(context.items.map(item => item.id)).size, 3)
@@ -147,7 +181,7 @@ try {
       assert.equal(context.prints[0]?.itemCount, 2)
       assert.equal(context.prints[1]?.itemCount, 1)
       for (const print of context.prints) {
-        assert.equal(print.weightKg, null)
+        assert.equal(print.weightKg, print.barcodeValue === 'aabbccdd' ? 2.5 : 1.2)
         assert.equal(print.packedAt, '2026-10-09 12:34:56')
         assert.equal(print.qrValue, `https://shop.example/b/${print.barcodeValue}`)
         assert.equal(print.customerIndex, '12')
@@ -160,7 +194,23 @@ try {
   const lean = setup()
   await lean.service.confirm(request)
   assert.deepEqual(lean.reads, { JobTickets: 1, BagItems: 1, OrderImages: 1, OrderForm: 0, WorkTransactions: 0, Customers: 1 })
-  assert.deepEqual(lean.events, ['images', 'items', 'logistics', 'complete', 'earn', 'print', 'print'])
+  assert.deepEqual(lean.events, ['images', 'items', 'logistics', 'weight-ticket', 'weight-earn', 'weight-ticket', 'weight-earn', 'complete', 'earn', 'print', 'print'])
+  // Each bag is recorded like an order-detail weight photo: WEIGHT row, photo URL, kg in quantity. Never BAG.
+  assert.deepEqual(lean.images.map(row => [row.id, row.image_type, row.image_path, row.quantity, row.created_by]), [
+    ['aabbccdd', 'WEIGHT', 'https://storage.example/a.jpg', 2.5, 'staff-1'],
+    ['deadbeef', 'WEIGHT', 'https://storage.example/b.jpg', 1.2, 'staff-1'],
+  ])
+  // Exactly one weight ticket, one LOG-BAG ticket and one tag print per bag.
+  const weightTickets = lean.tickets.filter(ticket => ticket.task_code === 'PCK-WEIGHT-KG')
+  assert.deepEqual(weightTickets.map(ticket => [ticket.id, ticket.status, ticket.scope, ticket.step_no, ticket.department, ticket.scanned_by, ticket.work_minutes, ticket.photo_evidence_url]), [
+    ['PCK-order-1-aabbccdd-PCK-WEIGHT-KG', 'Completed', 'ORDER', 0, 'Packaging', 'staff-1', 5, 'https://storage.example/a.jpg'],
+    ['PCK-order-1-deadbeef-PCK-WEIGHT-KG', 'Completed', 'ORDER', 0, 'Packaging', 'staff-1', 2.4, 'https://storage.example/b.jpg'],
+  ])
+  assert.deepEqual(lean.scores.filter(score => score.job_ticket_id?.includes('PCK-WEIGHT-KG')).map(score => score.job_ticket_id),
+    weightTickets.map(ticket => ticket.id))
+  assert.equal(lean.tickets.filter(ticket => ticket.task_code === 'LOG-BAG').length, 2)
+  assert.equal(lean.prints.length, 2)
+  assert.deepEqual(lean.weightReads, { OrderForm: 2, WorkRates: 1 })
   for (const ticket of lean.tickets.filter(ticket => ticket.department === 'Logistics')) {
     assert.equal(ticket.customer_id, 'customer-1')
     assert.equal(ticket.order_name, 'Order one')
@@ -179,7 +229,7 @@ try {
   completed.tickets[0]!.work_minutes = null
   assert.ok((await completed.service.confirm(request)).bags.every(bag => bag.printed))
   assert.equal(completed.events.filter(event => event === 'complete').length, 1)
-  assert.equal(completed.scores.length, 2)
+  assert.equal(completed.scores.length, 4, 'two item scores plus two weight scores')
   for (const payload of [
     { ...request, bags: [] }, { ...request, bags: Array(21).fill(request.bags[0]) },
     { ...request, bags: [{ ...request.bags[0], laundryItemIds: [] }] },
@@ -187,9 +237,11 @@ try {
     { ...request, bags: [{ ...request.bags[0], orderImageId: '12345678' }] },
     { ...request, bags: [{ ...request.bags[0], orderImageId: '12e34567' }] },
     { ...request, bags: [{ ...request.bags[0], orderImageId: 'bad-id' }] },
+    ...[undefined, 0, -1, 200.1, 1.25, '2.5', null, Number.NaN].map(weightKg => ({ ...request, bags: [{ ...request.bags[0], weightKg }, request.bags[1]] })),
     { ...request, bags: [{ ...request.bags[0], laundryItemIds: ['tag-1', 'tag-1'] }] },
     { ...request, bags: [request.bags[0], { ...request.bags[1], laundryItemIds: ['tag-1'] }] },
   ]) assert.equal(packagingBagConfirmRequestSchema.safeParse(payload).success, false)
+  for (const weightKg of [0.1, 200, 20.5]) assert.equal(packagingBagConfirmRequestSchema.safeParse({ ...request, bags: [{ ...request.bags[0], weightKg }] }).success, true)
   const unknown = await packagingBagRoutes.item!.handleRequest({ method: 'POST', body: request, params: { id: 'other' }, query: {}, headers: {} })
   assert.equal(unknown.status, 404)
   console.log('packaging-bag.dry-test: OK (validation, every partial write retry, no EARN repair, print ordering/payload/flags)')
