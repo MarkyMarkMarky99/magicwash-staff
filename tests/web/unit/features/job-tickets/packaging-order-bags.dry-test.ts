@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { jobTicketRoutes } from '@/features/job-tickets/routes'
 import {
-  bagNumber, canConfirm, confirmBags, confirmedItemCount, formatConfirmedAt, garmentState, restoreBags, scanGarment, toggleGarment, unassignedCount,
+  bagNumber, canConfirm, confirmBags, confirmedItemCount, formatConfirmedAt, garmentState, presentBagScan, restoreBags, scanGarment, toggleGarment, unassignedCount,
   type NewBag, type PackagingOrder,
 } from '@/features/job-tickets/packaging-bags'
 
@@ -57,6 +57,21 @@ for (const [value, message] of [
 }
 assert.equal(scanGarment(order, bags, 'b', 'x9a3e5pn').message, 'In Bag 3')
 
+for (const [value, tone] of [['x9a3e5pn', 'warning'], ['unknown1', 'error'], ['k3m9x2qa', 'error'], ['r5t9c1ma', 'error']] as const) assert.equal(scanGarment(order, bags, 'a', value).tone, tone)
+assert.equal(scanGarment(order, bags, 'b', 'x9a3e5pn').tone, 'error')
+assert.equal(added.tone, 'success')
+
+const withPhoto: PackagingOrder = { ...order, garments: order.garments.map(row => row.tagId === 'b6j2g8wc' ? { ...row, imageUrl: 'https://storage.example/g.jpg' } : row) }
+assert.deepEqual(presentBagScan(added, withPhoto, 'Shirt', false), { title: 'Shirt', message: 'Added to this bag', tone: 'success' })
+assert.deepEqual(presentBagScan(added, withPhoto, 'Shirt', true), { title: 'Shirt', customerName: undefined, message: 'Added to this bag', tone: 'success',
+  scan: { customerIndex: null, photoUrl: 'https://storage.example/g.jpg', matched: true, itemName: 'Shirt' } })
+const repeated = scanGarment(order, bags, 'a', 'x9a3e5pn')
+assert.equal(presentBagScan(repeated, withPhoto, 'Item', true).tone, 'warning')
+assert.equal(presentBagScan(repeated, withPhoto, 'Item', true).scan?.itemName, 'Item')
+const unknown = presentBagScan(scanGarment(order, bags, 'a', 'unknown1'), withPhoto, 'Item', true)
+assert.deepEqual(unknown, { title: 'Item', message: 'Not a garment of this order', tone: 'error', scan: { customerIndex: null, photoUrl: null, matched: false, unmatchedText: '' } })
+for (const display of [unknown, presentBagScan(added, withPhoto, 'Shirt', true), presentBagScan(added, withPhoto, 'Shirt', false)]) assert.ok(!JSON.stringify(display).includes('unknown1') && !JSON.stringify(display).includes('b6j2g8wc'))
+
 const confirmed = confirmBags(order, added.bags.map(row => ({ ...row, photoUrl: 'https://storage.example/photo.jpg' })), '2026-10-09 11:00:00')
 assert.equal(confirmed.confirmedBags.length, 4)
 assert.equal(confirmedItemCount(confirmed, 'a'), 2)
@@ -87,5 +102,19 @@ assert.equal(jobTicketRoutes.findIndex(route => route.name === 'packaging-order-
 
 const viewSource = readFileSync(new URL('../../../../../src/features/job-tickets/components/OrderBagsView.vue', import.meta.url), 'utf8')
 assert.match(viewSource, /:loading="packaging\.ticketsLoading\.value"/)
+assert.doesNotMatch(viewSource, /an empty bag would print an extra tag|before you can confirm/)
+assert.match(viewSource, /:disabled="loading \|\| !!error \|\| !packaging\.confirmable\.value"/)
+assert.match(viewSource, /Empty · delete or add garments/)
+assert.match(viewSource, /useScannerGunInput\(handleGunScan, \(\) => packagingActive\(\) && sheetBag\.value !== null && !sheetScannerOpen\.value\s+&& !cameraOpen\.value && !confirmOpen\.value\)/)
+assert.match(viewSource, /<ScanNotice overlay /)
+assert.match(viewSource, /const outcome = packaging\.scan\(bag\.id, value\)/)
+assert.equal(viewSource.match(/packaging\.scan\(/g)?.length, 1)
+const departmentPageSource = readFileSync(new URL('../../../../../src/features/job-tickets/pages/DepartmentWorkPage.vue', import.meta.url), 'utf8')
+assert.match(departmentPageSource, /useScanNotice\(\)/)
+assert.match(departmentPageSource, /<ScanNotice v-if="!scannerOpen"/)
+assert.match(departmentPageSource, /useScannerGunInput\(value => \{[\s\S]*?\}, \(\) => pageActive &&/)
+const sheetSource = readFileSync(new URL('../../../../../src/features/job-tickets/components/PackagingBagSheet.vue', import.meta.url), 'utf8')
+assert.match(sheetSource, /:primary-text="name"/)
+assert.doesNotMatch(sheetSource, /primary-text="garment\.tagId"|Garment \$\{garment\.tagId\}/)
 for (const name of ['logistics-order-bags', 'packaging-order-bags']) assert.match(String(jobTicketRoutes.find(route => route.name === name)?.component), /pages\/OrderBagsPage\.vue/)
 console.log('packaging-order-bags.dry-test: OK')

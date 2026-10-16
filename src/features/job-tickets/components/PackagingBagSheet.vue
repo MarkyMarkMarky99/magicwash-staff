@@ -9,7 +9,7 @@ defineProps<{
   open: boolean
   bagNumber: number
   selectedCount: number
-  cards: readonly { garment: PackagingGarment; state: GarmentState }[]
+  cards: readonly { garment: PackagingGarment; name: string; state: GarmentState }[]
 }>()
 const emit = defineEmits<{ close: []; toggle: [tagId: string]; scan: [] }>()
 
@@ -34,18 +34,18 @@ function blockedLabel(state: GarmentState): string | null {
     <p v-if="!cards.length" class="px-4 py-6 text-center font-body text-sm text-on-surface-variant">No garments left to add</p>
     <div v-else class="grid grid-cols-3 content-start gap-2.5 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1.5">
       <button
-        v-for="{ garment, state } in cards"
+        v-for="{ garment, name, state } in cards"
         :key="garment.tagId"
         type="button"
         class="relative min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-lime"
         :class="[state.kind === 'selected' ? 'ring-4 ring-lime' : '', loading || blockedLabel(state) ? 'cursor-not-allowed' : '']"
         :disabled="loading || blockedLabel(state) !== null"
         :aria-pressed="state.kind === 'selected'"
-        :aria-label="`Garment ${garment.tagId}${blockedLabel(state) ? `, ${blockedLabel(state)}` : ''}`"
+        :aria-label="`${name}${blockedLabel(state) ? `, ${blockedLabel(state)}` : ''}`"
         @click="emit('toggle', garment.tagId)"
       >
         <span class="block" :class="loading || blockedLabel(state) ? 'opacity-40 saturate-0' : ''">
-          <SquareImageCard :image-url="garment.imageUrl" :primary-text="garment.tagId" />
+          <SquareImageCard :image-url="garment.imageUrl" :primary-text="name" />
         </span>
         <span v-if="blockedLabel(state)" class="absolute inset-x-0 top-0 flex aspect-square items-center justify-center px-1">
           <span class="rounded-lg bg-white/90 px-1 py-1 text-center font-label text-[10px] font-extrabold leading-tight text-on-surface">{{ blockedLabel(state) }}</span>

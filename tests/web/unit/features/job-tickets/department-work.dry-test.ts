@@ -4,6 +4,7 @@ import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
 import type { JobTicketDto, JobTicketListQuery, listJobTickets } from '@/data/job-tickets/job-ticket.service'
 import { completedTodayFromPage, loadOpenTickets, loadCompletedTickets, MAX_DEPARTMENT_TICKETS } from '@/data/job-tickets/job-ticket.service'
 import { advanceSummary, completionPercentage, countDepartmentStatuses, filterTickets, groupDepartmentOrders, presentGunScan, readDepartment, readGrouper, readStatusFilter, recordScan, resolveScanTag, restoreScanQueue, sortDepartmentTickets, sortOrdersByScan, sortScannedFirst, statusForFilter, taskLabel, ticketSelectLabel, toggleTicketSelection } from '@/features/job-tickets/department-work'
+import { presentScanPopup } from '@/features/job-tickets/scan-result'
 import { normalizeGarmentTagId } from '@/shared/utils/garment-tag-id'
 
 function ticket(id: string, orderId: string, status: JobTicketDto['status'], completedAt: string | null = null): JobTicketDto {
@@ -78,6 +79,8 @@ assert.deepEqual(sortDepartmentTickets([{ ...taskTickets[0]!, stepNo: 1 }, { ...
 const photoTicket = { ...ticket('tag-p', 'order-1', 'Pending'), photoEvidenceUrl: 'https://example.test/p.jpg' }
 assert.deepEqual(presentGunScan('tag-p', photoTicket, { customerName: 'Task', customerIndex: 'C-07' }, 'Queued', 'success'), { title: 'tag-p', customerName: 'Task', message: 'Queued', tone: 'success', scan: { customerIndex: 'C-07', photoUrl: 'https://example.test/p.jpg', matched: true } })
 assert.deepEqual(presentGunScan('zzz', undefined, undefined, 'No job for this tag', 'error'), { title: 'zzz', message: 'No job for this tag', tone: 'error', scan: { customerIndex: null, photoUrl: null, matched: false } })
+assert.deepEqual(presentScanPopup({ title: 'x', message: 'm', tone: 'warning', matched: true, itemName: 'Shirt', photoUrl: null }), { title: 'x', customerName: undefined, message: 'm', tone: 'warning', scan: { customerIndex: null, photoUrl: null, matched: true, itemName: 'Shirt' } })
+assert.deepEqual(presentScanPopup({ title: 'x', message: 'm', tone: 'error', matched: false, unmatchedText: '' }), { title: 'x', message: 'm', tone: 'error', scan: { customerIndex: null, photoUrl: null, matched: false, unmatchedText: '' } })
 assert.deepEqual(recordScan(['a', 'b'], 'c'), ['a', 'b', 'c'])
 assert.deepEqual(recordScan(['a', 'b', 'c'], 'a'), ['b', 'c', 'a'])
 for (const scoreFailed of [1, 3]) {

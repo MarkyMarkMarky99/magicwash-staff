@@ -7,6 +7,7 @@ import { transpileModule, ScriptTarget } from 'typescript'
 import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
 import type { JobTicketDto } from '@/data/job-tickets/job-ticket.service'
 import * as departmentWork from '@/features/job-tickets/department-work'
+import { useScanNotice } from '@/features/job-tickets/composables/useScanNotice'
 
 const source = readFileSync(new URL('../../../../../src/features/job-tickets/pages/DepartmentWorkPage.vue', import.meta.url), 'utf8')
 const sfc = parse(source).descriptor
@@ -40,7 +41,7 @@ function harness() {
   let scanGun!: (value: string) => void
   const dependencies = {
     ...departmentWork, computed, nextTick, ref, watch,
-    useScannerGunInput: (onScan: (value: string) => void) => { scanGun = onScan },
+    useScannerGunInput: (onScan: (value: string) => void) => { scanGun = onScan }, useScanNotice,
     useAuthStore: () => auth, useCustomerStore: () => ({ customers: [] }),
     useJobTicketStore: () => ({
       get tickets() { return tickets.value }, loadDepartment: async () => {}, releaseDepartment: () => {},

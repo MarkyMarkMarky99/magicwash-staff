@@ -2,8 +2,11 @@ import type { JobTicketDto } from '@/data/job-tickets/job-ticket.service'
 import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
 import { listBagItems, type BagItemDto } from '@/data/bag-items/bag-item.service'
 import { useCustomerStore } from '@/data/customers/customer.store'
+import { listLaundryPhotoItemLinks } from '@/data/laundry-photos/laundry-photo.service'
+import { useWorkOrderStore } from '@/data/work-orders/work-order.store'
 import { findEarlierJobTicket } from '@shared/utils/job-ticket-gating'
 import { normalizeSheetTimestamp } from '@shared/utils/bangkok-datetime'
+import { buildItemNames } from './packaging-item-names'
 import type { PackagingOrder } from './packaging-bags'
 
 async function allPages<T>(fetchPage: (page: number) => Promise<{ items: T[] }>): Promise<T[]> {
@@ -29,6 +32,22 @@ export async function loadPackagingOrder(orderId: string, onPreview?: (order: Pa
   ])
   onPreview?.(rebuild(), rebuild)
   return rebuild()
+}
+
+// Item names are a display aid: a failed read leaves the garment on its fallback name. Two requests at
+// most: the order's photo rows and its work-order detail, which the work-order store may already hold.
+export async function loadItemNames(orderId: string): Promise<Map<string, string>> {
+  try {
+    const store = useWorkOrderStore()
+    const held = () => store.currentOrder?.orderId === orderId && store.currentOrder.items.length ? store.currentOrder.items : null
+    const [links, items] = await Promise.all([
+      listLaundryPhotoItemLinks(orderId).catch(() => []),
+      held() ?? store.loadDetail(orderId).then(() => held() ?? []),
+    ])
+    return buildItemNames(links, items)
+  } catch {
+    return new Map()
+  }
 }
 
 function buildPackagingOrder(orderId: string, jobs: JobTicketDto[], items: BagItemDto[]): PackagingOrder {

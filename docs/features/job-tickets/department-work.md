@@ -86,7 +86,8 @@ Logistics and Packaging share one order bag page, `OrderBagsPage.vue`, which key
 by department. Both departments use the same summary card (`OrderBagSummary.vue`) and bag row
 (`OrderBagRow.vue`); the department only selects the workflow composable (`useLogisticsBags` or
 `usePackagingBags`), the wording, and the bottom action (Scan or Confirm). Neither shows an
-order-status badge or reads the work order; the customer comes from the order's tickets.
+order-status badge; the customer comes from the order's tickets. Only Packaging reads the work order,
+and only for item names (below).
 
 The Logistics bag page loads all pages of that order's Logistics tickets and its order images
 through the data layer. Tickets use `loadOrder(orderId, 'Logistics')` in the resource store;
@@ -127,12 +128,23 @@ immediately, then the page rebuilds as the reads finish. Garments use their disa
 be selected or scanned until the full order ticket load succeeds; invalidation reloads disable them
 again until earlier-department gates and older Completed tickets are known. Non-deleted Packaging ITEM tickets
 define garments; the shared advance gate identifies the earliest unfinished department. A garment's
-photo is its Packaging ticket's `photoEvidenceUrl`, as on the department page; LaundryPhotos is not
-read. Garments sort by tag ID, independent of preview or full-load ticket order. BagItems defines
+photo is its Packaging ticket's `photoEvidenceUrl`, as on the department page. Garments sort by tag ID, independent of preview or full-load ticket order. BagItems defines
 confirmed assignments, bag counts, and the earliest timestamp for each bag. A confirmed bag photo
 comes from the matching `LOG-<orderId>-<bagId>-LOG-BAG` Logistics ticket’s `photoEvidenceUrl`,
 or is null when the ticket is absent. Packaging does not read OrderImages. The customer comes from the tickets' `customerId` and the preloaded
-customer store. The summary card shows the bag count and garments packed; the work order is not read.
+customer store. The summary card shows the bag count and garments packed; the page shows no order
+status.
+
+Staff cannot read tag codes, so the page never shows a garment tag: it shows the garment's item name
+instead. `loadItemNames` in `packaging-bag-source.ts` joins two reads once per order when the page
+opens, in parallel and without blocking the garment list: the order's LaundryPhotos rows, which map a
+tag (the row's `itemId`) to an `orderItemId`, and the work-order detail (`/api/work-orders/:id`),
+whose order items map `orderItemId` to `description`. The photo read uses the same cached request as
+the gallery; a work order already held by the work-order store is reused without a request. Rows
+whose `itemId` is not a garment tag (a reassigned photo holds a catalog id there) are ignored, as are
+links to unknown order items. `buildItemNames` in `packaging-item-names.ts` is the pure join. A name
+that cannot be resolved, or a failed read, shows the neutral name “Item”. Reloading the same order
+(for example after Confirm) does not read the names again.
 
 New bag IDs use the browser-safe short-ID generator. IDs, garment tags, and photo URLs are kept
 per order in localStorage. Taking a photo immediately uploads to `order-images/<orderId>` in
@@ -149,7 +161,27 @@ See [Confirm contract](../packaging/confirm.md) for validation, write order, and
 
 The bag sheet is the shared `DetailOverlay` with its close button off, opened by `?bag=<bagId>`. The
 tag scanner adds `scan=1` on top of it and the bag camera uses `?photo=<bagId>`; each is a route-owned
-query overlay (`useQueryOverlay`) that closes with Back.
+query overlay (`useQueryOverlay`) that closes with Back. Each garment in the sheet's grid is labelled
+with its item name under the photo.
+
+The page shows no banner above the bag list: a new bag with no garments shows “Empty · delete or add
+garments” on its row, a bag without a photo shows “Add bag photo”, and Confirm stays disabled until
+every new bag has a garment and a photo.
+
+A keyboard-wedge barcode gun can add garments while a bag's sheet is open and neither the camera
+scanner, the bag camera nor the Confirm dialog is open (`useScannerGunInput`, the same hook as the
+department page). A gun read goes through the same `scan` call as a camera read, so it adds the
+garment to the open bag, rejects the same cases (not in this order, already in a confirmed bag, in
+another bag, waiting for an earlier department), and plays the same success or failure sounds.
+Reading a garment already in this bag shows the warning “Already in this bag” and keeps it selected;
+a read never removes a garment. Each read shows the department page's compact dark popup
+(`ScanNotice` with `ScanResultCard`, state in `useScanNotice`: 5 s, replaced by the next read,
+dismissible) with the garment photo, its item name, and the neon check on success or the message in a
+tone-coloured pill on a rejection. A tag that is not in the order shows an error block with no name.
+The popup is rendered in the overlay layer at the top of the screen so it stays visible and
+clickable above the open sheet, and it is dismissed when the sheet or the tag scanner opens or
+closes. The camera scanner keeps the plain text result card, titled with the item name. The kept-alive
+department page ignores gun reads while this page is active.
 
 The Packaging bag workflow (create bags, assign garments, confirm, print tags) is in
 [Packaging workflow](../packaging/workflow.md).

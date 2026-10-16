@@ -11,6 +11,7 @@ import StickerFab from '@/shared/components/StickerFab.vue'
 import CloseButton from '@/shared/components/CloseButton.vue'
 import AdvanceConfirmDialog from '../components/AdvanceConfirmDialog.vue'
 import CompletionRing from '@/shared/components/CompletionRing.vue'
+import ScanNotice from '../components/ScanNotice.vue'
 import ScanResultCard from '../components/ScanResultCard.vue'
 import TicketStatusIcon, { type TicketTapState } from '../components/TicketStatusIcon.vue'
 import TicketTaskChip from '../components/TicketTaskChip.vue'
@@ -26,6 +27,7 @@ import { formatSheetDate } from '@/shared/utils/sheet-date'
 import { advanceSummary, countDepartmentStatuses, filterTickets, groupDepartmentOrders, presentGunScan, readDepartment, readGrouper, readStatusFilter, recordScan, resolveScanTag, restoreScanQueue, sortDepartmentTickets, sortOrdersByScan, sortScannedFirst, statusFilters, statusForFilter, taskLabel, ticketSelectLabel, toggleTicketSelection } from '../department-work'
 import type { AdvanceStatus, Grouper, OrderInfo, ScanQueueEntry, TicketStatus } from '../department-work'
 import { presentStartOrderResult, type ScanDisplay, type ScanTone } from '../scan-result'
+import { useScanNotice } from '../composables/useScanNotice'
 import { useScannerGunInput } from '../composables/useScannerGunInput'
 
 const route = useRoute()
@@ -45,13 +47,12 @@ const grouper = computed(() => isLogistics.value ? 'order' : readGrouper(route.q
 const scannerOpen = computed(() => department.value !== null && fromStatus.value !== null && route.query.scan === '1')
 const expandedOrderId = ref<string | null>(null)
 const scanResult = ref<ScanDisplay | null>(null)
-const pageNotice = ref<ScanDisplay | null>(null)
+const { notice: pageNotice, seq: noticeSeq, show: showPageNotice, dismiss: dismissPageNotice } = useScanNotice()
 const syncingOrderIds = ref(new Set<string>())
 const tapStates = ref(new Map<string, TicketTapState>())
 const tapTimers = new Map<string, ReturnType<typeof setTimeout>>()
 const selectedTicketIds = ref(new Set<string>())
 const scannedTicketIds = ref<string[]>([])
-const noticeSeq = ref(0)
 const itemList = ref<ComponentPublicInstance | null>(null)
 const orderList = ref<ComponentPublicInstance | null>(null)
 const scanQueue = ref<ScanQueueEntry[]>([])
@@ -64,7 +65,6 @@ let pushedScanner = false
 let replacingLeave = false
 let pageActive = true
 let loadedDepartment: string | undefined
-let noticeTimer: ReturnType<typeof setTimeout> | undefined
 
 useScannerGunInput(value => {
   const status = fromStatus.value
@@ -198,19 +198,6 @@ function moveToTop(ticketId: string): void {
     while (scroller && getComputedStyle(scroller).overflowY !== 'auto') scroller = scroller.parentElement
     scroller?.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
   })
-}
-
-function dismissPageNotice(): void {
-  if (noticeTimer) clearTimeout(noticeTimer)
-  noticeTimer = undefined
-  pageNotice.value = null
-}
-
-function showPageNotice(result: ScanDisplay): void {
-  dismissPageNotice()
-  noticeSeq.value += 1
-  pageNotice.value = result
-  if (result.tone !== 'loading') noticeTimer = setTimeout(dismissPageNotice, 5000)
 }
 
 function setTapState(ticketId: string, state: TicketTapState | null): void {
@@ -583,9 +570,7 @@ onBeforeRouteLeave(to => {
       <span class="material-symbols-outlined" style="font-size: 36px; font-variation-settings: 'wght' 600" aria-hidden="true">{{ selectedTicketIds.size ? 'check' : 'qr_code_scanner' }}</span>
     </StickerFab>
 
-    <div v-if="pageNotice && !scannerOpen" class="pointer-events-none absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-4 right-20 z-20">
-      <div :key="noticeSeq" class="pointer-events-auto"><ScanResultCard :result="pageNotice" dismissible @dismiss="dismissPageNotice" /></div>
-    </div>
+    <ScanNotice v-if="!scannerOpen" :notice="pageNotice" :seq="noticeSeq" @dismiss="dismissPageNotice" />
 
     <QrScannerOverlay :open="scannerOpen" :title="department?.label ?? ''" @close="closeScanner" @scan="handleScan">
       <template #result>

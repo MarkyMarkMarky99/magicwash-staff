@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { computed, effectScope, nextTick, ref, watch } from 'vue'
+import { computed, effectScope, nextTick, ref, shallowRef, watch } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { transpileModule, ScriptTarget, ModuleKind } from 'typescript'
 import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
-import { loadPackagingOrder } from '@/features/job-tickets/packaging-bag-source'
+import { loadItemNames, loadPackagingOrder } from '@/features/job-tickets/packaging-bag-source'
+import { itemNameFor } from '@/features/job-tickets/packaging-item-names'
 import * as packaging from '@/features/job-tickets/packaging-bags'
 import { invalidate } from '@/shared/api/response-cache'
 
@@ -44,7 +45,7 @@ globalThis.fetch = (async input => {
 }) as typeof fetch
 const memory = new Map<string, string>([['magicwash.packaging-bags.order-1', JSON.stringify([{ id: 'bag-a', garmentTagIds: [], photoUrl: 'https://photo/a' }])]])
 const dependencies = {
-  ...packaging, computed, ref, watch, useJobTicketStore, loadPackagingOrder,
+  ...packaging, computed, ref, shallowRef, watch, useJobTicketStore, loadPackagingOrder, loadItemNames, itemNameFor,
   generateShortId: () => 'bag-new',
   uploadToStorage: async () => 'https://photo/upload', confirmPackagingBags: async () => ({ bags: [] }), currentActor: () => 'staff-1',
   onBeforeUnmount: (callback: () => void) => { unmount = callback }, onActivated: (callback: () => void) => { activate = callback }, onDeactivated: (callback: () => void) => { deactivate = callback },

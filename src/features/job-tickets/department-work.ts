@@ -5,7 +5,7 @@ import type { JobTicketDto } from '@/data/job-tickets/job-ticket.service'
 import { normalizeSheetDate } from '@/shared/utils/sheet-date'
 import { normalizeGarmentTagId } from '@/shared/utils/garment-tag-id'
 import type { JobTicketAdvanceResult } from '@/data/job-tickets/job-ticket.service'
-import { departmentLabels, type ScanDisplay, type ScanTone } from './scan-result'
+import { departmentLabels, presentScanPopup, type ScanDisplay, type ScanTone } from './scan-result'
 
 export type Department = Extract<z.infer<typeof jobTicketDepartmentSchema>, 'Washing' | 'DryCleaning' | 'Ironing' | 'Packaging' | 'Logistics'>
 export type TicketStatus = z.infer<typeof jobTicketStatusSchema>
@@ -47,8 +47,8 @@ export function resolveScanTag(value: string, tickets: readonly JobTicketDto[], 
 }
 
 export function presentGunScan(value: string, ticket: JobTicketDto | undefined, customer: Pick<OrderInfo, 'customerName' | 'customerIndex'> | undefined, message: string, tone: ScanTone): ScanDisplay {
-  if (!ticket) return { title: value, message, tone, scan: { customerIndex: null, photoUrl: null, matched: false } }
-  return { title: value, customerName: customer?.customerName, message, tone, scan: { customerIndex: customer?.customerIndex ?? null, photoUrl: ticket.photoEvidenceUrl, matched: true } }
+  if (!ticket) return presentScanPopup({ title: value, message, tone, matched: false })
+  return presentScanPopup({ title: value, message, tone, matched: true, customerName: customer?.customerName, customerIndex: customer?.customerIndex, photoUrl: ticket.photoEvidenceUrl })
 }
 
 export function recordScan(recent: readonly string[], ticketId: string): string[] {

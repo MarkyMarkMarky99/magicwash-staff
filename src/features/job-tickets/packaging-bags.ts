@@ -1,7 +1,7 @@
 import { formatSheetDateTime, getBangkokClock } from '@/shared/utils/sheet-date'
 import type { z } from 'zod'
 import type { jobTicketDepartmentSchema } from '@contracts/job-tickets/job-ticket-api.schema'
-import { departmentLabels } from './scan-result'
+import { departmentLabels, presentScanPopup, type ScanDisplay } from './scan-result'
 
 export type PackagingGarment = {
   tagId: string
@@ -24,7 +24,7 @@ export type NewBag = { id: string; garmentTagIds: string[]; photoUrl: string | n
 
 export type StoredBag = NewBag
 
-export type BagScanOutcome = { bags: NewBag[]; tagId: string; success: boolean; message: string }
+export type BagScanOutcome = { bags: NewBag[]; tagId: string; success: boolean; tone: 'success' | 'warning' | 'error'; message: string }
 
 export type GarmentState =
   | { kind: 'free' }
@@ -77,15 +77,26 @@ export function toggleGarment(order: PackagingOrder, bags: readonly NewBag[], ba
 
 export function scanGarment(order: PackagingOrder, bags: readonly NewBag[], bagId: string, value: string): BagScanOutcome {
   const tagId = value.trim()
-  const fail = (message: string): BagScanOutcome => ({ bags: [...bags], tagId, success: false, message })
+  const fail = (message: string, tone: 'warning' | 'error' = 'error'): BagScanOutcome => ({ bags: [...bags], tagId, success: false, tone, message })
   const garment = order.garments.find(row => row.tagId === tagId)
   if (!garment) return fail('Not a garment of this order')
   if (garment.confirmedBagId) return fail('Already in a confirmed bag')
   const state = garmentState(order, bags, bagId, garment)
-  if (state.kind === 'selected') return fail('Already in this bag')
+  if (state.kind === 'selected') return fail('Already in this bag', 'warning')
   if (state.kind === 'inBag') return fail(`In Bag ${state.bagNumber}`)
   if (state.kind === 'waiting') return fail(`Waiting: ${state.label}`)
-  return { bags: toggleGarment(order, bags, bagId, tagId), tagId, success: true, message: 'Added to this bag' }
+  return { bags: toggleGarment(order, bags, bagId, tagId), tagId, success: true, tone: 'success', message: 'Added to this bag' }
+}
+
+// A read never shows its tag: the title is the garment's item name. The popup (barcode gun) adds the
+// garment photo; the camera overlay keeps the plain text card.
+export function presentBagScan(outcome: BagScanOutcome, order: PackagingOrder, itemName: string, popup: boolean): ScanDisplay {
+  const { message, tone } = outcome
+  if (!popup) return { title: itemName, message, tone }
+  const garment = order.garments.find(row => row.tagId === outcome.tagId)
+  return garment
+    ? presentScanPopup({ title: itemName, message, tone, matched: true, photoUrl: garment.imageUrl, itemName })
+    : presentScanPopup({ title: itemName, message, tone, matched: false, unmatchedText: '' })
 }
 
 export function confirmBags(order: PackagingOrder, bags: readonly NewBag[], confirmedAt: string): PackagingOrder {

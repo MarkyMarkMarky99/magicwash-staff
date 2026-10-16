@@ -81,6 +81,32 @@ export async function listLaundryPhotoTagIds(
   }
 }
 
+export interface LaundryPhotoItemLink {
+  itemId: string
+  orderItemId: string
+}
+
+function itemLinksFromPhotos(photos: LaundryPhotoDto[]): LaundryPhotoItemLink[] {
+  return photos.flatMap(photo => {
+    const itemId = normalizeGarmentTagId(photo.itemId)
+    return itemId !== null && photo.orderItemId ? [{ itemId, orderItemId: photo.orderItemId }] : []
+  })
+}
+
+export async function listLaundryPhotoItemLinks(orderId: string): Promise<LaundryPhotoItemLink[]> {
+  const links: LaundryPhotoItemLink[] = []
+  let page = 1
+  while (true) {
+    const { items } = await apiGetList<LaundryPhotoDto>(LAUNDRY_PHOTOS_ENDPOINT, {
+      query: page === 1 ? { orderId } : { orderId, page },
+      querySchema: laundryPhotoListQuerySchema,
+    })
+    links.push(...itemLinksFromPhotos(items))
+    if (items.length < MAX_LAUNDRY_PHOTOS_PER_PAGE) return links
+    page += 1
+  }
+}
+
 export async function uploadLaundryPhoto(file: File): Promise<string> {
   return uploadToStorage(file)
 }

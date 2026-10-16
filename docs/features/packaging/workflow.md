@@ -13,8 +13,9 @@ Packaging staff put each order's garments into bags (packages) so the order is r
 4. Garments are assigned to a bag later. Staff tap a bag in the list to open a bottom sheet for that
    bag.
 5. In the bottom sheet, staff add garments to the bag by tapping a garment's image or by scanning
-   its tag. This is the same pick-by-image-or-scan mechanism the garment department pages
-   (Washing, Ironing) use; Packaging reuses it rather than building a second one.
+   its tag with the camera or a barcode gun. This is the same pick-by-image-or-scan mechanism the
+   garment department pages (Washing, Ironing) use; Packaging reuses it rather than building a
+   second one. Garments are labelled by item name, never by tag code.
 6. Creating bags and assigning garments stay on the device. No request reaches the backend until
    staff press **Confirm**.
 7. On this page, the Logistics page's Scan button is replaced by a **Confirm** button.
@@ -31,8 +32,8 @@ Packaging staff put each order's garments into bags (packages) so the order is r
 
 - BagItems is written by the Packaging department only.
 - Confirm is enabled only when there is at least one new bag and every new bag has its photo.
-- A new bag with no garments blocks Confirm. The page warns staff to delete that bag, because each
-  bag prints a tag and an empty bag would print an extra one. Staff can delete a new bag before
+- A new bag with no garments blocks Confirm. Its row says “Empty · delete or add garments”, because
+  each bag prints a tag and an empty bag would print an extra one. Staff can delete a new bag before
   Confirm.
 - Partial packing is allowed: staff can confirm bags before every garment of the order is bagged,
   because a customer may collect some garments early or the shop may deliver the rest later. Staff

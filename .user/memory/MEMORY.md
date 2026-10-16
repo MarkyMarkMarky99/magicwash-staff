@@ -7,7 +7,7 @@
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 - **`feat/corporate-order-form`** — corporate count-sheet order page built UI-only, committed unmerged; needs entry point, real-login check, save design; see `.user/memory/feat-corporate-order-form.md`.
-- **`feat/scan-popup-photo`** — gun-scan photo popup (customer index, neon check) + scan-to-top list order; owner-tested on vercel dev, not merged; see `.user/memory/feat-scan-popup-photo.md`.
+- **`feat/scan-popup-photo`** — gun-scan photo popup + scan-to-top (owner-tested) and Packaging bag gun scan + item names (untested); not merged; see `.user/memory/feat-scan-popup-photo.md`.
 
 ## Pending work
 - **Wash queue + dryer queue (one-sheet booking: photo, optional weight, auto tag, washer menu, read-only program line — merged 2026-10-11; auto tag + photo slides merged 2026-10-13)** — see `docs/features/wash-queue/wash-queue.md`

@@ -36,9 +36,10 @@ const markPaths = { warning: 'M25 13 v14 M25 35 v0.5', error: 'M17 17 l16 16 M33
     </div>
     <div class="flex min-w-0 flex-1 flex-col justify-center gap-[3px] py-2 pl-2.5">
       <span v-if="result.tone !== 'success'" class="w-max max-w-full rounded-full px-2.5 py-0.5 text-xs font-bold leading-tight text-on-error" :class="result.tone === 'warning' ? 'bg-warning' : 'bg-error'">{{ result.message }}</span>
-      <p v-if="result.scan.matched" class="line-clamp-1 font-headline text-[15px] font-bold leading-tight">{{ result.customerName }}</p>
+      <p v-if="result.scan.matched && result.customerName" class="line-clamp-1 font-headline text-[15px] font-bold leading-tight">{{ result.customerName }}</p>
+      <p v-if="result.scan.matched && result.scan.itemName" class="line-clamp-2 font-headline text-[15px] font-bold leading-tight">{{ result.scan.itemName }}</p>
       <span v-if="result.scan.customerIndex" class="w-max rounded-lg bg-white/15 px-2 py-0.5 font-headline text-sm font-bold tracking-wide text-white">{{ result.scan.customerIndex }}</span>
-      <p v-if="!result.scan.matched" class="text-[11px] font-semibold text-white/85">Not found in this department</p>
+      <p v-if="!result.scan.matched && result.scan.unmatchedText !== ''" class="text-[11px] font-semibold text-white/85">{{ result.scan.unmatchedText ?? 'Not found in this department' }}</p>
     </div>
     <button v-if="dismissible" type="button" class="absolute right-1.5 top-1.5 flex h-[26px] w-[26px] items-center justify-center rounded-full bg-white/15 text-white focus-visible:outline-2 focus-visible:outline-lime" aria-label="Dismiss notice" @click="$emit('dismiss')"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span></button>
   </div>
