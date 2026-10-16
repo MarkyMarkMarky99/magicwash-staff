@@ -4,14 +4,16 @@
 `server/modules/packaging-bags/`; the contract is
 `contracts/packaging-bags/packaging-bag-api.schema.ts`. The single catch-all gateway dispatches it.
 
-Request: `{ orderId, createdBy, bags: [{ orderImageId, imagePath, laundryItemIds }] }`.
-There are 1–20 bags, each with at least one garment and an http(s) photo URL. Bag IDs are unique
+Request: `{ orderId, createdBy, bags: [{ orderImageId, imagePath, laundryItemIds, weightKg }] }`.
+There are 1–20 bags, each with at least one garment, an http(s) photo URL, and a required `weightKg`
+validated by the same rule as a WEIGHT order image `quantity` (`isValidOrderImageWeight`: greater
+than 0, at most 200, at most one decimal place). Bag IDs are unique
 eight-character lowercase hexadecimal short IDs generated on the device; all-digit and
 digits-e-digits IDs are excluded so Sheets retains text. Garments cannot repeat in the request.
 
 At the start, JobTickets, BagItems, and OrderImages are each read once by order_id in parallel.
 The ticket snapshot serves validation, transition gating, LOG-BAG existence, and customer data.
-Existing images are matched by id in memory. No OrderForm or WorkTransactions read is made.
+Existing images are matched by id in memory. Apart from the weight-photo ticket step below, no OrderForm or WorkTransactions read is made.
 This order-filtered image read cannot detect a bag ID belonging to another order. The append
 repository checks only duplicate IDs within the submitted batch, so cross-order ID collisions
 are not rejected by this flow. Preserving the previous cross-order check would require an
@@ -19,11 +21,17 @@ unfiltered image read or another lookup.
 
 Before any write, every garment must have a non-deleted Packaging ITEM ticket in the order,
 must not belong to another bag, and must pass the same earlier-step gate as ticket advancement.
-Existing images and bag assignments must match the retry. Invalid requests return 422;
+Existing images and bag assignments must match the retry: an existing image must be a `WEIGHT` row of this order with the same photo URL and a `quantity` equal to `weightKg`. A legacy `BAG` row with the same id is a conflict. Invalid requests return 422;
 conflicting assignments or unfinished work return 409 with a staff-readable message.
 
-Writes run in order: batch append missing BAG OrderImages, batch append missing BagItems,
-provision missing LOG-BAG tickets, and complete Packaging ITEM tickets through
+Each bag is recorded exactly like an order-detail weight photo (see
+[Order image](../orders/contracts/order-image.md)): an OrderImages row with `image_type: 'WEIGHT'`,
+the photo URL in `image_path`, and the bag weight in kg in `quantity`. New bags never write `BAG` rows;
+existing `BAG` rows from earlier confirmations stay as they are and are not migrated.
+
+Writes run in order: batch append missing WEIGHT OrderImages, batch append missing BagItems,
+provision missing LOG-BAG tickets, provision the weight-photo ticket and score of each bag, and
+complete Packaging ITEM tickets through
 JobTicketTransitionService using the already-read tickets, with Pending and In Progress as
 allowed sources for one direct transition to Completed. Missing LOG-BAG rows copy customer_id,
 order_name, due_date, and notes from existing order tickets and append in one batch using the
@@ -31,7 +39,16 @@ same row builder as WEIGHT. Completed tickets are not completed again and earn n
 EARN repair is intentionally dropped: a failed score write is logged, does not fail Confirm or
 skip printing (the tickets are already Completed), and requires admin help. Newly Completed
 tickets earn through the shared score writer with generated IDs. BagItems IDs use `<bagId>-<garmentId>`. Repository audit stamps append times.
-No BAG create enum is added to the order-images API and no WEIGHT side effects run.
+The order-images API is not called; Confirm reuses the WEIGHT side effects of `OrderImageService.create`:
+
+| WEIGHT side effect | Packaging Confirm |
+| --- | --- |
+| Completed Packaging ORDER ticket `PCK-<orderId>-<bagId>-PCK-WEIGHT-KG` and its EARN (`WeightPhotoTicketService.provision`) | Run once per bag with the same service; an existing ticket id is skipped, so a retry never scores twice. A ticket write failure fails Confirm (500, press Confirm again); an EARN failure is logged and does not. |
+| Pending Logistics ticket `LOG-<orderId>-<bagId>-LOG-BAG` | Created once per bag by the Confirm batch (header data from the ticket snapshot); the weight-photo flow is not run for it, so there is no duplicate. |
+| Bag tag print | One print per bag, after every write, with `weightKg` and `itemCount` both set. |
+
+The weight-photo ticket reads OrderForm and WorkRates (rates are cached) once per bag; the other reads
+stay as above. The photographer score is in addition to the garment Packaging scores.
 
 A write failure returns 500 and asks staff to press Confirm again. Rows are never rolled back;
 retries read the landed rows and append or update only missing work. Reads and writes remain
@@ -39,7 +56,7 @@ separate operations in Sheets, so concurrent confirmations are not an atomic tra
 
 After every write succeeds, tags print when `BAG_TAG_PRINT_ENABLED=true`. The bag-tag request
 contains `qrValue` (tracking prefix plus bag ID), `barcodeValue` (bag ID), resolved nullable
-`customerIndex`, `weightKg: null`, the bag's positive `itemCount`, and Bangkok `packedAt`.
+`customerIndex`, the saved `weightKg` of the bag, its positive `itemCount`, and Bangkok `packedAt`.
 Customer ID comes from the ticket snapshot; customer index is resolved once for all bags.
 One print request is sent per bag. Print failures are logged and do not fail confirmation.
 

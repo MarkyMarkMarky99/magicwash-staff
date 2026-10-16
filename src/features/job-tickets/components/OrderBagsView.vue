@@ -18,7 +18,7 @@ import { usePackagingBags } from '../composables/usePackagingBags'
 import { useQueryOverlay } from '../composables/useQueryOverlay'
 import { useScanNotice } from '../composables/useScanNotice'
 import { useScannerGunInput } from '../composables/useScannerGunInput'
-import { confirmedItemCount, formatConfirmedAt, garmentState, packedCount, presentBagScan } from '../packaging-bags'
+import { bagWeightKg, confirmedItemCount, formatConfirmedAt, garmentState, packedCount, presentBagScan } from '../packaging-bags'
 import type { ScanDisplay } from '../scan-result'
 
 // One view for every department's order bag page; the department only picks the workflow and wording.
@@ -125,10 +125,12 @@ const rows = computed<Row[]>(() => {
     }),
     ...newBags.value.map((bag): Row => {
       const count = bag.garmentTagIds.length
+      const kg = bagWeightKg(bag)
       const [status, tone]: [string, BagRowTone] = !count ? ['Empty · delete or add garments', 'error']
-        : !bag.photoUrl ? ['Add bag photo', 'warning'] : ['Ready to confirm', 'success']
-      return { key: bag.id, count, unit: items(count), title: `Bag ${state.numberOf(bag.id)}`, badge: 'New', status, tone,
-        photoUrl: bag.photoUrl, done: false, deletable: true, photoAction: true, uploading: state.uploading.value.has(bag.id),
+        : kg === null ? ['Add bag weight', 'warning'] : !bag.photoUrl ? ['Add bag photo', 'warning'] : ['Ready to confirm', 'success']
+      return { key: bag.id, count, unit: items(count), title: `Bag ${state.numberOf(bag.id)}`, badge: 'New',
+        status: kg !== null && count ? `${status} · ${kg} kg` : status, tone,
+        photoUrl: bag.photoUrl, done: false, deletable: true, photoAction: kg !== null, uploading: state.uploading.value.has(bag.id),
         open: () => sheet.open(bag.id), remove: () => state.deleteBag(bag.id), takePhoto: () => photo.open(bag.id) }
     }),
   ]
@@ -177,7 +179,7 @@ function handleGunScan(value: string): void {
 
 function handleCapture(file: File): void {
   const bagId = photo.id.value
-  if (!packaging || !bagId || newBags.value.find(bag => bag.id === bagId)?.photoUrl) return
+  if (!packaging || !bagId || !newBags.value.some(bag => bag.id === bagId)) return
   void packaging.setPhoto(bagId, file)
   photo.close()
 }
@@ -297,11 +299,16 @@ if (packaging) {
       :open="sheetBag !== null"
       :bag-number="sheetBag ? packaging.numberOf(sheetBag.id) : 0"
       :selected-count="sheetBag?.garmentTagIds.length ?? 0"
+      :photo-url="sheetBag?.photoUrl ?? null"
+      :weight="sheetBag?.weight ?? ''"
+      :uploading="!!sheetBag && packaging.uploading.value.has(sheetBag.id)"
       :cards="sheetCards"
       :loading="packaging.ticketsLoading.value"
       @close="sheet.close"
       @toggle="tagId => sheetBag && packaging?.toggle(sheetBag.id, tagId)"
       @scan="openSheetScanner"
+      @photo="sheetBag && photo.open(sheetBag.id)"
+      @update:weight="weight => sheetBag && packaging?.setWeight(sheetBag.id, weight)"
     />
     <ConfirmOverlay
       :open="confirmOpen"

@@ -39,7 +39,7 @@ In the four garment departments, the scan button opens the shared scanner with `
 
 Completing a ticket through `/api/job-tickets/advance` appends one WorkTransactions EARN row with the ticket's `work_minutes` and `created_by` set to the staff StaffId; accepting work (Pending → In Progress) earns nothing. Tickets without `work_minutes` (created before the column existed) earn nothing and are not reported. If the score write fails, the affected tickets are counted in `scoreFailed` and the page shows “Score not saved … Tell an admin”; completion itself still succeeds.
 
-Packaging weight-photo scores come from successful WEIGHT order-image saves: a Completed ORDER
+Packaging weight-photo scores come from successful WEIGHT order-image saves and from Packaging Confirm (one per confirmed bag, same service): a Completed ORDER
 ticket stores kg times the `PCK-WEIGHT-KG` Packaging rate and earns one EARN for an active
 photographer StaffId. Missing rates leave minutes null and earn nothing; inactive or unknown
 photographers still receive a ticket without EARN. Failures are logged and do not fail the image save.
@@ -146,14 +146,14 @@ links to unknown order items. `buildItemNames` in `packaging-item-names.ts` is t
 that cannot be resolved, or a failed read, shows the neutral name “Item”. Reloading the same order
 (for example after Confirm) does not read the names again.
 
-New bag IDs use the browser-safe short-ID generator. IDs, garment tags, and photo URLs are kept
+New bag IDs use the browser-safe short-ID generator. IDs, garment tags, photo URLs, and the typed weight are kept
 per order in localStorage. Taking a photo immediately uploads to `order-images/<orderId>` in
 Firebase Storage; only the returned URL is saved on the device. The photo slot shows uploading,
 upload failures show a notice, and Confirm is disabled during uploads or a save.
 
 Confirm sends every new bag in one `POST /api/packaging-bags/confirm` request with the current
-StaffId. The endpoint validates the whole request, appends missing BAG images and BagItems,
-provisions LOG-BAG tickets, completes garment Packaging tickets through the shared transition core,
+StaffId. The endpoint validates the whole request, appends missing WEIGHT images (kg in `quantity`) and BagItems,
+provisions LOG-BAG tickets and the weight-photo ticket and score of each bag, completes garment Packaging tickets through the shared transition core,
 and then attempts printing. Failure retains the device bags for retry, including after a reload
 following partial writes. Success clears stored bags, reloads the order, and reports printed and
 unprinted tags. Job-ticket, bag-item, and order-image caches invalidate on both success and failure.

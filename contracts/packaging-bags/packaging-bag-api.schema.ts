@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { ModuleApiContract } from '../shared/module-api-contract.js'
+import { isValidOrderImageWeight, MAX_ORDER_IMAGE_WEIGHT_KG } from '../../shared/utils/item-quantity.js'
 
 export const packagingBagConfirmRequestSchema = z.object({
   orderId: z.string().trim().min(1),
@@ -8,6 +9,9 @@ export const packagingBagConfirmRequestSchema = z.object({
     orderImageId: z.string().regex(/^[0-9a-f]{8}$/).refine(id => !/^[0-9]+(e[0-9]+)?$/.test(id), 'Invalid bag ID'),
     imagePath: z.string().url().regex(/^https?:\/\//, 'Bag photo must be an http(s) URL'),
     laundryItemIds: z.array(z.string().trim().min(1)).min(1, 'Each bag needs at least one garment'),
+    // Same rule as a WEIGHT order image's quantity; stored in OrderImages.quantity.
+    weightKg: z.number().refine(isValidOrderImageWeight,
+      `Bag weight must be greater than 0, at most ${MAX_ORDER_IMAGE_WEIGHT_KG}, and use at most one decimal place`),
   }).strict()).min(1).max(20),
 }).strict().superRefine((request, context) => {
   const garments = new Set<string>()

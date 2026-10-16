@@ -80,8 +80,9 @@ Behaviour
   See [Bag logistics tickets](./job-ticket.md#bag-logistics-tickets). Failures leave the save response unchanged.
 - Bag-tag printing sends the saved WEIGHT quantity as `weightKg`, `itemCount: null`, and the
   normalized image creation time as `packedAt`. The print response is unchanged.
-  Packaging BAG images are written only by [Packaging Confirm](../../packaging/confirm.md),
-  without entering this create flow or triggering WEIGHT credit.
+  [Packaging Confirm](../../packaging/confirm.md) records each new bag as a WEIGHT row (photo in
+  `imagePath`, bag kg in `quantity`) and runs the same ticket, score, LOG-BAG and tag side effects once
+  per bag, without calling this create flow. It no longer writes `BAG` rows; existing `BAG` rows stay.
 - DOCUMENT capture saves one photo per "Use this photo" and then closes the scanner. Another
   document requires opening DOCUMENT capture again.
 

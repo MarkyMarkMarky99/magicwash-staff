@@ -43,7 +43,7 @@ globalThis.fetch = (async input => {
     ? [job('tag-1'), job('tag-2'), job('old-completed', 'Packaging', 'Completed'), job('blocked', 'Ironing', 'Pending', 2)] : []
   return Response.json({ success: true, data, meta: { pagination: { page: 1, perPage: 500 } } })
 }) as typeof fetch
-const memory = new Map<string, string>([['magicwash.packaging-bags.order-1', JSON.stringify([{ id: 'bag-a', garmentTagIds: [], photoUrl: 'https://photo/a' }])]])
+const memory = new Map<string, string>([['magicwash.packaging-bags.order-1', JSON.stringify([{ id: 'bag-a', garmentTagIds: [], photoUrl: 'https://photo/a', weight: '2.5' }])]])
 const dependencies = {
   ...packaging, computed, ref, shallowRef, watch, useJobTicketStore, loadPackagingOrder, loadItemNames, itemNameFor,
   generateShortId: () => 'bag-new',
@@ -70,6 +70,13 @@ try {
   assert.equal(state.order.value.garments.find((row: any) => row.tagId === 'tag-1').waitingFor, 'Ironing')
   assert.equal(state.scan('bag-a', 'tag-1').success, false)
   assert.equal(state.scan('bag-a', 'tag-2').success, true)
+  assert.equal(state.confirmable.value, true)
+  state.setWeight('bag-a', '')
+  assert.equal(state.confirmable.value, false, 'a bag without a weight blocks Confirm')
+  state.setWeight('bag-a', '0')
+  assert.equal(state.confirmable.value, false)
+  state.setWeight('bag-a', '2.5')
+  assert.equal(JSON.parse(memory.get('magicwash.packaging-bags.order-1')!)[0].weight, '2.5', 'the weight is kept in the device draft')
   assert.equal(state.confirmable.value, true)
   store.rows.get('blocked')!.status = 'Completed'
   await nextTick()

@@ -7,7 +7,7 @@ import { currentActor } from '@/shared/config/actor'
 import { loadItemNames, loadPackagingOrder } from '../packaging-bag-source'
 import { itemNameFor } from '../packaging-item-names'
 import {
-  bagNumber, canConfirm, garmentsInNewBags, restoreBags, scanGarment, toggleGarment, unassignedCount,
+  bagNumber, bagWeightKg, canConfirm, garmentsInNewBags, restoreBags, scanGarment, toggleGarment, unassignedCount,
   type BagScanOutcome, type NewBag, type PackagingOrder,
 } from '../packaging-bags'
 
@@ -106,7 +106,7 @@ export function usePackagingBags(orderId: () => string) {
       return ''
     }
     const id = generateShortId()
-    commit([...bags.value, { id, garmentTagIds: [], photoUrl: null }])
+    commit([...bags.value, { id, garmentTagIds: [], photoUrl: null, weight: '' }])
     return id
   }
 
@@ -123,6 +123,10 @@ export function usePackagingBags(orderId: () => string) {
     const outcome = scanGarment(order.value, bags.value, bagId, value)
     commit(outcome.bags)
     return outcome
+  }
+
+  function setWeight(bagId: string, weight: string): void {
+    if (!submitting.value) commit(bags.value.map(row => row.id === bagId ? { ...row, weight } : row))
   }
 
   async function setPhoto(bagId: string, file: File): Promise<void> {
@@ -149,7 +153,7 @@ export function usePackagingBags(orderId: () => string) {
     const id = order.value.orderId
     try {
       const result = await confirmPackagingBags({ orderId: id, createdBy: currentActor(),
-        bags: bags.value.map(bag => ({ orderImageId: bag.id, imagePath: bag.photoUrl!, laundryItemIds: [...bag.garmentTagIds] })),
+        bags: bags.value.map(bag => ({ orderImageId: bag.id, imagePath: bag.photoUrl!, laundryItemIds: [...bag.garmentTagIds], weightKg: bagWeightKg(bag)! })),
       })
       const printed = result.bags.filter(bag => bag.printed).length
       const failed = result.bags.length - printed
@@ -182,5 +186,5 @@ export function usePackagingBags(orderId: () => string) {
   onDeactivated(() => { releaseOrder?.(); releaseOrder = undefined })
   onBeforeUnmount(() => { releaseOrder?.(); loadSequence += 1 })
 
-  return { order, bags, ticketsLoading, loading, error, notice, submitting, uploading, unassigned, pending, confirmable, load, addBag, deleteBag, toggle, scan, setPhoto, confirm, numberOf, nameOf }
+  return { order, bags, ticketsLoading, loading, error, notice, submitting, uploading, unassigned, pending, confirmable, load, addBag, deleteBag, toggle, scan, setWeight, setPhoto, confirm, numberOf, nameOf }
 }

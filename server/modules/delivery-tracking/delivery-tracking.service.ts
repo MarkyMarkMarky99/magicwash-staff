@@ -54,7 +54,7 @@ export class DeliveryTrackingService {
 
   async get(orderImageId: string): Promise<DeliveryTrackingResponse> {
     const image = (await this.readImages({ id: orderImageId })).find((row) => row.id === orderImageId)
-    if (!image || !isWeight(image) || !image.order_id) throw ApiError.notFound(NOT_FOUND)
+    if (!image || !(isWeight(image) || isBag(image)) || !image.order_id) throw ApiError.notFound(NOT_FOUND)
     const orderId = image.order_id
 
     const [siblings, order, tickets] = await Promise.all([
@@ -64,8 +64,12 @@ export class DeliveryTrackingService {
     ])
     if (!order) throw ApiError.notFound(NOT_FOUND)
 
+    // Packaging used to write BAG rows (no weight). Only a BAG row with its Logistics bag ticket is a packaged
+    // bag; the other BAG rows are old photos and are never bags.
+    const hasBagTicket = (id: unknown) => tickets.some((row) => row.id === `LOG-${orderId}-${String(id)}-LOG-BAG`)
+    if (isBag(image) && !hasBagTicket(image.id)) throw ApiError.notFound(NOT_FOUND)
     const bags = siblings
-      .filter((row) => row.order_id === orderId && isWeight(row) && typeof row.id === 'string')
+      .filter((row) => row.order_id === orderId && typeof row.id === 'string' && (isWeight(row) || (isBag(row) && hasBagTicket(row.id))))
       .map((row) => ({ row, weighedAt: normalizeSheetTimestamp(row.created_at) }))
       .sort((a, b) => a.weighedAt.localeCompare(b.weighedAt) || String(a.row.id).localeCompare(String(b.row.id)))
     if (!bags.some(({ row }) => row.id === orderImageId)) bags.push({ row: image, weighedAt: normalizeSheetTimestamp(image.created_at) })
@@ -119,6 +123,10 @@ export class DeliveryTrackingService {
 
 function isWeight(row: OrderImageRow): boolean {
   return typeof row.image_type === 'string' && row.image_type.trim().toUpperCase() === 'WEIGHT'
+}
+
+function isBag(row: OrderImageRow): boolean {
+  return typeof row.image_type === 'string' && row.image_type.trim().toUpperCase() === 'BAG'
 }
 
 function toWeight(value: unknown): number {

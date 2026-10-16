@@ -36,7 +36,7 @@ globalThis.fetch = (async (input, init) => {
   else if (url.pathname === '/api/packaging-bags/confirm') {
     assert.equal(init?.method, 'POST')
     assert.deepEqual(JSON.parse(String(init?.body)), { orderId: 'order-1', createdBy: 'staff-1', bags: [
-      { orderImageId: 'deadbeef', imagePath: 'https://storage.example/bag.jpg', laundryItemIds: ['tag-2'] },
+      { orderImageId: 'deadbeef', imagePath: 'https://storage.example/bag.jpg', laundryItemIds: ['tag-2'], weightKg: 2.5 },
     ] })
     if (failConfirm) return Response.json({ success: false, error: { code: 'CONFLICT', message: 'Garment is in another bag' }, meta: { timestamp: new Date().toISOString() } }, { status: 409 })
     data = { bags: [{ orderImageId: 'deadbeef', printed: true }] }
@@ -85,11 +85,11 @@ try {
   for (let i = 0; i < 100; i++) {
     const id = generateShortId()
     assert.equal(packagingBagConfirmRequestSchema.safeParse({ orderId: 'order-1', createdBy: 'staff-1', bags: [
-      { orderImageId: id, imagePath: 'https://photo.example/a', laundryItemIds: ['tag-1'] },
+      { orderImageId: id, imagePath: 'https://photo.example/a', laundryItemIds: ['tag-1'], weightKg: 1.5 },
     ] }).success, true)
   }
   const payload = { orderId: 'order-1', createdBy: 'staff-1', bags: [
-    { orderImageId: 'deadbeef', imagePath: 'https://storage.example/bag.jpg', laundryItemIds: ['tag-2'] },
+    { orderImageId: 'deadbeef', imagePath: 'https://storage.example/bag.jpg', laundryItemIds: ['tag-2'], weightKg: 2.5 },
   ] }
   for (const failure of [false, true]) {
     failConfirm = failure

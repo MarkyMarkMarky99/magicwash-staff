@@ -1,4 +1,5 @@
 import { formatSheetDateTime, getBangkokClock } from '@/shared/utils/sheet-date'
+import { parseWeightKg } from '@shared/utils/item-quantity'
 import type { z } from 'zod'
 import type { jobTicketDepartmentSchema } from '@contracts/job-tickets/job-ticket-api.schema'
 import { departmentLabels, presentScanPopup, type ScanDisplay } from './scan-result'
@@ -20,7 +21,8 @@ export type PackagingOrder = {
   confirmedBags: ConfirmedBag[]
 }
 
-export type NewBag = { id: string; garmentTagIds: string[]; photoUrl: string | null }
+// `weight` is the kg text as typed, so a half-typed value survives in the draft; `bagWeightKg` is the validated number.
+export type NewBag = { id: string; garmentTagIds: string[]; photoUrl: string | null; weight: string }
 
 export type StoredBag = NewBag
 
@@ -52,8 +54,12 @@ export function confirmedItemCount(order: PackagingOrder, bagId: string): number
   return order.garments.filter(garment => garment.confirmedBagId === bagId).length
 }
 
+export function bagWeightKg(bag: Pick<NewBag, 'weight'>): number | null {
+  return parseWeightKg(bag.weight)
+}
+
 export function canConfirm(bags: readonly NewBag[]): boolean {
-  return bags.length > 0 && bags.every(bag => bag.photoUrl && bag.garmentTagIds.length > 0)
+  return bags.length > 0 && bags.every(bag => bag.photoUrl && bag.garmentTagIds.length > 0 && bagWeightKg(bag) !== null)
 }
 
 export function garmentState(order: PackagingOrder, bags: readonly NewBag[], bagId: string, garment: PackagingGarment): GarmentState {
@@ -123,7 +129,8 @@ export function restoreBags(order: PackagingOrder, value: unknown): NewBag[] {
       taken.add(garment.tagId)
       garmentTagIds.push(garment.tagId)
     }
-    restored.push({ id: entry.id, garmentTagIds, photoUrl: typeof entry.photoUrl === 'string' && /^https?:\/\//.test(entry.photoUrl) ? entry.photoUrl : null })
+    restored.push({ id: entry.id, garmentTagIds, photoUrl: typeof entry.photoUrl === 'string' && /^https?:\/\//.test(entry.photoUrl) ? entry.photoUrl : null,
+      weight: typeof entry.weight === 'string' ? entry.weight : '' })
   }
   return restored
 }
