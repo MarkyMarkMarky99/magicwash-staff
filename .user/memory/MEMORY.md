@@ -7,6 +7,7 @@
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 - **`feat/corporate-order-form`** — corporate count-sheet order page built UI-only, committed unmerged; needs entry point, real-login check, save design; see `.user/memory/feat-corporate-order-form.md`.
+- **`feat/scan-popup-photo`** — gun-scan photo popup (customer index, neon check) + scan-to-top list order; owner-tested on vercel dev, not merged; see `.user/memory/feat-scan-popup-photo.md`.
 
 ## Pending work
 - **Wash queue + dryer queue (one-sheet booking: photo, optional weight, auto tag, washer menu, read-only program line — merged 2026-10-11; auto tag + photo slides merged 2026-10-13)** — see `docs/features/wash-queue/wash-queue.md`
@@ -50,7 +51,7 @@
 - **Garment tracking and job tickets**
   - Merged 2026-10-15: advance reads JobTickets once via `readRaw` (owner-tested on vercel dev); watch the first prod Start/Complete.
   - Merged 2026-10-15: barcode-gun scanning on department pages + one/two-beep scan sounds; not yet used with a gun on prod.
-  - Gun-scan result popup redesign approved as prototype only (photo card, dark see-through, neon check E): `.user/prototypes/scan-confirm-prototype.html`; not built in `DepartmentWorkPage.vue`/`ScanResultCard.vue`.
+  - Gun-scan photo popup + scan-to-top ordering built on `feat/scan-popup-photo` (see Branches in flight).
   - Scan FAB sits below the screen edge on some phones; cause unknown, awaiting the user's device/browser details.
   - Overlapping order Start notices share one page-notice slot; the later replaces the earlier.
   - `/api/job-tickets/scan` and its service have no caller since batch advance; delete in a later pass.

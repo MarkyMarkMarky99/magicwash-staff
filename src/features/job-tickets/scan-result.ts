@@ -3,7 +3,8 @@ import type { jobTicketDepartmentSchema } from '@contracts/job-tickets/job-ticke
 import type { JobTicketStartOrderResult } from '@/data/job-tickets/job-ticket.service'
 
 export type ScanTone = 'loading' | 'success' | 'warning' | 'error'
-export type ScanDisplay = { title: string; orderId?: string; customerName?: string; status?: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled'; message: string; tone: ScanTone }
+export type ScanPopup = { customerIndex: string | null; photoUrl: string | null; matched: boolean }
+export type ScanDisplay = { title: string; orderId?: string; customerName?: string; status?: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled'; message: string; tone: ScanTone; scan?: ScanPopup }
 
 export const departmentLabels: Record<z.infer<typeof jobTicketDepartmentSchema>, string> = {
   Tagging: 'Tagging',

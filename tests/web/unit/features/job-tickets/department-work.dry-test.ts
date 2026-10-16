@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
 import type { JobTicketDto, JobTicketListQuery, listJobTickets } from '@/data/job-tickets/job-ticket.service'
 import { completedTodayFromPage, loadOpenTickets, loadCompletedTickets, MAX_DEPARTMENT_TICKETS } from '@/data/job-tickets/job-ticket.service'
-import { advanceSummary, completionPercentage, countDepartmentStatuses, filterTickets, groupDepartmentOrders, readDepartment, readGrouper, readStatusFilter, resolveScanTag, restoreScanQueue, sortDepartmentTickets, statusForFilter, taskLabel, ticketSelectLabel, toggleTicketSelection } from '@/features/job-tickets/department-work'
+import { advanceSummary, completionPercentage, countDepartmentStatuses, filterTickets, groupDepartmentOrders, presentGunScan, readDepartment, readGrouper, readStatusFilter, recordScan, resolveScanTag, restoreScanQueue, sortDepartmentTickets, sortOrdersByScan, sortScannedFirst, statusForFilter, taskLabel, ticketSelectLabel, toggleTicketSelection } from '@/features/job-tickets/department-work'
 import { normalizeGarmentTagId } from '@/shared/utils/garment-tag-id'
 
 function ticket(id: string, orderId: string, status: JobTicketDto['status'], completedAt: string | null = null): JobTicketDto {
@@ -34,10 +34,14 @@ assert.deepEqual([...toggleTicketSelection(selected, selectionTicket, 'Pending')
 assert.deepEqual([...toggleTicketSelection(selected, selectionTicket, 'In Progress')], ['tag-a'])
 assert.deepEqual([...toggleTicketSelection(new Set<string>(), { ...selectionTicket, laundryItemId: null }, 'Pending')], [])
 const scanTickets = [selectionTicket, ticket('tag-b', 'order-1', 'Completed')]
-assert.deepEqual(resolveScanTag('tag-a', scanTickets, 'Pending', [], 'Washing'), { entry: { ticketId: 'tag-a', orderId: 'order-1', tag: 'tag-a' }, message: 'Queued' })
+assert.deepEqual(resolveScanTag('tag-a', scanTickets, 'Pending', [], 'Washing'), { entry: { ticketId: 'tag-a', orderId: 'order-1', tag: 'tag-a' }, ticket: selectionTicket, message: 'Queued' })
 assert.equal(resolveScanTag('tag-b', scanTickets, 'Pending', [], 'Washing').message, 'Not in this tab')
+assert.equal(resolveScanTag('tag-b', scanTickets, 'Pending', [], 'Washing').ticket, scanTickets[1])
 assert.equal(resolveScanTag('missing', scanTickets, 'Pending', [], 'Washing').message, 'No job for this tag')
-assert.equal(resolveScanTag('tag-a', scanTickets, 'Pending', [{ ticketId: 'tag-a', orderId: 'order-1', tag: 'tag-a' }], 'Washing').message, 'Already queued')
+assert.equal(resolveScanTag('missing', scanTickets, 'Pending', [], 'Washing').ticket, undefined)
+const queuedScan = resolveScanTag('tag-a', scanTickets, 'Pending', [{ ticketId: 'tag-a', orderId: 'order-1', tag: 'tag-a' }], 'Washing')
+assert.equal(queuedScan.message, 'Already queued')
+assert.equal(queuedScan.ticket, selectionTicket)
 assert.deepEqual(restoreScanQueue([{ ticketId: 'tag-a' }, { ticketId: 'tag-a' }, { ticketId: 'tag-b' }, { ticketId: 'missing' }], scanTickets, 'Pending', 'Washing'), [{ ticketId: 'tag-a', orderId: 'order-1', tag: 'tag-a' }])
 const taskTickets = [
   { ...ticket('wash-b', 'order-1', 'Pending'), laundryItemId: 'tag-m', taskCode: 'WSH-B', stepNo: 2 },
@@ -47,12 +51,14 @@ const taskTickets = [
   { ...ticket('wash-legacy', 'order-1', 'Pending'), laundryItemId: 'tag-legacy', taskCode: null },
 ]
 assert.deepEqual(resolveScanTag('tag-m', taskTickets, 'Pending', [], 'Washing'), {
+  ticket: taskTickets[0],
   message: '2 tasks for this tag (WSH-B, WSH-A). Select them from the list',
 })
-assert.deepEqual(resolveScanTag('tag-solo', taskTickets, 'Pending', [], 'Washing'), { entry: { ticketId: 'wash-solo', orderId: 'order-1', tag: 'tag-solo' }, message: 'Queued' })
+assert.deepEqual(resolveScanTag('tag-solo', taskTickets, 'Pending', [], 'Washing'), { entry: { ticketId: 'wash-solo', orderId: 'order-1', tag: 'tag-solo' }, ticket: taskTickets[3], message: 'Queued' })
 assert.deepEqual(resolveScanTag('tag-solo', taskTickets, 'Pending', [{ ticketId: 'wash-solo', orderId: 'order-1', tag: 'tag-solo' }], 'Washing').message, 'Already queued')
 assert.deepEqual(resolveScanTag('tag-legacy', taskTickets, 'Pending', [], 'Washing').entry?.ticketId, 'wash-legacy')
 assert.deepEqual(resolveScanTag('tag-m', [taskTickets[0]!, { ...taskTickets[1]!, taskCode: null }], 'Pending', [], 'Washing'), {
+  ticket: taskTickets[0],
   message: '2 tasks for this tag (WSH-B, no task). Select them from the list',
 })
 assert.deepEqual(restoreScanQueue([{ ticketId: 'wash-a' }, { ticketId: 'wash-legacy', orderId: 'order-9', tag: 'stale' }], taskTickets, 'Pending', 'Washing'), [
@@ -69,6 +75,11 @@ assert.equal(ticketSelectLabel({ ...taskTickets[4]!, laundryItemId: null, status
 const taskOrderInfo = new Map([['order-1', { dueDate: '2026-09-24', customerId: 'customer-1', customerName: 'Task', customerIndex: 'TSK' }]])
 assert.deepEqual(sortDepartmentTickets(taskTickets.slice(0, 2), taskOrderInfo).map(row => row.id), ['wash-a', 'wash-b'])
 assert.deepEqual(sortDepartmentTickets([{ ...taskTickets[0]!, stepNo: 1 }, { ...taskTickets[1]!, stepNo: 1 }], taskOrderInfo).map(row => row.taskCode), ['WSH-A', 'WSH-B'])
+const photoTicket = { ...ticket('tag-p', 'order-1', 'Pending'), photoEvidenceUrl: 'https://example.test/p.jpg' }
+assert.deepEqual(presentGunScan('tag-p', photoTicket, { customerName: 'Task', customerIndex: 'C-07' }, 'Queued', 'success'), { title: 'tag-p', customerName: 'Task', message: 'Queued', tone: 'success', scan: { customerIndex: 'C-07', photoUrl: 'https://example.test/p.jpg', matched: true } })
+assert.deepEqual(presentGunScan('zzz', undefined, undefined, 'No job for this tag', 'error'), { title: 'zzz', message: 'No job for this tag', tone: 'error', scan: { customerIndex: null, photoUrl: null, matched: false } })
+assert.deepEqual(recordScan(['a', 'b'], 'c'), ['a', 'b', 'c'])
+assert.deepEqual(recordScan(['a', 'b', 'c'], 'a'), ['b', 'c', 'a'])
 for (const scoreFailed of [1, 3]) {
   assert.equal(advanceSummary({ kind: 'completed', advanced: [], blocked: [], skipped: [], scoreFailed }, 'In Progress'),
     `0 completed · 0 blocked · 0 skipped · Score not saved for ${scoreFailed} job${scoreFailed === 1 ? '' : 's'}. Tell an admin.`)
@@ -85,6 +96,18 @@ assert.deepEqual(groupDepartmentOrders(tickets, orderInfo).map(order => order.or
 assert.deepEqual(groupDepartmentOrders(filterTickets(tickets, 'PENDING'), orderInfo).map(order => order.orderId), ['order-late'])
 assert.deepEqual(sortDepartmentTickets(filterTickets(tickets, 'PENDING'), orderInfo).map(row => row.id), ['tag-a'])
 assert.equal(groupDepartmentOrders(tickets, orderInfo)[0]?.percentage, 50)
+const scanRows = ['s1', 's2', 's3', 's4'].map((id, index) => ({ ...ticket(id, index < 2 ? 'order-soon' : 'order-late', 'Pending'), laundryItemId: id }))
+const scanBase = sortDepartmentTickets(scanRows, orderInfo)
+assert.deepEqual(scanBase.map(row => row.id), ['s1', 's2', 's3', 's4'])
+assert.deepEqual(sortScannedFirst(scanBase, []).map(row => row.id), ['s1', 's2', 's3', 's4'])
+assert.deepEqual(sortScannedFirst(scanBase, ['s3', 's2']).map(row => row.id), ['s2', 's3', 's1', 's4'])
+assert.deepEqual(sortScannedFirst(scanBase, ['s3', 's2', 'gone']).map(row => row.id), ['s2', 's3', 's1', 's4'])
+const scanOrders = groupDepartmentOrders(scanBase, orderInfo)
+assert.deepEqual(sortOrdersByScan(scanOrders, []).map(order => order.orderId), ['order-soon', 'order-late'])
+assert.deepEqual(sortOrdersByScan(scanOrders, ['s2', 's4']).map(order => order.orderId), ['order-late', 'order-soon'])
+assert.deepEqual(sortOrdersByScan(scanOrders, ['s4', 's2']).map(order => order.orderId), ['order-soon', 'order-late'])
+assert.deepEqual(sortOrdersByScan(scanOrders, ['s2', 's1']).map(order => order.tickets.map(row => row.id)), [['s1', 's2'], ['s3', 's4']])
+assert.deepEqual(sortOrdersByScan(scanOrders, ['s1', 's2']).map(order => order.tickets.map(row => row.id)), [['s2', 's1'], ['s3', 's4']])
 const boardTickets = filterTickets([...tickets, { ...ticket('weight', 'order-only', 'Completed'), scope: 'ORDER', laundryItemId: null }], 'ALL')
 assert.deepEqual(boardTickets, tickets)
 assert.deepEqual(countDepartmentStatuses(boardTickets), { ALL: 3, PENDING: 1, 'IN PROGRESS': 1, COMPLETED: 1 })
