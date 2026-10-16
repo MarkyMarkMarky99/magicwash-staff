@@ -50,6 +50,7 @@
 - **Garment tracking and job tickets**
   - Merged 2026-10-15: advance reads JobTickets once via `readRaw` (owner-tested on vercel dev); watch the first prod Start/Complete.
   - Merged 2026-10-15: barcode-gun scanning on department pages + one/two-beep scan sounds; not yet used with a gun on prod.
+  - Gun-scan result popup redesign approved as prototype only (photo card, dark see-through, neon check E): `.user/prototypes/scan-confirm-prototype.html`; not built in `DepartmentWorkPage.vue`/`ScanResultCard.vue`.
   - Scan FAB sits below the screen edge on some phones; cause unknown, awaiting the user's device/browser details.
   - Overlapping order Start notices share one page-notice slot; the later replaces the earlier.
   - `/api/job-tickets/scan` and its service have no caller since batch advance; delete in a later pass.

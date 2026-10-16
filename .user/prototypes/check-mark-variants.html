@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scan success check mark variants</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0" rel="stylesheet">
+<style>
+:root{
+  --primary:#00564b; --on-primary:#fff; --secondary:#007a69;
+  --surface:#f8fafa; --on-surface:#073f38; --on-surface-variant:#5f7772;
+  --sc-low:#f2f4f4; --sc:#eceeee;
+  --outline-variant:#cae0dc;
+  --lime:#b2df26;
+  --font:"Noto Sans Thai",Inter,sans-serif;
+}
+*{box-sizing:border-box;margin:0}
+html{overflow-x:hidden}
+body{font-family:var(--font);background:#d9dedd;color:var(--on-surface);min-height:100vh;padding:16px 16px 40px;overflow-x:hidden}
+.ms{font-family:"Material Symbols Outlined";font-weight:400;font-style:normal;font-size:24px;line-height:1;display:inline-block;white-space:nowrap;letter-spacing:normal;text-transform:none;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;font-feature-settings:'liga'}
+
+/* ---------- page chrome ---------- */
+.top{max-width:1100px;margin:0 auto 16px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
+.top h1{font-size:16px;font-weight:700;color:var(--primary);min-width:0}
+.top p{font-size:12px;color:#44605b;line-height:1.5;margin-top:2px;font-weight:400}
+.btn{font:600 13px var(--font);border:1px solid var(--outline-variant);background:#fff;color:var(--on-surface);padding:7px 14px;border-radius:999px;cursor:pointer}
+.btn:active{transform:scale(.97)}
+.btn.all{background:var(--lime);color:var(--primary);border-color:var(--lime)}
+.grid{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:18px}
+.cell{min-width:0;background:#eef1f0;border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.cell h2{font-size:15px;font-weight:700;color:var(--primary);display:flex;align-items:center;gap:8px}
+.cell h2 b{display:grid;place-items:center;width:24px;height:24px;border-radius:8px;background:var(--primary);color:var(--lime);font-size:13px}
+.cell .desc{font-size:12px;color:#44605b;line-height:1.45;min-height:52px}
+.cell .row{display:flex;justify-content:flex-end}
+
+/* ---------- mock page behind the popup ---------- */
+.stage{position:relative;height:214px;background:#f8fafa;border-radius:14px;overflow:hidden;border:1px solid var(--outline-variant)}
+.pg{position:absolute;inset:0;padding:10px 12px;display:flex;flex-direction:column;gap:8px;filter:blur(1.4px)}
+.po{background:var(--sc-low);border:1px solid rgba(202,224,220,.5);border-radius:14px;padding:10px 12px;flex:none}
+.po b{display:block;font-size:13px;color:var(--primary)}
+.po i{display:block;font-style:normal;font-size:11px;color:var(--on-surface-variant);margin-bottom:6px}
+.po div{display:flex;gap:6px}
+.po u{display:block;height:22px;flex:1;border-radius:8px}
+.po u:nth-child(1){background:#fef3c7}
+.po u:nth-child(2){background:#dfe9b9}
+.po u:nth-child(3){background:rgba(178,223,38,.45)}
+.slot{position:absolute;left:12px;right:12px;bottom:14px}
+
+/* ---------- THE POPUP (final state of the real prototype, flattened) ---------- */
+.rc{position:relative;margin:0 auto;max-width:384px;display:flex;align-items:stretch;gap:10px;padding:0 40px 0 0;border-radius:16px;overflow:hidden;
+  --tone:var(--lime);
+  background:rgba(12,18,17,.62);-webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);color:#fff;box-shadow:0 10px 24px rgba(0,0,0,.3)}
+.hero{position:relative;flex:none;width:96px;height:auto;min-height:88px;border:0;border-radius:0;overflow:hidden;background:var(--sc-low)}
+.hero>svg:first-child{display:block;width:100%;height:100%;object-fit:cover}
+.rc .meta{flex:1;min-width:0;padding:8px 0;display:flex;flex-direction:column;justify-content:center;gap:3px}
+.cust{font-weight:700;font-size:15px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.line{display:flex;align-items:center;flex-wrap:wrap;gap:3px 6px;font-size:11px;color:rgba(255,255,255,.75)}
+.tag{display:inline-flex;align-items:center;gap:3px;font:700 11px ui-monospace,Consolas,monospace;background:rgba(255,255,255,.14);color:#fff;border-radius:8px;padding:1px 6px;letter-spacing:.02em}
+.tag .ms{font-size:14px}
+.x{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;display:flex;align-items:center;justify-content:center}
+.x .ms{font-size:18px}
+
+/* ---------- shared mark plumbing: ONE position (centered), ONE light scrim; only the glyph differs ---------- */
+.mk{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;overflow:hidden;background:rgba(0,0,0,.24);animation:fadeIn .15s both}
+.mk>svg{width:68px;height:68px;overflow:visible}
+.dr{stroke-dasharray:100 150;stroke-dashoffset:105}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* A. Marker Scrawl: felt-tip lime stroke with rough ink edges, streaks and splatter */
+.a-svg{filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
+.a-m{fill:none;stroke-linecap:round;stroke-linejoin:round;filter:url(#rough)}
+.a-1{stroke:#c9ee3a;stroke-width:10;animation:draw .4s .08s cubic-bezier(.5,0,.3,1) forwards}
+.a-2{stroke:#7fa514;stroke-width:3;opacity:.55;transform:translate(1.5px,2px);animation:draw .4s .1s cubic-bezier(.5,0,.3,1) forwards}
+.a-dot{fill:#c9ee3a;filter:url(#rough);animation:fadeIn .1s .42s both}
+
+/* B. Glossy 3D: chunky rounded green check with white sticker rim, dark extrusion and a gloss highlight; drops in and squashes */
+.b-svg{filter:drop-shadow(0 4px 5px rgba(0,0,0,.4))}
+.b-g{transform-box:fill-box;transform-origin:50% 90%;animation:bDrop .58s both}
+.b-g path{fill:none;stroke-linecap:round;stroke-linejoin:round}
+@keyframes bDrop{
+  0%{transform:translateY(-34px) scale(.9,1.2);opacity:0;animation-timing-function:cubic-bezier(.5,0,.9,.5)}
+  42%{transform:translateY(0) scale(1.2,.76);opacity:1;animation-timing-function:ease-out}
+  62%{transform:scale(.94,1.1)}
+  80%{transform:scale(1.03,.97)}
+  100%{transform:none;opacity:1}}
+
+/* C. Calligraphy Ink: thick-to-thin filled pen stroke, revealed along its path like a pen moving */
+.c-svg{filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
+.c-m{fill:none;stroke:#fff;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;animation:draw .45s .08s ease-in-out forwards}
+
+/* D. Snap Bars: two flat rounded bars (white short, lime long) fly in from opposite corners and snap together */
+.d-svg{filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
+.d-s{animation:dS .36s .04s cubic-bezier(.3,1.5,.5,1) both}
+.d-l{animation:dL .36s .16s cubic-bezier(.3,1.5,.5,1) both}
+@keyframes dS{from{transform:translate(-40px,28px);opacity:0}to{transform:none;opacity:1}}
+@keyframes dL{from{transform:translate(40px,-34px);opacity:0}to{transform:none;opacity:1}}
+
+/* E. Neon Outline: hollow double-outlined check traced in glowing lime on a dark core */
+.e-svg{filter:drop-shadow(0 0 3px #b2df26) drop-shadow(0 0 8px rgba(178,223,38,.75))}
+.e-core{fill:rgba(0,30,25,.6);animation:fadeIn .2s .3s both}
+.e-o{fill:none;stroke-linejoin:round;stroke-linecap:round}
+.e-1{stroke:#dcff4a;stroke-width:2.8;animation:draw .4s .04s ease-out forwards,flick .16s .46s linear}
+.e-2{stroke:#b2df26;stroke-width:1.6;opacity:.8;animation:draw .4s .14s ease-out forwards}
+@keyframes flick{0%{opacity:1}30%{opacity:.35}60%{opacity:1}80%{opacity:.6}100%{opacity:1}}
+
+/* F. Loop Flourish: one continuous cursive tick with a loop and tail; teal ink with a white halo */
+.f-svg{filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))}
+.f-m{fill:none;stroke-linecap:round;stroke-linejoin:round;animation:draw .6s .05s ease-in-out forwards}
+.f-h{stroke:#fff;stroke-width:11}
+.f-i{stroke:#00564b;stroke-width:5}
+
+/* ---------- narrow screens ---------- */
+@media (max-width:380px){
+  body{padding:12px 16px 32px}
+  .cell{padding:10px}
+  .rc .cust{font-size:14px}
+}
+@media (prefers-reduced-motion:reduce){
+  .mk *,.mk{animation-duration:.01s!important;animation-delay:0s!important}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <filter id="rough" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency=".16" numOctaves="3" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3.6" xChannelSelector="R" yChannelSelector="G"/></filter>
+  <linearGradient id="gGloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6ff80"/><stop offset=".5" stop-color="#b2df26"/><stop offset="1" stop-color="#5fae1c"/></linearGradient>
+  <linearGradient id="gCal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#f6ffd6"/><stop offset="1" stop-color="#d4ee6a"/></linearGradient>
+</defs></svg>
+<div class="top">
+  <div>
+    <h1>Scan success: check mark variants</h1>
+    <p>Same popup, same centered position, same light scrim; only the check glyph itself changes (shape, stroke, style, how it is drawn). Each animation finishes in under 700 ms and holds.</p>
+  </div>
+  <button class="btn all" id="all">Replay all</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+/* ---------- placeholder garment photos (copied from scan-confirm-prototype) ---------- */
+const PATHS = {
+  shirt:'M70 44 L90 32 Q100 48 110 32 L130 44 L168 68 L150 96 L134 86 L134 170 L66 170 L66 86 L50 96 L32 68 Z',
+  trousers:'M64 28 H136 L145 176 H110 L100 84 L90 176 H55 Z',
+  dress:'M84 26 L100 40 L116 26 L126 62 L118 82 L152 174 H48 L82 82 L74 62 Z',
+  jacket:'M66 40 L88 28 L100 46 L112 28 L134 40 L170 72 L152 112 L136 100 L136 172 L64 172 L64 100 L48 112 L30 72 Z',
+  towel:'M40 46 H160 V160 H40 Z',
+  sweater:'M72 40 L92 30 Q100 42 108 30 L128 40 L170 78 L154 104 L136 92 L136 168 L64 168 L64 92 L46 104 L30 78 Z'
+};
+let uid=0;
+function photo(kind,c1,c2,seed){
+  const bgA=['#cfc6b8','#bdb7ad','#d6d0c6','#c4beb4'][seed%4], bgB=['#a89f90','#9a948a','#aea798','#9d978c'][seed%4];
+  const id='g'+(uid++);
+  let d='';
+  if(kind==='shirt'||kind==='sweater'||kind==='jacket'){
+    d=`<path d="M90 32 Q100 54 110 32" fill="none" stroke="rgba(0,0,0,.25)" stroke-width="3"/><line x1="100" y1="50" x2="100" y2="170" stroke="rgba(0,0,0,.18)" stroke-width="2"/>${[70,92,114,136].map(y=>`<circle cx="104" cy="${y}" r="2.6" fill="rgba(255,255,255,.7)"/>`).join('')}<path d="M50 96 L66 86 M150 96 L134 86" stroke="rgba(0,0,0,.2)" stroke-width="2"/>`;
+    if(kind==='sweater') d+=`<rect x="64" y="160" width="72" height="9" fill="rgba(0,0,0,.18)"/>`;
+  } else if(kind==='trousers'){
+    d=`<line x1="100" y1="84" x2="100" y2="40" stroke="rgba(0,0,0,.2)" stroke-width="2"/><rect x="64" y="28" width="72" height="9" fill="rgba(0,0,0,.2)"/><line x1="76" y1="40" x2="73" y2="170" stroke="rgba(255,255,255,.18)" stroke-width="2"/>`;
+  } else if(kind==='dress'){
+    d=`<path d="M88 58 Q100 70 112 58" fill="none" stroke="rgba(0,0,0,.22)" stroke-width="3"/><path d="M82 82 H118" stroke="rgba(0,0,0,.25)" stroke-width="4"/><path d="M70 150 Q100 160 130 150" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="2"/>`;
+  } else {
+    d=[60,76,92].map(y=>`<rect x="40" y="${y}" width="120" height="6" fill="rgba(255,255,255,.35)"/>`).join('')+`<rect x="40" y="46" width="120" height="6" fill="rgba(0,0,0,.12)"/>`;
+  }
+  return `<svg viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="${id}b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${bgA}"/><stop offset="1" stop-color="${bgB}"/></linearGradient><linearGradient id="${id}f" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient><filter id="${id}s"><feGaussianBlur stdDeviation="4"/></filter></defs><rect width="200" height="200" fill="url(#${id}b)"/><path d="${PATHS[kind]}" transform="translate(5 8)" fill="rgba(0,0,0,.35)" filter="url(#${id}s)"/><path d="${PATHS[kind]}" fill="url(#${id}f)" stroke="rgba(0,0,0,.18)" stroke-width="1.5" stroke-linejoin="round"/>${d}</svg>`;
+}
+
+/* ---------- variants ---------- */
+let mid=0;
+const V=[
+ {k:'A',name:'Marker Scrawl',photo:['shirt','#5d86c4','#3b5f9e',0],
+  desc:'Hand-drawn felt-tip check in lime: rough ink edges, streaks, ink splatter. Drawn in one quick stroke.',
+  mark:()=>{const d='M10 36 L24 50 L55 12';return `<span class="mk"><svg class="a-svg" viewBox="0 0 64 64"><path class="a-m a-2 dr" pathLength="100" d="${d}"/><path class="a-m a-1 dr" pathLength="100" d="${d}"/><circle class="a-dot" cx="58" cy="6" r="1.9"/><circle class="a-dot" cx="61" cy="14" r="1.2"/><circle class="a-dot" cx="52" cy="5" r="1"/></svg></span>`}},
+ {k:'B',name:'Glossy 3D',photo:['dress','#d4789b','#a84a72',1],
+  desc:'Chunky emoji-style green check: white sticker rim, dark extrusion, gloss highlight. Drops in and squashes.',
+  mark:()=>{const d='M12 33 L26 47 L53 14';return `<span class="mk"><svg class="b-svg" viewBox="0 0 64 64"><g class="b-g"><path d="${d}" stroke="#fff" stroke-width="21" transform="translate(0 5)"/><path d="${d}" stroke="#0c4a3f" stroke-width="15" transform="translate(0 4.5)"/><path d="${d}" stroke="url(#gGloss)" stroke-width="15"/><path d="M14 30 L26 42 L50 12" stroke="rgba(255,255,255,.7)" stroke-width="3.2" transform="translate(-1 -1.5)"/></g></svg></span>`}},
+ {k:'C',name:'Calligraphy Ink',photo:['trousers','#4a4f5c','#2c303a',2],
+  desc:'Elegant thick-to-thin pen stroke, white with a fine teal edge. The pen travels along the path.',
+  mark:()=>{const n=++mid;return `<span class="mk"><svg class="c-svg" viewBox="0 0 64 64"><defs><mask id="cm${n}" maskUnits="userSpaceOnUse" x="-10" y="-10" width="84" height="84"><path class="c-m dr" pathLength="100" d="M7 36 L25 50 L58 7"/></mask></defs><path mask="url(#cm${n})" fill="url(#gCal)" stroke="#00564b" stroke-width=".9" stroke-linejoin="round" d="M6 35 Q8 31 13 32 L26 41 Q42 22 57 8 Q47 30 31 53 Q27 57 23 53 L8 38 Q5 37 6 35 Z"/></svg></span>`}},
+ {k:'D',name:'Snap Bars',photo:['jacket','#8a7a5a','#5e5238',3],
+  desc:'No stroke at all: two flat rounded bars, white then lime, fly in from opposite corners and snap into a check.',
+  mark:()=>`<span class="mk"><svg class="d-svg" viewBox="0 0 64 64"><g class="d-s"><g transform="translate(17 42) rotate(45)"><rect x="-14.5" y="-5.5" width="29" height="11" rx="5.5" fill="#fff"/></g></g><g class="d-l"><g transform="translate(40 32) rotate(-50.4)"><rect x="-24" y="-5.5" width="48" height="11" rx="5.5" fill="#b2df26"/></g></g></svg></span>`},
+ {k:'E',name:'Neon Outline',photo:['towel','#e8eef0','#b9c6ca',0],
+  desc:'Hollow check drawn as a glowing double outline over a dark core. Very different silhouette from a stroke.',
+  mark:()=>{const d='M8 34 L16 26 L26 36 L48 12 L56 20 L26 52 Z';return `<span class="mk"><svg class="e-svg" viewBox="0 0 64 64"><path class="e-core" d="${d}"/><g transform="translate(32 32) scale(1.17) translate(-32 -32)"><path class="e-o e-2 dr" pathLength="100" d="${d}"/></g><path class="e-o e-1 dr" pathLength="100" d="${d}"/></svg></span>`}},
+ {k:'F',name:'Loop Flourish',photo:['sweater','#7aa86a','#4d7a45',1],
+  desc:'One continuous cursive line: down, up, a loop and a tail, like a signature tick. Teal ink, white halo.',
+  mark:()=>{const d='M6 37 L22 51 C29 40 37 27 46 18 C53 11 60 15 58 20 C56 25 46 23 47 15 C48 9 56 6 62 8';return `<span class="mk"><svg class="f-svg" viewBox="0 0 64 64"><path class="f-m f-h dr" pathLength="100" d="${d}"/><path class="f-m f-i dr" pathLength="100" d="${d}"/></svg></span>`}}
+];
+
+const BG=['คุณสมชาย ใจดี|ORD-20261016-007 · Due 17 Oct','Villa Residence|ORD-20261016-004 · Due 17 Oct','คุณวิภา รัตนากร|ORD-20261015-012 · Due 18 Oct']
+  .map(s=>{const[a,b]=s.split('|');return `<div class="po"><b>${a}</b><i>${b}</i><div><u></u><u></u><u></u></div></div>`}).join('');
+
+function popup(v){
+  return `<div class="rc success v-${v.k}" role="status"><div class="hero">${photo(...v.photo)}${v.mark()}</div>
+  <div class="meta"><div class="cust">คุณสมชาย ใจดี</div><div class="line"><span>ORD-20261016-007</span><span class="tag"><span class="ms">sell</span>TAG-1048</span></div></div>
+  <button class="x" aria-label="Dismiss notice"><span class="ms">close</span></button></div>`;
+}
+function replay(k){
+  const v=V.find(x=>x.k===k), slot=document.querySelector(`[data-slot="${k}"]`);
+  slot.innerHTML='';
+  void slot.offsetWidth;
+  slot.innerHTML=popup(v);
+}
+document.getElementById('grid').innerHTML=V.map(v=>`<section class="cell">
+  <h2><b>${v.k}</b>${v.name}</h2>
+  <p class="desc">${v.desc}</p>
+  <div class="stage"><div class="pg">${BG}</div><div class="slot" data-slot="${v.k}"></div></div>
+  <div class="row"><button class="btn" data-r="${v.k}">Replay</button></div>
+</section>`).join('');
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.r) replay(b.dataset.r);
+  else if(b.id==='all') V.forEach(v=>replay(v.k));
+});
+V.forEach(v=>replay(v.k));
+</script>
+</body>
+</html>

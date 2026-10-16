@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scan result popup prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0" rel="stylesheet">
+<style>
+:root{
+  --primary:#00564b; --on-primary:#fff; --secondary:#007a69;
+  --secondary-container:#eef6d3;
+  --surface:#f8fafa; --on-surface:#073f38; --on-surface-variant:#5f7772;
+  --sc-lowest:#fff; --sc-low:#f2f4f4; --sc:#eceeee; --sc-high:#e6e8e8;
+  --outline-variant:#cae0dc;
+  --error:#c94e3d; --on-error:#fff; --error-container:#ffdad6; --on-error-container:#93000a;
+  --success:#15803d; --success-container:#dcfce7; --on-success-container:#14532d;
+  --warning:#b45309; --warning-container:#fef3c7; --on-warning-container:#78350f;
+  --lime:#b2df26;
+  --font:"Noto Sans Thai",Inter,sans-serif;
+}
+*{box-sizing:border-box;margin:0}
+html{overflow-x:hidden}
+body{font-family:var(--font);background:#d9dedd;color:var(--on-surface);min-height:100vh;padding:16px 16px 40px;overflow-x:hidden}
+.ms{font-family:"Material Symbols Outlined";font-weight:400;font-style:normal;font-size:24px;line-height:1;display:inline-block;white-space:nowrap;letter-spacing:normal;text-transform:none;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;font-feature-settings:'liga'}
+.ms.f{font-variation-settings:'FILL' 1,'wght' 500,'GRAD' 0,'opsz' 24}
+
+/* ---------- prototype controls (outside the device) ---------- */
+.ctl{max-width:760px;margin:0 auto 18px;display:flex;flex-direction:column;gap:8px;align-items:center}
+.ctl h1{font-size:15px;font-weight:700;color:var(--primary);text-align:center}
+.row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}
+.row button{font:600 13px var(--font);border:1px solid var(--outline-variant);background:#fff;color:var(--on-surface);padding:7px 13px;border-radius:999px;cursor:pointer}
+.row button.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+.row.sub button{font-size:12px;padding:5px 11px}
+.row.sub button.on{background:var(--lime);color:var(--primary);border-color:var(--lime)}
+.row button.sim{background:var(--lime);color:var(--primary);border-color:var(--lime)}
+.row .lab{font:500 12px var(--font);color:var(--on-surface-variant)}
+.row label{font:500 12px var(--font);color:var(--on-surface-variant);display:flex;gap:5px;align-items:center}
+.hidden{display:none!important}
+
+/* ---------- device: replica of the CURRENT page (unchanged) ---------- */
+.phone{position:relative;width:100%;max-width:390px;height:min(844px,calc(100vh - 170px));min-height:620px;margin:0 auto;background:var(--surface);border-radius:30px;overflow:hidden;box-shadow:0 0 0 6px #1c2524,0 24px 60px rgba(0,0,0,.35);display:flex;flex-direction:column}
+header.app{flex:none;background:var(--primary);color:#fff;padding:12px 16px 12px;display:flex;align-items:center;gap:8px;box-shadow:0 4px 6px -1px rgba(0,0,0,.2);z-index:50;min-width:0}
+.sticker{display:grid;place-items:center;width:40px;height:40px;flex:0 0 40px;border:2px solid var(--lime);border-radius:15px;color:var(--lime);transform:rotate(-7deg)}
+.sticker svg{width:25px;height:25px;transform:rotate(7deg);overflow:visible}
+.sticker path{fill:none;stroke:currentColor;stroke-width:4.5;stroke-linecap:round;stroke-linejoin:round}
+.logo{width:36px;height:36px;flex:none;border-radius:50%;background:#fff;color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}
+header.app h1{font-size:18px;font-weight:700;letter-spacing:-.025em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.layout{flex:1;min-height:0;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.gtabs{flex:none;background:var(--primary);display:flex;gap:4px;padding:8px 16px 0;overflow:hidden}
+.gtabs button{flex:none;display:flex;align-items:center;gap:6px;padding:4px 12px 6px;border:0;border-bottom:2px solid transparent;background:none;color:rgba(255,255,255,.7);font:600 11px var(--font);letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+.gtabs button.on{border-color:#fff;color:#fff}
+.gtabs b{font-size:9px;font-weight:700;background:rgba(255,255,255,.2);border-radius:99px;padding:2px 6px;line-height:1}
+main.sr{flex:1;min-height:0;overflow:hidden;background:var(--surface);padding-bottom:80px}
+section.lc{background:#fff;width:100%}
+.lc-h{padding:8px 16px;background:var(--sc-low);color:var(--primary);display:flex;align-items:center;justify-content:space-between}
+.lc-h .l{display:flex;align-items:center;gap:10px}
+.lc-h .l .ms{font-size:16px}
+.lc-h h2{font-size:13px;font-weight:700;letter-spacing:-.025em}
+.badge{font-size:10px;font-weight:700;text-transform:uppercase;background:var(--sc);color:var(--on-surface-variant);border-radius:99px;padding:2px 8px;letter-spacing:.03em}
+.lc-h .r{display:flex;align-items:center;gap:8px}
+.seg{display:flex;border-radius:99px;background:var(--sc);padding:2px;font-size:10px}
+.seg span{display:flex;padding:4px 8px;border-radius:99px;color:var(--on-surface-variant)}
+.seg span.on{background:var(--primary);color:#fff}
+.seg .ms{font-size:16px}
+.ordw{background:var(--surface);padding:8px 16px}
+.ord{position:relative;border-radius:16px;border:1px solid rgba(202,224,220,.3);background:var(--sc-low);padding:16px}
+.ord .nm{display:block;font-weight:600;font-size:14px;color:var(--primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:44px}
+.ord .sb{display:block;font-size:12px;color:var(--on-surface-variant);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:44px}
+.ord .bd{margin-top:16px;display:grid;grid-template-columns:164px minmax(0,1fr);gap:16px;align-items:center}
+.ord .play{position:absolute;right:16px;top:16px;width:36px;height:36px;border-radius:12px;background:rgba(0,122,105,.25);color:var(--on-surface);display:flex;align-items:center;justify-content:center}
+.ord .play svg{width:24px;height:24px}
+.stk{display:flex;flex-direction:column;gap:6px;min-width:0}
+.sr-row{position:relative;display:flex;height:50px;align-items:center;gap:12px;overflow:hidden;border-radius:16px;padding:0 12px 0 8px}
+.sr-row .bar{position:absolute;inset:0 auto 0 0}
+.sr-row .ic{position:relative;flex:none;width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--on-surface)}
+.sr-row .ic .ms{font-size:18px}
+.sr-row .tx{position:relative;display:flex;flex-direction:column;min-width:0}
+.sr-row .tx span{font-size:12px;font-weight:500;line-height:16px;color:rgba(7,63,56,.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr-row .tx strong{font-size:22px;font-weight:600;line-height:24px}
+.ring{position:relative;display:flex;width:164px;height:164px;align-items:center;justify-content:center}
+.ring svg{position:absolute;inset:0;width:100%;height:100%}
+.ring .disc{position:absolute;inset:18%;border-radius:50%;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+.ring .lbl{position:relative;font-size:22px;font-weight:600;color:var(--on-surface);letter-spacing:-.025em}
+.ring .pct{position:absolute;inset:0}
+.ring .pct span{position:absolute;left:50%;top:7%;transform:translate(-50%,-50%);font-size:10px;font-weight:700;color:var(--primary)}
+.fab{position:absolute;right:20px;bottom:20px;width:72px;height:72px;border-radius:23px 28px 24px 27px;background:var(--lime);color:var(--primary);box-shadow:4px 4px 0 #1c4a43;transform:rotate(-7deg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;z-index:10}
+.fab .ms{font-size:36px;font-variation-settings:'wght' 600}
+.fab span.l{font-size:10px;font-weight:700;line-height:1;transform:rotate(7deg)}
+.clr{position:absolute;right:112px;bottom:36px;width:40px;height:40px;border-radius:50%;background:var(--surface);color:var(--on-surface);display:flex;align-items:center;justify-content:center;z-index:10}
+.clr .ms{font-variation-settings:'FILL' 0,'wght' 600,'GRAD' 0,'opsz' 24}
+
+/* ---------- THE POPUP (redesigned). Anchor identical to today: left-4 right-20 bottom-5 z-20 ---------- */
+.notice{position:absolute;left:16px;right:80px;bottom:20px;z-index:20;pointer-events:none}
+.notice>*{pointer-events:auto}
+.rc{position:relative;margin:0 auto;max-width:384px;border-radius:24px;padding:8px;box-shadow:0 10px 15px -3px rgba(0,0,0,.2),0 4px 6px -4px rgba(0,0,0,.2)}
+.rc.success{background:#fff;color:var(--on-surface)}
+.rc.success .pill .ms{color:var(--lime)}
+.rc.warning{background:var(--warning-container);color:var(--on-warning-container)}
+.rc.error{background:var(--error-container);color:var(--on-error-container)}
+.hero{position:relative;width:100%;aspect-ratio:1/1;border-radius:17px;overflow:hidden;border:4px solid var(--tone);background:var(--sc-low)}
+.hero.short{aspect-ratio:16/10}
+.hero.flat{aspect-ratio:2/1}
+.rc.success{--tone:var(--primary)} .rc.warning{--tone:var(--warning)} .rc.error{--tone:var(--error)}
+.hero svg{display:block;width:100%;height:100%}
+.hero.dim svg{filter:grayscale(.9) brightness(.85)}
+.hero.none{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--on-surface-variant);background:repeating-linear-gradient(45deg,var(--sc-low),var(--sc-low) 10px,var(--sc) 10px,var(--sc) 20px)}
+.hero.none .ms{font-size:56px}
+.hero.none em{font-style:normal;font-size:13px;font-weight:700}
+.hero.unknown{background:var(--tone);color:#fff;border-color:var(--tone);gap:6px}
+.hero.unknown .ms{font-size:52px}
+.hero.unknown .big{font:700 24px ui-monospace,Consolas,monospace;letter-spacing:.03em;max-width:92%;overflow-wrap:anywhere;text-align:center}
+.pill{position:absolute;left:8px;top:8px;right:44px;display:flex;align-items:center;gap:5px;width:max-content;max-width:calc(100% - 52px);background:var(--tone);color:#fff;border-radius:99px;padding:5px 12px 5px 8px;font-weight:700;font-size:15px;line-height:1.2;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.pill .ms{font-size:22px;flex:none}
+.x{position:absolute;right:8px;top:8px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(255,255,255,.85);color:var(--on-surface);display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.x .ms{font-size:18px}
+.top-plain{display:flex;align-items:center;gap:6px;padding:2px 36px 6px 6px;font-weight:700;font-size:15px;color:var(--tone)}
+.top-plain .ms{font-size:22px}
+.meta{padding:9px 6px 4px;display:flex;flex-direction:column;gap:5px}
+.cust{font-weight:700;font-size:17px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.cust.big{font-size:19px}
+.line{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;font-size:12px}
+.tag{display:inline-flex;align-items:center;gap:3px;font:700 13px ui-monospace,Consolas,monospace;background:rgba(255,255,255,.75);border-radius:8px;padding:2px 8px;letter-spacing:.02em;color:var(--on-surface)}
+.tag .ms{font-size:14px}
+.msg{font-size:13px;font-weight:600}
+.note{max-width:760px;margin:18px auto 0;font-size:12px;color:#44605b;text-align:center;line-height:1.65}
+/* horizontal compact popup (ad-style) */
+.rc{display:flex;align-items:center;gap:10px;padding:8px 40px 8px 8px;border-radius:16px}
+.rc .hero{flex:none;width:84px;height:84px;aspect-ratio:auto;border-width:3px;border-radius:12px}
+.hero.none .ms{font-size:30px} .hero.none em{font-size:10px}
+.hero.unknown .ms{font-size:36px}
+.rc .meta{flex:1;min-width:0;padding:0;gap:3px}
+.rc .pill{position:static;max-width:100%;font-size:12px;padding:2px 9px 2px 5px;box-shadow:none}
+.rc .pill .ms{font-size:16px}
+.rc .cust{font-size:15px;-webkit-line-clamp:1}
+.rc .line{font-size:11px;gap:3px 6px}
+.rc .tag{font-size:11px;padding:1px 6px;background:var(--sc-low)}
+.rc .msg{font-size:11px}
+.rc .x{top:6px;right:6px;width:26px;height:26px;background:var(--sc-low);box-shadow:none}
+/* photo flush: no border, fills the left side edge to edge */
+.rc{padding:0 40px 0 0;align-items:stretch;overflow:hidden}
+.rc .hero{width:96px;height:auto;min-height:88px;border:0;border-radius:0}
+.rc .hero svg{height:100%;object-fit:cover}
+.rc .meta{padding:8px 0;justify-content:center}
+/* dark see-through card */
+.rc.success,.rc.warning,.rc.error{background:rgba(12,18,17,.62);-webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);color:#fff;box-shadow:0 10px 24px rgba(0,0,0,.3)}
+.rc.success{--tone:var(--lime)}
+.rc.success .pill{color:var(--primary)}
+.rc .line{color:rgba(255,255,255,.75)}
+.rc .tag{background:rgba(255,255,255,.14);color:#fff}
+.rc .msg{color:rgba(255,255,255,.85)}
+.rc .x{background:rgba(255,255,255,.14);color:#fff}
+.rc .hero.none{background:repeating-linear-gradient(45deg,#2a3231,#2a3231 10px,#323b3a 10px,#323b3a 20px);color:rgba(255,255,255,.6)}
+/* animated mark over the photo */
+.mark{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.18);animation:markBg .9s ease-out both}
+.mark svg{width:46px;height:46px;overflow:visible;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
+.mark circle{fill:var(--tone);stroke:#fff;stroke-width:2.5;transform-origin:25px 25px;animation:markPop .35s cubic-bezier(.3,1.6,.5,1) both}
+.mark path{fill:none;stroke:#fff;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:60;stroke-dashoffset:60;animation:markDraw .35s .25s ease-out forwards}
+.rc.success .mark path{stroke:var(--primary)}
+@keyframes markPop{from{transform:scale(0)}to{transform:scale(1)}}
+@keyframes markDraw{to{stroke-dashoffset:0}}
+@keyframes markBg{from{background:rgba(0,0,0,.45)}to{background:rgba(0,0,0,.12)}}
+/* mark v2: outline ring sweeps round, then a thin check draws inside */
+.mark{background:rgba(0,0,0,.28);animation:none}
+.mark svg{width:52px;height:52px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))}
+.mark circle{fill:none;stroke:var(--tone);stroke-width:3;stroke-dasharray:132;stroke-dashoffset:132;transform:rotate(-90deg);transform-origin:25px 25px;animation:ringDraw .45s ease-out forwards}
+.mark path,.rc.success .mark path{stroke:#fff;stroke-width:3.5;animation:markDraw .3s .4s ease-out forwards}
+@keyframes ringDraw{to{stroke-dashoffset:0}}
+/* success mark: neon outline check (variant E from check-mark-variants.html) */
+.mark.mk-e{background:rgba(0,0,0,.24)}
+.mk-e svg{width:60px;height:60px;overflow:visible;filter:drop-shadow(0 0 3px #b2df26) drop-shadow(0 0 8px rgba(178,223,38,.75))}
+.mk-e .dr{stroke-dasharray:100 150;stroke-dashoffset:105}
+.mk-e .e-core{fill:rgba(0,30,25,.6);stroke:none;animation:eFade .2s .3s both}
+.mk-e .e-o{fill:none;stroke-linejoin:round;stroke-linecap:round}
+.mk-e .e-1{stroke:#dcff4a;stroke-width:2.8;animation:eDraw .4s .04s ease-out forwards,eFlick .16s .46s linear}
+.mk-e .e-2{stroke:#b2df26;stroke-width:1.6;opacity:.8;animation:eDraw .4s .14s ease-out forwards}
+@keyframes eDraw{to{stroke-dashoffset:0}}
+@keyframes eFade{from{opacity:0}to{opacity:1}}
+@keyframes eFlick{0%{opacity:1}30%{opacity:.35}60%{opacity:1}80%{opacity:.6}100%{opacity:1}}
+</style>
+</head>
+<body>
+
+<div class="ctl">
+  <h1>Department Job Ticket · scanner-gun result popup (only the popup is redesigned)</h1>
+  <div class="row" id="states"></div>
+  <div class="row sub" id="failrow">
+    <span class="lab">Failure (message from the real code)</span>
+    <button data-fail="nojob">No job for this tag</button>
+    <button data-fail="wrongtab">Not in this tab</button>
+    <button data-fail="queued">Already queued</button>
+    <button data-fail="selected">Already selected</button>
+    <button data-fail="multi">N tasks for this tag</button>
+  </div>
+  <div class="row">
+    <button class="sim" id="next">Simulate next scan</button>
+    <label><input type="checkbox" id="auto"> auto-dismiss after 5 s (as in the app)</label>
+  </div>
+</div>
+
+<div class="phone">
+  <header class="app">
+    <span class="sticker"><svg viewBox="0 0 28 28"><path d="M5 7h18M5 14h14M5 21h9"/></svg></span>
+    <div class="logo">M</div>
+    <h1>Magicwash Laundry</h1>
+  </header>
+
+  <div class="layout">
+    <div class="gtabs">
+      <button>All <b>14</b></button><button class="on">Pending <b>9</b></button><button>In Progress <b>3</b></button><button>Completed <b>2</b></button>
+    </div>
+    <main class="sr">
+      <section class="lc">
+        <div class="lc-h">
+          <div class="l"><span class="ms">assignment</span><h2>Washing</h2></div>
+          <div class="r"><span class="badge">2 orders</span>
+            <div class="seg"><span><span class="ms">grid_view</span></span><span class="on"><span class="ms">view_agenda</span></span></div></div>
+        </div>
+        <div id="orders"></div>
+      </section>
+    </main>
+
+    <div class="clr" id="clr"><span class="ms">close</span></div>
+    <div class="fab"><span class="ms" id="fabIcon">qr_code_scanner</span><span class="l" id="fabLabel">Scan</span></div>
+    <div class="notice" id="notice"></div>
+  </div>
+</div>
+
+<p class="note">Everything behind the popup reproduces today's Pending tab in the order view (the default). Scanning does not change the order cards; it only turns the Scan button into "Start N" and shows the clear button, exactly as now. Only the popup is new.<br>Placeholder photos are inline SVG; the real app uses <code>photoEvidenceUrl</code>.</p>
+
+<script>
+/* ---------- placeholder garment photos ---------- */
+const PATHS = {
+  shirt:'M70 44 L90 32 Q100 48 110 32 L130 44 L168 68 L150 96 L134 86 L134 170 L66 170 L66 86 L50 96 L32 68 Z',
+  trousers:'M64 28 H136 L145 176 H110 L100 84 L90 176 H55 Z',
+  dress:'M84 26 L100 40 L116 26 L126 62 L118 82 L152 174 H48 L82 82 L74 62 Z',
+  jacket:'M66 40 L88 28 L100 46 L112 28 L134 40 L170 72 L152 112 L136 100 L136 172 L64 172 L64 100 L48 112 L30 72 Z',
+  towel:'M40 46 H160 V160 H40 Z',
+  sweater:'M72 40 L92 30 Q100 42 108 30 L128 40 L170 78 L154 104 L136 92 L136 168 L64 168 L64 92 L46 104 L30 78 Z'
+};
+let uid=0;
+function photo(kind,c1,c2,seed){
+  const bgA=['#cfc6b8','#bdb7ad','#d6d0c6','#c4beb4'][seed%4], bgB=['#a89f90','#9a948a','#aea798','#9d978c'][seed%4];
+  const id='g'+(uid++);
+  let d='';
+  if(kind==='shirt'||kind==='sweater'||kind==='jacket'){
+    d=`<path d="M90 32 Q100 54 110 32" fill="none" stroke="rgba(0,0,0,.25)" stroke-width="3"/><line x1="100" y1="50" x2="100" y2="170" stroke="rgba(0,0,0,.18)" stroke-width="2"/>${[70,92,114,136].map(y=>`<circle cx="104" cy="${y}" r="2.6" fill="rgba(255,255,255,.7)"/>`).join('')}<path d="M50 96 L66 86 M150 96 L134 86" stroke="rgba(0,0,0,.2)" stroke-width="2"/>`;
+    if(kind==='sweater') d+=`<rect x="64" y="160" width="72" height="9" fill="rgba(0,0,0,.18)"/>`;
+  } else if(kind==='trousers'){
+    d=`<line x1="100" y1="84" x2="100" y2="40" stroke="rgba(0,0,0,.2)" stroke-width="2"/><rect x="64" y="28" width="72" height="9" fill="rgba(0,0,0,.2)"/><line x1="76" y1="40" x2="73" y2="170" stroke="rgba(255,255,255,.18)" stroke-width="2"/>`;
+  } else if(kind==='dress'){
+    d=`<path d="M88 58 Q100 70 112 58" fill="none" stroke="rgba(0,0,0,.22)" stroke-width="3"/><path d="M82 82 H118" stroke="rgba(0,0,0,.25)" stroke-width="4"/><path d="M70 150 Q100 160 130 150" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="2"/>`;
+  } else {
+    d=[60,76,92].map(y=>`<rect x="40" y="${y}" width="120" height="6" fill="rgba(255,255,255,.35)"/>`).join('')+`<rect x="40" y="46" width="120" height="6" fill="rgba(0,0,0,.12)"/>`;
+  }
+  return `<svg viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="${id}b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${bgA}"/><stop offset="1" stop-color="${bgB}"/></linearGradient><linearGradient id="${id}f" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient><filter id="${id}s"><feGaussianBlur stdDeviation="4"/></filter></defs><rect width="200" height="200" fill="url(#${id}b)"/><path d="${PATHS[kind]}" transform="translate(5 8)" fill="rgba(0,0,0,.35)" filter="url(#${id}s)"/><path d="${PATHS[kind]}" fill="url(#${id}f)" stroke="rgba(0,0,0,.18)" stroke-width="1.5" stroke-linejoin="round"/>${d}</svg>`;
+}
+
+/* ---------- scan data (available at scan time) ---------- */
+const S = {
+  a:{tag:'TAG-1048',customer:'คุณสมชาย ใจดี',order:'ORD-20261016-007',photo:['shirt','#5d86c4','#3b5f9e',0]},
+  b:{tag:'TAG-1051',customer:'Villa Residence',order:'ORD-20261016-004',photo:['dress','#d4789b','#a84a72',1]},
+  nophoto:{tag:'TAG-1071',customer:'บริษัท สยามโฮเต็ล จำกัด',order:'ORD-20261016-011',photo:null},
+  c:{tag:'TAG-1032',customer:'คุณวิภา รัตนากร',order:'ORD-20261015-012',photo:['trousers','#4a4f5c','#2c303a',2]},
+  d:{tag:'TAG-1056',customer:'คุณสมชาย ใจดี',order:'ORD-20261016-007',photo:['jacket','#8a7a5a','#5e5238',3]},
+  e:{tag:'TAG-1060',customer:'Villa Residence',order:'ORD-20261016-004',photo:['towel','#e8eef0','#b9c6ca',0]},
+  f:{tag:'TAG-1063',customer:'คุณวิภา รัตนากร',order:'ORD-20261015-012',photo:['sweater','#7aa86a','#4d7a45',1]},
+  wrongtab:{tag:'TAG-1019',customer:'คุณธนา วงศ์สุวรรณ',order:'ORD-20261014-003',photo:['shirt','#c9a24a','#9a7626',2]},
+  multi:{tag:'TAG-1044',customer:'คุณสมชาย ใจดี',order:'ORD-20261016-007',photo:['jacket','#8a7a5a','#5e5238',3]},
+  nojob:{tag:'TAG-9999',customer:null,order:null,photo:null}
+};
+const SEQ=['a','b','nophoto','c','d','e','f'];
+const STATES=[['ok','Scan success'],['nophoto','Photo missing'],['fail','Scan failed'],['multi','Several scans in a row']];
+const st={state:'ok',fail:'nojob',n:1};
+let timer;
+
+/* ---------- page replica ---------- */
+function ring(pct,done,total,label,id){
+  const L=pct*3.6, flip=L>90&&L<270;
+  return `<span class="ring"><svg viewBox="0 0 100 100" style="transform:rotate(-90deg)"><circle cx="50" cy="50" r="43" fill="none" stroke="rgba(0,122,105,.15)" stroke-width="13"/><circle cx="50" cy="50" r="43" fill="none" stroke="#007a69" stroke-width="13" stroke-linecap="round" pathLength="100" stroke-dasharray="${pct} 100"/></svg>
+  <span class="disc"></span>
+  <svg viewBox="0 0 100 100" style="overflow:visible"><defs><path id="${id}t" d="M 27 50 A 23 23 0 0 1 73 50"/><path id="${id}b" d="M 22 50 A 28 28 0 0 0 78 50"/></defs>
+  <text fill="#5f7772" font-size="6" font-weight="600" letter-spacing="0.3"><textPath href="#${id}t" startOffset="50%" text-anchor="middle">Completed</textPath></text>
+  <text fill="#007a69" font-size="6.5" font-weight="700" letter-spacing="0.2"><textPath href="#${id}b" startOffset="50%" text-anchor="middle">${done} of ${total}</textPath></text></svg>
+  <span class="lbl">${label}</span><span class="pct" style="transform:rotate(${L}deg)"><span style="${flip?'transform:translate(-50%,-50%) rotate(180deg)':''}">${pct}%</span></span></span>`;
+}
+function orderCard(name,id,due,p,ip,c,label,k){
+  const tot=p+ip+c, pct=Math.round(100*c/tot);
+  const row=(bg,bar,ic,icon,lab,n,w)=>`<span class="sr-row" style="background:${bg}"><span class="bar" style="background:${bar};width:${w}%"></span><span class="ic" style="background:${ic}"><span class="ms">${icon}</span></span><span class="tx"><span>${lab}</span><strong>${n}</strong></span></span>`;
+  return `<div class="ordw"><div class="ord"><span class="nm">${name}</span><span class="sb">${id} · Due ${due}</span>
+  <div class="bd">${ring(pct,c,tot,label,'r'+k)}<span class="stk">
+   ${row('#fef3c7','rgba(180,83,9,.15)','rgba(180,83,9,.25)','schedule','Pending',p,Math.round(100*p/tot))}
+   ${row('rgba(238,246,211,.4)','rgba(0,122,105,.1)','rgba(0,122,105,.25)','autorenew','In Progress',ip,Math.round(100*ip/tot))}
+   ${row('rgba(178,223,38,.2)','rgba(178,223,38,.25)','rgba(178,223,38,.6)','check_circle','Completed',c,Math.round(100*c/tot))}
+  </span></div>
+  <span class="play"><svg viewBox="0 0 24 24"><path d="M8.5 6v12l9.5-6z" fill="currentColor" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/></svg></span></div></div>`;
+}
+document.getElementById('orders').innerHTML=
+  orderCard('คุณสมชาย ใจดี','ORD-20261016-007','17 Oct',4,1,1,'C-07',1)+
+  orderCard('Villa Residence','ORD-20261016-004','17 Oct',3,2,1,'V-02',2)+
+  orderCard('คุณวิภา รัตนากร','ORD-20261015-012','18 Oct',2,0,0,'-',3);
+
+/* ---------- the popup ---------- */
+function model(){
+  if(st.state==='ok') return {tone:'success',msg:'Queued',scan:S.a,sel:1};
+  if(st.state==='nophoto') return {tone:'success',msg:'Queued',scan:S.nophoto,sel:3};
+  if(st.state==='multi'){ const k=SEQ[st.n-1]; return {tone:'success',msg:'Queued',scan:S[k],sel:st.n}; }
+  switch(st.fail){
+    case 'nojob': return {tone:'error',msg:'No job for this tag',scan:S.nojob,sel:2};
+    case 'wrongtab': return {tone:'error',msg:'Not in this tab',scan:S.wrongtab,sel:2,dim:true};
+    case 'queued': return {tone:'error',msg:'Already queued',scan:S.a,sel:2};
+    case 'selected': return {tone:'warning',msg:'Already selected',scan:S.b,sel:2};
+    default: return {tone:'error',msg:'2 tasks for this tag',detail:'(WASH, IRON). Select them from the list',scan:S.multi,sel:2,dim:true};
+  }
+}
+function popup(m){
+  const s=m.scan, icon=m.tone==='success'?'check_circle':m.tone==='warning'?'warning':'cancel';
+  const pill=m.tone==='success'?'':`<span class="pill">${m.msg}</span>`;
+  // animated mark drawn over the photo: check for success, ! for warning, x for error
+  const path=m.tone==='success'?'M14 25 l7 7 l14 -15':m.tone==='warning'?'M25 13 v14 M25 35 v0.5':'M17 17 l16 16 M33 17 l-16 16';
+  const neon='M8 34 L16 26 L26 36 L48 12 L56 20 L26 52 Z'; // success: neon outline check (variant E)
+  const mark=m.tone==='success'
+    ?`<span class="mark mk-e"><svg class="e-svg" viewBox="0 0 64 64"><path class="e-core" d="${neon}"/><g transform="translate(32 32) scale(1.17) translate(-32 -32)"><path class="e-o e-2 dr" pathLength="100" d="${neon}"/></g><path class="e-o e-1 dr" pathLength="100" d="${neon}"/></svg></span>`
+    :`<span class="mark"><svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="21"/><path d="${path}"/></svg></span>`;
+  const x=`<button class="x" aria-label="Dismiss notice"><span class="ms">close</span></button>`;
+  let hero, meta;
+  const tag=`<span class="tag"><span class="ms">sell</span>${s.tag}</span>`;
+  if(!s.customer){ // no ticket matched: only the scanned value is known
+    hero=`<div class="hero unknown"><span class="ms f">cancel</span></div>`;
+    return `<div class="rc ${m.tone}" role="status">${hero}<div class="meta">${pill}<div class="line">${tag}</div><div class="msg">Not found in this department</div></div>${x}</div>`;
+  }
+  if(!s.photo){
+    hero=`<div class="hero none"><span class="ms">checkroom</span><em>No photo</em>${mark}</div>`;
+  } else {
+    hero=`<div class="hero ${m.dim?'dim':''}">${photo(...s.photo)}${mark}</div>`;
+  }
+  meta=`<div class="meta">${pill}<div class="cust">${s.customer}</div><div class="line"><span>${s.order}</span>${tag}</div>${m.detail?`<div class="msg">${m.detail}</div>`:''}</div>`;
+  return `<div class="rc ${m.tone}" role="status">${hero}${meta}${x}</div>`;
+}
+
+function render(){
+  document.getElementById('states').innerHTML=STATES.map(([k,l])=>`<button data-s="${k}" class="${st.state===k?'on':''}">${l}</button>`).join('');
+  document.getElementById('failrow').classList.toggle('hidden',st.state!=='fail');
+  document.querySelectorAll('[data-fail]').forEach(b=>b.classList.toggle('on',b.dataset.fail===st.fail));
+  const m=model();
+  document.getElementById('notice').innerHTML=popup(m);
+  document.getElementById('fabIcon').textContent='check';
+  document.getElementById('fabLabel').textContent='Start '+m.sel;
+  clearTimeout(timer);
+  if(document.getElementById('auto').checked) timer=setTimeout(()=>{document.getElementById('notice').innerHTML=''},5000);
+}
+document.addEventListener('click',e=>{
+  if(e.target.closest('.x')){ document.getElementById('notice').innerHTML=''; return; }
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.s){ st.state=b.dataset.s; if(st.state==='multi') st.n=4; render(); }
+  else if(b.dataset.fail){ st.fail=b.dataset.fail; render(); }
+  else if(b.id==='next'){
+    if(st.state==='fail'){ const o=['nojob','wrongtab','queued','selected','multi']; st.fail=o[(o.indexOf(st.fail)+1)%o.length]; }
+    else if(st.state==='ok'){ st.state='multi'; st.n=2; }
+    else if(st.state==='nophoto'){ st.state='multi'; st.n=4; }
+    else st.n= st.n>=SEQ.length?2:st.n+1;
+    render();
+  }
+});
+document.getElementById('auto').addEventListener('change',render);
+render();
+</script>
+</body>
+</html>
