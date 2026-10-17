@@ -12,39 +12,16 @@ import { createCrudRoutes } from '../../shared/http/crud-routes.js'
 import { ApiError } from '../../shared/http/api-error.js'
 import { ApiHandler } from '../../shared/http/api-handler.js'
 import type { GatewayModuleRoutes } from '../../shared/http/gateway.types.js'
-import type { ApiResult } from '../../shared/http/response.js'
+import { ok, type ApiResult } from '../../shared/http/response.js'
 import { JobTicketAdvanceService } from './job-ticket-advance.service.js'
 import { JobTicketCompleteService, type JobTicketCompleteOrderResponse } from './job-ticket-complete.service.js'
 import { JobTicketStartService } from './job-ticket-start.service.js'
+import { JobTicketDepartmentWorkService } from './job-ticket-department-work.service.js'
+import { jobTicketFieldMap } from './job-ticket.field-map.js'
+
+export { jobTicketFieldMap } from './job-ticket.field-map.js'
 
 type JobTicketDbRow = z.infer<typeof jobTicketsRowSchema>
-
-export const jobTicketFieldMap = {
-  id: 'id',
-  order_id: 'orderId',
-  laundry_item_id: 'laundryItemId',
-  scope: 'scope',
-  task_code: 'taskCode',
-  department: 'department',
-  step_no: 'stepNo',
-  customer_id: 'customerId',
-  order_name: 'orderName',
-  due_date: 'dueDate',
-  special_instructions: 'specialInstructions',
-  notes: 'notes',
-  status: 'status',
-  started_at: 'startedAt',
-  completed_at: 'completedAt',
-  scanned_by: 'scannedBy',
-  photo_evidence_url: 'photoEvidenceUrl',
-  created_at: 'createdAt',
-  created_by: 'createdBy',
-  updated_at: 'updatedAt',
-  updated_by: 'updatedBy',
-  deleted_at: 'deletedAt',
-  deleted_by: 'deletedBy',
-  work_minutes: 'workMinutes',
-} as const satisfies Record<keyof JobTicketDbRow & string, string>
 
 type JobTicketApiRow = ApiRowFromFieldMap<JobTicketDbRow, typeof jobTicketFieldMap>
 type JobTicketListQuery = z.infer<typeof jobTicketApiContract.query.list>
@@ -75,12 +52,17 @@ export const jobTicketCompleteService = new JobTicketCompleteService()
 export const jobTicketStartService = new JobTicketStartService()
 export const jobTicketAdvanceService = new JobTicketAdvanceService()
 
+export const jobTicketDepartmentWorkService = new JobTicketDepartmentWorkService()
+
 const crudRoutes = createCrudRoutes(jobTicketService, jobTicketApiContract)
 
 export const jobTicketRoutes: GatewayModuleRoutes = {
   collection: crudRoutes.collection,
   item: new ApiHandler({
-    GET: async (req) => crudRoutes.item!.handleRequest(req),
+    GET: async (req) => {
+      if (req.params.id === 'department-work') return ok(await jobTicketDepartmentWorkService.list(req.query))
+      return crudRoutes.item!.handleRequest(req)
+    },
     PATCH: async (req) => crudRoutes.item!.handleRequest(req),
     POST: async (req): Promise<ApiResult<JobTicketStartOrderResponse | JobTicketAdvanceResponse | JobTicketCompleteOrderResponse>> => {
       if (req.params.id === 'complete-order') {

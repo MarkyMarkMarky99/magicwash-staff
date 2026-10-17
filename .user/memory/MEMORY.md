@@ -1,5 +1,5 @@
 # Project memory
-- Branch: `main`; customer-package invoice deployment still needs verification.
+- Branch: `feat/department-work-query` (per-department job-ticket load); customer-package invoice deployment still needs verification.
 
 ## Branches in flight
 
@@ -8,6 +8,7 @@
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 - **`feat/corporate-order-form`** — corporate count-sheet order page built UI-only, committed unmerged; needs entry point, real-login check, save design; see `.user/memory/feat-corporate-order-form.md`.
 - **`feat/shared-device-operator`** — in progress in another session (worktree `.worktrees/shared-device-operator`); status owned there, see [[shared-device-staff-card-design]] in auto-memory.
+- **`feat/department-work-query`** — per-department load committed; one-hour cache and pull-to-refresh redo pending; see `.user/memory/feat-department-work-query.md`.
 
 ## Pending work
 - **Wash queue + dryer queue (one-sheet booking: photo, optional weight, auto tag, washer menu, read-only program line — merged 2026-10-11; auto tag + photo slides merged 2026-10-13)** — see `docs/features/wash-queue/wash-queue.md`
@@ -57,15 +58,11 @@
   - `AdvanceConfirmDialog` raises `#overlay-root` z-index while open; replace once a shared confirm dialog exists.
   - Decide the order status sequence before any swipe-to-advance work.
   - Persist tag ids at print time and add a single-tag reprint flow before real use.
-  - Department page reload policy undecided (on return, on app focus, interval, or a refresh button); KeepAlive keeps it stale now.
-  - Department ring under-counts orders with earlier completions; board endpoint decided, not built. See `.user/memory/department-board-load.md`.
+  - Department page reload: one-hour freshness + pull-to-refresh in progress on `feat/department-work-query`.
   - Browser-verify the ring head following the arc when a ticket status changes (tap or Start).
-  - Browser-check department pages after dropping the per-order detail fetch and parallelising the status loads (pushed 2026-09-28).
   - Ticket `due_date` goes stale when an order's due date is edited; order update does not rewrite existing tickets.
-  - Completed loading pages through today's tickets; a server-side `completedFrom` filter remains proposed.
-  - Per-department ticket cache (show stored list, refresh in background) proposed, not built.
+  - Deferred backend: job-ticket cancel timestamps.
   - Tablet layout for the department page (2–3 order columns) deferred by user; needs an opt-in wide route flag in `App.vue`.
-  - Deferred backend: worklist read (not-done + done-today, cap 2000) and cancel timestamps.
   - Not started: garment registration batch-appends LaundryPhotos on camera close (Back/X/screen-off safe); Approve-gating decision open, see `.user/memory/laundry-photos-batch-append.md`.
   - Phone Back closes garment registration while uploads are pending; blocking it not decided.
   - Decide whether to remove the old BEF album add-photo path now that registration is proven.

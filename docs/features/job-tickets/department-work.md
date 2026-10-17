@@ -4,20 +4,19 @@ The five department pages use `/departments/:department`: `washing`, `drycleanin
 
 The shared `src/data/job-tickets/job-ticket.store.ts` owns all ticket rows and view loading, errors,
 and cap signals. Order loads merge shared rows without adding older Completed tickets to department
-lists. Writes patch the shared rows so every view sees them. Invalidation reloads the current work
+lists. Writes patch the shared rows so every view sees them. Invalidation marks every department stale and reloads the active department
 and order views retained by visible pages; deactivated and unmounted pages release their views.
 
-The store loads the current work of every department in one go: Pending and In Progress across all
-departments, each in a single request of up to 10,000 rows (every extra page costs a full JobTickets
-scan), plus Completed across all departments ordered by `completedAt` descending, stopping at the
-first completion before the current Bangkok date. The three requests run in parallel. Each
-department list filters that shared set by department, so switching departments makes no request
-until invalidation or an explicit refresh. If invalidation occurs during a read, its result is
-discarded and a fresh read starts after it settles, so in-flight API deduplication cannot reuse the
-old response. Open and completed-today loads each cap at 10,000 tickets, and a department list shows
-at most 10,000; any cap shows the incomplete-list warning. Loading, retry, and empty states use the
-list page pattern. Job-ticket GETs bypass the response cache; the resource store owns reuse. Only the
-first load blocks the page; loaded work keeps showing while it refreshes.
+Each department page loads its own work with one `GET /api/job-tickets/department-work?department=X`
+when first opened. The server reads that department's JobTickets rows with one GViz query and returns
+all non-deleted, non-Cancelled tickets of orders that still have a Pending or In Progress ticket in
+the department or a ticket completed today (Bangkok). Older Completed tickets of those orders are
+included. The store caches per department, so returning to a department makes no request until invalidation or an explicit refresh. Invalidation marks every department stale and reloads only the
+active department. If invalidation occurs during a read, its result is discarded and a fresh read
+starts after it settles, so in-flight API deduplication cannot reuse the old response. A department
+list shows at most 10,000 tickets and shows the incomplete-list warning at that cap. Loading, retry,
+and empty states use the list page pattern. Job-ticket GETs bypass the response cache; the resource
+store owns reuse. Only the first load blocks the page; loaded work keeps showing while it refreshes.
 Washing, Dry Cleaning, Ironing, and Packaging filter the loaded list to scope ITEM before cards,
 counts, rings, selection, and scan queues are derived. Their ORDER tickets, including weight-photo
 Packaging credit, are hidden. Logistics keeps only non-deleted ORDER-scope Logistics LOG-BAG tickets.

@@ -12,126 +12,127 @@ const ticket = (id: string, department: JobTicketDto['department'], status: JobT
   updatedBy: null, deletedAt: null, deletedBy: null,
 })
 const calls: URL[] = []
-let finishOpen!: () => void
-let waiting = new Promise<void>(resolve => { finishOpen = resolve })
-let mode: 'shared' | 'capped' | 'failed' = 'shared'
+let waiting: Promise<void> | undefined
+let mode: 'normal' | 'capped' | 'failed' = 'normal'
+let cappedCount = MAX_DEPARTMENT_TICKETS
+let generation = 'current'
 const originalFetch = globalThis.fetch
 setActivePinia(createPinia())
 let store = useJobTicketStore()
+const settle = () => new Promise(resolve => setImmediate(resolve))
+
 globalThis.fetch = (async input => {
   const url = new URL(String(input), 'http://localhost')
   calls.push(url)
-  const status = url.searchParams.get('status')
-  const department = url.searchParams.get('department') as JobTicketDto['department']
-  const page = Number(url.searchParams.get('page'))
-  const perPage = Number(url.searchParams.get('perPage'))
-  if (status !== 'Completed' && !url.searchParams.has('orderId')) {
-    assert.equal(department, null)
-    assert.equal(perPage, MAX_DEPARTMENT_TICKETS)
-    assert.equal(url.searchParams.get('sortBy'), 'createdAt')
-    assert.equal(url.searchParams.get('sortOrder'), 'desc')
-    await waiting
-    if (mode === 'failed' && status === 'Pending') return Response.json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Open work offline' } }, { status: 500 })
-  }
-  let data: JobTicketDto[]
   if (url.searchParams.has('orderId')) {
-    data = [ticket('packaging-open', 'Packaging'), { ...ticket('old-order-completed', 'Packaging', 'Completed'), completedAt: '2020-01-01 10:00:00' }]
-  } else if (mode === 'capped') {
-    const total = status === 'Pending' ? MAX_DEPARTMENT_TICKETS - 500 : status === 'In Progress' ? 600 : 0
-    const start = (page - 1) * perPage
-    data = Array.from({ length: Math.max(0, Math.min(perPage, total - start)) }, (_, index) => ticket(`${status}-${start + index}`, (start + index) % 2 ? 'Washing' : 'Packaging', status as JobTicketDto['status']))
-  } else if (status === 'Completed') {
-    assert.equal(url.searchParams.get('sortBy'), 'completedAt')
-    assert.equal(department, null)
-    const names = ['Packaging', 'Washing'] as const
-    data = [...names.map(name => ticket(`${name}-completed`, name, 'Completed')), ...names.map(name => ({ ...ticket(`${name}-older`, name, 'Completed'), completedAt: '2020-01-01 10:00:00' }))]
-  } else {
-    data = status === 'Pending' ? [ticket('packaging-open', 'Packaging'), ticket('washing-open', 'Washing'), ticket('ironing-open', 'Ironing')]
-      : [ticket('logistics-open', 'Logistics', 'In Progress')]
+    return Response.json({ success: true, data: [ticket('order-only', 'Packaging', 'Completed')], meta: { pagination: { page: 1, perPage: 500 } } })
   }
-  return Response.json({ success: true, data, meta: { pagination: { page, perPage } } })
+  assert.equal(url.pathname, '/api/job-tickets/department-work')
+  assert.deepEqual([...url.searchParams.keys()], ['department'])
+  const department = url.searchParams.get('department') as JobTicketDto['department']
+  assert.ok(department)
+  const snapshot = generation
+  await waiting
+  if (mode === 'failed') return Response.json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Work offline' } }, { status: 500 })
+  const data = mode === 'capped'
+    ? Array.from({ length: cappedCount }, (_, index) => ticket(`${department}-${index}`, department))
+    : [ticket(`${department}-${snapshot}`, department), { ...ticket(`${department}-older`, department, 'Completed'), completedAt: '2020-01-01 10:00:00' }]
+  return Response.json({ success: true, data })
 }) as typeof fetch
 
 try {
-  const packaging = store.loadDepartment('Packaging')
-  const washing = store.loadDepartment('Washing')
+  let finish!: () => void
+  waiting = new Promise<void>(resolve => { finish = resolve })
+  const first = store.loadDepartment('Packaging')
+  const duplicate = store.loadDepartment('Packaging')
   assert.equal(store.loading, true)
-  await new Promise(resolve => setImmediate(resolve))
-  assert.deepEqual(calls.map(url => [url.searchParams.get('status'), url.searchParams.get('department')]), [['Pending', null], ['In Progress', null], ['Completed', null]])
-  finishOpen()
-  await Promise.all([packaging, washing])
+  await settle()
+  assert.equal(calls.length, 1, 'concurrent loads of one department share a request')
+  finish()
+  await Promise.all([first, duplicate])
+  waiting = undefined
   assert.equal(store.loading, false)
   assert.equal(store.truncated, false)
-  assert.deepEqual(store.tickets.map(row => row.id), ['washing-open', 'Washing-completed'])
-  assert.equal(store.rows.has('ironing-open'), true)
-  assert.deepEqual(store.orderTickets('order-1', 'Logistics').map(row => row.id), ['logistics-open'])
-  assert.equal(store.rows.has('Washing-older'), false)
-  await store.loadDepartment('Packaging')
-  assert.equal(calls.filter(url => url.searchParams.get('status') !== 'Completed').length, 2)
-  assert.deepEqual(store.tickets.map(row => row.id), ['packaging-open', 'Packaging-completed'])
-  const refresh = store.loadDepartment('Packaging')
-  assert.equal(store.loading, false, 'a loaded department keeps showing its rows while it refreshes')
-  assert.deepEqual(store.tickets.map(row => row.id), ['packaging-open', 'Packaging-completed'])
-  await refresh
-  await store.loadOrder('order-1')
-  assert.equal(store.rows.has('old-order-completed'), true)
-  assert.deepEqual(store.tickets.map(row => row.id), ['packaging-open', 'Packaging-completed'])
-  store.$dispose()
-
-  setActivePinia(createPinia())
-  store = useJobTicketStore()
-  calls.length = 0
-  mode = 'capped'
-  await store.loadDepartment('Packaging')
-  assert.equal(store.rows.size, MAX_DEPARTMENT_TICKETS)
-  assert.equal(store.tickets.length, MAX_DEPARTMENT_TICKETS / 2)
-  assert.equal(store.truncated, true)
-  assert.equal([...store.rows.values()].filter(row => row.status === 'Pending').length, MAX_DEPARTMENT_TICKETS - 500)
-  assert.equal([...store.rows.values()].filter(row => row.status === 'In Progress').length, 500)
-  assert.deepEqual(calls.filter(url => url.searchParams.get('status') === 'Pending').map(url => url.searchParams.get('page')), ['1'])
-  const beforeSwitch = calls.length
+  assert.deepEqual(store.tickets.map(row => row.id), ['Packaging-current', 'Packaging-older'])
   await store.loadDepartment('Washing')
-  assert.equal(calls.length, beforeSwitch)
-  assert.equal(store.tickets.length, MAX_DEPARTMENT_TICKETS / 2)
-  assert.equal(store.truncated, true)
+  assert.deepEqual(calls.map(url => url.searchParams.get('department')), ['Packaging', 'Washing'])
+  assert.deepEqual(store.tickets.map(row => row.id), ['Washing-current', 'Washing-older'])
+  assert.equal(store.rows.has('Ironing-current'), false, 'unopened departments are not fetched')
+  await store.loadDepartment('Packaging')
+  assert.equal(calls.length, 2, 'returning to a loaded department reuses its work')
+
+
+  waiting = new Promise<void>(resolve => { finish = resolve })
+  const refresh = store.loadDepartment('Packaging', true)
+  assert.equal(store.loading, false, 'loaded rows stay visible while refreshing')
+  assert.deepEqual(store.tickets.map(row => row.id), ['Packaging-current', 'Packaging-older'])
+  await settle()
+  assert.equal(calls.length, 3, 'forceReload refetches')
+  finish()
+  await refresh
+  waiting = undefined
+  await store.loadOrder('order-1')
+  assert.equal(store.rows.has('order-only'), true)
+  assert.deepEqual(store.tickets.map(row => row.id), ['Packaging-current', 'Packaging-older'])
+
+  calls.length = 0
+  invalidate('/api/job-tickets')
+  await settle()
+  assert.deepEqual(calls.map(url => url.searchParams.get('department')), ['Packaging'])
+  store.activateDepartment('Washing')
+  await settle()
+  assert.deepEqual(calls.map(url => url.searchParams.get('department')), ['Packaging', 'Washing'], 'inactive departments stay stale until activated')
+  store.activateDepartment('Packaging')
+  await settle()
+  assert.equal(calls.length, 2)
+
   mode = 'failed'
   await store.loadDepartment('Packaging', true)
   assert.equal(store.loading, false)
-  assert.ok(store.error)
-  mode = 'shared'
+  assert.equal(store.error, 'Work offline')
+  mode = 'normal'
   await store.loadDepartment('Packaging')
   assert.equal(store.error, null)
+
+  mode = 'capped'
+  await store.loadDepartment('Packaging', true)
+  assert.equal(store.tickets.length, MAX_DEPARTMENT_TICKETS)
+  assert.equal(store.truncated, true, 'exactly the cap warns that the list may be incomplete')
+  cappedCount += 1
+  await store.loadDepartment('Packaging', true)
+  assert.equal(store.rows.has(`Packaging-${MAX_DEPARTMENT_TICKETS}`), true, 'the server result is not capped in the store')
+  assert.equal(store.tickets.length, MAX_DEPARTMENT_TICKETS)
+  assert.equal(store.truncated, true)
+  mode = 'normal'
+  await store.loadDepartment('Packaging', true)
   assert.equal(store.truncated, false)
-  assert.deepEqual(store.tickets.map(row => row.id), ['packaging-open', 'Packaging-completed'])
   store.$dispose()
+
   setActivePinia(createPinia())
   store = useJobTicketStore()
   calls.length = 0
   let finishOld!: () => void
   waiting = new Promise<void>(resolve => { finishOld = resolve })
+  generation = 'old'
   const oldLoad = store.loadDepartment('Packaging')
-  await new Promise(resolve => setImmediate(resolve))
-  store.releaseDepartment()
+  await settle()
   invalidate('/api/job-tickets')
   let finishNew!: () => void
   waiting = new Promise<void>(resolve => { finishNew = resolve })
-  store.activateDepartment('Packaging')
-  await new Promise(resolve => setImmediate(resolve))
-  assert.equal(calls.filter(url => url.searchParams.get('status') !== 'Completed').length, 2)
+  generation = 'new'
+  await settle()
+  assert.equal(calls.length, 1, 'the invalidated request settles before a replacement starts')
   finishOld()
   await oldLoad
-  await new Promise(resolve => setImmediate(resolve))
+  await settle()
   assert.equal(store.loading, true)
-  assert.equal(store.rows.has('packaging-open'), false)
-  assert.equal(calls.filter(url => url.searchParams.get('status') !== 'Completed').length, 4)
+  assert.equal(store.rows.has('Packaging-old'), false, 'invalidated results never merge')
+  assert.equal(calls.length, 2)
   finishNew()
-  await new Promise(resolve => setImmediate(resolve))
+  await settle()
   assert.equal(store.loading, false)
-  const currentRow = store.rows.get('packaging-open')
-  assert.ok(currentRow)
-  assert.equal(store.loading, false)
-  assert.equal(store.rows.get('packaging-open'), currentRow)
-  console.log('job-ticket-open-work.dry-test: OK (parallel shared load, reuse, department isolation, combined cap, refresh, retry)')
+  assert.deepEqual(store.tickets.map(row => row.id), ['Packaging-new', 'Packaging-older'])
+  console.log('job-ticket-open-work.dry-test: OK (department requests, reuse, refresh, retry, cap, invalidation races)')
 } finally {
   store.$dispose()
   globalThis.fetch = originalFetch

@@ -29,22 +29,23 @@ globalThis.fetch = (async (input, init) => {
   const orderId = url.searchParams.get('orderId')
   if (orderId === 'order-1' && deferred) await deferred
   if (fail && orderId) return Response.json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Offline' } }, { status: 500 })
-  const status = url.searchParams.get('status')
+  if (!orderId) assert.equal(url.pathname, '/api/job-tickets/department-work')
+  const department = url.searchParams.get('department')
   const data = orderId ? [ticket(orderId === 'order-1' ? 'shared' : `${orderId}-shared`, orderId), { ...ticket(orderId === 'order-1' ? 'older' : `${orderId}-older`, orderId, 'Completed'), completedAt: '2020-01-01 10:00:00' }]
-    : status === 'Pending' ? [ticket('shared'), { ...ticket('washing'), department: 'Washing' }] : []
+    : department === 'Packaging' ? [ticket('shared')] : [{ ...ticket('washing'), department: 'Washing' }]
   return Response.json({ success: true, data, meta: { pagination: { page: 1, perPage: 500 } } })
 }) as typeof fetch
 
 try {
   await store.loadDepartment('Packaging')
   assert.deepEqual(store.tickets.map(row => row.id), ['shared'])
-  assert.equal(store.rows.get('washing')?.department, 'Washing')
-  assert.deepEqual(calls.filter(url => url.searchParams.has('status')).map(url => [url.searchParams.get('status'), url.searchParams.get('department')]), [['Pending', null], ['In Progress', null], ['Completed', null]])
+  assert.equal(store.rows.has('washing'), false)
+  assert.deepEqual(calls.map(url => [url.pathname, url.searchParams.get('department')]), [['/api/job-tickets/department-work', 'Packaging']])
   const beforeSwitch = calls.length
   await store.loadDepartment('Washing')
   assert.deepEqual(store.tickets.map(row => row.id), ['washing'])
   await store.loadDepartment('Packaging')
-  assert.equal(calls.length, beforeSwitch, 'switching departments reuses the loaded current work')
+  assert.equal(calls.length, beforeSwitch + 1, 'only opening a new department makes a request')
   let release!: () => void
   deferred = new Promise<void>(resolve => { release = resolve })
   const pending = store.loadOrder('order-1')
@@ -80,8 +81,7 @@ try {
   calls.length = 0
   invalidate('/api/job-tickets')
   await new Promise(resolve => setImmediate(resolve))
-  assert.equal(calls.filter(url => url.searchParams.has('status')).length, 3)
-  assert.deepEqual(calls.filter(url => ['Pending', 'In Progress'].includes(url.searchParams.get('status') ?? '')).map(url => url.searchParams.get('department')), [null, null])
+  assert.deepEqual(calls.filter(url => url.pathname.endsWith('/department-work')).map(url => url.searchParams.get('department')), ['Packaging'])
   assert.deepEqual(calls.filter(url => url.searchParams.has('orderId')).map(url => [url.searchParams.get('orderId'), url.searchParams.get('department')]), [['order-1', null], ['visible', 'Logistics']])
   assert.ok(calls.filter(url => url.searchParams.has('orderId')).every(url => url.searchParams.get('perPage') === '500'))
   releaseSecond()
