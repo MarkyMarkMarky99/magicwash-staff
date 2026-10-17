@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { jobTicketRoutes } from '@/features/job-tickets/routes'
 import {
-  bagNumber, bagWeightKg, canConfirm, confirmBags, confirmedItemCount, formatConfirmedAt, garmentState, presentBagScan, restoreBags, scanGarment, toggleGarment, unassignedCount,
+  bagNumber, bagWeightKg, bagWeightValid, canConfirm, confirmBags, confirmedItemCount, formatConfirmedAt, garmentState, presentBagScan, restoreBags, scanGarment, toggleGarment, unassignedCount,
   type NewBag, type PackagingOrder,
 } from '@/features/job-tickets/packaging-bags'
 
@@ -30,11 +30,12 @@ const photo = 'https://storage.example/photo.jpg'
 assert.equal(canConfirm([bag('a', ['x9a3e5pn'], photo, '2.5')]), true)
 assert.equal(canConfirm([bag('a', ['x9a3e5pn'], photo, '2.5'), bag('b', [], photo, '1')]), false)
 assert.equal(canConfirm([bag('a', ['x9a3e5pn'], photo, '2.5'), bag('b', ['b6j2g8wc'], null, '1')]), false)
-assert.equal(canConfirm([bag('a', ['x9a3e5pn'], photo, '2.5'), bag('b', ['b6j2g8wc'], photo)]), false, 'a bag without a weight blocks Confirm')
+assert.equal(canConfirm([bag('a', ['x9a3e5pn'], photo, '2.5'), bag('b', ['b6j2g8wc'], photo)]), true, 'an unweighed pack can confirm')
 // The same weight rule as a WEIGHT order image: greater than 0, at most 200 kg, one decimal.
-for (const [raw, kg] of [['2.5', 2.5], [' 20 ', 20], ['200', 200], ['0.1', 0.1], ['', null], ['0', null], ['-1', null], ['200.1', null], ['1.25', null], ['abc', null], ['1e1', null]] as const) {
+for (const [raw, kg] of [['2.5', 2.5], [' 20 ', 20], ['200', 200], ['0.1', 0.1], ['', null], ['   ', null], ['0', null], ['-1', null], ['200.1', null], ['1.25', null], ['abc', null], ['1e1', null]] as const) {
   assert.equal(bagWeightKg({ weight: raw }), kg, raw)
-  assert.equal(canConfirm([bag('a', ['x9a3e5pn'], photo, raw)]), kg !== null, raw)
+  assert.equal(canConfirm([bag('a', ['x9a3e5pn'], photo, raw)]), raw.trim() === '' || kg !== null, raw)
+  assert.equal(bagWeightValid({ weight: raw }), raw.trim() === '' || kg !== null, raw)
 }
 
 bags = toggleGarment(order, bags, 'a', 'x9a3e5pn')
@@ -132,7 +133,7 @@ assert.doesNotMatch(sheetSource, /wash-queue\//)
 assert.match(viewSource, /:weight="sheetBag\?\.weight \?\? ''"/)
 assert.match(viewSource, /@update:weight="weight => sheetBag && packaging\?\.setWeight\(sheetBag\.id, weight\)"/)
 const composableSource = readFileSync(new URL('../../../../../src/features/job-tickets/composables/usePackagingBags.ts', import.meta.url), 'utf8')
-assert.match(composableSource, /weightKg: bagWeightKg\(bag\)!/)
+assert.match(composableSource, /weightKg: bagWeightKg\(bag\)(?!\!)/)
 assert.match(viewSource, /:photo-url="sheetBag\?\.photoUrl \?\? null"/)
 assert.match(viewSource, /:uploading="!!sheetBag && packaging\.uploading\.value\.has\(sheetBag\.id\)"/)
 assert.match(viewSource, /@photo="sheetBag && photo\.open\(sheetBag\.id\)"/)

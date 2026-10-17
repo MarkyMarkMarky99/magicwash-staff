@@ -112,7 +112,7 @@ const currentBag = computed(() => {
         @close="weightViewer.close"
       >
         <template #footer>
-          <span class="text-sm font-medium">{{ view.weightPhoto.weightKg }} kg · {{ formatTrackingDateTime(view.weightPhoto.weighedAt) }}</span>
+          <span class="text-sm font-medium"><template v-if="view.weightPhoto.weightKg !== null">{{ view.weightPhoto.weightKg }} kg · </template>{{ formatTrackingDateTime(view.weightPhoto.weighedAt) }}</span>
           <span class="text-[13px] text-white/80">Bag {{ view.bagIndex }} of {{ view.bagCount }} · Tag {{ view.orderImageId }}</span>
         </template>
       </PhotoViewer>

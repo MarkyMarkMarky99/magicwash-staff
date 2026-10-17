@@ -47,11 +47,11 @@
 - **Customer detail and visual system** (merged 2026-09-27)
   - 9 open browser/phone checks and decisions: see `.user/memory/customer-detail-visual-checks.md`.
 - **Garment tracking and job tickets**
+  - Merged 2026-10-18: no-weight packs (empty weight → PACK); print one PACK tag on prod; PACK photos not on order detail; test order `ffa710fc` is packed test data.
   - Merged 2026-10-15: advance reads JobTickets once via `readRaw` (owner-tested on vercel dev); watch the first prod Start/Complete.
   - Merged 2026-10-15: barcode-gun scanning on department pages + one/two-beep scan sounds; not yet used with a gun on prod.
   - Merged 2026-10-17: gun-scan photo popup + scan-to-top (owner-tested on vercel dev); watch first prod use with a gun.
-  - Merged 2026-10-17, NOT browser-tested: Packaging bag sheet gun scan, item names (LaundryPhotos + work-order join), weight + photo saved as OrderImages WEIGHT; owner to test on prod with a test order.
-  - NEXT (owner priority): no-weight packs — decided: weight entered → WEIGHT, empty → PACK; owner adds PACK to G Drive `OrderImages.json`; see `.user/memory/no-weight-bags.md`.
+  - Merged 2026-10-17, NOT browser-tested: Packaging bag sheet gun scan, item names, weight + photo; owner to test on prod with a test order; camera overlay still shows the old text scan card.
   - Scan FAB sits below the screen edge on some phones; cause unknown, awaiting the user's device/browser details.
   - Overlapping order Start notices share one page-notice slot; the later replaces the earlier.
   - `/api/job-tickets/scan` and its service have no caller since batch advance; delete in a later pass.

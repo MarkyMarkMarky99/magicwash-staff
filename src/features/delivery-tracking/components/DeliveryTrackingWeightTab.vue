@@ -2,7 +2,7 @@
 import { formatTrackingDateTime, toDatetimeAttribute } from '../utils/delivery-tracking'
 
 defineProps<{
-  weightKg: number
+  weightKg: number | null
   weighedAt: string
   bagIndex: number
   bagCount: number
@@ -12,7 +12,7 @@ defineProps<{
 <template>
   <div class="relative -mt-11 flex items-start gap-4 pr-4 max-[340px]:gap-2.5">
     <div class="min-w-[190px] rounded-r-[10px] bg-black py-3 pl-4 pr-[18px] text-white max-[340px]:min-w-0">
-      <div class="heavy flex items-baseline gap-1.5 leading-none">
+      <div v-if="weightKg !== null" class="heavy flex items-baseline gap-1.5 leading-none">
         <b class="text-[58px] font-black tracking-[-0.02em] max-[340px]:text-[46px]">{{ weightKg }}</b>
         <i class="text-[22px] not-italic">kg</i>
       </div>

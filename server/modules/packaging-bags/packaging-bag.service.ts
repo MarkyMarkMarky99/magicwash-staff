@@ -59,9 +59,11 @@ export class PackagingBagService {
     const tickets = allTickets.filter(ticket => !ticket.deleted_at)
     const selectedTickets = []
     for (const bag of request.bags) {
+      const imageType = bag.weightKg === null ? 'PACK' : 'WEIGHT'
       const image = existingImages.find(image => image.id === bag.orderImageId)
-      if (image && (String(image.order_id) !== request.orderId || image.image_type !== 'WEIGHT' || image.image_path !== bag.imagePath
-        || Number(image.quantity) !== bag.weightKg)) {
+      if (image && (String(image.order_id) !== request.orderId || image.image_type !== imageType || image.image_path !== bag.imagePath
+        || (imageType === 'WEIGHT' ? Number(image.quantity) !== bag.weightKg
+          : image.quantity !== null && image.quantity !== undefined && (image.quantity as unknown) !== ''))) {
         throw ApiError.conflict(`Bag ${bag.orderImageId} already exists with different order, photo or weight. Reload the order.`)
       }
       const storedGarments = existingItems.filter(item => item.bag_id === bag.orderImageId)
@@ -87,14 +89,15 @@ export class PackagingBagService {
     }
 
     try {
-      // A bag is recorded exactly like an order-detail weight photo: WEIGHT row, photo URL, kg in quantity.
+      // A bag is WEIGHT with kg in quantity, or PACK with null quantity when unweighed.
       const savedImages = new Map(existingImages.map(image => [image.id, image]))
       const missingImages = request.bags.filter(bag => !savedImages.has(bag.orderImageId))
       if (missingImages.length) {
-        const appended = await images.batchAppend(missingImages.map(bag => ({
-          id: bag.orderImageId, order_id: request.orderId, image_type: 'WEIGHT', image_path: bag.imagePath,
-          quantity: bag.weightKg, created_by: request.createdBy,
-        })))
+        const appended = await images.batchAppend(missingImages.map(bag => {
+          const imageType = bag.weightKg === null ? 'PACK' : 'WEIGHT'
+          return { id: bag.orderImageId, order_id: request.orderId, image_type: imageType, image_path: bag.imagePath,
+            quantity: bag.weightKg, created_by: request.createdBy }
+        }))
         for (const image of appended) savedImages.set(image.id, image)
       }
       const missingItems = request.bags.flatMap(bag => bag.laundryItemIds
@@ -111,6 +114,7 @@ export class PackagingBagService {
       // The weight-photo ticket and its score are the same side effect an order-detail WEIGHT photo runs. It skips a
       // bag whose ticket already exists, so a retry never scores twice.
       for (const bag of request.bags) {
+        if (bag.weightKg === null) continue
         await this.weightPhotoTicket.provision({
           orderImageId: bag.orderImageId, orderId: request.orderId, customerId: null, deliveryId: null,
           imageType: 'WEIGHT', imagePath: bag.imagePath, notes: null, quantity: bag.weightKg,

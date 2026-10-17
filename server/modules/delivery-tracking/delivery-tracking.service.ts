@@ -54,7 +54,7 @@ export class DeliveryTrackingService {
 
   async get(orderImageId: string): Promise<DeliveryTrackingResponse> {
     const image = (await this.readImages({ id: orderImageId })).find((row) => row.id === orderImageId)
-    if (!image || !(isWeight(image) || isBag(image)) || !image.order_id) throw ApiError.notFound(NOT_FOUND)
+    if (!image || !(isWeight(image) || isPack(image) || isBag(image)) || !image.order_id) throw ApiError.notFound(NOT_FOUND)
     const orderId = image.order_id
 
     const [siblings, order, tickets] = await Promise.all([
@@ -69,7 +69,7 @@ export class DeliveryTrackingService {
     const hasBagTicket = (id: unknown) => tickets.some((row) => row.id === `LOG-${orderId}-${String(id)}-LOG-BAG`)
     if (isBag(image) && !hasBagTicket(image.id)) throw ApiError.notFound(NOT_FOUND)
     const bags = siblings
-      .filter((row) => row.order_id === orderId && typeof row.id === 'string' && (isWeight(row) || (isBag(row) && hasBagTicket(row.id))))
+      .filter((row) => row.order_id === orderId && typeof row.id === 'string' && (isWeight(row) || isPack(row) || (isBag(row) && hasBagTicket(row.id))))
       .map((row) => ({ row, weighedAt: normalizeSheetTimestamp(row.created_at) }))
       .sort((a, b) => a.weighedAt.localeCompare(b.weighedAt) || String(a.row.id).localeCompare(String(b.row.id)))
     if (!bags.some(({ row }) => row.id === orderImageId)) bags.push({ row: image, weighedAt: normalizeSheetTimestamp(image.created_at) })
@@ -85,7 +85,7 @@ export class DeliveryTrackingService {
       orderImageId,
       weightPhoto: {
         url: toImageUrl(image.image_path),
-        weightKg: toWeight(image.quantity),
+        weightKg: isWeight(image) ? toWeight(image.quantity) : null,
         weighedAt: bags[position]!.weighedAt,
         note: typeof image.notes === 'string' && image.notes.trim() !== '' ? image.notes : null,
       },
@@ -95,7 +95,7 @@ export class DeliveryTrackingService {
         .map(({ row }, index) => ({
           orderImageId: String(row.id),
           bagIndex: index + 1,
-          weightKg: toWeight(row.quantity),
+          weightKg: isWeight(row) ? toWeight(row.quantity) : null,
           thumbnailUrl: toImageUrl(row.image_path),
         }))
         .filter((bag) => bag.orderImageId !== orderImageId),
@@ -123,6 +123,10 @@ export class DeliveryTrackingService {
 
 function isWeight(row: OrderImageRow): boolean {
   return typeof row.image_type === 'string' && row.image_type.trim().toUpperCase() === 'WEIGHT'
+}
+
+function isPack(row: OrderImageRow): boolean {
+  return typeof row.image_type === 'string' && row.image_type.trim().toUpperCase() === 'PACK'
 }
 
 function isBag(row: OrderImageRow): boolean {

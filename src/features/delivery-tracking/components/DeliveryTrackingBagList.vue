@@ -25,19 +25,19 @@ const bags = computed(() => [props.current, ...props.otherBags].sort((a, b) => a
             <img v-if="bag.thumbnailUrl" :src="bag.thumbnailUrl" alt="" class="h-full w-full object-cover">
           </span>
           <span class="text-[11px] font-medium text-white/80">Bag {{ bag.bagIndex }} · this one</span>
-          <span class="heavy text-[17px] leading-none">{{ bag.weightKg }}<small class="text-[11px]"> kg</small></span>
+          <span v-if="bag.weightKg !== null" class="heavy text-[17px] leading-none">{{ bag.weightKg }}<small class="text-[11px]"> kg</small></span>
         </span>
         <RouterLink
           v-else
           :to="{ name: DELIVERY_TRACKING_ROUTE_NAME, params: { orderImageId: bag.orderImageId } }"
-          :aria-label="`Bag ${bag.bagIndex}, ${bag.weightKg} kilograms`"
+          :aria-label="bag.weightKg === null ? `Bag ${bag.bagIndex}` : `Bag ${bag.bagIndex}, ${bag.weightKg} kilograms`"
           class="flex flex-col items-stretch gap-1.5 rounded-[10px] border border-outline-variant bg-surface-container-lowest p-2 text-on-surface no-underline hover:border-primary-container focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-lime"
         >
           <span class="block aspect-[3/4] overflow-hidden rounded-md bg-gradient-to-b from-surface-container-highest to-outline-variant" aria-hidden="true">
             <img v-if="bag.thumbnailUrl" :src="bag.thumbnailUrl" alt="" class="h-full w-full object-cover">
           </span>
           <span class="text-[11px] font-medium text-on-surface-variant">Bag {{ bag.bagIndex }}</span>
-          <span class="heavy text-[17px] leading-none">{{ bag.weightKg }}<small class="text-[11px]"> kg</small></span>
+          <span v-if="bag.weightKg !== null" class="heavy text-[17px] leading-none">{{ bag.weightKg }}<small class="text-[11px]"> kg</small></span>
         </RouterLink>
       </li>
     </ul>
