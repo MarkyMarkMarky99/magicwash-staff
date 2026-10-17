@@ -7,7 +7,7 @@
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 - **`feat/corporate-order-form`** — corporate count-sheet order page built UI-only, committed unmerged; needs entry point, real-login check, save design; see `.user/memory/feat-corporate-order-form.md`.
-- **`feat/no-weight-packs`** — optional Packaging bag weight (PACK) built and tested; printer null-weight check pending before merge; see `.user/memory/feat-no-weight-packs.md`.
+- **`feat/no-weight-packs`** — optional Packaging bag weight (PACK) built and tested; printer handles null weight (code read); ready to merge after owner OK; see `.user/memory/feat-no-weight-packs.md`.
 - **`feat/shared-device-operator`** — in progress in another session (worktree `.worktrees/shared-device-operator`); status owned there, see [[shared-device-staff-card-design]] in auto-memory.
 
 ## Pending work
