@@ -50,7 +50,7 @@
   - Merged 2026-10-15: barcode-gun scanning on department pages + one/two-beep scan sounds; not yet used with a gun on prod.
   - Merged 2026-10-17: gun-scan photo popup + scan-to-top (owner-tested on vercel dev); watch first prod use with a gun.
   - Merged 2026-10-17, NOT browser-tested: Packaging bag sheet gun scan, item names (LaundryPhotos + work-order join), weight + photo saved as OrderImages WEIGHT; owner to test on prod with a test order.
-  - Legacy Packaging `BAG` rows show 0 kg on `/b/:id`; camera overlay still shows the old text scan card.
+  - NEXT (owner priority): no-weight packs for hanger/per-piece orders — prod Confirm needs a weight today; see `.user/memory/no-weight-bags.md`.
   - Scan FAB sits below the screen edge on some phones; cause unknown, awaiting the user's device/browser details.
   - Overlapping order Start notices share one page-notice slot; the later replaces the earlier.
   - `/api/job-tickets/scan` and its service have no caller since batch advance; delete in a later pass.
