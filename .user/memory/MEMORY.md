@@ -16,7 +16,8 @@
   - Phone-test on prod (merged 2026-10-12): booking camera shutter, swipe starting on the photo, card tap → `?basket=` detail sheet.
   - Unload weighing + photo temporarily OFF (owner, 2026-10-12): flag `UNLOAD_WEIGH_REQUIRED` in `src/features/wash-queue/unload-policy.ts`; swipe-unload has no confirm/undo.
   - Book save measured ~4 s on `vercel dev` (adds ~1.1 s/request); not yet timed on prod, estimate 2–2.5 s.
-  - Open: Hand wash option (needs a no-machine booking contract); tag label look not owner-approved; OrderBagRow radius; >1:30 warning colour, dryer copy, Photo button edge; KPI deferred.
+  - Open: Hand wash option (needs a no-machine booking contract); tag label look not owner-approved; >1:30 warning colour, dryer copy, Photo button edge; KPI deferred.
+- Swipe-card corners now owned by `BaseSwipeCard` (2026-10-18, mock screenshots only): phone-check every swipe list on prod.
 - Task-code refactor deployed; approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
 - **Packaging bags + JobTickets store (merged 2026-10-09, staff trial in prod)**
   - Later, needs design: customer page listing the garments in a bag from BagItems.
@@ -50,7 +51,7 @@
   - Merged 2026-10-15: barcode-gun scanning on department pages + one/two-beep scan sounds; not yet used with a gun on prod.
   - Merged 2026-10-17: gun-scan photo popup + scan-to-top (owner-tested on vercel dev); watch first prod use with a gun.
   - Merged 2026-10-17, NOT browser-tested: Packaging bag sheet gun scan, item names (LaundryPhotos + work-order join), weight + photo saved as OrderImages WEIGHT; owner to test on prod with a test order.
-  - NEXT (owner priority): no-weight packs for hanger/per-piece orders — prod Confirm needs a weight today; see `.user/memory/no-weight-bags.md`.
+  - NEXT (owner priority): no-weight packs — decided: weight entered → WEIGHT, empty → PACK; owner adds PACK to G Drive `OrderImages.json`; see `.user/memory/no-weight-bags.md`.
   - Scan FAB sits below the screen edge on some phones; cause unknown, awaiting the user's device/browser details.
   - Overlapping order Start notices share one page-notice slot; the later replaces the earlier.
   - `/api/job-tickets/scan` and its service have no caller since batch advance; delete in a later pass.
