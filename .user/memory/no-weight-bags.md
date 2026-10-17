@@ -7,5 +7,5 @@
 - Owner chose inference over Claude's toggle; Claude flagged that a forgotten weight silently becomes `PACK`.
 - serviceType (WSIR/IRON/DRCL/WASH) cannot tell hanger from folded, so per-bag inference is the only signal.
 - Change map (Codex explore 2026-10-18): draft `canConfirm` + photo gate on weight, Confirm schema `weightKg` required, server writes WEIGHT only, OrderImages enum, total-weight, logistics bag view, `/b/:id`, tag print, 6 dry-tests, packaging/order-image docs.
-- Needs: OrderImages API contract enum + owner adds the type to G Drive `OrderImages.json` (agents never edit the registry); tag print shows item count instead of weight; tracking/logistics accept the new type.
+- Needs: OrderImages API contract enum (G Drive `OrderImages.json` already documents PACK, 2026-10-18); tag print shows item count instead of weight; tracking/logistics accept the new type.
 - Related leftovers: legacy Packaging `BAG` rows show 0 kg on `/b/:id`; camera overlay still shows the old text scan card.

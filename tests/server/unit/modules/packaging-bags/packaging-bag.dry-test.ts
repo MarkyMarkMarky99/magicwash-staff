@@ -191,6 +191,30 @@ try {
       assert.deepEqual([context.images.length, context.items.length, context.tickets.length, context.scores.length], before)
     }
   }
+  const packs = { ...request, bags: request.bags.map(bag => ({ ...bag, weightKg: null })) }
+  const unweighed = setup()
+  assert.ok((await unweighed.service.confirm(packs)).bags.every(bag => bag.printed))
+  assert.deepEqual(unweighed.images.map(row => [row.image_type, row.quantity]), [['PACK', null], ['PACK', null]])
+  assert.equal(unweighed.items.length, 3)
+  assert.equal(unweighed.tickets.filter(ticket => ticket.task_code === 'LOG-BAG').length, 2)
+  assert.equal(unweighed.tickets.filter(ticket => ticket.task_code === 'PCK-WEIGHT-KG').length, 0)
+  assert.deepEqual(unweighed.weightReads, { OrderForm: 0, WorkRates: 0 })
+  assert.ok(unweighed.tickets.filter(ticket => ticket.scope === 'ITEM').every(ticket => ticket.status === 'Completed'))
+  assert.equal(unweighed.scores.length, 3)
+  assert.deepEqual(unweighed.prints.map(print => [print.weightKg, print.itemCount]), [[null, 2], [null, 1]])
+  const savedCounts = [unweighed.images.length, unweighed.items.length, unweighed.tickets.length, unweighed.scores.length]
+  await unweighed.service.confirm(packs)
+  assert.deepEqual([unweighed.images.length, unweighed.items.length, unweighed.tickets.length, unweighed.scores.length], savedCounts)
+  await assert.rejects(unweighed.service.confirm(request), error => error instanceof Error && 'status' in error && error.status === 409)
+  for (const quantity of [undefined, '', 1]) {
+    const retry = setup()
+    retry.images.push({ id: 'aabbccdd', order_id: request.orderId, image_type: 'PACK', image_path: request.bags[0]!.imagePath, quantity: quantity as z.infer<typeof orderImagesRowSchema>['quantity'] })
+    if (quantity === 1) await assert.rejects(retry.service.confirm(packs), error => error instanceof Error && 'status' in error && error.status === 409)
+    else assert.ok((await retry.service.confirm(packs)).bags.every(bag => bag.printed))
+  }
+  const weighted = setup()
+  await weighted.service.confirm(request)
+  await assert.rejects(weighted.service.confirm(packs), error => error instanceof Error && 'status' in error && error.status === 409)
   const lean = setup()
   await lean.service.confirm(request)
   assert.deepEqual(lean.reads, { JobTickets: 1, BagItems: 1, OrderImages: 1, OrderForm: 0, WorkTransactions: 0, Customers: 1 })
@@ -237,11 +261,11 @@ try {
     { ...request, bags: [{ ...request.bags[0], orderImageId: '12345678' }] },
     { ...request, bags: [{ ...request.bags[0], orderImageId: '12e34567' }] },
     { ...request, bags: [{ ...request.bags[0], orderImageId: 'bad-id' }] },
-    ...[undefined, 0, -1, 200.1, 1.25, '2.5', null, Number.NaN].map(weightKg => ({ ...request, bags: [{ ...request.bags[0], weightKg }, request.bags[1]] })),
+    ...[undefined, 0, -1, 200.1, 1.25, '2.5', Number.NaN].map(weightKg => ({ ...request, bags: [{ ...request.bags[0], weightKg }, request.bags[1]] })),
     { ...request, bags: [{ ...request.bags[0], laundryItemIds: ['tag-1', 'tag-1'] }] },
     { ...request, bags: [request.bags[0], { ...request.bags[1], laundryItemIds: ['tag-1'] }] },
   ]) assert.equal(packagingBagConfirmRequestSchema.safeParse(payload).success, false)
-  for (const weightKg of [0.1, 200, 20.5]) assert.equal(packagingBagConfirmRequestSchema.safeParse({ ...request, bags: [{ ...request.bags[0], weightKg }] }).success, true)
+  for (const weightKg of [null, 0.1, 200, 20.5]) assert.equal(packagingBagConfirmRequestSchema.safeParse({ ...request, bags: [{ ...request.bags[0], weightKg }] }).success, true)
   const unknown = await packagingBagRoutes.item!.handleRequest({ method: 'POST', body: request, params: { id: 'other' }, query: {}, headers: {} })
   assert.equal(unknown.status, 404)
   console.log('packaging-bag.dry-test: OK (validation, every partial write retry, no EARN repair, print ordering/payload/flags)')

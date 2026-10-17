@@ -58,8 +58,12 @@ export function bagWeightKg(bag: Pick<NewBag, 'weight'>): number | null {
   return parseWeightKg(bag.weight)
 }
 
+export function bagWeightValid(bag: Pick<NewBag, 'weight'>): boolean {
+  return bag.weight.trim() === '' || bagWeightKg(bag) !== null
+}
+
 export function canConfirm(bags: readonly NewBag[]): boolean {
-  return bags.length > 0 && bags.every(bag => bag.photoUrl && bag.garmentTagIds.length > 0 && bagWeightKg(bag) !== null)
+  return bags.length > 0 && bags.every(bag => bag.photoUrl && bag.garmentTagIds.length > 0 && bagWeightValid(bag))
 }
 
 export function garmentState(order: PackagingOrder, bags: readonly NewBag[], bagId: string, garment: PackagingGarment): GarmentState {

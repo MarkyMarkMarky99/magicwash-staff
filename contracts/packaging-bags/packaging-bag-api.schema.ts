@@ -9,8 +9,8 @@ export const packagingBagConfirmRequestSchema = z.object({
     orderImageId: z.string().regex(/^[0-9a-f]{8}$/).refine(id => !/^[0-9]+(e[0-9]+)?$/.test(id), 'Invalid bag ID'),
     imagePath: z.string().url().regex(/^https?:\/\//, 'Bag photo must be an http(s) URL'),
     laundryItemIds: z.array(z.string().trim().min(1)).min(1, 'Each bag needs at least one garment'),
-    // Same rule as a WEIGHT order image's quantity; stored in OrderImages.quantity.
-    weightKg: z.number().refine(isValidOrderImageWeight,
+    // Null records an unweighed PACK; a WEIGHT stores validated kg in OrderImages.quantity.
+    weightKg: z.number().nullable().refine(weight => weight === null || isValidOrderImageWeight(weight),
       `Bag weight must be greater than 0, at most ${MAX_ORDER_IMAGE_WEIGHT_KG}, and use at most one decimal place`),
   }).strict()).min(1).max(20),
 }).strict().superRefine((request, context) => {

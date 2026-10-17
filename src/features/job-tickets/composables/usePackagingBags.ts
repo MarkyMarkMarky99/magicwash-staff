@@ -153,7 +153,7 @@ export function usePackagingBags(orderId: () => string) {
     const id = order.value.orderId
     try {
       const result = await confirmPackagingBags({ orderId: id, createdBy: currentActor(),
-        bags: bags.value.map(bag => ({ orderImageId: bag.id, imagePath: bag.photoUrl!, laundryItemIds: [...bag.garmentTagIds], weightKg: bagWeightKg(bag)! })),
+        bags: bags.value.map(bag => ({ orderImageId: bag.id, imagePath: bag.photoUrl!, laundryItemIds: [...bag.garmentTagIds], weightKg: bagWeightKg(bag) })),
       })
       const printed = result.bags.filter(bag => bag.printed).length
       const failed = result.bags.length - printed

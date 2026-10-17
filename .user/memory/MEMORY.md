@@ -7,6 +7,7 @@
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 - **`feat/corporate-order-form`** — corporate count-sheet order page built UI-only, committed unmerged; needs entry point, real-login check, save design; see `.user/memory/feat-corporate-order-form.md`.
+- **`feat/no-weight-packs`** — optional Packaging bag weight (PACK) built and tested; printer null-weight check pending before merge; see `.user/memory/feat-no-weight-packs.md`.
 - **`feat/shared-device-operator`** — in progress in another session (worktree `.worktrees/shared-device-operator`); status owned there, see [[shared-device-staff-card-design]] in auto-memory.
 
 ## Pending work
@@ -51,7 +52,6 @@
   - Merged 2026-10-15: barcode-gun scanning on department pages + one/two-beep scan sounds; not yet used with a gun on prod.
   - Merged 2026-10-17: gun-scan photo popup + scan-to-top (owner-tested on vercel dev); watch first prod use with a gun.
   - Merged 2026-10-17, NOT browser-tested: Packaging bag sheet gun scan, item names (LaundryPhotos + work-order join), weight + photo saved as OrderImages WEIGHT; owner to test on prod with a test order.
-  - NEXT (owner priority): no-weight packs — decided: weight entered → WEIGHT, empty → PACK; owner adds PACK to G Drive `OrderImages.json`; see `.user/memory/no-weight-bags.md`.
   - Scan FAB sits below the screen edge on some phones; cause unknown, awaiting the user's device/browser details.
   - Overlapping order Start notices share one page-notice slot; the later replaces the earlier.
   - `/api/job-tickets/scan` and its service have no caller since batch advance; delete in a later pass.

@@ -7,7 +7,7 @@ import SquareImageCard from '@/shared/components/SquareImageCard.vue'
 import StickerFab from '@/shared/components/StickerFab.vue'
 import WeightField from '@/shared/components/WeightField.vue'
 import DetailOverlay from '@/shared/layouts/DetailOverlay.vue'
-import { bagWeightKg, type GarmentState, type PackagingGarment } from '../packaging-bags'
+import { bagWeightValid, type GarmentState, type PackagingGarment } from '../packaging-bags'
 
 const props = defineProps<{
   loading?: boolean
@@ -21,8 +21,8 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ close: []; toggle: [tagId: string]; scan: []; photo: []; 'update:weight': [value: string] }>()
 
-// The weight comes first: the photo shows the bag as weighed, so the sticker stays off until the kg is valid.
-const weightValid = computed(() => bagWeightKg({ weight: props.weight }) !== null)
+// An empty weight allows a pack photo; invalid typed weight blocks the sticker.
+const weightValid = computed(() => bagWeightValid({ weight: props.weight }))
 const weightError = computed(() => props.weight.trim() && !weightValid.value
   ? `Enter a weight greater than 0 and up to ${MAX_ORDER_IMAGE_WEIGHT_KG} kg, with at most 1 decimal place` : null)
 

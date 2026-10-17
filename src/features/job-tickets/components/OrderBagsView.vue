@@ -18,7 +18,7 @@ import { usePackagingBags } from '../composables/usePackagingBags'
 import { useQueryOverlay } from '../composables/useQueryOverlay'
 import { useScanNotice } from '../composables/useScanNotice'
 import { useScannerGunInput } from '../composables/useScannerGunInput'
-import { bagWeightKg, confirmedItemCount, formatConfirmedAt, garmentState, packedCount, presentBagScan } from '../packaging-bags'
+import { bagWeightKg, bagWeightValid, confirmedItemCount, formatConfirmedAt, garmentState, packedCount, presentBagScan } from '../packaging-bags'
 import type { ScanDisplay } from '../scan-result'
 
 // One view for every department's order bag page; the department only picks the workflow and wording.
@@ -127,10 +127,10 @@ const rows = computed<Row[]>(() => {
       const count = bag.garmentTagIds.length
       const kg = bagWeightKg(bag)
       const [status, tone]: [string, BagRowTone] = !count ? ['Empty · delete or add garments', 'error']
-        : kg === null ? ['Add bag weight', 'warning'] : !bag.photoUrl ? ['Add bag photo', 'warning'] : ['Ready to confirm', 'success']
+        : !bagWeightValid(bag) ? ['Fix bag weight', 'warning'] : !bag.photoUrl ? ['Add bag photo', 'warning'] : ['Ready to confirm', 'success']
       return { key: bag.id, count, unit: items(count), title: `Bag ${state.numberOf(bag.id)}`, badge: 'New',
-        status: kg !== null && count ? `${status} · ${kg} kg` : status, tone,
-        photoUrl: bag.photoUrl, done: false, deletable: true, photoAction: kg !== null, uploading: state.uploading.value.has(bag.id),
+        status: count ? `${status}${kg !== null ? ` · ${kg} kg` : bag.weight.trim() === '' ? ' · No weight' : ''}` : status, tone,
+        photoUrl: bag.photoUrl, done: false, deletable: true, photoAction: bagWeightValid(bag), uploading: state.uploading.value.has(bag.id),
         open: () => sheet.open(bag.id), remove: () => state.deleteBag(bag.id), takePhoto: () => photo.open(bag.id) }
     }),
   ]
