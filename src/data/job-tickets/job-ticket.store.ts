@@ -4,9 +4,10 @@ import type { JobTicketCompleteOrderPayload, JobTicketAdvancePayload, JobTicketL
 import { completeJobTicketOrder, advanceJobTickets, listJobTickets, loadDepartmentWork, MAX_DEPARTMENT_TICKETS, startJobTicketOrder } from './job-ticket.service'
 import { onCacheInvalidated } from '@/shared/api/response-cache'
 
+const DEPARTMENT_WORK_FRESH_MS = 60 * 60 * 1000
 
 type Department = JobTicketListQuery['department'] & string
-type DepartmentView = { ids: string[]; loaded: boolean; stale: boolean; loading: boolean; error: string | null; requestId: number }
+type DepartmentView = { ids: string[]; loaded: boolean; loadedAt: number; stale: boolean; loading: boolean; error: string | null; requestId: number }
 
 type TicketView = { ids: string[]; loaded: boolean; loading: boolean; error: string | null; truncated: boolean; requestId: number }
 
@@ -32,7 +33,7 @@ export const useJobTicketStore = defineStore('job-tickets', () => {
   const truncated = computed(() => departmentRows.value.length >= MAX_DEPARTMENT_TICKETS)
 
   function departmentView(department: Department): DepartmentView {
-    if (!departments.has(department)) departments.set(department, { ids: [], loaded: false, stale: false, loading: false, error: null, requestId: 0 })
+    if (!departments.has(department)) departments.set(department, { ids: [], loaded: false, loadedAt: 0, stale: false, loading: false, error: null, requestId: 0 })
     return departments.get(department)!
   }
 
@@ -51,8 +52,12 @@ export const useJobTicketStore = defineStore('job-tickets', () => {
     state.requestId += 1
   }
 
+  function isFresh(state: DepartmentView): boolean {
+    return state.loaded && !state.stale && Date.now() - state.loadedAt < DEPARTMENT_WORK_FRESH_MS
+  }
+
   async function loadDepartmentState(department: Department, state: DepartmentView): Promise<void> {
-    if (state.loaded && !state.stale) return
+    if (isFresh(state)) return
     const inFlight = departmentPromises.get(department)
     if (inFlight) {
       if (inFlight.id === state.requestId) return inFlight.promise
@@ -69,6 +74,7 @@ export const useJobTicketStore = defineStore('job-tickets', () => {
         merge(tickets)
         state.ids = tickets.map(ticket => ticket.id)
         state.loaded = true
+        state.loadedAt = Date.now()
         state.stale = false
       } catch (reason) {
         if (id === state.requestId) state.error = reason instanceof Error ? reason.message : 'โหลดรายการงานไม่สำเร็จ'
@@ -91,7 +97,7 @@ export const useJobTicketStore = defineStore('job-tickets', () => {
   function activateDepartment(department: Department): void {
     activeDepartment.value = department
     const state = departmentView(department)
-    if ((!state.loaded || state.stale) && departmentPromises.get(department)?.id !== state.requestId) void loadDepartment(department)
+    if (!isFresh(state) && departmentPromises.get(department)?.id !== state.requestId) void loadDepartment(department)
   }
 
   function releaseDepartment(): void {

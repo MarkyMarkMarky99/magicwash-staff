@@ -57,9 +57,8 @@ async function loadScores(): Promise<void> {
   }
 }
 
-function load(): void {
-  void staffStore.load()
-  void loadScores()
+async function load(): Promise<void> {
+  await Promise.all([staffStore.load(), loadScores()])
 }
 
 function selectDate(date: string): void {
@@ -107,7 +106,7 @@ onActivated(() => {
       </div>
     </template>
 
-    <ListContainer
+    <ListContainer :refresh="load"
       title="Staff ranking"
       icon="leaderboard"
       :count="board.length"

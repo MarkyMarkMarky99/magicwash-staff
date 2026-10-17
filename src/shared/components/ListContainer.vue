@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
+import PullToRefresh from '@/shared/components/PullToRefresh.vue'
 
 const props = defineProps({
   title: { type: String, required: true },
@@ -9,6 +10,7 @@ const props = defineProps({
   countLabel: { type: String, required: true },
   topDivider: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
+  refresh: { type: /** @type {import('vue').PropType<(() => unknown) | null>} */ (Function), default: null },
   // Without the PropType cast Vue infers string | undefined and every nullable caller fails.
   error: { type: /** @type {import('vue').PropType<string | null>} */ (String), default: null },
   empty: { type: Boolean, default: false },
@@ -87,6 +89,10 @@ const headingId = computed(() =>
 
 const contentVisible = computed(() => !props.collapsible || !collapsed.value)
 
+async function runRefresh() {
+  await props.refresh?.()
+}
+
 function toggleCollapsed() {
   if (!props.collapsible) return
   collapsed.value = !collapsed.value
@@ -157,6 +163,7 @@ function toggleCollapsed() {
       <slot name="search-actions" />
     </div>
 
+    <component :is="refresh ? PullToRefresh : 'div'" v-bind="refresh ? { inline: true, refresh: runRefresh } : {}">
     <template v-if="contentVisible">
       <slot v-if="loading" name="loading">
         <div class="divide-y divide-outline-variant/10">
@@ -184,5 +191,6 @@ function toggleCollapsed() {
         <slot />
       </div>
     </template>
+    </component>
   </section>
 </template>

@@ -492,7 +492,7 @@ onBeforeRouteLeave(to => {
       List incomplete: showing up to 10,000 jobs
     </div>
 
-    <ListContainer
+    <ListContainer :refresh="reload"
       v-if="department"
       :title="department.label" icon="assignment"
       :count="grouper === 'order' ? visibleOrders.length : visibleTickets.length"

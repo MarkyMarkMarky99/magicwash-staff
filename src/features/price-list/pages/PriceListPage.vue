@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import GenericTabs from '@/shared/components/GenericTabs.vue'
+import { invalidate } from '@/shared/api/response-cache'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import ImageOrIcon from '@/shared/components/ImageOrIcon.vue'
@@ -232,6 +233,11 @@ watch(() => [route.name, route.query.category] as const, ([name, category]) => {
 onMounted(() => {
   void priceListStore.load()
 })
+
+async function refreshList(): Promise<void> {
+  invalidate('/api/price-list')
+  await priceListStore.load(true)
+}
 </script>
 
 <template>
@@ -267,7 +273,7 @@ onMounted(() => {
       </section>
     </template>
 
-    <ListContainer
+    <ListContainer :refresh="refreshList"
       title="รายการราคา"
       icon="sell"
       count-label="รายการ"

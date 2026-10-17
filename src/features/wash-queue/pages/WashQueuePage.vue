@@ -19,6 +19,7 @@ import ConfirmOverlay from '@/shared/layouts/ConfirmOverlay.vue'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import CameraOverlay from '@/shared/components/CameraOverlay.vue'
 import GenericTabs from '@/shared/components/GenericTabs.vue'
+import { invalidate } from '@/shared/api/response-cache'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import PhotoViewer from '@/shared/components/PhotoViewer.vue'
 import WeightPrompt from '@/shared/components/WeightPrompt.vue'
@@ -362,6 +363,11 @@ onUnmounted(() => {
   document.removeEventListener('visibilitychange', refreshVisible)
   document.removeEventListener('pointerdown', closeOpenRow, true)
 })
+
+async function refreshList(): Promise<void> {
+  invalidate('/api/wash-queue')
+  await store.load()
+}
 </script>
 
 <template>
@@ -382,7 +388,7 @@ onUnmounted(() => {
       <WashQueuePhotoButton :saving="uploading" :disabled="saving" @click="openDraft" />
     </div>
 
-    <ListContainer
+    <ListContainer :refresh="refreshList"
       v-if="showPlaceholder"
       title="Wash queue" icon="local_laundry_service" count-label="baskets"
       :loading="store.loading && !store.items.length" :error="store.items.length ? null : store.error"

@@ -16,6 +16,9 @@ let waiting: Promise<void> | undefined
 let mode: 'normal' | 'capped' | 'failed' = 'normal'
 let cappedCount = MAX_DEPARTMENT_TICKETS
 let generation = 'current'
+const originalNow = Date.now
+let now = 1_000_000
+Date.now = () => now
 const originalFetch = globalThis.fetch
 setActivePinia(createPinia())
 let store = useJobTicketStore()
@@ -61,6 +64,36 @@ try {
   await store.loadDepartment('Packaging')
   assert.equal(calls.length, 2, 'returning to a loaded department reuses its work')
 
+  const initialCalls = calls.length
+  now += 60 * 60 * 1000 - 1
+  await store.loadDepartment('Packaging')
+  store.activateDepartment('Packaging')
+  await settle()
+  assert.equal(calls.length, initialCalls, 'both entry points reuse work before one hour')
+
+  now += 1
+  waiting = new Promise<void>(resolve => { finish = resolve })
+  const expiredLoad = store.loadDepartment('Packaging')
+  const duplicateExpiredLoad = store.loadDepartment('Packaging')
+  await settle()
+  assert.equal(calls.length, initialCalls + 1, 'expired loadDepartment makes exactly one request')
+  assert.equal(store.loading, false)
+  assert.deepEqual(store.tickets.map(row => row.id), ['Packaging-current', 'Packaging-older'])
+  finish()
+  await Promise.all([expiredLoad, duplicateExpiredLoad])
+
+  now += 60 * 60 * 1000
+  waiting = new Promise<void>(resolve => { finish = resolve })
+  store.activateDepartment('Packaging')
+  store.activateDepartment('Packaging')
+  await settle()
+  assert.equal(calls.length, initialCalls + 2, 'expired activateDepartment makes exactly one request')
+  assert.equal(store.loading, false)
+  assert.deepEqual(store.tickets.map(row => row.id), ['Packaging-current', 'Packaging-older'])
+  finish()
+  await store.loadDepartment('Packaging')
+  waiting = undefined
+  calls.splice(initialCalls)
 
   waiting = new Promise<void>(resolve => { finish = resolve })
   const refresh = store.loadDepartment('Packaging', true)
@@ -136,4 +169,5 @@ try {
 } finally {
   store.$dispose()
   globalThis.fetch = originalFetch
+  Date.now = originalNow
 }

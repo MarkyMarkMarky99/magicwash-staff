@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import GenericTabs from '@/shared/components/GenericTabs.vue'
+import { invalidate } from '@/shared/api/response-cache'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import IssueReportCard from '../components/IssueReportCard.vue'
 import { ISSUE_REPORT_TABS } from '../components/issue-report-status'
@@ -28,6 +29,11 @@ function openDetail(id: string) {
 }
 
 onMounted(() => void issueReportStore.load())
+
+async function refreshList(): Promise<void> {
+  invalidate('/api/issue-reports')
+  await issueReportStore.reload()
+}
 </script>
 
 <template>
@@ -38,7 +44,7 @@ onMounted(() => void issueReportStore.load())
       </div>
     </template>
 
-      <ListContainer
+      <ListContainer :refresh="refreshList"
         title="แจ้งปัญหา"
         icon="bug_report"
         :count="filteredItems.length"

@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
+import { invalidate } from '@/shared/api/response-cache'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import { useAppointmentStore } from '@/data/appointments/appointment.store'
 import AppointmentCard from '../components/AppointmentCard.vue'
@@ -21,12 +22,17 @@ function openReschedule(appointmentId: string) {
 function openCustomer(customerId: string) {
   router.push({ name: 'customer-detail', params: { customerId } })
 }
+
+async function refreshList(): Promise<void> {
+  invalidate('/api/appointments')
+  await store.loadPending(true)
+}
 </script>
 
 <template>
   <AppLayout>
     <ScrollRegion as="main" class="pb-6 w-full bg-surface min-w-0">
-      <ListContainer
+      <ListContainer :refresh="refreshList"
         title="Pending Requests"
         icon="pending_actions"
         :count="pendingItems.length"
@@ -44,7 +50,7 @@ function openCustomer(customerId: string) {
             class="flex h-[22px] w-[22px] items-center justify-center rounded-full transition-all hover:bg-surface-container active:scale-95 disabled:opacity-50"
             aria-label="Refresh pending requests"
             :disabled="loading"
-            @click.stop="store.loadPending(true)"
+            @click.stop="refreshList"
           >
             <span
               class="material-symbols-outlined text-[16px] text-primary"

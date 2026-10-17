@@ -11,7 +11,7 @@ Each department page loads its own work with one `GET /api/job-tickets/departmen
 when first opened. The server reads that department's JobTickets rows with one GViz query and returns
 all non-deleted, non-Cancelled tickets of orders that still have a Pending or In Progress ticket in
 the department or a ticket completed today (Bangkok). Older Completed tickets of those orders are
-included. The store caches per department, so returning to a department makes no request until invalidation or an explicit refresh. Invalidation marks every department stale and reloads only the
+included. The store caches per department, so returning to a department within one hour makes no request; after an hour, or after invalidation or a pull-to-refresh, it reloads in the background while the loaded work keeps showing. Invalidation marks every department stale and reloads only the
 active department. If invalidation occurs during a read, its result is discarded and a fresh read
 starts after it settles, so in-flight API deduplication cannot reuse the old response. A department
 list shows at most 10,000 tickets and shows the incomplete-list warning at that cap. Loading, retry,
