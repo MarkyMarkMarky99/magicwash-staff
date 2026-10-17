@@ -6,6 +6,7 @@ audit_sources:
   - src/features/issue-reports/pages/IssueReportListPage.vue
   - src/features/price-list/pages/PriceListPage.vue
   - src/shared/components/ListContainer.vue
+  - src/shared/components/PullToRefresh.vue
   - src/shared/components/AppHeader.vue
 ---
 
@@ -27,6 +28,13 @@ Use this pattern for root pages that browse a collection.
 - `ListContainer` owns heading, loading, error, empty, and skeleton states.
   Feature components own rows/cards and domain actions.
 - Do not change or add a shared page shell for one feature.
+
+## Refresh
+
+Main list pages pass `refresh` to `ListContainer`. Pulling the rows down at the top of the list
+(touch, or mouse for desktop testing) opens the shared `PullToRefresh` gap under the header
+and above the first row. Releasing past 64 px awaits `refresh`, which invalidates cached
+endpoints and reloads. Detail sections and `PackageListPage` do not use it.
 
 ## Filters
 

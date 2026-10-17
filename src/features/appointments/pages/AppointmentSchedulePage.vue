@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
+import { invalidate } from '@/shared/api/response-cache'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import { useAppointmentStore } from '@/data/appointments/appointment.store'
 import { appointmentDateFromString, toAppointmentDate } from '../utils/appointment-date'
@@ -60,6 +61,11 @@ function openReschedule(appointmentId: string) {
 function openCustomer(customerId: string) {
   router.push({ name: 'customer-detail', params: { customerId } })
 }
+
+async function refreshList(): Promise<void> {
+  invalidate('/api/appointments')
+  await store.refreshDate()
+}
 </script>
 
 <template>
@@ -69,7 +75,7 @@ function openCustomer(customerId: string) {
     </div>
 
     <ScrollRegion as="main" class="pb-20 w-full bg-surface min-w-0">
-      <ListContainer
+      <ListContainer :refresh="refreshList"
         v-for="(slot, index) in slots"
         :key="`${slot.value}-${selectedDate}`"
         :title="slot.label"

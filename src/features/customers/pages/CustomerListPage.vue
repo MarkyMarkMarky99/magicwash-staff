@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { customerTypeSchema } from '@contracts/customers/customer-api.schema'
 import { matchesCustomerKeyword } from '@shared/utils/customer-search'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
+import { invalidate } from '@/shared/api/response-cache'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import CustomerTypeTabs from '../components/CustomerTypeTabs.vue'
 import CustomerCard from '../components/CustomerCard.vue'
@@ -46,6 +47,11 @@ function selectType(key: string) {
 onMounted(() => {
   customerStore.loadCustomers()
 })
+
+async function refreshList(): Promise<void> {
+  invalidate('/api/customers')
+  await customerStore.loadCustomers(true)
+}
 </script>
 
 <template>
@@ -56,7 +62,7 @@ onMounted(() => {
       </div>
     </template>
 
-    <ListContainer
+    <ListContainer :refresh="refreshList"
       title="Customers"
       icon="group"
       :count="filteredCustomers.length"

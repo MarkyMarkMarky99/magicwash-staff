@@ -3,7 +3,7 @@ import { PULL_HOLD_OFFSET, pullIntent, pullOffset, shouldRefresh } from '@/share
 
 export type PullPhase = 'idle' | 'pulling' | 'refreshing' | 'closing'
 
-export function usePullToRefresh(target: Ref<HTMLElement | null>, onRefresh: () => Promise<void>) {
+export function usePullToRefresh(target: Ref<HTMLElement | null>, onRefresh: () => Promise<void>, scroller: Ref<HTMLElement | null> = target) {
   const offset = ref(0)
   const phase = ref<PullPhase>('idle')
 
@@ -12,7 +12,7 @@ export function usePullToRefresh(target: Ref<HTMLElement | null>, onRefresh: () 
   let tracking = false
 
   function begin(x: number, y: number): void {
-    const element = target.value
+    const element = scroller.value
     if (element === null || phase.value === 'refreshing' || element.scrollTop > 0) return
     startX = x
     startY = y
@@ -20,7 +20,7 @@ export function usePullToRefresh(target: Ref<HTMLElement | null>, onRefresh: () 
   }
 
   function move(x: number, y: number): boolean {
-    const element = target.value
+    const element = scroller.value
     if (!tracking || element === null) return false
     if (phase.value !== 'pulling') {
       if (element.scrollTop > 0) {

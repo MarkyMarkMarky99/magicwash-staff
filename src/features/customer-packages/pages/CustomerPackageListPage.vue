@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
+import { invalidate } from '@/shared/api/response-cache'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import CustomerPackageExtraFilter from '../components/CustomerPackageExtraFilter.vue'
 import CustomerPackageFilterBar from '../components/CustomerPackageFilterBar.vue'
@@ -16,6 +17,11 @@ const { items, loading, error } = storeToRefs(store)
 const { filter, updateFilter } = useCustomerPackageFilterRoute()
 const extraFilterOpen = ref(false)
 watch(filter, (value) => { void store.fetchCustomerPackages(value) }, { immediate: true })
+
+async function refreshList(): Promise<void> {
+  invalidate('/api/customer-packages')
+  await store.fetchCustomerPackages(filter.value)
+}
 </script>
 
 <template>
@@ -24,7 +30,7 @@ watch(filter, (value) => { void store.fetchCustomerPackages(value) }, { immediat
       <CustomerPackageFilterBar :filter="filter" @change="updateFilter" />
     </template>
 
-    <ListContainer title="Customer packages" icon="card_membership" searchable :search-value="filter.keyword" search-placeholder="Search customer or package" @update:search-value="updateFilter({ keyword: $event })" :count="items.length" count-label="packages" :loading="loading" :error="error" :empty="items.length === 0" empty-text="No customer packages" :skeleton-rows="4">
+    <ListContainer :refresh="refreshList" title="Customer packages" icon="card_membership" searchable :search-value="filter.keyword" search-placeholder="Search customer or package" @update:search-value="updateFilter({ keyword: $event })" :count="items.length" count-label="packages" :loading="loading" :error="error" :empty="items.length === 0" empty-text="No customer packages" :skeleton-rows="4">
       <template #search-actions>
         <CustomerPackageExtraFilter v-model:open="extraFilterOpen" :filter="filter" :disabled="loading" />
       </template>

@@ -28,7 +28,7 @@
   - No backfill: bags weighed before 2026-10-08 have no LOG-BAG ticket, so those orders never reach the Logistics list.
   - Watch: legacy OrderImages `DELIVERY` (2) and `PICKUP` (271) rows; tracking proof may pick a legacy DELIVERY row.
 - **Orders report (`/reports/orders`, merged 2026-10-05)**
-  - Order list has no pull-to-refresh yet (ListPageLayout lacks it); `/api/order-reports` and the server date/keyword path of `/api/work-orders` now have no frontend caller.
+  - `/api/order-reports` and the server date/keyword path of `/api/work-orders` now have no frontend caller.
   - Deferred by owner: status cards show current status, not status on that day; check whether orders ever reach COMPLETED.
 - **Staff KPI (WorkTransactions / WorkRates, merged 2026-10-04)**
   - Browser-check the staff profile page `/staff/:staffId` (Day date strip, Week leaderboard); only unit-tested.
@@ -57,15 +57,14 @@
   - `AdvanceConfirmDialog` raises `#overlay-root` z-index while open; replace once a shared confirm dialog exists.
   - Decide the order status sequence before any swipe-to-advance work.
   - Persist tag ids at print time and add a single-tag reprint flow before real use.
-  - Department page reload policy undecided (on return, on app focus, interval, or a refresh button); KeepAlive keeps it stale now.
-  - Department ring under-counts orders with earlier completions; board endpoint decided, not built. See `.user/memory/department-board-load.md`.
+  - Merged 2026-10-17, NOT browser-tested (sign-in wall): per-department load, one-hour department cache, list pull-to-refresh; phone-check on prod.
+  - Decided 2026-10-17: one unfiltered GViz read per department (Washing ~1 s); revisit when department history grows.
+  - Work-order create/update do not invalidate `/api/job-tickets`; a newly approved order needs a pull-to-refresh on department pages.
+  - PackageListPage has no pull-to-refresh: its store has no awaitable force reload.
   - Browser-verify the ring head following the arc when a ticket status changes (tap or Start).
-  - Browser-check department pages after dropping the per-order detail fetch and parallelising the status loads (pushed 2026-09-28).
   - Ticket `due_date` goes stale when an order's due date is edited; order update does not rewrite existing tickets.
-  - Completed loading pages through today's tickets; a server-side `completedFrom` filter remains proposed.
-  - Per-department ticket cache (show stored list, refresh in background) proposed, not built.
+  - Deferred backend: job-ticket cancel timestamps.
   - Tablet layout for the department page (2–3 order columns) deferred by user; needs an opt-in wide route flag in `App.vue`.
-  - Deferred backend: worklist read (not-done + done-today, cap 2000) and cancel timestamps.
   - Not started: garment registration batch-appends LaundryPhotos on camera close (Back/X/screen-off safe); Approve-gating decision open, see `.user/memory/laundry-photos-batch-append.md`.
   - Phone Back closes garment registration while uploads are pending; blocking it not decided.
   - Decide whether to remove the old BEF album add-photo path now that registration is proven.

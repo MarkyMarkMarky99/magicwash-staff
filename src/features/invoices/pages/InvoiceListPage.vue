@@ -3,6 +3,7 @@ import { computed, ref, watch, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
+import { invalidate } from '@/shared/api/response-cache'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import InvoiceDateFilter from '../components/InvoiceDateFilter.vue'
 import InvoiceDatePanel from '../components/InvoiceDatePanel.vue'
@@ -67,6 +68,11 @@ onMounted(() => {
 function openInvoice(invoiceNumber: string) {
   router.push({ name: 'invoice-detail', params: { invoiceNumber } })
 }
+
+async function refreshList(): Promise<void> {
+  invalidate('/api/invoices')
+  await invoiceStore.fetchInvoices(filter.value)
+}
 </script>
 
 <template>
@@ -79,7 +85,7 @@ function openInvoice(invoiceNumber: string) {
       />
     </template>
 
-    <ListContainer
+    <ListContainer :refresh="refreshList"
       title="Invoices"
       icon="receipt_long"
       :count="total"

@@ -1,7 +1,6 @@
 import { z } from 'zod'
-import { jobTicketCompleteOrderRequestSchema, jobTicketCompleteOrderResponseSchema, jobTicketAdvanceRequestSchema, jobTicketAdvanceResponseSchema, jobTicketListQuerySchema, jobTicketResponseSchema, jobTicketStartOrderRequestSchema, jobTicketStartOrderResponseSchema } from '@contracts/job-tickets/job-ticket-api.schema'
-import { apiGetList, apiPost, type ListResult } from '@/shared/api/api-client'
-import { normalizeSheetDate, todaySheetDate } from '@/shared/utils/sheet-date'
+import { jobTicketCompleteOrderRequestSchema, jobTicketCompleteOrderResponseSchema, jobTicketAdvanceRequestSchema, jobTicketAdvanceResponseSchema, jobTicketDepartmentWorkQuerySchema, jobTicketListQuerySchema, jobTicketResponseSchema, jobTicketStartOrderRequestSchema, jobTicketStartOrderResponseSchema } from '@contracts/job-tickets/job-ticket-api.schema'
+import { apiGet, apiGetList, apiPost, type ListResult } from '@/shared/api/api-client'
 import { normalizeGarmentTagId } from '@/shared/utils/garment-tag-id'
 
 export type JobTicketDto = Omit<z.infer<typeof jobTicketResponseSchema>, 'laundryItemId'> & { laundryItemId: string | null }
@@ -14,7 +13,6 @@ export type JobTicketAdvancePayload = z.infer<typeof jobTicketAdvanceRequestSche
 export type JobTicketAdvanceResult = z.infer<typeof jobTicketAdvanceResponseSchema>
 
 const ENDPOINT = '/api/job-tickets'
-const PAGE_SIZE = 500
 export const MAX_DEPARTMENT_TICKETS = 10_000
 
 export async function listJobTickets(query: Partial<JobTicketListQuery>): Promise<ListResult<JobTicketDto>> {
@@ -73,63 +71,8 @@ export function advanceJobTickets(payload: JobTicketAdvancePayload): Promise<Job
   })
 }
 
-export function completedTodayFromPage(tickets: readonly JobTicketDto[], today: string): { tickets: JobTicketDto[]; reachedOlder: boolean } {
-  const firstOlder = tickets.findIndex(ticket => {
-    const date = normalizeSheetDate(ticket.completedAt)
-    return date !== null && date < today
-  })
-  const current = (firstOlder === -1 ? tickets : tickets.slice(0, firstOlder))
-    .filter(ticket => {
-      const date = normalizeSheetDate(ticket.completedAt)
-      return date !== null && date >= today
-    })
-  return { tickets: current, reachedOlder: firstOlder !== -1 }
-}
-
-async function loadStatusTickets(
-  status: 'Pending' | 'In Progress' | 'Completed',
-  department: JobTicketListQuery['department'],
-  today: string,
-  fetchPage: typeof listJobTickets,
-): Promise<JobTicketDto[]> {
-  const tickets: JobTicketDto[] = []
-  for (let page = 1; tickets.length < MAX_DEPARTMENT_TICKETS; page += 1) {
-    // Open work is read in one request per status: each extra page costs a full JobTickets scan.
-    const perPage = Math.min(status === 'Completed' ? PAGE_SIZE : MAX_DEPARTMENT_TICKETS, MAX_DEPARTMENT_TICKETS - tickets.length)
-    const result = await fetchPage({ department, status, page, perPage,
-      sortBy: status === 'Completed' ? 'completedAt' : 'createdAt', sortOrder: 'desc' })
-    const selected = status === 'Completed' ? completedTodayFromPage(result.items, today) : { tickets: result.items, reachedOlder: false }
-    tickets.push(...selected.tickets.slice(0, MAX_DEPARTMENT_TICKETS - tickets.length))
-    if (selected.reachedOlder || result.items.length < perPage) break
-  }
-  return tickets
-}
-
-export async function loadOpenTickets(
-  fetchPage: typeof listJobTickets = listJobTickets,
-): Promise<{ tickets: JobTicketDto[]; truncated: boolean }> {
-  const results = await Promise.all([
-    loadStatusTickets('Pending', undefined, '', fetchPage),
-    loadStatusTickets('In Progress', undefined, '', fetchPage),
-  ])
-  const combined = results.flat()
-  return { tickets: combined.slice(0, MAX_DEPARTMENT_TICKETS), truncated: combined.length >= MAX_DEPARTMENT_TICKETS }
-}
-
-export async function loadCompletedTickets(
-  department: JobTicketListQuery['department'],
-  now: Date = new Date(),
-  fetchPage: typeof listJobTickets = listJobTickets,
-): Promise<{ tickets: JobTicketDto[]; truncated: boolean }> {
-  const tickets = await loadStatusTickets('Completed', department, todaySheetDate(now), fetchPage)
-  return { tickets, truncated: tickets.length >= MAX_DEPARTMENT_TICKETS }
-}
-
-// Current work for every department in one load: all open tickets plus those completed today.
-export async function loadCurrentTickets(
-  now: Date = new Date(),
-  fetchPage: typeof listJobTickets = listJobTickets,
-): Promise<{ tickets: JobTicketDto[]; truncated: boolean }> {
-  const [open, completed] = await Promise.all([loadOpenTickets(fetchPage), loadCompletedTickets(undefined, now, fetchPage)])
-  return { tickets: [...open.tickets, ...completed.tickets], truncated: open.truncated || completed.truncated }
+export async function loadDepartmentWork(department: JobTicketListQuery['department'] & string): Promise<JobTicketDto[]> {
+  jobTicketDepartmentWorkQuerySchema.parse({ department })
+  const tickets = await apiGet<z.infer<typeof jobTicketResponseSchema>[]>(`${ENDPOINT}/department-work?department=${encodeURIComponent(department)}`)
+  return tickets.map(ticket => ({ ...ticket, laundryItemId: normalizeGarmentTagId(ticket.laundryItemId) }))
 }
