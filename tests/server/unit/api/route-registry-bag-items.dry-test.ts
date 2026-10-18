@@ -25,7 +25,7 @@ assert.strictEqual(await resolveRoute('bag-items'), bagItemRoutes)
 assert.equal(bagItemRoutes.item, undefined)
 for (const method of ['PATCH', 'DELETE']) {
   const result = await bagItemRoutes.collection.handleRequest({
-    method, query: {}, body: {}, headers: {}, params: {},
+    method, query: {}, body: {}, headers: {}, staff: { staffId: 'session-staff', email: 'staff@test', name: 'Staff', role: 'staff' as const }, params: {},
   })
   assert.equal(result.status, 405)
   assert.equal(result.headers?.Allow, 'GET, POST')

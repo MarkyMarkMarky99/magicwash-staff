@@ -1,3 +1,4 @@
+import { bodyWithSessionActor } from '../../shared/http/session-actor.js'
 import type { z } from 'zod'
 import {
   jobTicketApiContract,
@@ -75,7 +76,7 @@ export const jobTicketCompleteService = new JobTicketCompleteService()
 export const jobTicketStartService = new JobTicketStartService()
 export const jobTicketAdvanceService = new JobTicketAdvanceService()
 
-const crudRoutes = createCrudRoutes(jobTicketService, jobTicketApiContract)
+const crudRoutes = createCrudRoutes(jobTicketService, jobTicketApiContract, { update: ['updatedBy'] })
 
 export const jobTicketRoutes: GatewayModuleRoutes = {
   collection: crudRoutes.collection,
@@ -89,11 +90,11 @@ export const jobTicketRoutes: GatewayModuleRoutes = {
         return { status: response.kind === 'completed' ? 200 : response.certainty === 'rejected' ? 502 : 500, body: response }
       }
       if (req.params.id === 'start-order') {
-        const response = await jobTicketStartService.startOrder(req.body)
+        const response = await jobTicketStartService.startOrder(bodyWithSessionActor(req, 'scannedBy'))
         return { status: response.kind === 'completed' ? 200 : response.certainty === 'rejected' ? 502 : 500, body: response }
       }
       if (req.params.id === 'advance') {
-        const response = await jobTicketAdvanceService.advance(req.body)
+        const response = await jobTicketAdvanceService.advance(bodyWithSessionActor(req, 'scannedBy'))
         return { status: response.kind === 'completed' ? 200 : response.certainty === 'rejected' ? 502 : 500, body: response }
       }
       throw ApiError.notFound('Route not found')

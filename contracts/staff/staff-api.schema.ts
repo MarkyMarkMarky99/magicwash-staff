@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import type { ModuleApiContract } from '../shared/module-api-contract.js'
 
-export const staffRoleSchema = z.enum(['admin', 'staff'])
+export const staffRoleSchema = z.enum(['admin', 'staff', 'device'])
 
 const startDateSchema = z.union([z.string().date(), z.literal('')])
 const requiredTextSchema = z.string().trim().min(1)
@@ -36,8 +36,12 @@ export const updateStaffBodySchema = z.object({
   message: 'At least one field is required',
 })
 
+export const issueStaffCardResponseSchema = z.object({ staffId: z.string(), cardCode: z.string() })
+
+const staffResponses = { list: staffSchema, detail: staffSchema, create: staffSchema, update: staffSchema, issueCard: issueStaffCardResponseSchema }
+
 export const staffApiContract = {
   query: { list: z.object({}) },
   request: { create: registerStaffBodySchema, update: updateStaffBodySchema },
-  response: { list: staffSchema, detail: staffSchema, create: staffSchema, update: staffSchema },
+  response: staffResponses,
 } satisfies ModuleApiContract

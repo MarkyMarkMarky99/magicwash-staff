@@ -18,4 +18,4 @@ export const appointmentService = new AppointmentService({
   transformer: createAppointmentTransformer(),
 })
 
-export const appointmentRoutes = createCrudRoutes(appointmentService, appointmentApiContract)
+export const appointmentRoutes = createCrudRoutes(appointmentService, appointmentApiContract, { create: ['createdBy'], update: ['updatedBy'] })

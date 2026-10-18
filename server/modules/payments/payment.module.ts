@@ -1,7 +1,10 @@
 import { z } from 'zod'
 import { paymentApiContract } from '../../../contracts/payments/payment-api.schema.js'
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
-import { FALLBACK_ACTOR } from '../../shared/config/actor.js'
+import { requireStaffId } from '../../shared/http/session-actor.js'
+import { ApiHandler } from '../../shared/http/api-handler.js'
+import type { GatewayModuleRoutes } from '../../shared/http/gateway.types.js'
+import { created, ok } from '../../shared/http/response.js'
 import type { ApiRowFromFieldMap, RepositoryTransformer } from '../../shared/repositories/base.repository.js'
 import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
 import { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
@@ -73,7 +76,7 @@ export class PaymentService extends BaseCrudService<
   PaymentResponse, never, PaymentResponse, PaymentReviewResponse,
   PaymentsDbRow, typeof paymentFieldMap
 > {
-  private readonly repository: Pick<SheetRepositoryContract<PaymentsDbRow>, 'read' | 'update'> | (() => Pick<SheetRepositoryContract<PaymentsDbRow>, 'read' | 'update'>)
+  private readonly repository: Pick<SheetRepositoryContract<PaymentsDbRow>, 'read' | 'append' | 'update'> | (() => Pick<SheetRepositoryContract<PaymentsDbRow>, 'read' | 'append' | 'update'>)
   private readonly reviewMapper = new Mapper(paymentFieldMap)
   private readonly now: () => Date
   private readonly generateId: () => string
@@ -91,7 +94,17 @@ export class PaymentService extends BaseCrudService<
     this.generateId = input.generateId ?? (() => generateShortId('PAY-'))
   }
 
-  protected override prepareCreate(data: PaymentCreate): PaymentCreate & {
+  override async create(payload: unknown, staffId?: string): Promise<PaymentResponse> {
+    if (!staffId) throw ApiError.unauthorized()
+    const data = parseOrThrow(paymentApiContract.request.create, payload)
+    const prepared = this.preparePaymentCreate(data, staffId)
+    const repository = typeof this.repository === 'function' ? this.repository() : this.repository
+    const row = await repository.append(this.reviewMapper.toDb<Partial<PaymentsDbRow>>(prepared))
+    const apiRow = mapDbRowToApi(blankTextToNull(row) as Record<string, unknown>, this.reviewMapper, {})
+    return Object.fromEntries(Object.keys(paymentApiContract.response.create.shape).map(field => [field, apiRow[field]])) as PaymentResponse
+  }
+
+  private preparePaymentCreate(data: PaymentCreate, staffId: string): PaymentCreate & {
     paymentId: string
     status: 'VERIFIED'
     createdAt: string
@@ -109,7 +122,7 @@ export class PaymentService extends BaseCrudService<
       status: 'VERIFIED',
       paidAt: data.paidAt ?? timestamp,
       createdAt: timestamp,
-      createdBy: FALLBACK_ACTOR,
+      createdBy: staffId,
       slipData: null,
       updatedAt: null,
       updatedBy: null,
@@ -122,7 +135,8 @@ export class PaymentService extends BaseCrudService<
    * Staff review of a PENDING payment: VERIFY fills the amount and counts it toward
    * the invoice; REJECT marks it FAILED with a reason. Any other status is final.
    */
-  override async update(id: string, payload: unknown): Promise<PaymentReviewResponse> {
+  override async update(id: string, payload: unknown, staffId?: string): Promise<PaymentReviewResponse> {
+    if (!staffId) throw ApiError.unauthorized()
     const paymentId = id.trim()
     if (paymentId === '') throw ApiError.badRequest('id is required')
     const review = parseOrThrow(paymentApiContract.request.update, payload)
@@ -147,7 +161,7 @@ export class PaymentService extends BaseCrudService<
       : { status: 'FAILED' }
     if (notes !== undefined) patch.notes = notes
     patch.updated_at = timestamp
-    patch.updated_by = FALLBACK_ACTOR
+    patch.updated_by = staffId
 
     const updated = await repository.update(paymentId, patch)
     const apiRow = mapDbRowToApi(blankTextToNull(updated) as Record<string, unknown>, this.reviewMapper, {})
@@ -160,4 +174,17 @@ export class PaymentService extends BaseCrudService<
 }
 
 export const paymentService = new PaymentService()
-export const paymentRoutes = createCrudRoutes(paymentService, paymentApiContract)
+export function createPaymentRoutes(service: PaymentService): GatewayModuleRoutes {
+  const crudRoutes = createCrudRoutes(service, paymentApiContract)
+  return {
+    collection: new ApiHandler({
+      GET: req => crudRoutes.collection.handleRequest(req),
+      POST: async req => created(await service.create(req.body, requireStaffId(req))),
+    }),
+    item: new ApiHandler({
+      PATCH: async req => ok(await service.update(req.params.id!, req.body, requireStaffId(req))),
+    }),
+  }
+}
+
+export const paymentRoutes = createPaymentRoutes(paymentService)

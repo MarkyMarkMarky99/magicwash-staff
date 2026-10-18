@@ -11,7 +11,7 @@ let rows = [['new@example.com', 'New', '', false, 'new-id', '', '', '', '']] as 
 let reads = 0
 let delayed: Promise<SheetsApiValues> | undefined
 SheetsApiClient.prototype.readRange = async function (range, options) {
-  assert.equal(range, 'A:I')
+  assert.equal(range, 'A:J')
   assert.equal(options?.valueRenderOption, 'UNFORMATTED_VALUE')
   reads += 1
   return delayed ?? [headers, ...rows]

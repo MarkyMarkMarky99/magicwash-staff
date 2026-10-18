@@ -1,6 +1,7 @@
+import { isStaffCardCode } from '@/shared/utils/staff-card'
 import { onMounted, onUnmounted, toValue, type MaybeRefOrGetter } from 'vue'
 
-export function useScannerGunInput(onScan: (code: string) => void, enabled: MaybeRefOrGetter<boolean>): void {
+export function useScannerGunInput(onScan: (code: string) => void, enabled: MaybeRefOrGetter<boolean>, options: { staffCards?: 'skip' | 'only' } = {}): void {
   let buffer = ''
   let lastKeyTime = 0
 
@@ -13,7 +14,7 @@ export function useScannerGunInput(onScan: (code: string) => void, enabled: Mayb
     }
 
     if (event.code === 'Enter' || event.code === 'NumpadEnter') {
-      if (buffer.length >= 3) {
+      if (buffer.length >= 3 && (isStaffCardCode(buffer) === (options.staffCards === 'only'))) {
         onScan(buffer)
         event.preventDefault()
       }

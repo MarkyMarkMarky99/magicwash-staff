@@ -1,0 +1,1604 @@
+[
+  {
+    "file": "tests/frontend/invoices/invoice-api-compat.workflow.dry-test.ts",
+    "exit": 0,
+    "output": "11 invoice frontend API-compat workflow tests passed\n",
+    "command": "npx tsx tests\\frontend\\invoices\\invoice-api-compat.workflow.dry-test.ts"
+  },
+  {
+    "file": "tests/server/modules/appointments/appointment-write-certainty.dry-test.ts",
+    "exit": 0,
+    "output": "",
+    "command": "npx tsx tests\\server\\modules\\appointments\\appointment-write-certainty.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/auth-me.dry-test.ts",
+    "exit": 0,
+    "output": "auth me dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\api\\auth-me.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/price-list-gateway.dry-test.ts",
+    "exit": 0,
+    "output": "price-list gateway dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\api\\price-list-gateway.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/route-registry-after-photos.dry-test.ts",
+    "exit": 0,
+    "output": "after-photos route registry dry test passed\n",
+    "command": "npx tsx tests/server/unit/api/route-registry-after-photos.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/route-registry-bag-items.dry-test.ts",
+    "exit": 0,
+    "output": "bag-items route registry dry test passed (lazy import, collection methods, staff authentication)\n",
+    "command": "npx tsx tests/server/unit/api/route-registry-bag-items.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/route-registry-issue-reports.dry-test.ts",
+    "exit": 0,
+    "output": "issue-report route registry dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\api\\route-registry-issue-reports.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/route-registry-items.dry-test.ts",
+    "exit": 0,
+    "output": "items lazy route dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\api\\route-registry-items.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/route-registry-laundry-photos.dry-test.ts",
+    "exit": 0,
+    "output": "laundry-photos route registry dry test passed\n",
+    "command": "npx tsx tests/server/unit/api/route-registry-laundry-photos.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/route-registry-order-images.dry-test.ts",
+    "exit": 0,
+    "output": "order-images route registry dry test passed\n",
+    "command": "npx tsx tests/server/unit/api/route-registry-order-images.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/route-registry-order-item-reassign.dry-test.ts",
+    "exit": 0,
+    "output": "order-item reassign route registry dry test passed\n",
+    "command": "npx tsx tests/server/unit/api/route-registry-order-item-reassign.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/route-registry-order-items.dry-test.ts",
+    "exit": 0,
+    "output": "order-items route registry dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\api\\route-registry-order-items.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/route-registry-order-reports.dry-test.ts",
+    "exit": 0,
+    "output": "order-reports route registry dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\api\\route-registry-order-reports.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/route-registry-order-snapshots.dry-test.ts",
+    "exit": 0,
+    "output": "order-snapshots route registry dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\api\\route-registry-order-snapshots.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/route-registry-packages.dry-test.ts",
+    "exit": 0,
+    "output": "packages route registry dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\api\\route-registry-packages.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/route-registry-photo-reassign.dry-test.ts",
+    "exit": 0,
+    "output": "photo reassign route registry dry test passed\n",
+    "command": "npx tsx tests/server/unit/api/route-registry-photo-reassign.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/route-registry-price-list.dry-test.ts",
+    "exit": 0,
+    "output": "price-list route registry dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\api\\route-registry-price-list.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/route-registry-wash-queue.dry-test.ts",
+    "exit": 0,
+    "output": "wash queue lazy route dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\api\\route-registry-wash-queue.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/route-registry-work-orders.dry-test.ts",
+    "exit": 0,
+    "output": "work-orders route registry dry test passed\n",
+    "command": "npx tsx tests/server/unit/api/route-registry-work-orders.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/route-registry-work-transactions.dry-test.ts",
+    "exit": 0,
+    "output": "work-transactions route registry dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\api\\route-registry-work-transactions.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/shared-device-operator.dry-test.ts",
+    "exit": 0,
+    "output": "shared device operator dry test passed\n",
+    "command": "npx tsx tests/server/unit/api/shared-device-operator.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/staff-api.dry-test.ts",
+    "exit": 0,
+    "output": "staff API dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\api\\staff-api.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/api/staff-auth-gateway.dry-test.ts",
+    "exit": 0,
+    "output": "staff auth gateway dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\api\\staff-auth-gateway.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/contracts/after-photos/after-photo-api.schema.dry-test.ts",
+    "exit": 0,
+    "output": "after-photo-api.schema.dry-test: OK\n",
+    "command": "npx tsx tests\\server\\unit\\contracts\\after-photos\\after-photo-api.schema.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/contracts/appointments/appointment-api.schema.dry-test.ts",
+    "exit": 0,
+    "output": "appointment-api.schema.dry-test: OK\n",
+    "command": "npx tsx tests\\server\\unit\\contracts\\appointments\\appointment-api.schema.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/contracts/customer-packages/customer-package-api.contract.dry-test.ts",
+    "exit": 0,
+    "output": "customer package API contract dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\contracts\\customer-packages\\customer-package-api.contract.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/contracts/customer-packages/customer-package-api.merge.dry-test.ts",
+    "exit": 0,
+    "output": "",
+    "command": "npx tsx tests\\server\\unit\\contracts\\customer-packages\\customer-package-api.merge.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/contracts/invoices/invoice-api-contract.dry-test.ts",
+    "exit": 0,
+    "output": "9 invoice API contract tests passed\n",
+    "command": "npx tsx tests\\server\\unit\\contracts\\invoices\\invoice-api-contract.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/contracts/issue-reports/issue-report-api.schema.dry-test.ts",
+    "exit": 0,
+    "output": "issue-report-api.schema.dry-test: OK\n",
+    "command": "npx tsx tests\\server\\unit\\contracts\\issue-reports\\issue-report-api.schema.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/contracts/items/items-api.schema.dry-test.ts",
+    "exit": 0,
+    "output": "items schema dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\contracts\\items\\items-api.schema.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/contracts/job-tickets/job-ticket-api.schema.dry-test.ts",
+    "exit": 0,
+    "output": "job-ticket API contract dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\contracts\\job-tickets\\job-ticket-api.schema.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/contracts/laundry-photos/laundry-photo-api.schema.dry-test.ts",
+    "exit": 0,
+    "output": "laundry-photo-api.schema.dry-test: OK\n",
+    "command": "npx tsx tests\\server\\unit\\contracts\\laundry-photos\\laundry-photo-api.schema.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/contracts/order-images/order-image-api.schema.dry-test.ts",
+    "exit": 0,
+    "output": "order-image-api.schema.dry-test: OK\n",
+    "command": "npx tsx tests\\server\\unit\\contracts\\order-images\\order-image-api.schema.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/contracts/order-items/order-item-api.schema.dry-test.ts",
+    "exit": 1,
+    "output": "node:internal/modules/run_main:122\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ Set(12) {\n- Set(9) {\n    'MAX_ORDER_ITEMS_PER_PAGE',\n    'orderItemApiContract',\n    'orderItemCreateResponseSchema',\n    'orderItemCreateSchema',\n    'orderItemDetailResponseSchema',\n    'orderItemListQuerySchema',\n+   'orderItemQuantityReassignResponseSchema',\n+   'orderItemQuantityReassignSchema',\n    'orderItemResponseSchema',\n+   'orderItemUpdateResponseSchema',\n    'orderItemUpdateSchema',\n    'orderServiceTypeSchema'\n  }\n\n    at <anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\contracts\\order-items\\order-item-api.schema.dry-test.ts:24:8)\n    at ModuleJob.run (node:internal/modules/esm/module_job:271:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5) {\n  generatedMessage: true,\n  code: 'ERR_ASSERTION',\n  actual: Set(12) {\n    'MAX_ORDER_ITEMS_PER_PAGE',\n    'orderItemApiContract',\n    'orderItemCreateResponseSchema',\n    'orderItemCreateSchema',\n    'orderItemDetailResponseSchema',\n    'orderItemListQuerySchema',\n    'orderItemQuantityReassignResponseSchema',\n    'orderItemQuantityReassignSchema',\n    'orderItemResponseSchema',\n    'orderItemUpdateResponseSchema',\n    'orderItemUpdateSchema',\n    'orderServiceTypeSchema'\n  },\n  expected: Set(9) {\n    'MAX_ORDER_ITEMS_PER_PAGE',\n    'orderItemApiContract',\n    'orderItemCreateResponseSchema',\n    'orderItemCreateSchema',\n    'orderItemDetailResponseSchema',\n    'orderItemListQuerySchema',\n    'orderItemResponseSchema',\n    'orderItemUpdateSchema',\n    'orderServiceTypeSchema'\n  },\n  operator: 'deepStrictEqual'\n}\n\nNode.js v22.14.0\n",
+    "command": "npx tsx tests/server/unit/contracts/order-items/order-item-api.schema.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/contracts/order-reports/order-report-api.schema.dry-test.ts",
+    "exit": 0,
+    "output": "order-report api schema dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\contracts\\order-reports\\order-report-api.schema.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/contracts/packages/package-api.contract.dry-test.ts",
+    "exit": 0,
+    "output": "package API contract dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\contracts\\packages\\package-api.contract.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/contracts/payments/payment-api.schema.dry-test.ts",
+    "exit": 0,
+    "output": "payment-api.schema.dry-test: OK\n",
+    "command": "npx tsx tests\\server\\unit\\contracts\\payments\\payment-api.schema.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/contracts/price-list/price-list-api.contract.dry-test.ts",
+    "exit": 0,
+    "output": "price-list-api.schema.dry-test: OK\n",
+    "command": "npx tsx tests\\server\\unit\\contracts\\price-list\\price-list-api.contract.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/contracts/price-list/price-list-api.schema.dry-test.ts",
+    "exit": 0,
+    "output": "price-list-api.schema.dry-test: OK\n",
+    "command": "npx tsx tests\\server\\unit\\contracts\\price-list\\price-list-api.schema.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/contracts/work-orders/work-order-api.schema.dry-test.ts",
+    "exit": 0,
+    "output": "work-order-api.schema.dry-test: OK\n",
+    "command": "npx tsx tests\\server\\unit\\contracts\\work-orders\\work-order-api.schema.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/after-photos/after-photo-reassign.dry-test.ts",
+    "exit": 0,
+    "output": "after-photo reassign dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\after-photos\\after-photo-reassign.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/after-photos/after-photo-wiring.dry-test.ts",
+    "exit": 0,
+    "output": "after-photo wiring dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\after-photos\\after-photo-wiring.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/after-photos/after-photo-writes.dry-test.ts",
+    "exit": 0,
+    "output": "after-photo writes dry test passed\n",
+    "command": "npx tsx tests/server/unit/modules/after-photos/after-photo-writes.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/after-photos/after-photo.service.dry-test.ts",
+    "exit": 0,
+    "output": "after-photo service dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\after-photos\\after-photo.service.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/appointments/appointment-completer.dry-test.ts",
+    "exit": 0,
+    "output": "appointment completer dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\appointments\\appointment-completer.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/appointments/appointment.service.dry-test.ts",
+    "exit": 0,
+    "output": "6 appointment service dry tests passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\appointments\\appointment.service.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/appointments/appointment.transformer.dry-test.ts",
+    "exit": 0,
+    "output": "19 appointment transformer dry tests passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\appointments\\appointment.transformer.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/appointments/appointment.transport.dry-test.ts",
+    "exit": 0,
+    "output": "4 appointment transport dry tests passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\appointments\\appointment.transport.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/bag-tag-prints/bag-tag-print.dry-test.ts",
+    "exit": 0,
+    "output": "bag tag print dry tests passed: save hook, flags, exact request, nonfatal failures, customer fallbacks, quantities, timestamps, validation, redaction\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\bag-tag-prints\\bag-tag-print.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/customer-packages/customer-package-assembly.dry-test.ts",
+    "exit": 0,
+    "output": "customer package assembly dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\customer-packages\\customer-package-assembly.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/customer-packages/customer-package-purchase.service.dry-test.ts",
+    "exit": 0,
+    "output": "customer package purchase service dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\customer-packages\\customer-package-purchase.service.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/customer-packages/customer-package-read.service.dry-test.ts",
+    "exit": 0,
+    "output": "customer package read service dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\customer-packages\\customer-package-read.service.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/customer-packages/package-transaction.service.dry-test.ts",
+    "exit": 0,
+    "output": "package transaction service dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\customer-packages\\package-transaction.service.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/customers/customer-registration.service.dry-test.ts",
+    "exit": 0,
+    "output": "7 customer registration dry tests passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\customers\\customer-registration.service.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/delivery-tracking/delivery-tracking.dry-test.ts",
+    "exit": 0,
+    "output": "delivery tracking dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\delivery-tracking\\delivery-tracking.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/invoice-prints/invoice-print.module.dry-test.ts",
+    "exit": 0,
+    "output": "invoice print module dry tests passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\invoice-prints\\invoice-print.module.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/invoices/invoice-create-preflight.dry-test.ts",
+    "exit": 0,
+    "output": "5 invoice create preflight dry tests passed\n",
+    "command": "npx tsx tests/server/unit/modules/invoices/invoice-create-preflight.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/invoices/invoice-read.dry-test.ts",
+    "exit": 0,
+    "output": "7 invoice read dry tests passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\invoices\\invoice-read.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/invoices/invoice-status-update.dry-test.ts",
+    "exit": 0,
+    "output": "invoice status-update tests passed\n",
+    "command": "npx tsx tests/server/unit/modules/invoices/invoice-status-update.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/invoices/invoice-update.dry-test.ts",
+    "exit": 0,
+    "output": "7 invoice status-update tests passed\n",
+    "command": "npx tsx tests/server/unit/modules/invoices/invoice-update.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/invoices/invoice-view-sync-client.dry-test.ts",
+    "exit": 0,
+    "output": "invoice view sync client dry tests passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\invoices\\invoice-view-sync-client.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/invoices/invoice.service.dry-test.ts",
+    "exit": 0,
+    "output": "16 invoice service dry tests passed\nitems_write_failed WriteRejectedError: bad batch\n    at Object.run (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\modules\\invoices\\invoice.service.dry-test.ts:267:17)\n    at main (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\modules\\invoices\\invoice.service.dry-test.ts:417:16)\nitems_write_failed WriteTransportError: network hiccup\n    at Object.run (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\modules\\invoices\\invoice.service.dry-test.ts:282:17)\n    at main (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\modules\\invoices\\invoice.service.dry-test.ts:417:16)\nitems_write_failed Error: unexpected write failure\n    at Object.run (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\modules\\invoices\\invoice.service.dry-test.ts:298:17)\n    at main (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\modules\\invoices\\invoice.service.dry-test.ts:417:16)\ninvoice_write_failed WriteRejectedError: duplicate invoice_number\n    at Object.run (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\modules\\invoices\\invoice.service.dry-test.ts:313:19)\n    at main (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\modules\\invoices\\invoice.service.dry-test.ts:417:16)\ninvoice_write_failed WriteTransportError: network hiccup\n    at Object.run (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\modules\\invoices\\invoice.service.dry-test.ts:329:19)\n    at main (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\modules\\invoices\\invoice.service.dry-test.ts:417:16)\norder_link_failed WriteRejectedError: OrderForm row not found\n    at Object.run (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\modules\\invoices\\invoice.service.dry-test.ts:344:21)\n    at main (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\modules\\invoices\\invoice.service.dry-test.ts:417:16)\norder_link_failed WriteTransportError: network hiccup\n    at Object.run (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\modules\\invoices\\invoice.service.dry-test.ts:356:21)\n    at async main (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\modules\\invoices\\invoice.service.dry-test.ts:417:5)\n",
+    "command": "npx tsx tests/server/unit/modules/invoices/invoice.service.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/invoices/package-invoice.dry-test.ts",
+    "exit": 0,
+    "output": "Package invoice validation, write sequence, totals and no-order-link checks passed\n",
+    "command": "npx tsx tests/server/unit/modules/invoices/package-invoice.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/issue-reports/issue-report-wiring.dry-test.ts",
+    "exit": 0,
+    "output": "issue-report wiring dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\issue-reports\\issue-report-wiring.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/issue-reports/issue-report-writes.dry-test.ts",
+    "exit": 0,
+    "output": "issue-report writes dry test passed\n",
+    "command": "npx tsx tests/server/unit/modules/issue-reports/issue-report-writes.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/items/items-crud.dry-test.ts",
+    "exit": 0,
+    "output": "items CRUD dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\items\\items-crud.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/items/items-writes.dry-test.ts",
+    "exit": 0,
+    "output": "items nullable write transport dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\items\\items-writes.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/job-tickets/job-ticket-advance.dry-test.ts",
+    "exit": 0,
+    "output": "job-ticket-advance.dry-test: OK\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\job-tickets\\job-ticket-advance.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/job-tickets/job-ticket-complete.dry-test.ts",
+    "exit": 0,
+    "output": "job-ticket-complete.dry-test: OK\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\job-tickets\\job-ticket-complete.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/job-tickets/job-ticket-start.dry-test.ts",
+    "exit": 0,
+    "output": "job-ticket start dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\job-tickets\\job-ticket-start.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/job-tickets/job-ticket-transition.dry-test.ts",
+    "exit": 0,
+    "output": "job-ticket-transition.dry-test: OK\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\job-tickets\\job-ticket-transition.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/job-tickets/job-ticket.module.dry-test.ts",
+    "exit": 0,
+    "output": "job-ticket module dry test passed\n",
+    "command": "npx tsx tests/server/unit/modules/job-tickets/job-ticket.module.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/laundry-photos/laundry-photo-reassign.dry-test.ts",
+    "exit": 0,
+    "output": "laundry-photo reassign dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\laundry-photos\\laundry-photo-reassign.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/laundry-photos/laundry-photo-wiring.dry-test.ts",
+    "exit": 0,
+    "output": "laundry-photo wiring dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\laundry-photos\\laundry-photo-wiring.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/laundry-photos/laundry-photo-writes.dry-test.ts",
+    "exit": 0,
+    "output": "laundry-photo writes dry test passed\n",
+    "command": "npx tsx tests/server/unit/modules/laundry-photos/laundry-photo-writes.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/laundry-photos/laundry-photo.service.dry-test.ts",
+    "exit": 0,
+    "output": "laundry-photo service dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\laundry-photos\\laundry-photo.service.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/laundry-tag-prints/laundry-tag-print.module.dry-test.ts",
+    "exit": 0,
+    "output": "laundry tag print module dry tests passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\laundry-tag-prints\\laundry-tag-print.module.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/machines/machines.dry-test.ts",
+    "exit": 0,
+    "output": "machines dry test passed (every status, type/order/id sorting, DTO, lazy route, 405, read-only writes)\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\machines\\machines.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/order-images/bag-logistics-ticket.dry-test.ts",
+    "exit": 0,
+    "output": "bag logistics ticket dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\order-images\\bag-logistics-ticket.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/order-images/order-image-wiring.dry-test.ts",
+    "exit": 0,
+    "output": "order-image module wiring dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\order-images\\order-image-wiring.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/order-images/weight-photo-ticket.dry-test.ts",
+    "exit": 0,
+    "output": "weight-photo-ticket.dry-test: OK\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\order-images\\weight-photo-ticket.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/order-items/order-item-reassign.dry-test.ts",
+    "exit": 0,
+    "output": "order-item reassign dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\order-items\\order-item-reassign.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/order-items/order-item-wiring.dry-test.ts",
+    "exit": 0,
+    "output": "order-item wiring dry test passed\n",
+    "command": "npx tsx tests/server/unit/modules/order-items/order-item-wiring.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/order-items/order-item.service.dry-test.ts",
+    "exit": 0,
+    "output": "order-item service dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\order-items\\order-item.service.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/order-reports/order-report.service.dry-test.ts",
+    "exit": 0,
+    "output": "order-report service dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\order-reports\\order-report.service.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/order-snapshots/order-snapshot.service.dry-test.ts",
+    "exit": 0,
+    "output": "order-snapshot service dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\order-snapshots\\order-snapshot.service.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/packages/package.module.dry-test.ts",
+    "exit": 0,
+    "output": "package module workflow dry test passed\n",
+    "command": "npx tsx tests/server/unit/modules/packages/package.module.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/packaging-bags/packaging-bag.dry-test.ts",
+    "exit": 0,
+    "output": "packaging-bag.dry-test: OK (validation, every partial write retry, no EARN repair, print ordering/payload/flags)\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\packaging-bags\\packaging-bag.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/payments/payment-review.dry-test.ts",
+    "exit": 0,
+    "output": "payment-review.dry-test: OK\n",
+    "command": "npx tsx tests/server/unit/modules/payments/payment-review.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/payments/payment.service.dry-test.ts",
+    "exit": 0,
+    "output": "payment.service.dry-test: OK\n",
+    "command": "npx tsx tests/server/unit/modules/payments/payment.service.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/portal/portal-bundle.dry-test.ts",
+    "exit": 0,
+    "output": "Portal cache concurrency/expiry/retry/isolation, GViz columns/dates, bundle projections/status, and nested routes passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\portal\\portal-bundle.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/portal/portal-read.dry-test.ts",
+    "exit": 0,
+    "output": "Portal projection, live reads, exact filters, validation, routes, and envelope checks passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\portal\\portal-read.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/price-list/price-list-wiring.dry-test.ts",
+    "exit": 0,
+    "output": "7 price-list wiring dry tests passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\price-list\\price-list-wiring.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/price-list/price-list-writes.dry-test.ts",
+    "exit": 0,
+    "output": "price-list write workflow dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\price-list\\price-list-writes.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/wash-products/wash-products.dry-test.ts",
+    "exit": 0,
+    "output": "wash products dry test passed (all statuses, type/order/id sorting, DTO, lazy route, 405, read-only writes)\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\wash-products\\wash-products.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/wash-programs/wash-programs.dry-test.ts",
+    "exit": 0,
+    "output": "wash programs dry test passed (grouping, ordered steps, lenient parsing, bad rows, all statuses, lazy route, read-only)\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\wash-programs\\wash-programs.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/wash-queue/wash-queue-writes.dry-test.ts",
+    "exit": 0,
+    "output": "wash queue wire dry test passed (23 columns, repository audit, null echoes, load/unload writes)\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\wash-queue\\wash-queue-writes.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/wash-queue/wash-queue.dry-test.ts",
+    "exit": 0,
+    "output": "wash queue dry test passed (create, 6 transitions, 18 conflicts, 6 missing IDs, list, weight validation, strict payloads)\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\wash-queue\\wash-queue.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/work-orders/job-ticket-provisioning.dry-test.ts",
+    "exit": 0,
+    "output": "job-ticket provisioning dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\work-orders\\job-ticket-provisioning.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/work-orders/work-order-completed.dry-test.ts",
+    "exit": 0,
+    "output": "work-order completed dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\work-orders\\work-order-completed.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/work-orders/work-order-create.dry-test.ts",
+    "exit": 0,
+    "output": "work-order create dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\work-orders\\work-order-create.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/work-orders/work-order-ticket-provisioning.dry-test.ts",
+    "exit": 0,
+    "output": "work-order ticket provisioning dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\work-orders\\work-order-ticket-provisioning.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/work-orders/work-order-update.dry-test.ts",
+    "exit": 0,
+    "output": "work-order update dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\work-orders\\work-order-update.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/work-orders/work-order.service.dry-test.ts",
+    "exit": 0,
+    "output": "work-order service dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\work-orders\\work-order.service.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/work-orders/work-rate-lookup.dry-test.ts",
+    "exit": 0,
+    "output": "work-rate lookup dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\work-orders\\work-rate-lookup.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/work-transactions/work-transaction-earn.dry-test.ts",
+    "exit": 0,
+    "output": "work-transaction EARN dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\work-transactions\\work-transaction-earn.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/modules/work-transactions/work-transaction.service.dry-test.ts",
+    "exit": 0,
+    "output": "work-transaction service dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\modules\\work-transactions\\work-transaction.service.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/auth/staff-cache.dry-test.ts",
+    "exit": 0,
+    "output": "staff cache dry test passed\n",
+    "command": "npx tsx tests/server/unit/shared/auth/staff-cache.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/auth/staff-list.dry-test.ts",
+    "exit": 0,
+    "output": "staff list dry test passed\n",
+    "command": "npx tsx tests/server/unit/shared/auth/staff-list.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/http/crud-routes.dry-test.ts",
+    "exit": 0,
+    "output": "7 createCrudRoutes dry tests passed\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\http\\crud-routes.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/repositories/base-primary-key.dry-test.ts",
+    "exit": 0,
+    "output": "base primaryKey/id dry tests passed\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\repositories\\base-primary-key.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/repositories/google-auth.dry-test.ts",
+    "exit": 0,
+    "output": "PASS imports without GOOGLE_SERVICE_ACCOUNT_KEY\nPASS shares one in-flight refresh across concurrent callers\nPASS sends an RS256 service-account JWT with the expected claims\nPASS uses the resolved token from cache\nPASS refreshes a token with 60 seconds or less remaining\nPASS clears a failed refresh so the next call can retry\nPASS times out an unsettled token request and retries it\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\repositories\\google-auth.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/repositories/gviz-query-builder.dry-test.ts",
+    "exit": 0,
+    "output": "ok - a date-marked column renders a typed date literal\nok - a datetime-marked column renders a typed datetime literal\nok - an unmarked column still renders a quoted string literal (regression guard)\nok - no cellTypes argument at all still renders a quoted string literal\nok - native boolean filters render unquoted including false\nok - deriveGVizCellTypes returns only marked columns\nok - deriveGVizCellTypes returns {} for a schema with no marked columns\nok - sanitization still applies inside a typed literal\nok - col resolves contract columns and rejects unknown fields\nok - lit uses existing sanitization and schema cell types\npassed - 10 gviz-query-builder dry-tests\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\repositories\\gviz-query-builder.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/repositories/header-map.dry-test.ts",
+    "exit": 0,
+    "output": "ok - uses the live header order for indexes and letters\nok - keeps unknown extra live columns and reports their width and address\nok - trims trailing empty or whitespace headers but rejects an empty header in the middle\nok - rejects duplicate exact live headers\nok - rejects a known column missing from the live header\nok - rejects a primary key absent from known columns\nok - rejects a primary key missing from the live header\nok - rejects a non-string header at the external boundary\nok - converts zero-based indexes through and beyond Z\nok - rejects invalid column indexes\nok - builds full-row A1 ranges from the header width\nok - rejects invalid row numbers when building a row range\nok - rejects a zero-width header map when building a row range\nok - resolver construction is lazy and does not read\nok - resolver caches a successful sequential load by identity\nok - resolver coalesces concurrent first loads with an in-flight promise\nok - resolver clears a failed in-flight load so the next call retries\npassed - 17 header-map dry-tests\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\repositories\\header-map.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/repositories/repository.dry-test.ts",
+    "exit": 0,
+    "output": "9 repository dry tests passed\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\repositories\\repository.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/repositories/row-identity.dry-test.ts",
+    "exit": 0,
+    "output": "ok - accepts a row whose primary key matches the expected key\nok - accepts a numeric primary key returned by an unformatted read-back\nok - rejects a row whose primary key changed between lookup and write\nok - rejects a row missing the primary-key column\npassed - 4 row-identity dry-tests\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\repositories\\row-identity.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/repositories/row-lookup.dry-test.ts",
+    "exit": 0,
+    "output": "ok - returns the real row number for the first data row and resolves its column letter\nok - returns the real row number for the last returned data row\nok - returns null when the key is not found\nok - does not match a key that only appears in the header row\nok - normalizes numeric sheet values and requested keys before comparing\nok - throws with the colliding rows when a key is duplicated\nok - rejects a key column that is missing from the header map before reading\nok - does not match an empty key and tolerates trailing blank rows being omitted\npassed - 8 row-lookup dry-tests\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\repositories\\row-lookup.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/repositories/sheet.repository.audit.dry-test.ts",
+    "exit": 0,
+    "output": "ok - append stamps both declared columns once and returns the sent row\nok - batchAppend stamps every row with one timestamp and performs one key read and one write\nok - update stamps only onUpdate and leaves the stored CreatedAt column untouched\nok - an explicit conforming audit value wins over the repository timestamp\nok - an invalid caller-supplied audit value is rejected before append\nok - an invalid caller-supplied update audit value is rejected before update\nok - a declared audit column missing from the live header is rejected before append\nok - an omitted audit declaration appends without adding a timestamp column\nok - a duplicate key inside a batch is rejected before the single append request\npassed - 9 sheet repository audit dry-tests\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\repositories\\sheet.repository.audit.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/repositories/sheet.repository.dry-test.ts",
+    "exit": 0,
+    "output": "sheet repository dry tests passed\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\repositories\\sheet.repository.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/repositories/sheet.repository.sheets-api-append-certainty.dry-test.ts",
+    "exit": 0,
+    "output": "ok - transport error plus first GViz verification match returns success\nok - transport error plus second GViz verification match returns success\nok - transport error plus third GViz verification match returns success\nok - transport error plus no GViz match rethrows unchanged\nok - committed unreadable error plus GViz match returns success\nok - committed unreadable error plus no GViz match rethrows unchanged\nok - rejected error bypasses GViz verification\nok - misaligned append bypasses GViz verification\npassed - append certainty dry tests\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\repositories\\sheet.repository.sheets-api-append-certainty.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/repositories/sheet.repository.sheets-api-append-duplicate-key.dry-test.ts",
+    "exit": 0,
+    "output": "ok - no existing primary key proceeds to append normally\nok - an empty primary key value skips the duplicate check entirely\nok - two matching primary keys in one batch reject before any write happens\nok - an empty primary key value is written by batchAppend\npassed - 4 sheet repository Sheets API append duplicate-key dry-tests\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\repositories\\sheet.repository.sheets-api-append-duplicate-key.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/repositories/sheet.repository.sheets-api-append.dry-test.ts",
+    "exit": 0,
+    "output": "ok - Sheets API append does not read the primary key before writing\nok - Sheets API append sends a full-width row with middle blanks preserved\nok - Sheets API append uses one USER_ENTERED request option\nok - a conflicting valueInput declaration is rejected before fetch\nok - append returns the sent full-width row instead of the echoed row\nok - an append echo with a different primary key is rejected\nok - a contract without a transport declaration appends through the Sheets API\npassed - 7 sheet repository Sheets API append dry-tests\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\repositories\\sheet.repository.sheets-api-append.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/repositories/sheet.repository.sheets-api-batch-append-preflight.dry-test.ts",
+    "exit": 0,
+    "output": "ok - a keyed batch appends once and never reads the primary-key column\nok - an empty batch performs zero primary-key-column reads\nok - a batch whose incoming keys are all blank performs zero primary-key-column reads\nok - an intra-batch duplicate rejects with the existing error class before any read or write\nok - a nonmatching batch appends unchanged full-width rows once\npassed - 5 sheet repository batch preflight dry-tests\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\repositories\\sheet.repository.sheets-api-batch-append-preflight.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/repositories/sheet.repository.sheets-api-batch-append.dry-test.ts",
+    "exit": 0,
+    "output": "ok - Sheets API batchAppend issues exactly one appendRows request with all rows\nok - every batch row is full header width with blanks at omitted middle columns\nok - Sheets API batchAppend uses one USER_ENTERED request option\nok - a conflicting valueInput declaration is rejected before any request is sent\nok - batchAppend returns the sent full-width rows instead of the echoed rows\nok - a mismatched primary key in a non-first echoed row throws WriteRowIdentityMismatchError\nok - a row-count mismatch is committed-but-unreadable, never a rejection\nok - a contract without a transport declaration batchAppends through the Sheets API\npassed - 8 sheet repository Sheets API batchAppend dry-tests\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\repositories\\sheet.repository.sheets-api-batch-append.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/repositories/sheet.repository.sheets-api-update-many.dry-test.ts",
+    "exit": 0,
+    "output": "passed - updateMany dry tests\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\repositories\\sheet.repository.sheets-api-update-many.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/repositories/sheet.repository.sheets-api-update-unchanged.dry-test.ts",
+    "exit": 0,
+    "output": "ok - UPDATE transport error propagates unchanged without GViz verification\nok - UPDATE committed unreadable error propagates unchanged without GViz verification\npassed - UPDATE unchanged dry tests\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\repositories\\sheet.repository.sheets-api-update-unchanged.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/repositories/sheets-api.client-read-ranges.dry-test.ts",
+    "exit": 0,
+    "output": "passed - readRanges dry tests\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\repositories\\sheets-api.client-read-ranges.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/repositories/sheets-api.client.dry-test.ts",
+    "exit": 0,
+    "output": "ok - readHeader sends the values:get request for row 1\nok - readColumn sends the values:get request for one column\nok - readRange sends the values:get request for an arbitrary range\nok - readRange sends the requested render options\nok - readRange rejects an unreadable response\nok - appendRows sends the required append query and body\nok - appendRows does not cap the request at 26 columns\nok - appendRows accepts a landed range spanning 21 columns\nok - appendRows posts to the fixed A:A append URL regardless of known width\nok - appendRows checks the landed range against the sent-row width, not the known width\nok - appendRows rejects a zero width before fetch\nok - appendRows rejects a negative width before fetch\nok - appendRows rejects a fractional width before fetch\nok - appendRows rejects an outside-A-start updatedRange as misaligned\nok - appendRows rejects an narrower-than-populated-values updatedRange as misaligned\nok - appendRows rejects an unparsable updatedRange as misaligned\nok - appendRows rejects a missing updatedRange as misaligned\nok - updateCells sends values:batchUpdate with USER_ENTERED\nok - HTTP 400 is a rejected write\nok - HTTP 403 is a rejected write\nok - HTTP 404 is a rejected write\nok - HTTP 409 is a rejected write\nok - HTTP 500 is an unknown transport result\nok - HTTP 503 is an unknown transport result\nok - network failure is an unknown transport result\nok - timeout is an unknown transport result and uses the 15 second signal\nok - a successful append without updates is committed but unreadable\nok - a successful append with the wrong row count is committed but unreadable\nok - append restores trailing blank cells as null\nok - append accepts an updatedRange shortened by a trailing null\nok - append uses known header width when restoring trailing blank cells\nok - auth failure is rejected before fetch and cannot expose the token\nok - pre-dispatch serialization failure is a rejected write and does not call fetch\nok - a successful write with an unreadable response body is committed but must not be retried\nok - all public write failure classes expose their certainty\npassed - 35 sheets-api.client dry-tests\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\repositories\\sheets-api.client.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/repositories/utils/gviz-reader.dry-test.ts",
+    "exit": 0,
+    "output": "gviz-reader.dry-test: OK\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\repositories\\utils\\gviz-reader.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/repositories/value-serialization.dry-test.ts",
+    "exit": 0,
+    "output": "ok - serializes objects and arrays as JSON strings\nok - serializes missing values as empty strings and preserves primitives\nok - rejects unsupported cell values\nok - builds full-width row values in live header order and blanks missing keys\nok - buildRowValues follows reordered live columns instead of schema key order\nok - parses a full-width row in live header order\nok - fills omitted trailing row values with null\nok - rejects more row values than the header map width\nok - resolves value input policy defaults and overrides by column\nok - resolves one value input option for every live header\nok - uses the Appointments contract date policy for audit timestamps\npassed - 11 value-serialization dry-tests\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\repositories\\value-serialization.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/services/base-crud-mapping.dry-test.ts",
+    "exit": 0,
+    "output": "BaseCrudService DB mapping dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\services\\base-crud-mapping.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/services/base-crud.service.dry-test.ts",
+    "exit": 0,
+    "output": "36 BaseCrudService dry tests passed\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\services\\base-crud.service.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/utils/bangkok-datetime.dry-test.ts",
+    "exit": 0,
+    "output": "bangkok datetime dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\utils\\bangkok-datetime.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/shared/utils/bangkok-timestamp.dry-test.ts",
+    "exit": 0,
+    "output": "ok - formats the known SheetLib Bangkok timestamp\nok - crosses the UTC day boundary when shifted to Bangkok\nok - preserves the final second of the Bangkok calendar day\npassed - 3 Bangkok timestamp dry-tests\n",
+    "command": "npx tsx tests\\server\\unit\\shared\\utils\\bangkok-timestamp.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/sheets/after-photo-contract.dry-test.ts",
+    "exit": 0,
+    "output": "after-photo contract dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\sheets\\after-photo-contract.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/sheets/audit-declarations.dry-test.ts",
+    "exit": 0,
+    "output": "sheet audit declarations dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\sheets\\audit-declarations.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/sheets/bag-items-module.dry-test.ts",
+    "exit": 0,
+    "output": "bag-items module dry tests passed (validation, filters, mapping, idempotency, routes, strict DB row)\n",
+    "command": "npx tsx tests\\server\\unit\\sheets\\bag-items-module.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/sheets/column-order.dry-test.ts",
+    "exit": 0,
+    "output": "25 column-order dry tests passed\n",
+    "command": "npx tsx tests\\server\\unit\\sheets\\column-order.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/sheets/customers-wiring.dry-test.ts",
+    "exit": 0,
+    "output": "2 Customers wiring dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\sheets\\customers-wiring.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/sheets/invoice-sheets-api-errors.dry-test.ts",
+    "exit": 0,
+    "output": "5 Sheets API error certainty mappings passed\norder_link_failed WriteRejectedError: request rejected\n    at main (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\sheets\\invoice-sheets-api-errors.dry-test.ts:65:14)\n    at <anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\sheets\\invoice-sheets-api-errors.dry-test.ts:101:1)\n    at ModuleJob.run (node:internal/modules/esm/module_job:271:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\norder_link_failed WriteTransportError: no authoritative response\n    at main (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\sheets\\invoice-sheets-api-errors.dry-test.ts:70:14)\n    at <anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\sheets\\invoice-sheets-api-errors.dry-test.ts:101:1)\n    at ModuleJob.run (node:internal/modules/esm/module_job:271:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\norder_link_failed WriteCommittedUnreadableError: The write committed, but its response could not be read; do not retry because retrying may create duplicate rows.\n    at main (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\sheets\\invoice-sheets-api-errors.dry-test.ts:75:14)\n    at <anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\sheets\\invoice-sheets-api-errors.dry-test.ts:101:1)\n    at ModuleJob.run (node:internal/modules/esm/module_job:271:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\norder_link_failed DuplicateRowKeyError: Duplicate key 'ORD-ERROR-1' in column 'id' found at rows 2, 7\n    at main (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\sheets\\invoice-sheets-api-errors.dry-test.ts:80:14)\n    at <anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\sheets\\invoice-sheets-api-errors.dry-test.ts:101:1)\n    at ModuleJob.run (node:internal/modules/esm/module_job:271:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\norder_link_failed WriteRowIdentityMismatchError: row identity changed\n    at main (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\sheets\\invoice-sheets-api-errors.dry-test.ts:85:14)\n    at <anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\unit\\sheets\\invoice-sheets-api-errors.dry-test.ts:101:1)\n    at ModuleJob.run (node:internal/modules/esm/module_job:271:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\n",
+    "command": "npx tsx tests/server/unit/sheets/invoice-sheets-api-errors.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/sheets/laundry-photos-contract.dry-test.ts",
+    "exit": 0,
+    "output": "laundry-photos contract dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\sheets\\laundry-photos-contract.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/sheets/module-laziness.dry-test.ts",
+    "exit": 0,
+    "output": "16 module laziness checks passed\n",
+    "command": "npx tsx tests\\server\\unit\\sheets\\module-laziness.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/sheets/order-form.sheets-api.dry-test.ts",
+    "exit": 0,
+    "output": "3 OrderForm Sheets API update dry tests passed\n",
+    "command": "npx tsx tests\\server\\unit\\sheets\\order-form.sheets-api.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/sheets/packages.repository.audit.dry-test.ts",
+    "exit": 0,
+    "output": "packages repository audit dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\sheets\\packages.repository.audit.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/sheets/payments-capabilities.dry-test.ts",
+    "exit": 0,
+    "output": "payments-capabilities.dry-test: OK\n",
+    "command": "npx tsx tests\\server\\unit\\sheets\\payments-capabilities.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/sheets/price-list-contract.dry-test.ts",
+    "exit": 0,
+    "output": "price-list sheet contract dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\sheets\\price-list-contract.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/sheets/price-list.sheets-api.dry-test.ts",
+    "exit": 0,
+    "output": "price-list Sheets API dry test passed\n",
+    "command": "npx tsx tests\\server\\unit\\sheets\\price-list.sheets-api.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/sheets/repository-getters.dry-test.ts",
+    "exit": 0,
+    "output": "sheet repository getter dry tests passed\n",
+    "command": "npx tsx tests\\server\\unit\\sheets\\repository-getters.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/sheets/service-wiring.dry-test.ts",
+    "exit": 0,
+    "output": "11 service-wiring dry tests passed\n",
+    "command": "npx tsx tests/server/unit/sheets/service-wiring.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/sheets/sheet-binding.dry-test.ts",
+    "exit": 0,
+    "output": "sheet binding dry test passed (27 sheets)\n",
+    "command": "npx tsx tests\\server\\unit\\sheets\\sheet-binding.dry-test.ts"
+  },
+  {
+    "file": "tests/server/unit/sheets/writing-workbook-binding.dry-test.ts",
+    "exit": 0,
+    "output": "writing workbook binding dry test passed (21/27 writable contracts checked)\n",
+    "command": "npx tsx tests\\server\\unit\\sheets\\writing-workbook-binding.dry-test.ts"
+  },
+  {
+    "file": "tests/server/workflows/invoices/invoice-api.workflow.dry-test.ts",
+    "exit": 0,
+    "output": "9 invoice API boundary workflow tests passed\nitems_write_failed WriteRejectedError: The Sheets API rejected appendRows with HTTP 400. Response body: {\"status\":\"error\",\"message\":\"validation failed at data[0]\"}\n    at SheetsApiClient.requestJson (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\repositories\\sheets-api.client.ts:502:15)\n    at async SheetsApiClient.appendRows (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\repositories\\sheets-api.client.ts:351:18)\n    at async SheetRepository.batchAppendThroughSheetsApi (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\repositories\\sheet.repository.ts:443:22)\n    at async InvoiceService.create (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\modules\\invoices\\invoice.service.ts:506:7)\n    at async POST (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\modules\\invoices\\invoice.module.ts:60:24)\n    at async ApiHandler.handleRequest (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\http\\api-handler.ts:62:14)\n    at async <anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-api.workflow.dry-test.ts:275:22)\n    at async withMockFetch (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-api.workflow.dry-test.ts:191:12)\n    at async Object.run (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-api.workflow.dry-test.ts:267:3)\n    at async main (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-api.workflow.dry-test.ts:374:5)\nitems_write_failed WriteTransportError: appendRows received no authoritative result from the Sheets API. Response body: \n    at SheetsApiClient.requestJson (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\repositories\\sheets-api.client.ts:505:13)\n    at async SheetsApiClient.appendRows (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\repositories\\sheets-api.client.ts:351:18)\n    at async SheetRepository.batchAppendThroughSheetsApi (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\repositories\\sheet.repository.ts:443:22)\n    at async InvoiceService.create (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\modules\\invoices\\invoice.service.ts:506:7)\n    at async POST (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\modules\\invoices\\invoice.module.ts:60:24)\n    at async ApiHandler.handleRequest (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\http\\api-handler.ts:62:14)\n    at async <anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-api.workflow.dry-test.ts:302:22)\n    at async withMockFetch (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-api.workflow.dry-test.ts:191:12)\n    at async Object.run (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-api.workflow.dry-test.ts:294:3)\n    at async main (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-api.workflow.dry-test.ts:374:5)\ninvoice_write_failed WriteRejectedError: The Sheets API rejected appendRows with HTTP 400. Response body: {\"status\":\"error\",\"message\":\"duplicate\"}\n    at SheetsApiClient.requestJson (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\repositories\\sheets-api.client.ts:502:15)\n    at async SheetsApiClient.appendRows (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\repositories\\sheets-api.client.ts:351:18)\n    at async SheetRepository.appendThroughSheetsApi (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\repositories\\sheet.repository.ts:199:24)\n    at async InvoiceService.create (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\modules\\invoices\\invoice.service.ts:545:7)\n    at async POST (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\modules\\invoices\\invoice.module.ts:60:24)\n    at async ApiHandler.handleRequest (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\http\\api-handler.ts:62:14)\n    at async <anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-api.workflow.dry-test.ts:321:22)\n    at async withMockFetch (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-api.workflow.dry-test.ts:191:12)\n    at async Object.run (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-api.workflow.dry-test.ts:315:3)\n    at async main (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-api.workflow.dry-test.ts:374:5)\ninvoice_write_failed WriteTransportError: appendRows received no authoritative result from the Sheets API. Response body: \n    at SheetsApiClient.requestJson (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\repositories\\sheets-api.client.ts:505:13)\n    at async SheetsApiClient.appendRows (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\repositories\\sheets-api.client.ts:351:18)\n    at async SheetRepository.appendThroughSheetsApi (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\repositories\\sheet.repository.ts:199:24)\n    at async InvoiceService.create (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\modules\\invoices\\invoice.service.ts:545:7)\n    at async POST (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\modules\\invoices\\invoice.module.ts:60:24)\n    at async ApiHandler.handleRequest (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\http\\api-handler.ts:62:14)\n    at async <anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-api.workflow.dry-test.ts:340:22)\n    at async withMockFetch (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-api.workflow.dry-test.ts:191:12)\n    at async Object.run (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-api.workflow.dry-test.ts:334:3)\n    at async main (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-api.workflow.dry-test.ts:374:5)\norder_link_failed WriteRejectedError: The Sheets API rejected updateCells with HTTP 404. Response body: {\"status\":\"error\",\"message\":\"not found\"}\n    at SheetsApiClient.requestJson (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\repositories\\sheets-api.client.ts:502:15)\n    at async SheetsApiClient.updateCells (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\repositories\\sheets-api.client.ts:428:18)\n    at async SheetRepository.updateThroughSheetsApi (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\repositories\\sheet.repository.ts:563:5)\n    at async InvoiceService.create (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\modules\\invoices\\invoice.service.ts:577:9)\n    at async POST (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\modules\\invoices\\invoice.module.ts:60:24)\n    at async ApiHandler.handleRequest (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\http\\api-handler.ts:62:14)\n    at async <anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-api.workflow.dry-test.ts:360:22)\n    at async withMockFetch (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-api.workflow.dry-test.ts:191:12)\n    at async Object.run (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-api.workflow.dry-test.ts:354:3)\n    at async main (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-api.workflow.dry-test.ts:374:5)\n",
+    "command": "npx tsx tests/server/workflows/invoices/invoice-api.workflow.dry-test.ts"
+  },
+  {
+    "file": "tests/server/workflows/invoices/invoice-create.workflow.dry-test.ts",
+    "exit": 1,
+    "output": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ 'validation_error'\n- 'created'\n\n    at main (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-create.workflow.dry-test.ts:92:10) {\n  generatedMessage: true,\n  code: 'ERR_ASSERTION',\n  actual: 'validation_error',\n  expected: 'created',\n  operator: 'strictEqual'\n}\n",
+    "command": "npx tsx tests/server/workflows/invoices/invoice-create.workflow.dry-test.ts"
+  },
+  {
+    "file": "tests/server/workflows/invoices/invoice-read.workflow.dry-test.ts",
+    "exit": 0,
+    "output": "4 invoice read API workflow tests passed\n",
+    "command": "npx tsx tests\\server\\workflows\\invoices\\invoice-read.workflow.dry-test.ts"
+  },
+  {
+    "file": "tests/server/workflows/invoices/invoice-sheets-api.workflow.dry-test.ts",
+    "exit": 1,
+    "output": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ 'validation_error'\n- 'created'\n\n    at <anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-sheets-api.workflow.dry-test.ts:206:12)\n    at async withRoutedFetch (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-sheets-api.workflow.dry-test.ts:164:12)\n    at async main (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\invoices\\invoice-sheets-api.workflow.dry-test.ts:204:3) {\n  generatedMessage: true,\n  code: 'ERR_ASSERTION',\n  actual: 'validation_error',\n  expected: 'created',\n  operator: 'strictEqual'\n}\n",
+    "command": "npx tsx tests/server/workflows/invoices/invoice-sheets-api.workflow.dry-test.ts"
+  },
+  {
+    "file": "tests/server/workflows/price-list/price-list-api.workflow.dry-test.ts",
+    "exit": 0,
+    "output": "price-list API workflow dry test passed\nUnhandled error in API controller {\n  method: 'GET',\n  error: Error: Missing required environment variable: PRICE_LIST_SPREADSHEET_ID\n      at requireEnv (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\utils\\env.ts:5:11)\n      at new SheetRepository (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\repositories\\sheet.repository.ts:124:24)\n      at getPriceListRepository (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\sheets\\PriceList\\PriceList.repository.ts:10:25)\n      at Object.read (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\modules\\price-list\\price-list.module.ts:68:20)\n      at BaseCrudService.readRows (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\services\\base-crud.service.ts:283:63)\n      at BaseCrudService.list (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\services\\base-crud.service.ts:179:29)\n      at GET (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\http\\crud-routes.ts:25:51)\n      at ApiHandler.handleRequest (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\http\\api-handler.ts:62:20)\n      at ApiGateway.dispatch (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\http\\api-gateway.ts:76:20)\n      at async ApiGateway.handleRequest (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\http\\api-gateway.ts:23:14)\n}\nUnhandled error in API controller {\n  method: 'GET',\n  error: Error: GViz read failed: 503 Service Unavailable\n      at fetchGVizRows (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\repositories\\utils\\gviz-reader.ts:47:11)\n      at async SheetRepository.readRaw (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\repositories\\sheet.repository.ts:161:13)\n      at async BaseCrudService.readRows (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\services\\base-crud.service.ts:283:20)\n      at async BaseCrudService.list (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\services\\base-crud.service.ts:179:18)\n      at async GET (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\http\\crud-routes.ts:25:37)\n      at async ApiHandler.handleRequest (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\http\\api-handler.ts:62:14)\n      at async ApiGateway.handleRequest (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\http\\api-gateway.ts:23:14)\n      at async handle (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\server\\shared\\http\\api-gateway.ts:30:22)\n      at async invoke (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\price-list\\price-list-api.workflow.dry-test.ts:104:3)\n      at async <anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\server\\workflows\\price-list\\price-list-api.workflow.dry-test.ts:332:24)\n}\n",
+    "command": "npx tsx tests\\server\\workflows\\price-list\\price-list-api.workflow.dry-test.ts"
+  },
+  {
+    "file": "tests/shared/reports/order-report.aggregate.dry-test.ts",
+    "exit": 0,
+    "output": "order-report aggregate dry test passed\n",
+    "command": "npx tsx tests\\shared\\reports\\order-report.aggregate.dry-test.ts"
+  },
+  {
+    "file": "tests/shared/utils/customer-search.dry-test.ts",
+    "exit": 0,
+    "output": "customer search dry test passed\n",
+    "command": "npx tsx tests\\shared\\utils\\customer-search.dry-test.ts"
+  },
+  {
+    "file": "tests/shared/utils/id.dry-test.ts",
+    "exit": 0,
+    "output": "9 id dry tests passed\n",
+    "command": "npx tsx tests\\shared\\utils\\id.dry-test.ts"
+  },
+  {
+    "file": "tests/shared/utils/invoice-calculator.dry-test.ts",
+    "exit": 0,
+    "output": "6 invoice calculator dry tests passed\n",
+    "command": "npx tsx tests\\shared\\utils\\invoice-calculator.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/architecture/frontend-data-boundaries.dry-test.ts",
+    "exit": 1,
+    "output": "node:internal/modules/run_main:122\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: Frontend data-boundary violations:\nfeatures/delivery-tracking/services/delivery-tracking.service.ts imports shared/api/api-client\nfeatures/invoices/pages/InvoicePaymentFormPage.vue imports shared/api/firebase-storage\nfeatures/job-tickets/composables/useLogisticsBags.ts imports shared/api/response-cache\nfeatures/job-tickets/composables/usePackagingBags.ts imports shared/api/firebase-storage\n+ actual - expected\n\n+ [\n+   'features/delivery-tracking/services/delivery-tracking.service.ts imports shared/api/api-client',\n+   'features/invoices/pages/InvoicePaymentFormPage.vue imports shared/api/firebase-storage',\n+   'features/job-tickets/composables/useLogisticsBags.ts imports shared/api/response-cache',\n+   'features/job-tickets/composables/usePackagingBags.ts imports shared/api/firebase-storage'\n+ ]\n- []\n\n    at <anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\web\\unit\\architecture\\frontend-data-boundaries.dry-test.ts:94:8)\n    at ModuleJob.run (node:internal/modules/esm/module_job:271:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: [\n    'features/delivery-tracking/services/delivery-tracking.service.ts imports shared/api/api-client',\n    'features/invoices/pages/InvoicePaymentFormPage.vue imports shared/api/firebase-storage',\n    'features/job-tickets/composables/useLogisticsBags.ts imports shared/api/response-cache',\n    'features/job-tickets/composables/usePackagingBags.ts imports shared/api/firebase-storage'\n  ],\n  expected: [],\n  operator: 'deepStrictEqual'\n}\n\nNode.js v22.14.0\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests/web/unit/architecture/frontend-data-boundaries.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/composables/use-photo-upload.dry-test.ts",
+    "exit": 0,
+    "output": "use-photo-upload.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\composables\\use-photo-upload.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/data/customer-form-invalidation.dry-test.ts",
+    "exit": 0,
+    "output": "customer form invalidation dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\data\\customer-form-invalidation.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/data/customer-packages/customer-package.service.dry-test.ts",
+    "exit": 1,
+    "output": "node:internal/modules/run_main:122\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: createCustomerPackage must use raw fetch at /api/customer-packages\n    at <anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\web\\unit\\data\\customer-packages\\customer-package.service.dry-test.ts:46:10)\n    at ModuleJob.run (node:internal/modules/esm/module_job:271:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 'export async function createCustomerPackage(request: CreateCustomerPackageRequest): Promise<CreateCustomerPackageResponse> {\\r\\n' +\n    '  try {\\r\\n' +\n    \"    const response = await authFetch('/api/customer-packages', {\\r\\n\" +\n    \"      method: 'POST',\\r\\n\" +\n    \"      headers: { 'Content-Type': 'application/json' },\\r\\n\" +\n    '      body: JSON.stringify(createCustomerPackageRequestSchema.parse(request)),\\r\\n' +\n    '    })\\r\\n' +\n    '    let body: unknown\\r\\n' +\n    '    try {\\r\\n' +\n    '      body = await response.json()\\r\\n' +\n    '    } catch {\\r\\n' +\n    '      invalidateCreateCaches()\\r\\n' +\n    \"      return unknownCreateOutcome('The server response could not be read. This package may already have been created.')\\r\\n\" +\n    '    }\\r\\n' +\n    '    const parsed = createCustomerPackageResponseSchema.safeParse(body)\\r\\n' +\n    '    if (!parsed.success) {\\r\\n' +\n    '      invalidateCreateCaches()\\r\\n' +\n    \"      return unknownCreateOutcome('The server response was not a recognized write outcome. This package may already have been created.')\\r\\n\" +\n    '    }\\r\\n' +\n    '    if (\\r\\n' +\n    \"      parsed.data.kind === 'created'\\r\\n\" +\n    \"      || parsed.data.kind === 'package_write_failed'\\r\\n\" +\n    \"      || (parsed.data.kind === 'opening_transaction_write_failed' && parsed.data.certainty === 'unknown')\\r\\n\" +\n    '    ) {\\r\\n' +\n    '      invalidateCreateCaches()\\r\\n' +\n    '    }\\r\\n' +\n    '    return parsed.data\\r\\n' +\n    '  } catch {\\r\\n' +\n    '    invalidateCreateCaches()\\r\\n' +\n    \"    return unknownCreateOutcome('Could not reach the server. This package may already have been created.')\\r\\n\" +\n    '  }\\r\\n' +\n    '}\\r\\n' +\n    '\\r\\n',\n  expected: /fetch[\\s\\S]*?['\"]\\/api\\/customer-packages['\"]/,\n  operator: 'match'\n}\n\nNode.js v22.14.0\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests/web/unit/data/customer-packages/customer-package.service.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/data/customer-scoped-store-reloads.dry-test.ts",
+    "exit": 13,
+    "output": "Warning: Detected unsettled top-level await at C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\web\\unit\\data\\customer-scoped-store-reloads.dry-test.ts:57\nawait assertSameCustomerRowsStayVisible(\n^\n\n\n\n\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests/web/unit/data/customer-scoped-store-reloads.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/data/customers/customer-store.dry-test.ts",
+    "exit": 0,
+    "output": "customer-store.dry-test: OK (canonical URL, cap signal, notices)\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\data\\customers\\customer-store.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/data/items-master.dry-test.ts",
+    "exit": 0,
+    "output": "items master service/store tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\data\\items-master.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/data/laundry-photos/laundry-photo-tag-ids.dry-test.ts",
+    "exit": 0,
+    "output": "TAP version 13\n# Subtest: duplicate lookup includes every order page and rows without an image URL\nok 1 - duplicate lookup includes every order page and rows without an image URL\n  ---\n  duration_ms: 9.4813\n  ...\n# Subtest: stale first-page tags deliver fresh IDs without invalidating the cache\nok 2 - stale first-page tags deliver fresh IDs without invalidating the cache\n  ---\n  duration_ms: 4.8573\n  ...\n1..2\n# tests 2\n# suites 0\n# pass 2\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 19.9973\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\data\\laundry-photos\\laundry-photo-tag-ids.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/data/laundry-photos/laundry-photo.service.dry-test.ts",
+    "exit": 0,
+    "output": "laundry-photo.service.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\data\\laundry-photos\\laundry-photo.service.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/data/laundry-tag-prints/laundry-tag-print.service.dry-test.ts",
+    "exit": 0,
+    "output": "laundry tag print service dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\data\\laundry-tag-prints\\laundry-tag-print.service.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/data/order-snapshots/order-snapshot-invalidation-race.dry-test.ts",
+    "exit": 0,
+    "output": "order-snapshot invalidation race dry test passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\data\\order-snapshots\\order-snapshot-invalidation-race.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/data/order-snapshots/order-snapshot.store.dry-test.ts",
+    "exit": 0,
+    "output": "order-snapshot store dry test passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\data\\order-snapshots\\order-snapshot.store.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/data/packages/package.store.dry-test.ts",
+    "exit": 0,
+    "output": "package store dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\data\\packages\\package.store.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/data/price-list/invoice-price-list-service.dry-test.ts",
+    "exit": 0,
+    "output": "invoice-price-list-service.dry-test: OK (canonical URL shared)\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\data\\price-list\\invoice-price-list-service.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/data/price-list/price-list-service.dry-test.ts",
+    "exit": 0,
+    "output": "price-list-service.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\data\\price-list\\price-list-service.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/data/price-list/price-list-store-invalidation.dry-test.ts",
+    "exit": 0,
+    "output": "price-list-store-invalidation.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\data\\price-list\\price-list-store-invalidation.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/data/price-list/price-list-write-reconciliation.dry-test.ts",
+    "exit": 0,
+    "output": "price-list-write-reconciliation.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\data\\price-list\\price-list-write-reconciliation.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/data/work-orders/work-order-list.dry-test.ts",
+    "exit": 0,
+    "output": "TAP version 13\n# Subtest: shows cached lists and applies fresh items and pagination only for the latest request\nok 1 - shows cached lists and applies fresh items and pagination only for the latest request\n  ---\n  duration_ms: 14.1174\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 20.1849\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\data\\work-orders\\work-order-list.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/data/work-orders/work-order-report-invalidation.dry-test.ts",
+    "exit": 0,
+    "output": "work-order-report-invalidation.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\data\\work-orders\\work-order-report-invalidation.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/data/work-orders/work-order-update.dry-test.ts",
+    "exit": 0,
+    "output": "work-order-update.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\data\\work-orders\\work-order-update.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/appointments/pages/pending-appointments-page.dry-test.ts",
+    "exit": 0,
+    "output": "pending appointments page dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\appointments\\pages\\pending-appointments-page.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/appointments/stores/appointment.store.dry-test.ts",
+    "exit": 1,
+    "output": "node:internal/modules/run_main:122\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n2 !== 1\n\n    at <anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\web\\unit\\features\\appointments\\stores\\appointment.store.dry-test.ts:105:12)\n    at async withStore (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\web\\unit\\features\\appointments\\stores\\appointment.store.dry-test.ts:54:5)\n    at async <anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\web\\unit\\features\\appointments\\stores\\appointment.store.dry-test.ts:100:1) {\n  generatedMessage: true,\n  code: 'ERR_ASSERTION',\n  actual: 2,\n  expected: 1,\n  operator: 'strictEqual'\n}\n\nNode.js v22.14.0\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests/web/unit/features/appointments/stores/appointment.store.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/customer-packages/components/customer-package-transaction-form.dry-test.ts",
+    "exit": 0,
+    "output": "customer-package transaction-form dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\customer-packages\\components\\customer-package-transaction-form.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/customer-packages/composables/use-customer-package-transaction-route.dry-test.ts",
+    "exit": 0,
+    "output": "customer-package transaction-route dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\customer-packages\\composables\\use-customer-package-transaction-route.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/customer-packages/composables/useCustomerPackageFilterRoute.dry-test.ts",
+    "exit": 0,
+    "output": "customer-package filter-route dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\customer-packages\\composables\\useCustomerPackageFilterRoute.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/customer-packages/customer-package-integrations.dry-test.ts",
+    "exit": 0,
+    "output": "customer-package integration dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\customer-packages\\customer-package-integrations.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/customer-packages/pages/customer-package-create-page.dry-test.ts",
+    "exit": 0,
+    "output": "customer-package create page dry test passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\customer-packages\\pages\\customer-package-create-page.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/customer-packages/pages/customer-package-pages.dry-test.ts",
+    "exit": 0,
+    "output": "customer-package page dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\customer-packages\\pages\\customer-package-pages.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/customer-packages/routes.dry-test.ts",
+    "exit": 0,
+    "output": "customer-package route dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\customer-packages\\routes.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/customer-packages/stores/customer-package-purchase.dry-test.ts",
+    "exit": 0,
+    "output": "Package purchase sequencing, invoice linkage, retry and partial-write checks passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\customer-packages\\stores\\customer-package-purchase.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/customer-packages/stores/customer-package.store.dry-test.ts",
+    "exit": 0,
+    "output": "customer-package store dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\customer-packages\\stores\\customer-package.store.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/customers/components/order-detail-sheet.dry-test.ts",
+    "exit": 0,
+    "output": "order detail sheet dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\customers\\components\\order-detail-sheet.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/customers/stores/customer-order-history-race.dry-test.ts",
+    "exit": 1,
+    "output": "C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\web\\unit\\features\\customers\\stores\\customer-order-history-race.dry-test.ts:27\n  pending.find((request) => request.url.pathname === `/api/customers/${customerId}`)!\n                                                                                   ^\n\n\nTypeError: Cannot read properties of undefined (reading 'resolve')\n    at resolveCustomer (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\web\\unit\\features\\customers\\stores\\customer-order-history-race.dry-test.ts:27:84)\n    at <anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\web\\unit\\features\\customers\\stores\\customer-order-history-race.dry-test.ts:51:3)\n    at ModuleJob.run (node:internal/modules/esm/module_job:271:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\n\nNode.js v22.14.0\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests/web/unit/features/customers/stores/customer-order-history-race.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/customers/utils/customer-tab.dry-test.ts",
+    "exit": 0,
+    "output": "customer-tab dry-test passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\customers\\utils\\customer-tab.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/customers/utils/phone-format.dry-test.ts",
+    "exit": 0,
+    "output": "phone-format dry-test passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\customers\\utils\\phone-format.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/customers/utils/waiting-pickup.filter.dry-test.ts",
+    "exit": 0,
+    "output": "5 waiting-pickup filter dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\customers\\utils\\waiting-pickup.filter.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/invoices/components/invoice-price-list-components.dry-test.ts",
+    "exit": 0,
+    "output": "invoice-price-list-components.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\invoices\\components\\invoice-price-list-components.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/invoices/utils/invoice-price-list.utils.dry-test.ts",
+    "exit": 0,
+    "output": "invoice-price-list.utils.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\invoices\\utils\\invoice-price-list.utils.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/issue-reports/components/issue-report-status.dry-test.ts",
+    "exit": 0,
+    "output": "issue-report status option dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\issue-reports\\components\\issue-report-status.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/issue-reports/composables/use-screenshot-upload.dry-test.ts",
+    "exit": 0,
+    "output": "use-screenshot-upload dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\issue-reports\\composables\\use-screenshot-upload.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/job-tickets/complete-order.dry-test.ts",
+    "exit": 0,
+    "output": "complete-order.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\job-tickets\\complete-order.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/job-tickets/composables/use-scanner-gun-input.dry-test.ts",
+    "exit": 0,
+    "output": "TAP version 13\n# Subtest: fast burst and Enter emit a code, consume Enter and clear the buffer\nok 1 - fast burst and Enter emit a code, consume Enter and clear the buffer\n  ---\n  duration_ms: 11.2397\n  ...\n# Subtest: physical codes preserve letters under the Thai keyboard layout\nok 2 - physical codes preserve letters under the Thai keyboard layout\n  ---\n  duration_ms: 3.6187\n  ...\n# Subtest: maps shifted letters, digits, punctuation and printable ASCII fallback\nok 3 - maps shifted letters, digits, punctuation and printable ASCII fallback\n  ---\n  duration_ms: 1.8832\n  ...\n# Subtest: a gap over 50 ms restarts the buffer with the current character\nok 4 - a gap over 50 ms restarts the buffer with the current character\n  ---\n  duration_ms: 1.1614\n  ...\n# Subtest: fewer than three characters emit nothing and leave Enter available\nok 5 - fewer than three characters emit nothing and leave Enter available\n  ---\n  duration_ms: 1.6743\n  ...\n# Subtest: input, textarea, select and contenteditable targets ignore keys and clear a prior burst\nok 6 - input, textarea, select and contenteditable targets ignore keys and clear a prior burst\n  ---\n  duration_ms: 2.0063\n  ...\n# Subtest: disabled ref and getter ignore scans and clear a prior burst\nok 7 - disabled ref and getter ignore scans and clear a prior burst\n  ---\n  duration_ms: 1.3106\n  ...\n# Subtest: disabled ref emits nothing\nok 8 - disabled ref emits nothing\n  ---\n  duration_ms: 0.6743\n  ...\n# Subtest: modifier keys clear the buffer and do not consume Enter\nok 9 - modifier keys clear the buffer and do not consume Enter\n  ---\n  duration_ms: 2.5391\n  ...\n# Subtest: unmount removes the window listener\nok 10 - unmount removes the window listener\n  ---\n  duration_ms: 0.8445\n  ...\n# Subtest: staff cards are filtered in skip mode\nok 11 - staff cards are filtered in skip mode\n  ---\n  duration_ms: 0.9766\n  ...\n# Subtest: staff cards are filtered in only mode\nok 12 - staff cards are filtered in only mode\n  ---\n  duration_ms: 0.6319\n  ...\n1..12\n# tests 12\n# suites 0\n# pass 12\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 43.37\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests/web/unit/features/job-tickets/composables/use-scanner-gun-input.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/job-tickets/department-work.dry-test.ts",
+    "exit": 0,
+    "output": "department-work.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\job-tickets\\department-work.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/job-tickets/job-ticket-open-work.dry-test.ts",
+    "exit": 0,
+    "output": "job-ticket-open-work.dry-test: OK (parallel shared load, reuse, department isolation, combined cap, refresh, retry)\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\job-tickets\\job-ticket-open-work.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/job-tickets/job-ticket-ownership.dry-test.ts",
+    "exit": 0,
+    "output": "job-ticket-ownership.dry-test: OK (runtime imports rejected; type-only imports allowed)\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\job-tickets\\job-ticket-ownership.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/job-tickets/job-ticket-store.dry-test.ts",
+    "exit": 0,
+    "output": "job-ticket-store.dry-test: OK (shared rows, isolated views, cached getter, writes, active invalidation, errors)\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\job-tickets\\job-ticket-store.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/job-tickets/logistics-order-bags.dry-test.ts",
+    "exit": 0,
+    "output": "logistics-order-bags.dry-test: OK\n[Vue Router warn]: No match found for location with path \"/departments/washing/x\"\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\job-tickets\\logistics-order-bags.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/job-tickets/packaging-bag-source.dry-test.ts",
+    "exit": 0,
+    "output": "packaging-bag-source.dry-test: OK (real reads, paging, photos, gating, bags, customer, confirm envelope/cache/errors)\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\job-tickets\\packaging-bag-source.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/job-tickets/packaging-order-bags.dry-test.ts",
+    "exit": 0,
+    "output": "packaging-order-bags.dry-test: OK\n[Vue Router warn]: No match found for location with path \"/departments/washing/x\"\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\job-tickets\\packaging-order-bags.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/job-tickets/packaging-store-preview.dry-test.ts",
+    "exit": 0,
+    "output": "packaging-store-preview.dry-test: OK (cached preview, full-order gating, shared updates, invalidation, error gate, disabled style)\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\job-tickets\\packaging-store-preview.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/job-tickets/scan-workflow.dry-test.ts",
+    "exit": 0,
+    "output": "scan-workflow.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\job-tickets\\scan-workflow.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/order-reports/order-report.dry-test.ts",
+    "exit": 0,
+    "output": "",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\order-reports\\order-report.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/orders/components/order-image-section-preview.dry-test.ts",
+    "exit": 0,
+    "output": "TAP version 13\n# Subtest: order image thumbnails emit the image id for displayable images\nok 1 - order image thumbnails emit the image id for displayable images\n  ---\n  duration_ms: 1.4222\n  ...\n# Subtest: the order detail page opens the shared photo viewer from the photo query\nok 2 - the order detail page opens the shared photo viewer from the photo query\n  ---\n  duration_ms: 0.305\n  ...\n# Subtest: swiping replaces the photo query and closing leaves no viewer entry in history\nok 3 - swiping replaces the photo query and closing leaves no viewer entry in history\n  ---\n  duration_ms: 0.2811\n  ...\n1..3\n# tests 3\n# suites 0\n# pass 3\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 11.1385\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\orders\\components\\order-image-section-preview.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/orders/composables/order-image-weight-query.dry-test.ts",
+    "exit": 1,
+    "output": "TAP version 13\n# Subtest: reads a valid weight from the route\nok 1 - reads a valid weight from the route\n  ---\n  duration_ms: 1.5526\n  ...\n# Subtest: rejects every invalid weight so the camera cannot open\nok 2 - rejects every invalid weight so the camera cannot open\n  ---\n  duration_ms: 0.3526\n  ...\n# Subtest: the weight prompt exposes the same one-decimal rule to the browser\nnot ok 3 - the weight prompt exposes the same one-decimal rule to the browser\n  ---\n  duration_ms: 3.957\n  location: 'C:\\\\MagicwashGemini\\\\webapp-vue\\\\.worktrees\\\\shared-device-operator\\\\tests\\\\web\\\\unit\\\\features\\\\orders\\\\composables\\\\order-image-weight-query.dry-test.ts:1:811'\n  failureType: 'testCodeFailure'\n  error: |-\n    The input did not match the regular expression /step=\"0\\.1\"/. Input:\n    \n    '<script setup lang=\"ts\">\\r\\n' +\n      \"import { computed, ref, watch } from 'vue'\\r\\n\" +\n      \"import ConfirmOverlay from '@/shared/layouts/ConfirmOverlay.vue'\\r\\n\" +\n      \"import CloseButton from '@/shared/components/CloseButton.vue'\\r\\n\" +\n      \"import StickerFab from '@/shared/components/StickerFab.vue'\\r\\n\" +\n      \"import WeightField from '@/shared/components/WeightField.vue'\\r\\n\" +\n      \"import { MAX_ORDER_IMAGE_WEIGHT_KG, parseWeightKg } from '@shared/utils/item-quantity'\\r\\n\" +\n      '\\r\\n' +\n      'const props = withDefaults(defineProps<{\\r\\n' +\n      '  open: boolean\\r\\n' +\n      '  title?: string\\r\\n' +\n      '  description?: string\\r\\n' +\n      '  confirmLabel?: string\\r\\n' +\n      '  inputId?: string\\r\\n' +\n      '}>(), {\\r\\n' +\n      \"  title: 'Enter weight',\\r\\n\" +\n      \"  description: '',\\r\\n\" +\n      \"  confirmLabel: 'Photo',\\r\\n\" +\n      \"  inputId: 'weight-prompt-input',\\r\\n\" +\n      '})\\r\\n' +\n      'const emit = defineEmits<{\\r\\n' +\n      '  submit: [weight: number]\\r\\n' +\n      '  close: []\\r\\n' +\n      '}>()\\r\\n' +\n      '\\r\\n' +\n      \"const rawWeight = ref('')\\r\\n\" +\n      'const weightError = ref<string | null>(null)\\r\\n' +\n      'const suppressClose = ref(false)\\r\\n' +\n      'const valid = computed(() => parseWeightKg(rawWeight.value) !== null)\\r\\n' +\n      '\\r\\n' +\n      'function showWeightError(): void {\\r\\n' +\n      '  weightError.value = `Enter a weight greater than 0 and up to ${MAX_ORDER_IMAGE_WEIGHT_KG} kg, with at most 1 decimal place`\\r\\n' +\n      '}\\r\\n' +\n      '\\r\\n' +\n      'function submit(): void {\\r\\n' +\n      '  const weight = parseWeightKg(rawWeight.value)\\r\\n' +\n      '  if (weight === null) {\\r\\n' +\n      '    showWeightError()\\r\\n' +\n      '    return\\r\\n' +\n      '  }\\r\\n' +\n      '  weightError.value = null\\r\\n' +\n      '  suppressClose.value = true\\r\\n' +\n      \"  emit('submit', weight)\\r\\n\" +\n      '}\\r\\n' +\n      '\\r\\n' +\n      'function handleClose(): void {\\r\\n' +\n      '  if (suppressClose.value && !props.open) {\\r\\n' +\n      '    suppressClose.value = false\\r\\n' +\n      '    return\\r\\n' +\n      '  }\\r\\n' +\n      '  suppressClose.value = false\\r\\n' +\n      \"  emit('close')\\r\\n\" +\n      '}\\r\\n' +\n      '\\r\\n' +\n      'watch(() => props.open, (isOpen) => {\\r\\n' +\n      '  if (isOpen) {\\r\\n' +\n      \"    rawWeight.value = ''\\r\\n\" +\n      '    weightError.value = null\\r\\n' +\n      '    suppressClose.value = false\\r\\n' +\n      '  }\\r\\n' +\n      '})\\r\\n' +\n      '</script>\\r\\n' +\n      '\\r\\n' +\n      '<template>\\r\\n' +\n      '  <ConfirmOverlay\\r\\n' +\n      '    :open=\"open\"\\r\\n' +\n      '    :title=\"title\"\\r\\n' +\n      '    :description=\"description\"\\r\\n' +\n      '    :confirm-label=\"confirmLabel\"\\r\\n' +\n      '    @close=\"handleClose\"\\r\\n' +\n      '    @confirm=\"submit\"\\r\\n' +\n      '  >\\r\\n' +\n      '    <template #header-action>\\r\\n' +\n      '      <CloseButton class=\"absolute right-3 top-3 text-on-surface-variant\" @click=\"handleClose\" />\\r\\n' +\n      '    </template>\\r\\n' +\n      '    <WeightField v-model=\"rawWeight\" :input-id=\"inputId\" :error=\"weightError\" @invalid=\"showWeightError\">\\r\\n' +\n      '      <template #action>\\r\\n' +\n      '        <StickerFab class=\"mr-1 shrink-0 !h-[47px] !w-[47px] !rounded-[15px_18px_16px_17px]\" :label=\"confirmLabel\" aria-label=\"Take photo\" :disabled=\"!valid\" @click=\"submit\">\\r\\n' +\n      '          <span class=\"material-symbols-outlined text-[20px] leading-none\" aria-hidden=\"true\">photo_camera</span>\\r\\n' +\n      '        </StickerFab>\\r\\n' +\n      '      </template>\\r\\n' +\n      '    </WeightField>\\r\\n' +\n      '    <template #footer>\\r\\n' +\n      '      <div class=\"flex-none pb-5\" aria-hidden=\"true\" />\\r\\n' +\n      '    </template>\\r\\n' +\n      '  </ConfirmOverlay>\\r\\n' +\n      '</template>\\r\\n'\n    \n  code: 'ERR_ASSERTION'\n  name: 'AssertionError'\n  expected:\n  actual: |-\n    <script setup lang=\"ts\">\n    import { computed, ref, watch } from 'vue'\n    import ConfirmOverlay from '@/shared/layouts/ConfirmOverlay.vue'\n    import CloseButton from '@/shared/components/CloseButton.vue'\n    import StickerFab from '@/shared/components/StickerFab.vue'\n    import WeightField from '@/shared/components/WeightField.vue'\n    import { MAX_ORDER_IMAGE_WEIGHT_KG, parseWeightKg } from '@shared/utils/item-quantity'\n    \n    const props = withDefaults(defineProps<{\n      open: boolean\n      title?: string\n      description?: string\n      confirmLabel?: string\n      inputId?: string\n    }>(), {\n      title: 'Enter weight',\n      description: '',\n      confirmLabel: 'Photo',\n      inputId: 'weight-prompt-input',\n    })\n    const emit = defineEmits<{\n      submit: [weight: number]\n      close: []\n    }>()\n    \n    const rawWeight = ref('')\n    const weightError = ref<string | null>(null)\n    const suppressClose = ref(false)\n    const valid = computed(() => parseWeightKg(rawWeight.value) !== null)\n    \n    function showWeightError(): void {\n      weightError.value = `Enter a weight greater than 0 and up to ${MAX_ORDER_IMAGE_WEIGHT_KG} kg, with at most 1 decimal place`\n    }\n    \n    function submit(): void {\n      const weight = parseWeightKg(rawWeight.value)\n      if (weight === null) {\n        showWeightError()\n        return\n      }\n      weightError.value = null\n      suppressClose.value = true\n      emit('submit', weight)\n    }\n    \n    function handleClose(): void {\n      if (suppressClose.value && !props.open) {\n        suppressClose.value = false\n        return\n      }\n      suppressClose.value = false\n      emit('close')\n    }\n    \n    watch(() => props.open, (isOpen) => {\n      if (isOpen) {\n        rawWeight.value = ''\n        weightError.value = null\n        suppressClose.value = false\n      }\n    })\n    </script>\n    \n    <template>\n      <ConfirmOverlay\n        :open=\"open\"\n        :title=\"title\"\n        :description=\"description\"\n        :confirm-label=\"confirmLabel\"\n        @close=\"handleClose\"\n        @confirm=\"submit\"\n      >\n        <template #header-action>\n          <CloseButton class=\"absolute right-3 top-3 text-on-surface-variant\" @click=\"handleClose\" />\n        </template>\n        <WeightField v-model=\"rawWeight\" :input-id=\"inputId\" :error=\"weightError\" @invalid=\"showWeightError\">\n          <template #action>\n            <StickerFab class=\"mr-1 shrink-0 !h-[47px] !w-[47px] !rounded-[15px_18px_16px_17px]\" :label=\"confirmLabel\" aria-label=\"Take photo\" :disabled=\"!valid\" @click=\"submit\">\n              <span class=\"material-symbols-outlined text-[20px] leading-none\" aria-hidden=\"true\">photo_camera</span>\n            </StickerFab>\n          </template>\n        </WeightField>\n        <template #footer>\n          <div class=\"flex-none pb-5\" aria-hidden=\"true\" />\n        </template>\n      </ConfirmOverlay>\n    </template>\n    \n  operator: 'match'\n  stack: |-\n    TestContext.<anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\web\\unit\\features\\orders\\composables\\order-image-weight-query.dry-test.ts:30:10)\n    Test.runInAsyncScope (node:async_hooks:211:14)\n    Test.run (node:internal/test_runner/test:979:25)\n    Test.processPendingSubtests (node:internal/test_runner/test:677:18)\n    Test.postRun (node:internal/test_runner/test:1090:19)\n    Test.run (node:internal/test_runner/test:1018:12)\n    async Test.processPendingSubtests (node:internal/test_runner/test:677:7)\n  ...\n# Subtest: the prompt and the route share one validator\nok 4 - the prompt and the route share one validator\n  ---\n  duration_ms: 0.4013\n  ...\n# Subtest: opening an overlay drops a stale weight\nok 5 - opening an overlay drops a stale weight\n  ---\n  duration_ms: 1.2164\n  ...\n1..5\n# tests 5\n# suites 0\n# pass 4\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 21.7691\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests/web/unit/features/orders/composables/order-image-weight-query.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/orders/composables/use-corner-editor.dry-test.ts",
+    "exit": 0,
+    "output": "TAP version 13\n# Subtest: finds the nearest corner only within the supplied radius\nok 1 - finds the nearest corner only within the supplied radius\n  ---\n  duration_ms: 1.5179\n  ...\n# Subtest: clamps a corner inside the image bounds\nok 2 - clamps a corner inside the image bounds\n  ---\n  duration_ms: 1.1126\n  ...\n# Subtest: accepts close aspect ratios and rejects mismatched preview and still ratios\nok 3 - accepts close aspect ratios and rejects mismatched preview and still ratios\n  ---\n  duration_ms: 0.3114\n  ...\n# Subtest: uses the longest opposing edges and caps the output size\nok 4 - uses the longest opposing edges and caps the output size\n  ---\n  duration_ms: 0.2543\n  ...\n1..4\n# tests 4\n# suites 0\n# pass 4\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 14.0067\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\orders\\composables\\use-corner-editor.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/orders/composables/use-document-detect.dry-test.ts",
+    "exit": 0,
+    "output": "TAP version 13\n# Subtest: an identical quad smooths to itself\nok 1 - an identical quad smooths to itself\n  ---\n  duration_ms: 5.5732\n  ...\n# Subtest: a small move converges toward the new position\nok 2 - a small move converges toward the new position\n  ---\n  duration_ms: 0.3989\n  ...\n# Subtest: a huge jump is rejected once and accepted on the second consecutive occurrence\nok 3 - a huge jump is rejected once and accepted on the second consecutive occurrence\n  ---\n  duration_ms: 0.4279\n  ...\n# Subtest: misses below the tolerance keep the previous quad\nok 4 - misses below the tolerance keep the previous quad\n  ---\n  duration_ms: 0.2152\n  ...\n# Subtest: rejects a frame-hugging quad and accepts an inset document\nok 5 - rejects a frame-hugging quad and accepts an inset document\n  ---\n  duration_ms: 0.5796\n  ...\n# Subtest: a portrait frame is centred between vertical bars, filling the height\nok 6 - a portrait frame is centred between vertical bars, filling the height\n  ---\n  duration_ms: 0.4152\n  ...\n# Subtest: a landscape frame is centred between horizontal bars, filling the width\nok 7 - a landscape frame is centred between horizontal bars, filling the width\n  ---\n  duration_ms: 0.3232\n  ...\n# Subtest: a square frame needs no bars at all\nok 8 - a square frame needs no bars at all\n  ---\n  duration_ms: 0.1607\n  ...\n# Subtest: a frame smaller than the model input is not upscaled\nok 9 - a frame smaller than the model input is not upscaled\n  ---\n  duration_ms: 0.3153\n  ...\n# Subtest: unmapping returns a quad to the exact video pixels it came from\nok 10 - unmapping returns a quad to the exact video pixels it came from\n  ---\n  duration_ms: 1.0436\n  ...\n# Subtest: a corner on the black bar maps outside the video frame, not onto its edge\nok 11 - a corner on the black bar maps outside the video frame, not onto its edge\n  ---\n  duration_ms: 0.1837\n  ...\n1..11\n# tests 11\n# suites 0\n# pass 11\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 22.3738\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\orders\\composables\\use-document-detect.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/orders/composables/use-hold-still-capture.dry-test.ts",
+    "exit": 0,
+    "output": "TAP version 13\n# Subtest: an identical quad has no movement\nok 1 - an identical quad has no movement\n  ---\n  duration_ms: 0.784\n  ...\n# Subtest: scores the largest single-corner displacement\nok 2 - scores the largest single-corner displacement\n  ---\n  duration_ms: 0.173\n  ...\n# Subtest: the same pixel shift has a lower ratio on a larger frame\nok 3 - the same pixel shift has a lower ratio on a larger frame\n  ---\n  duration_ms: 0.1686\n  ...\n# Subtest: requires a quad to cover the minimum frame area\nok 4 - requires a quad to cover the minimum frame area\n  ---\n  duration_ms: 0.2037\n  ...\n1..4\n# tests 4\n# suites 0\n# pass 4\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 13.6903\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\orders\\composables\\use-hold-still-capture.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/orders/composables/use-order-list-filter-route.dry-test.ts",
+    "exit": 0,
+    "output": "TAP version 13\n# Subtest: keeps list filters while the report is active and updates them on return\nok 1 - keeps list filters while the report is active and updates them on return\n  ---\n  duration_ms: 15.1889\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 29.7619\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\orders\\composables\\use-order-list-filter-route.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/orders/composables/use-order-overlay-route.dry-test.ts",
+    "exit": 0,
+    "output": "TAP version 13\n# Subtest: reads the single orderAction query as the overlay source of truth\nok 1 - reads the single orderAction query as the overlay source of truth\n  ---\n  duration_ms: 1.7931\n  ...\n# Subtest: keeps old deep links usable without opening two overlays\nok 2 - keeps old deep links usable without opening two overlays\n  ---\n  duration_ms: 0.3676\n  ...\n# Subtest: opening an overlay removes every conflicting current and legacy flag\nok 3 - opening an overlay removes every conflicting current and legacy flag\n  ---\n  duration_ms: 1.2933\n  ...\n# Subtest: closing an overlay strips overlay state while preserving unrelated query state\nok 4 - closing an overlay strips overlay state while preserving unrelated query state\n  ---\n  duration_ms: 0.3368\n  ...\n# Subtest: closing a photo overlay also discards its route-owned weight\nok 5 - closing a photo overlay also discards its route-owned weight\n  ---\n  duration_ms: 1.5373\n  ...\n# Subtest: the detail page unwraps nested computed flags before passing them to Boolean props\nok 6 - the detail page unwraps nested computed flags before passing them to Boolean props\n  ---\n  duration_ms: 0.4955\n  ...\n# Subtest: reads each photo overlay from the same orderAction key\nok 7 - reads each photo overlay from the same orderAction key\n  ---\n  duration_ms: 0.333\n  ...\n# Subtest: switching from the item overlay to a photo overlay leaves one flag\nok 8 - switching from the item overlay to a photo overlay leaves one flag\n  ---\n  duration_ms: 0.2002\n  ...\n1..8\n# tests 8\n# suites 0\n# pass 8\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 33.948\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\orders\\composables\\use-order-overlay-route.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/orders/garment-registration.dry-test.ts",
+    "exit": 0,
+    "output": "TAP version 13\n# Subtest: tag validation uses the print contract format\nok 1 - tag validation uses the print contract format\n  ---\n  duration_ms: 6.0096\n  ...\n# Subtest: existing and session tags both prevent another registration\nok 2 - existing and session tags both prevent another registration\n  ---\n  duration_ms: 0.524\n  ...\n# Subtest: save requires a tag, a photo, and no duplicate\nok 3 - save requires a tag, a photo, and no duplicate\n  ---\n  duration_ms: 1.9156\n  ...\n# Subtest: registration route state carries the order item and closes cleanly\nok 4 - registration route state carries the order item and closes cleanly\n  ---\n  duration_ms: 2.4211\n  ...\n# Subtest: registration scans and captures in either mode and saves when complete\nok 5 - registration scans and captures in either mode and saves when complete\n  ---\n  duration_ms: 0.4993\n  ...\n# Subtest: order preload keeps early tags pending without covering the camera\nok 6 - order preload keeps early tags pending without covering the camera\n  ---\n  duration_ms: 1.09\n  ...\n# Subtest: capture feedback keeps the latest thumbnail without navigation\nok 7 - capture feedback keeps the latest thumbnail without navigation\n  ---\n  duration_ms: 1.8584\n  ...\n# Subtest: photo is the default and reset mode while either missing half selects its mode\nok 8 - photo is the default and reset mode while either missing half selects its mode\n  ---\n  duration_ms: 1.3859\n  ...\n# Subtest: fresh tag IDs merge and recheck a waiting tag\nok 9 - fresh tag IDs merge and recheck a waiting tag\n  ---\n  duration_ms: 1.2128\n  ...\n1..9\n# tests 9\n# suites 0\n# pass 9\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 43.7257\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\orders\\garment-registration.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/orders/order-image-labels.dry-test.ts",
+    "exit": 0,
+    "output": "TAP version 13\n# Subtest: keeps three capture types and labels pickup and delivery photos\nok 1 - keeps three capture types and labels pickup and delivery photos\n  ---\n  duration_ms: 4.6946\n  ...\n# Subtest: falls back for legacy and blank types\nok 2 - falls back for legacy and blank types\n  ---\n  duration_ms: 0.5197\n  ...\n# Subtest: the overlay maps are exact inverses\nok 3 - the overlay maps are exact inverses\n  ---\n  duration_ms: 1.0929\n  ...\n1..3\n# tests 3\n# suites 0\n# pass 3\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 33.0091\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\orders\\order-image-labels.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/orders/order-item-quantity-rules.dry-test.ts",
+    "exit": 0,
+    "output": "order item quantity rule dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\orders\\order-item-quantity-rules.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/orders/order-quantity-mismatch.dry-test.ts",
+    "exit": 0,
+    "output": "order quantity mismatch dry test passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\orders\\order-quantity-mismatch.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/orders/order-total-weight.dry-test.ts",
+    "exit": 0,
+    "output": "TAP version 13\n# Subtest: sums only WEIGHT image quantities and rounds the total to one decimal\nok 1 - sums only WEIGHT image quantities and rounds the total to one decimal\n  ---\n  duration_ms: 1.4102\n  ...\n# Subtest: returns null when no WEIGHT image has a quantity\nok 2 - returns null when no WEIGHT image has a quantity\n  ---\n  duration_ms: 0.2508\n  ...\n1..2\n# tests 2\n# suites 0\n# pass 2\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 11.1471\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\orders\\order-total-weight.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/orders/stores/order.store.dry-test.ts",
+    "exit": 1,
+    "output": "C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\web\\unit\\features\\orders\\stores\\order.store.dry-test.ts:40\n  pending[0]!.resolve(detailResponse('order-1', [{ orderItemId: 'item-1' }]))\n              ^\n\n\nTypeError: Cannot read properties of undefined (reading 'resolve')\n    at <anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\web\\unit\\features\\orders\\stores\\order.store.dry-test.ts:40:15)\n    at ModuleJob.run (node:internal/modules/esm/module_job:271:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5)\n\nNode.js v22.14.0\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests/web/unit/features/orders/stores/order.store.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/orders/utils/document-enhance.dry-test.ts",
+    "exit": 0,
+    "output": "TAP version 13\n# Subtest: enhance keeps a uniform grey image uniform\nok 1 - enhance keeps a uniform grey image uniform\n  ---\n  duration_ms: 3.9476\n  ...\n# Subtest: enhance substantially flattens a brightness gradient\nok 2 - enhance substantially flattens a brightness gradient\n  ---\n  duration_ms: 0.6748\n  ...\n# Subtest: integral windows match direct hand-computed sums\nok 3 - integral windows match direct hand-computed sums\n  ---\n  duration_ms: 0.2308\n  ...\n# Subtest: original returns byte-identical pixels\nok 4 - original returns byte-identical pixels\n  ---\n  duration_ms: 0.9373\n  ...\n1..4\n# tests 4\n# suites 0\n# pass 4\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 18.7137\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\orders\\utils\\document-enhance.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/orders/utils/order-invoice-target.dry-test.ts",
+    "exit": 0,
+    "output": "5 order-invoice target dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\orders\\utils\\order-invoice-target.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/orders/utils/order-list-filter.dry-test.ts",
+    "exit": 0,
+    "output": "order-list filter dry test passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\orders\\utils\\order-list-filter.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/orders/utils/order-price-list-items.dry-test.ts",
+    "exit": 0,
+    "output": "order-price-list-items.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\orders\\utils\\order-price-list-items.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/orders/utils/quad-projection.dry-test.ts",
+    "exit": 0,
+    "output": "TAP version 13\n# Subtest: letterboxes a landscape video in a portrait element and a portrait video in a landscape element\nok 1 - letterboxes a landscape video in a portrait element and a portrait video in a landscape element\n  ---\n  duration_ms: 1.3642\n  ...\n# Subtest: has no offsets when video and element share an aspect ratio\nok 2 - has no offsets when video and element share an aspect ratio\n  ---\n  duration_ms: 0.1761\n  ...\n# Subtest: does not upscale an image already under the processing cap\nok 3 - does not upscale an image already under the processing cap\n  ---\n  duration_ms: 0.1169\n  ...\n# Subtest: scales and projects a quad with expected arithmetic\nok 4 - scales and projects a quad with expected arithmetic\n  ---\n  duration_ms: 0.8302\n  ...\n# Subtest: orders rotated and reversed points consistently\nok 5 - orders rotated and reversed points consistently\n  ---\n  duration_ms: 0.2939\n  ...\n# Subtest: zero and invalid dimensions return neutral finite values\nok 6 - zero and invalid dimensions return neutral finite values\n  ---\n  duration_ms: 0.2374\n  ...\n1..6\n# tests 6\n# suites 0\n# pass 6\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 17.0824\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\orders\\utils\\quad-projection.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/packages/package-price-decimal.dry-test.ts",
+    "exit": 0,
+    "output": "package price decimal dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\packages\\package-price-decimal.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/packages/pages/package-pages.dry-test.ts",
+    "exit": 0,
+    "output": "package page dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\packages\\pages\\package-pages.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/price-list/components/price-list-components.dry-test.ts",
+    "exit": 0,
+    "output": "price-list-components.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\price-list\\components\\price-list-components.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/price-list/composables/usePriceListFilterRoute.dry-test.ts",
+    "exit": 0,
+    "output": "7 price-list filter route dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\price-list\\composables\\usePriceListFilterRoute.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/price-list/pages/price-list-pages.dry-test.ts",
+    "exit": 0,
+    "output": "price-list-pages.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\price-list\\pages\\price-list-pages.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/price-list/stores/price-list.store.dry-test.ts",
+    "exit": 0,
+    "output": "price-list.store.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\price-list\\stores\\price-list.store.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/price-list/utils/price-list-form-payload.dry-test.ts",
+    "exit": 0,
+    "output": "price-list-form-payload.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\price-list\\utils\\price-list-form-payload.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/price-list/utils/price-list-picker-groups.dry-test.ts",
+    "exit": 0,
+    "output": "price-list-picker-groups.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\price-list\\utils\\price-list-picker-groups.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/staff/utils/staff-form-payload.dry-test.ts",
+    "exit": 0,
+    "output": "staff-form-payload.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\staff\\utils\\staff-form-payload.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/features/staff/utils/staff-performance.dry-test.ts",
+    "exit": 0,
+    "output": "staff performance dry test passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\features\\staff\\utils\\staff-performance.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/api/invalidate-wiring.dry-test.ts",
+    "exit": 0,
+    "output": "invalidate-wiring.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\api\\invalidate-wiring.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/api/persistent-cache.dry-test.ts",
+    "exit": 0,
+    "output": "persistent-cache.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\api\\persistent-cache.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/api/response-cache.dry-test.ts",
+    "exit": 0,
+    "output": "response-cache.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\api\\response-cache.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/api/write-outcome-invalidation.dry-test.ts",
+    "exit": 0,
+    "output": "write-outcome-invalidation.dry-test: OK (update and non-created outcomes)\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\api\\write-outcome-invalidation.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/components/app-header-pending-count.dry-test.ts",
+    "exit": 0,
+    "output": "app-header-pending-count.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\components\\app-header-pending-count.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/components/app-header-searchable.dry-test.ts",
+    "exit": 0,
+    "output": "app-header searchable route dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\components\\app-header-searchable.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/components/base-swipe-card.dry-test.ts",
+    "exit": 0,
+    "output": "base-swipe-card dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\components\\base-swipe-card.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/components/close-button.dry-test.ts",
+    "exit": 0,
+    "output": "close button dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\components\\close-button.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/composables/use-duplicate-invoice-warning.dry-test.ts",
+    "exit": 0,
+    "output": "8 duplicate-invoice warning dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\composables\\use-duplicate-invoice-warning.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/composables/use-go-back.dry-test.ts",
+    "exit": 0,
+    "output": "3 go-back resolver dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\composables\\use-go-back.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/config/actor.dry-test.ts",
+    "exit": 0,
+    "output": "actor.dry-test: OK (fallback, ignored overrides, signed-in id, clearing)\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\config\\actor.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/config/operator.store.dry-test.ts",
+    "exit": 0,
+    "output": "TAP version 13\n# Subtest: operator replaces on scan, persists, mirrors synchronously, expires at one hour and clears\nok 1 - operator replaces on scan, persists, mirrors synchronously, expires at one hour and clears\n  ---\n  duration_ms: 14.9164\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 22.0333\n(node:29096) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time\n(Use `node --trace-warnings ...` to show where the warning was created)\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests/web/unit/shared/config/operator.store.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/form-input-number-attributes.dry-test.ts",
+    "exit": 0,
+    "output": "FormInput number attribute dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\form-input-number-attributes.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/layouts/list-page-layout.dry-test.ts",
+    "exit": 0,
+    "output": "list-page layout dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\layouts\\list-page-layout.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/navigation/form-page-close-routes.dry-test.ts",
+    "exit": 0,
+    "output": "6 form-page close route dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\navigation\\form-page-close-routes.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/navigation/form-route-integrations.dry-test.ts",
+    "exit": 1,
+    "output": "node:internal/modules/run_main:122\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: The input did not match the regular expression /:on-edit=\"editOrder\"/. Input:\n\n'<script setup lang=\"ts\">\\r\\n' +\n  \"import ListContainer from '@/shared/components/ListContainer.vue'\\r\\n\" +\n  \"import CreateDropdownMenu from './CreateDropdownMenu.vue'\\r\\n\" +\n  \"import { orderCreateRoute } from '@/shared/navigation/form-routes'\\r\\n\" +\n  \"import { useRouter } from 'vue-router'\\r\\n\" +\n  \"import { storeToRefs } from 'pinia'\\r\\n\" +\n  \"import { getInvoiceTarget } from '@/shared/navigation/invoice-detail-route'\\r\\n\" +\n  \"import { formatSheetDate } from '@/shared/utils/sheet-date'\\r\\n\" +\n  \"import { serviceTypeLabel } from '@/shared/utils/service-type-labels'\\r\\n\" +\n  \"import { useCustomerOrderHistoryStore } from '../stores/customer-order-history.store'\\r\\n\" +\n  \"import { isInvoiceActionAvailable } from '../utils/customer-order-invoice-target'\\r\\n\" +\n  \"import { presentationFor } from '../utils/customer-order-status-presentation'\\r\\n\" +\n  \"import CustomerRecordCard from './CustomerRecordCard.vue'\\r\\n\" +\n  '\\r\\n' +\n  'const emit = defineEmits<{\\r\\n' +\n  '  selectOrder: [orderId: string]\\r\\n' +\n  '}>()\\r\\n' +\n  '\\r\\n' +\n  'const props = defineProps<{ customerId: string }>()\\r\\n' +\n  '\\r\\n' +\n  'const store = useCustomerOrderHistoryStore()\\r\\n' +\n  'const router = useRouter()\\r\\n' +\n  'const {\\r\\n' +\n  '  orders,\\r\\n' +\n  '  waitingPickups,\\r\\n' +\n  '  ordersLoading,\\r\\n' +\n  '  appointmentsLoading,\\r\\n' +\n  '  ordersError,\\r\\n' +\n  '  appointmentsError,\\r\\n' +\n  '} = storeToRefs(store)\\r\\n' +\n  '\\r\\n' +\n  'function viewPhotos(orderId: string) {\\r\\n' +\n  '  router.push(`/gallery/BEF-${orderId}`)\\r\\n' +\n  '}\\r\\n' +\n  '\\r\\n' +\n  'function viewInvoice(invoiceNumber: string) {\\r\\n' +\n  '  const target = getInvoiceTarget(invoiceNumber)\\r\\n' +\n  '  if (target) router.push(target)\\r\\n' +\n  '}\\r\\n' +\n  '\\r\\n' +\n  'function openOrderDetail(orderId: string, close: () => void) {\\r\\n' +\n  \"  router.push({ name: 'order-detail', params: { orderId } })\\r\\n\" +\n  '  close()\\r\\n' +\n  '}\\r\\n' +\n  '</script>\\r\\n' +\n  '\\r\\n' +\n  '<template>\\r\\n' +\n  '  <ListContainer\\r\\n' +\n  '    title=\"Order History\"\\r\\n' +\n  '    icon=\"receipt_long\"\\r\\n' +\n  '    count-label=\"orders\"\\r\\n' +\n  '    :loading=\"ordersLoading || appointmentsLoading\"\\r\\n' +\n  '    :error=\"ordersError || appointmentsError\"\\r\\n' +\n  '    :empty=\"orders.length === 0 && waitingPickups.length === 0\"\\r\\n' +\n  '    empty-text=\"No order history\"\\r\\n' +\n  '    :skeleton-rows=\"4\"\\r\\n' +\n  '  >\\r\\n' +\n  '    <template #actions>\\r\\n' +\n  '      <CreateDropdownMenu\\r\\n' +\n  '        :label=\"`${orders.length} orders`\"\\r\\n' +\n  '        aria-label=\"Create order\"\\r\\n' +\n  `        :items=\"[{ key: 'order', label: 'New Order' }]\"\\r\\n` +\n  '        @select=\"router.push(orderCreateRoute({ customerId: props.customerId }))\"\\r\\n' +\n  '      />\\r\\n' +\n  '    </template>\\r\\n' +\n  '    <CustomerRecordCard\\r\\n' +\n  '      v-for=\"appointment in waitingPickups\"\\r\\n' +\n  '      :key=\"appointment.appointmentId\"\\r\\n' +\n  '      :title=\"formatSheetDate(appointment.appointmentDate)\"\\r\\n' +\n  `      :badges=\"[{ label: 'Waiting pickup', tone: 'warning' }]\"\\r\\n` +\n  `      :trailing=\"appointment.timeSlot || '\u2014'\"\\r\\n` +\n  '      :pressable=\"false\"\\r\\n' +\n  '    />\\r\\n' +\n  '    <CustomerRecordCard\\r\\n' +\n  '      v-for=\"order in orders\"\\r\\n' +\n  '      :key=\"order.orderId\"\\r\\n' +\n  '      :title=\"formatSheetDate(order.receivedDate)\"\\r\\n' +\n  '      :badges=\"[\\r\\n' +\n  '        { label: presentationFor(order.status).label, tone: presentationFor(order.status).tone },\\r\\n' +\n  \"        ...(serviceTypeLabel(order.serviceType) ? [{ label: serviceTypeLabel(order.serviceType)!, tone: 'brand' as const }] : []),\\r\\n\" +\n  '      ]\"\\r\\n' +\n  '      :trailing=\"order.quantity != null ? `${order.quantity} pcs` : undefined\"\\r\\n' +\n  `      :detail=\"order.note || '\u2014'\"\\r\\n` +\n  `      @select=\"emit('selectOrder', order.orderId)\"\\r\\n` +\n  '    >\\r\\n' +\n  '      <template #left-panel=\"{ close }\">\\r\\n' +\n  '        <div class=\"absolute inset-0 flex items-center justify-end bg-primary/80 text-on-primary\">\\r\\n' +\n  '          <button type=\"button\" class=\"flex w-16 shrink-0 flex-col items-center gap-0.5 transition-all hover:scale-110 disabled:opacity-50\" @click.stop=\"openOrderDetail(order.orderId, close)\">\\r\\n' +\n  '            <span class=\"material-symbols-outlined text-[20px]\" aria-hidden=\"true\">open_in_new</span>\\r\\n' +\n  '            <span class=\"font-label text-[8px] font-bold uppercase\">Order detail</span>\\r\\n' +\n  '          </button>\\r\\n' +\n  '        </div>\\r\\n' +\n  '      </template>\\r\\n' +\n  '      <template #actions>\\r\\n' +\n  '        <div class=\"flex shrink-0 items-center gap-2\">\\r\\n' +\n  '          <button\\r\\n' +\n  '            v-if=\"isInvoiceActionAvailable(order)\"\\r\\n' +\n  '            type=\"button\"\\r\\n' +\n  '            class=\"-m-1 flex shrink-0 p-1 text-primary transition hover:opacity-70 active:scale-95\"\\r\\n' +\n  '            aria-label=\"View invoice\"\\r\\n' +\n  '            @mousedown.stop\\r\\n' +\n  '            @touchend.stop\\r\\n' +\n  '            @click.stop=\"viewInvoice(order.invoiceNumber!)\"\\r\\n' +\n  '          >\\r\\n' +\n  '            <span class=\"material-symbols-outlined text-[16px]\" aria-hidden=\"true\">receipt_long</span>\\r\\n' +\n  '          </button>\\r\\n' +\n  '          <button\\r\\n' +\n  '            type=\"button\"\\r\\n' +\n  '            class=\"-m-1 flex shrink-0 p-1 text-primary transition hover:opacity-70 active:scale-95\"\\r\\n' +\n  '            aria-label=\"View photos\"\\r\\n' +\n  '            @mousedown.stop\\r\\n' +\n  '            @touchend.stop\\r\\n' +\n  '            @click.stop=\"viewPhotos(order.orderId)\"\\r\\n' +\n  '          >\\r\\n' +\n  '            <span class=\"material-symbols-outlined text-[16px]\" aria-hidden=\"true\">photo_library</span>\\r\\n' +\n  '          </button>\\r\\n' +\n  '        </div>\\r\\n' +\n  '      </template>\\r\\n' +\n  '    </CustomerRecordCard>\\r\\n' +\n  '  </ListContainer>\\r\\n' +\n  '</template>\\r\\n'\n\n    at <anonymous> (C:\\MagicwashGemini\\webapp-vue\\.worktrees\\shared-device-operator\\tests\\web\\unit\\shared\\navigation\\form-route-integrations.dry-test.ts:37:8)\n    at ModuleJob.run (node:internal/modules/esm/module_job:271:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5) {\n  generatedMessage: true,\n  code: 'ERR_ASSERTION',\n  actual: '<script setup lang=\"ts\">\\r\\n' +\n    \"import ListContainer from '@/shared/components/ListContainer.vue'\\r\\n\" +\n    \"import CreateDropdownMenu from './CreateDropdownMenu.vue'\\r\\n\" +\n    \"import { orderCreateRoute } from '@/shared/navigation/form-routes'\\r\\n\" +\n    \"import { useRouter } from 'vue-router'\\r\\n\" +\n    \"import { storeToRefs } from 'pinia'\\r\\n\" +\n    \"import { getInvoiceTarget } from '@/shared/navigation/invoice-detail-route'\\r\\n\" +\n    \"import { formatSheetDate } from '@/shared/utils/sheet-date'\\r\\n\" +\n    \"import { serviceTypeLabel } from '@/shared/utils/service-type-labels'\\r\\n\" +\n    \"import { useCustomerOrderHistoryStore } from '../stores/customer-order-history.store'\\r\\n\" +\n    \"import { isInvoiceActionAvailable } from '../utils/customer-order-invoice-target'\\r\\n\" +\n    \"import { presentationFor } from '../utils/customer-order-status-presentation'\\r\\n\" +\n    \"import CustomerRecordCard from './CustomerRecordCard.vue'\\r\\n\" +\n    '\\r\\n' +\n    'const emit = defineEmits<{\\r\\n' +\n    '  selectOrder: [orderId: string]\\r\\n' +\n    '}>()\\r\\n' +\n    '\\r\\n' +\n    'const props = defineProps<{ customerId: string }>()\\r\\n' +\n    '\\r\\n' +\n    'const store = useCustomerOrderHistoryStore()\\r\\n' +\n    'const router = useRouter()\\r\\n' +\n    'const {\\r\\n' +\n    '  orders,\\r\\n' +\n    '  waitingPickups,\\r\\n' +\n    '  ordersLoading,\\r\\n' +\n    '  appointmentsLoading,\\r\\n' +\n    '  ordersError,\\r\\n' +\n    '  appointmentsError,\\r\\n' +\n    '} = storeToRefs(store)\\r\\n' +\n    '\\r\\n' +\n    'function viewPhotos(orderId: string) {\\r\\n' +\n    '  router.push(`/gallery/BEF-${orderId}`)\\r\\n' +\n    '}\\r\\n' +\n    '\\r\\n' +\n    'function viewInvoice(invoiceNumber: string) {\\r\\n' +\n    '  const target = getInvoiceTarget(invoiceNumber)\\r\\n' +\n    '  if (target) router.push(target)\\r\\n' +\n    '}\\r\\n' +\n    '\\r\\n' +\n    'function openOrderDetail(orderId: string, close: () => void) {\\r\\n' +\n    \"  router.push({ name: 'order-detail', params: { orderId } })\\r\\n\" +\n    '  close()\\r\\n' +\n    '}\\r\\n' +\n    '</script>\\r\\n' +\n    '\\r\\n' +\n    '<template>\\r\\n' +\n    '  <ListContainer\\r\\n' +\n    '    title=\"Order History\"\\r\\n' +\n    '    icon=\"receipt_long\"\\r\\n' +\n    '    count-label=\"orders\"\\r\\n' +\n    '    :loading=\"ordersLoading || appointmentsLoading\"\\r\\n' +\n    '    :error=\"ordersError || appointmentsError\"\\r\\n' +\n    '    :empty=\"orders.length === 0 && waitingPickups.length === 0\"\\r\\n' +\n    '    empty-text=\"No order history\"\\r\\n' +\n    '    :skeleton-rows=\"4\"\\r\\n' +\n    '  >\\r\\n' +\n    '    <template #actions>\\r\\n' +\n    '      <CreateDropdownMenu\\r\\n' +\n    '        :label=\"`${orders.length} orders`\"\\r\\n' +\n    '        aria-label=\"Create order\"\\r\\n' +\n    `        :items=\"[{ key: 'order', label: 'New Order' }]\"\\r\\n` +\n    '        @select=\"router.push(orderCreateRoute({ customerId: props.customerId }))\"\\r\\n' +\n    '      />\\r\\n' +\n    '    </template>\\r\\n' +\n    '    <CustomerRecordCard\\r\\n' +\n    '      v-for=\"appointment in waitingPickups\"\\r\\n' +\n    '      :key=\"appointment.appointmentId\"\\r\\n' +\n    '      :title=\"formatSheetDate(appointment.appointmentDate)\"\\r\\n' +\n    `      :badges=\"[{ label: 'Waiting pickup', tone: 'warning' }]\"\\r\\n` +\n    `      :trailing=\"appointment.timeSlot || '\u2014'\"\\r\\n` +\n    '      :pressable=\"false\"\\r\\n' +\n    '    />\\r\\n' +\n    '    <CustomerRecordCard\\r\\n' +\n    '      v-for=\"order in orders\"\\r\\n' +\n    '      :key=\"order.orderId\"\\r\\n' +\n    '      :title=\"formatSheetDate(order.receivedDate)\"\\r\\n' +\n    '      :badges=\"[\\r\\n' +\n    '        { label: presentationFor(order.status).label, tone: presentationFor(order.status).tone },\\r\\n' +\n    \"        ...(serviceTypeLabel(order.serviceType) ? [{ label: serviceTypeLabel(order.serviceType)!, tone: 'brand' as const }] : []),\\r\\n\" +\n    '      ]\"\\r\\n' +\n    '      :trailing=\"order.quantity != null ? `${order.quantity} pcs` : undefined\"\\r\\n' +\n    `      :detail=\"order.note || '\u2014'\"\\r\\n` +\n    `      @select=\"emit('selectOrder', order.orderId)\"\\r\\n` +\n    '    >\\r\\n' +\n    '      <template #left-panel=\"{ close }\">\\r\\n' +\n    '        <div class=\"absolute inset-0 flex items-center justify-end bg-primary/80 text-on-primary\">\\r\\n' +\n    '          <button type=\"button\" class=\"flex w-16 shrink-0 flex-col items-center gap-0.5 transition-all hover:scale-110 disabled:opacity-50\" @click.stop=\"openOrderDetail(order.orderId, close)\">\\r\\n' +\n    '            <span class=\"material-symbols-outlined text-[20px]\" aria-hidden=\"true\">open_in_new</span>\\r\\n' +\n    '            <span class=\"font-label text-[8px] font-bold uppercase\">Order detail</span>\\r\\n' +\n    '          </button>\\r\\n' +\n    '        </div>\\r\\n' +\n    '      </template>\\r\\n' +\n    '      <template #actions>\\r\\n' +\n    '        <div class=\"flex shrink-0 items-center gap-2\">\\r\\n' +\n    '          <button\\r\\n' +\n    '            v-if=\"isInvoiceActionAvailable(order)\"\\r\\n' +\n    '            type=\"button\"\\r\\n' +\n    '            class=\"-m-1 flex shrink-0 p-1 text-primary transition hover:opacity-70 active:scale-95\"\\r\\n' +\n    '            aria-label=\"View invoice\"\\r\\n' +\n    '            @mousedown.stop\\r\\n' +\n    '            @touchend.stop\\r\\n' +\n    '            @click.stop=\"viewInvoice(order.invoiceNumber!)\"\\r\\n' +\n    '          >\\r\\n' +\n    '            <span class=\"material-symbols-outlined text-[16px]\" aria-hidden=\"true\">receipt_long</span>\\r\\n' +\n    '          </button>\\r\\n' +\n    '          <button\\r\\n' +\n    '            type=\"button\"\\r\\n' +\n    '            class=\"-m-1 flex shrink-0 p-1 text-primary transition hover:opacity-70 active:scale-95\"\\r\\n' +\n    '            aria-label=\"View photos\"\\r\\n' +\n    '            @mousedown.stop\\r\\n' +\n    '            @touchend.stop\\r\\n' +\n    '            @click.stop=\"viewPhotos(order.orderId)\"\\r\\n' +\n    '          >\\r\\n' +\n    '            <span class=\"material-symbols-outlined text-[16px]\" aria-hidden=\"true\">photo_library</span>\\r\\n' +\n    '          </button>\\r\\n' +\n    '        </div>\\r\\n' +\n    '      </template>\\r\\n' +\n    '    </CustomerRecordCard>\\r\\n' +\n    '  </ListContainer>\\r\\n' +\n    '</template>\\r\\n',\n  expected: /:on-edit=\"editOrder\"/,\n  operator: 'match'\n}\n\nNode.js v22.14.0\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests/web/unit/shared/navigation/form-route-integrations.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/navigation/form-routes.dry-test.ts",
+    "exit": 0,
+    "output": "10 form-route builder dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\navigation\\form-routes.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/navigation/use-close-route.dry-test.ts",
+    "exit": 0,
+    "output": "2 use-close-route dry tests passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\navigation\\use-close-route.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/utils/barcode-scanner.dry-test.ts",
+    "exit": 0,
+    "output": "TAP version 13\n# Subtest: uses the ponyfill when native BarcodeDetector is absent\nok 1 - uses the ponyfill when native BarcodeDetector is absent\n  ---\n  duration_ms: 2.1322\n  ...\n# Subtest: uses the ponyfill when native BarcodeDetector cannot decode QR codes\nok 2 - uses the ponyfill when native BarcodeDetector cannot decode QR codes\n  ---\n  duration_ms: 0.382\n  ...\n# Subtest: limits the native detector to the supported requested formats\nok 3 - limits the native detector to the supported requested formats\n  ---\n  duration_ms: 1.1581\n  ...\n# Subtest: waits for each full-frame decode and ignores results after stop\nok 4 - waits for each full-frame decode and ignores results after stop\n  ---\n  duration_ms: 7.0042\n  ...\n1..4\n# tests 4\n# suites 0\n# pass 4\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 19.6234\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\utils\\barcode-scanner.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/utils/item-quantity.dry-test.ts",
+    "exit": 0,
+    "output": "TAP version 13\n# Subtest: recognizes the canonical kilogram unit\nok 1 - recognizes the canonical kilogram unit\n  ---\n  duration_ms: 0.9956\n  ...\n# Subtest: allows one decimal place for kilogram quantities\nok 2 - allows one decimal place for kilogram quantities\n  ---\n  duration_ms: 0.3486\n  ...\n# Subtest: allows only positive whole numbers for non-weight quantities\nok 3 - allows only positive whole numbers for non-weight quantities\n  ---\n  duration_ms: 0.1617\n  ...\n1..3\n# tests 3\n# suites 0\n# pass 3\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 9.5708\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\utils\\item-quantity.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/utils/pull-to-refresh.dry-test.ts",
+    "exit": 0,
+    "output": "pull-to-refresh dry test passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\utils\\pull-to-refresh.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/utils/scan-feedback.dry-test.ts",
+    "exit": 0,
+    "output": "scan-feedback.dry-test: OK\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\utils\\scan-feedback.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/utils/sheet-date.dry-test.ts",
+    "exit": 0,
+    "output": "\u2713 normalizes civil GViz and legacy display dates without timezone shifts\n\u2713 normalizes GViz and sheet datetimes using Bangkok date semantics\n\u2713 formats invoice/order dates and payment instants through the shared utility\n\u2713 rejects malformed and impossible values\n\u2713 adds calendar days to civil input without relying on host timezone\n\u2713 reads current clock values in Bangkok rather than the host timezone\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\utils\\sheet-date.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/shared/utils/staff-card.dry-test.ts",
+    "exit": 0,
+    "output": "staff card dry test passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\shared\\utils\\staff-card.dry-test.ts"
+  },
+  {
+    "file": "tests/web/unit/tag-scanner/prototype.dry-test.ts",
+    "exit": 0,
+    "output": "TAP version 13\n# Subtest: prototype uses the shared scanner and preserves camera controls\nok 1 - prototype uses the shared scanner and preserves camera controls\n  ---\n  duration_ms: 2.1704\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 15.8838\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\unit\\tag-scanner\\prototype.dry-test.ts"
+  },
+  {
+    "file": "tests/web/wash-options.dry-test.ts",
+    "exit": 0,
+    "output": "wash options dry test passed (defaults, deep copies, program matching, custom, summaries, labels, chips)\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\wash-options.dry-test.ts"
+  },
+  {
+    "file": "tests/web/wash-queue-tag-code.dry-test.ts",
+    "exit": 0,
+    "output": "wash queue tag code dry test passed\n",
+    "command": "npx tsx --tsconfig jsconfig.json tests\\web\\wash-queue-tag-code.dry-test.ts"
+  }
+]

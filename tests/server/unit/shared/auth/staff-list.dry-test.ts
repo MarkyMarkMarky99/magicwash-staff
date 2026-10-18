@@ -20,3 +20,13 @@ assert.throws(() => parseStaffList([['Email', 'Name', 'Role', 'Active']]), /miss
 assert.equal(parseStaffList([['Email', 'Name', 'Role', 'Active', 'StaffId'], ['a@b.com', 'A', 'staff', true]]).get('a@b.com')?.staffId, '')
 
 console.log('staff list dry test passed')
+
+const cards = parseStaffList([
+  ['Email', 'Name', 'Role', 'Active', 'StaffId', 'CardCode'],
+  ['device@test', 'Shop', 'device', true, 'device', ' MWS-DEVICE '],
+  ['worker@test', 'Worker', 'staff', true, 'worker', '   '],
+])
+assert.equal(cards.get('device@test')?.role, 'device')
+assert.equal(cards.get('device@test')?.cardCode, 'MWS-DEVICE')
+assert.equal(cards.get('worker@test')?.cardCode, undefined)
+assert.equal(members.get('alice@example.com')?.cardCode, undefined)

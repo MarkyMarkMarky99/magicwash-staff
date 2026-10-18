@@ -34,12 +34,12 @@ function serviceWith(row: Row | null) {
 // VERIFY fills amount, defaults paid_at to now, keeps the verifier note.
 {
   const { service, updates } = serviceWith(pendingRow())
-  const result = await service.update('pay_1', { action: 'VERIFY', amount: 1190 })
+  const result = await service.update('pay_1', { action: 'VERIFY', amount: 1190 }, 'session-staff')
   assert.deepEqual(updates[0], {
     id: 'pay_1',
     patch: {
       status: 'VERIFIED', amount: 1190, paid_at: '2026-10-02 12:34:56',
-      updated_at: '2026-10-02 12:34:56', updated_by: 'admin',
+      updated_at: '2026-10-02 12:34:56', updated_by: 'session-staff',
     },
   })
   assert.equal(result.status, 'VERIFIED')
@@ -52,7 +52,7 @@ function serviceWith(row: Row | null) {
   const { service, updates } = serviceWith(pendingRow())
   await service.update('pay_1', {
     action: 'VERIFY', amount: 1190, paidAt: '2026-10-01 00:00:00', notes: ' ตรวจสลิปแล้ว ',
-  })
+  }, 'session-staff')
   assert.equal(updates[0]?.patch.paid_at, '2026-10-01 00:00:00')
   assert.equal(updates[0]?.patch.notes, 'SLIPOK_1010 | ตรวจสลิปแล้ว')
 }
@@ -60,10 +60,10 @@ function serviceWith(row: Row | null) {
 // REJECT marks FAILED, appends the reason, leaves amount and paid_at alone.
 {
   const { service, updates } = serviceWith(pendingRow({ notes: '' }))
-  const result = await service.update('pay_1', { action: 'REJECT', notes: 'ยอดไม่ตรง' })
+  const result = await service.update('pay_1', { action: 'REJECT', notes: 'ยอดไม่ตรง' }, 'session-staff')
   assert.deepEqual(updates[0]?.patch, {
     status: 'FAILED', notes: 'ยอดไม่ตรง',
-    updated_at: '2026-10-02 12:34:56', updated_by: 'admin',
+    updated_at: '2026-10-02 12:34:56', updated_by: 'session-staff',
   })
   assert.equal(result.status, 'FAILED')
 }
@@ -71,9 +71,9 @@ function serviceWith(row: Row | null) {
 // Only PENDING rows can be reviewed; missing rows are 404.
 {
   const { service, updates } = serviceWith(pendingRow({ status: 'VERIFIED', amount: 500 }))
-  await assert.rejects(service.update('pay_1', { action: 'REJECT', notes: 'x' }), { status: 409 })
+  await assert.rejects(service.update('pay_1', { action: 'REJECT', notes: 'x' }, 'session-staff'), { status: 409 })
   assert.equal(updates.length, 0)
-  await assert.rejects(serviceWith(null).service.update('pay_1', { action: 'VERIFY', amount: 1 }), { status: 404 })
+  await assert.rejects(serviceWith(null).service.update('pay_1', { action: 'VERIFY', amount: 1 }, 'session-staff'), { status: 404 })
 }
 
 // Contract: REJECT needs a note, VERIFY needs a non-zero amount.

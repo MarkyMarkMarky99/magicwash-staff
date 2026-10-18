@@ -1,3 +1,4 @@
+import { bodyWithSessionActor } from '../../shared/http/session-actor.js'
 import { z } from 'zod'
 import { orderItemApiContract, orderItemResponseSchema, orderItemUpdateResponseSchema, orderItemQuantityReassignSchema } from '../../../contracts/order-items/order-item-api.schema.js'
 import { getOrderFormRepository } from '../../sheets/OrderForm/OrderForm.repository.js'
@@ -186,7 +187,7 @@ export class OrderItemService extends BaseCrudService<
 }
 
 export const orderItemService = new OrderItemService()
-const crudRoutes = createCrudRoutes(orderItemService, orderItemApiContract)
+const crudRoutes = createCrudRoutes(orderItemService, orderItemApiContract, { create: ['createdBy'], update: ['updatedBy'] })
 export const orderItemRoutes: GatewayModuleRoutes = {
   collection: crudRoutes.collection,
   item: new ApiHandler({
@@ -200,7 +201,7 @@ export const orderItemRoutes: GatewayModuleRoutes = {
     },
     POST: async (req) => {
       if (req.params.id !== 'reassign-quantities') throw ApiError.notFound('Route not found')
-      return ok(await orderItemService.reassignQuantities(req.body))
+      return ok(await orderItemService.reassignQuantities(bodyWithSessionActor(req, 'updatedBy')))
     },
     DELETE: async (req) => crudRoutes.item!.handleRequest(req),
   }),

@@ -84,6 +84,19 @@ export class StaffService {
     return { ...row.staff, ...body }
   }
 
+  async issueCard(staffId: string) {
+    const id = parseOrThrow(z.string().min(1), staffId)
+    const { header, rows } = await this.load()
+    const row = rows.find(({ staff }) => staff.staffId === id)
+    if (!row) throw ApiError.notFound('Staff not found')
+    const column = header.letterByName.CardCode
+    if (!column) throw new Error('Staff sheet is missing CardCode column')
+    const cardCode = `MWS-${generateShortId()}`
+    await this.client.updateCells([{ range: `Staff!${column}${row.rowNumber}`, values: [[cardCode]] }], 'RAW')
+    invalidateStaffListCache()
+    return { staffId: id, cardCode }
+  }
+
   private async load() {
     const headers = await this.client.readRange('1:1', { valueRenderOption: 'UNFORMATTED_VALUE' })
     const header = buildSheetHeaderMap(headers[0] ?? [], Object.values(staffColumns), 'Email')
@@ -106,7 +119,7 @@ export class StaffService {
         address: values.address!,
         position: values.position!,
         startDate: normalizeStartDate(cells[header.indexByName.StartDate]),
-        role: role === 'admin' || role === 'staff' ? role : null,
+        role: role === 'admin' || role === 'staff' || role === 'device' ? role : null,
         active: active === true || (typeof active === 'string' && active.trim().toLowerCase() === 'true'),
       }
       rows.push({ staff, rowNumber: index + 2 })

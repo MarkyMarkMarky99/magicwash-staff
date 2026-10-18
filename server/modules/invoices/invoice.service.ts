@@ -1,5 +1,4 @@
 import type { z } from 'zod'
-import { FALLBACK_ACTOR } from '../../shared/config/actor.js'
 import {
   invoiceApiContract,
   invoiceCreateSchema,
@@ -445,7 +444,7 @@ export class InvoiceService {
     }
   }
 
-  async create(payload: unknown): Promise<CreateInvoiceResponse> {
+  async create(payload: unknown, staffId: string): Promise<CreateInvoiceResponse> {
     const parsed = invoiceCreateSchema.safeParse(payload)
     if (!parsed.success) {
       return {
@@ -539,7 +538,7 @@ export class InvoiceService {
       // them before the row reaches the sheet repository.
       customer: JSON.stringify(customerSnapshot),
       adjustments: JSON.stringify(request.adjustments.map(toDbAdjustment)),
-      created_by: FALLBACK_ACTOR,
+      created_by: staffId,
     }
 
     try {
@@ -577,7 +576,7 @@ export class InvoiceService {
       try {
         await this.orderFormRepository().update(request.sourceOrderId, {
           invoice_id: request.invoiceNumber,
-          updated_by: FALLBACK_ACTOR,
+          updated_by: staffId,
         })
       } catch (error) {
         const failure = classifySheetWriteFailure(error)
@@ -648,7 +647,7 @@ export class InvoiceService {
     }
   }
 
-  async update(invoiceNumber: string, payload: unknown): Promise<UpdateInvoiceResponse> {
+  async update(invoiceNumber: string, payload: unknown, staffId: string): Promise<UpdateInvoiceResponse> {
     const request = parseOrThrow(invoiceStatusUpdateSchema, payload)
     if (invoiceNumber.trim() === '') {
       throw ApiError.notFound('Invoice number is required')
@@ -668,7 +667,7 @@ export class InvoiceService {
       try {
         await this.invoiceRepository().update(invoiceNumber, {
           status: request.status,
-          updated_by: FALLBACK_ACTOR,
+          updated_by: staffId,
         })
       } catch (error) {
         const failure = classifySheetWriteFailure(error)

@@ -1,3 +1,4 @@
+import { bodyWithSessionActor } from '../../shared/http/session-actor.js'
 import { z } from 'zod'
 import {
   afterPhotoApiContract,
@@ -178,7 +179,7 @@ export class AfterPhotoService extends BaseCrudService<
 }
 
 export const afterPhotoService = new AfterPhotoService()
-const crudRoutes = createCrudRoutes(afterPhotoService, afterPhotoApiContract)
+const crudRoutes = createCrudRoutes(afterPhotoService, afterPhotoApiContract, { create: ['createdBy'], update: ['updatedBy'] })
 export const afterPhotoRoutes: GatewayModuleRoutes = {
   collection: crudRoutes.collection,
   item: new ApiHandler({
@@ -192,7 +193,7 @@ export const afterPhotoRoutes: GatewayModuleRoutes = {
     },
     POST: async (req) => {
       if (req.params.id !== 'reassign') throw ApiError.notFound('Route not found')
-      return ok(await afterPhotoService.reassign(req.body))
+      return ok(await afterPhotoService.reassign(bodyWithSessionActor(req, 'updatedBy')))
     },
     DELETE: async (req) => crudRoutes.item!.handleRequest(req),
   }),

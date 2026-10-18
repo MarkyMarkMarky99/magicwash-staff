@@ -799,7 +799,7 @@ test('customer-package write wiring preserves field maps, shared singletons, and
   })
 
   const request = (method: string, body: unknown = undefined, params: Record<string, string> = {}) => ({
-    method, query: {}, body, headers: {}, params,
+    method, query: {}, body, headers: {}, staff: { staffId: 'session-staff', email: 'staff@test', name: 'Staff', role: 'staff' as const }, params,
   })
 
   const purchaseMethods = customerPackagePurchaseService as unknown as {

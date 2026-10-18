@@ -302,3 +302,11 @@ Comments document durable decisions, invariants, and dangerous constraints. Do n
 numbers, plan status, future wiring claims, or other expiring project status in source code. Update
 comments that describe changed behavior in the same change; prefer an executable guard or test when
 the rule can be enforced.
+
+## Write actors and shared devices
+
+Handlers replace request-body actor fields with the resolved `req.staff.staffId` before invoking services. Unauthenticated actor-bearing writes return unauthorized. Existing request schemas stay unchanged: callers may still send actor fields, but those values are ignored. The shared CRUD route factory declares create/update actor fields per module; workflow handlers use the same session-actor helper. Payment creation/review and invoice creation/status updates pass the StaffId as a separate service argument instead of using fallback actors.
+
+This applies to job-ticket start-order, advance, and update; packaging confirmation; before/after photo creation, update, and reassignment; order images; work orders; order-item creation, update, and quantity reassignment; bag items; customer registration/update; packages; issue reports; appointments; customer-package purchases and package transactions. WashQueue and complete-order retain their existing session-derived actors. Read-only modules and print submissions have no persisted actor field to replace. Staff registration and management use authenticated Google identity and admin checks rather than a client actor.
+
+Device sessions resolve `X-Operator-Id` through active Staff rows outside auth/staff routes. The operator's request role is capped to staff. Without an operator only GET is allowed. See [shared-device operator flow](../../features/staff/shared-device.md).

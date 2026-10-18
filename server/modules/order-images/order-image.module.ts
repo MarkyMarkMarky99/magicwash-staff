@@ -144,4 +144,4 @@ export class OrderImageService extends BaseCrudService<
 }
 
 export const orderImageService = new OrderImageService()
-export const orderImageRoutes = createCrudRoutes(orderImageService, orderImageApiContract)
+export const orderImageRoutes = createCrudRoutes(orderImageService, orderImageApiContract, { create: ['createdBy'] })

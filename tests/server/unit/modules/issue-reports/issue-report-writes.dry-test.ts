@@ -17,7 +17,7 @@ function jsonResponse(body: unknown): Response {
 }
 
 function request(method: string, body: unknown, params: Record<string, string> = {}): ApiHandlerRequest {
-  return { method, query: {}, body, headers: {}, params }
+  return { method, query: {}, body, headers: {}, staff: { staffId: 'session-staff', email: 'staff@test', name: 'Staff', role: 'staff' as const }, params }
 }
 
 const originalFetch = globalThis.fetch
@@ -58,7 +58,6 @@ try {
   for (const invalid of [
     { title: '', description: 'Description', createdBy: 'staff' },
     { title: 'Title', description: '', createdBy: 'staff' },
-    { title: 'Title', description: 'Description', createdBy: '' },
   ]) {
     const result = await issueReportRoutes.collection.handleRequest(request('POST', invalid))
     assert.equal(result.status, 422)
@@ -71,14 +70,14 @@ try {
   assert.match(String(rows[0]![0]), /^ISS-[0-9a-f]{8}$/)
   assert.deepEqual(rows[0]!.slice(1, 5), ['Broken dryer', 'Stops after five minutes', 'OPEN', ''])
   assert.match(String(rows[0]![5]), /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
-  assert.equal(rows[0]![6], 'staff-1')
+  assert.equal(rows[0]![6], 'session-staff')
   assert.equal(rows[0]![7], '')
   assert.equal(rows[0]![8], '')
 
   const onlyUpdatedBy = await issueReportRoutes.item!.handleRequest(request('PATCH', { updatedBy: 'staff-2' }, { id: String(rows[0]![0]) }))
   assert.equal(onlyUpdatedBy.status, 422)
-  const missingUpdatedBy = await issueReportRoutes.item!.handleRequest(request('PATCH', { status: 'RESOLVED' }, { id: String(rows[0]![0]) }))
-  assert.equal(missingUpdatedBy.status, 422)
+  const { issueReportUpdateSchema } = await import('../../../../../contracts/issue-reports/issue-report-api.schema.js')
+  assert.equal(issueReportUpdateSchema.safeParse({ status: 'RESOLVED' }).success, false)
 } finally {
   globalThis.fetch = originalFetch
 }

@@ -71,6 +71,6 @@ export const issueReportService: IssueReportService = new BaseCrudService({
   fieldMap: issueReportFieldMap,
 })
 
-export const issueReportRoutes = createCrudRoutes(issueReportService, issueReportApiContract)
+export const issueReportRoutes = createCrudRoutes(issueReportService, issueReportApiContract, { create: ['createdBy'], update: ['updatedBy'] })
 
 // CreatedAt is deliberately not set in append; undefined makes repository audit.onAppend stamp fire.

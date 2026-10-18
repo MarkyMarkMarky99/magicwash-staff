@@ -51,7 +51,7 @@ const service = new InvoiceService({
   syncInvoiceView: async () => { calls.push('view'); return { outcome: 'confirmed' } },
   generateItemId: () => '12345678',
 })
-const result = await service.create(request)
+const result = await service.create(request, 'session-staff')
 assert.equal(result.kind, 'created')
 assert.deepEqual(calls, ['items', 'invoice', 'view'])
 if (result.kind === 'created') assert.equal(result.invoiceTotal, 500)

@@ -6,13 +6,13 @@ const original = orderItemService.reassignQuantities
 let calls = 0
 orderItemService.reassignQuantities = async (payload: unknown) => {
   calls += 1
-  assert.deepEqual(payload, { items: [{ orderItemId: 'item-1', quantity: 2 }], updatedBy: 'staff-1' })
+  assert.deepEqual(payload, { items: [{ orderItemId: 'item-1', quantity: 2 }], updatedBy: 'session-staff' })
   return { items: [] }
 }
 try {
   const routes = await resolveRoute('order-items')
   const request = (method: string, id: string) => ({
-    method, query: {}, headers: {}, params: { id },
+    method, query: {}, headers: {}, staff: { staffId: 'session-staff', email: 'staff@test', name: 'Staff', role: 'staff' as const }, params: { id },
     body: { items: [{ orderItemId: 'item-1', quantity: 2 }], updatedBy: 'staff-1' },
   })
   const result = await routes.item!.handleRequest(request('POST', 'reassign-quantities'))

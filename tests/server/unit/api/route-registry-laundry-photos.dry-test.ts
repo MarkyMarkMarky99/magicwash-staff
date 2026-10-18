@@ -39,7 +39,7 @@ service.create = async () => ({ laundryPhotoId: 'photo-1' })
 service.update = async () => ({ laundryPhotoId: 'photo-1' })
 
 const request = (method: string, body: unknown = undefined, params: Record<string, string> = {}) => ({
-  method, query: {}, body, headers: {}, params,
+  method, query: {}, body, headers: {}, staff: { staffId: 'session-staff', email: 'staff@test', name: 'Staff', role: 'staff' as const }, params,
 })
 
 try {

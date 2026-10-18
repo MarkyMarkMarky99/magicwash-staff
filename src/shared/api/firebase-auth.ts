@@ -1,4 +1,5 @@
 import { GoogleAuthProvider, getRedirectResult, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut, type User } from 'firebase/auth'
+import { currentOperatorId } from '@/shared/config/actor'
 import { auth } from '@/firebase'
 
 let firstState: Promise<User | null> | null = null
@@ -48,5 +49,7 @@ export async function authFetch(input: string, init: RequestInit = {}): Promise<
   const token = auth.currentUser ? await auth.currentUser.getIdToken() : null
   const headers = new Headers(init.headers)
   if (token) headers.set('Authorization', `Bearer ${token}`)
+  const operatorId = currentOperatorId()
+  if (operatorId) headers.set('X-Operator-Id', operatorId)
   return fetch(input, { ...init, headers })
 }

@@ -54,4 +54,4 @@ export function createBagItemService(
 }
 
 export const bagItemService = createBagItemService()
-export const bagItemRoutes = createCrudRoutes(bagItemService, bagItemApiContract)
+export const bagItemRoutes = createCrudRoutes(bagItemService, bagItemApiContract, { create: ['createdBy'] })

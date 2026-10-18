@@ -5,10 +5,15 @@ export const authMeResponseSchema = z.object({
   staffId: z.string(),
   email: z.string(),
   name: z.string(),
-  role: z.enum(['admin', 'staff']),
+  role: z.enum(['admin', 'staff', 'device']),
 })
+
+export const authCardResponseSchema = z.object({ staffId: z.string(), name: z.string() })
+export const authCardQuerySchema = z.object({ code: z.string().trim().min(1) })
+
+const authResponses = { list: authMeResponseSchema, detail: authMeResponseSchema, card: authCardResponseSchema }
 
 export const authApiContract = {
   query: { list: z.object({}) },
-  response: { list: authMeResponseSchema, detail: authMeResponseSchema },
+  response: authResponses,
 } satisfies ModuleApiContract

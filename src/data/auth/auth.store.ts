@@ -1,3 +1,4 @@
+import { useOperatorStore } from '@/data/operator/operator.store'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import type { User } from 'firebase/auth'
@@ -23,6 +24,7 @@ function signInError(reason: unknown): string | null {
 }
 
 export const useAuthStore = defineStore('auth', () => {
+  const operatorStore = useOperatorStore()
   const status = ref<AuthStatus>('loading')
   const staff = ref<StaffSession | null>(null)
   watch(staff, () => setSignedInStaffId(staff.value?.staffId ?? null), { immediate: true, flush: 'sync' })
@@ -48,6 +50,7 @@ export const useAuthStore = defineStore('auth', () => {
     const id = ++sequence
     currentUser = user
     if (user === null) {
+      operatorStore.clear()
       staff.value = null
       pendingStaff.value = null
       email.value = null
@@ -153,6 +156,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function signOut(): Promise<void> {
+    operatorStore.clear()
     error.value = null
     await signOutUser()
   }

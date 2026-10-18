@@ -1,3 +1,4 @@
+import { bodyWithSessionActor } from '../../shared/http/session-actor.js'
 import type { z } from 'zod'
 import { ApiHandler } from '../../shared/http/api-handler.js'
 import { ApiError } from '../../shared/http/api-error.js'
@@ -27,7 +28,7 @@ export const customerPackageRoutes: GatewayModuleRoutes = {
       return okPaged(items, pagination)
     },
     POST: async (req): Promise<ApiResult<CreateCustomerPackageResponse>> => {
-      const response = await customerPackagePurchaseService.create(req.body)
+      const response = await customerPackagePurchaseService.create(bodyWithSessionActor(req, 'createdBy'))
       return { status: statusForCreateResponse(response), body: response }
     },
   }),

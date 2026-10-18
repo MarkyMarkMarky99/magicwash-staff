@@ -11,13 +11,13 @@ for (const [name, service] of [
   let calls = 0
   service.reassign = async (payload: unknown) => {
     calls += 1
-    assert.deepEqual(payload, { photoIds: ['photo-1'], orderItemId: 'item-2', updatedBy: 'staff-1' })
+    assert.deepEqual(payload, { photoIds: ['photo-1'], orderItemId: 'item-2', updatedBy: 'session-staff' })
     return { photos: [] }
   }
   try {
     const routes = await resolveRoute(name)
     const request = (method: string, id: string) => ({
-      method, query: {}, headers: {}, params: { id },
+      method, query: {}, headers: {}, staff: { staffId: 'session-staff', email: 'staff@test', name: 'Staff', role: 'staff' as const }, params: { id },
       body: { photoIds: ['photo-1'], orderItemId: 'item-2', updatedBy: 'staff-1' },
     })
     const result = await routes.item!.handleRequest(request('POST', 'reassign'))

@@ -1,3 +1,4 @@
+import { bodyWithSessionActor } from '../../shared/http/session-actor.js'
 import { z } from 'zod'
 import { customerApiContract } from '../../../contracts/customers/customer-api.schema.js'
 import { BaseCrudService } from '../../shared/services/base-crud.service.js'
@@ -65,7 +66,7 @@ export const customerService: CustomerService = new BaseCrudService({
 })
 
 export const customerRegistrationService = new CustomerRegistrationService()
-const crudRoutes = createCrudRoutes(customerService, customerApiContract)
+const crudRoutes = createCrudRoutes(customerService, customerApiContract, { create: ['updatedBy'], update: ['updatedBy'] })
 export const customerRoutes = {
   ...crudRoutes,
   collection: new ApiHandler({
@@ -73,6 +74,6 @@ export const customerRoutes = {
       const { items, pagination } = await customerService.list(req.query)
       return okPaged(items, pagination)
     },
-    POST: async (req) => created(await customerRegistrationService.create(req.body)),
+    POST: async (req) => created(await customerRegistrationService.create(bodyWithSessionActor(req, 'updatedBy'))),
   }),
 }

@@ -2,6 +2,8 @@
 import { computed, onMounted, onUnmounted, provide, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useAppointmentStore } from '@/data/appointments/appointment.store'
+import { useOperatorStore } from '@/data/operator/operator.store'
+import { useScannerGunInput } from '@/shared/composables/useScannerGunInput'
 import { useAuthStore } from '@/data/auth/auth.store'
 import { useCustomerStore } from '@/data/customers/customer.store'
 import { usePriceListStore } from '@/data/price-list/price-list.store'
@@ -19,6 +21,9 @@ const customerStore = useCustomerStore()
 const staffStore = useStaffStore()
 const priceListStore = usePriceListStore()
 const authStore = useAuthStore()
+const operatorStore = useOperatorStore()
+const isDevice = computed(() => authStore.status === 'signedIn' && authStore.staff?.role === 'device')
+useScannerGunInput(operatorStore.scanCard, isDevice, { staffCards: 'only' })
 const { pendingCount } = storeToRefs(appointmentStore)
 const route = useRoute()
 const router = useRouter()
@@ -168,7 +173,11 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
-  <div class="app-column relative h-full overflow-hidden bg-surface">
+  <div class="app-column relative h-full overflow-hidden bg-surface" :class="{ 'pt-14': isDevice }">
+    <div v-if="isDevice" role="status" class="fixed inset-x-0 top-0 z-[100] bg-primary px-4 py-3 text-center font-label text-lg font-bold text-on-primary shadow-lg">
+      {{ operatorStore.name ? `ผู้ใช้งาน: ${operatorStore.name}` : 'ยิงบัตรพนักงานก่อนทำงาน' }}
+    </div>
+    <div v-if="isDevice && operatorStore.notice" role="alert" class="fixed inset-x-4 bottom-4 z-[100] rounded-xl bg-error-container px-4 py-3 text-center font-body text-on-error-container shadow-lg">{{ operatorStore.notice }}</div>
     <NavSidebar v-if="!isPublicRoute" :open="drawerOpen" />
 
     <div

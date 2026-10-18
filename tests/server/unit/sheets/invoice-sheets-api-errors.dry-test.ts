@@ -88,7 +88,7 @@ async function main(): Promise<void> {
   ]
 
   for (const current of cases) {
-    const result = await serviceWithOrderLinkError(current.error).create(request)
+    const result = await serviceWithOrderLinkError(current.error).create(request, 'session-staff')
     assert.equal(result.kind, 'order_link_failed', current.name)
     if (result.kind === 'order_link_failed') {
       assert.equal(result.certainty, current.certainty, current.name)

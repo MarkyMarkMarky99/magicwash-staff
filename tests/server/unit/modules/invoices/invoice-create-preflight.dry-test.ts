@@ -103,7 +103,7 @@ function baseRequest(): CreateInvoiceRequest {
 test('invoice-number preflight selects only the physical invoice_number column', async () => {
   const { service, invoiceReadCalls } = createService({ invoiceReadRows: [{ invoice_number: 'INV-OTHER' }] })
 
-  const result = await service.create(baseRequest())
+  const result = await service.create(baseRequest(), 'session-staff')
 
   assert.equal(result.kind, 'created')
   assert.equal(invoiceReadCalls.length, 1)
@@ -114,7 +114,7 @@ test('invoice-number preflight selects only the physical invoice_number column',
 test('invoice-number preflight does not use where, search, or exact-id filtering', async () => {
   const { service, invoiceReadCalls } = createService({ invoiceReadRows: [{ invoice_number: 'INV-OTHER' }] })
 
-  await service.create(baseRequest())
+  await service.create(baseRequest(), 'session-staff')
 
   assert.equal(invoiceReadCalls.length, 1)
   const query = invoiceReadCalls[0]
@@ -127,7 +127,7 @@ test('invoice-number preflight does not use where, search, or exact-id filtering
 test('a matching invoice number returns validation_error before any write', async () => {
   const { service, calls } = createService({ invoiceReadRows: [{ invoice_number: 'INV260700000001' }] })
 
-  const result = await service.create(baseRequest())
+  const result = await service.create(baseRequest(), 'session-staff')
 
   assert.equal(result.kind, 'validation_error')
   if (result.kind === 'validation_error') {
@@ -142,7 +142,7 @@ test('a matching invoice number returns validation_error before any write', asyn
 test('a nonmatching preflight result preserves creation write order', async () => {
   const { service, calls } = createService({ invoiceReadRows: [{ invoice_number: 'INV-OTHER' }] })
 
-  const result = await service.create(baseRequest())
+  const result = await service.create(baseRequest(), 'session-staff')
 
   assert.equal(result.kind, 'created')
   assert.deepEqual(calls, ['InvoiceItem.batchAppend', 'Invoice.create', 'OrderForm.update', 'ViewSync'])
@@ -151,7 +151,7 @@ test('a nonmatching preflight result preserves creation write order', async () =
 test('a preflight read failure fails open into the established creation path', async () => {
   const { service, calls } = createService({ invoiceReadError: new Error('invoice read unavailable') })
 
-  const result = await service.create(baseRequest())
+  const result = await service.create(baseRequest(), 'session-staff')
 
   assert.equal(result.kind, 'created')
   assert.deepEqual(calls, ['InvoiceItem.batchAppend', 'Invoice.create', 'OrderForm.update', 'ViewSync'])

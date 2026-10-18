@@ -25,7 +25,7 @@ import { formatSheetDate } from '@/shared/utils/sheet-date'
 import { advanceSummary, countDepartmentStatuses, filterTickets, groupDepartmentOrders, readDepartment, readGrouper, readStatusFilter, resolveScanTag, restoreScanQueue, sortDepartmentTickets, statusFilters, statusForFilter, taskLabel, ticketSelectLabel, toggleTicketSelection } from '../department-work'
 import type { AdvanceStatus, Grouper, OrderInfo, ScanQueueEntry, TicketStatus } from '../department-work'
 import { presentStartOrderResult, type ScanDisplay } from '../scan-result'
-import { useScannerGunInput } from '../composables/useScannerGunInput'
+import { useScannerGunInput } from '@/shared/composables/useScannerGunInput'
 
 const route = useRoute()
 const router = useRouter()
