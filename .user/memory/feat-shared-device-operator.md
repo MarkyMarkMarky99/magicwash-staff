@@ -6,7 +6,6 @@
 
 ## Pending
 - Merge `main`: expect conflicts in `job-ticket.module.ts`, `DepartmentWorkPage.vue`, `job-ticket.module.dry-test.ts`.
-- Create the device Staff row (role `device`) and its Google account.
 - Rework to owner decision 2026-10-19: card QR = `MWS-<StaffId>`, fixed, never reissued; drop the `CardCode` column read, `issue-card` API and its tests; lookup parses the StaffId. No admin card UI.
 - Change row 3 (magicwashth@gmail.com) role to `device` only after this branch deploys; main rejects `device`.
 - Not yet tested: live sheet writes, Vercel deploy/ESM, a real barcode gun session.
