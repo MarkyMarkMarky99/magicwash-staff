@@ -6,11 +6,10 @@
 
 ## Pending
 - Merge `main`: expect conflicts in `job-ticket.module.ts`, `DepartmentWorkPage.vue`, `job-ticket.module.dry-test.ts`.
-- Owner: add `CardCode` column to the Staff sheet, after the contract deploys (card issuance fails without it).
 - Create the device Staff row (role `device`) and its Google account.
-- No staff-page UI calls `POST /api/staff/issue-card/:staffId` yet.
+- Rework to owner decision 2026-10-19: card QR = `MWS-<StaffId>`, fixed, never reissued; drop the `CardCode` column read, `issue-card` API and its tests; lookup parses the StaffId. No admin card UI.
+- Change row 3 (magicwashth@gmail.com) role to `device` only after this branch deploys; main rejects `device`.
 - Not yet tested: live sheet writes, Vercel deploy/ESM, a real barcode gun session.
 
 ## Open decisions
 - Server trusts the `X-Operator-Id` header (active StaffId only); it does not prove a card was scanned.
-- Card lookup does not enforce the `MWS-` prefix server-side; only the frontend scanner routes by prefix.
