@@ -28,6 +28,10 @@ Response `200 { data: OrderImageResponse[], meta.pagination: { page, perPage } }
 - `createdAt` — string | null (ISO-with-`Z` or `dd/MM/yyyy HH:mm:ss`, verbatim)
 - `createdBy` — string | null
 
+`PACK` is an unweighed outbound pack, written only by Packaging Confirm through the repository.
+Its `quantity` is blank (null); quantity only ever means weight in kg. PACK is not part of the
+order-detail capture enum, and read responses keep `imageType` a free string.
+
 Each `WEIGHT` image represents one weighing of one bag, with its kg in `quantity`. The order-detail
 hero shows total weight as the sum of non-null `quantity` values across the order's `WEIGHT` images,
 rounded to one decimal. The hero shows quantity, weight, or both when present, and leaves the
@@ -80,8 +84,9 @@ Behaviour
   See [Bag logistics tickets](./job-ticket.md#bag-logistics-tickets). Failures leave the save response unchanged.
 - Bag-tag printing sends the saved WEIGHT quantity as `weightKg`, `itemCount: null`, and the
   normalized image creation time as `packedAt`. The print response is unchanged.
-  Packaging BAG images are written only by [Packaging Confirm](../../packaging/confirm.md),
-  without entering this create flow or triggering WEIGHT credit.
+  [Packaging Confirm](../../packaging/confirm.md) records weighed bags as WEIGHT (photo in
+  `imagePath`, kg in `quantity`) and unweighed bags as PACK with null `quantity`. Both create
+  LOG-BAG tickets and print tags; only WEIGHT runs the per-kg ticket and score, without calling this create flow. It no longer writes `BAG` rows; existing `BAG` rows stay.
 - DOCUMENT capture saves one photo per "Use this photo" and then closes the scanner. Another
   document requires opening DOCUMENT capture again.
 

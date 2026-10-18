@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import type { ApiHandlerRequest } from '../../../../../server/shared/http/api-handler.js'
 import {
   jobTicketFieldMap,
+  jobTicketDepartmentWorkService,
+  jobTicketService,
   jobTicketCompleteService,
   jobTicketAdvanceService,
   jobTicketRoutes,
@@ -36,6 +38,8 @@ const originalStart = startMethods.startOrder
 const advanceMethods = jobTicketAdvanceService as unknown as { advance: (payload: unknown) => Promise<unknown> }
 const originalAdvance = advanceMethods.advance
 const originalComplete = jobTicketCompleteService.completeOrder
+const originalDepartmentWork = jobTicketDepartmentWorkService.list
+const originalGetById = jobTicketService.getById
 let completeCalls = 0
 jobTicketCompleteService.completeOrder = async (payload, actor) => {
   completeCalls += 1
@@ -44,6 +48,27 @@ jobTicketCompleteService.completeOrder = async (payload, actor) => {
   return { kind: 'completed', completed: [], scannedBy: actor }
 }
 try {
+  let departmentCalls = 0
+  jobTicketDepartmentWorkService.list = async query => {
+    departmentCalls += 1
+    assert.deepEqual(query, { department: 'Washing', id: 'department-work' })
+    return []
+  }
+  const departmentResult = await jobTicketRoutes.item!.handleRequest({ ...request('department-work'), method: 'GET', query: { department: 'Washing', id: 'department-work' } })
+  assert.equal(departmentResult.status, 200)
+  assert.deepEqual((departmentResult.body as { data: unknown }).data, [])
+  assert.equal(departmentCalls, 1)
+  let getByIdCalls = 0
+  jobTicketService.getById = async id => {
+    getByIdCalls += 1
+    assert.equal(id, 'ticket-1')
+    return { id } as Awaited<ReturnType<typeof jobTicketService.getById>>
+  }
+  const detailResult = await jobTicketRoutes.item!.handleRequest({ ...request('ticket-1'), method: 'GET' })
+  assert.equal(detailResult.status, 200)
+  assert.deepEqual((detailResult.body as { data: unknown }).data, { id: 'ticket-1' })
+  assert.equal(getByIdCalls, 1)
+  assert.equal(departmentCalls, 1)
   const completeRequest = { ...request('complete-order'), body: { orderId: '123', department: 'Packaging', scannedBy: 'forged' } }
   assert.equal((await jobTicketRoutes.item!.handleRequest(completeRequest)).status, 403)
   assert.equal((await jobTicketRoutes.item!.handleRequest({ ...completeRequest,
@@ -77,6 +102,8 @@ try {
   const missing = await jobTicketRoutes.item!.handleRequest(request('other'))
   assert.equal(missing.status, 404)
 } finally {
+  jobTicketDepartmentWorkService.list = originalDepartmentWork
+  jobTicketService.getById = originalGetById
   jobTicketCompleteService.completeOrder = originalComplete
   startMethods.startOrder = originalStart
   advanceMethods.advance = originalAdvance

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import CloseButton from '@/shared/components/CloseButton.vue'
+import PhotoCapturePanel from '@/shared/components/PhotoCapturePanel.vue'
 import StickerFab from '@/shared/components/StickerFab.vue'
 import WeightField from '@/shared/components/WeightField.vue'
 import type { WashProgramDto } from '@/data/wash-programs/wash-programs.service'
@@ -51,15 +52,9 @@ const chosenLabel = computed(() => props.machineId ? machineLabel(props.machineI
   <ConfirmOverlay :open="open" title="Book this basket?" description="Put the basket on the scale, enter its weight and take a photo that shows it on the scale." cancel-label="Discard" confirm-label="Book" :confirm-disabled="confirmDisabled" @close="emit('close')" @confirm="!confirmDisabled && emit('confirm')">
     <template #header-action><CloseButton class="absolute right-4 top-3 text-on-surface-variant" @click="emit('close')" /></template>
     <div class="wq-book-content">
-      <div v-if="photoUrl" class="relative aspect-square overflow-hidden rounded-[18px] bg-surface-container-low">
-        <img :src="photoUrl" alt="Basket on the scale preview" class="h-full w-full object-cover" />
-        <WashQueueTagLabel :model-value="tagCode" :disabled="saving" @update:model-value="emit('update:tagCode', $event)" />
-      </div>
-      <div v-else class="wq-book-empty">
-        <span class="wq-book-empty__icon"><span class="material-symbols-outlined fill" aria-hidden="true">{{ uploading ? 'cloud_upload' : 'photo_camera' }}</span></span>
-        <p class="mt-3 font-body text-sm font-extrabold tracking-[-0.015em] text-on-surface">{{ uploading ? 'Uploading photo…' : 'No photo yet' }}</p>
-        <p class="mt-1 font-body text-[13px] text-on-surface-variant">Weigh the basket, then tap Photo.</p>
-      </div>
+      <PhotoCapturePanel :photo-url="photoUrl" :uploading="uploading" title="No photo yet" hint="Weigh the basket, then tap Photo." alt="Basket on the scale preview">
+        <template #overlay><WashQueueTagLabel :model-value="tagCode" :disabled="saving" @update:model-value="emit('update:tagCode', $event)" /></template>
+      </PhotoCapturePanel>
       <WeightField class="wq-book-weight" :model-value="rawWeight" input-id="wash-queue-weight" :error="weightError" @update:model-value="emit('update:rawWeight', $event)" @invalid="emit('weightInvalid')">
         <template #action>
           <StickerFab class="wq-book-photo mr-1 shrink-0 !h-[47px] !w-[47px] !rounded-[15px_18px_16px_17px]" :class="{ done: photoUrl && !uploading }" :label="photoUrl ? 'Retake' : 'Photo'" :aria-label="photoUrl ? 'Retake photo' : 'Take photo'" :saving="uploading" saving-label="Uploading" :disabled="!weightValid || saving" @click="emit('photo')">
@@ -109,38 +104,6 @@ const chosenLabel = computed(() => props.machineId ? machineLabel(props.machineI
   min-height: 0;
   flex: 1;
   padding: 4px 16px 18px;
-}
-
-/* Before the photo: a dashed frame with the bag-scan empty state in the middle. */
-.wq-book-empty {
-  display: flex;
-  height: 200px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 0 24px;
-  border: 2px dashed color-mix(in srgb, var(--color-primary) 40%, white);
-  border-radius: 18px;
-  text-align: center;
-}
-
-.wq-book-empty__icon {
-  display: grid;
-  width: 56px;
-  height: 56px;
-  place-items: center;
-  border-radius: 18px;
-  background: var(--color-secondary-container);
-  color: var(--color-on-secondary-container);
-  transform: rotate(-7deg);
-}
-
-.wq-book-empty__icon .material-symbols-outlined {
-  font-size: 28px;
-}
-
-.fill {
-  font-variation-settings: "FILL" 1;
 }
 
 .wq-book-weight {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onActivated, onDeactivated, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onActivated, onDeactivated, onBeforeUnmount, ref, watch } from 'vue'
+import type { ComponentPublicInstance } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import type { LocationQueryRaw, RouteLocationNormalized } from 'vue-router'
 import GenericTabs from '@/shared/components/GenericTabs.vue'
@@ -10,6 +11,7 @@ import StickerFab from '@/shared/components/StickerFab.vue'
 import CloseButton from '@/shared/components/CloseButton.vue'
 import AdvanceConfirmDialog from '../components/AdvanceConfirmDialog.vue'
 import CompletionRing from '@/shared/components/CompletionRing.vue'
+import ScanNotice from '../components/ScanNotice.vue'
 import ScanResultCard from '../components/ScanResultCard.vue'
 import TicketStatusIcon, { type TicketTapState } from '../components/TicketStatusIcon.vue'
 import TicketTaskChip from '../components/TicketTaskChip.vue'
@@ -22,9 +24,10 @@ import { useCustomerStore } from '@/data/customers/customer.store'
 import { currentActor } from '@/shared/config/actor'
 import { feedback, primeFeedbackAudio } from '@/shared/utils/scan-feedback'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
-import { advanceSummary, countDepartmentStatuses, filterTickets, groupDepartmentOrders, readDepartment, readGrouper, readStatusFilter, resolveScanTag, restoreScanQueue, sortDepartmentTickets, statusFilters, statusForFilter, taskLabel, ticketSelectLabel, toggleTicketSelection } from '../department-work'
+import { advanceSummary, countDepartmentStatuses, filterTickets, groupDepartmentOrders, presentGunScan, readDepartment, readGrouper, readStatusFilter, recordScan, resolveScanTag, restoreScanQueue, sortDepartmentTickets, sortOrdersByScan, sortScannedFirst, statusFilters, statusForFilter, taskLabel, ticketSelectLabel, toggleTicketSelection } from '../department-work'
 import type { AdvanceStatus, Grouper, OrderInfo, ScanQueueEntry, TicketStatus } from '../department-work'
-import { presentStartOrderResult, type ScanDisplay } from '../scan-result'
+import { presentStartOrderResult, type ScanDisplay, type ScanTone } from '../scan-result'
+import { useScanNotice } from '../composables/useScanNotice'
 import { useScannerGunInput } from '@/shared/composables/useScannerGunInput'
 
 const route = useRoute()
@@ -44,11 +47,14 @@ const grouper = computed(() => isLogistics.value ? 'order' : readGrouper(route.q
 const scannerOpen = computed(() => department.value !== null && fromStatus.value !== null && route.query.scan === '1')
 const expandedOrderId = ref<string | null>(null)
 const scanResult = ref<ScanDisplay | null>(null)
-const pageNotice = ref<ScanDisplay | null>(null)
+const { notice: pageNotice, seq: noticeSeq, show: showPageNotice, dismiss: dismissPageNotice } = useScanNotice()
 const syncingOrderIds = ref(new Set<string>())
 const tapStates = ref(new Map<string, TicketTapState>())
 const tapTimers = new Map<string, ReturnType<typeof setTimeout>>()
 const selectedTicketIds = ref(new Set<string>())
+const scannedTicketIds = ref<string[]>([])
+const itemList = ref<ComponentPublicInstance | null>(null)
+const orderList = ref<ComponentPublicInstance | null>(null)
 const scanQueue = ref<ScanQueueEntry[]>([])
 const submitting = ref(false)
 const confirmIntent = ref<'action' | 'scanner' | 'navigation' | null>(null)
@@ -59,16 +65,17 @@ let pushedScanner = false
 let replacingLeave = false
 let pageActive = true
 let loadedDepartment: string | undefined
-let noticeTimer: ReturnType<typeof setTimeout> | undefined
 
 useScannerGunInput(value => {
   const status = fromStatus.value
   const code = department.value?.code
   if (!status || !code) return
   const result = resolveScanTag(value, departmentTickets.value, status, scanQueue.value, code)
+  const notice = (message: string, tone: ScanTone) => presentGunScan(value, result.ticket, result.ticket && orderInfo.value.get(result.ticket.orderId), message, tone)
   if (result.entry && selectedTicketIds.value.has(result.entry.ticketId)) {
     feedback('failure')
-    showPageNotice({ title: value, message: 'Already selected', tone: 'warning' })
+    moveToTop(result.entry.ticketId)
+    showPageNotice(notice('Already selected', 'warning'))
     return
   }
   const queueLength = scanQueue.value.length
@@ -77,8 +84,9 @@ useScannerGunInput(value => {
   if (entry) {
     setScanQueue(scanQueue.value.slice(0, queueLength))
     selectedTicketIds.value = new Set([...selectedTicketIds.value, entry.ticketId])
+    moveToTop(entry.ticketId)
   }
-  if (scanResult.value) showPageNotice(scanResult.value)
+  if (scanResult.value) showPageNotice(notice(scanResult.value.message, scanResult.value.tone))
 }, () => pageActive && !!department.value && !!fromStatus.value && !scannerOpen.value
   && confirmIntent.value === null && completeOrderId.value === null && !submitting.value)
 
@@ -102,8 +110,10 @@ const orderInfo = computed(() => {
   }
   return info
 })
-const visibleTickets = computed(() => sortDepartmentTickets(filterTickets(departmentTickets.value, activeFilter.value, department.value?.code), orderInfo.value))
-const visibleOrders = computed(() => groupDepartmentOrders(visibleTickets.value, orderInfo.value))
+const baseTickets = computed(() => sortDepartmentTickets(filterTickets(departmentTickets.value, activeFilter.value, department.value?.code), orderInfo.value))
+const scanOrder = computed(() => scannedTicketIds.value.filter(id => selectedTicketIds.value.has(id)))
+const visibleTickets = computed(() => sortScannedFirst(baseTickets.value, scanOrder.value))
+const visibleOrders = computed(() => sortOrdersByScan(groupDepartmentOrders(baseTickets.value, orderInfo.value), scanOrder.value))
 const allOrders = computed(() => new Map(groupDepartmentOrders(departmentTickets.value, orderInfo.value).map(order => [order.orderId, order])))
 const completeOrderJobs = computed(() => (allOrders.value.get(completeOrderId.value ?? '')?.tickets ?? [])
   .filter(ticket => ticket.status === 'Pending' || ticket.status === 'In Progress'))
@@ -181,16 +191,13 @@ function closeScanner(): void {
   void router.replace({ query })
 }
 
-function dismissPageNotice(): void {
-  if (noticeTimer) clearTimeout(noticeTimer)
-  noticeTimer = undefined
-  pageNotice.value = null
-}
-
-function showPageNotice(result: ScanDisplay): void {
-  dismissPageNotice()
-  pageNotice.value = result
-  if (result.tone !== 'loading') noticeTimer = setTimeout(dismissPageNotice, 5000)
+function moveToTop(ticketId: string): void {
+  scannedTicketIds.value = recordScan(scannedTicketIds.value, ticketId)
+  void nextTick(() => {
+    let scroller = (grouper.value === 'item' ? itemList : orderList).value?.$el?.parentElement
+    while (scroller && getComputedStyle(scroller).overflowY !== 'auto') scroller = scroller.parentElement
+    scroller?.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+  })
 }
 
 function setTapState(ticketId: string, state: TicketTapState | null): void {
@@ -225,8 +232,13 @@ function setScanQueue(queue: ScanQueueEntry[]): void {
   } catch { /* storage unavailable */ }
 }
 
-function clearPending(): void {
+function clearSelection(): void {
   selectedTicketIds.value = new Set()
+  scannedTicketIds.value = []
+}
+
+function clearPending(): void {
+  clearSelection()
   setScanQueue([])
 }
 
@@ -251,6 +263,7 @@ function toggleTicket(ticket: JobTicketDto): void {
     return
   }
   selectedTicketIds.value = next
+  if (!next.has(ticket.id)) scannedTicketIds.value = scannedTicketIds.value.filter(id => id !== ticket.id)
 }
 
 function handleScan(value: string): void {
@@ -426,9 +439,7 @@ watch(scannerOpen, open => {
   }
 })
 
-watch(fromStatus, () => {
-  selectedTicketIds.value = new Set()
-})
+watch(fromStatus, clearSelection)
 
 watch(activeFilter, () => { completeOrderId.value = null })
 
@@ -481,7 +492,7 @@ onBeforeRouteLeave(to => {
       List incomplete: showing up to 10,000 jobs
     </div>
 
-    <ListContainer
+    <ListContainer :refresh="reload"
       v-if="department"
       :title="department.label" icon="assignment"
       :count="grouper === 'order' ? visibleOrders.length : visibleTickets.length"
@@ -503,7 +514,7 @@ onBeforeRouteLeave(to => {
         </div>
       </template>
 
-      <div v-if="grouper === 'item'" class="grid grid-cols-2 gap-2 p-4 sm:grid-cols-3">
+      <TransitionGroup v-if="grouper === 'item'" ref="itemList" tag="div" name="scan-move" class="grid grid-cols-2 gap-2 p-4 sm:grid-cols-3">
         <button v-for="ticket in visibleTickets" :key="ticket.id" type="button" class="relative min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-lime" :class="selectedTicketIds.has(ticket.id) ? 'ring-4 ring-lime' : ''" :aria-pressed="selectedTicketIds.has(ticket.id)" :aria-label="ticketSelectLabel(ticket)" @click="toggleTicket(ticket)">
           <SquareImageCard :image-url="ticket.photoEvidenceUrl">
             <template #badge><TicketStatusIcon :status="ticket.status" :state="tapStates.get(ticket.id)" /></template>
@@ -511,9 +522,10 @@ onBeforeRouteLeave(to => {
           <TicketTaskChip :task-code="taskLabel(ticket)" />
           <span v-if="selectedTicketIds.has(ticket.id)" class="material-symbols-outlined absolute bottom-2 right-2 rounded-full bg-lime p-1 text-primary" aria-hidden="true">check</span>
         </button>
-      </div>
+      </TransitionGroup>
 
-      <div v-for="order in grouper === 'order' ? visibleOrders : []" :key="order.orderId" class="bg-surface px-4 py-2">
+      <TransitionGroup v-else ref="orderList" tag="div" name="scan-move">
+      <div v-for="order in visibleOrders" :key="order.orderId" class="bg-surface px-4 py-2">
         <div class="relative rounded-2xl border border-outline-variant/30 bg-surface-container-low">
           <button
             type="button"
@@ -538,7 +550,7 @@ onBeforeRouteLeave(to => {
           </button>
           <button v-if="showStartOrder" type="button" class="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/25 text-on-surface focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-40" :aria-label="syncingOrderIds.has(order.orderId) ? 'Syncing' : 'Start all pending'" :disabled="syncingOrderIds.has(order.orderId) || statusCount(allOrders.get(order.orderId)?.tickets ?? [], 'Pending') === 0" @click="startOrder(order.orderId)"><span v-if="syncingOrderIds.has(order.orderId)" class="material-symbols-outlined animate-spin text-[22px]" aria-hidden="true">sync</span><svg v-else viewBox="0 0 24 24" class="h-6 w-6" aria-hidden="true"><path d="M8.5 6v12l9.5-6z" fill="currentColor" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round" /></svg></button>
           <button v-if="showCompleteOrder" type="button" class="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/25 text-on-surface focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-40" :aria-label="syncingOrderIds.has(order.orderId) ? 'Syncing' : 'Complete all open jobs'" :disabled="syncingOrderIds.has(order.orderId) || submitting" @click.stop="completeOrderId = order.orderId"><span class="material-symbols-outlined text-[22px]" :class="syncingOrderIds.has(order.orderId) ? 'animate-spin' : ''" aria-hidden="true">{{ syncingOrderIds.has(order.orderId) ? 'sync' : 'check' }}</span></button>
-          <div v-if="!isLogistics && expandedOrderId === order.orderId" class="grid grid-cols-2 gap-2 px-4 pb-4 sm:grid-cols-3">
+          <TransitionGroup v-if="!isLogistics && expandedOrderId === order.orderId" tag="div" name="scan-move" class="grid grid-cols-2 gap-2 px-4 pb-4 sm:grid-cols-3">
             <button v-for="ticket in order.tickets" :key="ticket.id" type="button" class="relative min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-lime" :class="selectedTicketIds.has(ticket.id) ? 'ring-4 ring-lime' : ''" :aria-pressed="selectedTicketIds.has(ticket.id)" :aria-label="ticketSelectLabel(ticket)" @click="toggleTicket(ticket)">
               <SquareImageCard :image-url="ticket.photoEvidenceUrl">
                 <template #badge><TicketStatusIcon :status="ticket.status" :state="tapStates.get(ticket.id)" /></template>
@@ -546,20 +558,19 @@ onBeforeRouteLeave(to => {
               <TicketTaskChip :task-code="taskLabel(ticket)" />
               <span v-if="selectedTicketIds.has(ticket.id)" class="material-symbols-outlined absolute bottom-2 right-2 rounded-full bg-lime p-1 text-primary" aria-hidden="true">check</span>
             </button>
-          </div>
+          </TransitionGroup>
         </div>
       </div>
+      </TransitionGroup>
     </ListContainer>
     <ListContainer v-else title="Department not found" icon="error" count-label="orders" empty empty-text="Unknown department" />
 
-    <CloseButton v-if="selectedTicketIds.size && fromStatus" class="absolute bottom-[max(2.25rem,env(safe-area-inset-bottom)+1rem)] right-28 z-10 bg-surface" label="Clear selection" @click="selectedTicketIds = new Set()" />
+    <CloseButton v-if="selectedTicketIds.size && fromStatus" class="absolute bottom-[max(2.25rem,env(safe-area-inset-bottom)+1rem)] right-28 z-10 bg-surface" label="Clear selection" @click="clearSelection" />
     <StickerFab v-if="department && fromStatus" class="absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-5 z-10" :label="selectedTicketIds.size ? `${fromStatus === 'Pending' ? 'Start' : 'Complete'} ${selectedTicketIds.size}` : 'Scan'" :aria-label="selectedTicketIds.size ? 'Review selected jobs' : 'Scan tag'" :disabled="ticketStore.loading || !!ticketStore.error || submitting" :saving="submitting" @click="selectedTicketIds.size ? confirmIntent = 'action' : openScanner()">
       <span class="material-symbols-outlined" style="font-size: 36px; font-variation-settings: 'wght' 600" aria-hidden="true">{{ selectedTicketIds.size ? 'check' : 'qr_code_scanner' }}</span>
     </StickerFab>
 
-    <div v-if="pageNotice && !scannerOpen" class="pointer-events-none absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-4 right-20 z-20">
-      <div class="pointer-events-auto"><ScanResultCard :result="pageNotice" dismissible @dismiss="dismissPageNotice" /></div>
-    </div>
+    <ScanNotice v-if="!scannerOpen" :notice="pageNotice" :seq="noticeSeq" @dismiss="dismissPageNotice" />
 
     <QrScannerOverlay :open="scannerOpen" :title="department?.label ?? ''" @close="closeScanner" @scan="handleScan">
       <template #result>
@@ -571,3 +582,14 @@ onBeforeRouteLeave(to => {
     <AdvanceConfirmDialog v-if="confirmIntent && !submitting" title="Send job updates?" :message="`${pendingTickets.length} jobs are ready to ${fromStatus === 'Pending' ? 'start' : 'complete'}.`" :count="pendingTickets.length" :send-label="`Send ${pendingTickets.length}`" :show-cancel="true" @send="sendConfirmed" @discard="discardConfirmed" @cancel="confirmIntent = null; pendingDestination = null" />
   </ListPageLayout>
 </template>
+
+<style scoped>
+.scan-move-move {
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+  z-index: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scan-move-move { transition: none; }
+}
+</style>

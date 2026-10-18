@@ -1,6 +1,6 @@
 export interface DeliveryTrackingWeightPhoto {
   url: string | null
-  weightKg: number
+  weightKg: number | null
   weighedAt: string
   note: string | null
 }
@@ -8,7 +8,7 @@ export interface DeliveryTrackingWeightPhoto {
 export interface DeliveryTrackingBag {
   orderImageId: string
   bagIndex: number
-  weightKg: number
+  weightKg: number | null
   thumbnailUrl: string | null
 }
 

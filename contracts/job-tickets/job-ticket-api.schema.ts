@@ -13,6 +13,8 @@ export const jobTicketDepartmentSchema = z.enum([
 ])
 export const jobTicketStatusSchema = z.enum(['Pending', 'In Progress', 'Completed', 'Cancelled'])
 
+export const jobTicketDepartmentWorkQuerySchema = z.object({ department: jobTicketDepartmentSchema })
+
 export const jobTicketListQuerySchema = z.object({
   keyword: z.string().default(''),
   page: z.coerce.number().int().positive().default(API_PAGINATION_DEFAULTS.page),

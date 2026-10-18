@@ -70,8 +70,8 @@ This read-before-append check is not atomic across concurrent requests because S
 no unique-pair constraint. See `docs/features/orders/contracts/bag-item.md` for the contract.
 
 The staff-authenticated `packaging-bags` module exposes `POST /api/packaging-bags/confirm`.
-It validates all bag assignments before writing, then appends missing BAG OrderImages and
-BagItems, provisions LOG-BAG tickets, and completes Packaging ITEM tickets through the shared
+It validates all bag assignments and each `weightKg` (the WEIGHT order-image rule) before writing, then appends missing WEIGHT OrderImages (photo URL in `image_path`, kg in `quantity`) and
+BagItems, provisions LOG-BAG tickets and the weight-photo ticket and score of each bag, and completes Packaging ITEM tickets through the shared
 transition core. Only after every write succeeds does it attempt bag-tag printing. A failure
 retains partial writes for an explicit staff retry; it does not roll back. See
 [Packaging Confirm](../../features/packaging/confirm.md) for its request and response contracts.
@@ -87,15 +87,19 @@ the backend retains the shared workflow without enforcing FIFO. See
 ## Public delivery tracking
 
 `GET /api/delivery-tracking/:orderImageId` serves the customer page opened from a bag-tag QR,
-without login. It returns 404 unless the id is a `WEIGHT` OrderImages row. The response lists
-every WEIGHT image of the same order as bags, ordered by weigh time, with the order's received
+without login at `/b/:orderImageId`. It returns 404 unless the id is a `WEIGHT` or `PACK`
+OrderImages row, or a legacy Packaging `BAG` row that has its `LOG-<orderId>-<id>-LOG-BAG` ticket.
+The response lists every WEIGHT and PACK image of the same order, plus such legacy BAG bags,
+ordered by image creation time. Only WEIGHT rows return kg; PACK and legacy BAG return null for
+both the current photo and sibling bags. The customer page omits null weight figures, units and
+weight in accessible labels. The response includes the order's received
 date and status label and its customer index; it never returns customer name, phone, or address.
 Only `https://` image paths are returned; legacy relative paths become `null`. Delivery state
 comes from the scanned bag's JobTickets id `LOG-<orderId>-<orderImageId>-LOG-BAG`: Completed
 means Delivered with `deliveredAt` normalized from `completed_at` (null when empty); In Progress
 means Out for delivery with no delivered time. Other states use the OrderForm status label.
 Proof of delivery is the https image path of the newest same-order DELIVERY OrderImages row,
-or null. Bags remain WEIGHT rows only. This endpoint does not read Appointments.
+or null. Packaging Confirm writes WEIGHT or PACK rows; BAG rows without a bag ticket are never bags. This endpoint does not read Appointments.
 
 ## Live portal reads
 

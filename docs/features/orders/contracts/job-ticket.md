@@ -35,6 +35,16 @@ New ticket ids are deterministic: `XXX-<orderId>-<laundryItemId>-<taskCode>`. De
 Logistics respectively; the prefix is the department, not the start of the task code. Tickets created
 before task codes keep their id `XXX-<orderId>-<laundryItemId>`, which is never rewritten.
 
+## `GET /api/job-tickets/department-work?department=X`
+
+Requires a valid JobTicket `department`; unknown query keys are ignored. One GViz query reads that
+department's JobTickets rows, with no pagination, limit, joins, or extra reads. The success envelope
+contains an array of the same camelCase ticket fields as the generic list. An order qualifies when
+any non-deleted ticket in that department is Pending or In Progress, or is Completed with a completion
+date on or after today in Bangkok. Every non-deleted, non-Cancelled ticket of qualifying orders is
+returned in query order, including older Completed tickets. Deleted rows and Cancelled rows cannot
+keep an order in flight.
+
 ## `GET /api/job-tickets/:id`
 
 Returns the full camelCase ticket row.
@@ -111,7 +121,7 @@ persistence. Failed responses do not claim closed tickets.
 
 ## Weight photo credit
 
-After a WEIGHT order image is appended, one ticket uses id
+After a WEIGHT order image is appended (also by Packaging Confirm, once per bag), one ticket uses id
 `PCK-<orderId>-<orderImageId>-PCK-WEIGHT-KG`, Packaging, ORDER scope, and step 0. Start and
 completion timestamps use the image creation time in Bangkok. Scan, update, and creation actors
 are the photographer; evidence is the stored image path. Customer, order name, due date, and notes

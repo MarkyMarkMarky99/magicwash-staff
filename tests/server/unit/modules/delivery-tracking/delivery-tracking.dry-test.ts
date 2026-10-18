@@ -44,6 +44,27 @@ images.splice(images.findIndex(row => row.id === 'new-proof'), 1)
 assert.equal((await service.get('bag-1')).proofOfDeliveryUrl, 'https://example.com/old.jpg')
 images.splice(images.findIndex(row => row.id === 'old-proof'), 1)
 assert.equal((await service.get('bag-1')).proofOfDeliveryUrl, null)
+// Packaging used to write BAG rows without a weight. Such a bag is tracked only when its Logistics bag ticket exists.
+images.push(
+  { id: 'legacy-bag', order_id: 'order-1', image_type: 'BAG', image_path: 'https://example.com/legacy.jpg', created_at: '2026-10-08 09:03:00' },
+  { id: 'old-photo', order_id: 'order-1', image_type: 'BAG', image_path: 'https://example.com/old-photo.jpg', created_at: '2026-10-08 09:04:00' },
+)
+tickets = [{ id: 'LOG-order-1-legacy-bag-LOG-BAG', status: 'Pending' }]
+const legacy = await service.get('legacy-bag')
+assert.equal(legacy.weightPhoto.weightKg, null)
+assert.equal(legacy.bagCount, 3)
+assert.equal(legacy.bagIndex, 3)
+assert.deepEqual(legacy.otherBags.map(bag => bag.orderImageId), ['bag-1', 'bag-2'])
+assert.deepEqual((await service.get('bag-1')).otherBags.map(bag => bag.orderImageId), ['bag-2', 'legacy-bag'])
+assert.equal((await service.get('bag-1')).otherBags.find(bag => bag.orderImageId === 'legacy-bag')?.weightKg, null)
+images.push({ id: 'pack', order_id: 'order-1', image_type: ' pack ', image_path: 'https://example.com/pack.jpg', quantity: 99, created_at: '2026-10-08 09:05:00' })
+const pack = await service.get('pack')
+assert.equal(pack.weightPhoto.weightKg, null)
+assert.equal(pack.bagCount, 4)
+assert.equal(pack.bagIndex, 4)
+assert.deepEqual(pack.otherBags.map(bag => bag.weightKg), [2, 3, null])
+assert.equal((await service.get('bag-1')).otherBags.find(bag => bag.orderImageId === 'pack')?.weightKg, null)
+await assert.rejects(() => service.get('old-photo'), error => error instanceof ApiError && error.status === 404)
 for (const id of ['missing', 'pickup']) {
   await assert.rejects(() => service.get(id), error => error instanceof ApiError && error.status === 404)
 }

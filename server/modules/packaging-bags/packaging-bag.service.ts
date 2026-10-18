@@ -10,6 +10,7 @@ import { ApiError } from '../../shared/http/api-error.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
 import { buildBagLogisticsTicket } from '../order-images/bag-logistics-ticket.service.js'
+import { WeightPhotoTicketService } from '../order-images/weight-photo-ticket.service.js'
 import { BagTagPrintService, logBagTagFailure } from '../bag-tag-prints/bag-tag-print.service.js'
 import { JobTicketTransitionService, type JobTicketAdvanceRepository } from '../job-tickets/job-ticket-transition.service.js'
 import { findEarlierDepartment } from '../job-tickets/job-ticket-gating.js'
@@ -22,6 +23,7 @@ export interface PackagingBagServiceOptions {
   bagItems?: () => BagRepository
   tickets?: () => Pick<JobTicketAdvanceRepository, 'read'> & { batchAppend(rows: Parameters<ReturnType<typeof getJobTicketsRepository>['batchAppend']>[0]): Promise<unknown> }
   transition?: Pick<JobTicketTransitionService, 'transition'>
+  weightPhotoTicket?: Pick<WeightPhotoTicketService, 'provision'>
   printer?: Pick<BagTagPrintService, 'printBag' | 'resolveCustomerIndex'>
   now?: () => Date
 }
@@ -31,6 +33,7 @@ export class PackagingBagService {
   private readonly bagItems
   private readonly tickets
   private readonly transition
+  private readonly weightPhotoTicket
   private readonly printer
   private readonly now
 
@@ -39,6 +42,7 @@ export class PackagingBagService {
     this.bagItems = input.bagItems ?? getBagItemsRepository
     this.tickets = input.tickets ?? getJobTicketsRepository
     this.transition = input.transition ?? new JobTicketTransitionService()
+    this.weightPhotoTicket = input.weightPhotoTicket ?? new WeightPhotoTicketService()
     this.printer = input.printer ?? new BagTagPrintService()
     this.now = input.now ?? (() => new Date())
   }
@@ -55,9 +59,12 @@ export class PackagingBagService {
     const tickets = allTickets.filter(ticket => !ticket.deleted_at)
     const selectedTickets = []
     for (const bag of request.bags) {
+      const imageType = bag.weightKg === null ? 'PACK' : 'WEIGHT'
       const image = existingImages.find(image => image.id === bag.orderImageId)
-      if (image && (String(image.order_id) !== request.orderId || image.image_type !== 'BAG' || image.image_path !== bag.imagePath)) {
-        throw ApiError.conflict(`Bag ${bag.orderImageId} already exists with different order or photo. Reload the order.`)
+      if (image && (String(image.order_id) !== request.orderId || image.image_type !== imageType || image.image_path !== bag.imagePath
+        || (imageType === 'WEIGHT' ? Number(image.quantity) !== bag.weightKg
+          : image.quantity !== null && image.quantity !== undefined && (image.quantity as unknown) !== ''))) {
+        throw ApiError.conflict(`Bag ${bag.orderImageId} already exists with different order, photo or weight. Reload the order.`)
       }
       const storedGarments = existingItems.filter(item => item.bag_id === bag.orderImageId)
       if (storedGarments.some(item => item.order_id !== request.orderId || !bag.laundryItemIds.includes(item.laundry_item_id ?? ''))) {
@@ -82,11 +89,17 @@ export class PackagingBagService {
     }
 
     try {
-      const missingImages = request.bags.filter(bag => !existingImages.some(image => image.id === bag.orderImageId))
-      if (missingImages.length) await images.batchAppend(missingImages.map(bag => ({
-        id: bag.orderImageId, order_id: request.orderId, image_type: 'BAG', image_path: bag.imagePath,
-        quantity: null, created_by: request.createdBy,
-      })))
+      // A bag is WEIGHT with kg in quantity, or PACK with null quantity when unweighed.
+      const savedImages = new Map(existingImages.map(image => [image.id, image]))
+      const missingImages = request.bags.filter(bag => !savedImages.has(bag.orderImageId))
+      if (missingImages.length) {
+        const appended = await images.batchAppend(missingImages.map(bag => {
+          const imageType = bag.weightKg === null ? 'PACK' : 'WEIGHT'
+          return { id: bag.orderImageId, order_id: request.orderId, image_type: imageType, image_path: bag.imagePath,
+            quantity: bag.weightKg, created_by: request.createdBy }
+        }))
+        for (const image of appended) savedImages.set(image.id, image)
+      }
       const missingItems = request.bags.flatMap(bag => bag.laundryItemIds
         .filter(id => !existingItems.some(item => item.bag_id === bag.orderImageId && item.laundry_item_id === id))
         .map(id => ({ id: `${bag.orderImageId}-${id}`, bag_id: bag.orderImageId, order_id: request.orderId,
@@ -98,6 +111,17 @@ export class PackagingBagService {
         .map(bag => buildBagLogisticsTicket({ orderId: request.orderId, orderImageId: bag.orderImageId,
           imagePath: bag.imagePath, createdBy: request.createdBy }, metadata))
       if (missingLogistics.length) await this.tickets().batchAppend(missingLogistics)
+      // The weight-photo ticket and its score are the same side effect an order-detail WEIGHT photo runs. It skips a
+      // bag whose ticket already exists, so a retry never scores twice.
+      for (const bag of request.bags) {
+        if (bag.weightKg === null) continue
+        await this.weightPhotoTicket.provision({
+          orderImageId: bag.orderImageId, orderId: request.orderId, customerId: null, deliveryId: null,
+          imageType: 'WEIGHT', imagePath: bag.imagePath, notes: null, quantity: bag.weightKg,
+          createdAt: savedImages.get(bag.orderImageId)?.created_at ?? formatBangkokTimestamp(this.now()),
+          createdBy: request.createdBy,
+        })
+      }
       const result = await this.transition.transition({ department: 'Packaging', targetStatus: 'Completed',
         allowedSourceStatuses: ['Pending', 'In Progress'], scannedBy: request.createdBy,
         tickets: selectedTickets.map(ticket => ({ ticketId: ticket.id, orderId: request.orderId })),
@@ -119,7 +143,7 @@ export class PackagingBagService {
       let printed = false
       try {
         printed = await this.printer.printBag({ orderId: request.orderId, orderImageId: bag.orderImageId,
-          customerId, customerIndex, weightKg: null, itemCount: bag.laundryItemIds.length, packedAt })
+          customerId, customerIndex, weightKg: bag.weightKg, itemCount: bag.laundryItemIds.length, packedAt })
       } catch {
         logBagTagFailure('unexpected_error')
       }

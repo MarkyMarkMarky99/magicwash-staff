@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { computed, effectScope, nextTick, ref, watch } from 'vue'
+import { computed, effectScope, nextTick, ref, shallowRef, watch } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { transpileModule, ScriptTarget, ModuleKind } from 'typescript'
 import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
-import { loadPackagingOrder } from '@/features/job-tickets/packaging-bag-source'
+import { loadItemNames, loadPackagingOrder } from '@/features/job-tickets/packaging-bag-source'
+import { itemNameFor } from '@/features/job-tickets/packaging-item-names'
 import * as packaging from '@/features/job-tickets/packaging-bags'
 import { invalidate } from '@/shared/api/response-cache'
 
@@ -42,11 +43,12 @@ globalThis.fetch = (async input => {
     ? [job('tag-1'), job('tag-2'), job('old-completed', 'Packaging', 'Completed'), job('blocked', 'Ironing', 'Pending', 2)] : []
   return Response.json({ success: true, data, meta: { pagination: { page: 1, perPage: 500 } } })
 }) as typeof fetch
-const memory = new Map<string, string>([['magicwash.packaging-bags.order-1', JSON.stringify([{ id: 'bag-a', garmentTagIds: [], photoUrl: 'https://photo/a' }])]])
+const memory = new Map<string, string>([['magicwash.packaging-bags.order-1', JSON.stringify([{ id: 'bag-a', garmentTagIds: [], photoUrl: 'https://photo/a', weight: '2.5' }])]])
+const confirmedPayloads: unknown[] = []
 const dependencies = {
-  ...packaging, computed, ref, watch, useJobTicketStore, loadPackagingOrder,
+  ...packaging, computed, ref, shallowRef, watch, useJobTicketStore, loadPackagingOrder, loadItemNames, itemNameFor,
   generateShortId: () => 'bag-new',
-  uploadToStorage: async () => 'https://photo/upload', confirmPackagingBags: async () => ({ bags: [] }), currentActor: () => 'staff-1',
+  uploadToStorage: async () => 'https://photo/upload', confirmPackagingBags: async (payload: unknown) => { confirmedPayloads.push(payload); return { bags: [] } }, currentActor: () => 'staff-1',
   onBeforeUnmount: (callback: () => void) => { unmount = callback }, onActivated: (callback: () => void) => { activate = callback }, onDeactivated: (callback: () => void) => { deactivate = callback },
   localStorage: { getItem: (key: string) => memory.get(key) ?? null, setItem: (key: string, value: string) => memory.set(key, value), removeItem: (key: string) => memory.delete(key) },
 }
@@ -69,6 +71,17 @@ try {
   assert.equal(state.order.value.garments.find((row: any) => row.tagId === 'tag-1').waitingFor, 'Ironing')
   assert.equal(state.scan('bag-a', 'tag-1').success, false)
   assert.equal(state.scan('bag-a', 'tag-2').success, true)
+  assert.equal(state.confirmable.value, true)
+  state.setWeight('bag-a', '')
+  assert.equal(state.confirmable.value, true, 'an unweighed pack can confirm')
+  state.setWeight('bag-a', '0')
+  assert.equal(state.confirmable.value, false)
+  for (const weight of ['abc', '1.25', '200.1']) {
+    state.setWeight('bag-a', weight)
+    assert.equal(state.confirmable.value, false, weight)
+  }
+  state.setWeight('bag-a', '2.5')
+  assert.equal(JSON.parse(memory.get('magicwash.packaging-bags.order-1')!)[0].weight, '2.5', 'the weight is kept in the device draft')
   assert.equal(state.confirmable.value, true)
   store.rows.get('blocked')!.status = 'Completed'
   await nextTick()
@@ -95,10 +108,19 @@ try {
   await new Promise(resolve => setImmediate(resolve))
   assert.equal(reads, beforeHidden + 1)
   assert.equal(state.ticketsLoading.value, false)
+  state.setWeight('bag-a', '   ')
+  assert.equal(state.confirmable.value, true)
+  const bagBeforeConfirm = state.bags.value[0]
+  await state.confirm()
+  assert.deepEqual(confirmedPayloads, [{ orderId: 'order-1', createdBy: 'staff-1', bags: [{
+    orderImageId: bagBeforeConfirm.id, imagePath: bagBeforeConfirm.photoUrl,
+    laundryItemIds: [...bagBeforeConfirm.garmentTagIds], weightKg: null,
+  }] }])
+  const readsAfterConfirm = reads
   unmount()
   invalidate('/api/job-tickets')
   await new Promise(resolve => setImmediate(resolve))
-  assert.equal(reads, beforeHidden + 1)
+  assert.equal(reads, readsAfterConfirm)
   const sheet = readFileSync(new URL('../../../../../src/features/job-tickets/components/PackagingBagSheet.vue', import.meta.url), 'utf8')
   assert.match(sheet, /:disabled="loading \|\| blockedLabel\(state\) !== null"/)
   assert.match(sheet, /loading \|\| blockedLabel\(state\) \? 'opacity-40 saturate-0'/)

@@ -3,7 +3,24 @@ import type { jobTicketDepartmentSchema } from '@contracts/job-tickets/job-ticke
 import type { JobTicketStartOrderResult } from '@/data/job-tickets/job-ticket.service'
 
 export type ScanTone = 'loading' | 'success' | 'warning' | 'error'
-export type ScanDisplay = { title: string; orderId?: string; customerName?: string; status?: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled'; message: string; tone: ScanTone }
+export type ScanPopup = { customerIndex: string | null; photoUrl: string | null; matched: boolean; itemName?: string; unmatchedText?: string }
+export type ScanDisplay = { title: string; orderId?: string; customerName?: string; status?: 'Pending' | 'In Progress' | 'Completed' | 'Cancelled'; message: string; tone: ScanTone; scan?: ScanPopup }
+
+export type ScanPopupInput = {
+  title: string; message: string; tone: ScanTone; matched: boolean
+  photoUrl?: string | null; customerName?: string; customerIndex?: string | null; itemName?: string; unmatchedText?: string
+}
+
+// The one builder of a gun-read popup: department and bag pages both present through it.
+export function presentScanPopup(input: ScanPopupInput): ScanDisplay {
+  const { title, message, tone, matched } = input
+  const extra = {
+    ...(input.itemName !== undefined ? { itemName: input.itemName } : {}),
+    ...(input.unmatchedText !== undefined ? { unmatchedText: input.unmatchedText } : {}),
+  }
+  if (!matched) return { title, message, tone, scan: { customerIndex: null, photoUrl: null, matched: false, ...extra } }
+  return { title, customerName: input.customerName, message, tone, scan: { customerIndex: input.customerIndex ?? null, photoUrl: input.photoUrl ?? null, matched: true, ...extra } }
+}
 
 export const departmentLabels: Record<z.infer<typeof jobTicketDepartmentSchema>, string> = {
   Tagging: 'Tagging',

@@ -1,12 +1,13 @@
-import { computed, onActivated, onDeactivated, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onActivated, onDeactivated, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
 import { generateShortId } from '@shared/utils/id'
 import { uploadToStorage } from '@/shared/api/firebase-storage'
 import { confirmPackagingBags } from '@/data/packaging-bags/packaging-bag.service'
 import { currentActor } from '@/shared/config/actor'
-import { loadPackagingOrder } from '../packaging-bag-source'
+import { loadItemNames, loadPackagingOrder } from '../packaging-bag-source'
+import { itemNameFor } from '../packaging-item-names'
 import {
-  bagNumber, canConfirm, garmentsInNewBags, restoreBags, scanGarment, toggleGarment, unassignedCount,
+  bagNumber, bagWeightKg, canConfirm, garmentsInNewBags, restoreBags, scanGarment, toggleGarment, unassignedCount,
   type BagScanOutcome, type NewBag, type PackagingOrder,
 } from '../packaging-bags'
 
@@ -37,6 +38,8 @@ export function usePackagingBags(orderId: () => string) {
   const ticketsReady = ref(false)
   const ticketsLoading = computed(() => !ticketsReady.value || ticketStore.orderView(orderId()).loading || !!ticketStore.orderView(orderId()).error)
   const order = ref<PackagingOrder | null>(null)
+  const itemNames = shallowRef<ReadonlyMap<string, string>>(new Map())
+  let namesOrderId: string | null = null
   const bags = ref<NewBag[]>([])
   const pageLoading = ref(true)
   const pageError = ref<string | null>(null)
@@ -49,8 +52,6 @@ export function usePackagingBags(orderId: () => string) {
 
   const unassigned = computed(() => order.value ? unassignedCount(order.value, bags.value) : 0)
   const pending = computed(() => garmentsInNewBags(bags.value))
-  const emptyBags = computed(() => bags.value.filter(bag => !bag.garmentTagIds.length))
-  const bagsWithoutPhoto = computed(() => bags.value.filter(bag => !bag.photoUrl))
   const confirmable = computed(() => !ticketsLoading.value && !submitting.value && !uploading.value.size && bags.value.length <= 20 && canConfirm(bags.value))
 
   function commit(next: NewBag[]): void {
@@ -77,6 +78,11 @@ export function usePackagingBags(orderId: () => string) {
     const id = orderId()
     pageLoading.value = true
     pageError.value = null
+    if (namesOrderId !== id) {
+      namesOrderId = id
+      itemNames.value = new Map()
+      void loadItemNames(id).then(names => { if (namesOrderId === id) itemNames.value = names })
+    }
     try {
       const loaded = await loadPackagingOrder(id, (preview, builder) => {
         if (sequence !== loadSequence) return
@@ -100,7 +106,7 @@ export function usePackagingBags(orderId: () => string) {
       return ''
     }
     const id = generateShortId()
-    commit([...bags.value, { id, garmentTagIds: [], photoUrl: null }])
+    commit([...bags.value, { id, garmentTagIds: [], photoUrl: null, weight: '' }])
     return id
   }
 
@@ -117,6 +123,10 @@ export function usePackagingBags(orderId: () => string) {
     const outcome = scanGarment(order.value, bags.value, bagId, value)
     commit(outcome.bags)
     return outcome
+  }
+
+  function setWeight(bagId: string, weight: string): void {
+    if (!submitting.value) commit(bags.value.map(row => row.id === bagId ? { ...row, weight } : row))
   }
 
   async function setPhoto(bagId: string, file: File): Promise<void> {
@@ -143,7 +153,7 @@ export function usePackagingBags(orderId: () => string) {
     const id = order.value.orderId
     try {
       const result = await confirmPackagingBags({ orderId: id, createdBy: currentActor(),
-        bags: bags.value.map(bag => ({ orderImageId: bag.id, imagePath: bag.photoUrl!, laundryItemIds: [...bag.garmentTagIds] })),
+        bags: bags.value.map(bag => ({ orderImageId: bag.id, imagePath: bag.photoUrl!, laundryItemIds: [...bag.garmentTagIds], weightKg: bagWeightKg(bag) })),
       })
       const printed = result.bags.filter(bag => bag.printed).length
       const failed = result.bags.length - printed
@@ -159,6 +169,10 @@ export function usePackagingBags(orderId: () => string) {
     }
   }
 
+  function nameOf(tagId: string): string {
+    return itemNameFor(itemNames.value, tagId)
+  }
+
   function numberOf(bagId: string): number {
     return order.value ? bagNumber(order.value, bags.value, bagId) : 0
   }
@@ -172,5 +186,5 @@ export function usePackagingBags(orderId: () => string) {
   onDeactivated(() => { releaseOrder?.(); releaseOrder = undefined })
   onBeforeUnmount(() => { releaseOrder?.(); loadSequence += 1 })
 
-  return { order, bags, ticketsLoading, loading, error, notice, submitting, uploading, unassigned, pending, emptyBags, bagsWithoutPhoto, confirmable, load, addBag, deleteBag, toggle, scan, setPhoto, confirm, numberOf }
+  return { order, bags, ticketsLoading, loading, error, notice, submitting, uploading, unassigned, pending, confirmable, load, addBag, deleteBag, toggle, scan, setWeight, setPhoto, confirm, numberOf, nameOf }
 }

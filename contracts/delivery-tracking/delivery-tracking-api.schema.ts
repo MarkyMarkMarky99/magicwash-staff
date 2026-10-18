@@ -3,7 +3,7 @@ import { z } from 'zod'
 export const deliveryTrackingBagSchema = z.object({
   orderImageId: z.string(),
   bagIndex: z.number().int().positive(),
-  weightKg: z.number(),
+  weightKg: z.number().nullable(),
   thumbnailUrl: z.string().nullable(),
 }).strict()
 
@@ -11,7 +11,7 @@ export const deliveryTrackingResponseSchema = z.object({
   orderImageId: z.string(),
   weightPhoto: z.object({
     url: z.string().nullable(),
-    weightKg: z.number(),
+    weightKg: z.number().nullable(),
     weighedAt: z.string(),
     note: z.string().nullable(),
   }).strict(),

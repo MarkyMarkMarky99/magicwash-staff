@@ -11,11 +11,14 @@ import AddBagCard from './AddBagCard.vue'
 import OrderBagRow, { type BagRowTone } from './OrderBagRow.vue'
 import OrderBagSummary, { type SummarySegment } from './OrderBagSummary.vue'
 import PackagingBagSheet from './PackagingBagSheet.vue'
+import ScanNotice from './ScanNotice.vue'
 import ScanResultCard from './ScanResultCard.vue'
 import { useLogisticsBags } from '../composables/useLogisticsBags'
 import { usePackagingBags } from '../composables/usePackagingBags'
 import { useQueryOverlay } from '../composables/useQueryOverlay'
-import { confirmedItemCount, formatConfirmedAt, garmentState, packedCount } from '../packaging-bags'
+import { useScanNotice } from '../composables/useScanNotice'
+import { useScannerGunInput } from '@/shared/composables/useScannerGunInput'
+import { bagWeightKg, bagWeightValid, confirmedItemCount, formatConfirmedAt, garmentState, packedCount, presentBagScan } from '../packaging-bags'
 import type { ScanDisplay } from '../scan-result'
 
 // One view for every department's order bag page; the department only picks the workflow and wording.
@@ -48,6 +51,7 @@ const photo = useQueryOverlay('photo', packagingActive)
 const confirmOpen = ref(false)
 const printNotice = ref<string | null>(null)
 const scanResult = ref<ScanDisplay | null>(null)
+const gunNotice = useScanNotice()
 let replacingLeave = false
 
 const newBags = computed(() => packaging?.bags.value ?? [])
@@ -60,9 +64,8 @@ const sheetCards = computed(() => {
   if (!current || !bag) return []
   return current.garments
     .filter(garment => !garment.confirmedBagId)
-    .map(garment => ({ garment, state: garmentState(current, newBags.value, bag.id, garment) }))
+    .map(garment => ({ garment, name: packaging!.nameOf(garment.tagId), state: garmentState(current, newBags.value, bag.id, garment) }))
 })
-const emptyNames = computed(() => packaging ? packaging.emptyBags.value.map(bag => `Bag ${packaging.numberOf(bag.id)}`).join(', ') : '')
 
 const loading = computed(() => (logistics ?? packaging)!.loading.value)
 const error = computed(() => (logistics ?? packaging)!.error.value)
@@ -122,10 +125,12 @@ const rows = computed<Row[]>(() => {
     }),
     ...newBags.value.map((bag): Row => {
       const count = bag.garmentTagIds.length
+      const kg = bagWeightKg(bag)
       const [status, tone]: [string, BagRowTone] = !count ? ['Empty · delete or add garments', 'error']
-        : !bag.photoUrl ? ['Add bag photo', 'warning'] : ['Ready to confirm', 'success']
-      return { key: bag.id, count, unit: items(count), title: `Bag ${state.numberOf(bag.id)}`, badge: 'New', status, tone,
-        photoUrl: bag.photoUrl, done: false, deletable: true, photoAction: true, uploading: state.uploading.value.has(bag.id),
+        : !bagWeightValid(bag) ? ['Fix bag weight', 'warning'] : !bag.photoUrl ? ['Add bag photo', 'warning'] : ['Ready to confirm', 'success']
+      return { key: bag.id, count, unit: items(count), title: `Bag ${state.numberOf(bag.id)}`, badge: 'New',
+        status: count ? `${status}${kg !== null ? ` · ${kg} kg` : bag.weight.trim() === '' ? ' · No weight' : ''}` : status, tone,
+        photoUrl: bag.photoUrl, done: false, deletable: true, photoAction: bagWeightValid(bag), uploading: state.uploading.value.has(bag.id),
         open: () => sheet.open(bag.id), remove: () => state.deleteBag(bag.id), takePhoto: () => photo.open(bag.id) }
     }),
   ]
@@ -152,18 +157,29 @@ function openSheetScanner(): void {
   scan.open('1')
 }
 
-function handleSheetScan(value: string): void {
+// The camera and the barcode gun share this read: same matching, same feedback, same rejections.
+function readGarment(value: string, popup: boolean): ScanDisplay | null {
   const bag = sheetBag.value
-  if (!packaging || !bag || !sheetScannerOpen.value) return
+  const order = packaging?.order.value
+  if (!packaging || !bag || !order) return null
   const outcome = packaging.scan(bag.id, value)
-  if (!outcome) return
+  if (!outcome) return null
   feedback(outcome.success ? 'success' : 'failure')
-  scanResult.value = { title: outcome.tagId, message: outcome.message, tone: outcome.success ? 'success' : 'error' }
+  return presentBagScan(outcome, order, packaging.nameOf(outcome.tagId), popup)
+}
+
+function handleSheetScan(value: string): void {
+  if (sheetScannerOpen.value) scanResult.value = readGarment(value, false) ?? scanResult.value
+}
+
+function handleGunScan(value: string): void {
+  const display = readGarment(value, true)
+  if (display) gunNotice.show(display)
 }
 
 function handleCapture(file: File): void {
   const bagId = photo.id.value
-  if (!packaging || !bagId || newBags.value.find(bag => bag.id === bagId)?.photoUrl) return
+  if (!packaging || !bagId || !newBags.value.some(bag => bag.id === bagId)) return
   void packaging.setPhoto(bagId, file)
   photo.close()
 }
@@ -173,6 +189,11 @@ async function confirmBags(): Promise<void> {
   confirmOpen.value = false
   printNotice.value = await packaging.confirm()
   mainRef.value?.el?.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+if (packaging) {
+  useScannerGunInput(handleGunScan, () => packagingActive() && sheetBag.value !== null && !sheetScannerOpen.value
+    && !cameraOpen.value && !confirmOpen.value)
 }
 
 function retry(): void {
@@ -196,6 +217,7 @@ if (packaging) {
   })
 
   watch(sheetScannerOpen, open => { if (!open) scanResult.value = null })
+  watch(() => [sheetBag.value?.id, sheetScannerOpen.value], gunNotice.dismiss)
 
   onBeforeRouteUpdate(to => {
     if (to.params.orderId !== props.orderId && (state.submitting.value || state.uploading.value.size)) return false
@@ -232,14 +254,6 @@ if (packaging) {
           </button>
         </div>
         <div v-if="packaging.notice.value" role="alert" class="mb-2 rounded-[14px] bg-error-container px-3 py-2.5 font-body text-[13px] font-semibold text-on-error-container">{{ packaging.notice.value }}</div>
-        <div v-if="packaging.emptyBags.value.length" role="alert" class="mb-2 flex items-start gap-2 rounded-[14px] bg-warning-container px-3 py-2.5 text-on-warning-container">
-          <span class="material-symbols-outlined mt-px shrink-0" style="font-size: 18px" aria-hidden="true">warning</span>
-          <p class="min-w-0 flex-1 font-body text-[13px] font-semibold leading-snug"><span class="font-extrabold">{{ emptyNames }} {{ packaging.emptyBags.value.length === 1 ? 'is' : 'are' }} empty.</span> Delete {{ packaging.emptyBags.value.length === 1 ? 'it' : 'them' }} — an empty bag would print an extra tag.</p>
-        </div>
-        <div v-if="packaging.bagsWithoutPhoto.value.length" role="status" class="mb-2 flex items-start gap-2 rounded-[14px] bg-info-container px-3 py-2.5 text-on-info-container">
-          <span class="material-symbols-outlined mt-px shrink-0" style="font-size: 18px" aria-hidden="true">photo_camera</span>
-          <p class="min-w-0 flex-1 font-body text-[13px] font-semibold leading-snug">{{ packaging.bagsWithoutPhoto.value.length }} new {{ packaging.bagsWithoutPhoto.value.length === 1 ? 'bag needs' : 'bags need' }} a photo before you can confirm.</p>
-        </div>
       </template>
       <div v-if="loading && !rows.length && !error" class="grid gap-2" aria-busy="true"><div v-for="row in 3" :key="row" class="h-[76px] animate-pulse rounded-[14px] bg-surface-container" /></div>
       <div v-else-if="error" class="rounded-[14px] bg-white p-4 text-sm text-error"><p role="alert">{{ error }}</p><button type="button" class="mt-2 rounded px-3 py-2 font-bold focus-visible:outline-2 focus-visible:outline-lime" @click="retry">Retry</button></div>
@@ -285,11 +299,16 @@ if (packaging) {
       :open="sheetBag !== null"
       :bag-number="sheetBag ? packaging.numberOf(sheetBag.id) : 0"
       :selected-count="sheetBag?.garmentTagIds.length ?? 0"
+      :photo-url="sheetBag?.photoUrl ?? null"
+      :weight="sheetBag?.weight ?? ''"
+      :uploading="!!sheetBag && packaging.uploading.value.has(sheetBag.id)"
       :cards="sheetCards"
       :loading="packaging.ticketsLoading.value"
       @close="sheet.close"
       @toggle="tagId => sheetBag && packaging?.toggle(sheetBag.id, tagId)"
       @scan="openSheetScanner"
+      @photo="sheetBag && photo.open(sheetBag.id)"
+      @update:weight="weight => sheetBag && packaging?.setWeight(sheetBag.id, weight)"
     />
     <ConfirmOverlay
       :open="confirmOpen"
@@ -312,5 +331,6 @@ if (packaging) {
       </template>
     </QrScannerOverlay>
     <CameraOverlay :open="cameraOpen" @close="photo.close" @capture="handleCapture" />
+    <ScanNotice overlay :notice="gunNotice.notice.value" :seq="gunNotice.seq.value" @dismiss="gunNotice.dismiss" />
   </template>
 </template>

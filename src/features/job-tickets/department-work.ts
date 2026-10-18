@@ -5,7 +5,7 @@ import type { JobTicketDto } from '@/data/job-tickets/job-ticket.service'
 import { normalizeSheetDate } from '@/shared/utils/sheet-date'
 import { normalizeGarmentTagId } from '@/shared/utils/garment-tag-id'
 import type { JobTicketAdvanceResult } from '@/data/job-tickets/job-ticket.service'
-import { departmentLabels } from './scan-result'
+import { departmentLabels, presentScanPopup, type ScanDisplay, type ScanTone } from './scan-result'
 
 export type Department = Extract<z.infer<typeof jobTicketDepartmentSchema>, 'Washing' | 'DryCleaning' | 'Ironing' | 'Packaging' | 'Logistics'>
 export type TicketStatus = z.infer<typeof jobTicketStatusSchema>
@@ -35,15 +35,32 @@ export function ticketSelectLabel(ticket: JobTicketDto): string {
   return `Select tag ${ticket.laundryItemId ?? 'missing'}${task ? `, task ${task}` : ''}; current status ${ticket.status}`
 }
 
-export function resolveScanTag(value: string, tickets: readonly JobTicketDto[], status: AdvanceStatus, queue: readonly ScanQueueEntry[], department: Department): { entry?: ScanQueueEntry; message: string } {
+export function resolveScanTag(value: string, tickets: readonly JobTicketDto[], status: AdvanceStatus, queue: readonly ScanQueueEntry[], department: Department): { entry?: ScanQueueEntry; ticket?: JobTicketDto; message: string } {
   const tag = normalizeGarmentTagId(value)
   const matching = tickets.filter(ticket => ticket.id && ticket.department === department && ticket.laundryItemId === tag)
   const candidates = matching.filter(row => row.status === status)
-  if (candidates.length > 1) return { message: `${candidates.length} tasks for this tag (${candidates.map(row => taskLabel(row) ?? 'no task').join(', ')}). Select them from the list` }
+  if (candidates.length > 1) return { ticket: candidates[0], message: `${candidates.length} tasks for this tag (${candidates.map(row => taskLabel(row) ?? 'no task').join(', ')}). Select them from the list` }
   const ticket = candidates[0]
-  if (!ticket) return { message: matching.length ? 'Not in this tab' : 'No job for this tag' }
-  if (queue.some(entry => entry.ticketId === ticket.id)) return { message: 'Already queued' }
-  return { entry: { ticketId: ticket.id, orderId: ticket.orderId, tag: tag! }, message: 'Queued' }
+  if (!ticket) return { ticket: matching[0], message: matching.length ? 'Not in this tab' : 'No job for this tag' }
+  if (queue.some(entry => entry.ticketId === ticket.id)) return { ticket, message: 'Already queued' }
+  return { entry: { ticketId: ticket.id, orderId: ticket.orderId, tag: tag! }, ticket, message: 'Queued' }
+}
+
+export function presentGunScan(value: string, ticket: JobTicketDto | undefined, customer: Pick<OrderInfo, 'customerName' | 'customerIndex'> | undefined, message: string, tone: ScanTone): ScanDisplay {
+  if (!ticket) return presentScanPopup({ title: value, message, tone, matched: false })
+  return presentScanPopup({ title: value, message, tone, matched: true, customerName: customer?.customerName, customerIndex: customer?.customerIndex, photoUrl: ticket.photoEvidenceUrl })
+}
+
+export function recordScan(recent: readonly string[], ticketId: string): string[] {
+  return [...recent.filter(id => id !== ticketId), ticketId]
+}
+
+export function sortScannedFirst<T extends { id: string }>(tickets: readonly T[], recent: readonly string[]): T[] {
+  const rank = new Map(recent.map((id, index) => [id, index]))
+  return [
+    ...tickets.filter(ticket => rank.has(ticket.id)).sort((left, right) => rank.get(right.id)! - rank.get(left.id)!),
+    ...tickets.filter(ticket => !rank.has(ticket.id)),
+  ]
 }
 
 export function restoreScanQueue(value: unknown, tickets: readonly JobTicketDto[], status: AdvanceStatus, department: Department): ScanQueueEntry[] {
@@ -156,4 +173,14 @@ export function groupDepartmentOrders(tickets: readonly JobTicketDto[], orderInf
     tickets: orderTickets,
     percentage: completionPercentage(orderTickets),
   })).sort((left, right) => dueSortKey(left.dueDate).localeCompare(dueSortKey(right.dueDate)) || String(left.orderId ?? '').localeCompare(String(right.orderId ?? '')))
+}
+
+export function sortOrdersByScan(orders: readonly DepartmentOrder[], recent: readonly string[]): DepartmentOrder[] {
+  const rank = new Map(recent.map((id, index) => [id, index]))
+  const newest = (order: DepartmentOrder) => Math.max(-1, ...order.tickets.map(ticket => rank.get(ticket.id) ?? -1))
+  return [
+    ...orders.filter(order => newest(order) >= 0).sort((left, right) => newest(right) - newest(left))
+      .map(order => ({ ...order, tickets: sortScannedFirst(order.tickets, recent) })),
+    ...orders.filter(order => newest(order) < 0),
+  ]
 }

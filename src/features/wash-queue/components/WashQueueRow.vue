@@ -180,14 +180,3 @@ defineExpose({ close, contains })
     </BaseSwipeCard>
   </li>
 </template>
-
-<style scoped>
-/* BaseSwipeCard moves an unrounded, hover-tinted inner card; keep it a white rounded card mid-swipe.
-   The lime panel is wider than the snap distance so its colour shows behind the rounded corners. */
-:deep(.swipe-card) {
-  border-radius: var(--wq-radius, 14px);
-  background-color: var(--color-surface-container-lowest) !important;
-  /* Covers the anti-aliased sliver of the lime/red panels at the coinciding rounded corners at rest. */
-  box-shadow: 0 0 0 1px var(--color-surface-container-lowest);
-}
-</style>

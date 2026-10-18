@@ -165,20 +165,20 @@ defineExpose({ snapCard })
     :tabindex="pressable ? 0 : undefined"
     @keydown="onKeydown"
   >
-    <div class="relative overflow-hidden">
+    <div class="relative overflow-hidden [border-radius:inherit]">
 
-      <div class="absolute inset-0 flex items-center px-5">
+      <div class="absolute inset-0 flex items-center px-5 *:before:pointer-events-none *:before:absolute *:before:inset-y-0 *:before:left-full *:before:w-6 *:before:[background:inherit] *:before:content-['']">
         <slot name="right-panel" :snapped="snapped" />
       </div>
 
-      <div class="absolute inset-0 flex items-center justify-end px-5">
+      <div class="absolute inset-0 flex items-center justify-end px-5 *:before:pointer-events-none *:before:absolute *:before:inset-y-0 *:before:right-full *:before:w-6 *:before:[background:inherit] *:before:content-['']">
         <slot name="left-panel" :snapped="snapped" />
       </div>
 
       <div
         ref="cardRef"
         :class="[
-          'swipe-card relative z-10 touch-pan-y bg-surface-container-lowest transition-colors',
+          'swipe-card relative z-10 touch-pan-y bg-surface-container-lowest transition-colors [border-radius:inherit] shadow-[0_0_0_1px_var(--color-surface-container-lowest)]',
           disabled
             ? 'cursor-wait bg-surface-container'
             : `${swipeable || pressable ? 'hover:bg-surface-container-low' : ''} ${swipeable ? 'cursor-grab active:cursor-grabbing' : pressable ? 'cursor-pointer' : ''}`,

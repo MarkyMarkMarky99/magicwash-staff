@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict'
 import { createPinia, setActivePinia } from 'pinia'
 import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
-import type { JobTicketDto, JobTicketListQuery, listJobTickets } from '@/data/job-tickets/job-ticket.service'
-import { completedTodayFromPage, loadOpenTickets, loadCompletedTickets, MAX_DEPARTMENT_TICKETS } from '@/data/job-tickets/job-ticket.service'
-import { advanceSummary, completionPercentage, countDepartmentStatuses, filterTickets, groupDepartmentOrders, readDepartment, readGrouper, readStatusFilter, resolveScanTag, restoreScanQueue, sortDepartmentTickets, statusForFilter, taskLabel, ticketSelectLabel, toggleTicketSelection } from '@/features/job-tickets/department-work'
+import type { JobTicketDto } from '@/data/job-tickets/job-ticket.service'
+import { advanceSummary, completionPercentage, countDepartmentStatuses, filterTickets, groupDepartmentOrders, presentGunScan, readDepartment, readGrouper, readStatusFilter, recordScan, resolveScanTag, restoreScanQueue, sortDepartmentTickets, sortOrdersByScan, sortScannedFirst, statusForFilter, taskLabel, ticketSelectLabel, toggleTicketSelection } from '@/features/job-tickets/department-work'
+import { presentScanPopup } from '@/features/job-tickets/scan-result'
 import { normalizeGarmentTagId } from '@/shared/utils/garment-tag-id'
 
 function ticket(id: string, orderId: string, status: JobTicketDto['status'], completedAt: string | null = null): JobTicketDto {
@@ -34,10 +34,14 @@ assert.deepEqual([...toggleTicketSelection(selected, selectionTicket, 'Pending')
 assert.deepEqual([...toggleTicketSelection(selected, selectionTicket, 'In Progress')], ['tag-a'])
 assert.deepEqual([...toggleTicketSelection(new Set<string>(), { ...selectionTicket, laundryItemId: null }, 'Pending')], [])
 const scanTickets = [selectionTicket, ticket('tag-b', 'order-1', 'Completed')]
-assert.deepEqual(resolveScanTag('tag-a', scanTickets, 'Pending', [], 'Washing'), { entry: { ticketId: 'tag-a', orderId: 'order-1', tag: 'tag-a' }, message: 'Queued' })
+assert.deepEqual(resolveScanTag('tag-a', scanTickets, 'Pending', [], 'Washing'), { entry: { ticketId: 'tag-a', orderId: 'order-1', tag: 'tag-a' }, ticket: selectionTicket, message: 'Queued' })
 assert.equal(resolveScanTag('tag-b', scanTickets, 'Pending', [], 'Washing').message, 'Not in this tab')
+assert.equal(resolveScanTag('tag-b', scanTickets, 'Pending', [], 'Washing').ticket, scanTickets[1])
 assert.equal(resolveScanTag('missing', scanTickets, 'Pending', [], 'Washing').message, 'No job for this tag')
-assert.equal(resolveScanTag('tag-a', scanTickets, 'Pending', [{ ticketId: 'tag-a', orderId: 'order-1', tag: 'tag-a' }], 'Washing').message, 'Already queued')
+assert.equal(resolveScanTag('missing', scanTickets, 'Pending', [], 'Washing').ticket, undefined)
+const queuedScan = resolveScanTag('tag-a', scanTickets, 'Pending', [{ ticketId: 'tag-a', orderId: 'order-1', tag: 'tag-a' }], 'Washing')
+assert.equal(queuedScan.message, 'Already queued')
+assert.equal(queuedScan.ticket, selectionTicket)
 assert.deepEqual(restoreScanQueue([{ ticketId: 'tag-a' }, { ticketId: 'tag-a' }, { ticketId: 'tag-b' }, { ticketId: 'missing' }], scanTickets, 'Pending', 'Washing'), [{ ticketId: 'tag-a', orderId: 'order-1', tag: 'tag-a' }])
 const taskTickets = [
   { ...ticket('wash-b', 'order-1', 'Pending'), laundryItemId: 'tag-m', taskCode: 'WSH-B', stepNo: 2 },
@@ -47,12 +51,14 @@ const taskTickets = [
   { ...ticket('wash-legacy', 'order-1', 'Pending'), laundryItemId: 'tag-legacy', taskCode: null },
 ]
 assert.deepEqual(resolveScanTag('tag-m', taskTickets, 'Pending', [], 'Washing'), {
+  ticket: taskTickets[0],
   message: '2 tasks for this tag (WSH-B, WSH-A). Select them from the list',
 })
-assert.deepEqual(resolveScanTag('tag-solo', taskTickets, 'Pending', [], 'Washing'), { entry: { ticketId: 'wash-solo', orderId: 'order-1', tag: 'tag-solo' }, message: 'Queued' })
+assert.deepEqual(resolveScanTag('tag-solo', taskTickets, 'Pending', [], 'Washing'), { entry: { ticketId: 'wash-solo', orderId: 'order-1', tag: 'tag-solo' }, ticket: taskTickets[3], message: 'Queued' })
 assert.deepEqual(resolveScanTag('tag-solo', taskTickets, 'Pending', [{ ticketId: 'wash-solo', orderId: 'order-1', tag: 'tag-solo' }], 'Washing').message, 'Already queued')
 assert.deepEqual(resolveScanTag('tag-legacy', taskTickets, 'Pending', [], 'Washing').entry?.ticketId, 'wash-legacy')
 assert.deepEqual(resolveScanTag('tag-m', [taskTickets[0]!, { ...taskTickets[1]!, taskCode: null }], 'Pending', [], 'Washing'), {
+  ticket: taskTickets[0],
   message: '2 tasks for this tag (WSH-B, no task). Select them from the list',
 })
 assert.deepEqual(restoreScanQueue([{ ticketId: 'wash-a' }, { ticketId: 'wash-legacy', orderId: 'order-9', tag: 'stale' }], taskTickets, 'Pending', 'Washing'), [
@@ -69,6 +75,13 @@ assert.equal(ticketSelectLabel({ ...taskTickets[4]!, laundryItemId: null, status
 const taskOrderInfo = new Map([['order-1', { dueDate: '2026-09-24', customerId: 'customer-1', customerName: 'Task', customerIndex: 'TSK' }]])
 assert.deepEqual(sortDepartmentTickets(taskTickets.slice(0, 2), taskOrderInfo).map(row => row.id), ['wash-a', 'wash-b'])
 assert.deepEqual(sortDepartmentTickets([{ ...taskTickets[0]!, stepNo: 1 }, { ...taskTickets[1]!, stepNo: 1 }], taskOrderInfo).map(row => row.taskCode), ['WSH-A', 'WSH-B'])
+const photoTicket = { ...ticket('tag-p', 'order-1', 'Pending'), photoEvidenceUrl: 'https://example.test/p.jpg' }
+assert.deepEqual(presentGunScan('tag-p', photoTicket, { customerName: 'Task', customerIndex: 'C-07' }, 'Queued', 'success'), { title: 'tag-p', customerName: 'Task', message: 'Queued', tone: 'success', scan: { customerIndex: 'C-07', photoUrl: 'https://example.test/p.jpg', matched: true } })
+assert.deepEqual(presentGunScan('zzz', undefined, undefined, 'No job for this tag', 'error'), { title: 'zzz', message: 'No job for this tag', tone: 'error', scan: { customerIndex: null, photoUrl: null, matched: false } })
+assert.deepEqual(presentScanPopup({ title: 'x', message: 'm', tone: 'warning', matched: true, itemName: 'Shirt', photoUrl: null }), { title: 'x', customerName: undefined, message: 'm', tone: 'warning', scan: { customerIndex: null, photoUrl: null, matched: true, itemName: 'Shirt' } })
+assert.deepEqual(presentScanPopup({ title: 'x', message: 'm', tone: 'error', matched: false, unmatchedText: '' }), { title: 'x', message: 'm', tone: 'error', scan: { customerIndex: null, photoUrl: null, matched: false, unmatchedText: '' } })
+assert.deepEqual(recordScan(['a', 'b'], 'c'), ['a', 'b', 'c'])
+assert.deepEqual(recordScan(['a', 'b', 'c'], 'a'), ['b', 'c', 'a'])
 for (const scoreFailed of [1, 3]) {
   assert.equal(advanceSummary({ kind: 'completed', advanced: [], blocked: [], skipped: [], scoreFailed }, 'In Progress'),
     `0 completed · 0 blocked · 0 skipped · Score not saved for ${scoreFailed} job${scoreFailed === 1 ? '' : 's'}. Tell an admin.`)
@@ -85,6 +98,18 @@ assert.deepEqual(groupDepartmentOrders(tickets, orderInfo).map(order => order.or
 assert.deepEqual(groupDepartmentOrders(filterTickets(tickets, 'PENDING'), orderInfo).map(order => order.orderId), ['order-late'])
 assert.deepEqual(sortDepartmentTickets(filterTickets(tickets, 'PENDING'), orderInfo).map(row => row.id), ['tag-a'])
 assert.equal(groupDepartmentOrders(tickets, orderInfo)[0]?.percentage, 50)
+const scanRows = ['s1', 's2', 's3', 's4'].map((id, index) => ({ ...ticket(id, index < 2 ? 'order-soon' : 'order-late', 'Pending'), laundryItemId: id }))
+const scanBase = sortDepartmentTickets(scanRows, orderInfo)
+assert.deepEqual(scanBase.map(row => row.id), ['s1', 's2', 's3', 's4'])
+assert.deepEqual(sortScannedFirst(scanBase, []).map(row => row.id), ['s1', 's2', 's3', 's4'])
+assert.deepEqual(sortScannedFirst(scanBase, ['s3', 's2']).map(row => row.id), ['s2', 's3', 's1', 's4'])
+assert.deepEqual(sortScannedFirst(scanBase, ['s3', 's2', 'gone']).map(row => row.id), ['s2', 's3', 's1', 's4'])
+const scanOrders = groupDepartmentOrders(scanBase, orderInfo)
+assert.deepEqual(sortOrdersByScan(scanOrders, []).map(order => order.orderId), ['order-soon', 'order-late'])
+assert.deepEqual(sortOrdersByScan(scanOrders, ['s2', 's4']).map(order => order.orderId), ['order-late', 'order-soon'])
+assert.deepEqual(sortOrdersByScan(scanOrders, ['s4', 's2']).map(order => order.orderId), ['order-soon', 'order-late'])
+assert.deepEqual(sortOrdersByScan(scanOrders, ['s2', 's1']).map(order => order.tickets.map(row => row.id)), [['s1', 's2'], ['s3', 's4']])
+assert.deepEqual(sortOrdersByScan(scanOrders, ['s1', 's2']).map(order => order.tickets.map(row => row.id)), [['s2', 's1'], ['s3', 's4']])
 const boardTickets = filterTickets([...tickets, { ...ticket('weight', 'order-only', 'Completed'), scope: 'ORDER', laundryItemId: null }], 'ALL')
 assert.deepEqual(boardTickets, tickets)
 assert.deepEqual(countDepartmentStatuses(boardTickets), { ALL: 3, PENDING: 1, 'IN PROGRESS': 1, COMPLETED: 1 })
@@ -113,16 +138,18 @@ assert.equal(normalizeGarmentTagId(null), null)
 assert.equal(normalizeGarmentTagId(undefined), null)
 
 const originalFetch = globalThis.fetch
-globalThis.fetch = (async input => new Response(JSON.stringify({
+globalThis.fetch = (async input => {
+  assert.equal(String(input), '/api/job-tickets/department-work?department=Washing')
+  return new Response(JSON.stringify({
   success: true,
   data: [
     { ...ticket('numeric-full', 'order-soon', 'Pending'), laundryItemId: 18806075 },
+    { ...ticket('alpha', 'order-late', 'Pending'), laundryItemId: 'Ab12Cd34' },
     { ...ticket('numeric-short', 'order-soon', 'In Progress'), laundryItemId: 9305753 },
     { ...ticket('missing', 'order-soon', 'Completed'), laundryItemId: null, completedAt: '2099-01-01 10:00:00' },
-    { ...ticket('alpha', 'order-late', 'Pending'), laundryItemId: 'Ab12Cd34' },
-  ].filter(row => row.status === new URL(String(input), 'http://localhost').searchParams.get('status')),
-  meta: { pagination: { page: 1, perPage: 500, total: 4, totalPages: 1 } },
-}), { status: 200, headers: { 'Content-Type': 'application/json' } })) as typeof fetch
+  ],
+}), { status: 200, headers: { 'Content-Type': 'application/json' } })
+}) as typeof fetch
 
 let productionTickets: JobTicketDto[]
 try {
@@ -150,80 +177,4 @@ for (const [filter, expectedIds] of [
   assert.equal(countDepartmentStatuses(productionTickets)[filter], expectedIds.length)
 }
 
-const today = '2026-09-23'
-const completed = [
-  ticket('today', 'order-soon', 'Completed', '2026-09-23T00:10:00+07:00'),
-  ticket('yesterday', 'order-soon', 'Completed', '2026-09-22T23:59:00+07:00'),
-]
-assert.deepEqual(completedTodayFromPage(completed, today), { tickets: [completed[0]], reachedOlder: true })
-assert.deepEqual(completedTodayFromPage([completed[0]!], today), { tickets: [completed[0]], reachedOlder: false })
-assert.equal(completedTodayFromPage([ticket('utc-boundary', 'order-soon', 'Completed', '2026-09-22T18:00:00Z')], today).tickets.length, 1)
-assert.deepEqual(completedTodayFromPage([ticket('missing-date', 'order-soon', 'Completed'), completed[0]!], today), { tickets: [completed[0]], reachedOlder: false })
-
-const calls: Partial<JobTicketListQuery>[] = []
-const fetchDepartmentPage: typeof listJobTickets = async query => {
-  calls.push(query)
-  const items = query.status === 'Pending' ? [ticket('pending', 'order-soon', 'Pending')]
-    : query.status === 'In Progress' ? [ticket('progress', 'order-soon', 'In Progress')]
-      : completed
-  return { items, pagination: { page: query.page ?? 1, perPage: query.perPage ?? 500 } }
-}
-const [open, recent] = await Promise.all([loadOpenTickets(fetchDepartmentPage), loadCompletedTickets('Washing', new Date('2026-09-23T03:00:00Z'), fetchDepartmentPage)])
-const loaded = { tickets: [...open.tickets, ...recent.tickets], truncated: open.truncated || recent.truncated }
-assert.deepEqual(loaded.tickets.map(row => row.id), ['pending', 'progress', 'today'])
-assert.equal(loaded.truncated, false)
-assert.deepEqual(calls.map(call => call.status), ['Pending', 'In Progress', 'Completed'])
-assert.ok(calls.slice(0, 2).every(call => call.department === undefined && call.sortBy === 'createdAt'))
-assert.equal(calls[2]?.department, 'Washing')
-assert.equal(calls[2]?.sortBy, 'completedAt')
-assert.equal(calls[2]?.sortOrder, 'desc')
-
-// Open work is read in one request per status, sized to the whole cap.
-const capCalls: Partial<JobTicketListQuery>[] = []
-const capped = await loadOpenTickets(async query => {
-  capCalls.push(query)
-  const items = query.status === 'Pending' ? Array.from({ length: query.perPage! }, (_, index) => ticket(`p${query.page}-${index}`, 'order-soon', 'Pending')) : []
-  return { items, pagination: { page: query.page ?? 1, perPage: query.perPage! } }
-})
-assert.equal(capped.tickets.length, MAX_DEPARTMENT_TICKETS)
-assert.equal(capped.truncated, true)
-assert.deepEqual(capCalls.map(call => [call.status, call.page, call.perPage]), [['Pending', 1, MAX_DEPARTMENT_TICKETS], ['In Progress', 1, MAX_DEPARTMENT_TICKETS]])
-
-const combinedCalls: Partial<JobTicketListQuery>[] = []
-const combinedCap = await loadOpenTickets(async query => {
-  combinedCalls.push(query)
-  const length = query.status === 'Pending' ? MAX_DEPARTMENT_TICKETS - 500 : 600
-  const items = Array.from({ length }, (_, index) => ticket(`${query.status}-${index}`, 'order-soon', query.status!))
-  return { items, pagination: { page: query.page ?? 1, perPage: query.perPage! } }
-})
-assert.equal(combinedCap.tickets.length, MAX_DEPARTMENT_TICKETS)
-assert.equal(combinedCap.truncated, true)
-assert.deepEqual(combinedCap.tickets.map(row => row.status).filter((status, index, statuses) => index === 0 || status !== statuses[index - 1]), ['Pending', 'In Progress'])
-assert.equal(combinedCap.tickets[MAX_DEPARTMENT_TICKETS - 501]?.id, `Pending-${MAX_DEPARTMENT_TICKETS - 501}`)
-assert.equal(combinedCap.tickets[MAX_DEPARTMENT_TICKETS - 1]?.id, 'In Progress-499')
-
-const parallelCalls: Partial<JobTicketListQuery>[] = []
-const resolveFirstPages = new Map<JobTicketDto['status'], (items: JobTicketDto[]) => void>()
-const parallelLoad = loadOpenTickets(async query => {
-  parallelCalls.push(query)
-  return await new Promise<Awaited<ReturnType<typeof listJobTickets>>>(resolve => {
-    resolveFirstPages.set(query.status!, items => resolve({ items, pagination: { page: 1, perPage: query.perPage! } }))
-  })
-})
-assert.deepEqual(parallelCalls.map(call => call.status), ['Pending', 'In Progress'])
-assert.equal(resolveFirstPages.size, 2)
-resolveFirstPages.get('In Progress')!([ticket('progress-0', 'order-soon', 'In Progress')])
-resolveFirstPages.get('Pending')!([ticket('pending-0', 'order-soon', 'Pending')])
-const parallelResult = await parallelLoad
-assert.deepEqual(parallelResult.tickets.map(row => row.id), ['pending-0', 'progress-0'])
-assert.equal(parallelResult.truncated, false)
-
-assert.ok([...capCalls, ...combinedCalls, ...parallelCalls].every(call => call.department === undefined))
-const completedCap = await loadCompletedTickets('Washing', new Date('2026-09-23T03:00:00Z'), async query => {
-  assert.equal(query.status, 'Completed')
-  assert.equal(query.department, 'Washing')
-  return { items: Array.from({ length: query.perPage! }, (_, i) => ticket(`completed-${query.page}-${i}`, 'order-soon', 'Completed', '2026-09-23T09:00:00+07:00')), pagination: { page: query.page!, perPage: query.perPage! } }
-})
-assert.equal(completedCap.tickets.length, MAX_DEPARTMENT_TICKETS)
-assert.equal(completedCap.truncated, true)
 console.log('department-work.dry-test: OK')
