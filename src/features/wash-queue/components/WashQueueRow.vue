@@ -8,7 +8,6 @@ import { formatBookedAt, formatStartedAt } from '../format-booked-at'
 import { elapsedSeconds, formatElapsed, RUNNING_LONG_SECONDS } from '../format-elapsed'
 import { washOptionsSummary } from '../wash-options'
 import { formatKgFigure } from '../format-weights'
-import { UNLOAD_WEIGH_REQUIRED } from '../unload-policy'
 
 type WashQueueDto = z.infer<typeof washQueueRowSchema>
 export type WashQueueRowAction = 'load' | 'unload' | 'collect' | 'cancel'
@@ -92,8 +91,8 @@ function trigger(action: WashQueueRowAction): void {
 }
 // BaseSwipeCard snaps in either direction; an unavailable direction is reset so it never blocks the next swipe.
 function rejectRight(): void {
-  if (!UNLOAD_WEIGH_REQUIRED && props.primary === 'unload') {
-    trigger('unload')
+  if (props.primary === 'load' || props.primary === 'unload') {
+    trigger(props.primary)
     return
   }
   if (props.primary) emit('opened')

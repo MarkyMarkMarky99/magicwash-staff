@@ -16,7 +16,7 @@
   - Owner: update G Drive `WashQueue.json` `tag_code` description (still says one A-Z letter); phone-check auto tag and detail photo slides on prod.
   - NEXT: drying steps (tumble/line dry, auto dryer booking on unload) — full handoff in `.user/memory/wash-drying-steps-handoff.md`.
   - Phone-test on prod: booking camera shutter, swipe starting on the photo, card tap → `?basket=` detail sheet.
-  - Unload weighing + photo temporarily OFF (owner): flag `UNLOAD_WEIGH_REQUIRED` in `src/features/wash-queue/unload-policy.ts`; swipe-unload has no confirm/undo.
+  - Unload weighing + photo temporarily OFF (owner): flag `UNLOAD_WEIGH_REQUIRED` in `src/features/wash-queue/unload-policy.ts`; swipe-right loads or unloads at once, no confirm/undo; phone-check swipe-load on prod.
   - Time Book save on prod (~4 s on `vercel dev`; estimate 2–2.5 s).
   - Open: Hand wash option (needs a no-machine booking contract); tag label look not owner-approved; >1:30 warning colour, dryer copy, Photo button edge; KPI deferred.
 - Phone-check every swipe list on prod: rounded corners now owned by `BaseSwipeCard`; appointment card badge and 4rem-per-action panels.
