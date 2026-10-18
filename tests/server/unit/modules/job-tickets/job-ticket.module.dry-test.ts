@@ -27,7 +27,7 @@ function request(id: string): ApiHandlerRequest {
   return {
     method: 'POST', query: {}, body: {
       laundryItemId: 'tag-1', department: 'Washing', scannedBy: 'staff-1',
-    }, headers: {}, params: { id },
+    }, headers: {}, staff: { staffId: 'session-staff', email: 'staff@test', name: 'Staff', role: 'staff' as const }, params: { id },
   }
 }
 

@@ -69,7 +69,7 @@ export const packageService: PackageService = new BaseCrudService({
   transformer: createPackageTransformer(),
 })
 
-export const packageRoutes = createCrudRoutes(packageService, packageApiContract)
+export const packageRoutes = createCrudRoutes(packageService, packageApiContract, { create: ['createdBy'], update: ['updatedBy'] })
 
 async function appendPackage(row: Partial<PackagesDbRow>): Promise<PackagesDbRow> {
   try {

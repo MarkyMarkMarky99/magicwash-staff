@@ -196,7 +196,7 @@ async function withMockFetch<T>(
 }
 
 function postRequest(body: unknown): ApiHandlerRequest {
-  return { method: 'POST', query: {}, body, headers: {}, params: {} }
+  return { method: 'POST', query: {}, body, headers: {}, staff: { staffId: 'session-staff', email: 'staff@test', name: 'Staff', role: 'staff' as const }, params: {} }
 }
 
 function validPayload(): Record<string, unknown> {

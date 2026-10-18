@@ -65,8 +65,10 @@ application-level pages or development tools when one is needed.
   "เข้าสู่ระบบ" when signed out and "ออกจากระบบ" when signed in. The login page has a close button,
   and after signing in it leaves the same way (history back, or `/` without history); a
   `?redirect=` app path takes precedence.
-- Writes use `currentActor()` to record the signed-in StaffId, or `unknown` when signed out;
-  `?by=` is ignored. The app prefetches the public staff list at load to map StaffIds to names.
+- Writes use `currentActor()` to send the selected operator StaffId, otherwise the signed-in StaffId,
+  or `unknown` when signed out; `?by=` is ignored. The server replaces actor fields with the resolved
+  session StaffId. Device sessions select an operator by staff card; see
+  [shared-device flow](../../features/staff/shared-device.md). The app prefetches the public staff list at load to map StaffIds to names.
 
 ### Feature Layer
 

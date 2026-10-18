@@ -71,7 +71,7 @@ const collectionDelete = await orderItemRoutes.collection.handleRequest({
   method: 'DELETE',
   query: {},
   body: undefined,
-  headers: {},
+  headers: {}, staff: { staffId: 'session-staff', email: 'staff@test', name: 'Staff', role: 'staff' as const },
   params: {},
 })
 assert.equal(collectionDelete.status, 405)
@@ -81,7 +81,7 @@ const itemDelete = await orderItemRoutes.item!.handleRequest({
   method: 'DELETE',
   query: {},
   body: undefined,
-  headers: {},
+  headers: {}, staff: { staffId: 'session-staff', email: 'staff@test', name: 'Staff', role: 'staff' as const },
   params: { id: 'item-1' },
 })
 assert.equal(itemDelete.status, 405)
@@ -91,7 +91,7 @@ const itemPatch = await orderItemRoutes.item!.handleRequest({
   method: 'PATCH',
   query: {},
   body: undefined,
-  headers: {},
+  headers: {}, staff: { staffId: 'session-staff', email: 'staff@test', name: 'Staff', role: 'staff' as const },
   params: { id: 'item-1' },
 })
 assert.equal(itemPatch.status, 422)

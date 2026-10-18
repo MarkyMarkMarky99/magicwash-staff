@@ -97,19 +97,19 @@ async function expectStatus(run: () => Promise<unknown>, status: number): Promis
 async function main(): Promise<void> {
   {
     const fakes = createService({ rows: row('ISSUED') })
-    const result = await fakes.service.update('INV-0001', { status: 'CANCELLED' })
+    const result = await fakes.service.update('INV-0001', { status: 'CANCELLED' }, 'session-staff')
     assert.deepEqual(result, { invoiceNumber: 'INV-0001', status: 'CANCELLED', viewSynced: true })
     assert.deepEqual(fakes.reads, [{ select: ['invoice_number', 'status'] }])
     assert.deepEqual(fakes.writes, [{
       invoiceNumber: 'INV-0001',
-      patch: { status: 'CANCELLED', updated_by: 'admin' },
+      patch: { status: 'CANCELLED', updated_by: 'session-staff' },
     }])
     assert.deepEqual(fakes.syncs, ['INV-0001'])
   }
 
   {
     const fakes = createService({ rows: row('VOID') })
-    const result = await fakes.service.update('INV-0001', { status: 'VOID' })
+    const result = await fakes.service.update('INV-0001', { status: 'VOID' }, 'session-staff')
     assert.deepEqual(result, { invoiceNumber: 'INV-0001', status: 'VOID', viewSynced: true })
     assert.deepEqual(fakes.writes, [])
     assert.deepEqual(fakes.syncs, ['INV-0001'])
@@ -117,7 +117,7 @@ async function main(): Promise<void> {
 
   {
     const fakes = createService({ rows: row('ISSUED'), syncResult: { outcome: 'failed', certainty: 'unknown', message: 'rebuild failed' } })
-    const result = await fakes.service.update('INV-0001', { status: 'VOID' })
+    const result = await fakes.service.update('INV-0001', { status: 'VOID' }, 'session-staff')
     assert.deepEqual(result, { invoiceNumber: 'INV-0001', status: 'VOID', viewSynced: false })
     assert.equal(fakes.writes.length, 1)
     assert.deepEqual(fakes.syncs, ['INV-0001'])
@@ -130,7 +130,7 @@ async function main(): Promise<void> {
     { status: 'CANCELLED', updatedBy: 'client' },
   ]) {
     const fakes = createService({ rows: row('ISSUED') })
-    await expectStatus(() => fakes.service.update('INV-0001', payload), 422)
+    await expectStatus(() => fakes.service.update('INV-0001', payload, 'session-staff'), 422)
     assert.deepEqual(fakes.reads, [])
     assert.deepEqual(fakes.writes, [])
     assert.deepEqual(fakes.syncs, [])
@@ -138,27 +138,27 @@ async function main(): Promise<void> {
 
   for (const invoiceNumber of ['', '   ']) {
     const fakes = createService({ rows: row('ISSUED') })
-    await expectStatus(() => fakes.service.update(invoiceNumber, { status: 'VOID' }), 404)
+    await expectStatus(() => fakes.service.update(invoiceNumber, { status: 'VOID' }, 'session-staff'), 404)
     assert.deepEqual(fakes.reads, [])
   }
 
   {
     const fakes = createService({})
-    await expectStatus(() => fakes.service.update('INV-404', { status: 'CANCELLED' }), 404)
+    await expectStatus(() => fakes.service.update('INV-404', { status: 'CANCELLED' }, 'session-staff'), 404)
     assert.deepEqual(fakes.writes, [])
     assert.deepEqual(fakes.syncs, [])
   }
 
   {
     const fakes = createService({ rows: row('PAID' as Status) })
-    await expectStatus(() => fakes.service.update('INV-0001', { status: 'CANCELLED' }), 409)
+    await expectStatus(() => fakes.service.update('INV-0001', { status: 'CANCELLED' }, 'session-staff'), 409)
     assert.deepEqual(fakes.writes, [])
     assert.deepEqual(fakes.syncs, [])
   }
 
   {
     const fakes = createService({ rows: row('ISSUED'), writeError: new Error('Sheets write failed') })
-    const error = await expectStatus(() => fakes.service.update('INV-0001', { status: 'CANCELLED' }), 500)
+    const error = await expectStatus(() => fakes.service.update('INV-0001', { status: 'CANCELLED' }, 'session-staff'), 500)
     assert.deepEqual((error as { details?: unknown }).details, { stage: 'invoice_status_write', certainty: 'unknown' })
     assert.deepEqual(fakes.syncs, [])
   }
@@ -171,7 +171,7 @@ async function main(): Promise<void> {
         method: 'PATCH',
         query: {},
         body: { status: 'VOID' },
-        headers: {},
+        headers: {}, staff: { staffId: 'session-staff', email: 'staff@test', name: 'Staff', role: 'staff' as const },
         params: { id: 'INV-0001' },
       })
       assert.equal(result.status, 200)

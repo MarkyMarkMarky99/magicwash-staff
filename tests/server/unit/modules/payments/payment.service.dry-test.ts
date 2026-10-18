@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import type { z } from 'zod'
-import { PaymentService, paymentRoutes } from '../../../../../server/modules/payments/payment.module.js'
+import { PaymentService, paymentRoutes, createPaymentRoutes } from '../../../../../server/modules/payments/payment.module.js'
 import { paymentApiContract } from '../../../../../contracts/payments/payment-api.schema.js'
 import { resolveRoute } from '../../../../../server/api/route-registry.js'
 import { paymentsRowSchema } from '../../../../../server/sheets/Payments/Payments.db-contract.js'
@@ -26,12 +26,12 @@ const service = new PaymentService({
 const first = await service.create({
   invoiceNumber: ' INV-1 ', amount: 500, method: 'QR_PROMPTPAY',
   proofUrl: ' https://example.com/proof.jpg ', reference: '  TX-1 ', notes: ' received ',
-})
+}, 'session-staff')
 assert.deepEqual(appended[0], {
   payment_id: 'PAY-test1234', invoice_number: 'INV-1', amount: 500,
   method: 'QR_PROMPTPAY', status: 'VERIFIED', paid_at: '2026-10-02 12:34:56',
   reference: 'TX-1', proof_url: 'https://example.com/proof.jpg', notes: 'received',
-  slip_data: null, created_at: '2026-10-02 12:34:56', created_by: 'admin',
+  slip_data: null, created_at: '2026-10-02 12:34:56', created_by: 'session-staff',
   updated_at: null, updated_by: null, deleted_at: null, deleted_by: null,
 })
 assert.deepEqual(first, {
@@ -43,7 +43,7 @@ assert.deepEqual(first, {
 await service.create({
   invoiceNumber: 'INV-1', amount: -50, method: 'CASH', paidAt: '2026-10-01 11:22:33',
   proofUrl: '', reference: ' ', notes: '',
-})
+}, 'session-staff')
 assert.equal(appended[1]?.status, 'VERIFIED')
 assert.equal(appended[1]?.amount, -50)
 assert.equal(appended[1]?.paid_at, '2026-10-01 11:22:33')
@@ -53,14 +53,14 @@ assert.equal(appended[1]?.notes, null)
 assert.equal(appended[1]?.created_at, '2026-10-02 12:34:56')
 const generated = await new PaymentService({ repository }).create({
   invoiceNumber: 'INV-2', amount: 1, method: 'OTHER',
-})
+}, 'session-staff')
 assert.match(generated.paymentId, /^PAY-[0-9a-f]{8}$/)
 assert.equal(appended[2]?.payment_id, generated.paymentId)
 
-const routes = createCrudRoutes(service, paymentApiContract)
+const routes = createPaymentRoutes(service)
 const created = await routes.collection.handleRequest({
   method: 'POST', query: {}, body: { invoiceNumber: 'INV-3', amount: 10, method: 'CASH' },
-  headers: {}, params: {},
+  headers: {}, params: {}, staff: { staffId: 'session-staff', email: 'staff@test', name: 'Staff', role: 'staff' },
 })
 assert.equal(created.status, 201)
 assert.equal((created.body as { data: { status: string } }).data.status, 'VERIFIED')
@@ -71,7 +71,7 @@ assert.deepEqual(Object.keys((created.body as { data: object }).data), [
 assert.equal((await resolveRoute('payments')).collection, paymentRoutes.collection)
 assert.notEqual(paymentRoutes.item, undefined)
 const methodNotAllowed = await paymentRoutes.collection.handleRequest({
-  method: 'PATCH', query: {}, body: {}, headers: {}, params: {},
+  method: 'PATCH', query: {}, body: {}, headers: {}, params: {}, staff: { staffId: 'session-staff', email: 'staff@test', name: 'Staff', role: 'staff' },
 })
 assert.equal(methodNotAllowed.status, 405)
 assert.equal(methodNotAllowed.headers?.Allow, 'GET, POST')

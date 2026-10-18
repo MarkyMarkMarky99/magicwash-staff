@@ -1,3 +1,4 @@
+import { bodyWithSessionActor } from '../../shared/http/session-actor.js'
 import type { z } from 'zod'
 import { ApiHandler } from '../../shared/http/api-handler.js'
 import type { GatewayModuleRoutes } from '../../shared/http/gateway.types.js'
@@ -20,7 +21,7 @@ function statusForAppendResponse(response: AppendPackageTransactionResponse): nu
 export const packageTransactionRoutes: GatewayModuleRoutes = {
   collection: new ApiHandler({
     POST: async (req): Promise<ApiResult<AppendPackageTransactionResponse>> => {
-      const response = await packageTransactionService.append(req.body)
+      const response = await packageTransactionService.append(bodyWithSessionActor(req, 'createdBy'))
       return { status: statusForAppendResponse(response), body: response }
     },
   }),

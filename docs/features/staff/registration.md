@@ -2,13 +2,13 @@
 
 A Google account that is not on the `Staff` allow-list registers itself, then waits for an admin to approve it. Admins approve and maintain staff from a list. There is no self-edit after registration: only admins change a staff row.
 
-Backend contract: `contracts/staff/staff-api.schema.ts`. Routes: `GET /api/staff/me`, `POST /api/staff`, public `GET /api/staff`, and admin-only `GET /api/staff/:staffId`, `PATCH /api/staff/:staffId`. The public list returns every row in the existing response, including pending/inactive rows and all columns; a supplied invalid token still returns 401. The app prefetches it at load to map StaffIds to names. All staff GETs bypass the response cache (`/api/staff` is in `NEVER_CACHE`), so an approval is visible on the next read.
+Backend contract: `contracts/staff/staff-api.schema.ts`. Routes: `GET /api/staff/me`, `POST /api/staff`, authenticated `GET /api/staff`, and admin-only `GET /api/staff/:staffId`, `PATCH /api/staff/:staffId`. The authenticated list returns every staff profile, including pending/inactive rows. Invalid or missing authentication returns 401. The app prefetches it at load to map StaffIds to names. All staff GETs bypass the response cache (`/api/staff` is in `NEVER_CACHE`), so an approval is visible on the next read.
 
 ## Login states
 
 `auth.store.ts` drives them; `LoginPage.vue` renders them. See `docs/architecture/frontend/project-structure.md` for the sequence.
 
-- `GET /api/auth/me` succeeds: `signedIn`; the response includes `staffId`. The login reader reads A:I. Frontend writes record the signed-in StaffId as actor, or `unknown` when signed out; `?by=` is ignored.
+- `GET /api/auth/me` succeeds: `signedIn`; the response includes `staffId`. The login reader reads A:I. The server records the authenticated session StaffId for writes; shared devices use the scanned operator. Client actor fields and `?by=` cannot select the server actor.
 - 403 then `GET /api/staff/me` returns 404: `unregistered`. Signing in navigates (replace) to `/staff/register`. Opening `/login` while still unregistered shows a register button and a logout button instead of redirecting, so Back from the form cannot loop.
 - 403 then a row with `role = null` or `active = false`: `pending`. The login page shows "ลงทะเบียนแล้ว รอผู้ดูแลอนุมัติ" and a logout button. A pending user is never `signedIn`.
 - 403 then a row that is active with a role: contradictory, treated as an error and signed out.
@@ -42,3 +42,11 @@ Every signed-in staff member (`status = signedIn`, any role) sees the nav entry,
 ## List
 
 `StaffListPage.vue` is the daily staff ranking and follows the list page pattern. A `DateTabs` strip picks the Bangkok day (today first). It fetches the whole staff collection from `GET /api/staff` (no paging, no cap) through `src/data/staff/staff.store.ts` and the day's rows from `GET /api/work-transactions?from=day&to=day`, and re-reads both every time the page is activated; changing the day re-reads the scores. There are no status tabs: every row is listed. `rankDay` in `src/features/staff/utils/staff-performance.ts` scores each member with the profile's day summary (points are the profile's standard minutes, labelled pts), sorts by points, gives tied points the same rank, and keeps members without points at the end in name order, unranked. Ranks 1–3 show a gold, silver or bronze medal icon; later ranks show the number. Each row shows points, a bar against the day's top score, and jobs. All text on the page is English; the signed-in member's row is tinted and marked "You". Pending rows carry a "Pending" badge and a warning background, and disabled rows "Disabled"; approved active rows have no badge. For admins, tapping a pending row opens the edit form, where they approve it; tapping any other row opens the staff profile. Non-admins open the staff profile for every row (`docs/features/staff/profile.md`).
+
+## Shared devices and cards
+
+Approved roles are `admin`, `staff`, and `device`. An active `device` row belongs to a shared shop Google account; it does not grant admin rights. Admins can select this role in the existing staff form.
+
+The card code is `MWS-<StaffId>`, derived from the StaffId, not stored, and never reissued. A lost card is reprinted with the same code. The login reader reads A:I.
+
+See [Shared shop device and staff card operator](shared-device.md) for scanning, expiry, and server authorization.

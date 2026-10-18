@@ -1,3 +1,4 @@
+import { bodyWithSessionActor } from '../../shared/http/session-actor.js'
 import { z } from 'zod'
 import {
   laundryPhotoApiContract,
@@ -180,7 +181,7 @@ export class LaundryPhotoService extends BaseCrudService<
 }
 
 export const laundryPhotoService = new LaundryPhotoService()
-const crudRoutes = createCrudRoutes(laundryPhotoService, laundryPhotoApiContract)
+const crudRoutes = createCrudRoutes(laundryPhotoService, laundryPhotoApiContract, { create: ['createdBy'], update: ['updatedBy'] })
 export const laundryPhotoRoutes: GatewayModuleRoutes = {
   collection: crudRoutes.collection,
   item: new ApiHandler({
@@ -194,7 +195,7 @@ export const laundryPhotoRoutes: GatewayModuleRoutes = {
     },
     POST: async (req) => {
       if (req.params.id !== 'reassign') throw ApiError.notFound('Route not found')
-      return ok(await laundryPhotoService.reassign(req.body))
+      return ok(await laundryPhotoService.reassign(bodyWithSessionActor(req, 'updatedBy')))
     },
     DELETE: async (req) => crudRoutes.item!.handleRequest(req),
   }),

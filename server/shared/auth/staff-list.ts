@@ -4,7 +4,7 @@ export interface StaffMember {
   staffId: string
   email: string
   name: string
-  role: 'admin' | 'staff'
+  role: 'admin' | 'staff' | 'device'
 }
 
 const CACHE_TTL_MS = 60_000
@@ -31,7 +31,7 @@ export function parseStaffList(rows: SheetsApiValues): Map<string, StaffMember> 
     const name = String(row[nameColumn] ?? '').trim()
     const role = String(row[roleColumn] ?? '').trim().toLowerCase()
     const active = row[activeColumn]
-    if (!email || (role !== 'admin' && role !== 'staff')) continue
+    if (!email || (role !== 'admin' && role !== 'staff' && role !== 'device')) continue
     if (active !== true && !(typeof active === 'string' && active.trim().toLowerCase() === 'true')) continue
     members.set(email.toLowerCase(), { staffId, email, name, role })
   }
@@ -59,4 +59,17 @@ export function getStaffList(): Promise<Map<string, StaffMember>> {
     inFlight = pending
   }
   return inFlight
+}
+
+export async function findStaffById(staffId: string): Promise<StaffMember | undefined> {
+  const id = staffId.trim().toLowerCase()
+  return [...(await getStaffList()).values()].find(member => member.staffId.trim().toLowerCase() === id)
+}
+
+export async function findStaffByCardCode(code: string): Promise<StaffMember | undefined> {
+  const cardCode = code.trim()
+  if (!/^MWS-/i.test(cardCode)) return undefined
+  const staffId = cardCode.slice(4).trim()
+  if (!staffId) return undefined
+  return findStaffById(staffId)
 }

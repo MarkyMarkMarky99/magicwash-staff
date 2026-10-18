@@ -1,3 +1,4 @@
+import { bodyWithSessionActor } from '../../shared/http/session-actor.js'
 import { ApiError } from '../../shared/http/api-error.js'
 import { ApiHandler } from '../../shared/http/api-handler.js'
 import type { GatewayModuleRoutes } from '../../shared/http/gateway.types.js'
@@ -10,7 +11,7 @@ export const packagingBagRoutes: GatewayModuleRoutes = {
   item: new ApiHandler({
     POST: async request => {
       if (request.params.id !== 'confirm') throw ApiError.notFound('Route not found')
-      return ok(await packagingBagService.confirm(request.body))
+      return ok(await packagingBagService.confirm(bodyWithSessionActor(request, 'createdBy')))
     },
   }),
 }

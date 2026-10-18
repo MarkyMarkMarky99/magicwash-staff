@@ -106,7 +106,7 @@ export class StaffService {
         address: values.address!,
         position: values.position!,
         startDate: normalizeStartDate(cells[header.indexByName.StartDate]),
-        role: role === 'admin' || role === 'staff' ? role : null,
+        role: role === 'admin' || role === 'staff' || role === 'device' ? role : null,
         active: active === true || (typeof active === 'string' && active.trim().toLowerCase() === 'true'),
       }
       rows.push({ staff, rowNumber: index + 2 })

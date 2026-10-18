@@ -35,7 +35,7 @@ try {
     method: 'DELETE',
     query: {},
     body: undefined,
-    headers: {},
+    headers: {}, staff: { staffId: 'session-staff', email: 'staff@test', name: 'Staff', role: 'staff' as const },
     params: {},
   })
   assert.equal(collectionDelete.status, 405)
@@ -45,7 +45,7 @@ try {
     method: 'DELETE',
     query: {},
     body: undefined,
-    headers: {},
+    headers: {}, staff: { staffId: 'session-staff', email: 'staff@test', name: 'Staff', role: 'staff' as const },
     params: { id: 'image-1' },
   })
   assert.equal(itemDelete.status, 405)

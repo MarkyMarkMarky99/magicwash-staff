@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'node:crypto'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { authenticateStaffIdentity, type StaffAuthenticator, type StaffIdentityAuthenticator } from '../auth/staff-auth.js'
+import { findStaffById } from '../auth/staff-list.js'
 import type { StaffMember } from '../auth/staff-list.js'
 import { API_ERROR_CODES } from '../../../contracts/shared/api.schema.js'
 import { ApiError } from './api-error.js'
@@ -42,11 +43,21 @@ export class ApiGateway {
 
     const loader = this.registry[moduleName]
     const identity = moduleName === 'staff' ? await this.authenticateIdentity(req) : undefined
-    const staff = moduleName === 'staff'
+    let staff = moduleName === 'staff'
       ? identity?.staff
       : isPublicModule(moduleName) || hasInvoicePrintKey(req, segments)
         ? undefined
         : await this.authenticate(req)
+    if (staff?.role === 'device' && moduleName !== 'auth' && moduleName !== 'staff') {
+      const operatorId = req.headers['x-operator-id']
+      if (operatorId !== undefined) {
+        const operator = typeof operatorId === 'string' ? await findStaffById(operatorId) : undefined
+        if (!operator) throw ApiError.forbidden('Operator is not an active staff member')
+        staff = { ...operator, role: 'staff' }
+      } else if (req.method !== 'GET') {
+        throw ApiError.forbidden('Scan a staff card first')
+      }
+    }
     let routes: GatewayModuleRoutes
     try {
       routes = await loader()

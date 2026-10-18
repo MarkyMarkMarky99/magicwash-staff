@@ -9,6 +9,7 @@ export type StaffStanding = 'pending' | 'active' | 'inactive'
 const ROLE_LABELS: Record<StaffRole, string> = {
   admin: 'ผู้ดูแล',
   staff: 'พนักงาน',
+  device: 'อุปกรณ์ร้าน',
 }
 
 export const STAFF_ROLE_OPTIONS = staffRoleSchema.options.map((role) => ({

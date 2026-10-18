@@ -17,7 +17,7 @@ import { useLogisticsBags } from '../composables/useLogisticsBags'
 import { usePackagingBags } from '../composables/usePackagingBags'
 import { useQueryOverlay } from '../composables/useQueryOverlay'
 import { useScanNotice } from '../composables/useScanNotice'
-import { useScannerGunInput } from '../composables/useScannerGunInput'
+import { useScannerGunInput } from '@/shared/composables/useScannerGunInput'
 import { bagWeightKg, bagWeightValid, confirmedItemCount, formatConfirmedAt, garmentState, packedCount, presentBagScan } from '../packaging-bags'
 import type { ScanDisplay } from '../scan-result'
 

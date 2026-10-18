@@ -113,7 +113,7 @@ function request(
   body: unknown = undefined,
   params: Record<string, string> = {},
 ): ApiHandlerRequest {
-  return { method, query: {}, body, headers: {}, params }
+  return { method, query: {}, body, headers: {}, staff: { staffId: 'session-staff', email: 'staff@test', name: 'Staff', role: 'staff' as const }, params }
 }
 
 function bodyOf(result: { body: unknown }): Record<string, unknown> {
@@ -237,7 +237,7 @@ try {
   const deactivated = dataOf(deactivatedResult)
   assert.match(String(deactivated.updatedAt), /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
   assert.match(String(deactivated.deletedAt), /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
-  assert.equal(deactivated.deletedBy, 'staff-4')
+  assert.equal(deactivated.deletedBy, 'session-staff')
   const deactivateCall = calls.filter((call) => call.init?.method === 'POST' && pathOf(call.url).endsWith('/values:batchUpdate')).at(-1)
   assert.ok(deactivateCall)
   const deactivateBody = batchUpdateBody(deactivateCall)

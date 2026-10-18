@@ -1,4 +1,5 @@
 import type { CreateInvoiceResponse } from '../../../contracts/invoices/invoice-api.schema.js'
+import { requireStaffId } from '../../shared/http/session-actor.js'
 import { ApiHandler } from '../../shared/http/api-handler.js'
 import type { GatewayModuleRoutes } from '../../shared/http/gateway.types.js'
 import { ok, paginatedBody, type ApiResult } from '../../shared/http/response.js'
@@ -56,12 +57,12 @@ export const invoiceRoutes: GatewayModuleRoutes = {
       return { status: 200, body: paginatedBody(items, pagination) }
     },
     POST: async (req): Promise<ApiResult<CreateInvoiceResponse>> => {
-      const response = await invoiceService.create(req.body)
+      const response = await invoiceService.create(req.body, requireStaffId(req))
       return { status: statusForResponse(response), body: response }
     },
   }),
   item: new ApiHandler({
     GET: async (req) => ok(await invoiceService.getById(req.params.id)),
-    PATCH: async (req) => ok(await invoiceService.update(req.params.id, req.body)),
+    PATCH: async (req) => ok(await invoiceService.update(req.params.id, req.body, requireStaffId(req))),
   }),
 }

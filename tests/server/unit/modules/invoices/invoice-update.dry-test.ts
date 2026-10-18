@@ -94,7 +94,7 @@ function assertStatusPatch(
   updateCalls: Array<{ invoiceNumber: string; data: Record<string, unknown> }>,
   status: 'CANCELLED' | 'VOID',
 ): void {
-  assert.deepEqual(updateCalls, [{ invoiceNumber: 'INV-0001', data: { status, updated_by: 'admin' } }])
+  assert.deepEqual(updateCalls, [{ invoiceNumber: 'INV-0001', data: { status, updated_by: 'session-staff' } }])
   assert.equal('deleted_at' in updateCalls[0]!.data, false)
   assert.equal('deleted_by' in updateCalls[0]!.data, false)
 }
@@ -102,7 +102,7 @@ function assertStatusPatch(
 test('update() commits CANCELLED for an issued invoice, syncs the view, and reports the sync result', async () => {
   const { service, calls, updateCalls } = createService({ invoiceReadRows: invoiceRow('ISSUED') })
 
-  const result = await service.update('INV-0001', { status: 'CANCELLED' })
+  const result = await service.update('INV-0001', { status: 'CANCELLED' }, 'session-staff')
 
   assert.deepEqual(result, { invoiceNumber: 'INV-0001', status: 'CANCELLED', viewSynced: true })
   assert.deepEqual(calls, ['Invoice.update', 'ViewSync'])
@@ -112,7 +112,7 @@ test('update() commits CANCELLED for an issued invoice, syncs the view, and repo
 test('update() commits VOID for an issued invoice', async () => {
   const { service, calls, updateCalls } = createService({ invoiceReadRows: invoiceRow('ISSUED') })
 
-  const result = await service.update('INV-0001', { status: 'VOID' })
+  const result = await service.update('INV-0001', { status: 'VOID' }, 'session-staff')
 
   assert.deepEqual(result, { invoiceNumber: 'INV-0001', status: 'VOID', viewSynced: true })
   assert.deepEqual(calls, ['Invoice.update', 'ViewSync'])
@@ -122,7 +122,7 @@ test('update() commits VOID for an issued invoice', async () => {
 test('update() is idempotent for an already CANCELLED invoice: it skips the write and retries view sync', async () => {
   const { service, calls, updateCalls } = createService({ invoiceReadRows: invoiceRow('CANCELLED') })
 
-  const result = await service.update('INV-0001', { status: 'CANCELLED' })
+  const result = await service.update('INV-0001', { status: 'CANCELLED' }, 'session-staff')
 
   assert.deepEqual(result, { invoiceNumber: 'INV-0001', status: 'CANCELLED', viewSynced: true })
   assert.deepEqual(calls, ['ViewSync'])
@@ -135,7 +135,7 @@ test('update() reports a failed view rebuild without undoing a committed status 
     viewSyncError: new Error('sync unavailable'),
   })
 
-  const result = await service.update('INV-0001', { status: 'CANCELLED' })
+  const result = await service.update('INV-0001', { status: 'CANCELLED' }, 'session-staff')
 
   assert.deepEqual(result, { invoiceNumber: 'INV-0001', status: 'CANCELLED', viewSynced: false })
   assert.deepEqual(calls, ['Invoice.update', 'ViewSync'])
@@ -150,7 +150,7 @@ test('update() rejects invalid and non-strict payloads with 422 before a sheet w
     { status: 'CANCELLED', updatedBy: 'client' },
   ]) {
     const { service, calls, updateCalls } = createService({ invoiceReadRows: invoiceRow('ISSUED') })
-    await expectApiStatus(() => service.update('INV-0001', payload), 422)
+    await expectApiStatus(() => service.update('INV-0001', payload, 'session-staff'), 422)
     assert.deepEqual(calls, [])
     assert.deepEqual(updateCalls, [])
   }
@@ -159,7 +159,7 @@ test('update() rejects invalid and non-strict payloads with 422 before a sheet w
 test('update() returns 404 for an unknown invoice without attempting a write or sync', async () => {
   const { service, calls, updateCalls } = createService()
 
-  await expectApiStatus(() => service.update('INV-404', { status: 'CANCELLED' }), 404)
+  await expectApiStatus(() => service.update('INV-404', { status: 'CANCELLED' }, 'session-staff'), 404)
   assert.deepEqual(calls, [])
   assert.deepEqual(updateCalls, [])
 })
@@ -170,7 +170,7 @@ test('update() returns 500 when the status write fails and does not report succe
     invoiceUpdateError: new Error('Sheets write failed'),
   })
 
-  await expectApiStatus(() => service.update('INV-0001', { status: 'VOID' }), 500)
+  await expectApiStatus(() => service.update('INV-0001', { status: 'VOID' }, 'session-staff'), 500)
   assert.deepEqual(calls, ['Invoice.update'])
 })
 

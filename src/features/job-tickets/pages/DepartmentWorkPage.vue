@@ -28,7 +28,7 @@ import { advanceSummary, countDepartmentStatuses, filterTickets, groupDepartment
 import type { AdvanceStatus, Grouper, OrderInfo, ScanQueueEntry, TicketStatus } from '../department-work'
 import { presentStartOrderResult, type ScanDisplay, type ScanTone } from '../scan-result'
 import { useScanNotice } from '../composables/useScanNotice'
-import { useScannerGunInput } from '../composables/useScannerGunInput'
+import { useScannerGunInput } from '@/shared/composables/useScannerGunInput'
 
 const route = useRoute()
 const router = useRouter()

@@ -87,7 +87,7 @@ async function main(): Promise<void> {
     generateItemId: () => 'aaaaaaaa',
   })
 
-  const result = await service.create(baseRequest())
+  const result = await service.create(baseRequest(), 'session-staff')
 
   assert.equal(result.kind, 'created')
   assert.deepEqual(calls, ['InvoiceItem.batchAppend', 'Invoice.create', 'OrderForm.update', 'ViewSync'])
@@ -104,7 +104,7 @@ async function main(): Promise<void> {
   const invoiceCommand = persistedInvoiceCommand as Record<string, unknown>
   assert.equal(invoiceCommand.status, 'ISSUED')
   assert.equal(invoiceCommand.billing_type, 'ORDER')
-  assert.equal(invoiceCommand.created_by, 'admin')
+  assert.equal(invoiceCommand.created_by, 'session-staff')
   assert.equal(
     invoiceCommand.customer,
     JSON.stringify({ customer_code: 'CUS-0001', customer_name: 'Somchai' }),
@@ -141,7 +141,7 @@ async function main(): Promise<void> {
     invoiceViewRepository,
     syncInvoiceView: async () => ({ outcome: 'confirmed' }),
   })
-  const failed = await retryProbeService.create(baseRequest())
+  const failed = await retryProbeService.create(baseRequest(), 'session-staff')
   assert.equal(failed.kind, 'items_write_failed')
   if (failed.kind === 'items_write_failed') {
     assert.equal(failed.certainty, 'unknown')

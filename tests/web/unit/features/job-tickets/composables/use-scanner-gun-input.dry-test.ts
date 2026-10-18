@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test, { type TestContext } from 'node:test'
 import { createRenderer, ref } from 'vue'
-import { useScannerGunInput } from '@/features/job-tickets/composables/useScannerGunInput'
+import { useScannerGunInput } from '@/shared/composables/useScannerGunInput'
 
 class TestElement extends EventTarget {
   constructor(readonly tagName = 'DIV', readonly isContentEditable = false) { super() }
@@ -16,7 +16,7 @@ const renderer = createRenderer<object, object>({
   parentNode: () => null, nextSibling: () => null,
 })
 
-function setup(t: TestContext, getter = false) {
+function setup(t: TestContext, getter = false, staffCards: 'skip' | 'only' = 'skip') {
   const windowDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window')
   const elementDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'HTMLElement')
   const windowTarget = new EventTarget()
@@ -28,7 +28,7 @@ function setup(t: TestContext, getter = false) {
   const enabled = ref(true)
   const app = renderer.createApp({
     setup() {
-      useScannerGunInput(code => scans.push(code), getter ? () => enabled.value : enabled)
+      useScannerGunInput(code => scans.push(code), getter ? () => enabled.value : enabled, { staffCards })
       return () => null
     },
   })
@@ -165,3 +165,14 @@ test('unmount removes the window listener', t => {
   assert.equal(key('Enter').defaultPrevented, false)
   assert.deepEqual(scans, [])
 })
+
+for (const mode of ['skip', 'only'] as const) {
+  test(`staff cards are filtered in ${mode} mode`, t => {
+    const { scans, key, burst } = setup(t, false, mode)
+    burst()
+    key('Enter')
+    for (const code of ['KeyM', 'KeyW', 'KeyS', 'Minus', 'Digit1']) key(code)
+    key('Enter')
+    assert.deepEqual(scans, mode === 'only' ? ['mws-1'] : ['a12'])
+  })
+}

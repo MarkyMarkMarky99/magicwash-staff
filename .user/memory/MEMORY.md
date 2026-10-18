@@ -7,9 +7,11 @@
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 - **`feat/corporate-order-form`** — corporate count-sheet order page, UI only; needs entry point, real-login check, save design; see `.user/memory/feat-corporate-order-form.md` (on that branch).
-- **`feat/shared-device-operator`** — in progress in another session (worktree `.worktrees/shared-device-operator`); status owned there, see [[shared-device-staff-card-design]] in auto-memory.
 
 ## Pending work
+- **Shared device + staff card (`MWS-<StaffId>`)** — see `docs/features/staff/shared-device.md`
+  - Owner: print a card for every staff member who uses the shared device; first real gun session on prod.
+  - Device writes are blocked until a card is scanned; server trusts `X-Operator-Id` (no proof a card was scanned).
 - **Wash queue + dryer queue** — see `docs/features/wash-queue/wash-queue.md`
   - Owner: update G Drive `WashQueue.json` `tag_code` description (still says one A-Z letter); phone-check auto tag and detail photo slides on prod.
   - NEXT: drying steps (tumble/line dry, auto dryer booking on unload) — full handoff in `.user/memory/wash-drying-steps-handoff.md`.

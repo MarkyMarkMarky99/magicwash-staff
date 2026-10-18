@@ -168,7 +168,7 @@ test('Invoices and InvoiceItems field maps pin every DB-to-API value', () => {
 test('create() returns "created" and calls stages in the exact required order, once each', async () => {
   const { service, calls, invoiceAppendCalls, orderFormUpdateCalls } = createService()
 
-  const result = await service.create(baseRequest())
+  const result = await service.create(baseRequest(), 'session-staff')
 
   assert.equal(result.kind, 'created')
   assert.deepEqual(calls, ['InvoiceItem.batchAppend', 'Invoice.create', 'OrderForm.update', 'ViewSync'])
@@ -190,7 +190,7 @@ test('create() computes server-side totals — client-sent numbers are never tru
     { description: 'Item A', quantity: 10, unitPrice: 50, adjustments: [{ label: 'Discount', calculation: 'FIXED', value: -10 }] },
   ]
 
-  const result = await service.create(request)
+  const result = await service.create(request, 'session-staff')
   assert.equal(result.kind, 'created')
   if (result.kind === 'created') {
     // FIXED -10 applies PER UNIT before the × quantity multiply: 400, not 490.
@@ -202,7 +202,7 @@ test('create() computes server-side totals — client-sent numbers are never tru
 test('create() rejects invalid input as validation_error and calls no repository', async () => {
   const { service, calls } = createService()
 
-  const result = await service.create({ invoiceNumber: '' })
+  const result = await service.create({ invoiceNumber: '' }, 'session-staff')
 
   assert.equal(result.kind, 'validation_error')
   assert.deepEqual(calls, [])
@@ -213,7 +213,7 @@ test('create() rejects a requested invoice number returned by the preflight read
     invoiceReadRows: [{ invoice_number: 'INV260700000001' }],
   })
 
-  const result = await service.create(baseRequest())
+  const result = await service.create(baseRequest(), 'session-staff')
 
   assert.equal(result.kind, 'validation_error')
   if (result.kind === 'validation_error') {
@@ -231,7 +231,7 @@ test('create() rejects a requested invoice number returned by the preflight read
 test('create() treats an empty invoice-number preflight read as unused and preserves the created outcome', async () => {
   const { service, calls, invoiceReadCalls } = createService({ invoiceReadRows: [] })
 
-  const result = await service.create(baseRequest())
+  const result = await service.create(baseRequest(), 'session-staff')
 
   assert.deepEqual(result, {
     kind: 'created',
@@ -249,7 +249,7 @@ test('create() proceeds normally when the invoice-number preflight read throws',
     invoiceReadError: new Error('invoice read unavailable'),
   })
 
-  const result = await service.create(baseRequest())
+  const result = await service.create(baseRequest(), 'session-staff')
 
   assert.deepEqual(result, {
     kind: 'created',
@@ -267,7 +267,7 @@ test('create() reports items_write_failed and stops before Invoice.create on a d
     itemsError: new WriteRejectedError('APPEND', 'bad batch'),
   })
 
-  const result = await service.create(baseRequest())
+  const result = await service.create(baseRequest(), 'session-staff')
 
   assert.deepEqual(result, {
     kind: 'items_write_failed',
@@ -282,7 +282,7 @@ test('create() still reports items_write_failed for an unknown transport outcome
     itemsError: new WriteTransportError('APPEND', 'network hiccup'),
   })
 
-  const result = await service.create(baseRequest())
+  const result = await service.create(baseRequest(), 'session-staff')
 
   assert.equal(result.kind, 'items_write_failed')
   if (result.kind === 'items_write_failed') {
@@ -298,7 +298,7 @@ test('create() classifies an unrecognized write error as unknown', async () => {
     itemsError: new Error('unexpected write failure'),
   })
 
-  const result = await service.create(baseRequest())
+  const result = await service.create(baseRequest(), 'session-staff')
 
   assert.deepEqual(result, {
     kind: 'items_write_failed',
@@ -313,7 +313,7 @@ test('create() reports invoice_write_failed with certainty "rejected" after item
     invoiceError: new WriteRejectedError('APPEND', 'duplicate invoice_number'),
   })
 
-  const result = await service.create(baseRequest())
+  const result = await service.create(baseRequest(), 'session-staff')
 
   assert.deepEqual(result, {
     kind: 'invoice_write_failed',
@@ -329,7 +329,7 @@ test('create() reports invoice_write_failed with certainty "unknown" for an unco
     invoiceError: new WriteTransportError('APPEND', 'network hiccup'),
   })
 
-  const result = await service.create(baseRequest())
+  const result = await service.create(baseRequest(), 'session-staff')
 
   assert.deepEqual(result, {
     kind: 'invoice_write_failed',
@@ -343,7 +343,7 @@ test('create() reports order_link_failed — never invoice_write_failed — afte
   const rejected = createService({
     orderFormError: new WriteRejectedError('UPDATE', 'OrderForm row not found'),
   })
-  const rejectedResult = await rejected.service.create(baseRequest())
+  const rejectedResult = await rejected.service.create(baseRequest(), 'session-staff')
   assert.deepEqual(rejectedResult, {
     kind: 'order_link_failed',
     invoiceNumber: 'INV260700000001',
@@ -355,7 +355,7 @@ test('create() reports order_link_failed — never invoice_write_failed — afte
   const unknown = createService({
     orderFormError: new WriteTransportError('UPDATE', 'network hiccup'),
   })
-  const unknownResult = await unknown.service.create(baseRequest())
+  const unknownResult = await unknown.service.create(baseRequest(), 'session-staff')
   assert.deepEqual(unknownResult, {
     kind: 'order_link_failed',
     invoiceNumber: 'INV260700000001',
@@ -369,7 +369,7 @@ test('create() reports invoice_view_sync_failed after every source write is comp
     viewSyncResult: { outcome: 'failed', certainty: 'rejected', message: 'View unavailable' },
   })
 
-  const result = await service.create(baseRequest())
+  const result = await service.create(baseRequest(), 'session-staff')
 
   assert.deepEqual(result, {
     kind: 'invoice_view_sync_failed',
@@ -385,7 +385,7 @@ test('create() reports invoice_view_sync_failed with certainty "unknown" when th
     viewSyncResult: { outcome: 'failed', certainty: 'unknown', message: 'timed out' },
   })
 
-  const result = await service.create(baseRequest())
+  const result = await service.create(baseRequest(), 'session-staff')
 
   assert.deepEqual(result, {
     kind: 'invoice_view_sync_failed',
@@ -402,7 +402,7 @@ test('create() catches a thrown/rejected syncInvoiceView instead of letting it e
     viewSyncError: new Error('sync client blew up'),
   })
 
-  const result = await service.create(baseRequest())
+  const result = await service.create(baseRequest(), 'session-staff')
 
   assert.equal(result.kind, 'invoice_view_sync_failed')
   if (result.kind === 'invoice_view_sync_failed') {

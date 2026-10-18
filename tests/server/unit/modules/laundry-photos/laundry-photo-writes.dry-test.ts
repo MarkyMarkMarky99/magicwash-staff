@@ -29,7 +29,7 @@ function jsonResponse(body: unknown): Response {
 }
 
 function request(method: string, body: unknown, params: Record<string, string> = {}): ApiHandlerRequest {
-  return { method, query: {}, body, headers: {}, params }
+  return { method, query: {}, body, headers: {}, staff: { staffId: 'session-staff', email: 'staff@test', name: 'Staff', role: 'staff' as const }, params }
 }
 
 const originalFetch = globalThis.fetch
@@ -66,7 +66,6 @@ try {
     { imageUrl: 'https://example.test/photo.jpg', createdBy: 'staff-1' },
     { orderId: '', imageUrl: 'https://example.test/photo.jpg', createdBy: 'staff-1' },
     { orderId: 'order-1', imageUrl: '', createdBy: 'staff-1' },
-    { orderId: 'order-1', imageUrl: 'https://example.test/photo.jpg', createdBy: '' },
   ]) {
     const result = await laundryPhotoRoutes.collection.handleRequest(request('POST', invalid))
     assert.equal(result.status, 422)
@@ -102,7 +101,7 @@ try {
   assert.equal(firstRow[5], 'https://example.test/photo.jpg')
   assert.equal(firstRow[6], '')
   assert.match(String(firstRow[7]), /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
-  assert.equal(firstRow[8], 'staff-1')
+  assert.equal(firstRow[8], 'session-staff')
   assert.equal(firstRow[9], '')
   assert.equal(firstRow[10], '')
   assert.deepEqual(firstRow.slice(11), ['', '', '', '', ''])

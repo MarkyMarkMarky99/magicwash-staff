@@ -3,4 +3,4 @@ import { createCrudRoutes } from '../../shared/http/crud-routes.js'
 import { WorkOrderService } from './work-order.service.js'
 
 export const workOrderService = new WorkOrderService()
-export const workOrderRoutes = createCrudRoutes(workOrderService, workOrderApiContract)
+export const workOrderRoutes = createCrudRoutes(workOrderService, workOrderApiContract, { create: ['createdBy'], update: ['updatedBy'] })
