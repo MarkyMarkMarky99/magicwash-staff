@@ -2,13 +2,13 @@
 
 A Google account that is not on the `Staff` allow-list registers itself, then waits for an admin to approve it. Admins approve and maintain staff from a list. There is no self-edit after registration: only admins change a staff row.
 
-Backend contract: `contracts/staff/staff-api.schema.ts`. Routes: `GET /api/staff/me`, `POST /api/staff`, authenticated `GET /api/staff`, and admin-only `GET /api/staff/:staffId`, `PATCH /api/staff/:staffId`. The authenticated list returns every staff profile, including pending/inactive rows. Card codes are excluded from all staff profile responses. Invalid or missing authentication returns 401. The app prefetches it at load to map StaffIds to names. All staff GETs bypass the response cache (`/api/staff` is in `NEVER_CACHE`), so an approval is visible on the next read.
+Backend contract: `contracts/staff/staff-api.schema.ts`. Routes: `GET /api/staff/me`, `POST /api/staff`, authenticated `GET /api/staff`, and admin-only `GET /api/staff/:staffId`, `PATCH /api/staff/:staffId`. The authenticated list returns every staff profile, including pending/inactive rows. Invalid or missing authentication returns 401. The app prefetches it at load to map StaffIds to names. All staff GETs bypass the response cache (`/api/staff` is in `NEVER_CACHE`), so an approval is visible on the next read.
 
 ## Login states
 
 `auth.store.ts` drives them; `LoginPage.vue` renders them. See `docs/architecture/frontend/project-structure.md` for the sequence.
 
-- `GET /api/auth/me` succeeds: `signedIn`; the response includes `staffId`. The login reader reads A:J, including optional CardCode. The server records the authenticated session StaffId for writes; shared devices use the scanned operator. Client actor fields and `?by=` cannot select the server actor.
+- `GET /api/auth/me` succeeds: `signedIn`; the response includes `staffId`. The login reader reads A:I. The server records the authenticated session StaffId for writes; shared devices use the scanned operator. Client actor fields and `?by=` cannot select the server actor.
 - 403 then `GET /api/staff/me` returns 404: `unregistered`. Signing in navigates (replace) to `/staff/register`. Opening `/login` while still unregistered shows a register button and a logout button instead of redirecting, so Back from the form cannot loop.
 - 403 then a row with `role = null` or `active = false`: `pending`. The login page shows "ลงทะเบียนแล้ว รอผู้ดูแลอนุมัติ" and a logout button. A pending user is never `signedIn`.
 - 403 then a row that is active with a role: contradictory, treated as an error and signed out.
@@ -47,6 +47,6 @@ Every signed-in staff member (`status = signedIn`, any role) sees the nav entry,
 
 Approved roles are `admin`, `staff`, and `device`. An active `device` row belongs to a shared shop Google account; it does not grant admin rights. Admins can select this role in the existing staff form.
 
-Admins issue or replace a staff card with `POST /api/staff/issue-card/:staffId`. The action overwrites the row's `CardCode` with a generated `MWS-` code, invalidates the login allow-list cache, and returns `staffId` and `cardCode` for the issued card. Replacing a card immediately retires its previous code. Ordinary staff list, detail, registration, and update responses never include card codes. Existing sheets without a CardCode header can still sign in; issuing a card requires that column.
+The card code is `MWS-<StaffId>`, derived from the StaffId, not stored, and never reissued. A lost card is reprinted with the same code. The login reader reads A:I.
 
 See [Shared shop device and staff card operator](shared-device.md) for scanning, expiry, and server authorization.

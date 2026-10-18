@@ -24,13 +24,6 @@ export function createStaffRoutes(service: StaffService): GatewayModuleRoutes {
       },
       POST: async (req) => created(await service.register(requireIdentity(req), req.body)),
     }),
-    nestedItem: {
-      path: 'issue-card',
-      handler: new ApiHandler({ POST: async (req) => {
-        requireAdmin(req)
-        return ok(await service.issueCard(req.params.id!))
-      } }),
-    },
     item: new ApiHandler({
       GET: async (req) => {
         if (req.params.id === 'me') return ok(await service.me(requireIdentity(req)))

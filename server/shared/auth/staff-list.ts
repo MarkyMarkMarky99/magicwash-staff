@@ -5,7 +5,6 @@ export interface StaffMember {
   email: string
   name: string
   role: 'admin' | 'staff' | 'device'
-  cardCode?: string
 }
 
 const CACHE_TTL_MS = 60_000
@@ -25,7 +24,6 @@ export function parseStaffList(rows: SheetsApiValues): Map<string, StaffMember> 
   const columns = ['Email', 'Name', 'Role', 'Active', 'StaffId'].map((name) => header.indexOf(name))
   if (columns.some((index) => index < 0)) throw new Error('Staff sheet is missing required columns')
   const [emailColumn, nameColumn, roleColumn, activeColumn, staffIdColumn] = columns as [number, number, number, number, number]
-  const cardCodeColumn = header.indexOf('CardCode')
   const members = new Map<string, StaffMember>()
   for (const row of data) {
     const staffId = String(row[staffIdColumn] ?? '').trim()
@@ -35,8 +33,7 @@ export function parseStaffList(rows: SheetsApiValues): Map<string, StaffMember> 
     const active = row[activeColumn]
     if (!email || (role !== 'admin' && role !== 'staff' && role !== 'device')) continue
     if (active !== true && !(typeof active === 'string' && active.trim().toLowerCase() === 'true')) continue
-    const cardCode = String(row[cardCodeColumn] ?? '').trim() || undefined
-    members.set(email.toLowerCase(), { staffId, email, name, role, ...(cardCode ? { cardCode } : {}) })
+    members.set(email.toLowerCase(), { staffId, email, name, role })
   }
   return members
 }
@@ -45,7 +42,7 @@ async function loadStaffList(): Promise<Map<string, StaffMember>> {
   const spreadsheetId = process.env.STAFF_SPREADSHEET_ID
   if (!spreadsheetId?.trim()) throw new Error('STAFF_SPREADSHEET_ID is not set')
   const client = new SheetsApiClient({ spreadsheetId, sheetName: 'Staff' })
-  return parseStaffList(await client.readRange('A:J', { valueRenderOption: 'UNFORMATTED_VALUE' }))
+  return parseStaffList(await client.readRange('A:I', { valueRenderOption: 'UNFORMATTED_VALUE' }))
 }
 
 export function getStaffList(): Promise<Map<string, StaffMember>> {
@@ -70,7 +67,9 @@ export async function findStaffById(staffId: string): Promise<StaffMember | unde
 }
 
 export async function findStaffByCardCode(code: string): Promise<StaffMember | undefined> {
-  const cardCode = code.trim().toLowerCase()
-  if (!cardCode) return undefined
-  return [...(await getStaffList()).values()].find(member => member.cardCode?.toLowerCase() === cardCode)
+  const cardCode = code.trim()
+  if (!/^MWS-/i.test(cardCode)) return undefined
+  const staffId = cardCode.slice(4).trim()
+  if (!staffId) return undefined
+  return findStaffById(staffId)
 }

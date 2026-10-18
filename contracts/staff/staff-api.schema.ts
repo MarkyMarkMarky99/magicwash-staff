@@ -36,9 +36,7 @@ export const updateStaffBodySchema = z.object({
   message: 'At least one field is required',
 })
 
-export const issueStaffCardResponseSchema = z.object({ staffId: z.string(), cardCode: z.string() })
-
-const staffResponses = { list: staffSchema, detail: staffSchema, create: staffSchema, update: staffSchema, issueCard: issueStaffCardResponseSchema }
+const staffResponses = { list: staffSchema, detail: staffSchema, create: staffSchema, update: staffSchema }
 
 export const staffApiContract = {
   query: { list: z.object({}) },

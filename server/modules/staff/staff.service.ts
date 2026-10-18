@@ -84,19 +84,6 @@ export class StaffService {
     return { ...row.staff, ...body }
   }
 
-  async issueCard(staffId: string) {
-    const id = parseOrThrow(z.string().min(1), staffId)
-    const { header, rows } = await this.load()
-    const row = rows.find(({ staff }) => staff.staffId === id)
-    if (!row) throw ApiError.notFound('Staff not found')
-    const column = header.letterByName.CardCode
-    if (!column) throw new Error('Staff sheet is missing CardCode column')
-    const cardCode = `MWS-${generateShortId()}`
-    await this.client.updateCells([{ range: `Staff!${column}${row.rowNumber}`, values: [[cardCode]] }], 'RAW')
-    invalidateStaffListCache()
-    return { staffId: id, cardCode }
-  }
-
   private async load() {
     const headers = await this.client.readRange('1:1', { valueRenderOption: 'UNFORMATTED_VALUE' })
     const header = buildSheetHeaderMap(headers[0] ?? [], Object.values(staffColumns), 'Email')

@@ -53,7 +53,7 @@ export class ApiGateway {
       if (operatorId !== undefined) {
         const operator = typeof operatorId === 'string' ? await findStaffById(operatorId) : undefined
         if (!operator) throw ApiError.forbidden('Operator is not an active staff member')
-        staff = { ...operator, role: 'staff', cardCode: undefined }
+        staff = { ...operator, role: 'staff' }
       } else if (req.method !== 'GET') {
         throw ApiError.forbidden('Scan a staff card first')
       }

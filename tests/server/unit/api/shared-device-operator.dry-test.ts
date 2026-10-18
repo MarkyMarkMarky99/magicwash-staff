@@ -5,20 +5,22 @@ import { ApiHandler, type ApiHandlerRequest } from '../../../../server/shared/ht
 import { SheetsApiClient, type SheetsApiValue } from '../../../../server/shared/repositories/sheets-api.client.js'
 import { findStaffByCardCode, findStaffById, invalidateStaffListCache } from '../../../../server/shared/auth/staff-list.js'
 import { authRoutes } from '../../../../server/modules/auth/auth.module.js'
-import { StaffService } from '../../../../server/modules/staff/staff.service.js'
 import { jobTicketAdvanceService, jobTicketRoutes } from '../../../../server/modules/job-tickets/job-ticket.module.js'
 
 const originalRead = SheetsApiClient.prototype.readRange
 const originalSpreadsheet = process.env.STAFF_SPREADSHEET_ID
 process.env.STAFF_SPREADSHEET_ID = 'staff-test'
 const values: SheetsApiValue[][] = [
-  ['Email', 'Name', 'Role', 'Active', 'StaffId', 'Phone', 'Address', 'Position', 'StartDate', 'CardCode'],
-  ['device@test', 'Shop', 'device', true, 'device', '', '', '', '', ''],
-  ['staff@test', 'Worker', 'staff', true, 'worker', '', '', '', '', 'MWS-worker'],
-  ['admin@test', 'Admin', 'admin', true, 'admin', '', '', '', '', 'MWS-admin'],
-  ['inactive@test', 'Inactive', 'staff', false, 'inactive', '', '', '', '', 'MWS-inactive'],
+  ['Email', 'Name', 'Role', 'Active', 'StaffId', 'Phone', 'Address', 'Position', 'StartDate'],
+  ['device@test', 'Shop', 'device', true, 'device', '', '', '', ''],
+  ['staff@test', 'Worker', 'staff', true, 'worker', '', '', '', ''],
+  ['admin@test', 'Admin', 'admin', true, 'admin', '', '', '', ''],
+  ['inactive@test', 'Inactive', 'staff', false, 'inactive', '', '', '', ''],
 ]
-SheetsApiClient.prototype.readRange = async () => values
+SheetsApiClient.prototype.readRange = async range => {
+  assert.equal(range, 'A:I')
+  return values
+}
 const device = { staffId: 'device', name: 'Shop', email: 'device@test', role: 'device' as const }
 const echo = new ApiHandler({ GET: req => ({ status: 200, body: req.staff }), POST: req => ({ status: 200, body: req.staff }) })
 const gateway = new ApiGateway({
@@ -33,7 +35,12 @@ const data = (result: { body: unknown }) => (result.body as { data: Record<strin
 try {
   invalidateStaffListCache()
   assert.equal((await findStaffById(' WORKER '))?.staffId, 'worker')
-  assert.equal((await findStaffByCardCode(' mws-WORKER '))?.staffId, 'worker')
+  for (const code of ['MWS-worker', ' mws-WORKER ', 'MwS-WoRkEr']) {
+    assert.equal((await findStaffByCardCode(code))?.staffId, 'worker')
+  }
+  for (const code of ['MWS-unknown', 'worker', 'JOB-MWS-worker', '', 'MWS-', ' mWs- ']) {
+    assert.equal(await findStaffByCardCode(code), undefined)
+  }
   assert.equal(await findStaffByCardCode('MWS-inactive'), undefined)
   const resolved = await call('POST', '/api/jobs', 'worker')
   assert.equal(resolved.status, 200)
@@ -56,31 +63,6 @@ try {
   const authMe = await authRoutes.item!.handleRequest({ method: 'GET', params: { id: 'me' }, query: {}, headers: {}, body: undefined, staff: worker })
   assert.equal('cardCode' in data(authMe), false)
   assert.equal((await authRoutes.item!.handleRequest({ method: 'GET', params: { id: 'card' }, query: { code: 'MWS-worker' }, headers: {}, body: undefined, staff: worker })).status, 403)
-
-  const service = new StaffService({
-    readRange: async range => range === '1:1' ? [values[0]!] : values.slice(1),
-    appendRows: async () => { throw new Error('unused') },
-    updateCells: async updates => {
-      assert.equal(updates[0]!.range, 'Staff!J3')
-      values[2]![9] = updates[0]!.values[0]![0]!
-      return { responses: [] }
-    },
-  })
-  const { createStaffRoutes } = await import('../../../../server/modules/staff/staff.module.js')
-  const staffRoutes = createStaffRoutes(service)
-  const issueRequest: ApiHandlerRequest = { method: 'POST', query: {}, headers: {}, body: undefined, params: { id: 'worker' }, staff: worker, email: worker.email }
-  assert.equal((await staffRoutes.nestedItem!.handler.handleRequest(issueRequest)).status, 403)
-  assert.equal((await staffRoutes.nestedItem!.handler.handleRequest({ ...issueRequest, staff: await findStaffById('admin') })).status, 200)
-  const issued = await service.issueCard('worker')
-  assert.match(issued.cardCode, /^MWS-[0-9a-f]{8}$/)
-  assert.equal(await findStaffByCardCode('MWS-worker'), undefined)
-  assert.equal((await findStaffByCardCode(issued.cardCode))?.staffId, 'worker')
-  const reissued = await service.issueCard('worker')
-  assert.notEqual(reissued.cardCode, issued.cardCode)
-  assert.equal(await findStaffByCardCode(issued.cardCode), undefined)
-  for (const row of [...await service.list(), await service.me('staff@test'), await service.getById('worker')]) {
-    assert.equal('CardCode' in row || 'cardCode' in row, false)
-  }
 
   const originalAdvance = jobTicketAdvanceService.advance
   let received: unknown

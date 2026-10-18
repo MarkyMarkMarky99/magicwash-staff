@@ -7,7 +7,7 @@
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 - **`feat/corporate-order-form`** — corporate count-sheet order page, UI only; needs entry point, real-login check, save design; see `.user/memory/feat-corporate-order-form.md` (on that branch).
-- **`feat/shared-device-operator`** — shared device + `MWS-<StaffId>` staff card operator, WIP committed, needs card-code rework, 13 behind main; see `.user/memory/feat-shared-device-operator.md`.
+- **`feat/shared-device-operator`** — shared device + `MWS-<StaffId>` staff card operator, WIP committed, 13 behind main, unverified live; see `.user/memory/feat-shared-device-operator.md`.
 
 ## Pending work
 - **Wash queue + dryer queue** — see `docs/features/wash-queue/wash-queue.md`
