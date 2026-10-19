@@ -10,7 +10,7 @@
 - Owner's uncommitted `config.json` in MagicwashInvoice (printApiKey, domain) left untouched on purpose.
 
 ## Delivery-tracking API — on main 2026-10-07
-- Live probe OK (`574fdcaa` → bag 4/4); owner still to scan a real tag on a phone.
+- Live probe OK (`574fdcaa` → bag 4/4).
 - `deliveredAt` = bag ticket `completed_at` + DELIVERY photo (merged 2026-10-08).
 - Also open: real shop LINE/phone in `utils/delivery-tracking.ts`; weight-tab font falls back to Arial on phones (load Archivo Black).
 

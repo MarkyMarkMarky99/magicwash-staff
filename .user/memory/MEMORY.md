@@ -13,13 +13,11 @@
   - Owner: print a card for every staff member who uses the shared device; first real gun session on prod.
   - Device writes are blocked until a card is scanned; server trusts `X-Operator-Id` (no proof a card was scanned).
 - **Wash queue + dryer queue** — see `docs/features/wash-queue/wash-queue.md`
-  - Owner: update G Drive `WashQueue.json` `tag_code` description (still says one A-Z letter); phone-check auto tag and detail photo slides on prod.
+  - Owner: update G Drive `WashQueue.json` `tag_code` description (still says one A-Z letter).
   - NEXT: drying steps (tumble/line dry, auto dryer booking on unload) — full handoff in `.user/memory/wash-drying-steps-handoff.md`.
-  - Phone-test on prod: booking camera shutter, swipe starting on the photo, card tap → `?basket=` detail sheet.
-  - Unload weighing + photo temporarily OFF (owner): flag `UNLOAD_WEIGH_REQUIRED` in `src/features/wash-queue/unload-policy.ts`; swipe-right loads or unloads at once, no confirm/undo; phone-check swipe-load on prod.
+  - Unload weighing + photo temporarily OFF (owner): flag `UNLOAD_WEIGH_REQUIRED` in `src/features/wash-queue/unload-policy.ts`; swipe-right loads or unloads at once, no confirm/undo.
   - Time Book save on prod (~4 s on `vercel dev`; estimate 2–2.5 s).
   - Open: Hand wash option (needs a no-machine booking contract); tag label look not owner-approved; >1:30 warning colour, dryer copy, Photo button edge; KPI deferred.
-- Phone-check every swipe list on prod: rounded corners now owned by `BaseSwipeCard`; appointment card badge and 4rem-per-action panels.
 - Approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
 - **Packaging bags and Logistics**
   - Print one unweighed (PACK) bag tag on prod; PACK photos do not show on order detail yet.
@@ -36,12 +34,11 @@
   - Deferred by owner: status cards show current status, not status on that day; check whether orders ever reach COMPLETED.
 - **Staff KPI (WorkTransactions / WorkRates)**
   - Browser-check the staff profile page `/staff/:staffId` (Day date strip, Week leaderboard); only unit-tested.
-  - Staff list daily ranking: browser-check on a phone and as non-admin.
+  - Staff list daily ranking: check as non-admin.
   - Accepted risk: two simultaneous completions of one ticket can write two EARNs; correct with a VOID row.
   - Before KPI drives pay: server must take the actor from the token, not the client body.
   - Future: supervisor-created tickets with custom `work_minutes`; Month view; Attendance for efficiency %.
   - Design canvas for the profile: claude.ai/artifact/NACQydNrsqjzx31RrK6tsX.
-- Phone-check a form's close X sits top-right with no white strip.
 - **Packages**
   - Package detail hero card: low-credit badge threshold (20%) was Claude's pick, not confirmed by user.
   - Package Add transaction form: browser-check each type; voiding a past credit-add can still drive the balance negative.
@@ -55,7 +52,6 @@
 - **Garment tracking and job tickets**
   - Watch the first prod Start/Complete (advance reads JobTickets once via `readRaw`).
   - Barcode-gun scanning, scan sounds, gun-scan photo popup and scan-to-top: not yet used with a gun on prod.
-  - Phone-check on prod: per-department load, one-hour department cache, list pull-to-refresh.
   - Scan FAB sits below the screen edge on some phones; cause unknown, awaiting the user's device/browser details.
   - Overlapping order Start notices share one page-notice slot; the later replaces the earlier.
   - `AdvanceConfirmDialog` raises `#overlay-root` z-index while open; replace once a shared confirm dialog exists.
@@ -80,7 +76,6 @@
 - **Order detail UI**
   - Open phone/browser checks and decisions: see `.user/memory/order-detail-ui.md`.
 - **Images and gallery**
-  - Phone-check document scanner acceptance, camera flash, and initial detection; consider worker enhancement only if staff complain.
   - Backfill `Cache-Control` on existing photos after Firebase bucket credentials are available. See `docs/plans/image-pipeline.md`.
   - Deferred: preloading image files on order detail; decide once photo counts per order are known.
   - Move `usePhotoUpload.js` into the gallery feature and decide where legacy photo capture belongs.
@@ -135,7 +130,6 @@
   - Two allowlisted cross-feature imports remain (`PriceListItemPicker` in invoices and orders); reopen only when a third feature needs it.
   - Appointment date strip opens at day 1 instead of centering today; diagnose in a real browser first.
   - `ListContainer` collapsible header is a non-focusable `div` without `aria-expanded`.
-  - Phone-test ISS-72adcdca: a cache-hit customer-row tap must open only customer detail, while the swipe action still fires.
   - Browser-check ListContainer search, theme consistency, and the order-detail dropdown at the bottom edge.
   - Delete `docs/plans/scroll-region.md` and `docs/plans/overlay-frame.md` once unreferenced.
   - Delete sheet test data: `Items` `ITM-0099` / `2e6b91d2`; `OrderForm` `246fde2b`, `cc4d375e`, `f68ae08d`; `LaundryPhotos` `QK0H9DT1`, `a260b2b1`, `1b7649ba`; `AfterPhoto` `0aacd052`.

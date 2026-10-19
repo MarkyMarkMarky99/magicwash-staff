@@ -45,7 +45,6 @@ Reply to the owner in Thai. Owner avoids editing sheets: do NOT add sheet column
 ## Known debt (accepted, not urgent)
 - `wash-program.css` is a namespaced global file, not `<style scoped>` (children share it).
 - `WashQueueBookDialog.vue` restyles the shared overlay frame into a bottom sheet via `:global([data-overlay-*]:has(.wq-book-content))`; the proper fix is an option on the shared overlay (discuss first).
-- Not yet phone-tested: dryer mode, In machine timer frame, tap-outside swipe close, the whole booking dialog.
 
 ## Process rules that bit this session
 - Owner wants prototypes FIRST via `fast-design` / Sonnet HTML (`scratchpad/designs/*.html` served by `python -m http.server`), shown in Claude's browser, before touching Vue code.
