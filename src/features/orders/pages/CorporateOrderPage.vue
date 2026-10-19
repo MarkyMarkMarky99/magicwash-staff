@@ -10,7 +10,6 @@ import { usePriceListStore } from '@/data/price-list/price-list.store'
 import CorporateAddItemDialog from '@/features/orders/components/CorporateAddItemDialog.vue'
 import CorporateCountSheet from '@/features/orders/components/CorporateCountSheet.vue'
 import CorporateOrderHeader from '@/features/orders/components/CorporateOrderHeader.vue'
-import CorporateOrderTicket from '@/features/orders/components/CorporateOrderTicket.vue'
 import DocumentScannerOverlay from '@/features/orders/components/DocumentScannerOverlay.vue'
 import OrderFormSectionHeader from '@/features/orders/components/OrderFormSectionHeader.vue'
 import SlipPhotoControls from '@/features/orders/components/SlipPhotoControls.vue'
@@ -37,9 +36,7 @@ const customer = computed(() => customers.value.find((entry) => entry.customerId
 const listItems = computed(() => corporateOrderItems(customer.value?.priceGroup, priceListRows.value))
 const customerSub = computed(() => {
   if (!customer.value) return null
-  const parts = [customer.value.customerIndex, customer.value.customerType]
-  if (listItems.value.length > 0) parts.push(`${listItems.value.length} items on the list`)
-  return parts.filter(Boolean).join(' · ')
+  return [customer.value.customerIndex, customer.value.customerType].filter(Boolean).join(' · ')
 })
 const customerLoading = computed(() => customer.value === null && !customersLoaded.value && !customersError.value)
 const customerProblem = computed(() => {
@@ -131,13 +128,10 @@ onMounted(() => {
 <template>
   <div class="relative flex h-full w-full flex-col overflow-hidden bg-surface font-body text-on-surface">
     <ScrollRegion>
-      <CorporateOrderHeader :customer-name="customer?.customerName ?? null" :customer-sub="customerSub" :loading="customerLoading" :problem="customerProblem" @close="closeRoute" />
+      <CorporateOrderHeader :customer-name="customer?.customerName ?? null" :customer-sub="customerSub" :loading="customerLoading" :problem="customerProblem" v-model:received-date="draft.receivedDate" v-model:due-date="draft.dueDate" @close="closeRoute" />
 
       <div class="relative z-[1] -mt-4 rounded-t-2xl bg-surface px-4 pb-7 pt-4">
-        <OrderFormSectionHeader title="Order details" subtitle="Tap the due stub or the received date" />
-        <CorporateOrderTicket v-model:received-date="draft.receivedDate" v-model:due-date="draft.dueDate" v-model:note="draft.note" />
-
-        <div class="mt-[26px]">
+        <div>
           <OrderFormSectionHeader title="Count sheet" :subtitle="`Slip order · ${countedCount} of ${draft.lines.length} counted`">
             <template #action>
               <SlipPhotoControls :photos="draft.slipPhotos" @scan="openScanner()" @view="openViewer(draft.slipPhotos[0]!.id)" />

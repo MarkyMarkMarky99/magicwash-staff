@@ -25,7 +25,6 @@ export interface CorporateOrderDraft {
   customerId: string
   receivedDate: string
   dueDate: string
-  note: string
   serviceType: typeof CORPORATE_ORDER_SERVICE_TYPE
   lines: CorporateOrderLine[]
   slipPhotos: SlipPhoto[]

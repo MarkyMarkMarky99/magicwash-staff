@@ -14,7 +14,6 @@ export function useCorporateOrderDraft(customerId: () => string) {
   const draft = reactive<CorporateOrderDraft>({
     customerId: customerId(),
     ...defaultOrderDates(),
-    note: '',
     serviceType: CORPORATE_ORDER_SERVICE_TYPE,
     lines: [],
     slipPhotos: [],

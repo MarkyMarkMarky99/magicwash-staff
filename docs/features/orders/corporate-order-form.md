@@ -24,8 +24,8 @@ The customer comes from the route parameter. The page finds the customer in the 
 
 The page is a plain full-screen page with its own green header, not a `FormOverlay`, because it needs a customer card and two footer buttons.
 
-- Header: "New order" with the customer card showing the customer name and a sub line with the customer index, customer type and the number of items on the list. The close control leaves the page the same way as the Discard button.
-- Order ticket: a boarding-pass stub with only three fields. Due date is the large lime stub on the left, received date and note sit on the right. Received defaults to today and due defaults to two days later, both as Bangkok civil dates. A chip next to the received date shows the turnaround in days, and turns to a warning when due is before received or a date is missing. There is no order name, no piece count and no service picker.
+- Header: "New order" with the customer card. The close control leaves the page the same way as the Discard button.
+- Customer card: the customer name, a sub line with the customer index and customer type, and a "Received <date> · <turnaround>" line at the bottom. A lime calendar tile on the right of the card shows the due date (a "Due" band, the day number, weekday and month). Tapping the received line or the tile opens a native date picker. Received defaults to today and due defaults to two days later, both as Bangkok civil dates. The turnaround chip and the tile turn to a warning when due is before received or a date is missing. There is no separate order details section, no note, no order name, no piece count and no service picker.
 - Count sheet: a table with an item column and a counted column. Each row shows the item's image (or a glyph), its English name and its Thai name, and a counter with minus and plus buttons and a field to type the number. An empty counter means not counted; zero is a real count. The minus button is off until a count above zero exists. A total row at the bottom sums the counts. The section subtitle reads "Slip order" with how many lines have been counted out of all lines.
 - Added items: a button below the rows opens a small form for an item that is not on the customer's list. Staff type a name and a count. The line is shown with an "Added" tag and can be removed again.
 - Footer: only Discard and Save order. There are no totals or stats in the footer.
@@ -52,4 +52,4 @@ Corporate orders use WASH. This is an owner decision from 2026-10-14. The page k
 
 Save order makes no API call. It shows a notice, "Saving corporate orders is not connected yet", above the footer buttons. Discard and the header close control leave the page like the other forms: back to the in-app origin, or to the order list on a fresh deep link.
 
-The draft holds everything a later save needs: customer id, received date, due date, note, service type, the count lines (item code, English and Thai name, counted, added) and the slip photos. A later round connects Save to the backend without restructuring the page.
+The draft holds everything a later save needs: customer id, received date, due date, service type, the count lines (item code, English and Thai name, counted, added) and the slip photos. A later round connects Save to the backend without restructuring the page.
