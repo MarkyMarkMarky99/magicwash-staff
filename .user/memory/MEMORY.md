@@ -1,14 +1,18 @@
 # Project memory
-- Branch: `feat/corporate-order-form` (main: customer-package invoice deployment still needs verification).
+- Branch: `main`; customer-package invoice deployment still needs verification.
 
 ## Branches in flight
 
-- **`feat/corporate-order-form`** — corporate count-sheet page, Save wired and tested, opened from customer detail Count Sheet Order, CRYO list live; see `.user/memory/feat-corporate-order-form.md`.
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 
 ## Pending work
+- **Corporate count-sheet order** — see `docs/features/orders/corporate-order-form.md`
+  - Slip-photo upload on Save not yet tried in a real browser.
+  - Owner: update G Drive `PriceList.json` description (price-0 rows may be active for CRYO).
+  - Nav "รีเฟรชข้อมูล" does not refresh persisted customers/price-list/items cache.
+  - Items ITM-0099 is a leftover inactive "ZZ TEST" row; CRYO white bathrobe uses ITM-0117.
 - **Wash queue + dryer queue** — see `docs/features/wash-queue/wash-queue.md`
   - Owner: update G Drive `WashQueue.json` `tag_code` description (still says one A-Z letter).
   - NEXT: drying steps (tumble/line dry, auto dryer booking on unload) — full handoff in `.user/memory/wash-drying-steps-handoff.md`.
