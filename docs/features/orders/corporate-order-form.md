@@ -42,14 +42,22 @@ The Scan button sits at the right of the count sheet header and floats there, so
 
 Tapping the stack opens the shared photo viewer, which shows one page at a time with a page counter and a thumbnail strip. Its footer shows "Page n of N" with Retake and Remove. Retake opens the scanner for that page and returns to the viewer afterwards; Remove deletes the page and moves to a neighbouring page, or closes the viewer when it was the last one.
 
-The scanner and the viewer are route-owned overlays held in one `slip` query value, so browser Back closes them and does not leave the page. A refresh drops the value because the photos live only in page state. Photos are optional, are never uploaded, and are released when the page is left.
+The scanner and the viewer are route-owned overlays held in one `slip` query value, so browser Back closes them and does not leave the page. A refresh drops the value because the photos live only in page state. Photos are optional, are uploaded after order creation, and their local preview URLs are released when the page is left.
 
 ## Service type
 
 Corporate orders use WASH. This is an owner decision from 2026-10-14. The page keeps it as a constant in its draft and does not show it.
 
-## Save is not wired yet
+## Save
 
-Save order makes no API call. It shows a notice, "Saving corporate orders is not connected yet", above the footer buttons. Discard and the header close control leave the page like the other forms: back to the in-app origin, or to the order list on a fresh deep link.
+Save order uses the normal new-order flow's `workOrderCreateSchema`, `useOrderStore().create` and `currentActor()`. With no count above zero it makes no API call and shows "Count at least one item before saving" in the footer. While saving, both footer buttons are disabled and Save reads "Saving…"; repeated submissions are ignored.
 
-The draft holds everything a later save needs: customer id, received date, due date, service type, the count lines (item code, English and Thai name, counted, added) and the slip photos. A later round connects Save to the backend without restructuring the page.
+The payload uses the draft customer id, received date, due date and WASH service type, with quantity equal to the sum of positive counts. Order name, note and order description are null. Each positive-count line becomes one nested item with its count as quantity, English display name (Thai fallback, or the typed name for added lines) as description, and null price and special instructions. Its item id is the Items sheet row id matching its item code, preferring the first active match and otherwise using the first match. Added lines and lines with no matching Items row use null. PriceList rows still supply the count sheet display list but do not supply order-item ids. Zero and untouched lines are omitted.
+
+The page starts loading the existing Items store on mount. Save awaits the store's own load promise before mapping ids; if loading fails, it keeps the draft and shows the error without creating an order.
+
+After creation, each slip photo uploads in page order through `useOrderImageStore().captureImage`, using the created order id, DOCUMENT type, the original File and null quantity. Upload failures are read from the store's `uploadError` after each upload; they do not undo the order or stop later uploads.
+
+Full success replaces the route with `order-detail` and the created order id, exactly as the normal new-order page does. The existing detail notice is specific to approval/ticket creation, so item-row or photo failures instead keep this page open with a footer notice containing the saved order id and an Open order link. Save remains disabled after creation to prevent duplicate orders. A create failure keeps the draft and shows the error in the footer, allowing retry.
+
+Discard and the header close control leave the page like the other forms: back to the in-app origin, or to the order list on a fresh deep link. Discard is disabled during saving.

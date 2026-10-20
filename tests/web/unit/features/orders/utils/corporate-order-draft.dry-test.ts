@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   addedLine,
   countedLineCount,
+  corporateOrderCreatePayload,
   defaultOrderDates,
   dueStubLabel,
   mergeListLines,
@@ -12,6 +13,7 @@ import {
   totalCounted,
   turnaround,
 } from '@/features/orders/utils/corporate-order-draft'
+import { workOrderCreateSchema } from '@contracts/work-orders/work-order-api.schema'
 
 const towel = { itemCode: 'ITM-0001', nameEn: 'Bath towel', nameTh: 'ผ้าเช็ดตัว', imageUrl: null }
 const sheet = { itemCode: 'ITM-0002', nameEn: null, nameTh: 'ผ้าปูที่นอน', imageUrl: null }
@@ -63,4 +65,56 @@ test('date labels and turnaround', () => {
   assert.deepEqual(turnaround('2026-10-13', '2026-10-13'), { label: 'Same day', valid: true })
   assert.deepEqual(turnaround('2026-10-13', '2026-10-12'), { label: 'Due is before received', valid: false })
   assert.deepEqual(turnaround('', '2026-10-12'), { label: 'Set both dates', valid: false })
+})
+
+test('create payload maps positive counts, display names and the first active Items row by item code', () => {
+  const lines = mergeListLines([], [towel, sheet]).map((line, index) => ({ ...line, counted: index + 2 }))
+  lines.push(addedLine('added-1', '  Curtain ', 4))
+  lines.push({ ...lines[0]!, key: 'zero', counted: 0 })
+  lines.push({ ...lines[0]!, key: 'untouched', counted: null })
+  const draft = {
+    customerId: 'customer-1', receivedDate: '2026-10-20', dueDate: '2026-10-22',
+    serviceType: 'WASH' as const, lines, slipPhotos: [],
+  }
+  const rows = [
+    { id: 'inactive', itemCode: towel.itemCode, active: false },
+    { id: 'other-code', itemCode: 'ITM-9999', active: true },
+    { id: 'first-match', itemCode: towel.itemCode, active: true },
+    { id: 'second-match', itemCode: towel.itemCode, active: true },
+  ]
+  const originalDraft = structuredClone(draft)
+  const payload = corporateOrderCreatePayload(draft, rows, 'staff-1')
+  assert.deepEqual(payload, {
+    customerId: 'customer-1', receivedDate: '2026-10-20', dueDate: '2026-10-22',
+    serviceType: 'WASH', quantity: 9, orderName: null, note: null, orderDescription: null, createdBy: 'staff-1',
+    items: [
+      { itemId: 'first-match', description: 'Bath towel', quantity: 2, price: null, specialInstructions: null },
+      { itemId: null, description: 'ผ้าปูที่นอน', quantity: 3, price: null, specialInstructions: null },
+      { itemId: null, description: 'Curtain', quantity: 4, price: null, specialInstructions: null },
+    ],
+  })
+  assert.deepEqual(workOrderCreateSchema.parse(payload), payload)
+  assert.equal(corporateOrderCreatePayload(draft, [rows[0]!], 'staff-1').items[0]!.itemId, 'inactive')
+  assert.equal(corporateOrderCreatePayload(draft, [], 'staff-1').items[0]!.itemId, null)
+  assert.deepEqual(draft, originalDraft)
+})
+
+test('create payload omits zero and untouched lines and keeps added lines unlinked to Items rows', () => {
+  const draft = {
+    customerId: 'customer-1', receivedDate: '2026-10-20', dueDate: '2026-10-22',
+    serviceType: 'WASH' as const,
+    lines: [addedLine('zero', 'Zero', 0), addedLine('empty', 'Empty', null)],
+    slipPhotos: [],
+  }
+  const empty = corporateOrderCreatePayload(draft, [], 'staff-1')
+  assert.deepEqual(empty.items, [])
+  assert.equal(empty.quantity, 0)
+  draft.lines.push({ ...addedLine('added', 'Typed name', 1), itemCode: towel.itemCode })
+  const payload = corporateOrderCreatePayload(draft, [
+    { id: 'matched', itemCode: towel.itemCode, active: true },
+  ], 'staff-1')
+  assert.equal(payload.items.length, 1)
+  assert.equal(payload.items[0]!.itemId, null)
+  assert.equal(payload.items[0]!.description, 'Typed name')
+  assert.equal(payload.quantity, 1)
 })

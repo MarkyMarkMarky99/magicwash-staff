@@ -1,11 +1,12 @@
 # feat/corporate-order-form
 
-- UI-only corporate new-order page at `/orders/new/corporate/:customerId`; Save shows "not connected" notice. Spec: `docs/features/orders/corporate-order-form.md`.
-- Dates live in the customer card (calendar tile for due, received line); Order details section and Note removed by owner 2026-10-20.
-- CRYO list is live: 22 PriceList rows (`price_group=CRYO`, WASH, price 0, active) and `PriceGroup=CRYO` on the 4 Cryo customers.
-- Open decision: items show in item_code order, owner wants the Cryo form's order; proposed `display_order` column on PriceList, awaiting owner yes.
+- Corporate new-order page at `/orders/new/corporate/:customerId`; Save creates a real order via the normal `orderStore.create` with nested items + DOCUMENT slip photos. Spec: `docs/features/orders/corporate-order-form.md`.
+- CRYO list is live: 22 PriceList rows (`price_group=CRYO`, WASH, price 0, active), matching Items rows, SVG icons as `image_url`, `PriceGroup=CRYO` on the 4 Cryo customers.
+- White bathrobe is ITM-0117 because Items ITM-0099 is a leftover inactive "ZZ TEST" row.
+- Test order `13eb1540` (CRYO - GAYSORN, PENDING, 2 item rows) is live in OrderForm/OrderItemForms; owner to delete or keep.
+- Slip-photo upload on Save not yet tried in a real browser (test order had no photos).
 - Registry `PriceList.json` still says price-0 rows stay inactive; CRYO rows break that on purpose (no per-item price), owner to update the description.
 - No entry point yet: owner to choose where it launches (e.g. customer detail New Order for customers with `PriceGroup`).
-- Next round (needs design): save = create order (service type WASH) + batch order items + upload slip photos (OrderImages DOCUMENT?).
-- Nav "รีเฟรชข้อมูล" did not refresh the persisted customers/price-list cache on 3001; needed a manual localStorage clear.
+- Nav "รีเฟรชข้อมูล" did not refresh the persisted customers/price-list/items cache on 3001; needed a manual localStorage clear.
+- Icon sources live in `.user/cryo-icons/` (untracked).
 - Known gaps vs prototype: no hold-to-repeat on +/−, no Change customer button, inline notice instead of toast.

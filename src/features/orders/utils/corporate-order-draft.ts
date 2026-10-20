@@ -1,5 +1,7 @@
 import { addSheetDateDays, getSheetDateCalendar, sheetDateDaysBetween, todaySheetDate } from '@/shared/utils/sheet-date'
 import type { CorporateOrderItem } from './corporate-order-items'
+import type { ItemDto } from '@/data/items/items.service'
+import type { WorkOrderCreatePayload } from '@/data/work-orders/work-order.service'
 
 export const CORPORATE_ORDER_SERVICE_TYPE = 'WASH'
 export const CORPORATE_ORDER_TURNAROUND_DAYS = 2
@@ -28,6 +30,36 @@ export interface CorporateOrderDraft {
   serviceType: typeof CORPORATE_ORDER_SERVICE_TYPE
   lines: CorporateOrderLine[]
   slipPhotos: SlipPhoto[]
+}
+
+export function corporateOrderCreatePayload(
+  draft: CorporateOrderDraft,
+  rows: readonly Pick<ItemDto, 'id' | 'itemCode' | 'active'>[],
+  createdBy: string,
+): WorkOrderCreatePayload {
+  const items = draft.lines.filter((line) => line.counted !== null && line.counted > 0).map((line) => {
+    const item = rows.find((row) => row.active && row.itemCode === line.itemCode)
+      ?? rows.find((row) => row.itemCode === line.itemCode)
+    return {
+      itemId: line.added ? null : item?.id ?? null,
+      description: lineTitle(line),
+      quantity: line.counted!,
+      price: null,
+      specialInstructions: null,
+    }
+  })
+  return {
+    customerId: draft.customerId,
+    receivedDate: draft.receivedDate,
+    dueDate: draft.dueDate,
+    serviceType: draft.serviceType,
+    quantity: items.reduce((sum, item) => sum + item.quantity, 0),
+    orderName: null,
+    note: null,
+    orderDescription: null,
+    createdBy,
+    items,
+  }
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']

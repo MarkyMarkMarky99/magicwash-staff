@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { workOrderCreateSchema } from '@contracts/work-orders/work-order-api.schema'
+import { currentActor } from '@/shared/config/actor'
 import PhotoViewer from '@/shared/components/PhotoViewer.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import { useCloseRoute } from '@/shared/navigation/use-close-route'
 import { useCustomerStore } from '@/data/customers/customer.store'
 import { usePriceListStore } from '@/data/price-list/price-list.store'
+import { useItemsStore } from '@/data/items/items.store'
 import CorporateAddItemDialog from '@/features/orders/components/CorporateAddItemDialog.vue'
 import CorporateCountSheet from '@/features/orders/components/CorporateCountSheet.vue'
 import CorporateOrderHeader from '@/features/orders/components/CorporateOrderHeader.vue'
@@ -16,15 +19,20 @@ import SlipPhotoControls from '@/features/orders/components/SlipPhotoControls.vu
 import { useCorporateOrderDraft } from '@/features/orders/composables/useCorporateOrderDraft'
 import { useSlipOverlayRoute } from '@/features/orders/composables/useSlipOverlayRoute'
 import { corporateOrderItems } from '@/features/orders/utils/corporate-order-items'
+import { corporateOrderCreatePayload } from '@/features/orders/utils/corporate-order-draft'
+import { useOrderStore } from '@/features/orders/stores/order.store'
+import { useOrderImageStore } from '@/features/orders/stores/order-image.store'
 
 defineOptions({ name: 'CorporateOrderPage' })
 
-const SAVE_NOT_CONNECTED = 'Saving corporate orders is not connected yet'
-
 const route = useRoute()
+const router = useRouter()
+const orderStore = useOrderStore()
+const orderImageStore = useOrderImageStore()
 const { close: closeRoute } = useCloseRoute({ name: 'order-list' })
 const customerStore = useCustomerStore()
 const priceListStore = usePriceListStore()
+const itemsStore = useItemsStore()
 const { customers, loading: customersLoading, loaded: customersLoaded, error: customersError } = storeToRefs(customerStore)
 const { items: priceListRows, loading: priceListLoading, loaded: priceListLoaded, error: priceListError } = storeToRefs(priceListStore)
 
@@ -50,6 +58,8 @@ const emptyList = computed(() => customer.value !== null && !sheetLoading.value 
 
 const addDialogOpen = ref(false)
 const saveNotice = ref<string | null>(null)
+const saving = ref(false)
+const savedOrderId = ref<string | null>(null)
 const viewerRevision = ref(0)
 let remountingViewer = false
 
@@ -114,14 +124,48 @@ function addItem(name: string, counted: number | null): void {
   addDialogOpen.value = false
 }
 
-function save(): void {
-  saveNotice.value = SAVE_NOT_CONNECTED
+async function save(): Promise<void> {
+  if (saving.value || savedOrderId.value) return
+  saveNotice.value = null
+  if (!draft.lines.some((line) => line.counted !== null && line.counted > 0)) {
+    saveNotice.value = 'Count at least one item before saving'
+    return
+  }
+  saving.value = true
+  try {
+    await itemsStore.load()
+    if (itemsStore.error) throw new Error(itemsStore.error)
+    const payload = workOrderCreateSchema.parse(corporateOrderCreatePayload(draft, itemsStore.items, currentActor()))
+    const photos = draft.slipPhotos.map((photo) => photo.file)
+    const created = await orderStore.create(payload)
+    savedOrderId.value = created.orderId
+    let photosFailed = 0
+    for (const file of photos) {
+      await orderImageStore.captureImage({ orderId: created.orderId, imageType: 'DOCUMENT', file, quantity: null })
+      if (orderImageStore.uploadError) photosFailed += 1
+    }
+    const failures = [
+      created.itemsFailed ? 'Some item rows could not be saved.' : null,
+      photosFailed > 0 ? `${photosFailed} slip photo(s) could not be uploaded.` : null,
+    ].filter(Boolean)
+    if (failures.length > 0) {
+      saveNotice.value = `Order ${created.orderId} created. ${failures.join(' ')}`
+      return
+    }
+    await router.replace({ name: 'order-detail', params: { orderId: created.orderId } })
+  } catch (reason) {
+    const message = reason instanceof Error ? reason.message : 'Unable to create work order'
+    saveNotice.value = savedOrderId.value ? `Order ${savedOrderId.value} created. ${message}` : message
+  } finally {
+    saving.value = false
+  }
 }
 
 onMounted(() => {
   slip.clear()
   void customerStore.loadCustomers()
   void priceListStore.load()
+  void itemsStore.load()
 })
 </script>
 
@@ -158,9 +202,10 @@ onMounted(() => {
           <span class="material-symbols-outlined text-[16px]" aria-hidden="true">close</span>
         </button>
       </div>
+      <RouterLink v-if="savedOrderId && !saving" :to="{ name: 'order-detail', params: { orderId: savedOrderId } }" class="mb-2.5 block text-sm font-semibold text-primary underline">Open order {{ savedOrderId }}</RouterLink>
       <div class="flex gap-2.5">
-        <button type="button" class="h-[52px] flex-1 rounded-full border-2 border-primary bg-white font-headline text-base font-bold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" @click="closeRoute">Discard</button>
-        <button type="button" class="h-[52px] flex-1 rounded-full bg-primary font-headline text-base font-bold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" @click="save">Save order</button>
+        <button type="button" class="h-[52px] flex-1 rounded-full border-2 border-primary bg-white font-headline text-base font-bold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" :disabled="saving" @click="closeRoute">Discard</button>
+        <button type="button" class="h-[52px] flex-1 rounded-full bg-primary font-headline text-base font-bold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" :disabled="saving || savedOrderId !== null" @click="save">{{ saving ? 'Saving…' : 'Save order' }}</button>
       </div>
     </footer>
 
