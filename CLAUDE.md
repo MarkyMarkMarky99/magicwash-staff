@@ -10,6 +10,7 @@ implemented behavior, correct the canonical document rather than adding a compet
 
 - [Project structure, technology, path aliases, and dependency direction](docs/architecture/frontend/project-structure.md)
 - [Feature structure, data flow, state/API ownership, and shared-code placement](docs/architecture/frontend/feature-structure.md)
+- [AI gateway client and task contracts](docs/architecture/ai-gateway-client.md)
 
 ## Conventions
 

@@ -12,7 +12,7 @@ audit_sources:
 
 ## Purpose
 
-Staff use this page to take in a corporate customer's laundry round. The customer sends a paper count slip with the laundry; staff count what actually arrived, item by item, against the customer's own item list. The page produces a count sheet, not a priced order: nothing on it is a price, a service choice or an order name.
+Staff use this page to take in a corporate customer's laundry round. The customer sends a paper count slip with the laundry. Staff photograph it; when AI reading is available, the customer's own counts from the slip become the form's starting values, and staff correct them item by item against what actually arrived. Without AI reading, staff count by hand against the customer's own item list. The page produces a count sheet, not a priced order: nothing on it is a price, a service choice or an order name.
 
 ## Route
 
@@ -38,11 +38,21 @@ When the customer has no price group, or no active row matches the group, the co
 
 ## Slip photos
 
-The Scan button sits at the right of the count sheet header and floats there, so it does not make the header row taller. It opens the app's document scanner. Each accepted scan becomes a page of the slip. Pages appear as a small stack of thumbnails to the left of the Scan button, with the page count on the top thumbnail.
+The Scan button sits at the right of the count sheet header and opens the app's document scanner. An order has one count slip photo, shown as one thumbnail beside the button. With a photo present, the button reads Retake; accepting another capture replaces the photo and releases its old preview URL.
 
-Tapping the stack opens the shared photo viewer, which shows one page at a time with a page counter and a thumbnail strip. Its footer shows "Page n of N" with Retake and Remove. Retake opens the scanner for that page and returns to the viewer afterwards; Remove deletes the page and moves to a neighbouring page, or closes the viewer when it was the last one.
+Tapping the thumbnail opens the shared photo viewer. Its footer has Retake and Remove. Retake opens the scanner and returns to the viewer with the replacement; Remove deletes the photo and closes the viewer. The current counts remain when the photo is removed.
 
-The scanner and the viewer are route-owned overlays held in one `slip` query value, so browser Back closes them and does not leave the page. A refresh drops the value because the photos live only in page state. Photos are optional, are uploaded after order creation, and their local preview URLs are released when the page is left.
+The scanner and viewer remain route-owned overlays in the same slip query value, so browser Back closes them without leaving the page. A refresh drops the query because photos live only in page state. Photos are optional, upload after order creation, and release their preview URLs when the page is left. Save continues to use the original captured File in the draft's photo array, which now holds at most one photo.
+
+## AI slip reading
+
+AI reading is enabled only when VITE_AI_GATEWAY_URL contains a base URL and the customer has a price group. With no URL configured, the form continues to work by hand without health checks or AI requests. The shared gateway client sends the read-slip task with the customer's price group, one slip-page attachment, and the signed-in user's Firebase ID token when available. Callers send task names, never prompts; the gateway owns the task instructions.
+
+After a capture is stored, the page checks gateway health. An unreachable gateway or one without Codex ready shows “AI reading unavailable — count by hand”. Otherwise the browser prepares a JPEG at quality 0.85 with a longest side of at most 1600 pixels and sends that copy for reading. The original photo remains available for Save. During the health check, preparation and reading, the count sheet, add-item button and Save are disabled, and the section subtitle reads “Reading slip…”.
+
+A successful reading becomes the form's starting values through the draft's normal data shape. Listed item counts map by item code, missing or unreadable counts remain empty, and unknown item codes and unlisted names become added lines. Previous added lines are replaced. An accepted collection date sets the received date; an invalid or absent date keeps the current date. The due date stays as entered. Warnings appear above the count sheet, and warnings naming an item code visibly mark that row for review. Staff then correct the form and Save through the existing order creation flow.
+
+Failures unlock the form without changing its counts, show the error, and offer Try again using the current photo. Before a new capture replaces starting values after staff edits, the browser asks for confirmation. Removing the photo cancels reading and retains the form values. New readings abort previous requests, responses from older readings are ignored, and leaving the page cancels outstanding work.
 
 ## Service type
 

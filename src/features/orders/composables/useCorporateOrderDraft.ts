@@ -1,4 +1,4 @@
-import { computed, markRaw, onBeforeUnmount, reactive } from 'vue'
+import { computed, markRaw, onScopeDispose, reactive } from 'vue'
 import {
   CORPORATE_ORDER_SERVICE_TYPE,
   addedLine,
@@ -7,6 +7,7 @@ import {
   mergeListLines,
   totalCounted,
   type CorporateOrderDraft,
+  type CorporateOrderLine,
 } from '@/features/orders/utils/corporate-order-draft'
 import type { CorporateOrderItem } from '@/features/orders/utils/corporate-order-items'
 
@@ -40,27 +41,24 @@ export function useCorporateOrderDraft(customerId: () => string) {
     draft.lines = draft.lines.filter((line) => line.key !== key)
   }
 
-  function addSlipPhoto(file: File): string {
+  function setStartingValues(lines: CorporateOrderLine[], receivedDate: string | null): void {
+    draft.lines = lines
+    if (receivedDate !== null) draft.receivedDate = receivedDate
+  }
+
+  function setSlipPhoto(file: File): string {
+    removeSlipPhoto()
     const id = `slip-${++sequence}`
-    draft.slipPhotos.push({ id, file: markRaw(file), url: URL.createObjectURL(file) })
+    draft.slipPhotos = [{ id, file: markRaw(file), url: URL.createObjectURL(file) }]
     return id
   }
 
-  function replaceSlipPhoto(id: string, file: File): void {
-    const index = draft.slipPhotos.findIndex((photo) => photo.id === id)
-    if (index < 0) return
-    URL.revokeObjectURL(draft.slipPhotos[index]!.url)
-    draft.slipPhotos[index] = { id, file: markRaw(file), url: URL.createObjectURL(file) }
+  function removeSlipPhoto(): void {
+    for (const photo of draft.slipPhotos) URL.revokeObjectURL(photo.url)
+    draft.slipPhotos = []
   }
 
-  function removeSlipPhoto(id: string): void {
-    const index = draft.slipPhotos.findIndex((photo) => photo.id === id)
-    if (index < 0) return
-    URL.revokeObjectURL(draft.slipPhotos[index]!.url)
-    draft.slipPhotos.splice(index, 1)
-  }
-
-  onBeforeUnmount(() => {
+  onScopeDispose(() => {
     for (const photo of draft.slipPhotos) URL.revokeObjectURL(photo.url)
   })
 
@@ -69,11 +67,11 @@ export function useCorporateOrderDraft(customerId: () => string) {
     countedCount,
     total,
     setListItems,
+    setStartingValues,
     setCounted,
     addLine,
     removeLine,
-    addSlipPhoto,
-    replaceSlipPhoto,
+    setSlipPhoto,
     removeSlipPhoto,
   }
 }

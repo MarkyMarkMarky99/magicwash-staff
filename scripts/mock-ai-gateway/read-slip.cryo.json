@@ -1,0 +1,177 @@
+{
+  "priceGroup": "CRYO",
+  "header": {
+    "senderName": "SoJa",
+    "collectionDate": {
+      "text": "13 09 2569",
+      "date": "2026-09-13"
+    },
+    "deliveryDate": {
+      "text": null,
+      "date": null
+    },
+    "receiverName": "Zaw",
+    "totalWeight": "8-9 kg"
+  },
+  "items": [
+    {
+      "itemCode": "ITM-0117",
+      "nameTh": "ชุดคลุมขาว",
+      "nameEn": "White Bathrobe",
+      "count": 8
+    },
+    {
+      "itemCode": "ITM-0100",
+      "nameTh": "ชุดคลุมน้ำเงิน",
+      "nameEn": "Blue Bathrobe",
+      "count": null
+    },
+    {
+      "itemCode": "ITM-0101",
+      "nameTh": "ชุดคลุมเทา",
+      "nameEn": "Grey Bathrobe",
+      "count": null
+    },
+    {
+      "itemCode": "ITM-0102",
+      "nameTh": "กางเกง ผญ S",
+      "nameEn": "Women's Shorts S",
+      "count": null
+    },
+    {
+      "itemCode": "ITM-0103",
+      "nameTh": "กางเกง ผญ M",
+      "nameEn": "Women's Shorts M",
+      "count": null
+    },
+    {
+      "itemCode": "ITM-0104",
+      "nameTh": "กางเกง ผญ L",
+      "nameEn": "Women's Shorts L",
+      "count": 3
+    },
+    {
+      "itemCode": "ITM-0105",
+      "nameTh": "กางเกง ผช L",
+      "nameEn": "Men's Shorts L",
+      "count": 1
+    },
+    {
+      "itemCode": "ITM-0106",
+      "nameTh": "กางเกง ผช XXL",
+      "nameEn": "Men's Shorts XXL",
+      "count": 4
+    },
+    {
+      "itemCode": "ITM-0107",
+      "nameTh": "บรา S",
+      "nameEn": "Bra S",
+      "count": null
+    },
+    {
+      "itemCode": "ITM-0108",
+      "nameTh": "บรา M",
+      "nameEn": "Bra M",
+      "count": null
+    },
+    {
+      "itemCode": "ITM-0109",
+      "nameTh": "บรา L",
+      "nameEn": "Bra L",
+      "count": 4
+    },
+    {
+      "itemCode": "ITM-0080",
+      "nameTh": "ถุงเท้า",
+      "nameEn": "Socks",
+      "count": 9
+    },
+    {
+      "itemCode": "ITM-0110",
+      "nameTh": "ผ้าขนหนูใหญ่",
+      "nameEn": "Large Towel",
+      "count": null
+    },
+    {
+      "itemCode": "ITM-0111",
+      "nameTh": "ผ้าสลิมหน้า",
+      "nameEn": "Facial Towel",
+      "count": 4
+    },
+    {
+      "itemCode": "ITM-0112",
+      "nameTh": "ผ้าสลิมตัว",
+      "nameEn": "Body Towel",
+      "count": 1
+    },
+    {
+      "itemCode": "ITM-0023",
+      "nameTh": "ผ้าเช็ดผม",
+      "nameEn": "Hair Towel",
+      "count": 1
+    },
+    {
+      "itemCode": "ITM-0113",
+      "nameTh": "ผ้าเช็ดโต๊ะ",
+      "nameEn": "Table Cloth",
+      "count": null
+    },
+    {
+      "itemCode": "ITM-0114",
+      "nameTh": "พรม",
+      "nameEn": "Rug",
+      "count": null
+    },
+    {
+      "itemCode": "ITM-0044",
+      "nameTh": "ถุงมือ",
+      "nameEn": "Gloves",
+      "count": null
+    },
+    {
+      "itemCode": "ITM-0006",
+      "nameTh": "ปลอกหมอน",
+      "nameEn": "Pillow Case",
+      "count": null
+    },
+    {
+      "itemCode": "ITM-0115",
+      "nameTh": "ที่คาดผม",
+      "nameEn": "Headband",
+      "count": null
+    },
+    {
+      "itemCode": "ITM-0116",
+      "nameTh": "ผ้าคาดเตียง",
+      "nameEn": "Bed Scarf",
+      "count": null
+    }
+  ],
+  "unlisted": [
+    {
+      "name": "ปลอกแขน",
+      "count": 2
+    },
+    {
+      "name": "กางเกงผ้าร่มใหญ่",
+      "count": 1
+    }
+  ],
+  "warnings": [
+    {
+      "field": "header.collectionDate",
+      "message": "An additional date, '14 09 2569' (2026-09-14), is written beneath the collection date. Its intended field is unclear; the delivery date area is blank.",
+      "source": "ai"
+    },
+    {
+      "field": "header.totalWeight",
+      "message": "A crossed-out weight appears below '8-9 kg'.",
+      "source": "ai"
+    },
+    {
+      "field": "unlisted[1]",
+      "message": "The handwritten item name is difficult to read; 'กางเกงผ้าร่มใหญ่' is uncertain.",
+      "source": "ai"
+    }
+  ]
+}

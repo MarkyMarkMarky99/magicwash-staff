@@ -5,6 +5,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { workOrderCreateSchema } from '@contracts/work-orders/work-order-api.schema'
 import { currentActor } from '@/shared/config/actor'
 import PhotoViewer from '@/shared/components/PhotoViewer.vue'
+import ConfirmOverlay from '@/shared/layouts/ConfirmOverlay.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import { useCloseRoute } from '@/shared/navigation/use-close-route'
 import { useCustomerStore } from '@/data/customers/customer.store'
@@ -17,6 +18,9 @@ import DocumentScannerOverlay from '@/features/orders/components/DocumentScanner
 import OrderFormSectionHeader from '@/features/orders/components/OrderFormSectionHeader.vue'
 import SlipPhotoControls from '@/features/orders/components/SlipPhotoControls.vue'
 import { useCorporateOrderDraft } from '@/features/orders/composables/useCorporateOrderDraft'
+import { aiGatewayBaseUrl, aiGatewayToken } from '@/shared/ai-gateway/ai-gateway.config'
+import { useSlipReading } from '@/features/orders/composables/useSlipReading'
+import { slipPrefill } from '@/features/orders/utils/slip-prefill'
 import { useSlipOverlayRoute } from '@/features/orders/composables/useSlipOverlayRoute'
 import { corporateOrderItems } from '@/features/orders/utils/corporate-order-items'
 import { corporateOrderCreatePayload } from '@/features/orders/utils/corporate-order-draft'
@@ -37,7 +41,49 @@ const { customers, loading: customersLoading, loaded: customersLoaded, error: cu
 const { items: priceListRows, loading: priceListLoading, loaded: priceListLoaded, error: priceListError } = storeToRefs(priceListStore)
 
 const customerId = computed(() => (typeof route.params.customerId === 'string' ? route.params.customerId.trim() : ''))
-const { draft, countedCount, total, setListItems, setCounted, addLine, removeLine, addSlipPhoto, replaceSlipPhoto, removeSlipPhoto } = useCorporateOrderDraft(() => customerId.value)
+const { draft, countedCount, total, setListItems, setStartingValues, setCounted, addLine, removeLine, setSlipPhoto, removeSlipPhoto } = useCorporateOrderDraft(() => customerId.value)
+const gatewayBaseUrl = aiGatewayBaseUrl()
+const reading = useSlipReading({ baseUrl: gatewayBaseUrl, getToken: aiGatewayToken })
+const { status: readingStatus, error: readingError, warnings: readingWarnings, flaggedKeys } = reading
+const isReading = computed(() => readingStatus.value === 'reading')
+const pendingCapture = ref<File | null>(null)
+let staffEdited = false
+let applyingPrefill = false
+
+watch(() => [draft.receivedDate, draft.dueDate], () => {
+  if (!applyingPrefill) staffEdited = true
+}, { flush: 'sync' })
+
+watch(reading.result, (result) => {
+  if (!result) return
+  const prefill = slipPrefill(draft.lines, result)
+  applyingPrefill = true
+  setStartingValues(prefill.lines, prefill.receivedDate)
+  applyingPrefill = false
+  flaggedKeys.value = prefill.flaggedKeys
+  staffEdited = false
+}, { flush: 'sync' })
+
+function countItem(key: string, counted: number | null): void {
+  if (isReading.value) return
+  setCounted(key, counted)
+  staffEdited = true
+}
+
+function removeItem(key: string): void {
+  if (isReading.value) return
+  removeLine(key)
+  staffEdited = true
+}
+
+function readCurrentPhoto(): void {
+  const photo = draft.slipPhotos[0]
+  const priceGroup = customer.value?.priceGroup
+  if (!photo || !priceGroup || !gatewayBaseUrl || saving.value || savedOrderId.value) return
+  addDialogOpen.value = false
+  void reading.read(photo.file, priceGroup)
+}
+
 const slip = useSlipOverlayRoute()
 
 const customer = computed(() => customers.value.find((entry) => entry.customerId === customerId.value) ?? null)
@@ -88,13 +134,26 @@ function openViewer(id: string): void {
 function onCapture(file: File): void {
   const overlay = scanOverlay.value
   if (!overlay) return
-  if (overlay.retakeId === null) {
-    addSlipPhoto(file)
+  if (gatewayBaseUrl && customer.value?.priceGroup && staffEdited) {
+    pendingCapture.value = file
     slip.close()
     return
   }
-  replaceSlipPhoto(overlay.retakeId, file)
-  openViewer(overlay.retakeId)
+  storeCapture(file, overlay.retakeId !== null)
+}
+
+function storeCapture(file: File, returnToViewer: boolean): void {
+  reading.cancel()
+  const id = setSlipPhoto(file)
+  readCurrentPhoto()
+  if (returnToViewer) openViewer(id)
+  else slip.close()
+}
+
+function confirmPendingCapture(): void {
+  const file = pendingCapture.value
+  pendingCapture.value = null
+  if (file) storeCapture(file, false)
 }
 
 function onScannerClose(): void {
@@ -103,15 +162,13 @@ function onScannerClose(): void {
   else slip.close()
 }
 
-function removeViewedPhoto(id: string): void {
-  const index = draft.slipPhotos.findIndex((photo) => photo.id === id)
-  const neighbour = draft.slipPhotos[index + 1] ?? draft.slipPhotos[index - 1]
+function removeViewedPhoto(): void {
+  reading.cancel()
   // Remounting the viewer destroys the old PhotoSwipe, which emits close; that close is not the user's.
   remountingViewer = true
-  removeSlipPhoto(id)
+  removeSlipPhoto()
   viewerRevision.value += 1
-  if (neighbour) openViewer(neighbour.id)
-  else slip.close()
+  slip.close()
   void nextTick(() => { remountingViewer = false })
 }
 
@@ -120,7 +177,9 @@ function onViewerClose(): void {
 }
 
 function addItem(name: string, counted: number | null): void {
+  if (isReading.value) return
   addLine(name, counted)
+  staffEdited = true
   addDialogOpen.value = false
 }
 
@@ -176,19 +235,29 @@ onMounted(() => {
 
       <div class="relative z-[1] -mt-4 rounded-t-2xl bg-surface px-4 pb-7 pt-4">
         <div>
-          <OrderFormSectionHeader title="Count sheet" :subtitle="`Slip order · ${countedCount} of ${draft.lines.length} counted`">
+          <OrderFormSectionHeader title="Count sheet" :subtitle="isReading ? 'Reading slip…' : `Slip order · ${countedCount} of ${draft.lines.length} counted`">
             <template #action>
-              <SlipPhotoControls :photos="draft.slipPhotos" @scan="openScanner()" @view="openViewer(draft.slipPhotos[0]!.id)" />
+              <SlipPhotoControls :photos="draft.slipPhotos" @scan="openScanner(draft.slipPhotos[0]?.id ?? null)" @view="openViewer(draft.slipPhotos[0]!.id)" />
             </template>
           </OrderFormSectionHeader>
+          <ul v-if="readingWarnings.length" class="mb-3 list-disc pl-5 text-sm text-on-surface-variant" aria-label="Slip reading warnings">
+            <li v-for="(warning, index) in readingWarnings" :key="index">{{ warning.message }}</li>
+          </ul>
+          <div v-if="readingStatus === 'failed'" class="mb-3 text-sm text-error" role="alert">
+            {{ readingError }}
+            <button type="button" class="ml-2 font-semibold underline" @click="readCurrentPhoto">Try again</button>
+          </div>
+          <p v-if="readingStatus === 'unavailable'" class="mb-3 text-sm text-on-surface-variant" role="status">AI reading unavailable — count by hand</p>
           <CorporateCountSheet
+            :disabled="isReading"
+            :flagged-keys="flaggedKeys"
             :lines="draft.lines"
             :total="total"
             :loading="sheetLoading"
             :error="sheetError"
             :empty-list="emptyList"
-            @count="setCounted"
-            @remove="removeLine"
+            @count="countItem"
+            @remove="removeItem"
             @add="addDialogOpen = true"
           />
         </div>
@@ -205,20 +274,28 @@ onMounted(() => {
       <RouterLink v-if="savedOrderId && !saving" :to="{ name: 'order-detail', params: { orderId: savedOrderId } }" class="mb-2.5 block text-sm font-semibold text-primary underline">Open order {{ savedOrderId }}</RouterLink>
       <div class="flex gap-2.5">
         <button type="button" class="h-[52px] flex-1 rounded-full border-2 border-primary bg-white font-headline text-base font-bold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" :disabled="saving" @click="closeRoute">Discard</button>
-        <button type="button" class="h-[52px] flex-1 rounded-full bg-primary font-headline text-base font-bold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" :disabled="saving || savedOrderId !== null" @click="save">{{ saving ? 'Saving…' : 'Save order' }}</button>
+        <button type="button" class="h-[52px] flex-1 rounded-full bg-primary font-headline text-base font-bold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" :disabled="isReading || saving || savedOrderId !== null" @click="save">{{ saving ? 'Saving…' : 'Save order' }}</button>
       </div>
     </footer>
 
     <CorporateAddItemDialog :open="addDialogOpen" @close="addDialogOpen = false" @add="addItem" />
+    <ConfirmOverlay
+      :open="pendingCapture !== null"
+      title="Read the new slip?"
+      description="Its reading replaces the counts and received date you edited."
+      cancel-label="Keep my counts"
+      confirm-label="Read slip"
+      @close="pendingCapture = null"
+      @confirm="confirmPendingCapture"
+    />
     <DocumentScannerOverlay :open="scanOverlay !== null" @close="onScannerClose" @capture="onCapture" />
     <PhotoViewer :key="viewerRevision" :images="viewerImages" :active-id="viewedPhotoId" @change="openViewer" @close="onViewerClose">
-      <template #footer="{ image, index }">
-        <p class="font-label text-sm font-bold">Page {{ index + 1 }} of {{ viewerImages.length }}</p>
+      <template #footer="{ image }">
         <div class="flex gap-3">
           <button type="button" class="inline-flex h-12 items-center gap-1.5 rounded-full border border-white/35 px-6 text-sm font-semibold text-white" @click="openScanner(image.id)">
             <span class="material-symbols-outlined text-[20px]" aria-hidden="true">flip_camera_ios</span>Retake
           </button>
-          <button type="button" class="inline-flex h-12 items-center gap-1.5 rounded-full bg-error px-6 text-sm font-bold text-on-error" @click="removeViewedPhoto(image.id)">
+          <button type="button" class="inline-flex h-12 items-center gap-1.5 rounded-full bg-error px-6 text-sm font-bold text-on-error" @click="removeViewedPhoto()">
             <span class="material-symbols-outlined text-[20px]" aria-hidden="true">delete</span>Remove
           </button>
         </div>

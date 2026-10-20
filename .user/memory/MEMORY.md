@@ -6,8 +6,12 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
+- **`feat/corporate-ai-slip-prefill`** — AI slip prefill for the corporate form, owner-verified against the mock gateway; not merged, integration next; see `.user/memory/feat-corporate-ai-slip-prefill.md`.
 
 ## Pending work
+- **MagicwashAI local gateway** — handoff: `.user/memory/magicwash-ai-gateway-handoff.md`
+  - Built in `C:\MagicwashAI\` (read-slip v2, auth); still to test: real timeout kill, `start.bat`, 1600 px accuracy, effort low vs medium.
+  - Owner: add Cloudflare hostname `ai.magicwash-laundry.com` → `localhost:3110` before integration.
 - **Corporate count-sheet order** — see `docs/features/orders/corporate-order-form.md`
   - Slip-photo upload on Save not yet tried in a real browser.
   - Owner: update G Drive `PriceList.json` description (price-0 rows may be active for CRYO).

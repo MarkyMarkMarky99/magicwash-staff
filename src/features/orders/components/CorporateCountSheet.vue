@@ -8,6 +8,8 @@ defineProps<{
   total: number
   loading: boolean
   error: string | null
+  disabled?: boolean
+  flaggedKeys?: readonly string[]
   emptyList: boolean
 }>()
 
@@ -19,7 +21,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="paper">
+  <fieldset class="paper" :disabled="disabled" :aria-busy="disabled">
     <span class="paper__tab">Count sheet</span>
     <div class="cols paper__head">
       <span>Item</span>
@@ -46,6 +48,7 @@ const emit = defineEmits<{
         <div class="min-w-0">
           <b class="crow__title">
             {{ lineTitle(line) }}
+            <span v-if="flaggedKeys?.includes(line.key)" class="text-warning" aria-label="Check AI reading">⚠</span>
             <span v-if="line.added" class="crow__added">Added</span>
           </b>
           <span v-if="lineSubtitle(line)" class="crow__subtitle">{{ lineSubtitle(line) }}</span>
@@ -70,11 +73,13 @@ const emit = defineEmits<{
       <div>Total</div>
       <div><span>{{ total }}</span><small>pcs</small></div>
     </div>
-  </div>
+  </fieldset>
 </template>
 
 <style scoped>
 .paper {
+  min-width: 0;
+  padding: 0;
   position: relative;
   margin: 22px 4px 6px 2px;
   border: 2px solid var(--color-primary);
