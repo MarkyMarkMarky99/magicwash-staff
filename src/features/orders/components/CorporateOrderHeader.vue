@@ -173,7 +173,7 @@ function openPicker(event: Event): void {
   overflow: hidden;
   border: 2px solid var(--color-primary);
   border-radius: 11px 13px 11px 12px;
-  background: var(--color-lime);
+  background: white;
   color: var(--color-primary);
   box-shadow: 3px 3px 0 color-mix(in srgb, var(--color-primary) 70%, black);
   cursor: pointer;
@@ -183,7 +183,7 @@ function openPicker(event: Event): void {
 .tile__key {
   padding: 3px 0 4px;
   background: var(--color-primary);
-  color: var(--color-lime);
+  color: white;
   font-size: 9.5px;
   font-weight: 800;
   letter-spacing: .16em;
