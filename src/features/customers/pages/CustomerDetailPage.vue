@@ -155,7 +155,7 @@ watch([activeTab, () => props.customerId, openOrderId], ([tab, id, orderId]) => 
       </p>
 
       <OrderHistoryCustomerCard v-if="customer" :customer="customer" />
-      <OrderList v-if="activeTab === 'orders'" :customer-id="customerId" @select-order="openOrder" />
+      <OrderList v-if="activeTab === 'orders'" :customer-id="customerId" :price-group="customer?.priceGroup ?? null" @select-order="openOrder" />
       <CustomerPackagesSection v-else-if="activeTab === 'packages'" :customer-id="customerId" />
       <CustomerInvoicesSection v-else-if="activeTab === 'invoices'" :customer-id="customerId" />
       <CustomerAppointmentsSection v-else :customer-id="customerId" />

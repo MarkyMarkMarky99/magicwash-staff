@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import ListContainer from '@/shared/components/ListContainer.vue'
 import CreateDropdownMenu from './CreateDropdownMenu.vue'
-import { orderCreateRoute } from '@/shared/navigation/form-routes'
+import { corporateOrderCreateRoute, orderCreateRoute } from '@/shared/navigation/form-routes'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { getInvoiceTarget } from '@/shared/navigation/invoice-detail-route'
@@ -16,7 +17,7 @@ const emit = defineEmits<{
   selectOrder: [orderId: string]
 }>()
 
-const props = defineProps<{ customerId: string }>()
+const props = defineProps<{ customerId: string, priceGroup?: string | null }>()
 
 const store = useCustomerOrderHistoryStore()
 const router = useRouter()
@@ -28,6 +29,14 @@ const {
   ordersError,
   appointmentsError,
 } = storeToRefs(store)
+
+const createItems = computed(() => props.priceGroup?.trim()
+  ? [{ key: 'order', label: 'New Order' }, { key: 'count-sheet', label: 'Count Sheet Order' }]
+  : [{ key: 'order', label: 'New Order' }])
+
+function createOrder(key: string) {
+  router.push(key === 'count-sheet' ? corporateOrderCreateRoute(props.customerId) : orderCreateRoute({ customerId: props.customerId }))
+}
 
 function viewPhotos(orderId: string) {
   router.push(`/gallery/BEF-${orderId}`)
@@ -59,8 +68,8 @@ function openOrderDetail(orderId: string, close: () => void) {
       <CreateDropdownMenu
         :label="`${orders.length} orders`"
         aria-label="Create order"
-        :items="[{ key: 'order', label: 'New Order' }]"
-        @select="router.push(orderCreateRoute({ customerId: props.customerId }))"
+        :items="createItems"
+        @select="createOrder"
       />
     </template>
     <CustomerRecordCard

@@ -18,7 +18,7 @@ Staff use this page to take in a corporate customer's laundry round. The custome
 
 The page lives at `/orders/new/corporate/:customerId`, route name `order-create-corporate`, with the order list as its parent. The component name is `CorporateOrderPage`; it is on the `KeepAlive` exclude list in `src/App.vue` because its fields are component-local, and it uses `onMounted` only.
 
-The customer comes from the route parameter. The page finds the customer in the preloaded customer store and starts loading customers if the store is empty. A customer that is not in the store shows a "Customer not found" message in the header card. No other page links to this route yet; the owner decides where it is launched from. A shared route-location builder exists in `src/shared/navigation/form-routes.ts` for that launch point.
+The customer comes from the route parameter. The page finds the customer in the preloaded customer store and starts loading customers if the store is empty. A customer that is not in the store shows a "Customer not found" message in the header card. Staff open it from the customer detail Order History create menu, which shows a "Count Sheet Order" item next to "New Order" only for customers with a price group. The menu uses the shared `corporateOrderCreateRoute` builder in `src/shared/navigation/form-routes.ts`.
 
 ## Fields
 
