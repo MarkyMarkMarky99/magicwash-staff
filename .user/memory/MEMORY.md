@@ -11,6 +11,7 @@
 - **MagicwashAI local gateway** — handoff: `.user/memory/magicwash-ai-gateway-handoff.md`
   - Live at `ai.magicwash-laundry.com`; corporate-form AI prefill merged to main, OFF in prod until Vercel env `VITE_AI_GATEWAY_URL` is set.
   - Need 3–5 more real slips (other branches, harder handwriting) for `scripts/eval-read-slip.js`.
+  - Price groups KLINIQ, KLINIQUE, MAISON, MAISON_GAYSORN, SOULTEL live (2026-10-21) on the shared default slip prompt; only blank forms tested, need filled slips (esp. KLINIQ, whose LAUNDRY COUNT sits beside SPA COUNT).
   - Open: timeouts (gateway 90 s, client 120 s) exceed Cloudflare's ~100 s; proposed 60 s / 95 s, owner not decided.
 - **Corporate count-sheet order** — see `docs/features/orders/corporate-order-form.md`
   - Slip-photo upload on Save not yet tried in a real browser.
