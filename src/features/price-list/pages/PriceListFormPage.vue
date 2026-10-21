@@ -182,94 +182,97 @@ onMounted(async () => {
     @submit="submitForm"
   >
     <div class="price-list-form">
-      <main>
+      <main class="flex flex-col gap-4">
         <div class="form-intro"><p>รายละเอียดรายการสำหรับหน้าเคาน์เตอร์</p><span class="stamp">พร้อมบันทึก</span></div>
-        <div>
-        <fieldset v-if="!isEdit" class="fieldset mode-panel">
-          <div class="section-label">รูปแบบรายการ</div>
-          <div class="mode-grid">
-            <button
-              type="button"
-              class="mode-button"
-              :class="{ 'mode-button--selected': createMode === 'new' }"
-              :disabled="isEdit"
-              @click="setCreateMode('new')"
-            >
-              <strong>รายการใหม่</strong>
-              <span>ระบบจะกำหนดรหัสรายการให้อัตโนมัติ</span>
-            </button>
-            <button
-              type="button"
-              class="mode-button"
-              :class="{ 'mode-button--selected': createMode === 'existing' }"
-              :disabled="!canSelectExistingItems"
-              @click="setCreateMode('existing')"
-            >
-              <strong>เพิ่มราคาให้รายการเดิม</strong>
-              <span>ค้นหาและเลือกจากรายการที่มีอยู่</span>
-            </button>
-          </div>
-          <p v-if="truncated" class="form-error">รายการราคายังโหลดไม่ครบ จึงไม่สามารถเลือกรายการเดิมได้</p>
-          <div v-if="createMode === 'new'" class="assigned-code">รหัสรายการจะถูกกำหนดโดยเซิร์ฟเวอร์หลังบันทึก</div>
-          <div v-else class="existing-item-picker">
-            <FormInput
-              id="existing-item-search"
-              v-model="existingItemQuery"
-              class="field"
-              label="ค้นหารายการเดิมด้วยชื่อหรือรหัส"
-              placeholder="เช่น ปลอกผ้านวม หรือ ITM-0010"
-            />
-            <ScrollRegion sizing="auto" class="existing-item-list">
+        <div class="flex flex-col gap-6">
+          <fieldset v-if="!isEdit" class="fieldset flex flex-col gap-4">
+            <div class="section-label">รูปแบบรายการ</div>
+            <div class="mode-grid grid gap-4">
               <button
-                v-for="candidate in existingItems"
-                :key="candidate.id"
                 type="button"
-                class="existing-item"
-                :class="{ 'existing-item--selected': candidate.itemCode === item.itemCode }"
-                @click="selectExistingItem(candidate)"
+                class="mode-button"
+                :class="{ 'mode-button--selected': createMode === 'new' }"
+                :disabled="isEdit"
+                @click="setCreateMode('new')"
               >
-                <span class="min-w-0"><strong>{{ candidate.displayNameTh }}</strong><small>{{ candidate.itemCode }} · {{ candidate.category }}</small></span>
-                <span class="material-symbols-outlined" aria-hidden="true">check</span>
+                <strong>รายการใหม่</strong>
+                <span>ระบบจะกำหนดรหัสรายการให้อัตโนมัติ</span>
               </button>
-              <p v-if="existingItems.length === 0" class="empty-selection">ไม่พบรายการเดิม</p>
-            </ScrollRegion>
-            <label for="selected-item-code">รหัสรายการที่เลือก</label>
-            <input id="selected-item-code" v-model="item.itemCode" class="control" readonly>
-          </div>
-        </fieldset>
-        <fieldset v-if="isEdit" class="fieldset">
-          <div class="section-label">รหัสรายการ</div>
-          <input id="item-code" v-model="item.itemCode" class="control field" readonly>
-        </fieldset>
-        <fieldset class="fieldset">
-          <div class="section-label">ช่วงเวลาราคา</div>
-          <div class="grid-2 date-row">
-            <FormInput id="effective-from" v-model="item.effectiveFrom" class="field" label="เริ่มใช้ราคา *" type="date" />
-            <FormInput id="effective-to" v-model="item.effectiveTo" class="field" label="สิ้นสุดราคา (ถ้ามี)" type="date" placeholder="เลือกวันที่" />
-          </div>
-        </fieldset>
-        <fieldset class="fieldset">
-          <div class="section-label">รายการ</div>
-          <div class="grid-2">
-            <FormPicker id="category" v-model="item.category" class="field" label="หมวดหมู่ *" :options="categoryOptions" placeholder="เลือกหมวดหมู่" />
-            <FormPicker id="subcategory" v-model="item.subcategory" class="field" label="หมวดหมู่ย่อย *" :options="subcategoryOptions" placeholder="เลือกหมวดหมู่ย่อย" />
-          </div>
-          <div class="grid-2">
-            <FormInput id="item-type" v-model="item.itemType" class="field" label="ประเภทสินค้า *" />
-            <FormInput id="variant" v-model="item.variant" class="field" label="รูปแบบ" placeholder="เว้นว่างได้" />
-          </div>
-          <FormInput id="display-name-th" v-model="item.displayNameTh" class="field" label="ชื่อแสดงภาษาไทย *" />
-          <FormInput id="display-name-en" v-model="item.displayNameEn" class="field item-name" label="ชื่อแสดงภาษาอังกฤษ" placeholder="เว้นว่างได้" />
-        </fieldset>
-        <section class="price-panel" aria-labelledby="price-heading">
-          <div class="price-title"><h2 id="price-heading">ราคาตามบริการ</h2><span>กำหนดราคาและหน่วยคิดราคาสำหรับบริการนี้</span></div>
-          <div class="price-grid">
-            <FormPicker id="service-type" v-model="item.serviceType" class="price-field price-field--service" label="บริการ *" :options="servicePickerOptions" :searchable="false" />
-            <div class="price-field"><label for="price">ราคา *</label><div class="money"><input id="price" v-model="item.price" class="control" inputmode="decimal" type="number" min="0" step="any"><span>บาท</span></div></div>
-            <div class="price-field"><label for="unit">หน่วยคิดราคา</label><input id="unit" v-model="item.unit" class="control" placeholder="เช่น piece, kg"></div>
-          </div>
-        </section>
-        <section class="switches" aria-label="การตั้งค่า">
+              <button
+                type="button"
+                class="mode-button"
+                :class="{ 'mode-button--selected': createMode === 'existing' }"
+                :disabled="!canSelectExistingItems"
+                @click="setCreateMode('existing')"
+              >
+                <strong>เพิ่มราคาให้รายการเดิม</strong>
+                <span>ค้นหาและเลือกจากรายการที่มีอยู่</span>
+              </button>
+            </div>
+            <p v-if="truncated" class="form-error">รายการราคายังโหลดไม่ครบ จึงไม่สามารถเลือกรายการเดิมได้</p>
+            <div v-if="createMode === 'new'" class="assigned-code">รหัสรายการจะถูกกำหนดโดยเซิร์ฟเวอร์หลังบันทึก</div>
+            <div v-else class="existing-item-picker flex flex-col gap-4">
+              <FormInput
+                id="existing-item-search"
+                v-model="existingItemQuery"
+                class="min-w-0"
+                label="ค้นหารายการเดิมด้วยชื่อหรือรหัส"
+                placeholder="เช่น ปลอกผ้านวม หรือ ITM-0010"
+              />
+              <ScrollRegion sizing="auto" class="existing-item-list">
+                <button
+                  v-for="candidate in existingItems"
+                  :key="candidate.id"
+                  type="button"
+                  class="existing-item"
+                  :class="{ 'existing-item--selected': candidate.itemCode === item.itemCode }"
+                  @click="selectExistingItem(candidate)"
+                >
+                  <span class="min-w-0"><strong>{{ candidate.displayNameTh }}</strong><small>{{ candidate.itemCode }} · {{ candidate.category }}</small></span>
+                  <span class="material-symbols-outlined" aria-hidden="true">check</span>
+                </button>
+                <p v-if="existingItems.length === 0" class="empty-selection">ไม่พบรายการเดิม</p>
+              </ScrollRegion>
+              <div>
+                <label for="selected-item-code">รหัสรายการที่เลือก</label>
+                <input id="selected-item-code" v-model="item.itemCode" class="control" readonly>
+              </div>
+            </div>
+          </fieldset>
+          <fieldset v-if="isEdit" class="fieldset flex flex-col gap-4">
+            <div class="section-label">รหัสรายการ</div>
+            <input id="item-code" v-model="item.itemCode" class="control" readonly>
+          </fieldset>
+          <fieldset class="fieldset flex flex-col gap-4">
+            <div class="section-label">ช่วงเวลาราคา</div>
+            <div class="grid grid-cols-2 gap-4">
+              <FormInput id="effective-from" v-model="item.effectiveFrom" class="min-w-0" label="เริ่มใช้ราคา *" type="date" />
+              <FormInput id="effective-to" v-model="item.effectiveTo" class="min-w-0" label="สิ้นสุดราคา (ถ้ามี)" type="date" placeholder="เลือกวันที่" />
+            </div>
+          </fieldset>
+          <fieldset class="fieldset flex flex-col gap-4">
+            <div class="section-label">รายการ</div>
+            <div class="grid grid-cols-2 gap-4">
+              <FormPicker id="category" v-model="item.category" class="min-w-0" label="หมวดหมู่ *" :options="categoryOptions" placeholder="เลือกหมวดหมู่" />
+              <FormPicker id="subcategory" v-model="item.subcategory" class="min-w-0" label="หมวดหมู่ย่อย *" :options="subcategoryOptions" placeholder="เลือกหมวดหมู่ย่อย" />
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <FormInput id="item-type" v-model="item.itemType" class="min-w-0" label="ประเภทสินค้า *" />
+              <FormInput id="variant" v-model="item.variant" class="min-w-0" label="รูปแบบ" placeholder="เว้นว่างได้" />
+            </div>
+            <FormInput id="display-name-th" v-model="item.displayNameTh" class="min-w-0" label="ชื่อแสดงภาษาไทย *" />
+            <FormInput id="display-name-en" v-model="item.displayNameEn" class="min-w-0" label="ชื่อแสดงภาษาอังกฤษ" placeholder="เว้นว่างได้" />
+          </fieldset>
+          <section class="price-panel flex flex-col gap-4" aria-labelledby="price-heading">
+            <div class="price-title"><h2 id="price-heading">ราคาตามบริการ</h2><span>กำหนดราคาและหน่วยคิดราคาสำหรับบริการนี้</span></div>
+            <div class="price-grid grid gap-4">
+              <FormPicker id="service-type" v-model="item.serviceType" class="price-field price-field--service" label="บริการ *" :options="servicePickerOptions" :searchable="false" />
+              <div class="price-field"><label for="price">ราคา *</label><div class="money"><input id="price" v-model="item.price" class="control" inputmode="decimal" type="number" min="0" step="any"><span>บาท</span></div></div>
+              <div class="price-field"><label for="unit">หน่วยคิดราคา</label><input id="unit" v-model="item.unit" class="control" placeholder="เช่น piece, kg"></div>
+            </div>
+          </section>
+        </div>
+        <section class="switches flex flex-col gap-4" aria-label="การตั้งค่า">
           <FormSwitch
             v-model="item.active"
             label="เปิดใช้งานรายการนี้"
@@ -282,7 +285,6 @@ onMounted(async () => {
           />
         </section>
         <p v-if="formError" class="form-error">{{ formError }}</p>
-        </div>
       </main>
     </div>
   </FormOverlay>
@@ -292,23 +294,19 @@ onMounted(async () => {
 .price-list-form { --ink:var(--color-on-surface); --teal:var(--color-primary); --teal-2:var(--color-secondary); --lime:var(--color-lime); --line:var(--color-outline-variant); --quiet:var(--color-on-surface-variant); --red:var(--color-error); color:var(--ink); font-family:var(--font-body); }
 .price-list-form * { box-sizing:border-box; }
 .price-list-form button,.price-list-form input,.price-list-form select { font:inherit; }
-.form-intro { display:flex; align-items:center; justify-content:space-between; padding:0 1px 18px; }
+.form-intro { display:flex; align-items:center; justify-content:space-between; padding:0 1px; }
 .form-intro p { margin:0; color:var(--quiet); font-size:12px; }
 .form-intro .stamp { color:var(--teal); font:700 10px var(--font-headline); letter-spacing:.1em; }
 .fieldset { margin:0; padding:0; border:0; }
-.section-label { display:flex; align-items:center; gap:10px; margin:0 0 12px; color:var(--teal); font:700 12px var(--font-headline); letter-spacing:.03em; }
+.section-label { display:flex; align-items:center; gap:10px; color:var(--teal); font:700 12px var(--font-headline); letter-spacing:.03em; }
 .section-label::after { content:""; height:1px; flex:1; background:var(--line); }
-.grid-2 { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:13px; }
-.field { min-width:0; margin-bottom:15px; }
-.mode-panel { margin-bottom:22px; }
-.mode-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.mode-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
 .mode-button { display:flex; min-height:78px; flex-direction:column; align-items:flex-start; gap:5px; padding:12px; border:1px solid var(--color-outline-variant); border-radius:10px; background:white; color:var(--ink); text-align:left; cursor:pointer; }
 .mode-button span { color:var(--quiet); font-size:11px; line-height:1.35; }
 .mode-button--selected { border-color:var(--teal-2); background:var(--color-surface-container-low); box-shadow:0 0 0 2px color-mix(in srgb, var(--color-secondary) 12%, transparent); }
 .mode-button:disabled { cursor:not-allowed; opacity:.5; }
-.assigned-code { margin:0 0 12px; color:var(--quiet); font-size:12px; }
-.existing-item-picker { margin-top:4px; }
-.existing-item-list { max-height:190px; margin:-5px 0 13px; border:1px solid var(--line); border-radius:10px; background:white; }
+.assigned-code { color:var(--quiet); font-size:12px; }
+.existing-item-list { max-height:190px; border:1px solid var(--line); border-radius:10px; background:white; }
 .existing-item { display:flex; width:100%; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-bottom:1px solid var(--line); color:var(--ink); text-align:left; }
 .existing-item:last-child { border-bottom:0; }
 .existing-item strong,.existing-item small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -322,24 +320,21 @@ label { display:block; margin-bottom:6px; font-size:12px; font-weight:700; color
 .control { display:block; width:100%; min-width:0; height:47px; padding:0 12px; color:var(--ink); border:1px solid var(--color-outline-variant); border-radius:10px; outline:0; background:white; font-size:14px; box-shadow:0 1px 0 color-mix(in srgb, var(--color-primary) 2%, transparent); }
 .control:focus { border-color:var(--lime); box-shadow:0 0 0 3px color-mix(in srgb, var(--color-lime) 14%, transparent); }
 select.control { padding-right:27px; background:linear-gradient(45deg, transparent 50%, var(--color-primary) 50%) no-repeat right 17px center / 6px 6px, linear-gradient(135deg, var(--color-primary) 50%, transparent 50%) no-repeat right 11px center / 6px 6px; background-color:white; appearance:none; }
-.item-name { margin-bottom:23px; }
-.price-panel { margin:2px 0 22px; padding:18px; border:1px solid var(--teal); border-radius:16px; background:var(--ink); }
-.price-title { margin-bottom:17px; }
+.price-panel { padding:18px; border:1px solid var(--teal); border-radius:16px; background:var(--ink); }
 .price-title h2 { margin:0; color:white; font:700 17px/1.2 var(--font-headline); letter-spacing:-.025em; }
 .price-title span { display:block; margin-top:5px; color:color-mix(in srgb, var(--color-on-primary) 80%, transparent); font-size:12px; line-height:1.4; }
-.price-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 12px; }
+.price-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
 .price-field { min-width:0; }
 .price-field--service { grid-column:1 / -1; }
-.price-field label { margin:0 0 7px; color:color-mix(in srgb, var(--color-on-primary) 85%, transparent); font-size:12px; line-height:1.32; }
+.price-field label { margin:0 0 6px; color:color-mix(in srgb, var(--color-on-primary) 85%, transparent); font-size:12px; line-height:1.32; }
 .money { position:relative; }
 .money input { padding-right:46px; appearance:textfield; }
 .money input::-webkit-inner-spin-button,
 .money input::-webkit-outer-spin-button { margin:0; appearance:none; }
 .money span { position:absolute; right:12px; top:50%; transform:translateY(-50%); color:var(--quiet); font-size:12px; pointer-events:none; }
-.date-row { margin-bottom:10px; }
-.switches { margin:0 -20px 10px; padding:21px 20px 0; border-top:1px solid var(--line); background:var(--color-surface-container-low); }
-.form-error { margin:12px 0 0; padding:10px 12px; border-radius:8px; background:color-mix(in srgb, var(--red) 12%, white); color:var(--red); font-size:12px; line-height:1.4; }
+.switches { margin:0 -20px; padding:16px 20px 0; border-top:1px solid var(--line); background:var(--color-surface-container-low); }
+.form-error { padding:10px 12px; border-radius:8px; background:color-mix(in srgb, var(--red) 12%, white); color:var(--red); font-size:12px; line-height:1.4; }
 @media (max-width:420px) { .mode-grid { grid-template-columns:1fr; } }
-@media (max-width:350px) { .price-panel { padding:16px; } .price-grid { grid-template-columns:1fr; } .switches { margin-left:-16px; margin-right:-16px; padding-left:16px; padding-right:16px; } .grid-2 { gap:10px; } .control { padding-left:9px; padding-right:9px; } }
+@media (max-width:350px) { .price-panel { padding:16px; } .price-grid { grid-template-columns:1fr; } .switches { margin-left:-16px; margin-right:-16px; padding-left:16px; padding-right:16px; } .control { padding-left:9px; padding-right:9px; } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; } }
 </style>

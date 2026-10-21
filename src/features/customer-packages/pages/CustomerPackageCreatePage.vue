@@ -197,7 +197,7 @@ async function submitForm() {
     @close="closeForm"
     @submit="submitForm"
   >
-    <div v-if="autoInvoice && attempt" class="space-y-4 pb-5">
+    <div v-if="autoInvoice && attempt" class="flex flex-col gap-4 pb-5">
       <p role="status" class="font-body text-sm">{{ purchaseMessage }}</p>
       <p class="break-all font-body text-sm">Invoice: {{ attempt.invoiceResult?.kind === 'created' ? attempt.invoiceResult.invoiceNumber : attempt.invoiceRequest.invoiceNumber }}</p>
       <p v-if="attempt.packageResult?.kind === 'created'" class="font-body text-sm">
@@ -213,7 +213,7 @@ async function submitForm() {
       >Back to form</button>
       <button type="button" class="w-full rounded-xl bg-surface-container px-4 py-2.5 font-label text-xs text-primary" @click="closeForm">Close</button>
     </div>
-    <div v-else-if="result" class="space-y-4 pb-5">
+    <div v-else-if="result" class="flex flex-col gap-4 pb-5">
       <section v-if="result.kind === 'created'" class="rounded-2xl bg-secondary-container/20 p-5"><h2 class="font-headline font-bold">Customer package created</h2><p class="mt-2 font-body text-sm">{{ result.customerPackageId }} · {{ result.packageCode }} · {{ result.openingCredit }} opening credit</p><p class="font-body text-xs text-on-surface-variant">Transaction {{ result.transactionId }} · {{ result.createdAt }}</p></section>
       <section v-else-if="result.kind === 'validation_error'" class="rounded-2xl bg-error-container/20 p-5"><h2 class="font-headline font-bold">Fix these fields</h2><p v-for="issue in result.issues" :key="issue.path" class="font-body text-sm">{{ issue.path }}: {{ issue.message }}</p></section>
       <section v-else-if="result.kind === 'catalog_read_failed'" class="rounded-2xl bg-warning-container/20 p-5"><h2 class="font-headline font-bold">Package catalog unavailable</h2><p class="font-body text-sm">{{ result.packageCode }} · {{ result.message }}</p></section>
@@ -223,7 +223,7 @@ async function submitForm() {
       <button type="button" class="w-full rounded-xl bg-surface-container px-4 py-2.5 font-label text-xs text-primary" @click="closeForm">Close</button>
     </div>
 
-    <div v-else class="space-y-4 pb-5">
+    <div v-else class="flex flex-col gap-4 pb-5">
       <p v-if="sourceCustomerId" class="font-body text-sm font-semibold">{{ customer?.customerName || customerId }}</p>
       <FormPicker
         v-else
@@ -237,7 +237,7 @@ async function submitForm() {
         :error="customersError ?? ''"
         empty-text="No customers found"
       />
-      <p v-if="!sourceCustomerId && customersTruncated" role="status" class="-mt-2 font-body text-xs text-on-warning-container">
+      <p v-if="!sourceCustomerId && customersTruncated" role="status" class="font-body text-xs text-on-warning-container">
         The customer list may be incomplete because there are more than 2,000 customers.
       </p>
       <FormPicker
@@ -252,7 +252,7 @@ async function submitForm() {
         :error="packagesError ?? ''"
         empty-text="No packages found"
       />
-      <div class="grid grid-cols-2 gap-3">
+      <div class="grid grid-cols-2 gap-4">
         <FormInput id="customer-package-start" v-model="startDate" type="date" label="Start date" />
         <FormInput id="customer-package-expiry" v-model="expiryDate" type="date" label="Expiry date" />
       </div>
@@ -260,7 +260,7 @@ async function submitForm() {
       <FormOptionGrid :model-value="timeSlot" label="Time slot" :options="timeSlotOptions" variant="compact" @update:model-value="timeSlot = timeSlot === $event ? '' : $event" />
       <FormTextarea id="customer-package-notes" v-model="notes" label="Notes" />
       <p v-if="formError" class="font-body text-sm text-error">{{ formError }}</p>
-      <fieldset :disabled="submitting">
+      <fieldset class="flex flex-col gap-4" :disabled="submitting">
         <FormToggleInput
           id="customer-package-invoice"
           v-model="invoiceId"

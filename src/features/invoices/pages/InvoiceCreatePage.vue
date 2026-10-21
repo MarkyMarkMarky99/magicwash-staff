@@ -395,7 +395,7 @@ async function copyLiffUrl(invoiceNumber: string) {
     </div>
 
     <!-- Result state: submitted, show one of the six distinct outcomes. -->
-    <div v-else-if="result" class="space-y-4 px-4 pt-5">
+    <div v-else-if="result" class="flex flex-col gap-4 px-4 pt-5">
       <section
         v-if="isInvoicePersisted(result)"
         class="space-y-3 rounded-2xl border border-secondary/30 bg-secondary-container/15 p-5 text-center"
@@ -540,7 +540,7 @@ async function copyLiffUrl(invoiceNumber: string) {
 
     </div>
 
-    <form v-else class="space-y-5 px-4 py-5" @submit.prevent="handleSubmit">
+    <form v-else class="flex flex-col gap-4 px-4 py-5" @submit.prevent="handleSubmit">
       <header class="space-y-1 border-b border-outline-variant/40 pb-3 text-center">
         <p class="font-headline text-xl font-bold tracking-tight text-on-surface">#{{ invoiceNumber }}</p>
       </header>
@@ -555,7 +555,7 @@ async function copyLiffUrl(invoiceNumber: string) {
         <p class="mt-1 font-body text-xs text-on-surface-variant">Order <span class="font-semibold text-on-surface">{{ order.orderId }}</span></p>
       </section>
 
-      <section class="grid grid-cols-2 gap-3">
+      <section class="grid grid-cols-2 gap-4">
         <FormInput id="invoice-issued-date" v-model="issuedDate" type="date" label="Issued date" icon="event" />
         <FormInput id="invoice-due-date" v-model="dueDate" type="date" label="Due date" icon="event_available" :min="minDueDate" />
       </section>

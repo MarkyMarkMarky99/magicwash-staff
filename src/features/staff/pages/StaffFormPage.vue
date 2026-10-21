@@ -165,7 +165,7 @@ onMounted(() => void authStore.ready())
     @close="close"
     @submit="submit"
   >
-    <div class="space-y-4">
+    <div class="flex flex-col gap-4">
       <StaffReadonlyField v-if="isEdit" id="staff-id" label="รหัสพนักงาน" :value="props.staffId ?? ''" />
       <StaffReadonlyField id="staff-email" label="อีเมล" :value="displayEmail" />
 

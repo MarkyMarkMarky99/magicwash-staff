@@ -41,36 +41,40 @@ function choosePhoto() {
     @close="close"
     @submit="submit"
   >
-    <div class="price-list-item-create" :aria-busy="saving">
-      <section class="photo-section" aria-labelledby="photo-heading" aria-describedby="photo-description">
-        <h2 id="photo-heading" class="section-label">Item photo</h2>
-        <p id="photo-description" class="photo-description">Optional. Add a photo to help staff recognize this item.</p>
-        <input ref="photoInput" class="photo-input" type="file" accept="image/*" tabindex="-1" aria-hidden="true" :disabled="saving" @change="selectPhoto">
-        <div class="photo-card" :inert="saving">
-          <img v-if="photoPreviewUrl" :src="photoPreviewUrl" :alt="`Preview of ${photoName}`" class="photo-preview">
-          <span v-else class="material-symbols-outlined photo-placeholder" aria-hidden="true">image</span>
-          <div class="photo-card__copy">
-            <strong>{{ photoName || 'No photo selected' }}</strong>
-            <span>{{ photoName ? 'Ready to upload' : 'JPG, PNG, or HEIC' }}</span>
+    <div class="price-list-item-create flex flex-col gap-4" :aria-busy="saving">
+      <div class="flex flex-col gap-6">
+        <section class="photo-section flex flex-col gap-4" aria-labelledby="photo-heading" aria-describedby="photo-description">
+          <div class="flex flex-col gap-1">
+            <h2 id="photo-heading" class="section-label">Item photo</h2>
+            <p id="photo-description" class="photo-description">Optional. Add a photo to help staff recognize this item.</p>
           </div>
-          <button v-if="photoPreviewUrl" type="button" class="photo-action" @click="clearPhoto">Remove</button>
-          <button v-else type="button" class="photo-action" @click="choosePhoto">Choose photo</button>
-        </div>
-      </section>
+          <input ref="photoInput" class="photo-input" type="file" accept="image/*" tabindex="-1" aria-hidden="true" :disabled="saving" @change="selectPhoto">
+          <div class="photo-card" :inert="saving">
+            <img v-if="photoPreviewUrl" :src="photoPreviewUrl" :alt="`Preview of ${photoName}`" class="photo-preview">
+            <span v-else class="material-symbols-outlined photo-placeholder" aria-hidden="true">image</span>
+            <div class="photo-card__copy">
+              <strong>{{ photoName || 'No photo selected' }}</strong>
+              <span>{{ photoName ? 'Ready to upload' : 'JPG, PNG, or HEIC' }}</span>
+            </div>
+            <button v-if="photoPreviewUrl" type="button" class="photo-action" @click="clearPhoto">Remove</button>
+            <button v-else type="button" class="photo-action" @click="choosePhoto">Choose photo</button>
+          </div>
+        </section>
 
-      <fieldset class="fieldset" :disabled="saving">
-        <legend class="section-label">Item details</legend>
-        <div class="grid-2">
-          <FormInput id="item-type" v-model="item.itemType" class="field" label="Item type *" />
-          <FormInput id="variant" v-model="item.variant" class="field" label="Variant" placeholder="Optional" />
-        </div>
-        <FormInput id="display-name-th" v-model="item.displayNameTh" class="field" label="Thai display name *" />
-        <FormInput id="display-name-en" v-model="item.displayNameEn" class="field" label="English display name" placeholder="Optional" />
-      </fieldset>
+        <fieldset class="fieldset flex flex-col gap-4" :disabled="saving" aria-labelledby="item-details-heading">
+          <div id="item-details-heading" class="section-label">Item details</div>
+          <div class="grid grid-cols-2 gap-4">
+            <FormInput id="item-type" v-model="item.itemType" class="min-w-0" label="Item type *" />
+            <FormInput id="variant" v-model="item.variant" class="min-w-0" label="Variant" placeholder="Optional" />
+          </div>
+          <FormInput id="display-name-th" v-model="item.displayNameTh" class="min-w-0" label="Thai display name *" />
+          <FormInput id="display-name-en" v-model="item.displayNameEn" class="min-w-0" label="English display name" placeholder="Optional" />
+        </fieldset>
+      </div>
 
       <p v-if="error" class="form-error" role="alert">{{ error }}</p>
       <p v-if="contextLoading" class="saving-status" role="status">Loading item categories…</p>
-      <button v-else-if="contextLoadError" type="button" class="photo-action" @click="retryContext">Try again</button>
+      <button v-else-if="contextLoadError" type="button" class="photo-action self-start" @click="retryContext">Try again</button>
       <p v-if="saving" class="saving-status">Saving item…</p>
     </div>
   </FormOverlay>
@@ -79,8 +83,7 @@ function choosePhoto() {
 <style scoped>
 .price-list-item-create { --ink:var(--color-on-surface); --teal:var(--color-primary); --line:var(--color-outline-variant); --quiet:var(--color-on-surface-variant); color:var(--ink); font-family:var(--font-body); }
 .price-list-item-create * { box-sizing:border-box; }
-.photo-section { margin-bottom:22px; }
-.photo-description { margin:-4px 0 12px; color:var(--quiet); font-size:12px; line-height:1.4; }
+.photo-description { color:var(--quiet); font-size:12px; line-height:1.4; }
 .photo-input { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 .photo-card { display:flex; align-items:center; gap:11px; min-height:82px; padding:10px; border:1px dashed var(--color-outline); border-radius:12px; background:var(--color-surface-container-lowest); }
 .photo-preview { width:60px; height:60px; flex:0 0 auto; border-radius:8px; object-fit:cover; }
@@ -92,12 +95,10 @@ function choosePhoto() {
 .photo-action { flex:0 0 auto; padding:7px 9px; border:1px solid var(--color-outline); border-radius:8px; color:var(--teal); background:var(--color-surface-container-lowest); font:700 11px var(--font-body); cursor:pointer; }
 .photo-action:focus-visible { outline:3px solid var(--color-lime); outline-offset:2px; }
 .fieldset { margin:0; padding:0; border:0; }
-.section-label { display:flex; align-items:center; gap:10px; margin:0 0 12px; color:var(--teal); font:700 12px var(--font-headline); letter-spacing:.03em; }
+.section-label { display:flex; align-items:center; gap:10px; color:var(--teal); font:700 12px var(--font-headline); letter-spacing:.03em; }
 .section-label::after { content:""; height:1px; flex:1; background:var(--line); }
-.grid-2 { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:13px; }
-.field { min-width:0; margin-bottom:15px; }
-.form-error { margin:22px 0 8px; padding:11px 12px; border-radius:10px; color:var(--color-error); background:color-mix(in srgb, var(--color-error) 12%, white); font-size:12px; line-height:1.4; }
-.saving-status { margin:14px 0 8px; color:var(--quiet); font-size:12px; line-height:1.4; }
-@media (max-width:350px) { .grid-2 { gap:10px; } .photo-card { align-items:flex-start; flex-wrap:wrap; } .photo-action { margin-left:71px; } }
+.form-error { padding:11px 12px; border-radius:10px; color:var(--color-error); background:color-mix(in srgb, var(--color-error) 12%, white); font-size:12px; line-height:1.4; }
+.saving-status { color:var(--quiet); font-size:12px; line-height:1.4; }
+@media (max-width:350px) { .photo-card { align-items:flex-start; flex-wrap:wrap; } .photo-action { margin-left:71px; } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; } }
 </style>

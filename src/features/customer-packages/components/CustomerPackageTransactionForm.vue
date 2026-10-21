@@ -102,7 +102,7 @@ const reversalText = computed(() => {
     :is-submit-disabled="isSubmitDisabled" :close-on-backdrop="false"
     @close="emit('close')" @submit="emit('submit')"
   >
-    <div class="space-y-5 pb-6">
+    <div class="flex flex-col gap-4 pb-6">
       <FormPicker
         id="customer-package-transaction-type" :model-value="movementType"
         label="Transaction type" :options="movementTypeOptions" :searchable="false"
@@ -153,22 +153,24 @@ const reversalText = computed(() => {
       <section v-if="movementType === 'EXPIRE' || movementType === 'VOID'" class="rounded-xl border border-outline-variant/30 bg-surface-container-low px-4 py-3 font-body text-sm text-on-surface">
         {{ movementType === 'EXPIRE' ? (remainingCredit > 0 ? `Removes all ${remainingCredit} remaining credits` : 'No credits left to expire') : reversalText }}
       </section>
-      <section v-else class="space-y-3">
-        <div v-if="movementType === 'ADJUSTMENT'" class="space-y-2">
+      <section v-else class="flex flex-col gap-4">
+        <div v-if="movementType === 'ADJUSTMENT'">
           <FormLabel input-id="customer-package-adjustment-add">Direction</FormLabel>
           <div class="flex rounded-xl border border-outline-variant bg-surface-container-low p-1" role="group" aria-label="Adjustment direction">
             <button v-for="direction in (['ADD', 'DEDUCT'] as const)" :id="`customer-package-adjustment-${direction.toLowerCase()}`" :key="direction" type="button" class="flex-1 rounded-lg px-3 py-2 font-label text-sm" :class="adjustmentDirection === direction ? 'bg-primary text-on-primary' : 'text-on-surface-variant'" :aria-pressed="adjustmentDirection === direction" @click="emit('update:adjustmentDirection', direction)">{{ direction === 'ADD' ? 'Add' : 'Deduct' }}</button>
           </div>
         </div>
-        <div>
-          <FormLabel input-id="customer-package-credits">Credits</FormLabel>
-          <input id="customer-package-credits" :value="credits" type="number" inputmode="numeric" min="1" step="1" :max="deductingCredits ? remainingCredit : undefined" placeholder="1" class="block h-[47px] w-full min-w-0 rounded-[10px] border border-outline-variant bg-white px-3 font-body text-sm text-on-surface shadow-[0_1px_0_color-mix(in_srgb,_var(--color-primary)_2%,_transparent)] outline-none placeholder:text-on-surface-variant focus:border-lime focus:shadow-[0_0_0_3px_color-mix(in_srgb,_var(--color-lime)_14%,_transparent)]" @input="emit('update:credits', ($event.target as HTMLInputElement).value)">
-          <p v-if="deductingCredits" class="mt-1 font-body text-xs" :class="creditsOverBalance ? 'text-error' : 'text-on-surface-variant'">{{ creditsOverBalance ? `Only ${remainingCredit} credits available` : `${remainingCredit} credits available` }}</p>
+        <div class="flex flex-col gap-1.5">
+          <div>
+            <FormLabel input-id="customer-package-credits">Credits</FormLabel>
+            <input id="customer-package-credits" :value="credits" type="number" inputmode="numeric" min="1" step="1" :max="deductingCredits ? remainingCredit : undefined" placeholder="1" class="block h-[47px] w-full min-w-0 rounded-[10px] border border-outline-variant bg-white px-3 font-body text-sm text-on-surface shadow-[0_1px_0_color-mix(in_srgb,_var(--color-primary)_2%,_transparent)] outline-none placeholder:text-on-surface-variant focus:border-lime focus:shadow-[0_0_0_3px_color-mix(in_srgb,_var(--color-lime)_14%,_transparent)]" @input="emit('update:credits', ($event.target as HTMLInputElement).value)">
+          </div>
+          <p v-if="deductingCredits" class="font-body text-xs" :class="creditsOverBalance ? 'text-error' : 'text-on-surface-variant'">{{ creditsOverBalance ? `Only ${remainingCredit} credits available` : `${remainingCredit} credits available` }}</p>
         </div>
         <p v-if="movementType === 'TRANSFER'" class="font-body text-xs text-on-surface-variant">Transfers can't be saved yet.</p>
       </section>
 
-      <section class="border-t border-outline-variant/25 pt-5">
+      <section class="border-t border-outline-variant/25 pt-4">
         <FormTextarea id="customer-package-transaction-notes" :model-value="notes" :label="movementType === 'ADJUSTMENT' ? 'Notes (required)' : 'Notes'" placeholder="Add context for this transaction" @update:model-value="emit('update:notes', $event)" />
       </section>
       <p v-if="result" class="rounded-xl px-4 py-3 font-body text-sm leading-5" :class="resultTone === 'error' ? 'bg-error-container text-on-error-container' : 'bg-secondary-container text-on-secondary-container'" role="status" aria-live="polite">{{ result }}</p>

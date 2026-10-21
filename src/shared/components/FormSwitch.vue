@@ -40,7 +40,6 @@ const descriptionId = useId()
   align-items: center;
   gap: 13px;
   padding: 0 0 19px;
-  margin-bottom: 18px;
   border-bottom: 1px solid var(--color-outline-variant);
   font-family: 'Noto Sans Thai', system-ui, sans-serif;
 }

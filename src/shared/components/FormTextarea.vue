@@ -13,7 +13,7 @@ defineEmits(['update:modelValue'])
 </script>
 
 <template>
-  <section class="pb-4">
+  <section>
     <FormLabel :input-id="id">
       {{ label }}
     </FormLabel>

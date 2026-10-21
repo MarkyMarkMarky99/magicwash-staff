@@ -1,8 +1,9 @@
 # Project memory
-- Branch: `feat/customer-update`; customer-package invoice deployment on `main` still needs verification.
+- Branch: `refactor/form-field-spacing`; customer-package invoice deployment on `main` still needs verification.
 
 ## Branches in flight
 
+- **`refactor/form-field-spacing`** — uniform form field spacing, cut from `feat/customer-update`, merge after it; see `.user/memory/refactor-form-field-spacing.md`.
 - **`feat/customer-update`** — admin-only customer edit committed, browser-verified locally, not merged or deployed; see `.user/memory/feat-customer-update.md`.
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.

@@ -60,7 +60,7 @@ onBeforeUnmount(() => {
 
 <template>
   <!-- Rendered into ListContainer's default, empty and error slots so the filter stays clearable. -->
-  <div class="grid gap-3 bg-surface-container-lowest px-4 py-3 md:grid-cols-2">
+  <div class="grid gap-4 bg-surface-container-lowest px-4 py-3 md:grid-cols-2">
     <FormInput
       id="invoice-date-from"
       :model-value="dateFromInput"

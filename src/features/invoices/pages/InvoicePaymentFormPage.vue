@@ -194,9 +194,10 @@ async function submit() {
     @close="close"
     @submit="submit"
   >
+    <div class="flex flex-col gap-4 pb-6">
     <p v-if="loading" class="px-4 py-6 text-sm text-on-surface-variant">กำลังโหลด...</p>
 
-    <div v-else-if="invoice" class="space-y-4 pb-6">
+    <div v-else-if="invoice" class="flex flex-col gap-4">
       <FormInput
         id="payment-amount"
         v-model="amount"
@@ -253,8 +254,9 @@ async function submit() {
       <FormTextarea id="payment-notes" v-model="notes" label="หมายเหตุ" placeholder="ไม่บังคับ" />
     </div>
 
-    <div v-if="error" class="mb-6 flex items-center gap-2 rounded-xl bg-error-container px-4 py-3 font-body text-sm text-on-error-container" role="alert">
+    <div v-if="error" class="flex items-center gap-2 rounded-xl bg-error-container px-4 py-3 font-body text-sm text-on-error-container" role="alert">
       <span class="material-symbols-outlined shrink-0 text-[18px]" aria-hidden="true">error</span>{{ error }}
+    </div>
     </div>
   </FormOverlay>
 </template>

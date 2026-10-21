@@ -165,7 +165,7 @@ defineExpose({ createData, rescheduleData, isValid })
 </script>
 
 <template>
-  <div class="flex flex-col gap-5 py-5 pb-6">
+  <div class="flex flex-col gap-4 py-5 pb-6">
     <p v-if="isCreate && !hasCustomerSnapshot" class="rounded-xl bg-error-container px-4 py-3 text-sm font-body text-on-error-container">
       {{ customerBookingMessage }}
     </p>

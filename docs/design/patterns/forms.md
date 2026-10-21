@@ -23,6 +23,23 @@ Prefer shared controls:
 
 Create feature-specific controls only for specialized interactions.
 
+## Vertical spacing
+
+The rule covers spacing between fields; display blocks (cards, panels, lists, heading+caption pairs) keep their own internal spacing.
+
+Shared field component roots have no outer margin or outer padding. Keep the 6px space between
+labels and controls inside the component, and preserve padding inside visible control boxes.
+
+Containers own sibling spacing: use `flex flex-col gap-4` (16px) for fields and any notices,
+headings, standalone helper/error paragraphs, or custom rows mixed into the field stack. Use
+`flex flex-col gap-6` (24px) for a stack of sections, where each section has its own heading and
+groups fields; fields inside each section still use the 16px stack. Multi-column field rows use
+`grid gap-4` (16px on both axes).
+
+Group a helper or error message tied to one field with that field in a `flex flex-col gap-1.5`
+wrapper (6px). Do not use negative margins, per-field margin classes, or deep tag/child-class
+selectors to space children. Outer page and overlay body padding belongs to the shell.
+
 ## Form Boundary
 
 Keep the form in `<Entity>FormPage.vue` when one page owns it or create/edit can share the same page.

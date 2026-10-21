@@ -56,13 +56,13 @@ function submit() {
 
 <template>
   <FormOverlay :open="isOpen" title="Add item" eyebrow="Order item" submit-label="Add item to order" :is-submitting="props.isSubmitting" :is-submit-disabled="!canSubmit" @close="emit('close')" @submit="submit">
-    <fieldset v-if="props.selectedItem" :disabled="props.isSubmitting" class="min-w-0 space-y-5 pb-5">
+    <fieldset v-if="props.selectedItem" :disabled="props.isSubmitting" class="min-w-0 flex flex-col gap-4 pb-5">
       <div class="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4">
         <div class="min-w-0"><p class="font-label text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">{{ props.selectedItem.itemCode }}</p><p class="mt-1 font-headline text-base font-bold text-on-surface">{{ props.selectedItem.displayNameTh }}</p></div>
         <button type="button" class="mt-3 text-sm font-bold text-primary underline underline-offset-2" @click="emit('changeItem')">Change item</button>
       </div>
-      <p v-if="quantityError" id="order-item-quantity-error" class="rounded-xl border border-error/20 bg-error-container/30 px-3 py-2 text-sm text-on-error-container">{{ quantityError }}</p><p v-if="props.error || validationError" class="rounded-xl border border-error/20 bg-error-container/30 px-3 py-2 text-sm text-on-error-container">{{ props.error || validationError }}</p>
-      <FormInput id="order-item-quantity" v-model="form.quantity" label="Quantity *" type="number" placeholder="1" min="1" step="1" inputmode="numeric" :aria-describedby="quantityError ? 'order-item-quantity-error' : undefined" :aria-invalid="Boolean(quantityError)" /><FormTextarea id="order-item-instructions" v-model="form.specialInstructions" label="Additional notes" placeholder="Add any precautions"/>
+      <p v-if="props.error || validationError" class="rounded-xl border border-error/20 bg-error-container/30 px-3 py-2 text-sm text-on-error-container">{{ props.error || validationError }}</p>
+      <div class="flex flex-col gap-1.5"><p v-if="quantityError" id="order-item-quantity-error" class="rounded-xl border border-error/20 bg-error-container/30 px-3 py-2 text-sm text-on-error-container">{{ quantityError }}</p><FormInput id="order-item-quantity" v-model="form.quantity" label="Quantity *" type="number" placeholder="1" min="1" step="1" inputmode="numeric" :aria-describedby="quantityError ? 'order-item-quantity-error' : undefined" :aria-invalid="Boolean(quantityError)" /></div><FormTextarea id="order-item-instructions" v-model="form.specialInstructions" label="Additional notes" placeholder="Add any precautions"/>
     </fieldset>
   </FormOverlay>
 </template>

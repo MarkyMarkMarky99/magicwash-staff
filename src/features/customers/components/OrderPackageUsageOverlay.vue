@@ -61,8 +61,8 @@ function submit() {
     :is-submitting="submitting" :is-submit-disabled="submitDisabled" :close-on-backdrop="false"
     @close="emit('close')" @submit="submit"
   >
-    <fieldset :disabled="submitting || retryBlocked" class="space-y-5 pb-6">
-      <section>
+    <fieldset :disabled="submitting || retryBlocked" class="flex flex-col gap-4 pb-6">
+      <section class="flex flex-col gap-1.5">
         <fieldset :disabled="loading || packages.length <= 1" class="min-w-0 border-0 p-0">
           <FormPicker
             id="order-usage-package"
@@ -73,16 +73,18 @@ function submit() {
             placeholder="Select a package"
           />
         </fieldset>
-        <p v-if="loading" class="mt-2 text-sm text-on-surface-variant">Loading packages…</p>
-        <p v-else-if="packages.length === 0" class="mt-2 text-sm text-on-surface-variant">No active packages</p>
+        <p v-if="loading" class="text-sm text-on-surface-variant">Loading packages…</p>
+        <p v-else-if="packages.length === 0" class="text-sm text-on-surface-variant">No active packages</p>
       </section>
-      <section>
-        <FormLabel input-id="order-usage-credits">Credits used</FormLabel>
-        <input
-          id="order-usage-credits" v-model="creditsUsed" type="number" min="0" step="any" required
-          class="block h-[47px] w-full rounded-[10px] border border-outline-variant bg-white px-3 font-body text-sm text-on-surface focus:border-lime focus:outline-none focus:ring-2 focus:ring-lime/20"
-        >
-        <p class="mt-2 font-body text-xs text-on-surface-variant">Enter a positive amount to deduct from the package.</p>
+      <section class="flex flex-col gap-1.5">
+        <div>
+          <FormLabel input-id="order-usage-credits">Credits used</FormLabel>
+          <input
+            id="order-usage-credits" v-model="creditsUsed" type="number" min="0" step="any" required
+            class="block h-[47px] w-full rounded-[10px] border border-outline-variant bg-white px-3 font-body text-sm text-on-surface focus:border-lime focus:outline-none focus:ring-2 focus:ring-lime/20"
+          >
+        </div>
+        <p class="font-body text-xs text-on-surface-variant">Enter a positive amount to deduct from the package.</p>
       </section>
       <FormTextarea id="order-usage-notes" v-model="notes" label="Notes (optional)" />
       <p v-if="error" role="alert" class="rounded-xl bg-error-container px-4 py-3 font-body text-sm text-on-error-container">{{ error }}</p>

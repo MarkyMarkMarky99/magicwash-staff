@@ -67,7 +67,7 @@ onMounted(async () => {
 
 <template>
   <FormOverlay :open="true" :title="isEdit ? 'แก้ไขแพ็กเกจ' : 'เพิ่มแพ็กเกจ'" submit-label="บันทึกแพ็กเกจ" :is-submitting="submitting" :is-submit-disabled="initializing || !valid" :close-on-backdrop="false" @close="close" @submit="submitForm">
-    <div class="space-y-4 pb-4">
+    <div class="flex flex-col gap-4 pb-4">
       <FormInput v-if="!isEdit" id="package-code" v-model="form.packageCode" label="รหัสแพ็กเกจ *" />
       <FormInput id="package-name" v-model="form.name" label="ชื่อแพ็กเกจ *" />
       <FormPicker id="package-eligible-service" v-model="form.eligibleService" label="บริการที่ใช้ได้ *" :options="servicePickerOptions" :searchable="false" />

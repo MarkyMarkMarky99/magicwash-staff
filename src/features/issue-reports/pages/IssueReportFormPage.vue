@@ -71,7 +71,7 @@ onBeforeUnmount(clear)
     @close="close"
     @submit="submit"
   >
-    <div class="space-y-4">
+    <div class="flex flex-col gap-4">
       <FormInput id="issue-report-title" v-model="report.title" label="หัวข้อ *" placeholder="สรุปปัญหาที่พบ" />
       <FormTextarea id="issue-report-description" v-model="report.description" label="รายละเอียด *" placeholder="อธิบายปัญหา" />
 

@@ -47,7 +47,7 @@ function onPhoneInput(value: string) {
 
 <template>
   <div class="customer-create-form">
-    <fieldset class="form-section" :disabled="disabled">
+    <fieldset class="form-section flex flex-col gap-4" :disabled="disabled">
       <FormInput
         id="customer-name"
         :model-value="modelValue.customerName"
@@ -64,19 +64,21 @@ function onPhoneInput(value: string) {
         :model-value="modelValue.customerType"
         @update:model-value="updateField('customerType', $event ?? '')"
       />
-      <FormInput
-        id="customer-phone"
-        :model-value="formatPhoneDisplay(modelValue.phone)"
-        label="Phone *"
-        type="tel"
-        inputmode="numeric"
-        placeholder="081-234-5678"
-        autocomplete="tel"
-        :aria-invalid="Boolean(phoneError)"
-        :aria-describedby="phoneError ? 'customer-phone-error' : undefined"
-        @update:model-value="onPhoneInput"
-      />
-      <p v-if="phoneError" id="customer-phone-error" class="field-error" role="alert">{{ phoneError }}</p>
+      <div class="flex flex-col gap-1.5">
+        <FormInput
+          id="customer-phone"
+          :model-value="formatPhoneDisplay(modelValue.phone)"
+          label="Phone *"
+          type="tel"
+          inputmode="numeric"
+          placeholder="081-234-5678"
+          autocomplete="tel"
+          :aria-invalid="Boolean(phoneError)"
+          :aria-describedby="phoneError ? 'customer-phone-error' : undefined"
+          @update:model-value="onPhoneInput"
+        />
+        <p v-if="phoneError" id="customer-phone-error" class="field-error" role="alert">{{ phoneError }}</p>
+      </div>
       <FormInput id="email" :model-value="modelValue.email" label="Email" type="email" placeholder="name@example.com" autocomplete="email" @update:model-value="updateField('email', $event)" />
       <FormTextarea
         id="customer-address"
@@ -101,10 +103,7 @@ function onPhoneInput(value: string) {
 
 <style scoped>
 .customer-create-form { color:var(--color-on-surface); font-family:'Noto Sans Thai',system-ui,sans-serif; padding-bottom:22px; }
-.field-error { margin:-8px 0 15px; color:var(--color-error); font-size:12px; }
-.form-section { min-width:0; margin:0 0 23px; padding:0; border:0; }
-.form-section :deep(section),
-.form-section :deep(.form-option-grid) { margin-bottom:15px; }
-.form-section :deep(section.pb-4) { padding-bottom:0; }
+.field-error { color:var(--color-error); font-size:12px; }
+.form-section { min-width:0; margin:0; padding:0; border:0; }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; } }
 </style>

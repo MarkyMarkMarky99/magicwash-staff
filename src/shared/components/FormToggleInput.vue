@@ -68,7 +68,6 @@ function focusInput() {
   align-items: center;
   gap: 12px;
   padding: 8px 16px 8px 10px;
-  margin-bottom: 10px;
   border: 1px solid var(--color-outline-variant);
   border-radius: 999px;
   background: white;
@@ -96,10 +95,6 @@ function focusInput() {
 .form-toggle-input__stage > * {
   flex: 1;
   min-width: 0;
-}
-
-.form-toggle-input .form-toggle-input__stage :deep(section) {
-  margin: 0;
 }
 
 .form-toggle-input .form-toggle-input__stage :deep(.form-input),

@@ -124,7 +124,7 @@ watch(() => props.id, () => void loadDetail(), { immediate: true })
           </dl>
         </section>
 
-        <section class="space-y-3 rounded-xl border border-outline-variant/30 p-4">
+        <section class="flex flex-col gap-4 rounded-xl border border-outline-variant/30 p-4">
           <p v-if="actionError" class="rounded-lg bg-error-container px-3 py-2 text-sm text-on-error-container" role="alert">{{ actionError }}</p>
           <FormOptionGrid :model-value="report.status" label="เปลี่ยนสถานะ" :options="[...ISSUE_REPORT_STATUS_OPTIONS]" variant="compact" @update:model-value="changeStatus" />
         </section>

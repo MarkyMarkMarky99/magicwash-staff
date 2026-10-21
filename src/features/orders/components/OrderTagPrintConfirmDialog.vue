@@ -67,7 +67,7 @@ watch(
     @close="handleClose"
     @confirm="handleConfirm"
   >
-    <div class="space-y-3 pb-1">
+    <div class="flex flex-col gap-1.5 pb-1">
       <FormInput
         id="order-tag-print-count"
         v-model="editableCount"
