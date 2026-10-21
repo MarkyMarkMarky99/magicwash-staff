@@ -43,6 +43,7 @@ const TYPE_TONES: Record<string, BadgeTone> = {
           {{ customer.address }}
         </p>
       </div>
+      <slot name="actions" />
 
     </div>
   </section>

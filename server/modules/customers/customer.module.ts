@@ -4,11 +4,13 @@ import { customerApiContract } from '../../../contracts/customers/customer-api.s
 import { BaseCrudService } from '../../shared/services/base-crud.service.js'
 import type { ApiRowFromFieldMap } from '../../shared/repositories/base.repository.js'
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
+import { ApiError } from '../../shared/http/api-error.js'
 import { ApiHandler } from '../../shared/http/api-handler.js'
 import { created, okPaged } from '../../shared/http/response.js'
 import { getCustomersRepository } from '../../sheets/Customers/Customers.repository.js'
 import { customersRowSchema } from '../../sheets/Customers/Customers.db-contract.js'
 import { CustomerRegistrationService } from './customer-registration.service.js'
+import { requireAvailableCustomerPhone } from './customer-phone.js'
 
 type CustomerDbRow = z.infer<typeof customersRowSchema>
 
@@ -59,7 +61,19 @@ type CustomerService = BaseCrudService<
 >
 
 export const customerService: CustomerService = new BaseCrudService({
-  repository: getCustomersRepository,
+  repository: () => {
+    const repository = getCustomersRepository()
+    return {
+      read: repository.read.bind(repository),
+      append: repository.append.bind(repository),
+      update: async (customerId: string, patch: Partial<CustomerDbRow>) => {
+        if (typeof patch.Phone === 'string') {
+          requireAvailableCustomerPhone(await repository.read(), patch.Phone, customerId)
+        }
+        return repository.update(customerId, patch)
+      },
+    }
+  },
   api: customerApiContract,
   searchFields: ['customerIndex', 'customerName', 'address'],
   fieldMap: customerFieldMap,
@@ -69,6 +83,13 @@ export const customerRegistrationService = new CustomerRegistrationService()
 const crudRoutes = createCrudRoutes(customerService, customerApiContract, { create: ['updatedBy'], update: ['updatedBy'] })
 export const customerRoutes = {
   ...crudRoutes,
+  item: new ApiHandler({
+    GET: async (req) => crudRoutes.item!.handleRequest(req),
+    PATCH: async (req) => {
+      if (req.staff?.role !== 'admin') throw ApiError.forbidden()
+      return crudRoutes.item!.handleRequest(req)
+    },
+  }),
   collection: new ApiHandler({
     GET: async (req) => {
       const { items, pagination } = await customerService.list(req.query)

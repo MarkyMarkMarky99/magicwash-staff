@@ -147,9 +147,7 @@ async function priceGroupContract() {
   for (const priceGroup of [undefined, null, '', 'Wholesale free text']) {
     assert.equal(customerCreateSchema.parse({ ...request, priceGroup }).priceGroup, priceGroup)
     if (priceGroup !== undefined) {
-      assert.equal(customerUpdateSchema.parse({ updatedBy: 'staff', priceGroup }).priceGroup, priceGroup)
-    } else {
-      assert.equal(customerUpdateSchema.parse({ updatedBy: 'staff', customerName: 'Somjai' }).priceGroup, undefined)
+      assert.equal(customerUpdateSchema.safeParse({ updatedBy: 'staff', customerName: 'Somjai', priceGroup }).success, false)
     }
     const fake = setup([], [{ CustomerLabel: 'ABC', CustomerID: null }])
     const created = await fake.service.create({ ...request, priceGroup })

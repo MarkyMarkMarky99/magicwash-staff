@@ -29,19 +29,52 @@ Random choice from ~17,000 free labels makes two concurrent registrations pickin
 ## Price group contract
 
 Customers column U is `PriceGroup`, after column T `DeletedAt`, and maps to API `priceGroup`.
-List, detail, create, and update responses include it as a nullable string. Create and update
-payloads accept an optional nullable string with unrestricted text. Registration defaults an
-omitted or null value to null and preserves an empty string; DEFAULT pricing behavior is deferred.
+List, detail, create, and update responses include it as a nullable string. Create
+payloads accept an optional nullable string with unrestricted text; PATCH does not accept `priceGroup`.
+Registration defaults an omitted or null value to null and preserves an empty string; DEFAULT pricing
+behavior is deferred.
 
 ## Sheet capabilities
 
-- Customers: `append: true`, `update: false`, `delete: false`.
+- Customers: `append: true`, `update: true`, `delete: false`.
 - CustomerIDMapping: `update: true` only.
 
 ## Frontend
 
-- `CustomerCreatePage.vue` posts the form; submit stays disabled while the payload fails `customerCreateSchema` or a save is in flight.
+- `CustomerFormPage.vue` serves create and edit using `CustomerForm.vue`; create posts the form; submit stays disabled while the payload fails `customerCreateSchema` or a save is in flight.
 - The form has no registration date field; the server sets `RegisteredDate` to today (Bangkok).
 - The form has no location field until a map picker exists; the API still accepts `location`.
 - On 409 `duplicate_phone`, show the error on the phone field.
 - On success, add the customer to the customer store and open the customer's detail page.
+
+## Admin editing
+
+Only staff whose resolved role is `admin` may PATCH `/api/customers/:id`. Other roles receive
+403 before any sheet access. GET and POST keep their existing behavior.
+
+The editable fields are `customerName`, `phone`, `address`, `facebook`, `lineId`, `whatsapp`,
+`email`, and `customerType`. Customer type is edit-only in the form, with `Member`, `Regular`, and
+`Corporate` options. A null type starts blank; selecting a type includes it only when changed.
+Create still omits `customerType` from its form payload. PATCH reuses each field's create validation,
+makes each optional, and requires at least one supplied editable field. Phone cannot be null.
+Unknown fields, including IDs, metadata, location, source, and price group, are rejected.
+The server replaces `updatedBy` with the signed-in StaffId and fills `UpdatedAt`; only supplied
+fields and these audit columns are written. Editing uses the generated CRUD update handler with
+a customers-module phone check. When PATCH supplies `phone`, the server compares digits against
+other live customers, excluding the same `CustomerID`. A duplicate returns the same 409
+`duplicate_phone` error as registration before any write; the edit form shows it beside the phone
+field. Keeping the customer's own phone is allowed. PATCH without `phone` skips this check.
+
+The customer detail card shows Edit only to admins. It pushes `/customers/:customerId/edit`,
+which opens the same routed FormOverlay as create and prefills the eight inputs from the loaded
+customer. Non-admin deep links redirect to `/` after auth readiness. Save stays disabled while
+loading, saving, invalid, or unchanged; edit submits only changed fields. The existing input bindings
+and phone display formatting are preserved. Close uses route history when available; the fallback
+for edit is that customer's detail page, while create keeps the customer list fallback. After a
+successful edit, go back when a history back entry exists; otherwise replace the edit route with
+that customer's detail page. This avoids adding a second detail entry. Successful create keeps
+replacing the form route with the new customer's detail page.
+
+`createCustomer` and `updateCustomer` invalidate the `/api/customers` response cache after success.
+The customer store's invalidation listener reloads the list, and the saved response is immediately
+added to the store. The saved response also refreshes the cached customer detail record.

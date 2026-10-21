@@ -2,11 +2,13 @@
 import FormInput from '@/shared/components/FormInput.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
 import FormToggleInput from '@/shared/components/FormToggleInput.vue'
+import FormOptionGrid from '@/shared/components/FormOptionGrid.vue'
+import { customerTypeSchema } from '@contracts/customers/customer-api.schema'
 import { currentActor } from '@/shared/config/actor'
 import { formatPhoneDisplay, nextPhoneDigits } from '../utils/phone-format'
 import SocialLogo from './SocialLogo.vue'
 
-export type CustomerCreateFormData = {
+export type CustomerFormData = {
   customerName: string
   phone: string
   address: string
@@ -14,20 +16,24 @@ export type CustomerCreateFormData = {
   lineId: string
   whatsapp: string
   email: string
+  customerType: string
   updatedBy: string
 }
 
 const props = defineProps<{
-  modelValue: CustomerCreateFormData
+  modelValue: CustomerFormData
   phoneError?: string | null
   disabled?: boolean
+  editMode?: boolean
 }>()
+
+const customerTypeOptions = customerTypeSchema.options.map((value) => ({ value, label: value }))
 
 const emit = defineEmits<{
-  'update:modelValue': [value: CustomerCreateFormData]
+  'update:modelValue': [value: CustomerFormData]
 }>()
 
-function updateField(field: keyof CustomerCreateFormData, value: string) {
+function updateField(field: keyof CustomerFormData, value: string) {
   emit('update:modelValue', { ...props.modelValue, [field]: value, updatedBy: currentActor() })
 }
 
@@ -49,6 +55,14 @@ function onPhoneInput(value: string) {
         placeholder="e.g. Somjai Jaidee"
         autocomplete="name"
         @update:model-value="updateField('customerName', $event)"
+      />
+      <FormOptionGrid
+        v-if="editMode"
+        label="Customer type"
+        variant="compact"
+        :options="customerTypeOptions"
+        :model-value="modelValue.customerType"
+        @update:model-value="updateField('customerType', $event ?? '')"
       />
       <FormInput
         id="customer-phone"
@@ -89,7 +103,8 @@ function onPhoneInput(value: string) {
 .customer-create-form { color:var(--color-on-surface); font-family:'Noto Sans Thai',system-ui,sans-serif; padding-bottom:22px; }
 .field-error { margin:-8px 0 15px; color:var(--color-error); font-size:12px; }
 .form-section { min-width:0; margin:0 0 23px; padding:0; border:0; }
-.form-section :deep(section) { margin-bottom:15px; }
+.form-section :deep(section),
+.form-section :deep(.form-option-grid) { margin-bottom:15px; }
 .form-section :deep(section.pb-4) { padding-bottom:0; }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; } }
 </style>

@@ -26,22 +26,20 @@ export const customerCreateSchema = z.object({
   updatedBy: z.string().min(1),
 })
 
-export const customerUpdateSchema = z
-  .object({
-    customerName: z.string().min(1).optional(),
-    phone: phoneSchema.nullable().optional(),
-    address: z.string().nullable().optional(),
-    location: z.string().nullable().optional(),
-    registeredDate: isoDateSchema.nullable().optional(),
-    facebook: z.string().nullable().optional(),
-    lineId: z.string().nullable().optional(),
-    whatsapp: z.string().nullable().optional(),
-    email: z.string().nullable().optional(),
-    customerType: customerTypeSchema.nullable().optional(),
-    source: customerSourceSchema.nullable().optional(),
-    priceGroup: z.string().nullable().optional(),
-    updatedBy: z.string().min(1),
+export const customerUpdateSchema = customerCreateSchema
+  .pick({
+    customerName: true,
+    phone: true,
+    address: true,
+    facebook: true,
+    lineId: true,
+    whatsapp: true,
+    email: true,
+    customerType: true,
   })
+  .partial()
+  .extend({ updatedBy: customerCreateSchema.shape.updatedBy })
+  .strict()
   .refine(
     (data) => Object.entries(data).some(([key, value]) => key !== 'updatedBy' && value !== undefined),
     { message: 'At least one updatable field is required' },

@@ -25,12 +25,14 @@ import { useCustomerInvoicesStore } from '@/data/invoices/customer-invoices.stor
 import { useOrderPackageUsageRoute } from '../composables/useOrderPackageUsageRoute'
 import { resolveCustomerTab } from '../utils/customer-tab'
 import { currentActor } from '@/shared/config/actor'
+import { useAuthStore } from '@/data/auth/auth.store'
 
 const props = defineProps<{
   customerId: string
   tab?: string
 }>()
 
+const { isAdmin } = storeToRefs(useAuthStore())
 const router = useRouter()
 const route = useRoute()
 const activeTab = computed(() => resolveCustomerTab(props.tab))
@@ -154,7 +156,19 @@ watch([activeTab, () => props.customerId, openOrderId], ([tab, id, orderId]) => 
         Unable to load customer details.
       </p>
 
-      <OrderHistoryCustomerCard v-if="customer" :customer="customer" />
+      <OrderHistoryCustomerCard v-if="customer" :customer="customer">
+        <template #actions>
+          <button
+            v-if="isAdmin"
+            type="button"
+            class="-m-1 flex shrink-0 p-1 text-primary transition hover:opacity-70 active:scale-95"
+            @click="router.push({ name: 'customer-edit', params: { customerId } })"
+          >
+            <span class="material-symbols-outlined text-[16px]" aria-hidden="true">edit</span>
+            Edit
+          </button>
+        </template>
+      </OrderHistoryCustomerCard>
       <OrderList v-if="activeTab === 'orders'" :customer-id="customerId" :price-group="customer?.priceGroup ?? null" @select-order="openOrder" />
       <CustomerPackagesSection v-else-if="activeTab === 'packages'" :customer-id="customerId" />
       <CustomerInvoicesSection v-else-if="activeTab === 'invoices'" :customer-id="customerId" />

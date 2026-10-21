@@ -9,8 +9,15 @@ export const customerRoutes: RouteRecordRaw[] = [
   {
     path: '/customers/new',
     name: 'customer-create',
-    component: () => import('./pages/CustomerCreatePage.vue'),
+    component: () => import('./pages/CustomerFormPage.vue'),
     meta: { parent: 'customer-list' },
+  },
+  {
+    path: '/customers/:customerId/edit',
+    name: 'customer-edit',
+    component: () => import('./pages/CustomerFormPage.vue'),
+    meta: { parent: 'customer-list' },
+    props: true,
   },
   {
     path: '/customers/:customerId/:tab?',

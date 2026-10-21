@@ -5,14 +5,18 @@ import {
   customerDetailResponseSchema,
   customerCreateSchema,
   customerCreateResponseSchema,
+  customerUpdateSchema,
+  customerUpdateResponseSchema,
 } from '@contracts/customers/customer-api.schema'
-import { apiGet, apiGetList, apiPost } from '@/shared/api/api-client'
+import { apiGet, apiGetList, apiPost, apiPatch } from '@/shared/api/api-client'
 import { invalidate } from '@/shared/api/response-cache'
 
 export type CustomerListDto = z.infer<typeof customerListResponseSchema>
 export type CustomerDetailDto = z.infer<typeof customerDetailResponseSchema>
 export type CustomerCreateDto = z.infer<typeof customerCreateResponseSchema>
 export type CustomerCreateInput = z.infer<typeof customerCreateSchema>
+export type CustomerUpdateInput = z.infer<typeof customerUpdateSchema>
+export type CustomerUpdateDto = z.infer<typeof customerUpdateResponseSchema>
 
 const CUSTOMERS_ENDPOINT = '/api/customers'
 
@@ -43,6 +47,15 @@ export async function createCustomer(payload: CustomerCreateInput): Promise<Cust
   const customer = await apiPost<CustomerCreateDto>(CUSTOMERS_ENDPOINT, {
     data: payload,
     requestSchema: customerCreateSchema,
+  })
+  invalidate(CUSTOMERS_ENDPOINT)
+  return customer
+}
+
+export async function updateCustomer(customerId: string, patch: CustomerUpdateInput): Promise<CustomerUpdateDto> {
+  const customer = await apiPatch<CustomerUpdateDto>(`${CUSTOMERS_ENDPOINT}/${encodeURIComponent(customerId)}`, {
+    data: patch,
+    requestSchema: customerUpdateSchema,
   })
   invalidate(CUSTOMERS_ENDPOINT)
   return customer

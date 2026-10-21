@@ -10,6 +10,7 @@ import { customerIdMappingRowSchema } from '../../sheets/CustomerIDMapping/Custo
 import { getCustomerIdMappingRepository } from '../../sheets/CustomerIDMapping/CustomerIDMapping.repository.js'
 import { customersRowSchema } from '../../sheets/Customers/Customers.db-contract.js'
 import { getCustomersRepository } from '../../sheets/Customers/Customers.repository.js'
+import { requireAvailableCustomerPhone } from './customer-phone.js'
 
 type CustomerRow = z.infer<typeof customersRowSchema>
 type MappingRow = z.infer<typeof customerIdMappingRowSchema>
@@ -43,15 +44,7 @@ export class CustomerRegistrationService {
     const customerId = this.generateId()
     const customers = this.customers()
     const mapping = this.mapping()
-    const phoneDigits = data.phone.replace(/\D/g, '')
-    const existing = await customers.read()
-    if (existing.some((row) =>
-      (row.DeletedAt == null || row.DeletedAt === '')
-      && typeof row.Phone === 'string'
-      && row.Phone.replace(/\D/g, '') === phoneDigits
-    )) {
-      throw ApiError.conflict('duplicate_phone', { code: 'duplicate_phone' })
-    }
+    requireAvailableCustomerPhone(await customers.read(), data.phone)
 
     const labels = (await mapping.read()).filter((row) =>
       row.CustomerLabel && (row.CustomerID == null || row.CustomerID === ''),

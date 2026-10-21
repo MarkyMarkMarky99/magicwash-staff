@@ -1,8 +1,9 @@
 # Project memory
-- Branch: `main`; customer-package invoice deployment still needs verification.
+- Branch: `feat/customer-update`; customer-package invoice deployment on `main` still needs verification.
 
 ## Branches in flight
 
+- **`feat/customer-update`** — admin-only customer edit committed, browser-verified locally, not merged or deployed; see `.user/memory/feat-customer-update.md`.
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
@@ -111,7 +112,8 @@
   - Clean sheet data: the blank customer row, dirty Orders rows, LaundryPhotos ordering, and page-walks using non-unique sort keys.
 - **Customers and registration**
   - Browser-check forms using the restyled `FormTextarea` and rounded `FormOverlay` body; the helper text keeps a stray bullet dot.
-  - Customers PATCH is advertised but the sheet disallows update; no tests for the POST route response or an empty label pool.
+  - No tests for the POST route response or an empty label pool.
+  - Test customer `cbcc555a` (KLX, "ทดสอบ แก้แล้ว") is a leftover live row from 2026-10-21; delete by hand in the sheet.
   - Deferred by user: duplicate-phone check misses legacy phones without a leading 0; map picker (Leaflet + Nominatim/Longdo), location field hidden until then.
   - Dirty data, fix undecided: Customers has 1 blank and 19 duplicated `CustomerIndex`; CustomerIDMapping lacks 302 customers, has 5 orphan ids and 2 mangled ids.
   - Re-run `frontend-data-boundaries.dry-test.ts` after addressing the payment form's Firebase Storage import.
