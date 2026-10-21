@@ -5,6 +5,7 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
+- **`feat/agent-chat`** — Agents list + chat UI on fake replies, owner-approved in browser; MagicwashAI integration next; see `.user/memory/feat-agent-chat.md`.
 
 ## Pending work
 - **MagicwashAI local gateway** — handoff: `.user/memory/magicwash-ai-gateway-handoff.md`
@@ -12,6 +13,7 @@
   - Need 3–5 more real slips (other branches, harder handwriting) for `scripts/eval-read-slip.js`.
   - Price groups KLINIQ, KLINIQUE, MAISON, MAISON_GAYSORN, SOULTEL live (2026-10-21) on the shared default slip prompt; only blank forms tested, need filled slips (esp. KLINIQ, whose LAUNDRY COUNT sits beside SPA COUNT).
   - Open: timeouts (gateway 90 s, client 120 s) exceed Cloudflare's ~100 s; proposed 60 s / 95 s, owner not decided.
+  - MagicwashAI `main` has unpushed commits `7e1c001` (fill-form), `852d666` (chat), `c7ec3b3` (price-check).
 - **Corporate count-sheet order** — see `docs/features/orders/corporate-order-form.md`
   - Slip-photo upload on Save not yet tried in a real browser.
   - Owner: update G Drive `PriceList.json` description (price-0 rows may be active for CRYO).
