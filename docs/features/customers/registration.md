@@ -42,6 +42,7 @@ behavior is deferred.
 ## Frontend
 
 - `CustomerFormPage.vue` serves create and edit using `CustomerForm.vue`; create posts the form; submit stays disabled while the payload fails `customerCreateSchema` or a save is in flight.
+- Agent customer drafts can open create with a one-use in-memory prefill from `src/shared/navigation/customer-create-prefill.ts`. On mount, create mode takes and clears it, then fills only matching empty fields; edit mode does not consume it. `CustomerFormPage` is excluded from KeepAlive. No customer data is put in URLs or history state, and a reload loses the prefill. All eight hand-off fields exist in form state, including WhatsApp; customer type stays hidden in create mode and the existing create payload still omits it. Staff review and save with the form's own validation and save button.
 - The form has no registration date field; the server sets `RegisteredDate` to today (Bangkok).
 - The form has no location field until a map picker exists; the API still accepts `location`.
 - On 409 `duplicate_phone`, show the error on the phone field.

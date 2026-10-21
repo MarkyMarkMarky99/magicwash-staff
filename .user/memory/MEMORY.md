@@ -12,6 +12,10 @@
   - Need 3–5 more real slips (other branches, harder handwriting) for `scripts/eval-read-slip.js`.
   - Price groups KLINIQ, KLINIQUE, MAISON, MAISON_GAYSORN, SOULTEL live (2026-10-21) on the shared default slip prompt; only blank forms tested, need filled slips (esp. KLINIQ, whose LAUNDRY COUNT sits beside SPA COUNT).
   - Open: timeouts (gateway 90 s, client 120 s) exceed Cloudflare's ~100 s; proposed 60 s / 95 s, owner not decided.
+- **Agent chat (`/agents`)** — see `docs/features/agents/agent-chat.md`
+  - Prod needs Vercel env `VITE_AI_GATEWAY_URL` and MagicwashAI running (`start.bat`); without it register/price chats show the error bubble.
+  - order-tracking still returns a canned fake reply; build the MagicwashAI `order-tracking` agent and align the invented tracking card shape.
+  - Local test: MagicwashAI `ALLOWED_ORIGINS` must include `http://localhost:3000` for `vercel dev`.
 - **Corporate count-sheet order** — see `docs/features/orders/corporate-order-form.md`
   - Slip-photo upload on Save not yet tried in a real browser.
   - Owner: update G Drive `PriceList.json` description (price-0 rows may be active for CRYO).

@@ -115,6 +115,16 @@ function logout() {
             <span>แจ้งปัญหา</span>
           </button>
         </li>
+        <li>
+          <button
+            class="w-full flex items-center gap-4 px-5 py-3 text-left hover:bg-black/5 transition-colors"
+            :class="route.path.startsWith('/agents') ? 'text-primary font-semibold' : ''"
+            @click="navigate('/agents')"
+          >
+            <span class="material-symbols-outlined">smart_toy</span>
+            <span>Agents</span>
+          </button>
+        </li>
         <li v-if="staffSignedIn">
           <button
             class="w-full flex items-center gap-4 px-5 py-3 text-left hover:bg-black/5 transition-colors"

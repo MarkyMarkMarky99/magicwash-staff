@@ -16,6 +16,7 @@ import { jobTicketRoutes } from '@/features/job-tickets/routes'
 import { staffRoutes } from '@/features/staff/routes'
 import { orderReportRoutes } from '@/features/order-reports/routes'
 import { deliveryTrackingRoutes } from '@/features/delivery-tracking/routes'
+import { agentRoutes } from '@/features/agents/routes'
 
 const routes = [
   ...washQueueRoutes,
@@ -33,6 +34,7 @@ const routes = [
   ...staffRoutes,
   ...orderReportRoutes,
   ...deliveryTrackingRoutes,
+  ...agentRoutes,
 ]
 
 if (import.meta.env.DEV) {
