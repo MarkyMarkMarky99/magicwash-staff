@@ -1,33 +1,12 @@
-import type { AgentChatReply, AgentChatRequest, AgentId } from '../agent-chat.types'
+import { AiGatewayError } from '@shared/ai-gateway/ai-gateway.errors'
+import { sendChat } from '@shared/ai-gateway/tasks/chat'
+import { aiGatewayBaseUrl, aiGatewayToken } from '@/shared/ai-gateway/ai-gateway.config'
+import { downscaleScreenshot } from '../utils/downscale-screenshot'
+import type { AgentChatReply, AgentChatRequest } from '../agent-chat.types'
 
 const FAKE_REPLY_DELAY_MS = 2000
 
-const cannedReplies: Record<AgentId, Omit<AgentChatReply, 'sessionId'>> = {
-  'register-customer': {
-    reply: 'อ่านข้อความแล้วค่ะ ร่างข้อมูลลูกค้าใหม่ไว้ให้ตามนี้ ตรวจดูก่อนเปิดฟอร์มนะคะ',
-    proposal: {
-      customerName: 'คุณสมชาย ใจดี',
-      phone: '0812345678',
-      address: '99/12 ซ.สุขุมวิท 31 แขวงคลองตันเหนือ เขตวัฒนา กรุงเทพฯ 10110',
-      lineId: 'somchai.j',
-      facebook: null,
-      whatsapp: null,
-      email: null,
-      customerType: 'Regular',
-    },
-    warnings: [{ field: 'address', source: 'ai', message: 'ที่อยู่ไม่ระบุชั้น/ห้อง — ควรถามลูกค้าเพิ่ม' }],
-  },
-  'price-check': {
-    reply: 'เจอรายการที่ใกล้เคียงในใบราคาค่ะ',
-    proposal: {
-      rows: [
-        { itemCode: 'CMF-60', name: 'ผ้านวม 6 ฟุต', serviceType: 'ซัก', priceGroup: 'Standard', unit: 'ผืน', price: 250 },
-        { itemCode: 'CMF-50', name: 'ผ้านวม 5 ฟุต', serviceType: 'ซัก', priceGroup: 'Standard', unit: 'ผืน', price: 200 },
-        { itemCode: 'CMF-35', name: 'ผ้านวม 3.5 ฟุต', serviceType: 'ซัก', priceGroup: 'Standard', unit: 'ผืน', price: 150 },
-      ],
-    },
-    warnings: [],
-  },
+const cannedReplies: Record<'order-tracking', Omit<AgentChatReply, 'sessionId'>> = {
   'order-tracking': {
     reply: 'เจอออเดอร์แล้วครับ ตอนนี้อยู่ขั้นตอนอบ',
     proposal: {
@@ -45,7 +24,24 @@ const cannedReplies: Record<AgentId, Omit<AgentChatReply, 'sessionId'>> = {
   },
 }
 
-export async function sendAgentMessage(request: AgentChatRequest): Promise<AgentChatReply> {
+export async function sendAgentMessage(request: AgentChatRequest, signal?: AbortSignal): Promise<AgentChatReply> {
+  if (request.agentId !== 'order-tracking') {
+    const baseUrl = aiGatewayBaseUrl()
+    if (!baseUrl) throw new AiGatewayError('NOT_CONFIGURED', 'AI gateway is not configured')
+    const files = await Promise.all(request.images.map(async (image, index) => ({
+      blob: await downscaleScreenshot(image), filename: `image-${index + 1}.jpg`,
+    })))
+    const result = await sendChat({
+      baseUrl, getToken: aiGatewayToken, agentId: request.agentId,
+      message: request.message, sessionId: request.sessionId, files, signal,
+    })
+    const proposal = result.proposal
+    if (proposal && 'customerName' in proposal) {
+      const { warnings, ...customer } = proposal
+      return { sessionId: result.sessionId, reply: result.reply, proposal: customer, warnings: result.warnings }
+    }
+    return { sessionId: result.sessionId, reply: result.reply, proposal, warnings: result.warnings }
+  }
   await new Promise(resolve => setTimeout(resolve, FAKE_REPLY_DELAY_MS))
   if (request.message.trim() === 'error') throw new Error('AI unavailable')
   return { sessionId: request.sessionId ?? `fake-${request.agentId}`, ...cannedReplies[request.agentId] }

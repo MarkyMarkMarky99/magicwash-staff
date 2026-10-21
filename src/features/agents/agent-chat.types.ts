@@ -16,7 +16,7 @@ export interface CustomerProposal {
   facebook: string | null
   whatsapp: string | null
   email: string | null
-  customerType: string | null
+  customerType: 'Member' | 'Regular' | 'Corporate' | null
 }
 
 export interface PriceProposalRow {
@@ -24,7 +24,7 @@ export interface PriceProposalRow {
   name: string
   serviceType: string
   priceGroup: string
-  unit: string
+  unit: string | null
   price: number
 }
 
@@ -70,7 +70,7 @@ export interface DraftImage {
 export type ChatMessage =
   | { id: string; role: 'staff'; text: string; imageUrls: string[] }
   | { id: string; role: 'agent'; text: string; proposal: AgentProposal | null; warnings: AgentWarning[] }
-  | { id: string; role: 'error' }
+  | { id: string; role: 'error'; text?: string }
 
 export interface AgentChat {
   sessionId: string | null

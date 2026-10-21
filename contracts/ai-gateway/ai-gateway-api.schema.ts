@@ -3,7 +3,7 @@ import { z } from 'zod'
 export const aiGatewayErrorCodeSchema = z.enum([
   'UNKNOWN_TASK', 'INVALID_INPUT', 'INVALID_ATTACHMENT', 'UNAUTHORIZED', 'FORBIDDEN',
   'RATE_LIMITED', 'BUSY', 'TIMEOUT', 'DATA_UNAVAILABLE', 'BAD_OUTPUT', 'CODEX_FAILED',
-  'INTERNAL', 'NOT_FOUND',
+  'INTERNAL', 'NOT_FOUND', 'SESSION_NOT_FOUND',
 ])
 
 export const aiGatewaySuccessSchema = z.object({

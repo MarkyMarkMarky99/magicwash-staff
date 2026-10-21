@@ -4,11 +4,12 @@ import { useRouter } from 'vue-router'
 import ConfirmOverlay from '@/shared/layouts/ConfirmOverlay.vue'
 import { useGoBack } from '@/shared/composables/use-go-back'
 import { customerCreateRoute } from '@/shared/navigation/form-routes'
+import { setCustomerCreatePrefill } from '@/shared/navigation/customer-create-prefill'
 import AgentChatBar from '../components/AgentChatBar.vue'
 import AgentComposer from '../components/AgentComposer.vue'
 import AgentMessageList from '../components/AgentMessageList.vue'
 import { agentById } from '../agents'
-import { isAgentId, type AgentId } from '../agent-chat.types'
+import { isAgentId, type AgentId, type CustomerProposal } from '../agent-chat.types'
 import { useAgentChatStore } from '../stores/agent-chat.store'
 
 const props = defineProps<{ agentId: string }>()
@@ -22,7 +23,6 @@ const agent = computed(() => validId.value ? agentById(validId.value) : null)
 const chat = computed(() => validId.value ? store.chats[validId.value] : null)
 const noticeVisible = ref(true)
 const endOpen = ref(false)
-const composer = ref<{ focus: () => void } | null>(null)
 
 watch(validId, (id) => {
   if (!id) void router.replace({ name: 'agent-list' })
@@ -31,9 +31,20 @@ watch(validId, (id) => {
 function confirmEnd(): void {
   if (validId.value) store.reset(validId.value)
   endOpen.value = false
+  goBack()
 }
 
-function openCustomerForm(): void {
+function openCustomerForm(proposal: CustomerProposal): void {
+  setCustomerCreatePrefill({
+    ...(proposal.customerName !== null ? { customerName: proposal.customerName } : {}),
+    ...(proposal.phone !== null ? { phone: proposal.phone } : {}),
+    ...(proposal.address !== null ? { address: proposal.address } : {}),
+    ...(proposal.lineId !== null ? { lineId: proposal.lineId } : {}),
+    ...(proposal.facebook !== null ? { facebook: proposal.facebook } : {}),
+    ...(proposal.whatsapp !== null ? { whatsapp: proposal.whatsapp } : {}),
+    ...(proposal.email !== null ? { email: proposal.email } : {}),
+    ...(proposal.customerType !== null ? { customerType: proposal.customerType } : {}),
+  })
   void router.push(customerCreateRoute())
 }
 </script>
@@ -56,11 +67,9 @@ function openCustomerForm(): void {
       @suggest="store.sendText(validId, $event)"
       @retry="store.retry(validId)"
       @open-customer-form="openCustomerForm"
-      @edit-in-chat="composer?.focus()"
     />
 
     <AgentComposer
-      ref="composer"
       :text="chat.draftText"
       :images="chat.draftImages"
       :thinking="chat.thinking"

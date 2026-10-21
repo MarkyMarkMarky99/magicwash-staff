@@ -22,7 +22,7 @@ function formatPrice(price: number): string {
         <tr v-for="row in proposal.rows" :key="row.itemCode" class="border-b border-dashed border-outline-variant last:border-b-0">
           <td class="py-2 font-semibold leading-snug">
             {{ row.name }}
-            <span class="block text-[11px] font-medium text-on-surface-variant">{{ row.serviceType }} · {{ row.priceGroup }} · ต่อ{{ row.unit }}</span>
+            <span class="block text-[11px] font-medium text-on-surface-variant">{{ row.serviceType }} · {{ row.priceGroup }} · ต่อ{{ row.unit ?? '' }}</span>
           </td>
           <td class="whitespace-nowrap py-2 text-right text-sm font-extrabold text-primary">{{ formatPrice(row.price) }}</td>
         </tr>

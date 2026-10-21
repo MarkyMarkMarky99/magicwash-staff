@@ -4,7 +4,7 @@ import type { AgentWarning, CustomerProposal } from '../agent-chat.types'
 import AgentCardFrame from './AgentCardFrame.vue'
 
 const props = defineProps<{ proposal: CustomerProposal; warnings: AgentWarning[] }>()
-defineEmits<{ open: []; edit: [] }>()
+defineEmits<{ open: [proposal: CustomerProposal] }>()
 
 const fields = computed(() => [
   { label: 'ชื่อ', value: props.proposal.customerName },
@@ -31,11 +31,8 @@ const fields = computed(() => [
       <span>{{ warning.message }}</span>
     </p>
     <div class="mt-3 grid gap-2">
-      <button type="button" class="flex h-[46px] items-center justify-center gap-1.5 rounded-full bg-primary px-4 font-body text-sm font-extrabold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" @click="$emit('open')">
+      <button type="button" class="flex h-[46px] items-center justify-center gap-1.5 rounded-full bg-primary px-4 font-body text-sm font-extrabold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" @click="$emit('open', proposal)">
         <span class="material-symbols-outlined text-[20px]" aria-hidden="true">person_add</span>เปิดฟอร์มลูกค้า
-      </button>
-      <button type="button" class="flex h-[46px] items-center justify-center gap-1.5 rounded-full border-[1.5px] border-outline-variant bg-white px-4 font-body text-sm font-extrabold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" @click="$emit('edit')">
-        <span class="material-symbols-outlined text-[20px]" aria-hidden="true">edit</span>แก้ไขต่อในแชต
       </button>
     </div>
   </AgentCardFrame>

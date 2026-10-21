@@ -9,6 +9,8 @@ import { useCustomerStore } from '@/data/customers/customer.store'
 import { useAuthStore } from '@/data/auth/auth.store'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import { useCloseRoute } from '@/shared/navigation/use-close-route'
+import { takeCustomerCreatePrefill } from '@/shared/navigation/customer-create-prefill'
+import { applyCustomerCreatePrefill } from '../utils/customer-create-prefill'
 import CustomerForm from '../components/CustomerForm.vue'
 import type { CustomerFormData } from '../components/CustomerForm.vue'
 import { currentActor } from '@/shared/config/actor'
@@ -100,7 +102,13 @@ watch([status, isAdmin], () => {
   else void loadCustomer()
 }, { immediate: true })
 
-onMounted(() => void authStore.ready())
+onMounted(() => {
+  if (!isEdit.value) {
+    const prefill = takeCustomerCreatePrefill()
+    if (prefill) Object.assign(customer, applyCustomerCreatePrefill(customer, prefill))
+  }
+  void authStore.ready()
+})
 
 async function submit() {
   const result = parsed.value

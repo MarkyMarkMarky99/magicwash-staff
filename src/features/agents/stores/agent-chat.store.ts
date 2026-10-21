@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { AiGatewayError } from '@shared/ai-gateway/ai-gateway.errors'
 import { sendAgentMessage } from '../services/agent-chat.service'
 import {
   MAX_DRAFT_IMAGES,
@@ -25,6 +26,7 @@ export const useAgentChatStore = defineStore('agent-chat', () => {
     'order-tracking': emptyChat(),
   })
   const generations: Record<AgentId, number> = { 'register-customer': 0, 'price-check': 0, 'order-tracking': 0 }
+  const controllers: Partial<Record<AgentId, AbortController>> = {}
   const lastRequests: Partial<Record<AgentId, AgentChatRequest>> = {}
 
   function setDraftText(agentId: AgentId, text: string): void {
@@ -53,16 +55,26 @@ export const useAgentChatStore = defineStore('agent-chat', () => {
     const generation = generations[agentId]
     lastRequests[agentId] = request
     chat.thinking = true
+    const controller = new AbortController()
+    controllers[agentId] = controller
     try {
-      const reply = await sendAgentMessage(request)
+      const reply = await sendAgentMessage(request, controller.signal)
       if (generations[agentId] !== generation) return
       chat.sessionId = reply.sessionId
       chat.messages.push({ id: nextId(), role: 'agent', text: reply.reply, proposal: reply.proposal, warnings: reply.warnings })
-    } catch {
+    } catch (error) {
       if (generations[agentId] !== generation) return
-      chat.messages.push({ id: nextId(), role: 'error' })
+      if (error instanceof AiGatewayError && error.code === 'SESSION_NOT_FOUND') {
+        chat.sessionId = null
+        chat.messages.push({ id: nextId(), role: 'error', text: 'บทสนทนาเดิมหมดอายุ เริ่มใหม่แล้ว กดลองใหม่เพื่อส่งอีกครั้ง' })
+      } else {
+        chat.messages.push({ id: nextId(), role: 'error' })
+      }
     } finally {
-      if (generations[agentId] === generation) chat.thinking = false
+      if (generations[agentId] === generation) {
+        chat.thinking = false
+        delete controllers[agentId]
+      }
     }
   }
 
@@ -97,6 +109,8 @@ export const useAgentChatStore = defineStore('agent-chat', () => {
     }
     chat.draftImages.forEach(image => URL.revokeObjectURL(image.url))
     generations[agentId] += 1
+    controllers[agentId]?.abort()
+    delete controllers[agentId]
     delete lastRequests[agentId]
     chats.value[agentId] = emptyChat()
   }

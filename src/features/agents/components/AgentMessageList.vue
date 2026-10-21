@@ -6,6 +6,7 @@ import {
   isPriceProposal,
   isTrackingProposal,
   type AgentChat,
+  type CustomerProposal,
 } from '../agent-chat.types'
 import type { AgentInfo } from '../agents'
 import AgentAvatar from './AgentAvatar.vue'
@@ -14,7 +15,7 @@ import PriceProposalCard from './PriceProposalCard.vue'
 import TrackingProposalCard from './TrackingProposalCard.vue'
 
 const props = defineProps<{ agent: AgentInfo; chat: AgentChat }>()
-defineEmits<{ suggest: [text: string]; retry: []; openCustomerForm: []; editInChat: [] }>()
+defineEmits<{ suggest: [text: string]; retry: []; openCustomerForm: [proposal: CustomerProposal] }>()
 
 const region = ref<{ el: HTMLElement | null } | null>(null)
 
@@ -56,7 +57,7 @@ watch(() => [props.chat.messages.length, props.chat.thinking], async () => {
           <div class="flex min-w-0 max-w-[calc(100%-44px)] flex-col">
             <p class="whitespace-pre-wrap break-words rounded-[6px_18px_18px_18px] bg-white px-3.5 py-2 font-body text-sm leading-relaxed shadow-[0_1px_0_color-mix(in_srgb,var(--color-on-surface)_6%,transparent)] [overflow-wrap:anywhere]">{{ message.text }}</p>
             <template v-if="message.proposal">
-              <CustomerProposalCard v-if="isCustomerProposal(message.proposal)" :proposal="message.proposal" :warnings="message.warnings" @open="$emit('openCustomerForm')" @edit="$emit('editInChat')" />
+              <CustomerProposalCard v-if="isCustomerProposal(message.proposal)" :proposal="message.proposal" :warnings="message.warnings" @open="$emit('openCustomerForm', $event)" />
               <PriceProposalCard v-else-if="isPriceProposal(message.proposal)" :proposal="message.proposal" />
               <TrackingProposalCard v-else-if="isTrackingProposal(message.proposal)" :proposal="message.proposal" />
             </template>
@@ -68,7 +69,7 @@ watch(() => [props.chat.messages.length, props.chat.thinking], async () => {
           <div role="alert" class="min-w-0 rounded-[6px_18px_18px_18px] bg-error-container px-3.5 py-2 font-body text-sm leading-relaxed text-on-error-container">
             <div class="flex items-center gap-2">
               <span class="material-symbols-outlined fill-icon text-[20px] text-error" aria-hidden="true">error</span>
-              <span>AI ไม่ว่างตอนนี้ ลองใหม่อีกครั้ง</span>
+              <span>{{ message.text ?? 'AI ไม่ว่างตอนนี้ ลองใหม่อีกครั้ง' }}</span>
             </div>
             <button type="button" class="mt-2 inline-flex h-10 items-center gap-1.5 rounded-full bg-error px-4 font-body text-[13px] font-extrabold text-on-error focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime disabled:opacity-50" :disabled="chat.thinking" @click="$emit('retry')">
               <span class="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>ลองใหม่
