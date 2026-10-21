@@ -14,7 +14,7 @@
   - Open: timeouts (gateway 90 s, client 120 s) exceed Cloudflare's ~100 s; proposed 60 s / 95 s, owner not decided.
 - **Agent chat (`/agents`)** — see `docs/features/agents/agent-chat.md`
   - Prod needs Vercel env `VITE_AI_GATEWAY_URL` and MagicwashAI running (`start.bat`); without it register/price chats show the error bubble.
-  - order-tracking still returns a canned fake reply; build the MagicwashAI `order-tracking` agent and align the invented tracking card shape.
+  - NEXT session: build น้องติดตาม (order-tracking) — handoff `.user/memory/order-tracking-agent-handoff.md`; prod shows its fake reply until then.
   - Local test: MagicwashAI `ALLOWED_ORIGINS` must include `http://localhost:3000` for `vercel dev`.
 - **Corporate count-sheet order** — see `docs/features/orders/corporate-order-form.md`
   - Slip-photo upload on Save not yet tried in a real browser.
