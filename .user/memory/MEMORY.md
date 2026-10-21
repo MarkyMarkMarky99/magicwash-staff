@@ -1,5 +1,5 @@
 # Project memory
-- Branch: `main`; admin customer edit + form spacing merged locally, not pushed/deployed; customer-package invoice deployment still needs verification.
+- Branch: `main`; customer-package invoice deployment still needs verification.
 
 ## Branches in flight
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
@@ -15,7 +15,6 @@
 - **Corporate count-sheet order** — see `docs/features/orders/corporate-order-form.md`
   - Slip-photo upload on Save not yet tried in a real browser.
   - Owner: update G Drive `PriceList.json` description (price-0 rows may be active for CRYO).
-  - Nav "รีเฟรชข้อมูล" does not refresh persisted customers/price-list/items cache.
   - Items ITM-0099 is a leftover inactive "ZZ TEST" row; CRYO white bathrobe uses ITM-0117.
 - **Wash queue + dryer queue** — see `docs/features/wash-queue/wash-queue.md`
   - Owner: update G Drive `WashQueue.json` `tag_code` description (still says one A-Z letter).
@@ -41,7 +40,6 @@
   - Browser-check the staff profile page `/staff/:staffId` (Day date strip, Week leaderboard); only unit-tested.
   - Staff list daily ranking: check as non-admin.
   - Accepted risk: two simultaneous completions of one ticket can write two EARNs; correct with a VOID row.
-  - Before KPI drives pay: server must take the actor from the token, not the client body.
   - Future: supervisor-created tickets with custom `work_minutes`; Month view; Attendance for efficiency %.
   - Design canvas for the profile: claude.ai/artifact/NACQydNrsqjzx31RrK6tsX.
 - **Packages**
@@ -112,7 +110,7 @@
   - Browser-check forms using the restyled `FormTextarea` and rounded `FormOverlay` body; the helper text keeps a stray bullet dot.
   - No tests for the POST route response or an empty label pool.
   - Test customer `cbcc555a` (KLX, "ทดสอบ แก้แล้ว") is a leftover live row from 2026-10-21; delete by hand in the sheet.
-  - Admin customer edit: after deploy, curl prod PATCH as non-admin → 403; browser-check staff redirect with a staff account.
+  - Admin customer edit live in prod (2026-10-22); device account verified blocked in browser; server-side 403 on prod not yet hit (curl gets Vercel bot challenge).
   - Form spacing rule (forms.md "Vertical spacing"): phone check pending; price-list dark price panel hides the "บริการ *" picker label.
   - Deferred by user: duplicate-phone check misses legacy phones without a leading 0; map picker (Leaflet + Nominatim/Longdo), location field hidden until then.
   - Dirty data, fix undecided: Customers has 1 blank and 19 duplicated `CustomerIndex`; CustomerIDMapping lacks 302 customers, has 5 orphan ids and 2 mangled ids.
@@ -123,7 +121,6 @@
   - Deferred by owner: security review SEC-01 KPI re-credit by reopening tickets, SEC-02 formula text in sheets, SEC-03 bulk photo reassign across orders.
   - Confirm Preview sign-in on an authorized host before testing `feat/package-credit`.
   - Public apex shop site awaits owner content: services, area, hours, contact, and logo.
-  - Server-owned invoice and payment writes still record `'admin'` (`server/shared/config/actor.ts`); deferred by owner, needs client actor or token gating.
   - Fix screenshot-upload accessibility states, failed-upload handling, and staff-safe Firebase errors.
   - Consolidate frontend helpers into `src/shared/utils/` (strays: `src/shared/appointment-pending-count.ts`, `src/utils/imageCompression.js`); user deferred this to its own pass.
   - Remove schema-file `z.infer` exports in a dedicated all-contract pass.
