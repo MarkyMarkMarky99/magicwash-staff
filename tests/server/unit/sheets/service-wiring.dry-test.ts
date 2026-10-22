@@ -928,7 +928,7 @@ test('BagItems production wiring maps all columns and equality filters', async (
 test('LaundryItems production wiring maps all columns, filters and workbook', async () => {
   const body = sheetGvizBody(laundryItemsRowSchema, [
     'aB01zZ89', 'customer-1', 'shirt', 'delicate', 'silk', '2026-10-23 10:00:00', 'staff-1',
-    null, null, null, null,
+    null, null, null, null, 'https://example.test/cover.jpg',
   ])
   await withMockFetch(async () => response(body), async (calls) => {
     const { laundryItemService } = await import('../../../../server/modules/laundry-items/laundry-item.module.js')
@@ -936,7 +936,7 @@ test('LaundryItems production wiring maps all columns, filters and workbook', as
     assert.deepEqual(result.items, [{
       id: 'aB01zZ89', customerId: 'customer-1', itemId: 'shirt', washProgram: 'delicate', notes: 'silk',
       createdAt: '2026-10-23 10:00:00', createdBy: 'staff-1', updatedAt: null,
-      updatedBy: null, deletedAt: null, deletedBy: null,
+      updatedBy: null, deletedAt: null, deletedBy: null, imageUrl: 'https://example.test/cover.jpg',
     }])
     assert.equal(calls.length, 1)
     const url = new URL(calls[0].url)

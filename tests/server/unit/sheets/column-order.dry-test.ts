@@ -49,7 +49,7 @@ const tests: ColumnOrderTest[] = [
     contract: laundryItemsDbContract,
     expected: {
       id: 'A', customer_id: 'B', item_id: 'C', wash_program: 'D', notes: 'E',
-      created_at: 'F', created_by: 'G', updated_at: 'H', updated_by: 'I', deleted_at: 'J', deleted_by: 'K',
+      created_at: 'F', created_by: 'G', updated_at: 'H', updated_by: 'I', deleted_at: 'J', deleted_by: 'K', image_url: 'L',
     },
     primaryKeyColumn: 'A',
   },

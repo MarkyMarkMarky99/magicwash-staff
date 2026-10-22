@@ -14,6 +14,7 @@ export const laundryItemsRowSchema = z.object({
   updated_by: z.string().nullable(),
   deleted_at: z.string().nullable(),
   deleted_by: z.string().nullable(),
+  image_url: z.string().nullable(),
 }).strict()
 
 export const laundryItemsDbContract = {

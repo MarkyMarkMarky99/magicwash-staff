@@ -8,6 +8,7 @@ const editableFields = {
   itemId: z.string().nullable().optional(),
   washProgram: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  imageUrl: z.string().nullable().optional(),
 }
 
 export const laundryItemListQuerySchema = z.object({
@@ -31,6 +32,7 @@ export const laundryItemResponseSchema = z.object({
   updatedBy: z.string().nullable(),
   deletedAt: z.string().nullable(),
   deletedBy: z.string().nullable(),
+  imageUrl: z.string().nullable(),
 })
 
 export const laundryItemCreateSchema = z.object({
@@ -43,8 +45,8 @@ export const laundryItemCreateSchema = z.object({
 export const laundryItemUpdateSchema = z.object({
   ...editableFields,
   updatedBy: requiredName,
-}).strict().refine((patch) => patch.itemId !== undefined || patch.washProgram !== undefined || patch.notes !== undefined, {
-  message: 'At least one of itemId, washProgram or notes is required',
+}).strict().refine((patch) => patch.itemId !== undefined || patch.washProgram !== undefined || patch.notes !== undefined || patch.imageUrl !== undefined, {
+  message: 'At least one of itemId, washProgram, notes or imageUrl is required',
 })
 
 export const laundryItemApiContract = {

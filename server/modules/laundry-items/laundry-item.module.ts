@@ -25,6 +25,7 @@ export const laundryItemFieldMap = {
   updated_by: 'updatedBy',
   deleted_at: 'deletedAt',
   deleted_by: 'deletedBy',
+  image_url: 'imageUrl',
 } as const satisfies Record<keyof LaundryItemsDbRow & string, string>
 
 type LaundryItemApiRow = ApiRowFromFieldMap<LaundryItemsDbRow, typeof laundryItemFieldMap>

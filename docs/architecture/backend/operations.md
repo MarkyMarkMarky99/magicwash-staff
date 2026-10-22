@@ -92,8 +92,9 @@ row's id, returns 409 without an append. This read-before-append check is not at
 concurrent requests because Sheets has no unique-key constraint. Collection reads accept
 optional `customerId` equality and `keyword`, and exclude nonempty `deleted_at` before paging.
 Create requires `id`, `customerId`, and `createdBy`; optional fields are `itemId`, `washProgram`,
-and `notes`. PATCH requires `updatedBy` and at least one of those optional fields; null clears
-an optional field. Identity, customer, creation and deletion fields are not patchable.
+`notes`, and `imageUrl`. The nullable cover photo URL is stored in physical column L,
+`image_url`, after `deleted_by`. PATCH requires `updatedBy` and at least one of those optional
+fields; null clears an optional field, including the cover photo URL. Identity, customer, creation and deletion fields are not patchable.
 The shared CRUD handler supplies authenticated staff actors. Repository audit declarations
 stamp `created_at` on append and `updated_at` on update using Bangkok `yyyy-MM-dd HH:mm:ss`.
 Item GET/PATCH validate the same tag format and return 404 for missing rows. There is no delete
