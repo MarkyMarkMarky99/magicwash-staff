@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import GenericTabs from '@/shared/components/GenericTabs.vue'
+import StickerFab from '@/shared/components/StickerFab.vue'
 import { usePriceListStore } from '@/data/price-list/price-list.store'
 import PriceListServiceSwitch from '../components/PriceListServiceSwitch.vue'
 import PriceListSubcategoryCard from '../components/PriceListSubcategoryCard.vue'
@@ -68,12 +69,8 @@ function selectService(value: string | null) {
   updateFilter({ serviceType: value })
 }
 
-function openCreate() {
-  const category = items.value.find((item) => item.category.toUpperCase() === filter.value.category)?.category
-  void router.push({
-    name: 'price-list-create',
-    query: category ? { category } : {},
-  })
+function openPriceAgent() {
+  void router.push({ name: 'agent-chat', params: { agentId: 'price-check' } })
 }
 
 function openEdit(id: string) {
@@ -106,14 +103,9 @@ onMounted(() => {
         <h2 class="font-headline text-xl font-bold leading-tight text-primary">Price list{{ filter.category === 'ALL' ? '' : ` · ${filter.category}` }}</h2>
         <span class="mt-0.5 block font-label text-[10px] font-extrabold uppercase tracking-[0.08em] text-on-surface-variant">{{ subtitle }}</span>
       </div>
-      <button
-        type="button"
-        class="-mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10 active:bg-primary/20 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
-        aria-label="Add price list item"
-        @click="openCreate"
-      >
-        <span class="material-symbols-outlined text-[16px]" aria-hidden="true">new_label</span>
-      </button>
+      <StickerFab class="!h-12 !w-12 !rounded-[17px_20px_17px_19px]" label="Ask AI" aria-label="Ask the price agent" @click="openPriceAgent">
+        <span class="material-symbols-outlined text-[22px]" aria-hidden="true">smart_toy</span>
+      </StickerFab>
     </div>
 
     <div v-if="listLoading" class="grid gap-7 px-4 pb-3 pt-6" aria-busy="true" aria-label="Loading price list">

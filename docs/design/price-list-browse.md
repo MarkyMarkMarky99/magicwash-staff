@@ -20,8 +20,8 @@ zero-count tab.
 
 Under the tabs, the heading has a lime left bar, the title "Price list" (with the category name when one
 is selected), and a small-caps subtitle with the number of rows shown and the selected service ("All
-services" or its name). An add button at the right opens the price-list create form for the selected
-category.
+services" or its name). A shared `StickerFab` at the right, labelled "Ask AI", opens the price-check agent chat so staff can
+ask for a price directly. The browse page has no add-item entry; adding items is an admin task.
 
 ## Cards and rows
 

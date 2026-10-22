@@ -2,7 +2,6 @@
 - Branch: `main`; customer-package invoice deployment still needs verification.
 
 ## Branches in flight
-- **`feat/price-list-table`** — price-list browse page redesign committed, not merged; needs phone/service-pill browser check; see `.user/memory/feat-price-list-table.md`.
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
@@ -100,11 +99,14 @@
   - Consolidate datetime helpers in a dedicated pass; `SheetRepository` is shared by every module.
   - App-wide GViz read normalization is deferred by the user; do not start or re-propose it. See `.user/memory/gviz-read-normalization.md`.
 - **Prices, invoices, and sheet data**
+  - Price-list browse redesign: browser-check service pill, phone width and tap-price → edit form.
+  - Owner to decide: tap-price edit admin-only or removed; restore pull-to-refresh (price list cached 1 h).
+  - MagicwashAI price-check matches itemCode+service+group, so ITM-0086 Large ฿300 gets "corrected" to ฿250; fix undecided.
+  - Restart MagicwashAI so the price-check prompt stops naming DEFAULT and service codes.
   - Customer price groups: picker/invoice lookup by `Customers.PriceGroup` (fallback `DEFAULT`) not designed or built.
   - Resolve concurrent item-code allocation before production use.
   - Mixed-service orders go to a separate branch; see `.user/memory/mixed-service-orders.md`.
   - Fill real prices for the 33 inactive price-list rows with `price: 0`.
-  - Add a `BaseSwipeCard` action to add a price to an existing item.
   - No Items edit UI exists; `PATCH /api/items/:id` is implemented and tested but unreachable from the app.
   - Decide between `CANCELLED` and `VOID` before changing the invoice contract.
   - Decide whether to renumber the four legacy uuid-shaped invoice numbers; they are referenced as `invoiceId` on customer-package rows.
