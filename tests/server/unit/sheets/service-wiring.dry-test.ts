@@ -143,7 +143,7 @@ test('JobTickets service wiring maps all physical columns', async () => {
   const body = sheetGvizBody(jobTicketsRowSchema, [
     'WSH-order-1-tag-1-WSH-STANDARD', 'order-1', 'tag-1', 'ITEM', 'WSH-STANDARD', 'Washing', 1,
     'customer-1', 'Order one', '2026-09-30', 'Delicate', 'Rush', 'Pending', null, null,
-    null, null, '2026-09-23 10:00:00', 'staff-1', null, null, null, null, 4,
+    null, null, '2026-09-23 10:00:00', 'staff-1', null, null, null, null, 4, 'starter-1',
   ])
 
   await withMockFetch(
@@ -170,6 +170,7 @@ test('JobTickets service wiring maps all physical columns', async () => {
         notes: 'Rush',
         status: 'Pending',
         startedAt: null,
+        startedBy: 'starter-1',
         completedAt: null,
         scannedBy: null,
         photoEvidenceUrl: null,
@@ -183,6 +184,34 @@ test('JobTickets service wiring maps all physical columns', async () => {
       })
     },
   )
+})
+
+test('JobTickets maintenance PATCH attributes completion only', async () => {
+  const { getJobTicketsRepository } = await import('../../../../server/sheets/JobTickets/JobTickets.repository.js')
+  const repository = getJobTicketsRepository()
+  const originalRead = repository.read
+  const originalUpdate = repository.update
+  const patches: Array<Record<string, unknown>> = []
+  repository.read = async () => [{ id: 'ticket-1', started_by: 'starter-1' }]
+  repository.update = async (_id, patch) => {
+    patches.push(patch)
+    return { id: 'ticket-1', started_by: 'starter-1', ...patch } as Awaited<ReturnType<typeof repository.update>>
+  }
+  try {
+    const service = await productionJobTicketService()
+    for (const status of ['In Progress', 'Completed', 'Cancelled']) {
+      const result = await service.update('ticket-1', { status, updatedBy: 'actor-1', startedBy: 'forged' })
+      assert.equal(result.startedBy, 'starter-1')
+    }
+    assert.deepEqual(patches, [
+      { status: 'In Progress', updated_by: 'actor-1' },
+      { status: 'Completed', updated_by: 'actor-1', scanned_by: 'actor-1' },
+      { status: 'Cancelled', updated_by: 'actor-1' },
+    ])
+  } finally {
+    repository.read = originalRead
+    repository.update = originalUpdate
+  }
 })
 
 test('AfterPhoto service wiring maps the physical after-sheet columns', async () => {

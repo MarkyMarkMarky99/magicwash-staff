@@ -47,6 +47,15 @@ export const jobTicketService = new BaseCrudService<
   api: jobTicketApiContract,
   searchFields: ['id', 'orderId', 'laundryItemId', 'orderName'],
   fieldMap: jobTicketFieldMap,
+  transformer: {
+    request: (request) => {
+      if (request.operation !== 'update') return request
+      const patch = request.data as Partial<JobTicketDbRow>
+      return { ...request, data: { ...patch,
+        ...(patch.status === 'Completed' ? { scanned_by: patch.updated_by } : {}),
+      } }
+    },
+  },
 })
 
 export const jobTicketCompleteService = new JobTicketCompleteService()

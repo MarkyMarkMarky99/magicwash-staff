@@ -30,7 +30,7 @@ assert.deepEqual(rows, [{
   id: 'LOG-order-1-bag-1-LOG-BAG', order_id: 'order-1', laundry_item_id: '', scope: 'ORDER',
   task_code: 'LOG-BAG', department: 'Logistics', step_no: 0, customer_id: 'customer-1',
   order_name: 'Laundry', due_date: '2026-10-09', notes: 'header note', special_instructions: null,
-  status: 'Pending', started_at: null, completed_at: null, scanned_by: null,
+  status: 'Pending', started_at: null, started_by: null, completed_at: null, scanned_by: null,
   photo_evidence_url: image.imagePath, created_by: 'staff-1', updated_by: 'staff-1', work_minutes: null,
 }])
 await service.provision(image)

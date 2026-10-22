@@ -82,7 +82,7 @@ assert.deepEqual(success.tickets, [{
   task_code: 'PCK-WEIGHT-KG', department: 'Packaging', step_no: 0,
   customer_id: 'customer-1', order_name: 'Order one', due_date: '2026-10-09', special_instructions: null, notes: 'Rush',
   status: 'Completed', started_at: '2026-10-07 10:20:30', completed_at: '2026-10-07 10:20:30',
-  scanned_by: 'photographer-1', updated_by: 'photographer-1', photo_evidence_url: payload.imagePath,
+  started_by: 'photographer-1', scanned_by: 'photographer-1', updated_by: 'photographer-1', photo_evidence_url: payload.imagePath,
   created_by: 'photographer-1', work_minutes: 17.4,
 }])
 assert.equal(success.earns.length, 1)

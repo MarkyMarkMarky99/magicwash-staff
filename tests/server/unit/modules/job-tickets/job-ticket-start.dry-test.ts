@@ -43,15 +43,15 @@ const mixed = serviceWith([
 assert.deepEqual(await mixed.service.startOrder(payload), {
   kind: 'completed',
   advanced: [
-    { ticketId: 'ticket-1', laundryItemId: 'tag-1', status: 'In Progress', startedAt: '2026-09-23 10:00:00' },
-    { ticketId: 'ticket-2', laundryItemId: 'tag-2', status: 'In Progress', startedAt: '2026-09-22 09:00:00' },
+    { ticketId: 'ticket-1', laundryItemId: 'tag-1', status: 'In Progress', startedAt: '2026-09-23 10:00:00', startedBy: 'staff-1' },
+    { ticketId: 'ticket-2', laundryItemId: 'tag-2', status: 'In Progress', startedAt: '2026-09-22 09:00:00', startedBy: null },
   ],
   blocked: [], skippedWithoutTag: 1,
 })
 assert.deepEqual(mixed.reads, [{ where: { order_id: 'order-1' } }])
 assert.deepEqual(mixed.batches, [[
-  { keyValue: 'ticket-1', patch: { status: 'In Progress', started_at: '2026-09-23 10:00:00', scanned_by: 'staff-1', updated_by: 'staff-1' } },
-  { keyValue: 'ticket-2', patch: { status: 'In Progress', scanned_by: 'staff-1', updated_by: 'staff-1' } },
+  { keyValue: 'ticket-1', patch: { status: 'In Progress', started_at: '2026-09-23 10:00:00', started_by: 'staff-1', updated_by: 'staff-1' } },
+  { keyValue: 'ticket-2', patch: { status: 'In Progress', updated_by: 'staff-1' } },
 ]])
 
 const blocked = serviceWith([
@@ -72,12 +72,12 @@ const sequential = serviceWith([
 ])
 assert.deepEqual(await sequential.service.startOrder(payload), {
   kind: 'completed',
-  advanced: [{ ticketId: 'wash-a', laundryItemId: 'tag-1', status: 'In Progress', startedAt: '2026-09-23 10:00:00' }],
+  advanced: [{ ticketId: 'wash-a', laundryItemId: 'tag-1', status: 'In Progress', startedAt: '2026-09-23 10:00:00', startedBy: 'staff-1' }],
   blocked: [{ ticketId: 'wash-b', laundryItemId: 'tag-1', blockedByDepartment: 'Washing' }],
   skippedWithoutTag: 0,
 })
 assert.deepEqual(sequential.batches, [[
-  { keyValue: 'wash-a', patch: { status: 'In Progress', started_at: '2026-09-23 10:00:00', scanned_by: 'staff-1', updated_by: 'staff-1' } },
+  { keyValue: 'wash-a', patch: { status: 'In Progress', started_at: '2026-09-23 10:00:00', started_by: 'staff-1', updated_by: 'staff-1' } },
 ]])
 
 const afterFirstTask = serviceWith([

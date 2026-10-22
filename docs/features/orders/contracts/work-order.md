@@ -64,8 +64,9 @@ An order created through `POST` is readable here immediately — no Apps Script 
 
 After a successful COMPLETED order status write, every non-deleted Pending or In Progress
 job ticket is completed in one repository updateMany. Completion uses the current Bangkok
-timestamp and fills missing start times with that timestamp. updated_by uses the request actor;
-scanned_by is preserved. No WorkTransactions or EARN rows are created. Ticket read/write failures
+timestamp and fills missing start times with that timestamp and started_by with the request actor,
+preserving any existing started_by. scanned_by records the completing request actor; updated_by
+continues to use that actor. No WorkTransactions or EARN rows are created. Ticket read/write failures
 are logged and the normal header response with empty ticketProvisioning is still returned.
 APPROVED provisioning is unchanged.
 

@@ -68,6 +68,7 @@ export class WeightPhotoTicketService {
       notes: header?.note ?? null,
       status: 'Completed',
       started_at: timestamp,
+      started_by: image.createdBy,
       completed_at: timestamp,
       scanned_by: image.createdBy,
       updated_by: image.createdBy,

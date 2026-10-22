@@ -37,7 +37,7 @@ const request = (ids: string[], sources: string[] = ['Pending', 'In Progress']) 
   targetStatus: 'Completed', allowedSourceStatuses: sources, scannedBy: ' staff-1 ',
   tickets: ids.map(ticketId => ({ ticketId, orderId: '123' })) })
 const rows = [row('pending', { order_id: 123 as unknown as string, started_at: '' }),
-  row('progress', { status: 'In Progress', started_at: 'previous', work_minutes: 0 }),
+  row('progress', { status: 'In Progress', started_at: 'previous', started_by: 'original-starter', work_minutes: 0 }),
   row('done', { status: 'Completed' }), row('legacy', { work_minutes: null }),
   row('deleted', { deleted_at: 'yesterday' }), row('wrong', { department: 'Ironing' }),
   row('blocked'), row('prior', { laundry_item_id: 'blocked', step_no: 2, department: 'Ironing', status: 'Pending' }),
@@ -58,6 +58,12 @@ if (result.kind === 'completed') {
 assert.equal(context.reads.length, 0)
 assert.equal(context.updates.length, 1)
 assert.equal(context.scores.length, 1)
+const patches = context.updates[0] as Array<{ keyValue: string; patch: Row }>
+assert.deepEqual(patches[0]!.patch, { status: 'Completed', started_at: timestamp,
+  started_by: 'staff-1', completed_at: timestamp, scanned_by: 'staff-1', updated_by: 'staff-1' })
+assert.deepEqual(patches[1]!.patch, { status: 'Completed', completed_at: timestamp,
+  scanned_by: 'staff-1', updated_by: 'staff-1' })
+assert.equal(rows[1]!.started_by, 'original-starter')
 assert.deepEqual(context.scores[0]!.map(({ id, ...row }) => row), [
   { job_ticket_id: 'pending', type: 'EARN', minutes: 5, notes: null, created_by: 'staff-1' },
   { job_ticket_id: 'progress', type: 'EARN', minutes: 0, notes: null, created_by: 'staff-1' }])
@@ -88,7 +94,17 @@ for (const department of ['Tagging', 'Washing', 'DryCleaning', 'Ironing', 'Packa
   }
   assert.equal(context.updates.length, 1)
   assert.equal(context.scores.length, 0)
+  const patch = (context.updates[0] as Array<{ patch: Row }>)[0]!.patch
+  assert.equal(patch.started_at, timestamp)
+  assert.equal(patch.started_by, 'staff-1')
+  assert.equal('scanned_by' in patch, false)
 }
+const existingStarter = [row('existing-starter', { started_by: 'original-starter' })]
+const preserved = setup(existingStarter)
+await preserved.service.transition(request(['existing-starter']), existingStarter)
+assert.equal(existingStarter[0]!.started_at, timestamp)
+assert.equal(existingStarter[0]!.started_by, 'original-starter')
+assert.equal('started_by' in (preserved.updates[0] as Array<{ patch: Row }>)[0]!.patch, false)
 for (const count of [50, 51]) {
   const tickets = Array.from({ length: count }, (_, index) => row(`ticket-${index}`, { order_id: `order-${index}` }))
   tickets.push(row('same-order', { order_id: 'order-0' }))

@@ -58,7 +58,7 @@ const timestamp = '2026-10-08 12:34:56'
 const openRows = [
   { id: 'pending-null', status: 'Pending' as const, deleted_at: null, started_at: null, scanned_by: 'old-worker', work_minutes: 12, department: 'Logistics' as const, scope: 'ORDER' as const },
   { id: 'pending-empty', status: 'Pending' as const, deleted_at: '', started_at: '', work_minutes: 8, department: 'Packaging' as const, scope: 'ORDER' as const },
-  { id: 'in-progress', status: 'In Progress' as const, started_at: '2026-10-07 09:00:00', work_minutes: 15, scanned_by: 'ironer', department: 'Ironing' as const, scope: 'ITEM' as const },
+  { id: 'in-progress', status: 'In Progress' as const, started_at: '2026-10-07 09:00:00', started_by: 'starter', work_minutes: 15, scanned_by: 'ironer', department: 'Ironing' as const, scope: 'ITEM' as const },
   { id: 'completed', status: 'Completed' as const },
   { id: 'cancelled', status: 'Cancelled' as const },
   { id: 'deleted', status: 'Pending' as const, deleted_at: '2026-10-07 09:00:00' },
@@ -78,11 +78,12 @@ const service = new WorkOrderService({
   }, async updateMany(updates) {
     batches++
     assert.deepEqual(updates, [
-      { keyValue: 'pending-null', patch: { status: 'Completed', completed_at: timestamp, started_at: timestamp, updated_by: 'driver' } },
-      { keyValue: 'pending-empty', patch: { status: 'Completed', completed_at: timestamp, started_at: timestamp, updated_by: 'driver' } },
-      { keyValue: 'in-progress', patch: { status: 'Completed', completed_at: timestamp, updated_by: 'driver' } },
+      { keyValue: 'pending-null', patch: { status: 'Completed', completed_at: timestamp, started_at: timestamp, started_by: 'driver', scanned_by: 'driver', updated_by: 'driver' } },
+      { keyValue: 'pending-empty', patch: { status: 'Completed', completed_at: timestamp, started_at: timestamp, started_by: 'driver', scanned_by: 'driver', updated_by: 'driver' } },
+      { keyValue: 'in-progress', patch: { status: 'Completed', completed_at: timestamp, scanned_by: 'driver', updated_by: 'driver' } },
     ])
-    assert.ok(updates.every(update => !('scanned_by' in update.patch)))
+    assert.ok(updates.every(update => update.patch.scanned_by === 'driver'))
+    assert.equal('started_by' in updates[2]!.patch, false)
     if (failure === 'write') throw new Error('write failed')
     return []
   } }),
