@@ -12,7 +12,8 @@
 
 ## What already exists (read, don't rebuild)
 - MagicwashAI task `chat` with resumable Codex sessions: `src/tasks/chat/task.js`, shared rules `src/tasks/chat/instruction.md`, agent list `src/tasks/chat/agents/index.js`.
-- Agent folder pattern: `src/tasks/chat/agents/<id>/agent.js` (`proposalSchema`, `prepare`, `promptContext`, `checkProposal(proposal, context)`) + `instruction.md`.
+- Agent pattern: `src/tasks/chat/agents/<id>/agent.js` (`proposalSchema`, `prepare`, `promptContext`, `checkProposal(proposal, context)`) + rules in `work/<id>/AGENTS.md` (Codex runs in that folder; skills go in `work/<id>/.codex/skills/`).
+- Codex runs under `C:/MagicwashAI/codex-home` (own login, read-only sandbox), not `~/.codex`; skill scripts can run but cannot write files or reach the network.
 - Copy `price-check` for the data-loading pattern: `prepare` runs every turn, `promptContext` only on the first turn, `checkProposal` re-checks the model's output against fresh data.
 - GViz reader: `src/sheets/gviz.js`; date cells come back as `Date(y,m0,d)` → `normalizeSheetDate` in `src/sheets/price-list.js`.
 - Webapp wiring: `shared/ai-gateway/tasks/chat.ts`, `contracts/ai-gateway/chat-api.schema.ts` (agentId enum and proposal union must gain order-tracking).
