@@ -2,6 +2,7 @@
 - Branch: `main`; customer-package invoice deployment still needs verification.
 
 ## Branches in flight
+- **`feat/price-list-table`** — price-list browse page redesign committed, not merged; needs phone/service-pill browser check; see `.user/memory/feat-price-list-table.md`.
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.

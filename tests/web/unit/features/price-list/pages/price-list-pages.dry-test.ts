@@ -32,7 +32,7 @@ if (existsSync(new URL(`../../../../../../${statusTabs}`, import.meta.url))) {
   assert.doesNotMatch(list, /PriceListStatusTabs/)
 }
 
-assert.match(list, /PriceListCard/)
+assert.match(list, /PriceListSubcategoryCard/)
 assert.match(list, /truncated|error/i)
 
 console.log('price-list-pages.dry-test: OK')

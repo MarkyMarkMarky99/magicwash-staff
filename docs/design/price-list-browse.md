@@ -1,37 +1,62 @@
 # Price list browse
 
-The staff price-list page shows one entry per `itemCode` with at least one active price row, including
-codes with only one active price row. Inactive rows never appear in browse cards or their price sheet.
+The staff price-list page is a read-only price table, not a photo grid. It has no images, no search
+box, and no per-card summary lines. All text is English except the Thai item name.
+
+## Data shown
+
+Only retail prices appear: rows that are active and whose `priceGroup` is `DEFAULT`. Inactive rows and
+every other price group, such as corporate prices, never appear. The page filters the rows the price-list
+store already loads; it makes no extra request.
+
+## Category tabs and heading
+
 The category tabs use names from the loaded rows. ALL comes first, followed by CLOTHING, BEDDING,
-HOUSEHOLD, OTHERS when present, then any other categories. Opening a URL without a category replaces
-it with `category=CLOTHING`; choosing ALL stores `category=ALL`. The default category redirect runs
-only while the price-list route is active, so sidebar navigation to a route without a category is not
-intercepted. A horizontal row of image tiles shows ALL and the distinct subcategories among active
-rows in the selected category. Each tile uses an image from those rows, an uppercase label, and the
-original value as its filter key. The row is hidden for category ALL or when the selected category
-has no subcategories.
-Changing category resets subcategory to ALL. Search, category, subcategory, and service filters
-include a code when any of its active price rows matches. Tab counts count active item codes from
-the full loaded collection, independently of search and service filters. Categories with no active
-rows remain available as zero-count tabs, so an explicit `category=CLOTHING` still selects CLOTHING
-even when that category has no active prices. Its empty state explains that no active items exist.
-The price sheet shows every active price row for that code, with a match for the selected service
-placed first. Main cards use a two-column image-led grid with the generic `ImageContentCard`.
-The picker uses its own contained-image card markup. The shared image frame slightly crops source-photo margins
-so photos fill the card edge. Both a single price and a minimum–maximum range across active rows
-appear as text at the top right of the image, with a light text shadow for contrast and no
-background panel. Equal prices display once. The card has no separate status line.
+HOUSEHOLD, OTHERS when present, then any other categories. Opening a URL without a category replaces it
+with `category=CLOTHING`; choosing ALL stores `category=ALL`. The default category redirect runs only
+while the price-list route is active. Each tab shows a count pill of the table rows that category
+displays, independent of the service filter. A category that has rows but no retail price stays as a
+zero-count tab.
 
-Every main-list card uses `BaseSwipeCard`: swiping left reveals Edit underneath the card.
-`leftActions` and `rightActions` set the revealed width to 4rem per action button on the matching
-side; omitting either prop keeps the shared default for that side. For a
-single-price code, Edit opens that row's form directly. Tapping a multi-price card or choosing its
-Edit action opens a compact,
-content-height bottom sheet using the shared `DetailOverlay`. Each price is a choice that opens
-the matching price-list row `id` for editing. The sheet shows only details needed to distinguish
-choices: service and unit when they differ, row details and ID when prices otherwise duplicate, and
-inactive status when applicable.
+Under the tabs, the heading has a lime left bar, the title "Price list" (with the category name when one
+is selected), and a small-caps subtitle with the number of rows shown and the selected service ("All
+services" or its name). An add button at the right opens the price-list create form for the selected
+category.
 
-The sheet uses a route-owned `itemCode` query parameter, so browser Back closes it. Navigating away
-while it is open replaces its history entry. A direct link to a single-price code goes to that row's
-edit form without opening a sheet.
+## Cards and rows
+
+Rows are grouped into one card per subcategory, in the order the subcategories first appear in the data.
+A card has a green frame, an offset shadow, and a tilted orange tab at its top left holding the
+subcategory name. There is no header row and no summary line.
+
+Each row is one item. Its first line is the bold dark-green Thai name followed, when the row has a variant, by the
+shared `BaseBadge` in `warning` tone and size `sm`. Its second line is small grey text made of the
+English name and the unit in short form: `(pc)` for piece, `(set)` for set, `(pr)` for pair, and any
+other unit in brackets. A missing English name or unit is left out of the line.
+
+Rows that share the same Thai name and variant across services merge into one row. When two active
+rows carry the same Thai name, variant, and service, the second one is a separate row rather than
+overwriting the first.
+
+## Service columns
+
+With the service pill on All, each card has one price column per service that at least one of its rows
+has, in the fixed order Wash Iron, Wash, Dry Clean, Iron. A thin label row over the price columns names
+each service in grey small caps, right-aligned over fixed-width columns, and a label may wrap onto two
+lines. A row with no price for a column shows a muted dash. Prices are bold dark green with a baht sign.
+
+With one service selected, each card has a single price column and no label row, and only rows that have
+that service appear.
+
+Tapping a price opens the edit form for that exact price row. The picker, the form, and the API are unchanged.
+
+## Service pill
+
+A floating dark-green pill at the bottom of the page switches between All, Wash Iron, Wash, Dry Clean,
+and Iron. The selected option sits on a lime slider. The choice is stored in the `serviceType` query
+parameter, so it survives reload and Back. Choosing All removes the parameter.
+
+## States
+
+While rows load, two placeholder cards show. A load failure or a response over 1,000 rows shows its message
+in place of the cards. When the selected category has no retail rows, a short message says so.
