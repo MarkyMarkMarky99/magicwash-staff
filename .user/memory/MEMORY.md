@@ -100,7 +100,7 @@
   - Consolidate datetime helpers in a dedicated pass; `SheetRepository` is shared by every module.
   - App-wide GViz read normalization is deferred by the user; do not start or re-propose it. See `.user/memory/gviz-read-normalization.md`.
 - **Prices, invoices, and sheet data**
-  - Items `criteria` (col K) live: write Thai criteria per retail item (Claude drafts, owner reviews); MagicwashAI price-check must attach criteria to price rows.
+  - Items `criteria` (col K) is live and empty; owner fills it in later.
   - Price-list browse redesign: browser-check service pill, phone width and tap-price → edit form.
   - Owner to decide: tap-price edit admin-only or removed; restore pull-to-refresh (price list cached 1 h).
   - MagicwashAI price-check matches itemCode+service+group, so ITM-0086 Large ฿300 gets "corrected" to ฿250; fix undecided.
