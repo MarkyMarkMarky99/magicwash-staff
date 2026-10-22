@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { laundryItemsDbContract } from '../../../../server/sheets/LaundryItems/LaundryItems.db-contract.js'
 import { bagItemsDbContract } from '../../../../server/sheets/BagItems/BagItems.db-contract.js'
 import { appointmentsDbContract } from '../../../../server/sheets/Appointments/Appointments.db-contract.js'
 import { afterPhotoDbContract } from '../../../../server/sheets/AfterPhoto/AfterPhoto.db-contract.js'
@@ -43,6 +44,15 @@ interface ColumnOrderTest {
 }
 
 const tests: ColumnOrderTest[] = [
+  {
+    name: 'LaundryItems',
+    contract: laundryItemsDbContract,
+    expected: {
+      id: 'A', customer_id: 'B', item_id: 'C', wash_program: 'D', notes: 'E',
+      created_at: 'F', created_by: 'G', updated_at: 'H', updated_by: 'I', deleted_at: 'J', deleted_by: 'K',
+    },
+    primaryKeyColumn: 'A',
+  },
   {
     name: 'BagItems',
     contract: bagItemsDbContract,
@@ -394,7 +404,7 @@ const tests: ColumnOrderTest[] = [
     contract: itemsDbContract,
     expected: {
       id: 'A', item_code: 'B', category: 'C', subcategory: 'D', itemtype: 'E',
-      variant: 'F', display_name_th: 'G', display_name_en: 'H', active: 'I', image_url: 'J',
+      variant: 'F', display_name_th: 'G', display_name_en: 'H', active: 'I', image_url: 'J', criteria: 'K',
     },
     primaryKeyColumn: 'A',
   },

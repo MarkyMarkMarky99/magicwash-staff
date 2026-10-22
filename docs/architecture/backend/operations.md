@@ -84,6 +84,21 @@ unavailable machines return 422. Each machine has its own FIFO queue in the fron
 the backend retains the shared workflow without enforcing FIFO. See
 [WashQueue](../../features/wash-queue/wash-queue.md).
 
+The staff-authenticated `laundry-items` module exposes collection GET/POST and item GET/PATCH
+at `/api/laundry-items`. It stores customer-owned physical garments in the separate
+`LAUNDRY_ITEMS_SPREADSHEET_ID` workbook, tab `LaundryItems`. API fields use camelCase.
+The client supplies an eight-character base62 tag id; any existing id, including a deleted
+row's id, returns 409 without an append. This read-before-append check is not atomic across
+concurrent requests because Sheets has no unique-key constraint. Collection reads accept
+optional `customerId` equality and `keyword`, and exclude nonempty `deleted_at` before paging.
+Create requires `id`, `customerId`, and `createdBy`; optional fields are `itemId`, `washProgram`,
+and `notes`. PATCH requires `updatedBy` and at least one of those optional fields; null clears
+an optional field. Identity, customer, creation and deletion fields are not patchable.
+The shared CRUD handler supplies authenticated staff actors. Repository audit declarations
+stamp `created_at` on append and `updated_at` on update using Bangkok `yyyy-MM-dd HH:mm:ss`.
+Item GET/PATCH validate the same tag format and return 404 for missing rows. There is no delete
+endpoint. This module does not orchestrate garment registration, job tickets, or photos.
+
 ## Public delivery tracking
 
 `GET /api/delivery-tracking/:orderImageId` serves the customer page opened from a bag-tag QR,

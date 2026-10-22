@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { laundryItemsDbContract } from '../../../../server/sheets/LaundryItems/LaundryItems.db-contract.js'
 import { washProgramsDbContract } from '../../../../server/sheets/WashPrograms/WashPrograms.db-contract.js'
 import { washProductsDbContract } from '../../../../server/sheets/WashProducts/WashProducts.db-contract.js'
 import { machinesDbContract } from '../../../../server/sheets/Machines/Machines.db-contract.js'
@@ -30,8 +31,9 @@ import { jobTicketsDbContract } from '../../../../server/sheets/JobTickets/JobTi
 import { workTransactionsDbContract } from '../../../../server/sheets/WorkTransactions/WorkTransactions.db-contract.js'
 import { workRatesDbContract } from '../../../../server/sheets/WorkRates/WorkRates.db-contract.js'
 
-const expectedSheetCount = 27
+const expectedSheetCount = 28
 const expectedSheetDirectories = [
+  'LaundryItems',
   'BagItems',
   'AfterPhoto',
   'Appointments',
@@ -62,6 +64,7 @@ const expectedSheetDirectories = [
 ] as const
 
 const bindings = [
+  { name: 'LaundryItems', contract: laundryItemsDbContract, expectedSpreadsheetId: 'LAUNDRY_ITEMS_SPREADSHEET_ID', expectedSheetName: 'LaundryItems' },
   { name: 'WashPrograms', contract: washProgramsDbContract, expectedSpreadsheetId: 'JOB_TICKETS_SPREADSHEET_ID', expectedSheetName: 'WashPrograms' },
   { name: 'WashProducts', contract: washProductsDbContract, expectedSpreadsheetId: 'JOB_TICKETS_SPREADSHEET_ID', expectedSheetName: 'WashProducts' },
   { name: 'Machines', contract: machinesDbContract, expectedSpreadsheetId: 'JOB_TICKETS_SPREADSHEET_ID', expectedSheetName: 'Machines' },

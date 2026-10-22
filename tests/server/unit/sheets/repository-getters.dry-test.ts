@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 
 const environmentKeys = [
+  'LAUNDRY_ITEMS_SPREADSHEET_ID',
   'AFTER_PHOTOS_SPREADSHEET_ID',
   'ORDERS_SPREADSHEET_ID',
   'PORTAL_SPREADSHEET_ID',
@@ -19,6 +20,7 @@ for (const key of environmentKeys) {
 }
 
 const [
+  laundryItemsModule,
   bagItemsModule,
   afterPhotoModule,
   orderFormModule,
@@ -43,6 +45,7 @@ const [
   workTransactionsModule,
   workRatesModule,
 ] = await Promise.all([
+  import('../../../../server/sheets/LaundryItems/LaundryItems.repository.js'),
   import('../../../../server/sheets/BagItems/BagItems.repository.js'),
   import('../../../../server/sheets/AfterPhoto/AfterPhoto.repository.js'),
   import('../../../../server/sheets/OrderForm/OrderForm.repository.js'),
@@ -68,6 +71,7 @@ const [
   import('../../../../server/sheets/WorkRates/WorkRates.repository.js'),
 ])
 
+process.env.LAUNDRY_ITEMS_SPREADSHEET_ID = 'laundry-items-spreadsheet-id'
 process.env.ORDERS_SPREADSHEET_ID = 'orders-spreadsheet-id'
 process.env.PORTAL_SPREADSHEET_ID = 'portal-spreadsheet-id'
 process.env.APPOINTMENTS_SPREADSHEET_ID = 'appointments-spreadsheet-id'
@@ -81,6 +85,7 @@ process.env.WORK_SPREADSHEET_ID = 'work-spreadsheet-id'
 process.env.AFTER_PHOTOS_SPREADSHEET_ID = 'after-photos-spreadsheet-id'
 
 const getters = [
+  ['LaundryItems', laundryItemsModule.getLaundryItemsRepository],
   ['BagItems', bagItemsModule.getBagItemsRepository],
   ['OrderForm', orderFormModule.getOrderFormRepository],
   ['OrderItemForms', orderItemFormsModule.getOrderItemFormsRepository],

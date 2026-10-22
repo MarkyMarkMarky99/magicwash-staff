@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { laundryItemsRowSchema } from '../../../../server/sheets/LaundryItems/LaundryItems.db-contract.js'
 import { bagItemsRowSchema } from '../../../../server/sheets/BagItems/BagItems.db-contract.js'
 import { generateKeyPairSync } from 'node:crypto'
 import { deriveGVizColumns, type GSheetRowSchema } from '../../../../server/shared/repositories/utils/gviz-query.builder.js'
@@ -23,6 +24,7 @@ import { jobTicketsRowSchema } from '../../../../server/sheets/JobTickets/JobTic
 //    repository constructor which reads env. ESM evaluates imports before the
 //    module body, so the env has to be set first and the modules pulled in with
 //    a dynamic import inside each test rather than a static one at the top. ──
+process.env.LAUNDRY_ITEMS_SPREADSHEET_ID = 'characterization-laundry-items-id'
 process.env.ORDERS_SPREADSHEET_ID = 'characterization-orders-id'
 process.env.PORTAL_SPREADSHEET_ID = 'characterization-spreadsheet-id'
 process.env.APPOINTMENTS_SPREADSHEET_ID = 'characterization-spreadsheet-id'
@@ -920,6 +922,29 @@ test('BagItems production wiring maps all columns and equality filters', async (
     assert.ok(url.pathname.includes('characterization-orders-id'))
     assert.match(url.searchParams.get('tq')!, /B = 'bag-1'/)
     assert.match(url.searchParams.get('tq')!, /C = 'order-1'/)
+  })
+})
+
+test('LaundryItems production wiring maps all columns, filters and workbook', async () => {
+  const body = sheetGvizBody(laundryItemsRowSchema, [
+    'aB01zZ89', 'customer-1', 'shirt', 'delicate', 'silk', '2026-10-23 10:00:00', 'staff-1',
+    null, null, null, null,
+  ])
+  await withMockFetch(async () => response(body), async (calls) => {
+    const { laundryItemService } = await import('../../../../server/modules/laundry-items/laundry-item.module.js')
+    const result = await laundryItemService.list({ customerId: 'customer-1', keyword: 'silk' })
+    assert.deepEqual(result.items, [{
+      id: 'aB01zZ89', customerId: 'customer-1', itemId: 'shirt', washProgram: 'delicate', notes: 'silk',
+      createdAt: '2026-10-23 10:00:00', createdBy: 'staff-1', updatedAt: null,
+      updatedBy: null, deletedAt: null, deletedBy: null,
+    }])
+    assert.equal(calls.length, 1)
+    const url = new URL(calls[0].url)
+    assert.equal(url.searchParams.get('sheet'), 'LaundryItems')
+    assert.ok(url.pathname.includes('characterization-laundry-items-id'))
+    assert.match(url.searchParams.get('tq')!, /B = 'customer-1'/)
+    assert.match(url.searchParams.get('tq')!, /E contains 'silk'/)
+    assert.doesNotMatch(url.searchParams.get('tq')!, /limit|offset/)
   })
 })
 
