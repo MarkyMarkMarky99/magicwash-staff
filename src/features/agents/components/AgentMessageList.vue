@@ -46,7 +46,7 @@ watch(() => [props.chat.messages.length, props.chat.thinking], async () => {
         <template v-if="message.role === 'staff'">
           <div class="flex min-w-0 max-w-[86%] flex-col items-end gap-2.5">
             <div v-if="message.imageUrls.length" class="flex flex-wrap justify-end gap-1.5">
-              <img v-for="url in message.imageUrls" :key="url" :src="url" alt="รูปที่แนบ" class="rounded-xl border-2 border-white bg-surface-container object-cover" :class="message.imageUrls.length === 1 ? 'h-40 w-40' : 'h-[92px] w-[92px]'" />
+              <img v-for="url in message.imageUrls" :key="url" :src="url" alt="Attached image" class="rounded-xl border-2 border-white bg-surface-container object-cover" :class="message.imageUrls.length === 1 ? 'h-40 w-40' : 'h-[92px] w-[92px]'" />
             </div>
             <p v-if="message.text" class="whitespace-pre-wrap break-words rounded-[18px_6px_18px_18px] bg-lime px-3.5 py-2 font-body text-sm font-semibold leading-relaxed text-primary [overflow-wrap:anywhere]">{{ message.text }}</p>
           </div>
@@ -69,10 +69,10 @@ watch(() => [props.chat.messages.length, props.chat.thinking], async () => {
           <div role="alert" class="min-w-0 rounded-[6px_18px_18px_18px] bg-error-container px-3.5 py-2 font-body text-sm leading-relaxed text-on-error-container">
             <div class="flex items-center gap-2">
               <span class="material-symbols-outlined fill-icon text-[20px] text-error" aria-hidden="true">error</span>
-              <span>{{ message.text ?? 'AI ไม่ว่างตอนนี้ ลองใหม่อีกครั้ง' }}</span>
+              <span>{{ message.text ?? 'AI is busy right now. Try again.' }}</span>
             </div>
             <button type="button" class="mt-2 inline-flex h-10 items-center gap-1.5 rounded-full bg-error px-4 font-body text-[13px] font-extrabold text-on-error focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime disabled:opacity-50" :disabled="chat.thinking" @click="$emit('retry')">
-              <span class="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>ลองใหม่
+              <span class="material-symbols-outlined text-[18px]" aria-hidden="true">refresh</span>Retry
             </button>
           </div>
         </template>
@@ -84,7 +84,7 @@ watch(() => [props.chat.messages.length, props.chat.thinking], async () => {
           <span class="inline-flex gap-1" aria-hidden="true">
             <i v-for="n in 3" :key="n" class="h-[7px] w-[7px] animate-bounce rounded-full bg-primary motion-reduce:animate-none" :style="{ animationDelay: `${(n - 1) * 0.18}s` }" />
           </span>
-          <span class="font-body text-[12.5px] font-semibold text-on-surface-variant">กำลังคิด… (ปกติ 10–20 วินาที)</span>
+          <span class="font-body text-[12.5px] font-semibold text-on-surface-variant">Thinking… (may take up to a few min)</span>
         </div>
       </div>
     </template>

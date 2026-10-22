@@ -13,6 +13,7 @@
   - Price groups KLINIQ, KLINIQUE, MAISON, MAISON_GAYSORN, SOULTEL live (2026-10-21) on the shared default slip prompt; only blank forms tested, need filled slips (esp. KLINIQ, whose LAUNDRY COUNT sits beside SPA COUNT).
   - Open: timeouts (gateway 90 s, client 120 s) exceed Cloudflare's ~100 s; proposed 60 s / 95 s, owner not decided.
 - **Agent chat (`/agents`)** — see `docs/features/agents/agent-chat.md`
+  - Owner to decide: switch app-wide UI text (nav: รายการราคา, แจ้งปัญหา, พนักงาน) to English like agents/price-list.
   - Prod chats need MagicwashAI running on this PC; if it stops, register/price chats show the error bubble.
   - NEXT session: build น้องติดตาม (order-tracking) — handoff `.user/memory/order-tracking-agent-handoff.md`; prod shows its fake reply until then.
   - Local test: MagicwashAI `ALLOWED_ORIGINS` must include `http://localhost:3000` for `vercel dev`.

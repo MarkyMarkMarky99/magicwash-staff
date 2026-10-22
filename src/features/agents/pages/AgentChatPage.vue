@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import ConfirmOverlay from '@/shared/layouts/ConfirmOverlay.vue'
 import { useGoBack } from '@/shared/composables/use-go-back'
@@ -21,7 +21,31 @@ const store = useAgentChatStore()
 const validId = computed<AgentId | null>(() => isAgentId(props.agentId) ? props.agentId : null)
 const agent = computed(() => validId.value ? agentById(validId.value) : null)
 const chat = computed(() => validId.value ? store.chats[validId.value] : null)
-const noticeVisible = ref(true)
+// The "not saved" notice shows once per device, then hides itself after a few seconds.
+const NOTICE_SEEN_KEY = 'agent-chat-notice-seen'
+const NOTICE_MS = 6000
+
+function noticeSeen(): boolean {
+  try {
+    return localStorage.getItem(NOTICE_SEEN_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+const noticeVisible = ref(!noticeSeen())
+let noticeTimer: ReturnType<typeof setTimeout> | null = null
+if (noticeVisible.value) {
+  try {
+    localStorage.setItem(NOTICE_SEEN_KEY, '1')
+  } catch {
+    // Storage blocked: the notice just shows again next time.
+  }
+  noticeTimer = setTimeout(() => { noticeVisible.value = false }, NOTICE_MS)
+}
+onBeforeUnmount(() => {
+  if (noticeTimer) clearTimeout(noticeTimer)
+})
 const endOpen = ref(false)
 
 watch(validId, (id) => {
@@ -55,8 +79,8 @@ function openCustomerForm(proposal: CustomerProposal): void {
 
     <div v-if="noticeVisible" class="flex flex-none items-center gap-2 bg-secondary-container py-2 pl-3.5 pr-2 font-body text-xs font-semibold leading-snug text-on-secondary-container" role="status">
       <span class="material-symbols-outlined shrink-0 text-[16px]" aria-hidden="true">info</span>
-      <span class="flex-1">บทสนทนาไม่ถูกบันทึก — รีเฟรชหรือปิดแอปจะเริ่มใหม่</span>
-      <button type="button" class="grid h-8 w-8 shrink-0 place-items-center rounded-full opacity-70 focus-visible:outline-2 focus-visible:outline-lime active:bg-black/10" aria-label="ปิดข้อความ" @click="noticeVisible = false">
+      <span class="flex-1">Chats are not saved. Refreshing or closing the app starts over.</span>
+      <button type="button" class="grid h-8 w-8 shrink-0 place-items-center rounded-full opacity-70 focus-visible:outline-2 focus-visible:outline-lime active:bg-black/10" aria-label="Dismiss" @click="noticeVisible = false">
         <span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
       </button>
     </div>
@@ -79,11 +103,11 @@ function openCustomerForm(proposal: CustomerProposal): void {
       @send="store.send(validId)"
     />
 
-    <ConfirmOverlay :open="endOpen" title="จบบทสนทนานี้?" description="ประวัติจะถูกล้าง" @close="endOpen = false" @confirm="confirmEnd">
+    <ConfirmOverlay :open="endOpen" title="End this chat?" description="The history will be cleared." @close="endOpen = false" @confirm="confirmEnd">
       <template #footer>
         <footer class="flex flex-none flex-col gap-2 px-5 pb-5 pt-4">
-          <button type="submit" class="h-[46px] rounded-full bg-error px-4 font-body text-sm font-extrabold text-on-error focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime">จบงาน</button>
-          <button type="button" class="h-[46px] rounded-full border-[1.5px] border-outline-variant bg-white px-4 font-body text-sm font-extrabold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" @click="endOpen = false">ยกเลิก</button>
+          <button type="submit" class="h-[46px] rounded-full bg-error px-4 font-body text-sm font-extrabold text-on-error focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime">End chat</button>
+          <button type="button" class="h-[46px] rounded-full border-[1.5px] border-outline-variant bg-white px-4 font-body text-sm font-extrabold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" @click="endOpen = false">Cancel</button>
         </footer>
       </template>
     </ConfirmOverlay>

@@ -14,7 +14,7 @@ export const AGENTS: AgentInfo[] = [
     id: 'register-customer',
     name: 'น้องลงทะเบียน',
     role: 'New customer',
-    description: 'ส่งข้อความหรือแคปแชต LINE แล้วช่วยกรอกข้อมูลลูกค้าใหม่',
+    description: 'Send a message or LINE chat screenshot to fill in a new customer',
     greeting: 'สวัสดีค่ะ หนูช่วยกรอกข้อมูลลูกค้าใหม่ให้ได้ แปะข้อความหรือแนบแคปแชต LINE มาได้เลยค่ะ',
     suggestions: [
       { icon: 'content_paste', text: 'แปะข้อความจาก LINE ของลูกค้า' },
@@ -26,7 +26,7 @@ export const AGENTS: AgentInfo[] = [
     id: 'price-check',
     name: 'น้องราคา',
     role: 'Price check',
-    description: 'ถามราคาบริการและรายการผ้าจากใบราคา',
+    description: 'Ask for service and item prices from the price list',
     greeting: 'สวัสดีค่ะ ถามราคาได้เลย หนูค้นจากใบราคาของร้านให้ค่ะ',
     suggestions: [
       { icon: 'bed', text: 'ซักผ้านวม 6 ฟุต ราคาเท่าไหร่' },
@@ -38,7 +38,7 @@ export const AGENTS: AgentInfo[] = [
     id: 'order-tracking',
     name: 'น้องติดตาม',
     role: 'Order tracking',
-    description: 'ถามสถานะออเดอร์จากเลขออเดอร์หรือเบอร์ลูกค้า',
+    description: 'Ask for an order status by order number or customer phone',
     greeting: 'สวัสดีครับ บอกเลขออเดอร์หรือเบอร์โทรลูกค้า เดี๋ยวผมเช็กสถานะให้ครับ',
     suggestions: [
       { icon: 'tag', text: 'สถานะออเดอร์ ORD-1042' },

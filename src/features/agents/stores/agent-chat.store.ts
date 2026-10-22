@@ -66,7 +66,7 @@ export const useAgentChatStore = defineStore('agent-chat', () => {
       if (generations[agentId] !== generation) return
       if (error instanceof AiGatewayError && error.code === 'SESSION_NOT_FOUND') {
         chat.sessionId = null
-        chat.messages.push({ id: nextId(), role: 'error', text: 'บทสนทนาเดิมหมดอายุ เริ่มใหม่แล้ว กดลองใหม่เพื่อส่งอีกครั้ง' })
+        chat.messages.push({ id: nextId(), role: 'error', text: 'The previous chat expired and a new one started. Tap Retry to send again.' })
       } else {
         chat.messages.push({ id: nextId(), role: 'error' })
       }

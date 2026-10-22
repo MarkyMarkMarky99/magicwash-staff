@@ -47,7 +47,7 @@ try {
   assert.equal(store.chats['register-customer'].sessionId, null)
   assert.deepEqual(store.chats['register-customer'].messages.at(-1), {
     id: store.chats['register-customer'].messages.at(-1)!.id,
-    role: 'error', text: 'บทสนทนาเดิมหมดอายุ เริ่มใหม่แล้ว กดลองใหม่เพื่อส่งอีกครั้ง',
+    role: 'error', text: 'The previous chat expired and a new one started. Tap Retry to send again.',
   })
   mode = 'success'
   await store.retry('register-customer')
