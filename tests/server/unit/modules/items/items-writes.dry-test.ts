@@ -10,9 +10,9 @@ process.env.GOOGLE_SERVICE_ACCOUNT_KEY = Buffer.from(JSON.stringify({
 })).toString('base64')
 
 const headers = ['id', 'item_code', 'category', 'subcategory', 'itemtype', 'variant',
-  'display_name_th', 'display_name_en', 'active', 'image_url']
+  'display_name_th', 'display_name_en', 'active', 'image_url', 'criteria']
 const row: unknown[] = ['a1b2c3d4', 'ITM-0098', 'Clothing', 'Tops', 'Shirt', 'Cotton',
-  'เสื้อ', 'Shirt', false, 'https://example.test/shirt.jpg']
+  'เสื้อ', 'Shirt', false, 'https://example.test/shirt.jpg', '']
 let writeCount = 0
 const originalFetch = globalThis.fetch
 function json(body: unknown): Response {
@@ -34,7 +34,7 @@ globalThis.fetch = (async (input: string | URL, init?: RequestInit) => {
   const path = decodeURIComponent(new URL(url).pathname)
   if (init?.method === 'GET' && path.endsWith('/values/Items!1:1')) return json({ values: [headers] })
   if (init?.method === 'GET' && path.endsWith('/values/Items!A:A')) return json({ values: [['id'], [row[0]]] })
-  if (init?.method === 'GET' && path.endsWith('/values/Items!A2:J2')) return json({ values: [row] })
+  if (init?.method === 'GET' && path.endsWith('/values/Items!A2:K2')) return json({ values: [row] })
   if (init?.method === 'POST' && path.endsWith('/values:batchUpdate')) {
     const body = JSON.parse(String(init.body)) as { data: { range: string; values: unknown[][] }[] }
     assert.deepEqual(body.data.map((entry) => entry.range), ['Items!F2:F2', 'Items!H2:H2', 'Items!J2:J2'])

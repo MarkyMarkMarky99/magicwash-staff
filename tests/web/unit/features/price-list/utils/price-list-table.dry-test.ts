@@ -53,4 +53,8 @@ const washOnly = buildPriceListCards(retail, 'WASH')
 assert.deepEqual(washOnly.map((card) => card.subcategory), ['Toys'])
 assert.deepEqual(washOnly[0]!.services, ['WASH'])
 
+const withCriteria = buildPriceListCards(retail, null, new Map([[tops.rows[0]!.prices.WSIR!.itemCode, 'Cotton tops only']]))
+assert.equal(withCriteria[0]!.rows[0]!.criteria, 'Cotton tops only', 'criteria joins by item code')
+assert.equal(withCriteria[1]!.rows[0]!.criteria, null)
+
 console.log('price-list-table.dry-test: OK')

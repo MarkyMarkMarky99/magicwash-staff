@@ -48,6 +48,8 @@ lines. A row with no price for a column shows a muted dash. Prices are bold dark
 With one service selected, each card has a single price column and no label row, and only rows that have
 that service appear.
 
+A row whose item has `criteria` in the Items sheet shows a small expand chevron after the Thai name. Tapping the row expands it to show the criteria text below, in a light panel spanning the row; tapping again collapses it. Rows without criteria do not expand. Criteria comes from the Items store, joined by item code.
+
 Tapping a price opens the edit form for that exact price row. The picker, the form, and the API are unchanged.
 
 ## Service pill

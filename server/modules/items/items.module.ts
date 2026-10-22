@@ -21,6 +21,7 @@ export const itemsFieldMap = {
   display_name_en: 'displayNameEn',
   active: 'active',
   image_url: 'imageUrl',
+  criteria: 'criteria',
 } as const satisfies Record<keyof ItemsDbRow & string, string>
 
 type ItemsApiRow = ApiRowFromFieldMap<ItemsDbRow, typeof itemsFieldMap>
@@ -55,12 +56,13 @@ const itemsRepository: Pick<SheetRepositoryContract<ItemsDbRow>, 'read' | 'appen
       variant: row.variant ?? null,
       display_name_en: row.display_name_en ?? null,
       image_url: row.image_url ?? null,
+      criteria: row.criteria ?? null,
     })
   },
   update: (keyValue, patch) => getItemsRepository().update(keyValue, patch),
 }
 
-const nullableColumns = ['variant', 'display_name_en', 'image_url'] as const
+const nullableColumns = ['variant', 'display_name_en', 'image_url', 'criteria'] as const
 const transformer: RepositoryTransformer = {
   response(response, { request }) {
     if (request.operation === 'read' || response === null || typeof response !== 'object' || Array.isArray(response)) {

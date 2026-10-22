@@ -6,6 +6,7 @@ import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import GenericTabs from '@/shared/components/GenericTabs.vue'
 import StickerFab from '@/shared/components/StickerFab.vue'
 import { usePriceListStore } from '@/data/price-list/price-list.store'
+import { useItemsStore } from '@/data/items/items.store'
 import PriceListServiceSwitch from '../components/PriceListServiceSwitch.vue'
 import PriceListSubcategoryCard from '../components/PriceListSubcategoryCard.vue'
 import { usePriceListFilterRoute } from '../composables/usePriceListFilterRoute'
@@ -28,6 +29,10 @@ const router = useRouter()
 const route = useRoute()
 const priceListStore = usePriceListStore()
 const { items, loading, error, loaded, truncated } = storeToRefs(priceListStore)
+const itemsStore = useItemsStore()
+const criteriaByItemCode = computed(() => new Map(
+  itemsStore.items.flatMap((item) => item.criteria?.trim() ? [[item.itemCode, item.criteria.trim()] as const] : []),
+))
 const listLoading = computed(() => loading.value && !loaded.value)
 const listError = computed(() => {
   if (loaded.value) return null
@@ -55,6 +60,7 @@ const categoryTabs = computed(() => {
 const cards = computed(() => buildPriceListCards(
   retailRows.value.filter((item) => filter.value.category === 'ALL' || item.category.toUpperCase() === filter.value.category),
   serviceType.value,
+  criteriaByItemCode.value,
 ))
 const rowCount = computed(() => countPriceListRows(cards.value))
 const subtitle = computed(() => `${rowCount.value} ${rowCount.value === 1 ? 'item' : 'items'} · ${serviceType.value ? serviceLabel(serviceType.value) : 'All services'}`)
@@ -85,6 +91,7 @@ watch(() => [route.name, route.query.category] as const, ([name, category]) => {
 
 onMounted(() => {
   void priceListStore.load()
+  void itemsStore.load()
 })
 </script>
 

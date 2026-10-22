@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { serviceLabel, type PriceListTableCard } from '../utils/price-list-table'
 
 defineProps<{
@@ -9,6 +10,14 @@ defineProps<{
 const emit = defineEmits<{
   edit: [id: string]
 }>()
+
+const expanded = ref(new Set<string>())
+
+function toggle(key: string) {
+  const next = new Set(expanded.value)
+  if (!next.delete(key)) next.add(key)
+  expanded.value = next
+}
 
 function formatPrice(price: number): string {
   return `฿${price.toLocaleString('en-US')}`
@@ -34,10 +43,20 @@ function formatPrice(price: number): string {
           >{{ serviceLabel(service) }}</th>
         </tr>
       </thead>
-      <tbody>
-        <tr v-for="row in card.rows" :key="row.key" class="border-b border-dashed border-outline-variant last:border-b-0">
+      <tbody v-for="row in card.rows" :key="row.key" class="border-b border-dashed border-outline-variant last:border-b-0">
+        <tr :class="row.criteria ? 'cursor-pointer' : ''" @click="row.criteria && toggle(row.key)">
           <td class="py-2 align-top text-sm font-extrabold leading-snug text-primary">
-            {{ row.nameTh }}
+            <button
+              v-if="row.criteria"
+              type="button"
+              class="text-left focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
+              :aria-expanded="expanded.has(row.key)"
+              @click.stop="toggle(row.key)"
+            >
+              {{ row.nameTh }}
+              <span class="material-symbols-outlined align-[-3px] text-[16px] text-on-surface-variant transition-transform" :class="expanded.has(row.key) ? 'rotate-180' : ''" aria-hidden="true">expand_more</span>
+            </button>
+            <template v-else>{{ row.nameTh }}</template>
             <span v-if="row.secondLine" class="block text-[11px] font-medium text-on-surface-variant">{{ row.secondLine }}</span>
           </td>
           <td v-for="service in card.services" :key="service" class="whitespace-nowrap py-2 text-right align-top text-sm">
@@ -46,9 +65,14 @@ function formatPrice(price: number): string {
               type="button"
               class="font-extrabold text-primary focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
               :aria-label="`Edit ${serviceLabel(service)} price of ${row.nameTh}`"
-              @click="emit('edit', row.prices[service]!.id)"
+              @click.stop="emit('edit', row.prices[service]!.id)"
             >{{ formatPrice(row.prices[service]!.price) }}</button>
             <span v-else class="font-medium text-on-surface-variant opacity-60" aria-label="No price">–</span>
+          </td>
+        </tr>
+        <tr v-if="row.criteria && expanded.has(row.key)">
+          <td :colspan="1 + card.services.length" class="pb-2.5 pr-1">
+            <p class="whitespace-pre-line rounded-lg bg-surface-container-low px-2.5 py-2 text-[12px] font-medium leading-relaxed text-on-surface">{{ row.criteria }}</p>
           </td>
         </tr>
       </tbody>

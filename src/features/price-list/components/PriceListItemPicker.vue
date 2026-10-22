@@ -1,4 +1,4 @@
-<script setup lang="ts" generic="T extends ItemDto">
+<script setup lang="ts" generic="T extends Omit<ItemDto, 'criteria'>">
 import { computed, ref, watch } from 'vue'
 import type { z } from 'zod'
 import type { priceListListResponseSchema } from '@contracts/price-list/price-list-api.schema'
