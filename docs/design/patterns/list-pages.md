@@ -4,7 +4,6 @@ audit_sources:
   - src/features/customers/pages/CustomerListPage.vue
   - src/features/invoices/pages/InvoiceListPage.vue
   - src/features/issue-reports/pages/IssueReportListPage.vue
-  - src/features/price-list/pages/PriceListPage.vue
   - src/shared/components/ListContainer.vue
   - src/shared/components/PullToRefresh.vue
   - src/shared/components/AppHeader.vue

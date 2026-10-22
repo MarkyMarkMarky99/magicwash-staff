@@ -5,16 +5,20 @@ function source(path: string): string {
   return readFileSync(new URL('../../../../../../src/' + path, import.meta.url), 'utf8')
 }
 
-const card = source('features/price-list/components/PriceListCard.vue')
-assert.match(card, /itemCode/)
-assert.match(card, /props\.items\.length/)
-assert.match(card, /emit\('open', props\.itemCode\)/)
-assert.match(card, /BaseSwipeCard/)
-assert.match(card, /ImageContentCard/)
-assert.doesNotMatch(card, /ImageOrIcon/)
-assert.match(card, /#left-panel/)
-assert.doesNotMatch(card, /'chevron_right' : 'edit'/)
-assert.doesNotMatch(card, /washDryIronPrice|ironOnlyPrice|dryCleanPrice/)
+const card = source('features/price-list/components/PriceListSubcategoryCard.vue')
+assert.doesNotMatch(card, /BaseBadge/, 'the Thai name already carries the variant; no badge')
+assert.match(card, /showServiceLabels/)
+assert.match(card, /emit\('edit'/)
+assert.doesNotMatch(card, /ImageOrIcon|ImageContentCard|<img/)
+assert.doesNotMatch(card, /features\/agents/)
+
+for (const retired of ['PriceListCard', 'PriceListOptionsSheet', 'PriceListServiceFilter', 'PriceListServicePanel']) {
+  assert.equal(
+    existsSync(new URL(`../../../../../../src/features/price-list/components/${retired}.vue`, import.meta.url)),
+    false,
+    `${retired} must stay deleted`,
+  )
+}
 
 const picker = source('features/price-list/components/PriceListItemPicker.vue')
 assert.match(picker, /selectCategory\(name\)/)
@@ -26,14 +30,6 @@ const sharedImageCard = source('shared/components/ImageContentCard.vue')
 assert.match(sharedImageCard, /ImageOrIcon/)
 assert.match(sharedImageCard, /fit="cover"/)
 
-const optionsSheet = source('features/price-list/components/PriceListOptionsSheet.vue')
-assert.match(optionsSheet, /DetailOverlay/)
-assert.match(optionsSheet, /size="auto"/)
-assert.match(optionsSheet, /emit\('select', option\.id\)/)
-assert.match(optionsSheet, /serviceTypeLabel\(option\.serviceType\)/)
-assert.match(optionsSheet, /needsDisambiguation\(option\)/)
-assert.match(optionsSheet, /option\.active/)
-
 const triad = new URL(
   '../../../../../../src/features/price-list/components/ServicePriceTriad.vue',
   import.meta.url,
@@ -41,13 +37,10 @@ const triad = new URL(
 assert.equal(existsSync(triad), false, 'retired ServicePriceTriad must be deleted')
 
 const list = source('features/price-list/pages/PriceListPage.vue')
-assert.match(list, /PriceListServiceFilter/)
-assert.match(list, /PriceListServicePanel/)
-assert.match(list, /itemGroups/)
-assert.match(list, /PriceListOptionsSheet/)
-assert.match(list, /group\.items\.length === 1/)
-assert.match(list, /#empty[\s\S]{0,400}PriceListServicePanel/)
-assert.match(list, /#error[\s\S]{0,400}PriceListServicePanel/)
+assert.match(list, /PriceListSubcategoryCard/)
+assert.match(list, /PriceListServiceSwitch/)
+assert.match(list, /retailPriceRows/)
+assert.doesNotMatch(list, /ListContainer|searchable|PriceListOptionsSheet|ImageOrIcon/)
 
 const statusTabs = new URL(
   '../../../../../../src/features/price-list/components/PriceListStatusTabs.vue',
