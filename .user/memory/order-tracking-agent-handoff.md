@@ -26,6 +26,5 @@
 - Never let Codex invent statuses: `checkProposal` must rebuild the card from sheet data.
 
 ## Prod state after merge 67d303a9 (2026-10-22)
-- Vercel env `VITE_AI_GATEWAY_URL` not set in prod → register/price chats show the error bubble there.
 - order-tracking shows fake data (ORD-1042) in prod until this agent ships; owner was offered hiding it.
 - MagicwashAI must run via `start.bat` on :3110 (tunnel `ai.magicwash-laundry.com`); for local `vercel dev` add `http://localhost:3000` to `ALLOWED_ORIGINS`.

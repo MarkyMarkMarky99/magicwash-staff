@@ -8,12 +8,12 @@
 
 ## Pending work
 - **MagicwashAI local gateway** — handoff: `.user/memory/magicwash-ai-gateway-handoff.md`
-  - Live at `ai.magicwash-laundry.com`; corporate-form AI prefill merged to main, OFF in prod until Vercel env `VITE_AI_GATEWAY_URL` is set.
+  - Live at `ai.magicwash-laundry.com`; corporate-form AI prefill merged to main; prod `VITE_AI_GATEWAY_URL` is set.
   - Need 3–5 more real slips (other branches, harder handwriting) for `scripts/eval-read-slip.js`.
   - Price groups KLINIQ, KLINIQUE, MAISON, MAISON_GAYSORN, SOULTEL live (2026-10-21) on the shared default slip prompt; only blank forms tested, need filled slips (esp. KLINIQ, whose LAUNDRY COUNT sits beside SPA COUNT).
   - Open: timeouts (gateway 90 s, client 120 s) exceed Cloudflare's ~100 s; proposed 60 s / 95 s, owner not decided.
 - **Agent chat (`/agents`)** — see `docs/features/agents/agent-chat.md`
-  - Prod needs Vercel env `VITE_AI_GATEWAY_URL` and MagicwashAI running (`start.bat`); without it register/price chats show the error bubble.
+  - Prod chats need MagicwashAI running on this PC; if it stops, register/price chats show the error bubble.
   - NEXT session: build น้องติดตาม (order-tracking) — handoff `.user/memory/order-tracking-agent-handoff.md`; prod shows its fake reply until then.
   - Local test: MagicwashAI `ALLOWED_ORIGINS` must include `http://localhost:3000` for `vercel dev`.
 - **Corporate count-sheet order** — see `docs/features/orders/corporate-order-form.md`
