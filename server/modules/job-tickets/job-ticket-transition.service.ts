@@ -97,12 +97,14 @@ export class JobTicketTransitionService {
       const startedAt = hasStartedAt(ticket.started_at) ? ticket.started_at! : timestamp
       const completedAt = status === 'Completed' ? timestamp : ticket.completed_at ?? null
       updates.push({ keyValue: entry.ticketId, patch: {
-        status, ...(hasStartedAt(ticket.started_at) ? {} : { started_at: startedAt }),
-        ...(status === 'Completed' ? { completed_at: completedAt } : {}),
-        scanned_by: request.scannedBy, updated_by: request.scannedBy,
+        status, ...(hasStartedAt(ticket.started_at) ? {} : { started_at: startedAt,
+          ...(!ticket.started_by ? { started_by: request.scannedBy } : {}) }),
+        ...(status === 'Completed' ? { completed_at: completedAt, scanned_by: request.scannedBy } : {}),
+        updated_by: request.scannedBy,
       } })
       if (status === 'Completed') completed.push({ ticketId: entry.ticketId, workMinutes: ticket.work_minutes })
-      advanced.push({ ticketId: entry.ticketId, laundryItemId: ticket.laundry_item_id ?? null, status, startedAt, completedAt })
+      advanced.push({ ticketId: entry.ticketId, laundryItemId: ticket.laundry_item_id ?? null, status, startedAt,
+        startedBy: ticket.started_by || (hasStartedAt(ticket.started_at) ? null : request.scannedBy), completedAt })
     }
 
     if (updates.length === 0) return { kind: 'completed', advanced, blocked, skipped, scoreFailed: 0 }

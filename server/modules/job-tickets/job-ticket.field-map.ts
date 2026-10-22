@@ -28,4 +28,5 @@ export const jobTicketFieldMap = {
   deleted_at: 'deletedAt',
   deleted_by: 'deletedBy',
   work_minutes: 'workMinutes',
+  started_by: 'startedBy',
 } as const satisfies Record<keyof JobTicketDbRow & string, string>

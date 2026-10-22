@@ -19,7 +19,7 @@ for (const department of ['Washing', 'DryCleaning', 'Ironing', 'Packaging', 'Log
 for (const payload of [{ orderId: ' ', department: 'Packaging' }, { orderId: '123', department: 'Tagging' }])
   assert.throws(() => jobTicketCompleteOrderRequestSchema.parse(payload))
 assert.equal(jobTicketCompleteOrderResponseSchema.parse({ kind: 'completed', completed: [{
-  ticketId: 'one', status: 'Completed', startedAt: '2026-10-09 12:00:00', completedAt: '2026-10-09 12:00:00',
+  ticketId: 'one', status: 'Completed', startedAt: '2026-10-09 12:00:00', startedBy: 'admin-id', completedAt: '2026-10-09 12:00:00',
 }], scannedBy: 'admin-id' }).kind, 'completed')
 for (const certainty of ['rejected', 'unknown'])
   assert.deepEqual(jobTicketCompleteOrderResponseSchema.parse({ kind: 'write_failed', certainty }), { kind: 'write_failed', certainty })
@@ -43,7 +43,7 @@ const row = {
   id: 'ticket-1', orderId: 'order-1', laundryItemId: 'tag-1', scope: 'ITEM',
   taskCode: 'WSH-STANDARD', department: 'Washing', stepNo: 1, customerId: 'customer-1',
   orderName: 'Order one', dueDate: '2026-09-30', specialInstructions: null, notes: null,
-  status: 'Pending', startedAt: null, completedAt: null, scannedBy: null,
+  status: 'Pending', startedAt: null, startedBy: null, completedAt: null, scannedBy: null,
   photoEvidenceUrl: null, createdAt: '2026-09-23 10:00:00', createdBy: 'staff-1',
   updatedAt: null, updatedBy: null, deletedAt: null, deletedBy: null, workMinutes: null,
 }
@@ -58,7 +58,7 @@ assert.deepEqual(jobTicketStartOrderRequestSchema.parse({ orderId: ' order-1 ', 
 assert.throws(() => jobTicketStartOrderRequestSchema.parse({ orderId: ' ', department: 'Washing', scannedBy: 'staff-1' }))
 assert.deepEqual(jobTicketStartOrderResponseSchema.parse({
   kind: 'completed',
-  advanced: [{ ticketId: 'ticket-1', laundryItemId: 'tag-1', status: 'In Progress', startedAt: null }],
+  advanced: [{ ticketId: 'ticket-1', laundryItemId: 'tag-1', status: 'In Progress', startedAt: null, startedBy: null }],
   blocked: [{ ticketId: 'ticket-2', laundryItemId: 'tag-2', blockedByDepartment: 'DryCleaning' }],
   skippedWithoutTag: 1,
 }).kind, 'completed')
@@ -75,7 +75,7 @@ assert.equal(jobTicketAdvanceRequestSchema.parse({ ...advanceRequest, tickets: A
 assert.throws(() => jobTicketAdvanceRequestSchema.parse({ ...advanceRequest, tickets: Array(201).fill(advanceRequest.tickets[0]) }))
 assert.throws(() => jobTicketAdvanceRequestSchema.parse({ ...advanceRequest, fromStatus: 'Completed' }))
 assert.throws(() => jobTicketAdvanceRequestSchema.parse({ ...advanceRequest, tickets: [{ ticketId: ' ', orderId: 'order' }] }))
-assert.equal(jobTicketAdvanceResponseSchema.parse({ kind: 'completed', advanced: [{ ticketId: 'one', laundryItemId: null, status: 'Completed', startedAt: null, completedAt: null }], blocked: [], skipped: [], scoreFailed: 0 }).kind, 'completed')
+assert.equal(jobTicketAdvanceResponseSchema.parse({ kind: 'completed', advanced: [{ ticketId: 'one', laundryItemId: null, status: 'Completed', startedAt: null, startedBy: null, completedAt: null }], blocked: [], skipped: [], scoreFailed: 0 }).kind, 'completed')
 assert.equal(jobTicketAdvanceResponseSchema.parse({ kind: 'write_failed', certainty: 'unknown', blocked: [], skipped: [{ ticketId: 'two', reason: 'status_changed' }] }).kind, 'write_failed')
 assert.throws(() => jobTicketAdvanceResponseSchema.parse({ kind: 'write_failed', certainty: 'maybe', blocked: [], skipped: [] }))
 

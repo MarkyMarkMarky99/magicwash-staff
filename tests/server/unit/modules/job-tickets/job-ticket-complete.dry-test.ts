@@ -32,7 +32,7 @@ function setup(rows: Row[], failure?: Error) {
 }
 for (const department of ['Washing', 'DryCleaning', 'Ironing', 'Packaging'] as const) {
   const rows = [row('pending', { department, order_id: 123 as unknown as string, started_at: '' }),
-    row('progress', { department, status: 'In Progress', started_at: 'previous' }),
+    row('progress', { department, status: 'In Progress', started_at: 'previous', started_by: 'starter-id' }),
     row('legacy-no-tag', { department, laundry_item_id: null, step_no: undefined }),
     row('weight', { department, scope: 'ORDER', task_code: 'PCK-WEIGHT-KG' }),
     row('done', { department, status: 'Completed' }), row('cancelled', { department, status: 'Cancelled' }),
@@ -42,9 +42,9 @@ for (const department of ['Washing', 'DryCleaning', 'Ironing', 'Packaging'] as c
   const context = setup(rows)
   const result = await context.service.completeOrder({ orderId: ' 123 ', department, scannedBy: 'forged' }, 'admin-id')
   assert.deepEqual(result, { kind: 'completed', scannedBy: 'admin-id', completed: [
-    { ticketId: 'pending', status: 'Completed', startedAt: timestamp, completedAt: timestamp },
-    { ticketId: 'progress', status: 'Completed', startedAt: 'previous', completedAt: timestamp },
-    { ticketId: 'legacy-no-tag', status: 'Completed', startedAt: timestamp, completedAt: timestamp },
+    { ticketId: 'pending', status: 'Completed', startedAt: timestamp, startedBy: 'admin-id', completedAt: timestamp },
+    { ticketId: 'progress', status: 'Completed', startedAt: 'previous', startedBy: 'starter-id', completedAt: timestamp },
+    { ticketId: 'legacy-no-tag', status: 'Completed', startedAt: timestamp, startedBy: 'admin-id', completedAt: timestamp },
   ] })
   assert.deepEqual(context.reads, [{ where: { order_id: '123' } }])
   assert.equal(context.updates.length, 1)
@@ -53,6 +53,13 @@ for (const department of ['Washing', 'DryCleaning', 'Ironing', 'Packaging'] as c
     assert.equal(update.patch.scanned_by, 'admin-id')
     assert.equal(update.patch.updated_by, 'admin-id')
   }
+  const pendingPatch = context.updates[0]!.find(update => update.keyValue === 'pending')!.patch
+  assert.equal(pendingPatch.started_at, timestamp)
+  assert.equal(pendingPatch.started_by, 'admin-id')
+  const progressPatch = context.updates[0]!.find(update => update.keyValue === 'progress')!.patch
+  assert.equal('started_at' in progressPatch, false)
+  assert.equal('started_by' in progressPatch, false)
+  assert.equal(rows.find(ticket => ticket.id === 'progress')!.started_by, 'starter-id')
   assert.equal(rows.find(ticket => ticket.id === 'weight')!.status, 'Pending')
   await context.service.completeOrder({ orderId: '123', department }, 'admin-id')
   assert.equal(context.updates.length, 1, 'retry writes nothing')

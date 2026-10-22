@@ -45,7 +45,7 @@ export class JobTicketStartService {
     const blocked = result.blocked.map(entry => ({ ...entry, laundryItemId: entry.laundryItemId! }))
     if (result.kind === 'write_failed') return { kind: 'write_failed', certainty: result.certainty, blocked, skippedWithoutTag }
     const advanced = result.advanced.map(entry => ({ ticketId: entry.ticketId, laundryItemId: entry.laundryItemId!,
-      status: 'In Progress' as const, startedAt: entry.startedAt }))
+      status: 'In Progress' as const, startedAt: entry.startedAt, startedBy: entry.startedBy }))
     return { kind: 'completed', advanced, blocked, skippedWithoutTag }
   }
 }

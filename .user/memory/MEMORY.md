@@ -58,6 +58,11 @@
   - Open browser/phone checks and decisions: see `.user/memory/customer-detail-visual-checks.md`.
   - Undecided: Book Delivery and package usage in the order sheet.
 - **Garment tracking and job tickets**
+  - JobTickets `started_by` (col Y) shipped in code; add the header to the live sheet right after deploy, then curl prod.
+  - Planned `LaundryItems` sheet: tag id is the key, `tag_type` PERMANENT/TEMPORARY; owner to decide backfill of ~52k legacy tagged LaundryPhotos rows.
+  - Before LaundryItems: stop gallery upload/reassign writing catalog ids into `LaundryPhotos.item_id`.
+  - Then run `scripts/one-off/clear-catalog-itemid-laundryphotos.ts` (untracked); its target rule must change to "equals own order line's catalog id" (179 rows).
+  - Department scan must pick the open order's ticket before permanent tags recur across orders.
   - Watch the first prod Start/Complete (advance reads JobTickets once via `readRaw`).
   - Barcode-gun scanning, scan sounds, gun-scan photo popup and scan-to-top: not yet used with a gun on prod.
   - Scan FAB sits below the screen edge on some phones; cause unknown, awaiting the user's device/browser details.

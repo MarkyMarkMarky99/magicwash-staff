@@ -47,6 +47,7 @@ export function buildBagLogisticsTicket(
     special_instructions: null,
     status: 'Pending',
     started_at: null,
+    started_by: null,
     completed_at: null,
     scanned_by: null,
     photo_evidence_url: image.imagePath,

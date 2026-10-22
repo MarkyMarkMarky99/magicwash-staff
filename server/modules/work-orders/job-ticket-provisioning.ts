@@ -52,6 +52,7 @@ export interface ProvisionedJobTicketRow {
   notes: string | null
   status: 'Pending' | 'Completed'
   started_at?: string
+  started_by?: string
   completed_at?: string
   scanned_by?: string
   updated_by?: string
@@ -189,6 +190,7 @@ export function buildJobTickets(
         notes: order.notes,
         status: 'Completed',
         started_at: order.completedAt,
+        started_by: garment.taggedBy,
         completed_at: order.completedAt,
         scanned_by: garment.taggedBy,
         updated_by: garment.taggedBy,

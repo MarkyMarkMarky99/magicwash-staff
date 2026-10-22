@@ -30,6 +30,13 @@ before task codes existed and not yet backfilled returns `null`, and the API nev
 an old service code. Audit, scan, completion, evidence, and soft-delete fields are nullable strings.
 The response carries no task display name; clients show `taskCode` itself.
 
+`started_by` (`startedBy`) records who started the ticket. It is written once together with a
+missing `started_at`, including direct completion, and never replaces an existing starter. It is
+null on tickets started before this column existed. The column is last, after `work_minutes`.
+`scanned_by` (`scannedBy`) records who completed the ticket and is written only in a patch setting
+status to Completed. Rows written before 2026-10-23 may instead hold whoever last moved the ticket.
+Starting work leaves `scanned_by` unchanged; `updated_by` keeps its existing behavior.
+
 New ticket ids are deterministic: `XXX-<orderId>-<laundryItemId>-<taskCode>`. Department prefixes are
 `TAG`, `WSH`, `DRC`, `IRN`, `PCK`, and `LOG` for Tagging, Washing, DryCleaning, Ironing, Packaging, and
 Logistics respectively; the prefix is the department, not the start of the task code. Tickets created
@@ -52,7 +59,8 @@ Returns the full camelCase ticket row.
 ## `PATCH /api/job-tickets/:id`
 
 The request accepts only `status` and `updatedBy`. This is the direct ticket maintenance endpoint;
-department work uses the shared gated transition below.
+department work uses the shared gated transition below. A Completed patch records `updatedBy`
+as the completing `scanned_by` actor; other statuses leave `scanned_by` unchanged.
 
 ## Shared department transition
 
@@ -79,7 +87,7 @@ is retained.
 The unwrapped response has two outcomes:
 
 - `completed` — 200, with `advanced` entries containing ticket id, garment tag, `In Progress`
-  status, and nullable start time; `blocked` entries containing ticket id, garment tag, and blocking
+  status, nullable start time, and nullable `startedBy`; `blocked` entries containing ticket id, garment tag, and blocking
   department; and a non-negative `skippedWithoutTag` count
 - `write_failed` — 502 for a rejected write or 500 for an unknown write outcome, with `certainty`,
   `blocked`, and `skippedWithoutTag`; no advanced entries are reported
@@ -88,7 +96,7 @@ The unwrapped response has two outcomes:
 
 The request names a department, a source status of `Pending` or `In Progress`, a non-empty staff actor, and 1–200 ticket and order ID pairs. IDs and actor are trimmed. Repeated ticket IDs are processed once. The service reads JobTickets with one `readRaw` query per chunk of up to 50 requested orders, filtered to Pending, In Progress, or Cancelled and those order ids; it checks only tickets from each requested order. An order with a requested ticket outside those reads (Completed or missing) is read in full so the skip reason stays exact. Missing or deleted tickets and department mismatches are skipped as `not_found`; tickets whose status changed are skipped as `status_changed`. The lowest incomplete earlier step for the same order and garment blocks an update, including an earlier task in the same department, and the response names its department.
 
-Eligible Pending tickets move to In Progress; eligible In Progress tickets move to Completed. The existing start time is retained, or stamped if missing. Completion stamps the completion time. Staff is recorded for the scan and update. Eligible tickets are written in one batch.
+Eligible Pending tickets move to In Progress; eligible In Progress tickets move to Completed. The existing start time is retained, or stamped if missing. Completion stamps the completion time. The starter is recorded with a missing start time; only completion records the completing actor in `scanned_by`. The update actor is recorded on either hop. Eligible tickets are written in one batch.
 
 Completing a ticket through `/api/job-tickets/advance` appends one WorkTransactions EARN row with the ticket's `work_minutes` and `created_by` set to the staff StaffId; accepting work (Pending → In Progress) earns nothing. Tickets without `work_minutes` (created before the column existed) earn nothing and are not reported. If the score write fails, the affected tickets are counted in `scoreFailed` and the page shows “Score not saved … Tell an admin”; completion itself still succeeds.
 
@@ -114,7 +122,7 @@ stamps it when missing, and stamps completion at the current Bangkok time. It wr
 callers retain gating and scoring by default. Retrying already Completed tickets writes nothing.
 
 The unwrapped HTTP 200 response is `{ kind: 'completed', completed, scannedBy }`, where each
-completed entry contains `ticketId`, `status: 'Completed'`, `startedAt`, and `completedAt`.
+completed entry contains `ticketId`, `status: 'Completed'`, `startedAt`, nullable `startedBy`, and `completedAt`.
 `scannedBy` is the server actor used to patch shared frontend rows. Write failure returns
 `{ kind: 'write_failed', certainty }`, with HTTP 502 for rejected and HTTP 500 for unknown
 persistence. Failed responses do not claim closed tickets.
@@ -123,7 +131,7 @@ persistence. Failed responses do not claim closed tickets.
 
 After a WEIGHT order image is appended (also by Packaging Confirm, once per bag), one ticket uses id
 `PCK-<orderId>-<orderImageId>-PCK-WEIGHT-KG`, Packaging, ORDER scope, and step 0. Start and
-completion timestamps use the image creation time in Bangkok. Scan, update, and creation actors
+completion timestamps use the image creation time in Bangkok. Start, completion, update, and creation actors
 are the photographer; evidence is the stored image path. Customer, order name, due date, and notes
 come from OrderForm; special instructions are null because the header has no such field.
 Work minutes are positive finite kg times the Packaging rate for `PCK-WEIGHT-KG`, or null when
@@ -138,13 +146,13 @@ Each saved WEIGHT image provisions `LOG-<orderId>-<orderImageId>-LOG-BAG`, with 
 Logistics department, ORDER scope, step 0, and blank laundry item id. Existing ids are skipped.
 Customer, order name, due date, and notes come from OrderForm exactly as Packaging does; special
 instructions are null. Evidence uses the image path; creation and update actors use the photographer.
-Status starts Pending, with null start, completion, scan actor, and work minutes. No rates, staff,
+Status starts Pending, with null start time, started_by, completion time, scanned_by, and work minutes. No rates, staff,
 or WorkTransactions are read or written. Provisioning failures are logged and never fail the image save.
 
 An order updated to COMPLETED closes every open non-deleted ticket in one updateMany, across all
 departments and scopes. Pending and In Progress become Completed at the current Bangkok time,
-with that same start time only when missing, and the request actor as updated_by. scanned_by stays
-unchanged; no EARN is written. Read/write failures are logged without changing the order response.
+with that same start time and started_by only when the start time is missing, preserving any
+existing started_by. The request actor is recorded as scanned_by and updated_by; no EARN is written. Read/write failures are logged without changing the order response.
 
 ## Provisioning
 
@@ -158,7 +166,7 @@ Each new department ticket defaults `photoEvidenceUrl` to the first non-empty `L
 Approval also creates one Tagging ticket at step 0 per distinct non-blank tag whose
 LaundryPhotos `created_by` matches an active StaffId. The first matching photo author is the
 tagger. This ticket is already Completed, with start and completion times set to the approval
-time and scan/update actors set to the tagger. It is created even for an unsupported service. Routed tickets remain Pending at steps 1 onward. Old photo authors
+time and start/completion/update actors set to the tagger. It is created even for an unsupported service. Routed tickets remain Pending at steps 1 onward. Old photo authors
 that are not active StaffIds create no Tagging ticket or score. After the ticket batch succeeds,
 each new Tagging ticket with finite work minutes earns one WorkTransactions EARN row credited
 to the tagger. Existing Tagging tickets are skipped and earn no additional score on re-approval.

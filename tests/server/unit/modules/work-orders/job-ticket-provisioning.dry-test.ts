@@ -190,7 +190,7 @@ assert.deepEqual(tagging[0], {
   task_code: 'TAG-PHOTO', department: 'Tagging', step_no: 0, customer_id: 'customer-1',
   order_name: 'Order one', due_date: '2026-09-30', special_instructions: 'Careful', notes: 'Rush',
   status: 'Completed', started_at: order.completedAt, completed_at: order.completedAt,
-  scanned_by: 'tagger-1', updated_by: 'tagger-1', photo_evidence_url: 'https://example.test/first.jpg',
+  started_by: 'tagger-1', scanned_by: 'tagger-1', updated_by: 'tagger-1', photo_evidence_url: 'https://example.test/first.jpg',
   created_by: 'staff-1', work_minutes: 3,
 })
 assert.equal(tagging.length, 2)

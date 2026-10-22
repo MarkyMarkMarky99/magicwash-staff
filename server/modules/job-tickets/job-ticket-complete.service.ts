@@ -26,6 +26,6 @@ export class JobTicketCompleteService {
     if (result.kind === 'write_failed') return { kind: 'write_failed', certainty: result.certainty }
     return { kind: 'completed', scannedBy: actor,
       completed: result.advanced.map(ticket => ({ ticketId: ticket.ticketId, status: 'Completed',
-        startedAt: ticket.startedAt!, completedAt: ticket.completedAt! })) }
+        startedAt: ticket.startedAt!, startedBy: ticket.startedBy, completedAt: ticket.completedAt! })) }
   }
 }

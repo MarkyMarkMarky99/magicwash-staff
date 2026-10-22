@@ -334,7 +334,9 @@ export class WorkOrderService extends BaseCrudService<
               patch: {
                 status: 'Completed' as const,
                 completed_at: timestamp,
-                ...(!hasStartedAt(row.started_at) ? { started_at: timestamp } : {}),
+                ...(!hasStartedAt(row.started_at) ? { started_at: timestamp,
+                  ...(!row.started_by ? { started_by: request.updatedBy } : {}) } : {}),
+                scanned_by: request.updatedBy,
                 updated_by: request.updatedBy,
               },
             }] : [])

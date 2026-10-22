@@ -70,8 +70,8 @@ assert.equal(pending.rawReads.length, 1)
 assert.equal(pending.earnBatches.length, 0)
 assert.equal(pending.workRepositoryCalls, 0)
 assert.deepEqual(pending.batches[0], [
-  { keyValue: 'one', patch: { status: 'In Progress', started_at: '2026-09-23 10:00:00', scanned_by: 'staff', updated_by: 'staff' } },
-  { keyValue: 'two', patch: { status: 'In Progress', scanned_by: 'staff', updated_by: 'staff' } },
+  { keyValue: 'one', patch: { status: 'In Progress', started_at: '2026-09-23 10:00:00', started_by: 'staff', updated_by: 'staff' } },
+  { keyValue: 'two', patch: { status: 'In Progress', updated_by: 'staff' } },
 ])
 
 const mixed = setup([
@@ -89,7 +89,7 @@ assert.equal(mixed.rawReads.length, 1)
 assert.deepEqual(result, {
   kind: 'completed',
   scoreFailed: 0,
-  advanced: [{ ticketId: 'done', laundryItemId: 'tag-1', status: 'Completed', startedAt: '2026-09-23 10:00:00', completedAt: '2026-09-23 10:00:00' }],
+  advanced: [{ ticketId: 'done', laundryItemId: 'tag-1', status: 'Completed', startedAt: '2026-09-23 10:00:00', startedBy: 'staff', completedAt: '2026-09-23 10:00:00' }],
   blocked: [{ ticketId: 'blocked', laundryItemId: 'tag-2', blockedByDepartment: 'Tagging' }],
   skipped: [
     { ticketId: 'missing', reason: 'not_found' }, { ticketId: 'wrong', reason: 'not_found' },
@@ -97,7 +97,7 @@ assert.deepEqual(result, {
   ],
 })
 assert.deepEqual(mixed.batches[0], [{ keyValue: 'done', patch: {
-  status: 'Completed', started_at: '2026-09-23 10:00:00', completed_at: '2026-09-23 10:00:00', scanned_by: 'staff', updated_by: 'staff',
+  status: 'Completed', started_at: '2026-09-23 10:00:00', started_by: 'staff', completed_at: '2026-09-23 10:00:00', scanned_by: 'staff', updated_by: 'staff',
 } }])
 assert.equal(mixed.earnBatches.length, 1)
 const mixedEarn = mixed.earnBatches[0]![0]!
@@ -177,7 +177,7 @@ const sequential = setup([
 ])
 assert.deepEqual(await sequential.service.advance(request(['wash-b', 'wash-d'].map(ticketId => ({ ticketId, orderId: '1' })))), {
   kind: 'completed', scoreFailed: 0,
-  advanced: [{ ticketId: 'wash-d', laundryItemId: 'tag-2', status: 'In Progress', startedAt: '2026-09-23 10:00:00', completedAt: null }],
+  advanced: [{ ticketId: 'wash-d', laundryItemId: 'tag-2', status: 'In Progress', startedAt: '2026-09-23 10:00:00', startedBy: 'staff', completedAt: null }],
   blocked: [{ ticketId: 'wash-b', laundryItemId: 'tag-1', blockedByDepartment: 'Washing' }],
   skipped: [],
 })

@@ -225,6 +225,11 @@ try {
     ['deadbeef', 'WEIGHT', 'https://storage.example/b.jpg', 1.2, 'staff-1'],
   ])
   // Exactly one weight ticket, one LOG-BAG ticket and one tag print per bag.
+  for (const ticket of lean.tickets.filter(ticket => ticket.status === 'Completed')) {
+    assert.equal(ticket.started_by, 'staff-1')
+    assert.equal(ticket.started_at, ticket.completed_at)
+    assert.equal(ticket.scanned_by, 'staff-1')
+  }
   const weightTickets = lean.tickets.filter(ticket => ticket.task_code === 'PCK-WEIGHT-KG')
   assert.deepEqual(weightTickets.map(ticket => [ticket.id, ticket.status, ticket.scope, ticket.step_no, ticket.department, ticket.scanned_by, ticket.work_minutes, ticket.photo_evidence_url]), [
     ['PCK-order-1-aabbccdd-PCK-WEIGHT-KG', 'Completed', 'ORDER', 0, 'Packaging', 'staff-1', 5, 'https://storage.example/a.jpg'],
