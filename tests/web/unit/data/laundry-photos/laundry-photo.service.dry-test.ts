@@ -42,7 +42,6 @@ await withMockFetch(async (calls) => {
     imageUrl: 'https://example.com/photo.jpg',
     createdBy: 'staff-1',
     orderItemId: 'order-item-1',
-    itemId: 'item-1',
   }
   const payload = { orderItemId: 'item-2', updatedBy: 'staff-1' }
 
@@ -51,7 +50,8 @@ await withMockFetch(async (calls) => {
   assert.equal(readCache('/api/laundry-photos?orderId=order-1'), null)
 
   writeCache('/api/after-photos?orderId=order-1', ['stale'])
-  await createPhoto('AFT', createPayload)
+  const afterCreatePayload = { ...createPayload, itemId: 'AA111' }
+  await createPhoto('AFT', afterCreatePayload)
   assert.equal(readCache('/api/after-photos?orderId=order-1'), null)
 
   writeCache('/api/laundry-photos?orderId=order-1', ['stale'])
@@ -68,7 +68,7 @@ await withMockFetch(async (calls) => {
   assert.deepEqual(JSON.parse(calls[0]!.body), createPayload)
   assert.equal(calls[1]!.url.pathname, '/api/after-photos')
   assert.equal(calls[1]!.method, 'POST')
-  assert.deepEqual(JSON.parse(calls[1]!.body), createPayload)
+  assert.deepEqual(JSON.parse(calls[1]!.body), afterCreatePayload)
   assert.equal(calls[2]!.url.pathname, '/api/laundry-photos/photo%2Fbefore-1')
   assert.equal(calls[2]!.method, 'PATCH')
   assert.deepEqual(JSON.parse(calls[2]!.body), payload)

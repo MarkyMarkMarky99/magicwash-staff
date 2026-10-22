@@ -44,7 +44,9 @@ keeps its visual flash and animation without sound feedback.
 A duplicate rejects the tag and discards any unsaved photo. The page saves automatically
 as soon as a valid, nonduplicate tag and one photo are present. The scanned or typed tag
 becomes `LaundryPhotos.itemId`;
-the order row's `OrderItem.itemId` is never used as that payload field.
+the order row's `OrderItem.itemId` is never used as that payload field. `LaundryPhotos.item_id`
+holds only this garment tag. Gallery BEF uploads omit `itemId`, and photo reassignment changes
+only `orderitem_id` and `updated_by`, preserving the tag.
 Invalid-format and duplicate-tag warnings disappear three seconds after their latest occurrence.
 
 Saving reserves the tag and resets the current garment immediately. In the background, the camera

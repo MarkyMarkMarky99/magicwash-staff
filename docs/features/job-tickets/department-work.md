@@ -140,7 +140,7 @@ opens, in parallel and without blocking the garment list: the order's LaundryPho
 tag (the row's `itemId`) to an `orderItemId`, and the work-order detail (`/api/work-orders/:id`),
 whose order items map `orderItemId` to `description`. The photo read uses the same cached request as
 the gallery; a work order already held by the work-order store is reused without a request. Rows
-whose `itemId` is not a garment tag (a reassigned photo holds a catalog id there) are ignored, as are
+whose `itemId` is not a garment tag are ignored, as are
 links to unknown order items. `buildItemNames` in `packaging-item-names.ts` is the pure join. A name
 that cannot be resolved, or a failed read, shows the neutral name “Item”. Reloading the same order
 (for example after Confirm) does not read the names again.

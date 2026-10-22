@@ -50,7 +50,7 @@ export function usePhotoUpload(type, orderId, orderitemId, createdBy, itemId) {
         createdBy: target.createdBy,
       }
       if (target.orderitemId) photoData.orderItemId = target.orderitemId
-      if (target.itemId && target.itemId !== 'null') photoData.itemId = target.itemId
+      if (target.type === 'AFT' && target.itemId && target.itemId !== 'null') photoData.itemId = target.itemId
       await createPhoto(target.type, photoData)
       updateItem(id, { status: 'done' })
     } catch (err) {

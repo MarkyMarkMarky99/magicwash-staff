@@ -144,7 +144,6 @@ export class LaundryPhotoService extends BaseCrudService<
     // Sheets API request is USER_ENTERED, which would reinterpret day and month.
     const stored = await this.photoRepository.update(safeId, {
       orderitem_id: data.orderItemId,
-      item_id: item.item_id,
       updated_by: data.updatedBy,
     })
     const apiRow = mapDbRowToApi(stored, laundryPhotoMapper, {})
@@ -169,7 +168,6 @@ export class LaundryPhotoService extends BaseCrudService<
       keyValue,
       patch: {
         orderitem_id: data.orderItemId,
-        item_id: item.item_id,
         updated_by: data.updatedBy,
       },
     })))

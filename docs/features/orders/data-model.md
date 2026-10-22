@@ -103,8 +103,11 @@ Create takes `orderId`, `imageUrl` and `createdBy`, with optional
 `orderItemId` and `itemId`; the row id and the created timestamp are server-owned. The image binary
 is not part of it — the browser uploads that to Firebase Storage and sends only its URL. List
 queries require `orderId` and optionally accept `orderItemId`. The single-photo `PATCH` validates
-the photo and its order against the destination. Both update paths write only `orderitem_id`,
-`item_id`, and `updated_by`. Neither rewrites `updated_at`, whose plain `DD/MM/YYYY` text must
+the photo and its order against the destination. For LaundryPhotos, `item_id` (API `itemId`)
+holds only the garment tag written by garment registration; gallery BEF uploads omit it.
+Both LaundryPhotos update paths write only `orderitem_id` and `updated_by`, preserving the
+existing tag. The destination read remains for validation. AfterPhoto update paths still write
+`orderitem_id`, `item_id`, and `updated_by`. Neither photo module rewrites `updated_at`, whose plain `DD/MM/YYYY` text must
 not be re-entered through the `USER_ENTERED` Sheets API path.
 
 ## OrdersView

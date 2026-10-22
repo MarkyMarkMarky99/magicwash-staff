@@ -1,7 +1,8 @@
 # Project memory
-- Branch: `main`; customer-package invoice deployment still needs verification.
+- Branch: `fix/laundryphotos-no-catalog-itemid`; `main` customer-package invoice deployment still needs verification.
 
 ## Branches in flight
+- **`fix/laundryphotos-no-catalog-itemid`** — stops catalog ids in `LaundryPhotos.item_id`; committed, owner holding deploy; see `.user/memory/fix-laundryphotos-no-catalog-itemid.md`.
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
@@ -60,8 +61,7 @@
 - **Garment tracking and job tickets**
   - JobTickets `started_by` (col Y) shipped in code; add the header to the live sheet right after deploy, then curl prod.
   - Planned `LaundryItems` sheet: tag id is the key, `tag_type` PERMANENT/TEMPORARY; owner to decide backfill of ~52k legacy tagged LaundryPhotos rows.
-  - Before LaundryItems: stop gallery upload/reassign writing catalog ids into `LaundryPhotos.item_id`.
-  - Then run `scripts/one-off/clear-catalog-itemid-laundryphotos.ts` (untracked); its target rule must change to "equals own order line's catalog id" (179 rows).
+  - After `fix/laundryphotos-no-catalog-itemid` deploys, run `scripts/one-off/clear-catalog-itemid-laundryphotos.ts` (untracked); its target rule must change to "equals own order line's catalog id" (179 rows).
   - Department scan must pick the open order's ticket before permanent tags recur across orders.
   - Watch the first prod Start/Complete (advance reads JobTickets once via `readRaw`).
   - Barcode-gun scanning, scan sounds, gun-scan photo popup and scan-to-top: not yet used with a gun on prod.

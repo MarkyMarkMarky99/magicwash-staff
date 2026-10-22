@@ -5,6 +5,11 @@ Route `order-photo-library` (`/orders/:orderId/photos`), opened from the order-d
 (`AfterPhoto`). Order images (weight, document, belonging) are a separate system and do not appear
 here.
 
+For Before photos, `LaundryPhotos.item_id` (API `itemId`) holds only the garment tag,
+written by garment registration. Gallery BEF uploads omit `itemId` and keep `orderId`,
+`orderItemId`, `createdBy`, and `imageUrl`. The item gallery retains the `itemId` route query
+for AFT uploads when switching tabs; AFT continues to receive the catalog id.
+
 ## Layout
 
 - Full-bleed page without `AppHeader`. The photos scroll under floating controls.
@@ -44,6 +49,9 @@ here.
   the returned rows update the page and selection mode ends. On failure nothing moves, the full
   selection stays selected, and the error message is shown. The page offers photos and items from
   one order; the batch endpoint does not check that they belong to the same order.
+
+Before-photo reassignment changes only `orderitem_id` and `updated_by`, preserving any
+existing garment tag in `item_id`. The destination read remains for validation.
 
 ## Route state
 
