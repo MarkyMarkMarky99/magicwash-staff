@@ -16,6 +16,7 @@ export interface PriceListTableRow {
   nameTh: string
   secondLine: string
   variant: string | null
+  criteria: string | null
   prices: Partial<Record<ServiceType, PriceListDto>>
 }
 
@@ -43,7 +44,11 @@ function secondLine(item: PriceListDto): string {
   return [item.displayNameEn, unit].filter(Boolean).join(' · ')
 }
 
-export function buildPriceListCards(rows: PriceListDto[], serviceType: ServiceType | null): PriceListTableCard[] {
+export function buildPriceListCards(
+  rows: PriceListDto[],
+  serviceType: ServiceType | null,
+  criteriaByItemCode: ReadonlyMap<string, string> = new Map(),
+): PriceListTableCard[] {
   const cards = new Map<string, PriceListTableCard>()
   for (const item of rows) {
     if (serviceType && item.serviceType !== serviceType) continue
@@ -58,7 +63,10 @@ export function buildPriceListCards(rows: PriceListDto[], serviceType: ServiceTy
       && entry.variant === variant
       && entry.prices[item.serviceType] === undefined)
     if (!row) {
-      row = { key: item.id, nameTh: item.displayNameTh, secondLine: secondLine(item), variant, prices: {} }
+      row = {
+        key: item.id, nameTh: item.displayNameTh, secondLine: secondLine(item), variant,
+        criteria: criteriaByItemCode.get(item.itemCode) ?? null, prices: {},
+      }
       card.rows.push(row)
     }
     row.prices[item.serviceType] = item

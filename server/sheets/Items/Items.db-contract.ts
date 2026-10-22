@@ -13,6 +13,7 @@ export const itemsRowSchema = z.object({
   display_name_en: z.string().min(1).nullable(),
   active: z.boolean(),
   image_url: z.string().min(1).nullable(),
+  criteria: z.string().min(1).nullable(),
 })
 
 export const itemsDbContract = {

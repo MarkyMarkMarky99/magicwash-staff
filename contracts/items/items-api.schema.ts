@@ -29,6 +29,7 @@ export const itemsResponseSchema = z.object({
   displayNameEn: z.string().nullable(),
   active: z.boolean(),
   imageUrl: z.string().nullable(),
+  criteria: z.string().nullable(),
 })
 
 export const itemsCreateSchema = z.object({
@@ -40,6 +41,7 @@ export const itemsCreateSchema = z.object({
   displayNameEn: nullableName,
   active: z.boolean().default(true),
   imageUrl: nullableName,
+  criteria: nullableName,
 }).strict()
 
 export const itemsUpdateSchema = itemsCreateSchema.partial().strict()
