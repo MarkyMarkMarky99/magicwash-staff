@@ -29,8 +29,8 @@ Rows are grouped into one card per subcategory, in the order the subcategories f
 A card has a green frame, an offset shadow, and a tilted orange tab at its top left holding the
 subcategory name. There is no header row and no summary line.
 
-Each row is one item. Its first line is the bold dark-green Thai name followed, when the row has a variant, by the
-shared `BaseBadge` in `warning` tone and size `sm`. Its second line is small grey text made of the
+Each row is one item. Its first line is the bold dark-green Thai name. The variant is not shown
+separately, because the Thai display name already includes it. Its second line is small grey text made of the
 English name and the unit in short form: `(pc)` for piece, `(set)` for set, `(pr)` for pair, and any
 other unit in brackets. A missing English name or unit is left out of the line.
 

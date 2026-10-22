@@ -6,9 +6,7 @@ function source(path: string): string {
 }
 
 const card = source('features/price-list/components/PriceListSubcategoryCard.vue')
-assert.match(card, /BaseBadge/)
-assert.match(card, /tone="warning"/)
-assert.match(card, /size="sm"/)
+assert.doesNotMatch(card, /BaseBadge/, 'the Thai name already carries the variant; no badge')
 assert.match(card, /showServiceLabels/)
 assert.match(card, /emit\('edit'/)
 assert.doesNotMatch(card, /ImageOrIcon|ImageContentCard|<img/)

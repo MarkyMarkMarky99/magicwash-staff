@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { serviceLabel, type PriceListTableCard } from '../utils/price-list-table'
 
 defineProps<{
@@ -39,7 +38,6 @@ function formatPrice(price: number): string {
         <tr v-for="row in card.rows" :key="row.key" class="border-b border-dashed border-outline-variant last:border-b-0">
           <td class="py-2 align-top text-sm font-extrabold leading-snug text-primary">
             {{ row.nameTh }}
-            <span v-if="row.variant" class="ml-1.5 align-[1px]"><BaseBadge :label="row.variant" size="sm" tone="warning" /></span>
             <span v-if="row.secondLine" class="block text-[11px] font-medium text-on-surface-variant">{{ row.secondLine }}</span>
           </td>
           <td v-for="service in card.services" :key="service" class="whitespace-nowrap py-2 text-right align-top text-sm">
