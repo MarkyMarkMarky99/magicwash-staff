@@ -65,3 +65,6 @@ playwright-report/
 # frontend-test). Inside the repo so they are visible in the editor; never committed.
 # Delete .playwright/cache/ if Playwright goes stale after a Chrome upgrade.
 .playwright/
+
+# one-off script backups (live sheet data)
+scripts/one-off/backups/
