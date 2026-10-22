@@ -59,7 +59,8 @@
   - Undecided: Book Delivery and package usage in the order sheet.
 - **Garment tracking and job tickets**
   - JobTickets `started_by` (col Y) shipped in code; add the header to the live sheet right after deploy, then curl prod.
-  - Planned `LaundryItems` sheet: tag id is the key, `tag_type` PERMANENT/TEMPORARY; no backfill of legacy LaundryPhotos rows (owner, 2026-10-23).
+  - Planned `LaundryItems` sheet, owner-agreed columns: `id` (= tag id), `customer_id`, `item_id`, `wash_program`, `created_at`, `created_by`; no backfill of legacy rows; care label deferred.
+  - Before LaundryItems: split WashPrograms into parent `WashPrograms` (1 row per program) and child `WashProgramSteps`; new tab first, deploy reader, then reshape parent.
   - AfterPhoto (AFT) uploads still write catalog ids into `AfterPhoto.item_id`.
   - Department scan must pick the open order's ticket before permanent tags recur across orders.
   - Watch the first prod Start/Complete (advance reads JobTickets once via `readRaw`).
