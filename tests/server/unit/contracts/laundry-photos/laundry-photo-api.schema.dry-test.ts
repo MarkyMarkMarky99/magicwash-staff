@@ -20,6 +20,7 @@ assert.deepEqual(laundryPhotoUpdateSchema.parse({ orderItemId: ' item-2 ', updat
 
 for (const input of [
   { orderItemId: 'item-2', updatedBy: 'staff-1', extra: true },
+  { orderItemId: 'item-2', updatedBy: 'staff-1', itemId: 'AA111' },
   { updatedBy: 'staff-1' },
   { orderItemId: '' , updatedBy: 'staff-1' },
   { orderItemId: '   ', updatedBy: 'staff-1' },
@@ -32,10 +33,10 @@ for (const input of [
 
 assert.deepEqual(laundryPhotoCreateSchema.parse({
   orderId: ' order-1 ', imageUrl: ' https://example.test/photo.jpg ', createdBy: ' staff-1 ',
-  orderItemId: ' item-1 ', itemId: ' catalog-1 ',
+  orderItemId: ' item-1 ', itemId: ' 12345678 ',
 }), {
   orderId: 'order-1', imageUrl: 'https://example.test/photo.jpg', createdBy: 'staff-1',
-  orderItemId: 'item-1', itemId: 'catalog-1',
+  orderItemId: 'item-1', itemId: '12345678',
 })
 assert.deepEqual(laundryPhotoCreateSchema.parse({
   orderId: 'order-1', imageUrl: 'https://example.test/photo.jpg', createdBy: 'staff-1',

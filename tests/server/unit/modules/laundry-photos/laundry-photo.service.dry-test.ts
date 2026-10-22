@@ -27,7 +27,7 @@ function makePhotoRow(overrides: Partial<PhotoRow> = {}): PhotoRow {
     id: 'photo-1',
     order_id: 'order-1',
     orderitem_id: 'old-item',
-    item_id: 'old-catalog-item',
+    item_id: '12345678',
     image_path: null,
     image_url: null,
     notes: null,
@@ -58,7 +58,9 @@ function makePhotoRepository(rows: Array<Partial<PhotoRow>>): FakePhotoRepositor
     },
     async update(id: string, patch: Partial<PhotoRow>) {
       repository.updateCalls.push({ id, patch })
-      return makePhotoRow({ id, ...patch })
+      const stored = makePhotoRow({ ...repository.rows.find(row => row.id === id), ...patch })
+      repository.rows = repository.rows.map(row => row.id === id ? stored : row)
+      return stored
     },
     async updateMany() {
       throw new Error('not used')
@@ -106,18 +108,19 @@ async function expectApiError(operation: () => Promise<unknown>, status: number)
 const destination = { id: 'destination-item', order_id: 'order-1', item_id: 'destination-catalog-item' }
 {
   const { service, photos, items } = makeService([makePhotoRow()], [destination])
-  await service.update('photo-1', { orderItemId: 'destination-item', updatedBy: 'staff-1' })
+  const result = await service.update('photo-1', { orderItemId: 'destination-item', updatedBy: 'staff-1' })
   // The photo is looked up by the route id and the destination by the payload id — never swapped.
   assert.deepEqual(photos.readIds, ['photo-1'])
   assert.deepEqual(items.readIds, ['destination-item'])
   assert.equal(photos.updateCalls.length, 1)
   const update = photos.updateCalls[0]!
-  assert.deepEqual(Object.keys(update.patch).sort(), ['item_id', 'orderitem_id', 'updated_by'])
+  assert.deepEqual(Object.keys(update.patch).sort(), ['orderitem_id', 'updated_by'])
   assert.deepEqual(update.patch, {
     orderitem_id: 'destination-item',
-    item_id: 'destination-catalog-item',
     updated_by: 'staff-1',
   })
+  assert.equal(result.itemId, '12345678')
+  assert.equal(photos.rows[0]?.item_id, '12345678')
 }
 
 {
@@ -174,7 +177,7 @@ for (const [photoOrderId, itemOrderId] of [
     () => service.update('photo-1', {
       orderItemId: 'destination-item',
       updatedBy: 'staff-1',
-      extra: 'rejected',
+      itemId: 'AA111',
     }),
     422,
   )

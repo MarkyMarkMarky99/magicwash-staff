@@ -64,7 +64,7 @@ try {
     ref('order-1'),
     ref('order-item-1'),
     ref('staff-1'),
-    ref('item-1'),
+    ref('AA111'),
   )
   beforeUpload.addFiles([{ name: 'before.jpg', size: 42 }], { skipCompression: true })
   await waitForTerminalStatus(beforeUpload.images)
@@ -76,10 +76,10 @@ try {
       imageUrl: 'https://storage.example/photo.jpg',
       createdBy: 'staff-1',
       orderItemId: 'order-item-1',
-      itemId: 'item-1',
     },
   })
   assert.equal(beforeUpload.images.value[0]?.status, 'done')
+  assert.ok(!Object.hasOwn(createCalls[0]!.payload, 'itemId'))
 
   const afterUpload = usePhotoUpload(
     ref('AFT'),
@@ -100,6 +100,20 @@ try {
     },
   })
   assert.equal(afterUpload.images.value[0]?.status, 'done')
+
+  const afterItemUpload = usePhotoUpload(
+    ref('AFT'), ref('order-1'), ref('order-item-1'), ref('staff-1'), ref('AA111'),
+  )
+  afterItemUpload.addFiles([{ name: 'after-item.jpg', size: 43 }], { skipCompression: true })
+  await waitForTerminalStatus(afterItemUpload.images)
+  assert.deepEqual(createCalls[2], {
+    type: 'AFT',
+    payload: {
+      orderId: 'order-1', imageUrl: 'https://storage.example/photo.jpg',
+      createdBy: 'staff-1', orderItemId: 'order-item-1', itemId: 'AA111',
+    },
+  })
+  assert.equal(afterItemUpload.images.value[0]?.status, 'done')
 
   saveError = new Error('row write failed')
   const failingUpload = usePhotoUpload(

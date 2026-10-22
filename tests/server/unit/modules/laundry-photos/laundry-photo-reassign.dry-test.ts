@@ -29,7 +29,7 @@ function setup(itemRows: Array<Partial<ItemRow>> = [item], reject = false) {
       if (reject) throw failure
       return updates.map(({ keyValue, patch }) => ({
         id: keyValue, order_id: 'order-1', orderitem_id: patch.orderitem_id ?? null,
-        item_id: patch.item_id ?? null, updated_by: patch.updated_by ?? null,
+        item_id: '12345678', ...patch, updated_by: patch.updated_by ?? null,
         image_path: null, image_url: null, notes: null, timestamp: null, created_by: null,
         updated_at: null, checked: null, is_active: null, file_id: null,
         deleted_at: null, deleted_by: null,
@@ -56,14 +56,17 @@ const payload = { photoIds: [' photo-2 ', ' photo-1 '], orderItemId: ' item-2 ',
   assert.deepEqual(itemReads, ['item-2'])
   assert.equal(batches.length, 1)
   assert.deepEqual(batches[0], ['photo-2', 'photo-1'].map(keyValue => ({
-    keyValue, patch: { orderitem_id: 'item-2', item_id: 'catalog-2', updated_by: 'staff-1' },
+    keyValue, patch: { orderitem_id: 'item-2', updated_by: 'staff-1' },
   })))
   assert.deepEqual(result.photos.map(photo => photo.laundryPhotoId), ['photo-2', 'photo-1'])
   assert.deepEqual(result.photos.map(photo => photo.orderItemId), ['item-2', 'item-2'])
+  assert.deepEqual(result.photos.map(photo => photo.itemId), ['12345678', '12345678'])
+  assert.ok(batches[0]!.every(({ patch }) => !Object.hasOwn(patch, 'item_id')))
 }
 
 for (const [invalid, status] of [
   [{ ...payload, photoIds: [] }, 422],
+  [{ ...payload, itemId: 'AA111' }, 422],
   [{ ...payload, photoIds: ['photo-1', ' photo-1 '] }, 400],
 ] as const) {
   const { service, photoReads, itemReads, batches } = setup()

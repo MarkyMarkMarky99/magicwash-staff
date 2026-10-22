@@ -87,7 +87,7 @@ try {
   const created = await laundryPhotoRoutes.collection.handleRequest(request('POST', {
     orderId: ' order-1 ',
     orderItemId: ' order-item-1 ',
-    itemId: ' item-1 ',
+    itemId: ' 12345678 ',
     imageUrl: ' https://example.test/photo.jpg ',
     createdBy: ' staff-1 ',
   }))
@@ -96,7 +96,7 @@ try {
   const firstRow = rows[0]!
   assert.equal(firstRow.length, 16)
   assert.match(String(firstRow[0]), /^[0-9a-f]{8}$/)
-  assert.deepEqual(firstRow.slice(1, 4), ['order-1', 'order-item-1', 'item-1'])
+  assert.deepEqual(firstRow.slice(1, 4), ['order-1', 'order-item-1', '12345678'])
   assert.equal(firstRow[4], '')
   assert.equal(firstRow[5], 'https://example.test/photo.jpg')
   assert.equal(firstRow[6], '')
