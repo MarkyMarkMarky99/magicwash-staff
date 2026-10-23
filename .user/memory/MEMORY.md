@@ -61,9 +61,7 @@
   - JobTickets `started_by` (col Y) shipped in code; add the header to the live sheet right after deploy, then curl prod.
   - Garment registration plan: `docs/plans/laundry-item-registration.md`; intake-form + AI plan paused in `docs/plans/ai-order-classification.md`.
   - LaundryItems, OrderGarments, LaundryItemPhotos: backend CRUD only (no UI); next = registration endpoint + page, needs owner go-ahead.
-  - Owner: fix G Drive `LaundryItems.json` `image_url` description (registration photos now go to LaundryItemPhotos).
   - LaundryItems holds 125 rows backfilled 2026-10-22 (image_url = Drive flat-lay images); timestamps read back as GViz `Date(...)`.
-  - Vercel Preview env lacks `LAUNDRY_ITEMS_SPREADSHEET_ID`; add in dashboard if Preview is needed.
   - Before LaundryItems: split WashPrograms into parent `WashPrograms` (1 row per program) and child `WashProgramSteps`; new tab first, deploy reader, then reshape parent.
   - AfterPhoto (AFT) uploads still write catalog ids into `AfterPhoto.item_id`.
   - Department scan must pick the open order's ticket before permanent tags recur across orders.
