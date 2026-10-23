@@ -1,9 +1,7 @@
 # Project memory
-- Branch: `feat/laundry-item-registration`; `main` customer-package invoice deployment still needs verification.
+- Branch: `main`; `main` customer-package invoice deployment still needs verification.
 
 ## Branches in flight
-- **`feat/laundry-item-registration`** — OrderGarments + LaundryItemPhotos sheets registered in backend (CRUD), committed, not deployed; see `.user/memory/feat-laundry-item-registration.md`.
-- **`feat/laundry-items-sheet`** — LaundryItems sheet registered in backend (GET/POST/PATCH), committed, not deployed; see `.user/memory/feat-laundry-items-sheet.md`.
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
@@ -62,6 +60,10 @@
 - **Garment tracking and job tickets**
   - JobTickets `started_by` (col Y) shipped in code; add the header to the live sheet right after deploy, then curl prod.
   - Garment registration plan: `docs/plans/laundry-item-registration.md`; intake-form + AI plan paused in `docs/plans/ai-order-classification.md`.
+  - LaundryItems, OrderGarments, LaundryItemPhotos: backend CRUD only (no UI); next = registration endpoint + page, needs owner go-ahead.
+  - Owner: fix G Drive `LaundryItems.json` `image_url` description (registration photos now go to LaundryItemPhotos).
+  - LaundryItems holds 125 rows backfilled 2026-10-22 (image_url = Drive flat-lay images); timestamps read back as GViz `Date(...)`.
+  - Vercel Preview env lacks `LAUNDRY_ITEMS_SPREADSHEET_ID`; add in dashboard if Preview is needed.
   - Before LaundryItems: split WashPrograms into parent `WashPrograms` (1 row per program) and child `WashProgramSteps`; new tab first, deploy reader, then reshape parent.
   - AfterPhoto (AFT) uploads still write catalog ids into `AfterPhoto.item_id`.
   - Department scan must pick the open order's ticket before permanent tags recur across orders.
