@@ -1,8 +1,7 @@
 # Project memory
-- Branch: `feat/laundry-items-service-key`; `main` customer-package invoice deployment still needs verification.
+- Branch: `main`; `main` customer-package invoice deployment still needs verification.
 
 ## Branches in flight
-- **`feat/laundry-items-service-key`** — MagicwashAI service key on PATCH /api/laundry-items/:id (itemId only), committed, not merged; see `.user/memory/feat-laundry-items-service-key.md`.
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
@@ -62,6 +61,7 @@
   - JobTickets `started_by` (col Y) shipped in code; add the header to the live sheet right after deploy, then curl prod.
   - Garment registration plan: `docs/plans/laundry-item-registration.md`; intake-form + AI plan paused in `docs/plans/ai-order-classification.md`.
   - LaundryItems, OrderGarments, LaundryItemPhotos: backend CRUD only (no UI); next = registration endpoint + page, needs owner go-ahead.
+  - MagicwashAI `classify-laundry-items` writes `itemId` via PATCH /api/laundry-items/:id + `x-service-key` (`AI_SERVICE_KEY` set in Vercel); plan in C:\MagicwashAI\docs\plans\.
   - LaundryItems holds 125 rows backfilled 2026-10-22 (image_url = Drive flat-lay images); timestamps read back as GViz `Date(...)`.
   - Before LaundryItems: split WashPrograms into parent `WashPrograms` (1 row per program) and child `WashProgramSteps`; new tab first, deploy reader, then reshape parent.
   - AfterPhoto (AFT) uploads still write catalog ids into `AfterPhoto.item_id`.
