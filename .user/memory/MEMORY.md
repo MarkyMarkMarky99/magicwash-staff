@@ -144,4 +144,4 @@
   - `ListContainer` collapsible header is a non-focusable `div` without `aria-expanded`.
   - Browser-check ListContainer search, theme consistency, and the order-detail dropdown at the bottom edge.
   - Delete `docs/plans/scroll-region.md` and `docs/plans/overlay-frame.md` once unreferenced.
-  - Delete sheet test data: `Items` `ITM-0099` / `2e6b91d2`; `OrderForm` `246fde2b`, `cc4d375e`, `f68ae08d`; `LaundryPhotos` `QK0H9DT1`, `a260b2b1`, `1b7649ba`; `AfterPhoto` `0aacd052`; soft-deleted live-test rows `OrderGarments` `8f88c37d`, `LaundryItemPhotos` `ad0806c7`.
+  - Delete sheet test data: `Items` `ITM-0099` / `2e6b91d2`; `OrderForm` `246fde2b`, `cc4d375e`, `f68ae08d`; `LaundryPhotos` `QK0H9DT1`, `a260b2b1`, `1b7649ba`; `AfterPhoto` `0aacd052`; soft-deleted live-test rows `OrderGarments` `8f88c37d`, `LaundryItemPhotos` `ad0806c7`, `LaundryItems` `ZZTEST02`–`ZZTEST04`.
