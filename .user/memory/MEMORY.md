@@ -1,7 +1,8 @@
 # Project memory
-- Branch: `main`; `main` customer-package invoice deployment still needs verification.
+- Branch: `feat/laundry-items-service-key`; `main` customer-package invoice deployment still needs verification.
 
 ## Branches in flight
+- **`feat/laundry-items-service-key`** — MagicwashAI service key on PATCH /api/laundry-items/:id (itemId only), committed, not merged; see `.user/memory/feat-laundry-items-service-key.md`.
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.

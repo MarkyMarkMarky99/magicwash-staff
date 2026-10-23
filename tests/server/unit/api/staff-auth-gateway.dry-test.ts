@@ -3,6 +3,7 @@ import type { VercelRequest } from '@vercel/node'
 import { ApiGateway } from '../../../../server/shared/http/api-gateway.js'
 import { ApiHandler } from '../../../../server/shared/http/api-handler.js'
 import { ApiError } from '../../../../server/shared/http/api-error.js'
+import { bodyWithSessionActor } from '../../../../server/shared/http/session-actor.js'
 import type { StaffAuthenticator, StaffIdentityAuthenticator } from '../../../../server/shared/auth/staff-auth.js'
 import { authenticateStaff } from '../../../../server/shared/auth/staff-auth.js'
 
@@ -28,6 +29,12 @@ function gateway(authenticate: StaffAuthenticator, authenticateIdentity?: StaffI
       item: new ApiHandler({
         GET: (req) => ({ status: 200, body: req.staff }),
         PATCH: (req) => ({ status: 200, body: req.staff }),
+      }),
+    }),
+    'laundry-items': async () => ({
+      collection: new ApiHandler({ GET: (req) => ({ status: 200, body: req.staff }) }),
+      item: new ApiHandler({
+        PATCH: (req) => ({ status: 200, body: { staff: req.staff, payload: bodyWithSessionActor(req, 'updatedBy') } }),
       }),
     }),
     portal: async () => ({
@@ -130,6 +137,63 @@ try {
 } finally {
   if (previousPrintKey === undefined) delete process.env.PRINT_API_KEY
   else process.env.PRINT_API_KEY = previousPrintKey
+}
+
+const previousAiKey = process.env.AI_SERVICE_KEY
+try {
+  process.env.AI_SERVICE_KEY = 'ai-service-secret'
+  const serviceRequest = (path = '/api/laundry-items/Ab12Cd34', key: string | string[] = 'ai-service-secret', method = 'PATCH') => {
+    const req = request(path)
+    req.method = method
+    req.headers['x-service-key'] = key
+    req.body = { itemId: 'shirt' }
+    return req
+  }
+  const callsBeforeAi = authCalls
+  const aiStaff = { staffId: 'AI', name: 'AI', email: '', role: 'staff' }
+  for (const body of [{ itemId: 'shirt' }, { itemId: 'shirt', updatedBy: 'spoofed' }]) {
+    const req = serviceRequest()
+    req.body = body
+    const result = await api.handleRequest(req)
+    assert.equal(result.status, 200)
+    assert.deepEqual(result.body, { staff: aiStaff, payload: { itemId: 'shirt', updatedBy: 'AI' } })
+  }
+  for (const field of ['notes', 'washProgram', 'imageUrl', 'customerId', 'createdBy', 'unknown']) {
+    const req = serviceRequest()
+    req.body = { itemId: 'shirt', [field]: 'not allowed' }
+    const result = await api.handleRequest(req)
+    assert.equal(result.status, 403)
+    assert.match(JSON.stringify(result.body), /only update itemId/)
+  }
+  assert.equal(authCalls, callsBeforeAi)
+  for (const [path, method] of [
+    ['/api/laundry-items/Ab12Cd34', 'GET'], ['/api/laundry-items/Ab12Cd34', 'POST'],
+    ['/api/laundry-items/Ab12Cd34', 'DELETE'], ['/api/laundry-items', 'PATCH'],
+    ['/api/laundry-items', 'POST'], ['/api/laundry-items/Ab12Cd34/extra', 'PATCH'],
+    ['/api/invoices/X', 'PATCH'],
+  ]) {
+    assert.equal((await api.handleRequest(serviceRequest(path!, 'ai-service-secret', method))).status, 401)
+  }
+  for (const key of ['wrong-key-secret!', 'short', ['ai-service-secret']]) {
+    assert.equal((await api.handleRequest(serviceRequest(undefined, key))).status, 401)
+  }
+  const noKey = serviceRequest()
+  delete noKey.headers['x-service-key']
+  assert.equal((await api.handleRequest(noKey)).status, 401)
+  const tokenRequest = serviceRequest(undefined, 'wrong-key')
+  tokenRequest.headers.authorization = 'Bearer good'
+  tokenRequest.body = { notes: 'normal staff update' }
+  assert.deepEqual((await api.handleRequest(tokenRequest)).body, {
+    staff, payload: { notes: 'normal staff update', updatedBy: staff.staffId },
+  })
+  for (const key of [undefined, '', '   ']) {
+    if (key === undefined) delete process.env.AI_SERVICE_KEY
+    else process.env.AI_SERVICE_KEY = key
+    assert.equal((await api.handleRequest(serviceRequest())).status, 401)
+  }
+} finally {
+  if (previousAiKey === undefined) delete process.env.AI_SERVICE_KEY
+  else process.env.AI_SERVICE_KEY = previousAiKey
 }
 
 const previousProjectId = process.env.FIREBASE_PROJECT_ID
