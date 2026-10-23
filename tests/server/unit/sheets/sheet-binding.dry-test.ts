@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { laundryItemPhotosDbContract } from '../../../../server/sheets/LaundryItemPhotos/LaundryItemPhotos.db-contract.js'
+import { orderGarmentsDbContract } from '../../../../server/sheets/OrderGarments/OrderGarments.db-contract.js'
 import { laundryItemsDbContract } from '../../../../server/sheets/LaundryItems/LaundryItems.db-contract.js'
 import { washProgramsDbContract } from '../../../../server/sheets/WashPrograms/WashPrograms.db-contract.js'
 import { washProductsDbContract } from '../../../../server/sheets/WashProducts/WashProducts.db-contract.js'
@@ -31,8 +33,10 @@ import { jobTicketsDbContract } from '../../../../server/sheets/JobTickets/JobTi
 import { workTransactionsDbContract } from '../../../../server/sheets/WorkTransactions/WorkTransactions.db-contract.js'
 import { workRatesDbContract } from '../../../../server/sheets/WorkRates/WorkRates.db-contract.js'
 
-const expectedSheetCount = 28
+const expectedSheetCount = 30
 const expectedSheetDirectories = [
+  'LaundryItemPhotos',
+  'OrderGarments',
   'LaundryItems',
   'BagItems',
   'AfterPhoto',
@@ -64,6 +68,8 @@ const expectedSheetDirectories = [
 ] as const
 
 const bindings = [
+  { name: 'LaundryItemPhotos', contract: laundryItemPhotosDbContract, expectedSpreadsheetId: 'LAUNDRY_ITEMS_SPREADSHEET_ID', expectedSheetName: 'LaundryItemPhotos' },
+  { name: 'OrderGarments', contract: orderGarmentsDbContract, expectedSpreadsheetId: 'LAUNDRY_ITEMS_SPREADSHEET_ID', expectedSheetName: 'OrderGarments' },
   { name: 'LaundryItems', contract: laundryItemsDbContract, expectedSpreadsheetId: 'LAUNDRY_ITEMS_SPREADSHEET_ID', expectedSheetName: 'LaundryItems' },
   { name: 'WashPrograms', contract: washProgramsDbContract, expectedSpreadsheetId: 'JOB_TICKETS_SPREADSHEET_ID', expectedSheetName: 'WashPrograms' },
   { name: 'WashProducts', contract: washProductsDbContract, expectedSpreadsheetId: 'JOB_TICKETS_SPREADSHEET_ID', expectedSheetName: 'WashProducts' },

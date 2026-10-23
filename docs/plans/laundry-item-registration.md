@@ -1,0 +1,163 @@
+# Plan — garment registration (LaundryItems as customer assets)
+
+Status: **not started.** Branch `feat/laundry-item-registration`. Agreed with the owner 2026-10-23.
+
+Supersedes, for now, the intake-form plan in `ai-order-classification.md` (paused).
+
+## Why
+
+Every garment a customer sends should exist as a registered, tagged, photographed asset before any
+order touches it. Orders then only need a tag scan per garment, and each garment keeps a history
+across orders.
+
+## Data model
+
+```
+Order ── OrderItems (type + service lines, unchanged)
+            └── OrderGarments (one row per garment per order) ── LaundryItems (the garment)
+                                                                     └── LaundryItemPhotos (new; many per garment)
+```
+
+LaundryPhotos (BEF) and AfterPhotos are left untouched. Existing screens keep using them; everything
+built from this plan reads and writes LaundryItemPhotos only.
+
+### LaundryItems — exists, unchanged
+
+`id` = tag, `customer_id`, `item_id` = garment type (Items catalog, nullable), `wash_program`,
+`notes`, `image_url`, audit + soft-delete columns. Already has GET/POST/PATCH at
+`/api/laundry-items` (`server/modules/laundry-items/laundry-item.module.ts`).
+
+### OrderItems — unchanged
+
+Stays as type + quantity lines. It is also built to carry a different service type per line. No
+LaundryItems id goes on it.
+
+### OrderGarments — new sheet
+
+| column | null | meaning |
+|---|---|---|
+| `id` | no | row key |
+| `order_id` | no | order the garment came in with |
+| `laundry_item_id` | no | the garment's tag (= `LaundryItems.id`) |
+| `orderitem_id` | yes | the OrderItems line it belongs to; filled when known |
+| `notes` | yes | this round only — stain, missing button |
+| `status` | no | the garment's current stage (below) |
+| `created_at`, `created_by` | no | who scanned it in, when |
+| `updated_at`, `updated_by` | yes | |
+| `deleted_at`, `deleted_by` | yes | scanned into the wrong order |
+
+Rule: one non-deleted row per `laundry_item_id` per order.
+
+`status` values: `RECEIVED`, `WASHING`, `DRY_CLEANING`, `IRONING`, `PACKING`, `READY`, `DELIVERED`.
+It is a copy of the garment's current stage. Job tickets stay the full record (who, when, each
+department). Only the backend writes `status`, in the same request that changes the job ticket:
+
+| event | status |
+|---|---|
+| garment scanned into the order | `RECEIVED` |
+| a department ticket starts or becomes the next one due | that department's stage |
+| Packaging ticket completes | `READY` |
+| order set `COMPLETED` | `DELIVERED` |
+
+The UI never writes `status` directly.
+
+### LaundryItemPhotos — new sheet
+
+Every photo of a garment, of every kind, in one sheet. The kind is a column, not a separate sheet.
+
+| column | null | meaning |
+|---|---|---|
+| `id` | no | row key |
+| `laundry_item_id` | no | the garment's tag (= `LaundryItems.id`) |
+| `order_id` | yes | the order it was taken in; null for a registration photo taken before any order |
+| `photo_type` | no | `BEFORE`, `AFTER`, `DEFECT` |
+| `image_url` | no | Firebase URL |
+| `notes` | yes | e.g. where the defect is |
+| `created_at`, `created_by` | no | who took it, when |
+| `updated_at`, `updated_by` | yes | type or note corrected |
+| `deleted_at`, `deleted_by` | yes | wrong photo |
+
+- Photos of a garment in one order = rows with its `laundry_item_id` and that `order_id`.
+- All photos of a garment = rows with its `laundry_item_id`.
+- The registration photo is a `BEFORE` row with `order_id` null. When the garment is scanned into
+  its first order, the backend sets that row's `order_id` — it is that order's before photo, no
+  second shot.
+- New photo kinds are new `photo_type` values, never new sheets.
+
+Old LaundryPhotos and AfterPhotos rows are not migrated: most lack a tag, so they cannot be joined to
+a garment.
+
+## Registration flow (this branch)
+
+1. From the customer detail page, staff open **Register garments**
+   (`/customers/:customerId/garments/register`).
+2. Staff print disposable tags from the page (the print API already works without an order; it
+   needs the customer index), or use the garment's permanent tag.
+3. For each garment: scan the tag, take a photo, optionally pick its type from Items. The photo
+   uploads to Firebase immediately; the page keeps the URL.
+4. On each scan the page looks the tag up in LaundryItems:
+   - same customer → "already registered", skipped;
+   - another customer → blocked.
+5. Save sends **one request** with all garments; the backend batch-appends LaundryItems
+   (`id` = tag, `customer_id`, `item_id` or null, `image_url` = the photo URL), then batch-appends
+   one LaundryItemPhotos `BEFORE` row per garment with `order_id` null.
+
+`LaundryItems.image_url` is the garment's cover image; LaundryItemPhotos holds the history. The AI
+flat-cloth image that later replaces `image_url` for display is out of scope.
+
+## Order scan flow (next phase, outline only)
+
+Staff scan each garment's tag into the order; each scan writes one OrderGarments row with
+`RECEIVED`. Whether a tag is permanent or disposable does not matter here — every garment already
+has one. Grouping into OrderItems and job-ticket provisioning from OrderGarments are designed in
+that phase.
+
+## Decisions
+
+Owner:
+
+1. Every garment is registered (tag + photo) into LaundryItems before any order.
+2. Registration needs no service type, purpose, or due date.
+3. A garment that cannot be confirmed as a known one is a new row. Look-alike garments with
+   removable tags are an accepted blind spot.
+4. OrderItems stay as they are; a new per-garment link sheet joins them to LaundryItems.
+5. The link sheet keeps the garment's current stage in a single `status` column.
+6. First registration photo = BEF photo; its URL goes into `LaundryItems.image_url`.
+7. A new single photo sheet for garments, with a type column instead of separate BEF/AFT sheets.
+   Old photo sheets are not modified.
+
+Claude (minor, decided without asking):
+
+8. Sheet names `OrderGarments` and `LaundryItemPhotos`.
+9. `status` value list and write events above.
+10. `photo_type` values `BEFORE`, `AFTER`, `DEFECT`; registration photo = `BEFORE` with null
+    `order_id`, claimed by the first order.
+11. Registration page lives under the customer, reached from customer detail.
+12. Unknown garment type stays null; no AI classification in this branch.
+13. Save is one request with batch appends; a tag already registered to the same customer is
+    skipped, not an error.
+
+## Work items (this branch)
+
+Owner scope 2026-10-23: **register the two new sheets in the backend with generic CRUD only.** No
+flows, no UI, no special rules yet.
+
+| item | estimate |
+|---|---|
+| OrderGarments contract + repository + generic CRUD routes | ½ day |
+| LaundryItemPhotos contract + repository + generic CRUD routes | ½ day |
+
+Later (not this branch): registration endpoint and page, order scan flow, `status` writes from job
+tickets, the one-row-per-garment-per-order rule, claiming the registration photo.
+
+Owner task before code: create the `OrderGarments` and `LaundryItemPhotos` tabs in the **same
+spreadsheet as LaundryItems** (`LAUNDRY_ITEMS_SPREADSHEET_ID`, no new env var), each with its full
+header row and the grid trimmed to its column count, plus their registry JSONs on G Drive.
+
+## Out of scope
+
+- Order scan flow and OrderItems grouping (next phase).
+- `status` writes from job tickets (next phase, with the order scan flow).
+- AI classification and flat-cloth images.
+- Moving existing screens (order detail registration, photo library, AFT upload, job-ticket
+  provisioning) from LaundryPhotos/AfterPhotos to LaundryItemPhotos.

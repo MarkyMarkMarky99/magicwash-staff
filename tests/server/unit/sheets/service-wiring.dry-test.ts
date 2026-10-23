@@ -1,3 +1,5 @@
+import { laundryItemPhotosRowSchema } from '../../../../server/sheets/LaundryItemPhotos/LaundryItemPhotos.db-contract.js'
+import { orderGarmentsRowSchema } from '../../../../server/sheets/OrderGarments/OrderGarments.db-contract.js'
 import assert from 'node:assert/strict'
 import { laundryItemsRowSchema } from '../../../../server/sheets/LaundryItems/LaundryItems.db-contract.js'
 import { bagItemsRowSchema } from '../../../../server/sheets/BagItems/BagItems.db-contract.js'
@@ -945,6 +947,53 @@ test('LaundryItems production wiring maps all columns, filters and workbook', as
     assert.match(url.searchParams.get('tq')!, /B = 'customer-1'/)
     assert.match(url.searchParams.get('tq')!, /E contains 'silk'/)
     assert.doesNotMatch(url.searchParams.get('tq')!, /limit|offset/)
+  })
+})
+
+test('OrderGarments production wiring maps all columns, filters and workbook', async () => {
+  const body = sheetGvizBody(orderGarmentsRowSchema, [
+    'row-id-1', 'order-1', 'aB01zZ89', 'line-1', 'silk', 'RECEIVED', '2026-10-23 10:00:00', 'staff-1',
+    null, null, null, null,
+  ])
+  await withMockFetch(async () => response(body), async (calls) => {
+    const { orderGarmentService } = await import('../../../../server/modules/order-garments/order-garment.module.js')
+    const result = await orderGarmentService.list({ orderId: 'order-1', laundryItemId: 'aB01zZ89' })
+    assert.deepEqual(result.items, [{
+      id: 'row-id-1', orderId: 'order-1', laundryItemId: 'aB01zZ89', orderitemId: 'line-1', notes: 'silk',
+      status: 'RECEIVED', createdAt: '2026-10-23 10:00:00', createdBy: 'staff-1', updatedAt: null,
+      updatedBy: null, deletedAt: null, deletedBy: null,
+    }])
+    assert.equal(calls.length, 1)
+    const url = new URL(calls[0].url)
+    assert.equal(url.searchParams.get('sheet'), 'OrderGarments')
+    assert.ok(url.pathname.includes('characterization-laundry-items-id'))
+    assert.match(url.searchParams.get('tq')!, /B = 'order-1'/)
+    assert.match(url.searchParams.get('tq')!, /C = 'aB01zZ89'/)
+    assert.doesNotMatch(url.searchParams.get('tq')!, /limit|offset|contains/)
+  })
+})
+
+test('LaundryItemPhotos production wiring maps all columns, filters and workbook', async () => {
+  const body = sheetGvizBody(laundryItemPhotosRowSchema, [
+    'row-id-1', 'aB01zZ89', 'order-1', 'BEFORE', 'https://example.test/photo.jpg', 'silk', '2026-10-23 10:00:00', 'staff-1',
+    null, null, null, null,
+  ])
+  await withMockFetch(async () => response(body), async (calls) => {
+    const { laundryItemPhotoService } = await import('../../../../server/modules/laundry-item-photos/laundry-item-photo.module.js')
+    const result = await laundryItemPhotoService.list({ laundryItemId: 'aB01zZ89', orderId: 'order-1', photoType: 'BEFORE' })
+    assert.deepEqual(result.items, [{
+      id: 'row-id-1', laundryItemId: 'aB01zZ89', orderId: 'order-1', photoType: 'BEFORE',
+      imageUrl: 'https://example.test/photo.jpg', notes: 'silk', createdAt: '2026-10-23 10:00:00',
+      createdBy: 'staff-1', updatedAt: null, updatedBy: null, deletedAt: null, deletedBy: null,
+    }])
+    assert.equal(calls.length, 1)
+    const url = new URL(calls[0].url)
+    assert.equal(url.searchParams.get('sheet'), 'LaundryItemPhotos')
+    assert.ok(url.pathname.includes('characterization-laundry-items-id'))
+    assert.match(url.searchParams.get('tq')!, /B = 'aB01zZ89'/)
+    assert.match(url.searchParams.get('tq')!, /C = 'order-1'/)
+    assert.match(url.searchParams.get('tq')!, /D = 'BEFORE'/)
+    assert.doesNotMatch(url.searchParams.get('tq')!, /limit|offset|contains/)
   })
 })
 

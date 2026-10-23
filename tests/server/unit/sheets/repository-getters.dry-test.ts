@@ -20,6 +20,8 @@ for (const key of environmentKeys) {
 }
 
 const [
+  laundryItemPhotosModule,
+  orderGarmentsModule,
   laundryItemsModule,
   bagItemsModule,
   afterPhotoModule,
@@ -45,6 +47,8 @@ const [
   workTransactionsModule,
   workRatesModule,
 ] = await Promise.all([
+  import('../../../../server/sheets/LaundryItemPhotos/LaundryItemPhotos.repository.js'),
+  import('../../../../server/sheets/OrderGarments/OrderGarments.repository.js'),
   import('../../../../server/sheets/LaundryItems/LaundryItems.repository.js'),
   import('../../../../server/sheets/BagItems/BagItems.repository.js'),
   import('../../../../server/sheets/AfterPhoto/AfterPhoto.repository.js'),
@@ -85,6 +89,8 @@ process.env.WORK_SPREADSHEET_ID = 'work-spreadsheet-id'
 process.env.AFTER_PHOTOS_SPREADSHEET_ID = 'after-photos-spreadsheet-id'
 
 const getters = [
+  ['LaundryItemPhotos', laundryItemPhotosModule.getLaundryItemPhotosRepository],
+  ['OrderGarments', orderGarmentsModule.getOrderGarmentsRepository],
   ['LaundryItems', laundryItemsModule.getLaundryItemsRepository],
   ['BagItems', bagItemsModule.getBagItemsRepository],
   ['OrderForm', orderFormModule.getOrderFormRepository],

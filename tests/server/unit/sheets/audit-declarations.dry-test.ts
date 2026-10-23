@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { laundryItemPhotosDbContract } from '../../../../server/sheets/LaundryItemPhotos/LaundryItemPhotos.db-contract.js'
+import { orderGarmentsDbContract } from '../../../../server/sheets/OrderGarments/OrderGarments.db-contract.js'
 import { laundryItemsDbContract } from '../../../../server/sheets/LaundryItems/LaundryItems.db-contract.js'
 import { bagItemsDbContract } from '../../../../server/sheets/BagItems/BagItems.db-contract.js'
 import { appointmentsDbContract } from '../../../../server/sheets/Appointments/Appointments.db-contract.js'
@@ -18,6 +20,8 @@ import { jobTicketsDbContract } from '../../../../server/sheets/JobTickets/JobTi
 import { workTransactionsDbContract } from '../../../../server/sheets/WorkTransactions/WorkTransactions.db-contract.js'
 
 const declaredAudits = [
+  { name: 'LaundryItemPhotos', contract: laundryItemPhotosDbContract, expected: { onAppend: ['created_at'], onUpdate: ['updated_at'] } },
+  { name: 'OrderGarments', contract: orderGarmentsDbContract, expected: { onAppend: ['created_at'], onUpdate: ['updated_at'] } },
   { name: 'LaundryItems', contract: laundryItemsDbContract, expected: { onAppend: ['created_at'], onUpdate: ['updated_at'] } },
   { name: 'BagItems', contract: bagItemsDbContract, expected: { onAppend: ['created_at'] } },
   {
