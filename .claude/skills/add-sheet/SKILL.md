@@ -9,6 +9,7 @@ description: Register an existing Google Sheet in the backend, with optional API
 
 - Read `G:\My Drive\Magicwash\Database\GoogleSheets\<Sheet>.json` for the tab name, workbook ID, physical headers, column types, and primary key.
 - Check the live header row and workbook binding against the registry. The registry is the single source of truth, shared by other projects.
+- GViz returns the workbook's first tab when the requested tab does not exist. A response proves the tab exists only if its headers match this sheet's registry entry.
 - On any registry/live mismatch, stop and tell the user to update the registry. Do not write a contract from the live sheet, and do not edit either source.
 - Choose an existing sheet with a similar shape and capability as the template.
 
@@ -31,6 +32,7 @@ description: Register an existing Google Sheet in the backend, with optional API
 - Copy `contracts/orders/order-api.schema.ts` for a list-only API or a matching writable sibling to `contracts/<feature>/<m>-api.schema.ts`. Use camelCase API fields and satisfy `ModuleApiContract`; include `keyword` in `query.list`.
 - Copy a matching sibling under `server/modules/<module>/` to `server/modules/<module>/<m>.module.ts`. Map every physical column to its API field in `fieldMap`. Add `jsonColumns` only for JSON-in-cell fields. Use a dedicated service for multi-sheet or non-CRUD behavior.
 - Register the route in `server/api/route-registry.ts` with a literal lazy `.js` import.
+- Document the route in `docs/architecture/backend/operations.md`: path, tab and workbook key, create/update fields, list filters, actor/audit behavior, and missing operations.
 
 ## 5. Configure the workbook
 
