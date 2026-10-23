@@ -14,6 +14,8 @@ const relevantEnvironmentKeys = [
 ]
 
 const modulePaths = [
+  '../../../../server/modules/laundry-item-photos/laundry-item-photo.module.js',
+  '../../../../server/modules/order-garments/order-garment.module.js',
   '../../../../server/modules/laundry-items/laundry-item.module.js',
   '../../../../server/modules/bag-items/bag-item.module.js',
   '../../../../server/modules/order-items/order-item.module.js',
@@ -57,7 +59,7 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log('17 module laziness checks passed')
+  console.log('19 module laziness checks passed')
 }
 
 main().catch((error) => {

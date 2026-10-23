@@ -100,6 +100,36 @@ stamp `created_at` on append and `updated_at` on update using Bangkok `yyyy-MM-d
 Item GET/PATCH validate the same tag format and return 404 for missing rows. There is no delete
 endpoint. This module does not orchestrate garment registration, job tickets, or photos.
 
+The staff-authenticated `order-garments` module exposes collection GET/POST and item GET/PATCH
+at `/api/order-garments`, bound to tab `OrderGarments` in `LAUNDRY_ITEMS_SPREADSHEET_ID`.
+API fields use camelCase. The server generates the row id using the order-items short-id generator;
+client-supplied ids are rejected. Create requires `orderId`, `laundryItemId`, `status`, and
+`createdBy`; optional nullable fields are `orderitemId` and `notes`. PATCH requires `updatedBy`
+and at least one of `orderitemId`, `notes`, or `status`; null clears `orderitemId` and `notes`.
+`laundryItemId` uses the eight-character base62 tag schema. Status values are `RECEIVED`,
+`WASHING`, `DRY_CLEANING`, `IRONING`, `PACKING`, `READY`, and `DELIVERED`.
+Collection reads accept optional `orderId` and `laundryItemId` equality filters, pagination,
+and sorting by `id`, `createdAt`, or `updatedAt`, without keyword search. They exclude nonempty
+`deleted_at` before paging. The shared CRUD handler replaces `createdBy` and `updatedBy` with
+the session staff actor. Repository audit declarations stamp `created_at` on append and
+`updated_at` on update using Bangkok `yyyy-MM-dd HH:mm:ss`. Identity, order, garment, creation,
+and deletion fields are not patchable. Missing item GET/PATCH returns 404. There is no delete endpoint.
+
+The staff-authenticated `laundry-item-photos` module exposes collection GET/POST and item GET/PATCH
+at `/api/laundry-item-photos`, bound to tab `LaundryItemPhotos` in `LAUNDRY_ITEMS_SPREADSHEET_ID`.
+API fields use camelCase. The server generates the row id using the order-items short-id generator;
+client-supplied ids are rejected. Create requires `laundryItemId`, `photoType`, `imageUrl`, and
+`createdBy`; optional nullable fields are `orderId` and `notes`. PATCH requires `updatedBy`
+and at least one of `orderId`, `photoType`, or `notes`; null clears `orderId` and `notes`.
+`laundryItemId` uses the eight-character base62 tag schema. Photo types are `BEFORE`, `AFTER`,
+and `DEFECT`. Collection reads accept optional `laundryItemId`, `orderId`, and `photoType`
+equality filters, pagination, and sorting by `id`, `createdAt`, or `updatedAt`, without keyword
+search. They exclude nonempty `deleted_at` before paging. The shared CRUD handler replaces
+`createdBy` and `updatedBy` with the session staff actor. Repository audit declarations stamp
+`created_at` on append and `updated_at` on update using Bangkok `yyyy-MM-dd HH:mm:ss`.
+Identity, garment, image URL, creation, and deletion fields are not patchable.
+Missing item GET/PATCH returns 404. There is no delete endpoint.
+
 ## Public delivery tracking
 
 `GET /api/delivery-tracking/:orderImageId` serves the customer page opened from a bag-tag QR,

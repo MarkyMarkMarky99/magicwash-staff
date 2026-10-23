@@ -6,6 +6,8 @@
  * Example: node --env-file=.env.local --import=tsx/esm tests/server/integration/sheet-column-parity.ts
  */
 
+import { orderGarmentsDbContract } from '../../../server/sheets/OrderGarments/OrderGarments.db-contract.js'
+import { laundryItemPhotosDbContract } from '../../../server/sheets/LaundryItemPhotos/LaundryItemPhotos.db-contract.js'
 import { laundryItemsDbContract } from '../../../server/sheets/LaundryItems/LaundryItems.db-contract.js'
 import { requireEnv } from '../../../server/shared/utils/env.js'
 import { bagItemsDbContract } from '../../../server/sheets/BagItems/BagItems.db-contract.js'
@@ -60,6 +62,8 @@ interface GvizResponse {
 }
 
 const readableSheets: readonly ReadableSheet[] = [
+  { name: 'LaundryItemPhotos', sheetName: laundryItemPhotosDbContract.sheetName, spreadsheetIdEnv: laundryItemPhotosDbContract.spreadsheetId, rowSchema: laundryItemPhotosDbContract.row },
+  { name: 'OrderGarments', sheetName: orderGarmentsDbContract.sheetName, spreadsheetIdEnv: orderGarmentsDbContract.spreadsheetId, rowSchema: orderGarmentsDbContract.row },
   { name: 'LaundryItems', sheetName: laundryItemsDbContract.sheetName, spreadsheetIdEnv: laundryItemsDbContract.spreadsheetId, rowSchema: laundryItemsDbContract.row },
   { name: 'BagItems', sheetName: bagItemsDbContract.sheetName, spreadsheetIdEnv: bagItemsDbContract.spreadsheetId, rowSchema: bagItemsDbContract.row },
   {

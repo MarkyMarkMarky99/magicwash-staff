@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { laundryItemPhotosDbContract } from '../../../../server/sheets/LaundryItemPhotos/LaundryItemPhotos.db-contract.js'
+import { orderGarmentsDbContract } from '../../../../server/sheets/OrderGarments/OrderGarments.db-contract.js'
 import { laundryItemsDbContract } from '../../../../server/sheets/LaundryItems/LaundryItems.db-contract.js'
 import { bagItemsDbContract } from '../../../../server/sheets/BagItems/BagItems.db-contract.js'
 import { appointmentsDbContract } from '../../../../server/sheets/Appointments/Appointments.db-contract.js'
@@ -44,6 +46,44 @@ interface ColumnOrderTest {
 }
 
 const tests: ColumnOrderTest[] = [
+  {
+    name: 'LaundryItemPhotos',
+    contract: laundryItemPhotosDbContract,
+    expected: {
+      id: 'A',
+      laundry_item_id: 'B',
+      order_id: 'C',
+      photo_type: 'D',
+      image_url: 'E',
+      notes: 'F',
+      created_at: 'G',
+      created_by: 'H',
+      updated_at: 'I',
+      updated_by: 'J',
+      deleted_at: 'K',
+      deleted_by: 'L',
+    },
+    primaryKeyColumn: 'A',
+  },
+  {
+    name: 'OrderGarments',
+    contract: orderGarmentsDbContract,
+    expected: {
+      id: 'A',
+      order_id: 'B',
+      laundry_item_id: 'C',
+      orderitem_id: 'D',
+      notes: 'E',
+      status: 'F',
+      created_at: 'G',
+      created_by: 'H',
+      updated_at: 'I',
+      updated_by: 'J',
+      deleted_at: 'K',
+      deleted_by: 'L',
+    },
+    primaryKeyColumn: 'A',
+  },
   {
     name: 'LaundryItems',
     contract: laundryItemsDbContract,

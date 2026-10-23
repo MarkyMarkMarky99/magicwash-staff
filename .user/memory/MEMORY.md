@@ -1,7 +1,8 @@
 # Project memory
-- Branch: `feat/laundry-items-sheet`; `main` customer-package invoice deployment still needs verification.
+- Branch: `feat/laundry-item-registration`; `main` customer-package invoice deployment still needs verification.
 
 ## Branches in flight
+- **`feat/laundry-item-registration`** — OrderGarments + LaundryItemPhotos sheets registered in backend (CRUD), committed, not deployed; see `.user/memory/feat-laundry-item-registration.md`.
 - **`feat/laundry-items-sheet`** — LaundryItems sheet registered in backend (GET/POST/PATCH), committed, not deployed; see `.user/memory/feat-laundry-items-sheet.md`.
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
@@ -60,7 +61,7 @@
   - Undecided: Book Delivery and package usage in the order sheet.
 - **Garment tracking and job tickets**
   - JobTickets `started_by` (col Y) shipped in code; add the header to the live sheet right after deploy, then curl prod.
-  - Planned `LaundryItems` sheet, owner-agreed columns: `id` (= tag id), `customer_id`, `item_id`, `wash_program`, `notes`, `created_*`, `updated_*`, `deleted_*`; no backfill of legacy rows; care label deferred.
+  - Garment registration plan: `docs/plans/laundry-item-registration.md`; intake-form + AI plan paused in `docs/plans/ai-order-classification.md`.
   - Before LaundryItems: split WashPrograms into parent `WashPrograms` (1 row per program) and child `WashProgramSteps`; new tab first, deploy reader, then reshape parent.
   - AfterPhoto (AFT) uploads still write catalog ids into `AfterPhoto.item_id`.
   - Department scan must pick the open order's ticket before permanent tags recur across orders.
@@ -94,17 +95,7 @@
   - Deferred: preloading image files on order detail; decide once photo counts per order are known.
   - Move `usePhotoUpload.js` into the gallery feature and decide where legacy photo capture belongs.
   - Audit gallery-read docs in `docs/architecture/frontend/feature-structure.md`, `docs/features/orders/overview.md`, and `docs/features/orders/forms/create-order-image.md`.
-- **Cache, API, and performance**
-  - Agreed, not started (big job): app-wide write outbox in `src/shared/api/` (IndexedDB, auto-flush, retry) for deferrable writes; GETs and must-answer writes stay direct.
-  - Outbox next step: write `docs/plans/write-outbox.md` with an endpoint table; every queued endpoint must be replay-safe (client ids; key for ticket/EARN), per-order ordering.
-  - Watch price-list rows sticking if GViz formats differ (store keeps written rows until a read matches every field).
-  - On hold: durable e2e suite in `tests/e2e/` with page objects; test IDs live in tests, derived from docs.
-  - Reduce page-load latency: authenticated `App.vue` prefetch first, then HTTP cache headers on `/api/*`.
-  - Portal: webapp-react still reads the Portal views; switch it to `GET /api/portal/customers/:id`, then retire the Apps Script view sync.
-  - Owner: deploy the `MagicwashAppointment` `now()` fix with clasp; decide the 5 Portal-only invoices and 4 day/month-swapped `Appointments.CreatedAt` rows.
-  - Normalize GViz `Date(...)` values reaching photo modules according to `docs/conventions/datetime.md`.
-  - Consolidate datetime helpers in a dedicated pass; `SheetRepository` is shared by every module.
-  - App-wide GViz read normalization is deferred by the user; do not start or re-propose it. See `.user/memory/gviz-read-normalization.md`.
+- **Cache, API, and performance** — pending items in `.user/memory/cache-api-performance.md`.
 - **Prices, invoices, and sheet data**
   - Items `criteria` (col K) is live and empty; owner fills it in later.
   - Price-list browse redesign: browser-check service pill, phone width and tap-price → edit form.
