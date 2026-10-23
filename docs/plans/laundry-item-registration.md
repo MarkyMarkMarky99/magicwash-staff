@@ -70,7 +70,7 @@ Every photo of a garment, of every kind, in one sheet. The kind is a column, not
 | `id` | no | row key |
 | `laundry_item_id` | no | the garment's tag (= `LaundryItems.id`) |
 | `order_id` | yes | the order it was taken in; null for a registration photo taken before any order |
-| `photo_type` | no | `BEFORE`, `AFTER`, `DEFECT` |
+| `photo_type` | no | `REGISTRATION`, `BEFORE`, `AFTER`, `DEFECT` |
 | `image_url` | no | Firebase URL |
 | `notes` | yes | e.g. where the defect is |
 | `created_at`, `created_by` | no | who took it, when |
@@ -79,9 +79,10 @@ Every photo of a garment, of every kind, in one sheet. The kind is a column, not
 
 - Photos of a garment in one order = rows with its `laundry_item_id` and that `order_id`.
 - All photos of a garment = rows with its `laundry_item_id`.
-- The registration photo is a `BEFORE` row with `order_id` null. When the garment is scanned into
-  its first order, the backend sets that row's `order_id` — it is that order's before photo, no
-  second shot.
+- `REGISTRATION` is the garment's first photo at registration; `order_id` stays null forever.
+- `BEFORE` is the first photo of the garment in each order. For the garment's first order the
+  backend writes a `BEFORE` row reusing the registration photo's URL (no second shot); later orders
+  get their own `BEFORE` photo.
 - New photo kinds are new `photo_type` values, never new sheets.
 
 Old LaundryPhotos and AfterPhotos rows are not migrated: most lack a tag, so they cannot be joined to
@@ -100,7 +101,7 @@ a garment.
    - another customer → blocked.
 5. Save sends **one request** with all garments; the backend batch-appends LaundryItems
    (`id` = tag, `customer_id`, `item_id` or null, `image_url` = the photo URL), then batch-appends
-   one LaundryItemPhotos `BEFORE` row per garment with `order_id` null.
+   one LaundryItemPhotos `REGISTRATION` row per garment with `order_id` null.
 
 `LaundryItems.image_url` is the garment's cover image; LaundryItemPhotos holds the history. The AI
 flat-cloth image that later replaces `image_url` for display is out of scope.
@@ -130,8 +131,8 @@ Claude (minor, decided without asking):
 
 8. Sheet names `OrderGarments` and `LaundryItemPhotos`.
 9. `status` value list and write events above.
-10. `photo_type` values `BEFORE`, `AFTER`, `DEFECT`; registration photo = `BEFORE` with null
-    `order_id`, claimed by the first order.
+10. `photo_type` values `REGISTRATION`, `BEFORE`, `AFTER`, `DEFECT` (owner split registration from
+    per-order before photos, 2026-10-24); first order's `BEFORE` reuses the registration URL.
 11. Registration page lives under the customer, reached from customer detail.
 12. Unknown garment type stays null; no AI classification in this branch.
 13. Save is one request with batch appends; a tag already registered to the same customer is

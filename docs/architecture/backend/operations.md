@@ -121,8 +121,8 @@ API fields use camelCase. The server generates the row id using the order-items 
 client-supplied ids are rejected. Create requires `laundryItemId`, `photoType`, `imageUrl`, and
 `createdBy`; optional nullable fields are `orderId` and `notes`. PATCH requires `updatedBy`
 and at least one of `orderId`, `photoType`, or `notes`; null clears `orderId` and `notes`.
-`laundryItemId` uses the eight-character base62 tag schema. Photo types are `BEFORE`, `AFTER`,
-and `DEFECT`. Collection reads accept optional `laundryItemId`, `orderId`, and `photoType`
+`laundryItemId` uses the eight-character base62 tag schema. Photo types are `REGISTRATION`,
+`BEFORE`, `AFTER`, and `DEFECT`. Collection reads accept optional `laundryItemId`, `orderId`, and `photoType`
 equality filters, pagination, and sorting by `id`, `createdAt`, or `updatedAt`, without keyword
 search. They exclude nonempty `deleted_at` before paging. The shared CRUD handler replaces
 `createdBy` and `updatedBy` with the session staff actor. Repository audit declarations stamp

@@ -5,7 +5,7 @@ export const laundryItemPhotosRowSchema = z.object({
   id: z.string(),
   laundry_item_id: z.string().regex(/^[0-9A-Za-z]{8}$/),
   order_id: z.string().nullable(),
-  photo_type: z.enum(['BEFORE', 'AFTER', 'DEFECT']),
+  photo_type: z.enum(['REGISTRATION', 'BEFORE', 'AFTER', 'DEFECT']),
   image_url: z.string(),
   notes: z.string().nullable(),
   created_at: z.string(),

@@ -4,7 +4,7 @@ import { API_PAGINATION_DEFAULTS } from '../shared/api.schema.js'
 import type { ModuleApiContract } from '../shared/module-api-contract.js'
 
 const requiredName = z.string().trim().min(1)
-export const laundryItemPhotoTypeSchema = z.enum(['BEFORE', 'AFTER', 'DEFECT'])
+export const laundryItemPhotoTypeSchema = z.enum(['REGISTRATION', 'BEFORE', 'AFTER', 'DEFECT'])
 const editableFields = {
   orderId: z.string().nullable().optional(),
   photoType: laundryItemPhotoTypeSchema.optional(),

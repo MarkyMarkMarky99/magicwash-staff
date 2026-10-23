@@ -27,7 +27,7 @@ for (const field of ['orderId', 'notes']) {
   assert.equal(laundryItemPhotoUpdateSchema.safeParse({ [field]: 'value' }).success, false)
   assert.equal(laundryItemPhotoUpdateSchema.safeParse({ [field]: 123, updatedBy: 'staff-2' }).success, false)
 }
-for (const value of ['BEFORE', 'AFTER', 'DEFECT']) {
+for (const value of ['REGISTRATION', 'BEFORE', 'AFTER', 'DEFECT']) {
   assert.equal(laundryItemPhotoCreateSchema.safeParse({ ...create, photoType: value }).success, true)
   assert.equal(laundryItemPhotoUpdateSchema.safeParse({ photoType: value, updatedBy: 'staff-2' }).success, true)
 }
