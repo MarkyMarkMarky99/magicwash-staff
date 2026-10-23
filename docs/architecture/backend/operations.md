@@ -95,6 +95,9 @@ Create requires `id`, `customerId`, and `createdBy`; optional fields are `itemId
 `notes`, and `imageUrl`. The nullable cover photo URL is stored in physical column L,
 `image_url`, after `deleted_by`. PATCH requires `updatedBy` and at least one of those optional
 fields; null clears an optional field, including the cover photo URL. Identity, customer, creation and deletion fields are not patchable.
+The gateway also accepts `PATCH /api/laundry-items/:id` (exactly two path segments) with
+`x-service-key` exactly matching server-only `AI_SERVICE_KEY` via `crypto.timingSafeEqual` on equal-length buffers; an unset or blank key disables this exception, and a wrong key falls through to normal staff authentication.
+This key permits only `itemId` and optional `updatedBy` (other fields return 403), using the fixed staff actor `AI` (name `AI`, empty email, role `staff`) so the shared CRUD handler replaces `updatedBy` with `AI`; other methods and routes still require their normal authentication.
 The shared CRUD handler supplies authenticated staff actors. Repository audit declarations
 stamp `created_at` on append and `updated_at` on update using Bangkok `yyyy-MM-dd HH:mm:ss`.
 Item GET/PATCH validate the same tag format and return 404 for missing rows. There is no delete
@@ -272,7 +275,7 @@ invalid tokens return 401, and identities outside the active allowlist return 40
 StaffMember is passed to the handler. Registry lookup returns 404 for unknown modules before
 authentication; authentication completes before the registered module is loaded.
 
-The sole business-route exception is `GET /api/invoices/:id`, with exactly two path segments.
+The invoice printing exception is `GET /api/invoices/:id`, with exactly two path segments.
 It accepts an `x-print-api-key` header exactly matching the server-only `PRINT_API_KEY`, compared
 with `crypto.timingSafeEqual` on equal-length buffers. An unset or blank environment key disables
 this path. A matching key permits the request without a token and passes no StaffMember. Other
