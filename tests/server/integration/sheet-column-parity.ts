@@ -6,6 +6,7 @@
  * Example: node --env-file=.env.local --import=tsx/esm tests/server/integration/sheet-column-parity.ts
  */
 
+import { laundryItemsDbContract } from '../../../server/sheets/LaundryItems/LaundryItems.db-contract.js'
 import { requireEnv } from '../../../server/shared/utils/env.js'
 import { bagItemsDbContract } from '../../../server/sheets/BagItems/BagItems.db-contract.js'
 import { appointmentsDbContract } from '../../../server/sheets/Appointments/Appointments.db-contract.js'
@@ -59,6 +60,7 @@ interface GvizResponse {
 }
 
 const readableSheets: readonly ReadableSheet[] = [
+  { name: 'LaundryItems', sheetName: laundryItemsDbContract.sheetName, spreadsheetIdEnv: laundryItemsDbContract.spreadsheetId, rowSchema: laundryItemsDbContract.row },
   { name: 'BagItems', sheetName: bagItemsDbContract.sheetName, spreadsheetIdEnv: bagItemsDbContract.spreadsheetId, rowSchema: bagItemsDbContract.row },
   {
     name: 'WorkTransactions',
