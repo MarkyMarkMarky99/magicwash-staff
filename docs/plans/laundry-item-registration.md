@@ -1,6 +1,8 @@
 # Plan — garment registration (LaundryItems as customer assets)
 
-Status: **not started.** Branch `feat/laundry-item-registration`. Agreed with the owner 2026-10-23.
+Status: **sheets registered.** OrderGarments and LaundryItemPhotos have contracts and generic CRUD
+routes on `main` (deployed). The registration endpoint and page are not started. Agreed with the
+owner 2026-10-23.
 
 Supersedes, for now, the intake-form plan in `ai-order-classification.md` (paused).
 
@@ -123,7 +125,8 @@ Owner:
    removable tags are an accepted blind spot.
 4. OrderItems stay as they are; a new per-garment link sheet joins them to LaundryItems.
 5. The link sheet keeps the garment's current stage in a single `status` column.
-6. First registration photo = BEF photo; its URL goes into `LaundryItems.image_url`.
+6. The first photo at registration is a `REGISTRATION` photo, kept apart from each order's
+   `BEFORE` photo (2026-10-24); its URL goes into `LaundryItems.image_url`.
 7. A new single photo sheet for garments, with a type column instead of separate BEF/AFT sheets.
    Old photo sheets are not modified.
 
@@ -134,31 +137,24 @@ Claude (minor, decided without asking):
 10. `photo_type` values `REGISTRATION`, `BEFORE`, `AFTER`, `DEFECT` (owner split registration from
     per-order before photos, 2026-10-24); first order's `BEFORE` reuses the registration URL.
 11. Registration page lives under the customer, reached from customer detail.
-12. Unknown garment type stays null; no AI classification in this branch.
+12. Unknown garment type stays null at save. MagicwashAI's `classify-laundry-items` task fills it
+    later (live since 2026-10-24; see `C:\MagicwashAI\docs\plans\classify-laundry-items.md`).
+    Whether the registration save triggers it is still open.
 13. Save is one request with batch appends; a tag already registered to the same customer is
     skipped, not an error.
 
-## Work items (this branch)
+## Work items
 
-Owner scope 2026-10-23: **register the two new sheets in the backend with generic CRUD only.** No
-flows, no UI, no special rules yet.
+Done: both sheets (in the LaundryItems spreadsheet), their registry JSONs on G Drive, contracts,
+repositories and generic CRUD routes.
 
-| item | estimate |
-|---|---|
-| OrderGarments contract + repository + generic CRUD routes | ½ day |
-| LaundryItemPhotos contract + repository + generic CRUD routes | ½ day |
-
-Later (not this branch): registration endpoint and page, order scan flow, `status` writes from job
-tickets, the one-row-per-garment-per-order rule, claiming the registration photo.
-
-Owner task before code: create the `OrderGarments` and `LaundryItemPhotos` tabs in the **same
-spreadsheet as LaundryItems** (`LAUNDRY_ITEMS_SPREADSHEET_ID`, no new env var), each with its full
-header row and the grid trimmed to its column count, plus their registry JSONs on G Drive.
+Not started: registration endpoint and page, order scan flow, `status` writes from job tickets, the
+one-row-per-garment-per-order rule, claiming the registration photo.
 
 ## Out of scope
 
 - Order scan flow and OrderItems grouping (next phase).
 - `status` writes from job tickets (next phase, with the order scan flow).
-- AI classification and flat-cloth images.
+- Flat-cloth images. (AI classification itself now runs in MagicwashAI, decision 12.)
 - Moving existing screens (order detail registration, photo library, AFT upload, job-ticket
   provisioning) from LaundryPhotos/AfterPhotos to LaundryItemPhotos.

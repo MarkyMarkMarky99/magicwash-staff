@@ -8,6 +8,6 @@ New full-screen order intake page (`/orders/new/intake/:customerId`), entry "Int
 
 ## Pending
 - Capture + **Save order** never run end to end (would create a real order); test with a test customer, then delete the order and photos.
-- Save is temporary: creates a `PENDING` order and uploads LaundryPhotos/order images with existing APIs. Next round = RECEIVED + MagicwashAI wiring per `docs/plans/received-ai-classification.md` (that plan is still uncommitted on `main`'s working tree).
+- Save is temporary: creates a `PENDING` order and uploads LaundryPhotos/order images with existing APIs. Next round = RECEIVED + MagicwashAI wiring per `docs/plans/received-ai-classification.md` (plan committed on this branch; Save request shape awaiting owner approval).
 - Garment tag duplicates are checked only inside the draft; a tag used on another order fails at save.
 - Vite `scanic-ml` error overlay on `vercel dev` predates this branch (corporate form shows it too).
