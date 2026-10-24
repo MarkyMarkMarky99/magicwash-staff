@@ -6,6 +6,7 @@
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 - **`feat/order-intake-page`** — Intake Order page (scan-only, Save not connected) + Register Garments page and register endpoint; next: Intake backend, Register Save and garment detail browser tests; see `.user/memory/feat-order-intake-page.md`.
+- **`refactor/shared-ui`** — shared UI consolidation rounds (Sonnet implements, Claude reviews); based on `feat/order-intake-page`; see `.user/memory/refactor-shared-ui.md`.
 
 ## Pending work
 - **MagicwashAI local gateway** — handoff: `.user/memory/magicwash-ai-gateway-handoff.md`
