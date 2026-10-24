@@ -15,7 +15,7 @@ import CorporateAddItemDialog from '@/features/orders/components/CorporateAddIte
 import CorporateCountSheet from '@/features/orders/components/CorporateCountSheet.vue'
 import CorporateOrderHeader from '@/features/orders/components/CorporateOrderHeader.vue'
 import DocumentScannerOverlay from '@/features/orders/components/DocumentScannerOverlay.vue'
-import OrderFormSectionHeader from '@/features/orders/components/OrderFormSectionHeader.vue'
+import SectionHeader from '@/shared/components/SectionHeader.vue'
 import SlipPhotoControls from '@/features/orders/components/SlipPhotoControls.vue'
 import { useCorporateOrderDraft } from '@/features/orders/composables/useCorporateOrderDraft'
 import { aiGatewayBaseUrl, aiGatewayToken } from '@/shared/ai-gateway/ai-gateway.config'
@@ -235,11 +235,11 @@ onMounted(() => {
 
       <div class="relative z-[1] -mt-4 rounded-t-2xl bg-surface px-4 pb-7 pt-4">
         <div>
-          <OrderFormSectionHeader title="Count sheet" :subtitle="isReading ? 'Reading slip…' : `Slip order · ${countedCount} of ${draft.lines.length} counted`">
+          <SectionHeader title="Count sheet" :subtitle="isReading ? 'Reading slip…' : `Slip order · ${countedCount} of ${draft.lines.length} counted`">
             <template #action>
               <SlipPhotoControls :photos="draft.slipPhotos" @scan="openScanner(draft.slipPhotos[0]?.id ?? null)" @view="openViewer(draft.slipPhotos[0]!.id)" />
             </template>
-          </OrderFormSectionHeader>
+          </SectionHeader>
           <ul v-if="readingWarnings.length" class="mb-3 list-disc pl-5 text-sm text-on-surface-variant" aria-label="Slip reading warnings">
             <li v-for="(warning, index) in readingWarnings" :key="index">{{ warning.message }}</li>
           </ul>

@@ -4,6 +4,7 @@ import type { z } from 'zod'
 import type { washQueueRowSchema } from '@contracts/wash-queue/wash-queue-api.schema'
 import BaseOverlayFrame from '@/shared/layouts/BaseOverlayFrame.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
+import SectionHeader from '@/shared/components/SectionHeader.vue'
 import { formatBookedAt, formatStartedAt } from '../format-booked-at'
 import { formatKgFigure } from '../format-weights'
 import { stepChips, stepLabel, washOptionsSummary } from '../wash-options'
@@ -128,7 +129,7 @@ const summaryRest = computed(() => props.row.washOptions === null ? '' : washOpt
         </div>
       </dl>
       <section class="pb-1">
-        <div class="sec !mt-[22px]"><div class="bar" /><div class="tt"><h3>Wash program</h3><small>{{ row.washOptions ? `${row.washOptions.steps.length} ${row.washOptions.steps.length === 1 ? 'step' : 'steps'}` : 'None recorded' }}</small></div></div>
+        <SectionHeader level="h3" class="!mb-1 !mt-[22px]" title="Wash program" :subtitle="row.washOptions ? `${row.washOptions.steps.length} ${row.washOptions.steps.length === 1 ? 'step' : 'steps'}` : 'None recorded'" />
         <div v-if="row.washOptions" class="sum-col">
           <div class="sum">
             <span class="tab">Program</span>

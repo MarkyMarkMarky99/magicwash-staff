@@ -6,7 +6,7 @@ import PhotoViewer from '@/shared/components/PhotoViewer.vue'
 import CloseButton from '@/shared/components/CloseButton.vue'
 import DetailOverlay from '@/shared/layouts/DetailOverlay.vue'
 import PriceListItemPicker from '@/features/price-list/components/PriceListItemPicker.vue'
-import LaundryItemSectionHeader from './LaundryItemSectionHeader.vue'
+import SectionHeader from '@/shared/components/SectionHeader.vue'
 import { useLaundryItemDetail } from '../composables/useLaundryItemDetail'
 import { useLaundryItemDetailOverlayRoute } from '../composables/useLaundryItemDetailOverlayRoute'
 import { garmentAlbum, garmentCurrentPlace, garmentDate, garmentLastSeen, garmentOrderRows, garmentTimeline } from '../utils/laundry-item-detail'
@@ -73,7 +73,7 @@ async function selectType(selected: ItemDto): Promise<void> {
       <dl class="metadata">
         <div v-for="cell in metadata" :key="cell.label" class="metadata-cell" :class="{ full: cell.full }"><dt>{{ cell.label }}</dt><dd>{{ cell.value }}</dd></div>
       </dl>
-      <LaundryItemSectionHeader class="!mb-6 !mt-7" title="Order history" subtitle="Newest first · tap to see steps" />
+      <SectionHeader class="!mb-6 !mt-7" title="Order history" subtitle="Newest first · tap to see steps" />
       <div class="orders-paper">
         <span class="paper-tab">Orders</span>
         <p v-if="rows.length === 0" class="px-4 py-8 text-center text-on-surface-variant">Not in any order yet</p>
@@ -107,7 +107,7 @@ async function selectType(selected: ItemDto): Promise<void> {
       <template #header><div class="flex items-center justify-between px-4 pb-2"><h2 class="font-headline text-[22px] font-extrabold text-primary">Photos · {{ images.length }}</h2><CloseButton label="Close photos" @click="overlay.close" /></div></template>
       <div class="px-4 pb-7">
         <section v-for="section in album" :key="section.type" class="mt-5">
-          <LaundryItemSectionHeader :title="section.title" :subtitle="`${section.photos.length} ${section.photos.length === 1 ? 'photo' : 'photos'}`" />
+          <SectionHeader :title="section.title" :subtitle="`${section.photos.length} ${section.photos.length === 1 ? 'photo' : 'photos'}`" />
           <div class="grid grid-cols-3 gap-2">
             <button v-for="photo in section.photos" :key="photo.id" type="button" class="relative min-w-0 overflow-hidden rounded-[10px_12px_10px_11px] border-2 border-primary" :aria-label="`View ${photo.alt}`" @click="overlay.open(`photo:${photo.id}`)">
               <ImageOrIcon :image-url="photo.src" icon="image" class="aspect-square w-full" />

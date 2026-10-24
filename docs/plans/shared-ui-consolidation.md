@@ -41,7 +41,7 @@ measured identical in the browser (23px/800 title, 72.5×22.8 tab, same rotation
 `.cust__tab`, loading skeleton). New `src/shared/components/FormPageHeader.vue` with slots for the
 title, eyebrow and customer box content; the three become thin wrappers or are deleted.
 
-### Round 2 — Extract: section header (`SectionHeader`)
+### Round 2 — Extract: section header (`SectionHeader`) — done (wash-queue detail sheet only; see report)
 
 `LaundryItemSectionHeader.vue` and `OrderFormSectionHeader.vue` are byte-identical. Promote one to
 `src/shared/components/SectionHeader.vue` and replace both. Same round: the copies with the same

@@ -4,8 +4,9 @@ Shared UI consolidation, plan `docs/plans/shared-ui-consolidation.md`. Cut from 
 
 ## Status
 - Round 1 done: `FormPageHeader` + `CustomerTabCard`, measured identical before/after on Intake, Corporate, Register.
-- Pre-existing dry-test failures (not this branch): `order-image-weight-query` subtest 3, `order.store` (`resolve` of undefined).
+- Round 2 done: `SectionHeader` (Intake, Corporate, Register, garment detail, WashQueue detail); Packaging `.bag-sec`, Intake `.row-sec`, wash options `.sec` left for Round 7.
+- Pre-existing dry-test failures (fail at HEAD without refactor changes): `order-image-weight-query` subtest 3, `order.store` (`resolve` of undefined), job-tickets `complete-order`, `job-ticket-store`, `scan-workflow` (ZodError).
 
 ## Pending
-- Round 2 next (section header). Rounds 3–6 extract, Round 7 unify (Claude picks the look, shows the owner side-by-side shots).
+- Rounds 3–6 extract, Round 7 unify (Claude picks the look, shows the owner side-by-side shots).
 - Screenshots come from the owner's Chrome at `localhost:3000/#/…` (`vercel dev` must be running and signed in).

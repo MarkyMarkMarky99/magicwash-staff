@@ -18,7 +18,7 @@ import { useItemsStore } from '@/data/items/items.store'
 import type { ItemDto } from '@/data/items/items.service'
 import PriceListItemPicker from '@/features/price-list/components/PriceListItemPicker.vue'
 import DocumentScannerOverlay from '@/features/orders/components/DocumentScannerOverlay.vue'
-import OrderFormSectionHeader from '@/features/orders/components/OrderFormSectionHeader.vue'
+import SectionHeader from '@/shared/components/SectionHeader.vue'
 import OrderIntakeCaptureMenu from '@/features/orders/components/OrderIntakeCaptureMenu.vue'
 import OrderIntakeDetailsSheet from '@/features/orders/components/OrderIntakeDetailsSheet.vue'
 import OrderIntakeHeader from '@/features/orders/components/OrderIntakeHeader.vue'
@@ -289,12 +289,12 @@ onMounted(() => {
       <div class="relative z-[1] -mt-4 rounded-t-2xl bg-surface px-4 pb-7 pt-4">
         <!-- Its own layer so the capture menu opens over the Items paper below it. -->
         <div class="relative z-[2]">
-          <OrderFormSectionHeader title="Items" :subtitle="itemsSubtitle">
+          <SectionHeader title="Items" :subtitle="itemsSubtitle">
             <template #action>
               <OrderIntakePreviewStack :photos="allPhotos" @open="intakeOverlay.open({ kind: 'photos' })" />
               <OrderIntakeCaptureMenu :counts="counts" @select="openCapture" />
             </template>
-          </OrderFormSectionHeader>
+          </SectionHeader>
         </div>
         <OrderIntakeItemsPaper :rows="grouped.rows" :total="grouped.total" @select="openRow" />
       </div>

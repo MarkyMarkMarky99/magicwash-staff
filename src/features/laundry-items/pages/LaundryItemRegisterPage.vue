@@ -15,7 +15,7 @@ import { registerLaundryItems } from '@/data/laundry-items/laundry-item.service'
 import { useCustomerStore } from '@/data/customers/customer.store'
 import LaundryItemRegisterHeader from '@/features/laundry-items/components/LaundryItemRegisterHeader.vue'
 import LaundryItemRegisterPaper from '@/features/laundry-items/components/LaundryItemRegisterPaper.vue'
-import LaundryItemSectionHeader from '@/features/laundry-items/components/LaundryItemSectionHeader.vue'
+import SectionHeader from '@/shared/components/SectionHeader.vue'
 import { useLaundryItemRegisterDraft } from '@/features/laundry-items/composables/useLaundryItemRegisterDraft'
 import { useLaundryItemRegisterGarments } from '@/features/laundry-items/composables/useLaundryItemRegisterGarments'
 import { useLaundryItemRegisterOverlayRoute } from '@/features/laundry-items/composables/useLaundryItemRegisterOverlayRoute'
@@ -166,7 +166,7 @@ onBeforeUnmount(() => {
       />
 
       <div class="relative z-[1] -mt-4 rounded-t-2xl bg-surface px-4 pb-7 pt-4">
-        <LaundryItemSectionHeader title="Items" :subtitle="subtitle">
+        <SectionHeader title="Items" :subtitle="subtitle">
           <template #action>
             <StickerFab
               class="!h-[46px] !w-[46px] !rounded-[17px_20px_17px_19px] [&_.sticker-label]:hidden"
@@ -178,7 +178,7 @@ onBeforeUnmount(() => {
               <span class="material-symbols-outlined text-[24px]" aria-hidden="true">photo_camera</span>
             </StickerFab>
           </template>
-        </LaundryItemSectionHeader>
+        </SectionHeader>
         <LaundryItemRegisterPaper :rows="rows" @view="openViewer" @remove="removeRow" @retry="photoUploads.retry" />
       </div>
     </ScrollRegion>
