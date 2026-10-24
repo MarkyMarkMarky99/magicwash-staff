@@ -57,7 +57,7 @@ const chosenLabel = computed(() => props.machineId ? machineLabel(props.machineI
       </PhotoCapturePanel>
       <WeightField class="wq-book-weight" :model-value="rawWeight" input-id="wash-queue-weight" :error="weightError" @update:model-value="emit('update:rawWeight', $event)" @invalid="emit('weightInvalid')">
         <template #action>
-          <StickerFab class="wq-book-photo mr-1 shrink-0 !h-[47px] !w-[47px] !rounded-[15px_18px_16px_17px]" :class="{ done: photoUrl && !uploading }" :label="photoUrl ? 'Retake' : 'Photo'" :aria-label="photoUrl ? 'Retake photo' : 'Take photo'" :saving="uploading" saving-label="Uploading" :disabled="!weightValid || saving" @click="emit('photo')">
+          <StickerFab class="wq-book-photo mr-1 shrink-0 !h-[47px] !w-[47px] !rounded-[15px_18px_16px_17px]" :done="Boolean(photoUrl && !uploading)" :label="photoUrl ? 'Retake' : 'Photo'" :aria-label="photoUrl ? 'Retake photo' : 'Take photo'" :saving="uploading" saving-label="Uploading" :disabled="!weightValid || saving" @click="emit('photo')">
             <span class="material-symbols-outlined text-[20px] leading-none" aria-hidden="true">{{ photoUrl ? 'flip_camera_ios' : 'photo_camera' }}</span>
           </StickerFab>
         </template>
@@ -108,15 +108,5 @@ const chosenLabel = computed(() => props.machineId ? machineLabel(props.machineI
 
 .wq-book-weight {
   padding: 18px 0 18px;
-}
-
-/* Photo taken: the sticker turns dark, like a selected tile, and offers a retake. */
-.wq-book-photo.done:not(:disabled) {
-  background: var(--color-primary);
-  color: var(--color-lime);
-}
-
-.wq-book-photo.done:not(:disabled) :deep(.sticker-label) {
-  color: #fff;
 }
 </style>

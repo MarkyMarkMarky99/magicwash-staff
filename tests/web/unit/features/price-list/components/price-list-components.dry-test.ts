@@ -26,9 +26,7 @@ assert.match(picker, /subcategory === name/)
 assert.match(picker, /add_shopping_cart/)
 assert.match(picker, /fit="contain"/)
 assert.doesNotMatch(picker, /ImageContentCard/)
-const sharedImageCard = source('shared/components/ImageContentCard.vue')
-assert.match(sharedImageCard, /ImageOrIcon/)
-assert.match(sharedImageCard, /fit="cover"/)
+assert.equal(existsSync(new URL('../../../../../../src/shared/components/ImageContentCard.vue', import.meta.url)), false, 'unused ImageContentCard must be deleted')
 
 const triad = new URL(
   '../../../../../../src/features/price-list/components/ServicePriceTriad.vue',

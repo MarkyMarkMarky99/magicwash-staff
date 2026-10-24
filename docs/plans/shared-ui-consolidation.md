@@ -64,7 +64,7 @@ identical (e.g. the warning save notice on Intake, Corporate and Register; the e
 two invoice payment pages; the two appointment pages). New `src/shared/components/InlineNotice.vue`
 (`tone`, `role`, optional icon). The remaining variants go to Round 7.
 
-### Round 5 — Extract: dead and duplicated bits
+### Round 5 — Extract: dead and duplicated bits — done
 
 - Remove `ImageContentCard.vue` (no call sites) after a final grep.
 - The `.done` "photo taken" restyle of the 47px StickerFab is copied in `WashQueueBookDialog` and

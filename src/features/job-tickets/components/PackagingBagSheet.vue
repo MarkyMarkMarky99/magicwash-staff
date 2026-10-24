@@ -47,7 +47,7 @@ function blockedLabel(state: GarmentState): string | null {
       <PhotoCapturePanel class="max-h-[200px]" :photo-url="photoUrl ?? ''" :uploading="uploading" title="No photo yet" hint="Weigh the bag, then tap Photo." :alt="`Bag ${bagNumber} photo`" />
       <WeightField class="bag-weight" :model-value="weight" :input-id="`bag-weight-${bagNumber}`" :error="weightError" @update:model-value="emit('update:weight', $event)">
         <template #action>
-          <StickerFab class="bag-photo mr-1 shrink-0 !h-[47px] !w-[47px] !rounded-[15px_18px_16px_17px]" :class="{ done: photoUrl && !uploading }" :label="photoUrl ? 'Retake' : 'Photo'" :aria-label="photoUrl ? 'Retake photo' : 'Take photo'" :saving="uploading" saving-label="Uploading" :disabled="!weightValid || loading" @click="emit('photo')">
+          <StickerFab class="bag-photo mr-1 shrink-0 !h-[47px] !w-[47px] !rounded-[15px_18px_16px_17px]" :done="Boolean(photoUrl && !uploading)" :label="photoUrl ? 'Retake' : 'Photo'" :aria-label="photoUrl ? 'Retake photo' : 'Take photo'" :saving="uploading" saving-label="Uploading" :disabled="!weightValid || loading" @click="emit('photo')">
             <span class="material-symbols-outlined text-[20px] leading-none" aria-hidden="true">{{ photoUrl ? 'flip_camera_ios' : 'photo_camera' }}</span>
           </StickerFab>
         </template>
@@ -89,16 +89,6 @@ function blockedLabel(state: GarmentState): string | null {
 <style scoped>
 .bag-weight {
   padding: 18px 0 0;
-}
-
-/* Photo taken: the sticker turns dark and offers a retake, as in the wash-queue booking sheet. */
-.bag-photo.done:not(:disabled) {
-  background: var(--color-primary);
-  color: var(--color-lime);
-}
-
-.bag-photo.done:not(:disabled) :deep(.sticker-label) {
-  color: #fff;
 }
 
 /* Section header and scan sticker match the wash-queue booking sheet (wash-program.css .sec, WashQueueMachineMenu). */

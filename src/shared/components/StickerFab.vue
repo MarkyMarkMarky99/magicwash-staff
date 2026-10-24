@@ -5,11 +5,13 @@ withDefaults(defineProps<{
   saving?: boolean
   savingLabel?: string
   disabled?: boolean
+  done?: boolean
 }>(), {
   ariaLabel: undefined,
   saving: false,
   savingLabel: 'Saving…',
   disabled: false,
+  done: false,
 })
 
 const emit = defineEmits<{
@@ -21,7 +23,7 @@ const emit = defineEmits<{
   <button
     type="button"
     class="sticker-fab"
-    :class="{ 'is-saving': saving }"
+    :class="{ 'is-saving': saving, 'is-done': done }"
     :disabled="disabled || saving"
     :aria-label="ariaLabel ?? label"
     @click="emit('click')"
@@ -71,6 +73,15 @@ const emit = defineEmits<{
   background: var(--color-surface-container-high);
   color: var(--color-on-surface-variant);
   box-shadow: 3px 3px 0 var(--color-outline-variant);
+}
+
+.sticker-fab.is-done:not(:disabled) {
+  background: var(--color-primary);
+  color: var(--color-lime);
+}
+
+.sticker-fab.is-done:not(:disabled) .sticker-label {
+  color: #fff;
 }
 
 .sticker-fab.is-saving {
