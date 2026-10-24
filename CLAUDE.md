@@ -35,6 +35,7 @@ implemented behavior, correct the canonical document rather than adding a compet
 - [WashQueue](docs/features/wash-queue/wash-queue.md)
 - [Corporate order form](docs/features/orders/corporate-order-form.md)
 - [Order intake form](docs/features/orders/order-intake-form.md)
+- [Register Garments page](docs/features/laundry-items/register-garments-page.md)
 - [Agent chat](docs/features/agents/agent-chat.md)
 
 ## Verification

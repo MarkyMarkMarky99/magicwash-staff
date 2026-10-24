@@ -6,7 +6,7 @@
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 - **`feat/order-intake-page`** — new Intake Order page built and browser-checked; Save not yet run end to end; see `.user/memory/feat-order-intake-page.md`.
-- **`feat/laundry-item-registration`** — cut from `feat/order-intake-page`; registration service + Register Garments page planned, not started; see `.user/memory/feat-laundry-item-registration.md`.
+- **`feat/laundry-item-registration`** — cut from `feat/order-intake-page`; Register Garments page built and browser-checked (Save logs payload only); backend register endpoint next; see `.user/memory/feat-laundry-item-registration.md`.
 
 ## Pending work
 - **MagicwashAI local gateway** — handoff: `.user/memory/magicwash-ai-gateway-handoff.md`

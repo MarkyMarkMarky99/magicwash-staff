@@ -1,4 +1,4 @@
-import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage'
+import { deleteObject, getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage'
 import { storage } from '@/firebase'
 
 const IMMUTABLE_UPLOAD_METADATA = {
@@ -16,4 +16,8 @@ export async function uploadToStorage(file: File, folder = 'images'): Promise<st
   const objectRef = storageRef(storage, `${folder}/${Date.now()}_${file.name}`)
   const snapshot = await uploadBytes(objectRef, file, IMMUTABLE_UPLOAD_METADATA)
   return await getDownloadURL(snapshot.ref)
+}
+
+export async function deleteFromStorage(url: string): Promise<void> {
+  await deleteObject(storageRef(storage, url))
 }

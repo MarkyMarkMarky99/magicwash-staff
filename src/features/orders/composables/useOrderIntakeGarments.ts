@@ -1,5 +1,5 @@
 import { computed, onScopeDispose, ref, shallowRef, watch } from 'vue'
-import { canSaveGarment, isDuplicateGarmentTag, validGarmentTag } from '@/features/orders/garment-registration'
+import { canSaveGarment, isDuplicateGarmentTag, validGarmentTag } from '@/shared/utils/garment-registration'
 import { feedback } from '@/shared/utils/scan-feedback'
 
 const NO_TAGS: ReadonlySet<string> = new Set()

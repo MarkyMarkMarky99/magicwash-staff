@@ -194,7 +194,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
       <RouterView v-slot="{ Component }">
       <!-- Form pages must not be cached: their component-local refs would otherwise survive across subjects. `exclude` matches component names, so renaming one of these files silently removes it from this list. -->
       <KeepAlive
-        :exclude="['WashQueuePage', 'CreateAppointmentPage', 'RescheduleAppointmentPage', 'InvoiceCreatePage', 'InvoicePaymentFormPage', 'InvoicePaymentReviewPage', 'CustomerFormPage', 'CustomerPackageCreatePage', 'PriceListFormPage', 'PriceListItemCreatePage', 'PackageFormPage', 'IssueReportFormPage', 'OrderCreatePage', 'CorporateOrderPage', 'OrderIntakePage', 'StaffFormPage', 'AgentChatPage']"
+        :exclude="['WashQueuePage', 'CreateAppointmentPage', 'RescheduleAppointmentPage', 'InvoiceCreatePage', 'InvoicePaymentFormPage', 'InvoicePaymentReviewPage', 'CustomerFormPage', 'CustomerPackageCreatePage', 'PriceListFormPage', 'PriceListItemCreatePage', 'PackageFormPage', 'IssueReportFormPage', 'OrderCreatePage', 'CorporateOrderPage', 'OrderIntakePage', 'LaundryItemRegisterPage', 'StaffFormPage', 'AgentChatPage']"
       >
         <component :is="Component" />
       </KeepAlive>

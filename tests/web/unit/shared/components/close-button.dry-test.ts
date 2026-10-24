@@ -25,7 +25,7 @@ for (const path of [
   'app/auth/LoginPage.vue',
   'shared/layouts/BaseOverlayFrame.vue',
   'shared/components/QrScannerOverlay.vue',
-  'features/orders/components/GarmentRegistrationCamera.vue',
+  'shared/components/GarmentRegistrationCamera.vue',
   'features/orders/components/DocumentScannerOverlay.vue',
   'features/invoices/components/InvoiceProofLightbox.vue',
   'shared/components/PhotoViewer.vue',
@@ -59,7 +59,7 @@ for (const path of [
   assert.match(overlay, /close-button-class="text-white"/, path)
 }
 
-const registration = source('features/orders/components/GarmentRegistrationCamera.vue')
+const registration = source('shared/components/GarmentRegistrationCamera.vue')
 assert.match(registration, /<CloseButton[^>]*:disabled="pendingCount > 0"/)
 
 const scanner = source('features/orders/components/DocumentScannerOverlay.vue')

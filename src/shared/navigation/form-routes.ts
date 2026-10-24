@@ -5,6 +5,7 @@ export const ORDER_CREATE_ROUTE_NAME = 'order-create'
 export const ORDER_EDIT_ROUTE_NAME = 'order-edit'
 export const CORPORATE_ORDER_CREATE_ROUTE_NAME = 'order-create-corporate'
 export const ORDER_INTAKE_CREATE_ROUTE_NAME = 'order-create-intake'
+export const LAUNDRY_ITEM_REGISTER_ROUTE_NAME = 'laundry-item-register'
 export const CUSTOMER_PACKAGE_CREATE_ROUTE_NAME = 'customer-package-create'
 export const INVOICE_CREATE_ROUTE_NAME = 'invoice-create'
 export const PRICE_LIST_ITEM_CREATE_ROUTE_NAME = 'price-list-item-create'
@@ -64,6 +65,10 @@ export function corporateOrderCreateRoute(customerId: string): RouteLocationRaw 
 
 export function orderIntakeCreateRoute(customerId: string): RouteLocationRaw {
   return { name: ORDER_INTAKE_CREATE_ROUTE_NAME, params: { customerId } }
+}
+
+export function laundryItemRegisterRoute(customerId: string): RouteLocationRaw {
+  return { name: LAUNDRY_ITEM_REGISTER_ROUTE_NAME, params: { customerId } }
 }
 
 export function customerPackageCreateRoute(
