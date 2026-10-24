@@ -317,7 +317,7 @@ onMounted(() => {
         <OrderIntakeItemsPaper :rows="grouped.rows" :total="grouped.total" @select="openRow" />
         <p class="mt-3.5 flex items-start gap-2.5 rounded-[14px] bg-info-container p-3 text-[12.5px] font-medium leading-[1.4] text-on-info-container">
           <span class="material-symbols-outlined flex-none text-[20px]" aria-hidden="true">info</span>
-          <span>Garments are grouped by their registered type. Move every Uncategorized garment to a type before saving.</span>
+          <span>Garments are grouped by their registered type. Choose a type for every Uncategorized garment before saving.</span>
         </p>
       </div>
     </ScrollRegion>
@@ -358,6 +358,7 @@ onMounted(() => {
       :open="openRowEntry !== null"
       :title="shownRow?.name ?? ''"
       :garments="shownRow?.garments ?? []"
+      :choose-type="shownRow?.uncategorized ?? false"
       @close="intakeOverlay.close"
       @change-type="startChangeType"
       @note="setGarmentNote"

@@ -4,7 +4,7 @@ import ImageOrIcon from '@/shared/components/ImageOrIcon.vue'
 import DetailOverlay from '@/shared/layouts/DetailOverlay.vue'
 import type { OrderIntakeGarment } from '@/features/orders/utils/order-intake-draft'
 
-defineProps<{ open: boolean, title: string, garments: readonly OrderIntakeGarment[] }>()
+defineProps<{ open: boolean, title: string, garments: readonly OrderIntakeGarment[], chooseType: boolean }>()
 const emit = defineEmits<{
   close: []
   changeType: [tag: string]
@@ -50,8 +50,8 @@ const ACTION = 'inline-flex h-10 items-center gap-1.5 rounded-full border border
           </li>
         </ul>
         <div class="mt-2.5 flex flex-wrap gap-2">
-          <button type="button" :class="ACTION" :aria-label="`Change type of ${garment.tag}`" @click="emit('changeType', garment.tag)">
-            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">swap_horiz</span>Change type
+          <button v-if="chooseType" type="button" :class="ACTION" :aria-label="`Choose type of ${garment.tag}`" @click="emit('changeType', garment.tag)">
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">category</span>Choose type
           </button>
           <button type="button" :class="ACTION" :aria-label="`Add defect photo for ${garment.tag}`" @click="emit('defect', garment.tag)">
             <span class="material-symbols-outlined text-[18px]" aria-hidden="true">photo_camera</span>Defect photo

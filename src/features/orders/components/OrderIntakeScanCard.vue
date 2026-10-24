@@ -57,8 +57,8 @@ const ACTION = 'inline-flex h-12 flex-1 items-center justify-center gap-1.5 roun
             <button type="button" :class="ACTION" @click="emit('defect')">
               <span class="material-symbols-outlined text-[20px]" aria-hidden="true">photo_camera</span>{{ garment && garment.defectPhotos.length > 0 ? `Defect ${garment.defectPhotos.length}` : 'Defect photo' }}
             </button>
-            <button type="button" :class="ACTION" @click="emit('changeType')">
-              <span class="material-symbols-outlined text-[20px]" aria-hidden="true">swap_horiz</span>Change type
+            <button v-if="!itemName" type="button" :class="ACTION" @click="emit('changeType')">
+              <span class="material-symbols-outlined text-[20px]" aria-hidden="true">category</span>Choose type
             </button>
           </div>
         </template>

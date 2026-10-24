@@ -16,5 +16,6 @@ Also holds garment registration (merged from `feat/laundry-item-registration` 20
 - Owner deferred: unregistered tag at intake (blocked for now), LaundryPhotos vs OrderGarments for tickets, status after Save.
 - Defect photos stay local in the draft; upload at capture comes with the backend.
 - Order `5aed2e17` (created 2026-10-24) uses inactive Items ids — check how staff can still pick inactive types.
+- Intake only chooses a type for untyped garments (owner 2026-10-24); Register Garments has no way yet to change a registered type.
 - Merging to main ships both pages; Intake Save must be finished (or its menu hidden) first.
 - Vite `scanic-ml` overlay on camera open under `vercel dev` predates this branch.

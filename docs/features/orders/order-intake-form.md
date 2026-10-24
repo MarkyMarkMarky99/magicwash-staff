@@ -29,7 +29,7 @@ The customer comes from the route parameter and is found in the preloaded custom
 A plain full-screen page with the corporate order form's shell: green header, body overlapping the header by 16px with rounded top corners, and a footer bar with Discard and Save order.
 
 - Header: label "New laundry intake", title "New order", the shared close button on dark, and the customer card. The card shows the customer name and sub line, a dashed divider, the order name, the note on one line with ellipsis, and a bottom line "Received <date> · <service type>". The service type is a pill like the corporate turnaround chip, but shows the service label and no turnaround. The due calendar tile sits inside the card on the right. A small edit icon marks the card as tappable. The tile turns to a warning when due is before received.
-- Items section: the shared section header "Items" whose subtitle counts the garments ("No garments yet", "1 garment", "5 garments"). Its action area holds the photo preview stack and the camera button. Below it is the Items paper and an information strip saying that garments are grouped by their registered type and every Uncategorized garment must be moved to a type before saving.
+- Items section: the shared section header "Items" whose subtitle counts the garments ("No garments yet", "1 garment", "5 garments"). Its action area holds the photo preview stack and the camera button. Below it is the Items paper and an information strip saying that garments are grouped by their registered type and every Uncategorized garment needs a type chosen before saving.
 
 ## Items paper
 
@@ -65,24 +65,24 @@ A success plays the shared success feedback; a warning or a refusal plays the fa
 
 Every scan shows a large scan card (`OrderIntakeScanCard`) in the middle of the page: a see-through dark glass card, about 22rem wide, with the garment photo filling its top as a square and the details and actions below. It does not block the page or the scanner gun; it is hidden while any sheet, camera or picker is open. The footer's own notice is for the Save message only. The latest scan replaces the previous card and restarts a short pop-in (none under reduced motion). A close button sits at its top right. It has three tones:
 
-- Success: the garment was added. The garment's registration photo is shown in full, with nothing drawn over it except the close button inset from its corner. Below it are the tag with a lime check badge at the right end of its line, the garment's item type (or "Uncategorized" in the warning colour), and two actions. A garment with no photo, or whose photo fails to load, shows a placeholder garment icon instead.
+- Success: the garment was added. The garment's registration photo is shown in full, with nothing drawn over it except the close button inset from its corner. Below it are the tag with a lime check badge at the right end of its line, the garment's item type (or "Uncategorized" in the warning colour), and the actions. A garment with no photo, or whose photo fails to load, shows a placeholder garment icon instead.
 - Warning: the tag is already in the draft. Same card as success, with a warning badge in the same place and the pill "Already in this order".
 - Error: nothing was added (not a garment tag, another customer's, not registered, or lookup failed). A red tile with a cross replaces the photo, the tag is shown (or "Scan" when the code was not a tag), and a red pill carries the message.
 
 There is no timer. The banner stays until the next scan, until it is dismissed, or, for success and warning, until its garment is removed from the draft. The phone scanner overlay shows the same result as a compact banner (`OrderIntakeScanBanner`) in its bottom area, without the actions.
 
-The two actions are:
+The actions are:
 
 - Defect photo opens the defect camera for that garment. The label becomes "Defect N" once the garment has N defect photos. Closing the camera returns to the page, not to the row sheet.
-- Change type opens the item picker for that garment. Choosing a type or closing the picker returns to the page.
+- Choose type appears only for an Uncategorized garment. It opens the item picker for that garment; choosing a type or closing the picker returns to the page. A garment that already has a type has no type action: changing a registered type is Register Garments' job, not order intake's.
 
-Opened from the row sheet, both actions keep returning to the row sheet as described below. The banner follows the draft, so after a type change it shows the new type.
+Opened from the row sheet, both actions keep returning to the row sheet as described below. The banner follows the draft, so after a type is chosen it shows the new type and the Choose type action goes away.
 
 ## Row sheet
 
 Tapping a row of the Items paper opens a bottom sheet titled with the row's item name (or Uncategorized) and its garment count. It lists one line per garment: the registration photo thumbnail, the tag, a defect badge with the number of defect photos when there are any, and a note field. The note field reads and writes through the input event, not a two-way binding, so Thai IME composition works. Each line has these actions:
 
-- Change type opens the price-list item picker. Choosing an item changes the garment's type in the draft only, so it moves to that type's row, and a new row appears if needed. Nothing is written anywhere. The sheet then returns to the row it came from, or closes when that row has no garments left.
+- Choose type, on the Uncategorized row only, opens the price-list item picker. Choosing an item changes the garment's type in the draft only, so it moves to that type's row, and a new row appears if needed. Nothing is written anywhere. The sheet then returns to the row it came from, or closes when that row has no garments left.
 - Defect photo opens the shared camera, which stays open for several photos. The photos stay in the draft with their files and previews and appear as thumbnails in the line. Tapping a thumbnail opens the shared photo viewer with a Remove action; closing or removing returns to the sheet.
 - Remove takes the garment out of this order, including its defect photos. When the last garment of the open row is removed the sheet closes.
 

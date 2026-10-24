@@ -22,8 +22,8 @@ The old pages are removed only once the new flow has proven itself.
    No photo per garment. CCTV records the unpacking.
 2. Each scan adds the garment to the Items paper at once: one row per `LaundryItems.item_id`, quantity
    = garments in it. A garment with no type (AI not done or failed) goes to the **Uncategorized** row.
-3. Tapping a row opens a bottom sheet with the garments in it. There staff change a garment's type,
-   add a note, or add a `DEFECT` photo.
+3. Tapping a row opens a bottom sheet with the garments in it. There staff add a note or a `DEFECT`
+   photo, and choose a type for an Uncategorized garment.
 4. **Save**: one request with the order, its items and its garments. The backend writes everything
    and the order becomes `RECEIVED` (open point 3).
 5. Staff approve on order detail with the existing Approve button; job tickets as today.
@@ -43,22 +43,24 @@ Owner:
    garments gather in an Uncategorized row; tapping a row opens a bottom sheet of its garments
    (2026-10-24). This replaces the separate review page and the earlier "no order items at intake".
 5. The backend never invents order items: it writes exactly the items the page sends.
+6. Intake does not change a garment's registered type; that belongs to Register Garments. Intake only
+   lets staff choose a type for an untyped (Uncategorized) garment (2026-10-24).
 
 Claude (minor):
 
-6. Save is one backend request. The backend creates the order through the existing create path
+7. Save is one backend request. The backend creates the order through the existing create path
    (always `PENDING`) and sets the status in the same request.
-7. Save is disabled while Uncategorized has garments, while a photo is `uploading` or `failed`, or
+8. Save is disabled while Uncategorized has garments, while a photo is `uploading` or `failed`, or
    with no garment. Every saved garment therefore has a type.
-8. A type chosen or changed on the page is written to `LaundryItems.item_id` at Save, so the garment's
+9. A type chosen on the page for an untyped garment is written to `LaundryItems.item_id` at Save, so the garment's
    next order needs nothing.
-9. Order item quantity = garments in it; price null (as today's manual add); service type from the
+10. Order item quantity = garments in it; price null (as today's manual add); service type from the
    order.
-10. Photos (defect, document, weight, customer asset) upload to Firebase when captured, through the
+11. Photos (defect, document, weight, customer asset) upload to Firebase when captured, through the
     shared `useGarmentPhotoUploads`. Removing a photo, or Discard, deletes its file; errors ignored.
-11. Each LaundryPhotos row uses the garment's registration image (`LaundryItems.image_url`), its order
+12. Each LaundryPhotos row uses the garment's registration image (`LaundryItems.image_url`), its order
     item id, and `created_by` = the staff who saved (keeps Tagging credit and order detail counts).
-12. MagicwashAI's order trigger (`orderIds` → `SUBMITTED`, live since 2026-10-24) is unused and left in
+13. MagicwashAI's order trigger (`orderIds` → `SUBMITTED`, live since 2026-10-24) is unused and left in
     place. The gateway "AI key = staff" change is not needed.
 
 ## Open points (owner)
@@ -67,7 +69,7 @@ Claude (minor):
    the `REGISTRATION` photo; Save calls `register()` first, which also asks MagicwashAI to type it, as
    the registration page does; on this page it sits in Uncategorized until staff pick a type).
    Alternative: block it and send staff to Register Garments.
-2. **Ticket provisioning source.** Recommended: keep writing LaundryPhotos for now (decision 11).
+2. **Ticket provisioning source.** Recommended: keep writing LaundryPhotos for now (decision 12).
    Alternative: move provisioning and Tagging credit to OrderGarments (about 1 extra day; old pages then
    do not see intake garments).
 3. **Status after Save.** Recommended: `RECEIVED`, then the existing Approve on order detail (a check
@@ -101,8 +103,8 @@ picker.
 
 - Title: the row's item name (or Uncategorized) and count.
 - One line per garment: registration photo, tag, defect badge, note.
-- Per garment: **Change type** (price-list picker; the garment moves to that row, a new row if
-  needed), **Note**, **Defect photo** (camera, several allowed), **Remove** from this order.
+- Per garment: **Choose type** on the Uncategorized row only (price-list picker; the garment moves to
+  that row, a new row if needed), **Note**, **Defect photo** (camera, several allowed), **Remove** from this order.
 - A row whose last garment leaves disappears.
 
 ## Save request
@@ -140,7 +142,7 @@ What the backend writes, in order:
 | sheet | rows |
 |---|---|
 | LaundryItems + LaundryItemPhotos `REGISTRATION` | new tags only, through `register()` (with the chosen `itemId`) |
-| LaundryItems `item_id` | registered garments whose type differs from the chosen one |
+| LaundryItems `item_id` | registered garments that had no type and got one on the page |
 | OrderForm | 1 order, `PENDING` → `RECEIVED`, quantity = garments |
 | OrderItems | 1 per item: `itemId`, quantity = tags, price null |
 | LaundryPhotos | 1 per garment: registration image, its order item id (transitional) |

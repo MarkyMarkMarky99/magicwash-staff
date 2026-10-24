@@ -35,7 +35,7 @@ const emit = defineEmits<{ select: [key: string] }>()
     </ul>
     <div class="cols paper__total">
       <div>Total</div>
-      <div><span>{{ total }}</span><small>pcs</small></div>
+      <div><span class="paper__total-num">{{ total }}<small>pcs</small></span></div>
     </div>
   </div>
 </template>
@@ -70,7 +70,7 @@ const emit = defineEmits<{ select: [key: string] }>()
 
 .cols {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 118px;
+  grid-template-columns: minmax(0, 1fr) 72px;
 }
 
 .paper__head {
@@ -93,6 +93,11 @@ const emit = defineEmits<{ select: [key: string] }>()
 .paper__head > span:first-child {
   padding-left: 12px;
   text-align: left;
+}
+
+.paper__head > span:last-child {
+  padding-right: 30px;
+  text-align: right;
 }
 
 .paper__state {
@@ -156,11 +161,11 @@ const emit = defineEmits<{ select: [key: string] }>()
 }
 
 .paper__qty {
-  padding: 12px 6px;
+  padding: 12px 30px 12px 6px;
   font-size: 16px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  text-align: center;
+  text-align: right;
 }
 
 .paper__total {
@@ -180,6 +185,11 @@ const emit = defineEmits<{ select: [key: string] }>()
   font-variant-numeric: tabular-nums;
 }
 
+.paper__total > div:last-child {
+  justify-content: flex-end;
+  padding-right: 30px;
+}
+
 .paper__total > div:first-child {
   justify-content: flex-start;
   padding-left: 12px;
@@ -189,7 +199,15 @@ const emit = defineEmits<{ select: [key: string] }>()
   text-transform: uppercase;
 }
 
+.paper__total-num {
+  position: relative;
+}
+
+/* Numbers share one right edge and grow to the left; "pcs" sits fixed in the 30px gutter. */
 .paper__total small {
+  position: absolute;
+  bottom: 2px;
+  left: 100%;
   margin-left: 3px;
   color: var(--color-on-secondary-container);
   font-size: 10px;
