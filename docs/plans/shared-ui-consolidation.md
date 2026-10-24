@@ -72,7 +72,7 @@ two invoice payment pages; the two appointment pages). New `src/shared/component
 - The corner status bubble on a 56px thumb is duplicated in `WashQueueRow` and `OrderBagRow`:
   extract `ThumbStatusBubble`.
 
-### Round 6 — Settle the shared-component changes made on `feat/order-intake-page`
+### Round 6 — Settle the shared-component changes made on `feat/order-intake-page` — done
 
 That branch added `backAction` to `AppHeader.vue` and `closeButton` to `PickerOverlay.vue` outside a
 dedicated refactor (for the garment detail overlay). Review them here: keep them with docs entries,

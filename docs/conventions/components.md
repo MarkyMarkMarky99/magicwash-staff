@@ -33,6 +33,9 @@ src/
 Do not add similar feature dependencies to shared components; remove this exception only in a
 dedicated shared-component refactor.
 
+`AppHeader.vue` takes an optional `backAction` function. When set, the back button shows and calls it instead of route-parent navigation; full-screen overlays that must not leave the page use it. Without it the back button shows only when the route has a `meta.parent`.
+`PickerOverlay.vue` takes `closeButton` (default `true`); pass `false` when the overlay's own header already has a back or close control.
+
 See [Shared QR scanner overlay](./qr-scanner-overlay.md) for the camera-only overlay API.
 `BaseBadge.vue` has sizes `sm` (dense list rows and counts) and `lg` (headers, hero statuses, and date chips), tones neutral, brand, accent, lime (solid lime with dark green text, for statuses on dark brand surfaces), info, warning, success, and danger, and a solid variant for danger only.
 `BaseSwipeCard.vue` owns the corner shape of every swipe card: its clip and the moving card inherit the radius the caller puts on the component (for example `rounded-[14px]`), so the card stays rounded while it slides. A 1px surface ring on the moving card hides the panel colour at the rounded corners at rest. Each direct child of a side panel extends its own background 1.5rem toward the card (a `::before` under the card), so a revealed action of exactly the snap width still fills behind the card's rounded corners. Callers set the radius on `BaseSwipeCard` itself and never restyle `.swipe-card`.

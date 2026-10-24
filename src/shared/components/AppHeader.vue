@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, inject, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import logoUrl from '../../assets/logo.png'
@@ -8,14 +8,14 @@ import { useNavDrawer } from '@/shared/composables/use-nav-drawer'
 import { APP_Z_INDEX_CLASS } from '@/shared/layouts/z-index'
 import CloseButton from './CloseButton.vue'
 
-const props = defineProps({ backAction: { type: Function, default: null } })
+const props = defineProps<{ backAction?: () => void }>()
 const router = useRouter()
 const route  = useRoute()
 const pendingCount = inject(appointmentPendingCountKey, ref(0))
 const { toggle: toggleDrawer } = useNavDrawer()
 const { goBack } = useGoBack()
 
-const canGoBack = computed(() => props.backAction !== null || Boolean(route.meta.parent))
+const canGoBack = computed(() => props.backAction !== undefined || Boolean(route.meta.parent))
 
 </script>
 
