@@ -33,7 +33,7 @@ again. Consolidating them makes the look consistent and makes new pages cheaper.
 
 Ordered by confidence first (copies confirmed identical), then by number of copies.
 
-### Round 1 — Extract: form page header (`FormPageHeader`)
+### Round 1 — Extract: form page header (`FormPageHeader`) — done
 
 Three hand-built copies of the dark-green form header with the "Customer" box and its lime tab,
 measured identical in the browser (23px/800 title, 72.5×22.8 tab, same rotation):
