@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
-import { canSaveGarment, isDuplicateGarmentTag, validGarmentTag } from '@/features/orders/garment-registration'
+import { canSaveGarment, isDuplicateGarmentTag, validGarmentTag } from '@/shared/utils/garment-registration'
 import { buildOrderOverlayQuery, readOrderOverlay, readRegistrationItemId } from '@/features/orders/composables/use-order-overlay-route'
 
 const itemRowSource = readFileSync(new URL('../../../../../src/features/orders/components/OrderItemRow.vue', import.meta.url), 'utf8')
 const detailSource = readFileSync(new URL('../../../../../src/features/orders/pages/OrderDetailPage.vue', import.meta.url), 'utf8')
-const cameraSource = readFileSync(new URL('../../../../../src/features/orders/components/GarmentRegistrationCamera.vue', import.meta.url), 'utf8')
+const cameraSource = readFileSync(new URL('../../../../../src/shared/components/GarmentRegistrationCamera.vue', import.meta.url), 'utf8')
 
 test('tag validation uses the print contract format', () => {
   assert.equal(validGarmentTag(' 12345678 '), '12345678')

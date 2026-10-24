@@ -101,7 +101,28 @@ This key permits only `itemId` and optional `updatedBy` (other fields return 403
 The shared CRUD handler supplies authenticated staff actors. Repository audit declarations
 stamp `created_at` on append and `updated_at` on update using Bangkok `yyyy-MM-dd HH:mm:ss`.
 Item GET/PATCH validate the same tag format and return 404 for missing rows. There is no delete
-endpoint. This module does not orchestrate garment registration, job tickets, or photos.
+endpoint. Job-ticket orchestration remains outside this module.
+
+`POST /api/laundry-items/register` accepts `{ customerId, garments: [{ tag, imageUrl, itemId }] }`
+with at least one unique tag and a nullable itemId. The session supplies `createdBy` and the
+acting staff id. It returns 201 with `{ registered: string[], alreadyRegistered: string[],
+failed: string[], aiTriggered: boolean }`. Invalid payloads (including duplicate tags) return 422;
+an unknown customer returns 404. A tag belonging to another customer returns 409 `TAG_CONFLICT`,
+with the tags in the message and `error.details.tags`, before any write. Soft-deleted garments
+count as absent. GET/PATCH `/register` and POST to any other item id return 404.
+
+The registration service reads LaundryItems once, appends new garments in a batch, then reads
+LaundryItemPhotos once and appends REGISTRATION rows for new garments and existing same-customer
+garments missing a live registration photo. Writes are sequential and not atomic; the existing
+CRUD wrapper is unchanged. A garment-write failure propagates. A photo read/write failure returns
+affected tags in `failed`; a retry skips garment creation and repairs missing photo rows.
+Read-before-append checks have no cross-instance uniqueness guarantee.
+
+When a newly created garment has null itemId, the service awaits a best-effort
+`POST {VITE_AI_GATEWAY_URL}/tasks/classify-laundry-items`, with server-only
+`Authorization: Bearer <AI_GATEWAY_SECRET>`, session `x-acting-staff-id`, body `{ "input": {} }`,
+and a 15-second timeout. Any 2xx sets `aiTriggered` true. Missing configuration or trigger failure
+returns false and never fails registration. No secret is logged.
 
 The staff-authenticated `order-garments` module exposes collection GET/POST and item GET/PATCH
 at `/api/order-garments`, bound to tab `OrderGarments` in `LAUNDRY_ITEMS_SPREADSHEET_ID`.

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ListContainer from '@/shared/components/ListContainer.vue'
 import CreateDropdownMenu from './CreateDropdownMenu.vue'
-import { corporateOrderCreateRoute, orderCreateRoute, orderIntakeCreateRoute } from '@/shared/navigation/form-routes'
+import { corporateOrderCreateRoute, laundryItemRegisterRoute, orderCreateRoute, orderIntakeCreateRoute } from '@/shared/navigation/form-routes'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
@@ -31,11 +31,12 @@ const {
 } = storeToRefs(store)
 
 const createItems = computed(() => props.priceGroup?.trim()
-  ? [{ key: 'order', label: 'New Order' }, { key: 'intake', label: 'Intake Order' }, { key: 'count-sheet', label: 'Count Sheet Order' }]
-  : [{ key: 'order', label: 'New Order' }, { key: 'intake', label: 'Intake Order' }])
+  ? [{ key: 'order', label: 'New Order' }, { key: 'intake', label: 'Intake Order' }, { key: 'count-sheet', label: 'Count Sheet Order' }, { key: 'register', label: 'Register Garments' }]
+  : [{ key: 'order', label: 'New Order' }, { key: 'intake', label: 'Intake Order' }, { key: 'register', label: 'Register Garments' }])
 
 function createOrder(key: string) {
   if (key === 'count-sheet') router.push(corporateOrderCreateRoute(props.customerId))
+  else if (key === 'register') router.push(laundryItemRegisterRoute(props.customerId))
   else if (key === 'intake') router.push(orderIntakeCreateRoute(props.customerId))
   else router.push(orderCreateRoute({ customerId: props.customerId }))
 }

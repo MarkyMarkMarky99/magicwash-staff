@@ -54,8 +54,8 @@ Claude (minor):
    a photo in the form, or Discard, deletes its file from Firebase. A closed tab leaves orphan files;
    accepted. Document, weight and customer-asset photos upload at capture too, so Save sends
    everything in one request (see "Save request").
-9. New server env `MAGICWASH_AI_URL` (Production + Preview) = `https://ai.magicwash-laundry.com`.
-   `AI_GATEWAY_SECRET` is already set.
+9. MagicwashAI URL: the existing `VITE_AI_GATEWAY_URL` (all three Vercel environments; server functions read it too); no new env var.
+   `AI_GATEWAY_SECRET` is set in all three environments.
 10. Order item quantity = garments in it; price null (as today's manual add).
 11. Moving a garment to an item of another type corrects its `LaundryItems.item_id` on Approve.
 12. The review page handles orders with garments and **no order items**. An order that has items
@@ -133,20 +133,20 @@ actor; a wrong or missing key falls through to normal auth.
 Body and response: see "Save request". `createdBy` from the session; `quantity` = garment count.
 
 1. Validate before any write: header; every tag passes the garment-tag format; no duplicate tags in the
-   request; no tag registered in LaundryItems to **another customer** (this check is now possible because
-   the server reads LaundryItems). A conflict rejects the whole request with the conflicting tags, so
-   staff fix them on the page.
+   request; no tag registered to **another customer** — `checkTags` from the LaundryItems registration
+   service (`laundry-item-registration.md`). A conflict rejects the whole request with the conflicting
+   tags, so staff fix them on the page.
 2. Create the order with the existing work-order create path, no items, then set it `RECEIVED`.
-3. `batchAppend` in this order:
+3. Write in this order:
+   - LaundryItems + `REGISTRATION` photos for new tags: `register()` of the registration service
+     (the only code that creates LaundryItems rows);
    - LaundryPhotos: one per garment (`orderId`, tag as `itemId`, `imageUrl`, `orderItemId` null) —
      transitional, keeps old pages and ticket provisioning working;
-   - LaundryItems: new tags only (`id` = tag, `customer_id`, `item_id` null, `image_url`);
-   - LaundryItemPhotos: `REGISTRATION` (`order_id` null) for new tags, `BEFORE` (`order_id` = order)
-     for every tag, same URL;
+   - LaundryItemPhotos: `BEFORE` (`order_id` = order) for every tag, same URL;
    - OrderGarments: one per garment (`status` `RECEIVED`, `orderitem_id` null);
    - OrderImages: one per `images` entry (`imageType`, `imagePath` = URL, `quantity`, `customerId`).
 4. Next step, from the garments only:
-   - some garment untyped → `POST {MAGICWASH_AI_URL}/tasks/classify-laundry-items` with
+   - some garment untyped → `POST {VITE_AI_GATEWAY_URL}/tasks/classify-laundry-items` with
      `Authorization: Bearer <AI_GATEWAY_SECRET>`, `X-Acting-Staff-Id: <staff>`,
      `{ "input": { "orderIds": [orderId] } }`, 15 s timeout, awaited (202 comes back quickly);
    - all typed (returning customers' tagged garments) → set `SUBMITTED`.

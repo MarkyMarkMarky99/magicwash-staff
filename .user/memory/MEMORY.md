@@ -5,7 +5,7 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
-- **`feat/order-intake-page`** — new Intake Order page built and browser-checked; Save not yet run end to end; see `.user/memory/feat-order-intake-page.md`.
+- **`feat/order-intake-page`** — Intake Order page (temporary Save) + Register Garments page and register endpoint; next: Register Save browser test, Intake Save rewire; see `.user/memory/feat-order-intake-page.md`.
 
 ## Pending work
 - **MagicwashAI local gateway** — handoff: `.user/memory/magicwash-ai-gateway-handoff.md`

@@ -15,7 +15,7 @@ try {
   assert.ok(routes.item)
   for (const [handler, method, allow] of [
     [routes.collection, 'PATCH', 'GET, POST'],
-    [routes.item!, 'DELETE', 'GET, PATCH'],
+    [routes.item!, 'DELETE', 'GET, PATCH, POST'],
   ] as const) {
     const result = await handler.handleRequest({ method, query: {}, body: {}, params: {}, headers: {} })
     assert.equal(result.status, 405)
