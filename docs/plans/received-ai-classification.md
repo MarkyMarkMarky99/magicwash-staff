@@ -133,16 +133,16 @@ actor; a wrong or missing key falls through to normal auth.
 Body and response: see "Save request". `createdBy` from the session; `quantity` = garment count.
 
 1. Validate before any write: header; every tag passes the garment-tag format; no duplicate tags in the
-   request; no tag registered in LaundryItems to **another customer** (this check is now possible because
-   the server reads LaundryItems). A conflict rejects the whole request with the conflicting tags, so
-   staff fix them on the page.
+   request; no tag registered to **another customer** — `checkTags` from the LaundryItems registration
+   service (`laundry-item-registration.md`). A conflict rejects the whole request with the conflicting
+   tags, so staff fix them on the page.
 2. Create the order with the existing work-order create path, no items, then set it `RECEIVED`.
-3. `batchAppend` in this order:
+3. Write in this order:
+   - LaundryItems + `REGISTRATION` photos for new tags: `register()` of the registration service
+     (the only code that creates LaundryItems rows);
    - LaundryPhotos: one per garment (`orderId`, tag as `itemId`, `imageUrl`, `orderItemId` null) —
      transitional, keeps old pages and ticket provisioning working;
-   - LaundryItems: new tags only (`id` = tag, `customer_id`, `item_id` null, `image_url`);
-   - LaundryItemPhotos: `REGISTRATION` (`order_id` null) for new tags, `BEFORE` (`order_id` = order)
-     for every tag, same URL;
+   - LaundryItemPhotos: `BEFORE` (`order_id` = order) for every tag, same URL;
    - OrderGarments: one per garment (`status` `RECEIVED`, `orderitem_id` null);
    - OrderImages: one per `images` entry (`imageType`, `imagePath` = URL, `quantity`, `customerId`).
 4. Next step, from the garments only:
