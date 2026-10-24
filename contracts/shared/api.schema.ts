@@ -30,6 +30,7 @@ export const apiErrorCodeSchema = z.enum([
   'NOT_FOUND',
   'METHOD_NOT_ALLOWED',
   'CONFLICT',
+  'TAG_CONFLICT',
   'INTERNAL_ERROR',
 ])
 

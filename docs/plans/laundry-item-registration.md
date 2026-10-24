@@ -141,9 +141,9 @@ Custom route in `laundry-item.module.ts`, next to the CRUD routes (precedent: La
 `{ conflictingTags }`. `201` → the service result plus `aiTriggered: boolean`.
 
 After the writes, if any registered garment has no `itemId`, trigger MagicwashAI
-`POST {MAGICWASH_AI_URL}/tasks/classify-laundry-items` with `Authorization: Bearer <AI_GATEWAY_SECRET>`,
+`POST {VITE_AI_GATEWAY_URL}/tasks/classify-laundry-items` with `Authorization: Bearer <AI_GATEWAY_SECRET>`,
 `X-Acting-Staff-Id`, body `{ "input": {} }` (no orderIds; nothing to submit), 15 s timeout, awaited.
-A trigger failure does not fail the request. New server env `MAGICWASH_AI_URL` (Production + Preview).
+A trigger failure does not fail the request. The URL comes from the existing `VITE_AI_GATEWAY_URL` (set in all three Vercel environments; server functions read it too), so no new env var. `AI_GATEWAY_SECRET` is set in all three.
 
 ## Design — frontend
 
@@ -217,7 +217,7 @@ This branch:
 | 1 backend | registration service, register route, MagicwashAI trigger, env, tests, operations.md | ½–1 day |
 | 2 frontend | move shared pieces, tag print without order, upload/delete composable, data service | ½ day |
 | 3 frontend | Register Garments page + entry | 1 day |
-| 4 live | `MAGICWASH_AI_URL` on Vercel, register 2–3 test garments, check sheets, AI typing, file delete | ½ day |
+| 4 live | register 2–3 test garments, check sheets, AI typing, file delete | ½ day |
 
 Later: order scan flow, `status` writes from job tickets, the one-row-per-garment-per-order rule.
 

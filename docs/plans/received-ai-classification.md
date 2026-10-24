@@ -54,8 +54,8 @@ Claude (minor):
    a photo in the form, or Discard, deletes its file from Firebase. A closed tab leaves orphan files;
    accepted. Document, weight and customer-asset photos upload at capture too, so Save sends
    everything in one request (see "Save request").
-9. New server env `MAGICWASH_AI_URL` (Production + Preview) = `https://ai.magicwash-laundry.com`.
-   `AI_GATEWAY_SECRET` is already set.
+9. MagicwashAI URL: the existing `VITE_AI_GATEWAY_URL` (all three Vercel environments; server functions read it too); no new env var.
+   `AI_GATEWAY_SECRET` is set in all three environments.
 10. Order item quantity = garments in it; price null (as today's manual add).
 11. Moving a garment to an item of another type corrects its `LaundryItems.item_id` on Approve.
 12. The review page handles orders with garments and **no order items**. An order that has items
@@ -146,7 +146,7 @@ Body and response: see "Save request". `createdBy` from the session; `quantity` 
    - OrderGarments: one per garment (`status` `RECEIVED`, `orderitem_id` null);
    - OrderImages: one per `images` entry (`imageType`, `imagePath` = URL, `quantity`, `customerId`).
 4. Next step, from the garments only:
-   - some garment untyped → `POST {MAGICWASH_AI_URL}/tasks/classify-laundry-items` with
+   - some garment untyped → `POST {VITE_AI_GATEWAY_URL}/tasks/classify-laundry-items` with
      `Authorization: Bearer <AI_GATEWAY_SECRET>`, `X-Acting-Staff-Id: <staff>`,
      `{ "input": { "orderIds": [orderId] } }`, 15 s timeout, awaited (202 comes back quickly);
    - all typed (returning customers' tagged garments) → set `SUBMITTED`.

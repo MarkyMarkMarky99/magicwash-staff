@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useRoute } from 'vue-router'
+import { onBeforeRouteLeave, useRoute } from 'vue-router'
 import { laundryItemRegisterRequestSchema } from '@contracts/laundry-items/laundry-item-register-api.schema'
 import GarmentRegistrationCamera from '@/shared/components/GarmentRegistrationCamera.vue'
 import PhotoViewer from '@/shared/components/PhotoViewer.vue'
@@ -10,6 +10,8 @@ import StickerFab from '@/shared/components/StickerFab.vue'
 import { useGarmentPhotoUploads } from '@/shared/composables/useGarmentPhotoUploads'
 import { useCloseRoute } from '@/shared/navigation/use-close-route'
 import { primeFeedbackAudio } from '@/shared/utils/scan-feedback'
+import { ApiError } from '@/shared/api/api-client'
+import { registerLaundryItems } from '@/data/laundry-items/laundry-item.service'
 import { useCustomerStore } from '@/data/customers/customer.store'
 import LaundryItemRegisterHeader from '@/features/laundry-items/components/LaundryItemRegisterHeader.vue'
 import LaundryItemRegisterPaper from '@/features/laundry-items/components/LaundryItemRegisterPaper.vue'
@@ -42,10 +44,13 @@ const customerProblem = computed(() => {
   return customersLoaded.value ? 'Customer not found' : null
 })
 
+const saving = ref(false)
 const saveNotice = ref<string | null>(null)
 const viewerRevision = ref(0)
 let remountingViewer = false
 let kept = false
+
+onBeforeRouteLeave(() => !saving.value || kept)
 
 const overlayKind = computed(() => overlayRoute.overlay.value?.kind ?? null)
 const viewedId = computed(() => {
@@ -60,7 +65,7 @@ const rows = computed(() => garments.map((garment) => ({
 })))
 const viewerImages = computed(() => garments.map((garment) => ({ id: garment.id, src: garment.previewUrl, alt: `Garment ${garment.tag}` })))
 const subtitle = computed(() => (garments.length === 0 ? 'No garments yet' : `${garments.length} garments`))
-const canSave = computed(() => garments.length > 0
+const canSave = computed(() => !saving.value && garments.length > 0
   && rows.value.every((row) => row.status === 'done'))
 
 const registerGarments = useLaundryItemRegisterGarments(
@@ -74,6 +79,7 @@ watch(overlayKind, (kind) => {
 })
 
 function openCamera(): void {
+  if (saving.value) return
   void primeFeedbackAudio()
   overlayRoute.open({ kind: 'camera' })
 }
@@ -88,8 +94,9 @@ function onViewerClose(): void {
 }
 
 function removeRow(id: string): void {
+  if (saving.value) return
   removeGarment(id)
-  photoUploads.remove(id)
+  if (!kept) photoUploads.remove(id)
 }
 
 function removeViewed(id: string): void {
@@ -102,13 +109,15 @@ function removeViewed(id: string): void {
 }
 
 function discard(): void {
-  photoUploads.discardAll()
+  if (saving.value) return
+  if (!kept) photoUploads.discardAll()
   closeRoute()
 }
 
-function save(): void {
+async function save(): Promise<void> {
   if (!canSave.value) return
   saveNotice.value = null
+  saving.value = true
   try {
     const payload = laundryItemRegisterRequestSchema.parse({
       customerId: customerId.value,
@@ -118,11 +127,20 @@ function save(): void {
         itemId: null,
       })),
     })
-    console.info('[laundry-item-register] payload', JSON.stringify(payload, null, 2))
+    const result = await registerLaundryItems(payload)
     kept = true
-    saveNotice.value = 'Backend not connected yet. The request was logged to the console.'
+    saveNotice.value = `${result.registered.length} registered`
+      + (result.alreadyRegistered.length > 0 ? `, ${result.alreadyRegistered.length} already registered` : '')
+      + (result.failed.length > 0 ? `, ${result.failed.length} photo rows failed` : '')
+    if (result.failed.length === 0) closeRoute()
   } catch (reason) {
-    saveNotice.value = reason instanceof Error ? reason.message : 'Unable to build the request'
+    if (reason instanceof ApiError && reason.status === 409 && reason.code === 'TAG_CONFLICT') {
+      saveNotice.value = reason.message
+    } else {
+      saveNotice.value = reason instanceof Error ? reason.message : 'Unable to register garments'
+    }
+  } finally {
+    saving.value = false
   }
 }
 
@@ -154,6 +172,7 @@ onBeforeUnmount(() => {
               class="!h-[46px] !w-[46px] !rounded-[17px_20px_17px_19px] [&_.sticker-label]:hidden"
               label="Take photo"
               aria-label="Take photo"
+              :disabled="saving"
               @click="openCamera"
             >
               <span class="material-symbols-outlined text-[24px]" aria-hidden="true">photo_camera</span>
@@ -173,7 +192,7 @@ onBeforeUnmount(() => {
       </div>
       <div class="flex gap-2.5">
         <button type="button" class="h-[52px] flex-1 rounded-full border-2 border-primary bg-white font-headline text-base font-bold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" @click="discard">Discard</button>
-        <button type="button" class="h-[52px] flex-1 rounded-full bg-primary font-headline text-base font-bold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime disabled:opacity-50" :disabled="!canSave" @click="save">Save</button>
+        <button type="button" class="h-[52px] flex-1 rounded-full bg-primary font-headline text-base font-bold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime disabled:opacity-50" :disabled="!canSave" @click="save">{{ saving ? 'Saving…' : 'Save' }}</button>
       </div>
     </footer>
 

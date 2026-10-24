@@ -9,13 +9,20 @@ const garmentSchema = z.object({
 
 export const laundryItemRegisterRequestSchema = z.object({
   customerId: z.string().trim().min(1),
-  garments: z.array(garmentSchema).min(1),
-}).strict().superRefine((request, context) => {
-  const seen = new Set<string>()
-  request.garments.forEach((garment, index) => {
-    if (seen.has(garment.tag)) {
-      context.addIssue({ code: z.ZodIssueCode.custom, path: ['garments', index, 'tag'], message: 'Duplicate tag' })
-    }
-    seen.add(garment.tag)
-  })
+  garments: z.array(garmentSchema).min(1).superRefine((garments, context) => {
+    const seen = new Set<string>()
+    garments.forEach((garment, index) => {
+      if (seen.has(garment.tag)) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: [index, 'tag'], message: 'Duplicate tag' })
+      }
+      seen.add(garment.tag)
+    })
+  }),
+}).strict()
+
+export const laundryItemRegisterResponseSchema = z.object({
+  registered: z.array(laundryTagIdSchema),
+  alreadyRegistered: z.array(laundryTagIdSchema),
+  failed: z.array(laundryTagIdSchema),
+  aiTriggered: z.boolean(),
 })

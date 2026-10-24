@@ -1,4 +1,14 @@
 import type { z } from 'zod'
+import { getLaundryItemPhotosRepository } from '../../sheets/LaundryItemPhotos/LaundryItemPhotos.repository.js'
+import { getCustomersRepository } from '../../sheets/Customers/Customers.repository.js'
+import { ApiHandler } from '../../shared/http/api-handler.js'
+import type { GatewayModuleRoutes } from '../../shared/http/gateway.types.js'
+import { created } from '../../shared/http/response.js'
+import { bodyWithSessionActor, requireStaffId } from '../../shared/http/session-actor.js'
+import { generateShortId } from '../../shared/utils/id.js'
+import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
+import { LaundryItemRegistrationService } from './laundry-item-registration.service.js'
+import { triggerLaundryItemClassification } from './magicwash-ai-classify-client.js'
 import { laundryItemApiContract } from '../../../contracts/laundry-items/laundry-item-api.schema.js'
 import { laundryTagIdSchema } from '../../../contracts/laundry-tag-prints/laundry-tag-print.schema.js'
 import type { laundryItemsRowSchema } from '../../sheets/LaundryItems/LaundryItems.db-contract.js'
@@ -81,7 +91,47 @@ export function createLaundryItemService(
 }
 
 export const laundryItemService = createLaundryItemService()
-export const laundryItemRoutes = createCrudRoutes(laundryItemService, laundryItemApiContract, {
-  create: ['createdBy'],
-  update: ['updatedBy'],
+export const laundryItemRegistrationService = new LaundryItemRegistrationService({
+  laundryItems: {
+    read: query => getLaundryItemsRepository().read(query),
+    batchAppend: rows => getLaundryItemsRepository().batchAppend(rows),
+  },
+  photos: {
+    read: query => getLaundryItemPhotosRepository().read(query),
+    batchAppend: rows => getLaundryItemPhotosRepository().batchAppend(rows),
+  },
+  customerExists: async customerId => (await getCustomersRepository().read(ReadQueryDTO.fromId(customerId))).length > 0,
+  generateId: generateShortId,
+  now: () => formatBangkokTimestamp(new Date()),
+  triggerClassification: triggerLaundryItemClassification,
 })
+
+export function createLaundryItemRoutes(
+  service = laundryItemService,
+  registrationService: Pick<LaundryItemRegistrationService, 'register'> = laundryItemRegistrationService,
+): GatewayModuleRoutes {
+  const crudRoutes = createCrudRoutes(service, laundryItemApiContract, {
+    create: ['createdBy'],
+    update: ['updatedBy'],
+  })
+  return {
+    collection: crudRoutes.collection,
+    item: new ApiHandler({
+      GET: async req => {
+        if (req.params.id === 'register') throw ApiError.notFound('Route not found')
+        return crudRoutes.item!.handleRequest(req)
+      },
+      PATCH: async req => {
+        if (req.params.id === 'register') throw ApiError.notFound('Route not found')
+        return crudRoutes.item!.handleRequest(req)
+      },
+      POST: async req => {
+        if (req.params.id !== 'register') throw ApiError.notFound('Route not found')
+        const actor = { staffId: requireStaffId(req) }
+        return created(await registrationService.register(bodyWithSessionActor(req, 'createdBy'), actor))
+      },
+    }),
+  }
+}
+
+export const laundryItemRoutes = createLaundryItemRoutes()

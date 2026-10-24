@@ -45,6 +45,10 @@ Every rejection plays the failure feedback and resets the camera. A tag plus a p
 
 `useGarmentPhotoUploads` uploads each photo with `uploadLaundryPhoto` as soon as the garment is added and tracks `uploading`, `done` or `failed` per garment; Retry re-runs a failed upload. Removing a row removes it from the draft and deletes the Firebase file (when the upload is still running, the file is deleted when it finishes). Discard, the header close and leaving the page without saving delete every uploaded file. Delete failures are logged and ignored. Object-URL previews are released with the draft.
 
-## Save (temporary)
+## Save
 
-The backend registration endpoint is not connected yet. Save is disabled with no garments and while any upload is `uploading` or `failed`. It builds `{ customerId, garments: [{ tag, imageUrl, itemId: null }] }`, validates it with `laundryItemRegisterRequestSchema`, logs it to the console as `[laundry-item-register] payload` followed by the pretty-printed JSON, and shows the footer notice "Backend not connected yet. The request was logged to the console." It calls no API, does not navigate, and keeps the draft; the uploaded files stay in Firebase. Replace this with the real request when the endpoint exists.
+Save is disabled with no garments, while any upload is `uploading` or `failed`, and during the request (label "Saving…"). It validates `{ customerId, garments: [{ tag, imageUrl, itemId: null }] }` with `laundryItemRegisterRequestSchema` and calls `POST /api/laundry-items/register` through the data service. The service parses the response with `laundryItemRegisterResponseSchema` and invalidates `/api/laundry-items` caches.
+
+Success shows "<n> registered", adding ", <m> already registered" and ", <f> photo rows failed" when their counts are nonzero. The draft is marked kept so its files are retained, including on remove, Discard, or leaving after a partial success. With no failed photo rows the page closes to the customer detail; otherwise it stays open for a retry. Retries skip existing garments and repair missing registration photo rows.
+
+A 409 `TAG_CONFLICT` shows "Tag belongs to another customer: <tags>". Other errors show their message. Errors leave the draft open and re-enable Save. Discard and removal are ignored during saving, and route navigation is blocked until the response arrives, so files being registered cannot be deleted.
