@@ -4,22 +4,38 @@ import { useRoute, useRouter } from 'vue-router'
 export type OrderIntakeOverlay =
   | { kind: 'garments' | 'document' | 'weight' | 'belonging' | 'photos' }
   | { kind: 'view', id: string }
+  | { kind: 'row', key: string }
+  | { kind: 'pick', tag: string }
+  | { kind: 'defect', tag: string }
 
 const QUERY_KEY = 'intake'
-const VIEW_PREFIX = 'view:'
 const PLAIN_KINDS = ['garments', 'document', 'weight', 'belonging', 'photos'] as const
+const VALUE_KINDS = ['view', 'row', 'pick', 'defect'] as const
 
 export function parseOrderIntakeOverlay(raw: unknown): OrderIntakeOverlay | null {
   const value = Array.isArray(raw) ? raw[0] : raw
   if (typeof value !== 'string') return null
   const plain = PLAIN_KINDS.find((kind) => kind === value)
   if (plain) return { kind: plain }
-  if (value.startsWith(VIEW_PREFIX) && value.length > VIEW_PREFIX.length) return { kind: 'view', id: value.slice(VIEW_PREFIX.length) }
+  for (const kind of VALUE_KINDS) {
+    const prefix = `${kind}:`
+    if (!value.startsWith(prefix) || value.length === prefix.length) continue
+    const rest = value.slice(prefix.length)
+    if (kind === 'view') return { kind, id: rest }
+    if (kind === 'row') return { kind, key: rest }
+    return { kind, tag: rest }
+  }
   return null
 }
 
 export function serializeOrderIntakeOverlay(overlay: OrderIntakeOverlay): string {
-  return overlay.kind === 'view' ? `${VIEW_PREFIX}${overlay.id}` : overlay.kind
+  switch (overlay.kind) {
+    case 'view': return `view:${overlay.id}`
+    case 'row': return `row:${overlay.key}`
+    case 'pick': return `pick:${overlay.tag}`
+    case 'defect': return `defect:${overlay.tag}`
+    default: return overlay.kind
+  }
 }
 
 export function useOrderIntakeOverlayRoute() {

@@ -1,19 +1,20 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { workOrderCreateSchema } from '@contracts/work-orders/work-order-api.schema'
-import { currentActor } from '@/shared/config/actor'
+import { useRoute } from 'vue-router'
 import CameraOverlay from '@/shared/components/CameraOverlay.vue'
 import PhotoViewer from '@/shared/components/PhotoViewer.vue'
+import QrScannerOverlay from '@/shared/components/QrScannerOverlay.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import WeightPrompt from '@/shared/components/WeightPrompt.vue'
+import { useScannerGunInput } from '@/shared/composables/useScannerGunInput'
 import { useCloseRoute } from '@/shared/navigation/use-close-route'
 import { primeFeedbackAudio } from '@/shared/utils/scan-feedback'
 import { useCustomerStore } from '@/data/customers/customer.store'
-import { createLaundryPhoto, uploadLaundryPhoto } from '@/data/laundry-photos/laundry-photo.service'
+import { useItemsStore } from '@/data/items/items.store'
+import type { ItemDto } from '@/data/items/items.service'
+import PriceListItemPicker from '@/features/price-list/components/PriceListItemPicker.vue'
 import DocumentScannerOverlay from '@/features/orders/components/DocumentScannerOverlay.vue'
-import GarmentRegistrationCamera from '@/shared/components/GarmentRegistrationCamera.vue'
 import OrderFormSectionHeader from '@/features/orders/components/OrderFormSectionHeader.vue'
 import OrderIntakeCaptureMenu from '@/features/orders/components/OrderIntakeCaptureMenu.vue'
 import OrderIntakeDetailsSheet from '@/features/orders/components/OrderIntakeDetailsSheet.vue'
@@ -21,32 +22,34 @@ import OrderIntakeHeader from '@/features/orders/components/OrderIntakeHeader.vu
 import OrderIntakeItemsPaper from '@/features/orders/components/OrderIntakeItemsPaper.vue'
 import OrderIntakePhotosSheet from '@/features/orders/components/OrderIntakePhotosSheet.vue'
 import OrderIntakePreviewStack from '@/features/orders/components/OrderIntakePreviewStack.vue'
+import OrderIntakeScanBanner from '@/features/orders/components/OrderIntakeScanBanner.vue'
+import OrderIntakeScanCard from '@/features/orders/components/OrderIntakeScanCard.vue'
+import OrderIntakeRowSheet from '@/features/orders/components/OrderIntakeRowSheet.vue'
 import { useOrderIntakeDraft } from '@/features/orders/composables/useOrderIntakeDraft'
-import { useOrderIntakeGarments } from '@/features/orders/composables/useOrderIntakeGarments'
 import { useOrderIntakeOverlayRoute } from '@/features/orders/composables/useOrderIntakeOverlayRoute'
-import { useOrderImageStore } from '@/features/orders/stores/order-image.store'
-import { useOrderStore } from '@/features/orders/stores/order.store'
+import { useOrderIntakeScan } from '@/features/orders/composables/useOrderIntakeScan'
 import {
+  allIntakePhotos,
   orderIntakeCategories,
-  orderIntakeCreatePayload,
+  orderIntakePhotoCategories,
+  orderIntakeSaveBody,
   orderIntakeServiceLabel,
   photosOf,
   type OrderIntakeCategory,
   type OrderIntakeDetails,
 } from '@/features/orders/utils/order-intake-draft'
+import { groupOrderIntakeGarments, type OrderIntakeRow } from '@/features/orders/utils/order-intake-items'
 
 defineOptions({ name: 'OrderIntakePage' })
 
 const route = useRoute()
-const router = useRouter()
-const orderStore = useOrderStore()
-const orderImageStore = useOrderImageStore()
 const customerStore = useCustomerStore()
+const itemsStore = useItemsStore()
 const { close: closeRoute } = useCloseRoute({ name: 'order-list' })
 const { customers, loaded: customersLoaded, error: customersError } = storeToRefs(customerStore)
 
 const customerId = computed(() => (typeof route.params.customerId === 'string' ? route.params.customerId.trim() : ''))
-const { draft, addPhoto, removePhoto } = useOrderIntakeDraft(() => customerId.value)
+const { draft, addGarment, removeGarment, setGarmentItem, setGarmentNote, addPhoto, removePhoto } = useOrderIntakeDraft(() => customerId.value)
 const intakeOverlay = useOrderIntakeOverlayRoute()
 
 const customer = computed(() => customers.value.find((entry) => entry.customerId === customerId.value) ?? null)
@@ -63,9 +66,11 @@ const customerProblem = computed(() => {
 
 const detailsOpen = ref(false)
 const saveNotice = ref<string | null>(null)
-const saving = ref(false)
-const savedOrderId = ref<string | null>(null)
 const weightKg = ref<number | null>(null)
+const pickReturnKey = ref<string | null>(null)
+// True while the defect camera was opened from the scan banner: closing it returns to the page, not the row sheet.
+const defectFromBanner = ref(false)
+const shownRow = ref<OrderIntakeRow | null>(null)
 const viewerRevision = ref(0)
 let remountingViewer = false
 
@@ -76,31 +81,76 @@ const details = computed<OrderIntakeDetails>(() => ({
   receivedDate: draft.receivedDate,
   dueDate: draft.dueDate,
 }))
+const grouped = computed(() => groupOrderIntakeGarments(draft.garments, itemsStore.items))
+const hasUncategorized = computed(() => grouped.value.rows.some((row) => row.uncategorized))
+const canSave = computed(() => draft.garments.length > 0 && !hasUncategorized.value)
+const itemsSubtitle = computed(() => {
+  const count = draft.garments.length
+  if (count === 0) return 'No garments yet'
+  return `${count} ${count === 1 ? 'garment' : 'garments'}`
+})
+const allPhotos = computed(() => allIntakePhotos(draft))
 const counts = computed(() => Object.fromEntries(
-  orderIntakeCategories.map((category) => [category.key, photosOf(draft.photos, category.key).length]),
+  orderIntakeCategories.map((category) => [
+    category.key,
+    category.key === 'garments' ? draft.garments.length : photosOf(draft.photos, category.key).length,
+  ]),
 ) as Record<OrderIntakeCategory, number>)
-const sheetPhotos = computed(() => orderIntakeCategories.flatMap((category) => photosOf(draft.photos, category.key)))
-const overlayKind = computed(() => intakeOverlay.overlay.value?.kind ?? null)
-const viewedPhotoId = computed(() => {
-  const overlay = intakeOverlay.overlay.value
-  return overlay?.kind === 'view' && draft.photos.some((photo) => photo.id === overlay.id) ? overlay.id : null
+const sheetPhotos = computed(() => orderIntakePhotoCategories.flatMap((category) => photosOf(allPhotos.value, category.key)))
+const overlay = computed(() => intakeOverlay.overlay.value)
+const overlayKind = computed(() => overlay.value?.kind ?? null)
+const rowOverlayKey = computed(() => (overlay.value?.kind === 'row' ? overlay.value.key : null))
+const openRowEntry = computed(() => grouped.value.rows.find((row) => row.key === rowOverlayKey.value) ?? null)
+const viewedPhoto = computed(() => {
+  const current = overlay.value
+  return current?.kind === 'view' ? allPhotos.value.find((photo) => photo.id === current.id) ?? null : null
 })
 const viewerImages = computed(() => sheetPhotos.value.map((photo, index) => ({
   id: photo.id,
   src: photo.previewUrl,
-  alt: `${orderIntakeCategories.find((category) => category.key === photo.category)?.name ?? 'Photo'} photo ${index + 1}`,
+  alt: `${orderIntakePhotoCategories.find((category) => category.key === photo.category)?.name ?? 'Photo'} photo ${index + 1}`,
 })))
 const weightPromptOpen = computed(() => overlayKind.value === 'weight' && weightKg.value === null)
-const cameraOpen = computed(() => overlayKind.value === 'belonging' || (overlayKind.value === 'weight' && weightKg.value !== null))
+const cameraOpen = computed(() => overlayKind.value === 'belonging' || overlayKind.value === 'defect' || (overlayKind.value === 'weight' && weightKg.value !== null))
+const gunEnabled = computed(() => overlayKind.value === null && !detailsOpen.value)
 
-const garments = useOrderIntakeGarments(
-  () => new Set(photosOf(draft.photos, 'garments').flatMap((photo) => (photo.tag ? [photo.tag] : []))),
-  (tag, file) => { addPhoto('garments', file, { tag }) },
+const scan = useOrderIntakeScan(
+  () => customerId.value,
+  (tag) => draft.garments.some((garment) => garment.tag === tag),
+  addGarment,
 )
+const bannerGarment = computed(() => {
+  const banner = scan.banner.value
+  if (!banner || banner.tone === 'error') return null
+  return draft.garments.find((garment) => garment.tag === banner.tag) ?? null
+})
+const bannerItemName = computed(() => {
+  const garment = bannerGarment.value
+  if (!garment) return null
+  const row = grouped.value.rows.find((entry) => entry.garments.some((member) => member.tag === garment.tag))
+  return row && !row.uncategorized ? row.name : null
+})
+
+useScannerGunInput((code) => { void scan.scan(code) }, gunEnabled, { staffCards: 'skip' })
 
 watch(overlayKind, (kind) => {
   if (kind !== 'weight') weightKg.value = null
-  if (kind !== 'garments') garments.reset()
+})
+
+watch(scan.banner, (banner) => { if (banner) saveNotice.value = null })
+
+// A banner for a garment that is in the draft goes when that garment is removed.
+watch(() => draft.garments.length, () => {
+  const banner = scan.banner.value
+  if (banner && banner.tone !== 'error' && bannerGarment.value === null) scan.dismissBanner()
+})
+
+watch(overlayKind, (kind) => { if (kind === null) defectFromBanner.value = false })
+
+watch(openRowEntry, (entry) => { if (entry) shownRow.value = entry }, { immediate: true })
+
+watch(grouped, () => {
+  if (rowOverlayKey.value !== null && openRowEntry.value === null) intakeOverlay.close()
 })
 
 function applyDetails(next: OrderIntakeDetails): void {
@@ -113,7 +163,6 @@ function applyDetails(next: OrderIntakeDetails): void {
 }
 
 function openCapture(category: OrderIntakeCategory): void {
-  if (saving.value || savedOrderId.value) return
   if (category === 'garments') void primeFeedbackAudio()
   intakeOverlay.open({ kind: category })
 }
@@ -124,7 +173,12 @@ function onDocumentCapture(file: File): void {
 }
 
 function onCameraCapture(file: File): void {
-  if (overlayKind.value === 'weight') {
+  const current = overlay.value
+  if (current?.kind === 'defect') {
+    addPhoto('defect', file, { tag: current.tag })
+    return
+  }
+  if (current?.kind === 'weight') {
     if (weightKg.value === null) return
     addPhoto('weight', file, { weight: weightKg.value })
     weightKg.value = null
@@ -134,69 +188,102 @@ function onCameraCapture(file: File): void {
   addPhoto('belonging', file)
 }
 
+function rowKeyOf(tag: string): string | null {
+  return grouped.value.rows.find((row) => row.garments.some((garment) => garment.tag === tag))?.key ?? null
+}
+
+function reopenRowOf(tag: string): void {
+  const key = rowKeyOf(tag)
+  if (key === null) intakeOverlay.close()
+  else intakeOverlay.open({ kind: 'row', key })
+}
+
+function openRow(key: string): void {
+  intakeOverlay.open({ kind: 'row', key })
+}
+
+function startChangeType(tag: string): void {
+  pickReturnKey.value = rowOverlayKey.value
+  intakeOverlay.open({ kind: 'pick', tag })
+}
+
+function returnFromPicker(): void {
+  const key = pickReturnKey.value
+  pickReturnKey.value = null
+  if (key !== null && grouped.value.rows.some((row) => row.key === key)) intakeOverlay.open({ kind: 'row', key })
+  else intakeOverlay.close()
+}
+
+function selectItemType(item: ItemDto): void {
+  const current = overlay.value
+  if (current?.kind === 'pick') setGarmentItem(current.tag, item.id)
+  returnFromPicker()
+}
+
+function openDefectFromRow(tag: string): void {
+  defectFromBanner.value = false
+  intakeOverlay.open({ kind: 'defect', tag })
+}
+
+function openDefectFromBanner(): void {
+  const garment = bannerGarment.value
+  if (!garment) return
+  defectFromBanner.value = true
+  intakeOverlay.open({ kind: 'defect', tag: garment.tag })
+}
+
+function changeTypeFromBanner(): void {
+  const garment = bannerGarment.value
+  if (garment) startChangeType(garment.tag)
+}
+
+function closeDefectCamera(): void {
+  const current = overlay.value
+  if (current?.kind === 'defect' && !defectFromBanner.value) reopenRowOf(current.tag)
+  else intakeOverlay.close()
+}
+
 function openViewer(id: string): void {
   intakeOverlay.open({ kind: 'view', id })
 }
 
+function leaveViewer(photo: { category: string, tag: string | null } | null): void {
+  if (photo?.category === 'defect' && photo.tag) reopenRowOf(photo.tag)
+  else intakeOverlay.open({ kind: 'photos' })
+}
+
 function onViewerClose(): void {
   if (remountingViewer || overlayKind.value !== 'view') return
-  intakeOverlay.open({ kind: 'photos' })
+  leaveViewer(viewedPhoto.value)
 }
 
 function removeViewedPhoto(id: string): void {
+  const photo = viewedPhoto.value
+  const origin = photo ? { category: photo.category, tag: photo.tag } : null
   // Remounting the viewer destroys the old PhotoSwipe, which emits close; that close is not the user's.
   remountingViewer = true
   removePhoto(id)
   viewerRevision.value += 1
-  intakeOverlay.open({ kind: 'photos' })
+  leaveViewer(origin)
   void nextTick(() => { remountingViewer = false })
 }
 
-async function save(): Promise<void> {
-  if (saving.value || savedOrderId.value) return
-  saveNotice.value = null
-  saving.value = true
-  try {
-    const actor = currentActor()
-    const payload = workOrderCreateSchema.parse(orderIntakeCreatePayload(draft, actor))
-    const photos = [...draft.photos]
-    const created = await orderStore.create(payload)
-    savedOrderId.value = created.orderId
-    let garmentsFailed = 0
-    let photosFailed = 0
-    for (const photo of photos.filter((entry) => entry.category === 'garments')) {
-      try {
-        const imageUrl = await uploadLaundryPhoto(photo.file)
-        await createLaundryPhoto({ orderId: created.orderId, orderItemId: null, itemId: photo.tag, createdBy: actor, imageUrl })
-      } catch {
-        garmentsFailed += 1
-      }
-    }
-    for (const photo of photos.filter((entry) => entry.category !== 'garments')) {
-      const imageType = photo.category === 'document' ? 'DOCUMENT' : photo.category === 'weight' ? 'WEIGHT' : 'BELONGING'
-      await orderImageStore.captureImage({ orderId: created.orderId, imageType, file: photo.file, quantity: photo.weight })
-      if (orderImageStore.uploadError) photosFailed += 1
-    }
-    const failures = [
-      garmentsFailed > 0 ? `${garmentsFailed} garment photo(s) could not be uploaded.` : null,
-      photosFailed > 0 ? `${photosFailed} photo(s) could not be uploaded.` : null,
-    ].filter(Boolean)
-    if (failures.length > 0) {
-      saveNotice.value = `Order ${created.orderId} created. ${failures.join(' ')}`
-      return
-    }
-    await router.replace({ name: 'order-detail', params: { orderId: created.orderId } })
-  } catch (reason) {
-    const message = reason instanceof Error ? reason.message : 'Unable to create work order'
-    saveNotice.value = savedOrderId.value ? `Order ${savedOrderId.value} created. ${message}` : message
-  } finally {
-    saving.value = false
-  }
+function onCameraClose(): void {
+  if (overlayKind.value === 'defect') closeDefectCamera()
+  else intakeOverlay.close()
+}
+
+function save(): void {
+  if (!canSave.value) return
+  console.info('Order intake save request', orderIntakeSaveBody(draft, grouped.value.rows))
+  saveNotice.value = 'Backend not connected yet — nothing was saved.'
 }
 
 onMounted(() => {
   intakeOverlay.clear()
   void customerStore.loadCustomers()
+  void itemsStore.load()
+  scan.preload()
 })
 </script>
 
@@ -220,17 +307,17 @@ onMounted(() => {
       <div class="relative z-[1] -mt-4 rounded-t-2xl bg-surface px-4 pb-7 pt-4">
         <!-- Its own layer so the capture menu opens over the Items paper below it. -->
         <div class="relative z-[2]">
-          <OrderFormSectionHeader title="Items" subtitle="No items yet">
+          <OrderFormSectionHeader title="Items" :subtitle="itemsSubtitle">
             <template #action>
-              <OrderIntakePreviewStack :photos="draft.photos" @open="intakeOverlay.open({ kind: 'photos' })" />
+              <OrderIntakePreviewStack :photos="allPhotos" @open="intakeOverlay.open({ kind: 'photos' })" />
               <OrderIntakeCaptureMenu :counts="counts" @select="openCapture" />
             </template>
           </OrderFormSectionHeader>
         </div>
-        <OrderIntakeItemsPaper />
+        <OrderIntakeItemsPaper :rows="grouped.rows" :total="grouped.total" @select="openRow" />
         <p class="mt-3.5 flex items-start gap-2.5 rounded-[14px] bg-info-container p-3 text-[12.5px] font-medium leading-[1.4] text-on-info-container">
-          <span class="material-symbols-outlined flex-none text-[20px]" aria-hidden="true">auto_awesome</span>
-          <span>After you save, AI sorts the garments into order items for you to check.</span>
+          <span class="material-symbols-outlined flex-none text-[20px]" aria-hidden="true">info</span>
+          <span>Garments are grouped by their registered type. Move every Uncategorized garment to a type before saving.</span>
         </p>
       </div>
     </ScrollRegion>
@@ -242,13 +329,22 @@ onMounted(() => {
           <span class="material-symbols-outlined text-[16px]" aria-hidden="true">close</span>
         </button>
       </div>
-      <RouterLink v-if="savedOrderId && !saving" :to="{ name: 'order-detail', params: { orderId: savedOrderId } }" class="mb-2.5 block text-sm font-semibold text-primary underline">Open order {{ savedOrderId }}</RouterLink>
       <div class="flex gap-2.5">
-        <button type="button" class="h-[52px] flex-1 rounded-full border-2 border-primary bg-white font-headline text-base font-bold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" :disabled="saving" @click="closeRoute">Discard</button>
-        <button type="button" class="h-[52px] flex-1 rounded-full bg-primary font-headline text-base font-bold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" :disabled="saving || savedOrderId !== null" @click="save">{{ saving ? 'Saving…' : 'Save order' }}</button>
+        <button type="button" class="h-[52px] flex-1 rounded-full border-2 border-primary bg-white font-headline text-base font-bold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" @click="closeRoute">Discard</button>
+        <button type="button" class="h-[52px] flex-1 rounded-full bg-primary font-headline text-base font-bold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime disabled:opacity-50" :disabled="!canSave" @click="save">Save order</button>
       </div>
     </footer>
 
+    <OrderIntakeScanCard
+      v-if="scan.banner.value && overlayKind === null && !detailsOpen"
+      :key="scan.bannerSeq.value"
+      :banner="scan.banner.value"
+      :garment="bannerGarment"
+      :item-name="bannerItemName"
+      @dismiss="scan.dismissBanner"
+      @defect="openDefectFromBanner"
+      @change-type="changeTypeFromBanner"
+    />
     <OrderIntakeDetailsSheet
       :open="detailsOpen"
       :customer-name="customer?.customerName ?? null"
@@ -257,28 +353,49 @@ onMounted(() => {
       @close="detailsOpen = false"
       @apply="applyDetails"
     />
-    <OrderIntakePhotosSheet :open="overlayKind === 'photos'" :photos="draft.photos" @close="intakeOverlay.close" @view="openViewer" />
-    <GarmentRegistrationCamera
-      :open="overlayKind === 'garments'"
-      :tag="garments.tag.value"
-      :has-photo="garments.photo.value !== null"
-      :registered-count="counts.garments"
-      :pending-count="0"
-      :tag-checking="false"
-      :warning="garments.warning.value"
-      :errors="[]"
-      :load-error="null"
-      item-label="garments (no item)"
-      :reset-version="garments.resetVersion.value"
+    <OrderIntakePhotosSheet :open="overlayKind === 'photos'" :photos="allPhotos" @close="intakeOverlay.close" @view="openViewer" />
+    <OrderIntakeRowSheet
+      :open="openRowEntry !== null"
+      :title="shownRow?.name ?? ''"
+      :garments="shownRow?.garments ?? []"
       @close="intakeOverlay.close"
-      @tag="garments.acceptTag"
-      @photo="garments.setPhoto"
-      @redo-tag="garments.clearTag"
+      @change-type="startChangeType"
+      @note="setGarmentNote"
+      @defect="openDefectFromRow"
+      @view-defect="openViewer"
+      @remove="removeGarment"
     />
+    <PriceListItemPicker
+      selection-mode="item"
+      :open="overlayKind === 'pick'"
+      :detail="customer?.customerName ?? ''"
+      :items="itemsStore.items"
+      :loading="itemsStore.loading"
+      :error="itemsStore.error"
+      :truncated="itemsStore.truncated"
+      @close="returnFromPicker"
+      @retry="itemsStore.load"
+      @select="selectItemType"
+    />
+    <QrScannerOverlay :open="overlayKind === 'garments'" title="Scan garment tags" @close="intakeOverlay.close" @scan="scan.scan">
+      <template #result>
+        <p class="font-label text-sm font-bold">{{ draft.garments.length }} in this order</p>
+        <OrderIntakeScanBanner
+          v-if="scan.banner.value"
+          :key="scan.bannerSeq.value"
+          class="mt-2"
+          :banner="scan.banner.value"
+          :garment="bannerGarment"
+          :item-name="bannerItemName"
+          :actions="false"
+          @dismiss="scan.dismissBanner"
+        />
+      </template>
+    </QrScannerOverlay>
     <DocumentScannerOverlay :open="overlayKind === 'document'" @close="intakeOverlay.close" @capture="onDocumentCapture" />
     <WeightPrompt :open="weightPromptOpen" input-id="order-intake-weight" title="Enter weight" description="Enter the weight for this one photo. One bag per photo." @submit="weightKg = $event" @close="intakeOverlay.close" />
-    <CameraOverlay :open="cameraOpen" @close="intakeOverlay.close" @capture="onCameraCapture" />
-    <PhotoViewer :key="viewerRevision" :images="viewerImages" :active-id="viewedPhotoId" @change="openViewer" @close="onViewerClose">
+    <CameraOverlay :open="cameraOpen" @close="onCameraClose" @capture="onCameraCapture" />
+    <PhotoViewer :key="viewerRevision" :images="viewerImages" :active-id="viewedPhoto?.id ?? null" @change="openViewer" @close="onViewerClose">
       <template #footer="{ image }">
         <div class="flex gap-3">
           <button type="button" class="inline-flex h-12 items-center gap-1.5 rounded-full bg-error px-6 text-sm font-bold text-on-error" @click="removeViewedPhoto(image.id)">

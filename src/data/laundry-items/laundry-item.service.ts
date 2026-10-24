@@ -1,7 +1,7 @@
 import type { z } from 'zod'
-import { laundryItemResponseSchema } from '@contracts/laundry-items/laundry-item-api.schema'
+import { laundryItemListQuerySchema, laundryItemResponseSchema } from '@contracts/laundry-items/laundry-item-api.schema'
 import { laundryItemRegisterRequestSchema, laundryItemRegisterResponseSchema } from '@contracts/laundry-items/laundry-item-register-api.schema'
-import { ApiError, apiGet, apiPost } from '@/shared/api/api-client'
+import { ApiError, apiGet, apiGetList, apiPost } from '@/shared/api/api-client'
 import { invalidate } from '@/shared/api/response-cache'
 
 export type LaundryItemDto = z.infer<typeof laundryItemResponseSchema>
@@ -24,4 +24,17 @@ export async function getLaundryItem(tag: string): Promise<LaundryItemDto | null
     if (reason instanceof ApiError && reason.status === 404) return null
     throw reason
   }
+}
+
+/** A customer's registered garments, fresh from the server. Rows that fail the schema are left out. */
+export async function listCustomerLaundryItems(customerId: string): Promise<LaundryItemDto[]> {
+  invalidate('/api/laundry-items')
+  const { items } = await apiGetList<unknown>('/api/laundry-items', {
+    querySchema: laundryItemListQuerySchema,
+    query: { customerId, perPage: 1000 },
+  })
+  return items.flatMap((item) => {
+    const parsed = laundryItemResponseSchema.safeParse(item)
+    return parsed.success && parsed.data.deletedAt === null ? [parsed.data] : []
+  })
 }

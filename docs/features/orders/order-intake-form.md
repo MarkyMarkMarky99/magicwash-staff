@@ -4,27 +4,87 @@ audit_sources:
   - src/features/orders/pages/OrderIntakePage.vue
   - src/features/orders/routes.ts
   - src/features/orders/utils/order-intake-draft.ts
+  - src/features/orders/utils/order-intake-items.ts
+  - src/features/orders/utils/order-intake-scan.ts
   - src/features/orders/composables/useOrderIntakeOverlayRoute.ts
+  - src/features/orders/composables/useOrderIntakeScan.ts
+  - src/features/orders/components/OrderIntakeRowSheet.vue
+  - src/features/orders/components/OrderIntakeScanBanner.vue
 ---
 
 # Order intake form
 
 ## Purpose
 
-Staff use this page to take in a customer's laundry at the counter. They describe the order (name, note, service type, dates) and photograph what arrived: garments with their tags, the customer's document, the weight of a bag, and valuables found with the laundry. The page has no item entry. The order's items are meant to come from AI sorting after the order is saved; that wiring does not exist yet (see Save).
+Staff use this page to take in a customer's laundry at the counter. They describe the order (name, note, service type, dates) and add each garment by scanning its tag. Every garment was registered once beforehand on the Register Garments page, so the page needs no photo per garment. The Items paper shows the order's items live, grouped by the garments' registered types. Staff can also capture the customer's document, the weight of a bag, and valuables found with the laundry. The plan behind the page is `docs/plans/order-intake-flow.md`.
 
 ## Route
 
 The page lives at `/orders/new/intake/:customerId`, route name `order-create-intake`, with the order list as its parent. The shared `orderIntakeCreateRoute` builder in `src/shared/navigation/form-routes.ts` builds the location. The component name is `OrderIntakePage`; it is on the `KeepAlive` exclude list in `src/App.vue` because its state is component-local, and it uses `onMounted` only.
 
-The customer comes from the route parameter and is found in the preloaded customer store, which the page starts loading on mount. Staff open the page from the customer detail Order History create menu, which shows an "Intake Order" item after "New Order" for every customer.
+The customer comes from the route parameter and is found in the preloaded customer store, which the page starts loading on mount. The page also starts loading the price-list Items catalog on mount. Staff open the page from the customer detail Order History create menu, which shows an "Intake Order" item after "New Order" for every customer.
 
 ## Layout
 
 A plain full-screen page with the corporate order form's shell: green header, body overlapping the header by 16px with rounded top corners, and a footer bar with Discard and Save order.
 
 - Header: label "New laundry intake", title "New order", the shared close button on dark, and the customer card. The card shows the customer name and sub line, a dashed divider, the order name, the note on one line with ellipsis, and a bottom line "Received <date> · <service type>". The service type is a pill like the corporate turnaround chip, but shows the service label and no turnaround. The due calendar tile sits inside the card on the right. A small edit icon marks the card as tappable. The tile turns to a warning when due is before received.
-- Items section: the shared section header "Items" with the subtitle "No items yet". Its action area holds the photo preview stack and the camera button. Below it is the empty Items paper (head Item and Qty, an empty state, a total of 0 pcs) and an information strip saying that after saving, AI sorts the garments into order items for staff to check. There is no add-item control.
+- Items section: the shared section header "Items" whose subtitle counts the garments ("No garments yet", "1 garment", "5 garments"). Its action area holds the photo preview stack and the camera button. Below it is the Items paper and an information strip saying that garments are grouped by their registered type and every Uncategorized garment must be moved to a type before saving.
+
+## Items paper
+
+The paper has one row per item type: the item name and the number of garments in it. Rows are sorted by name. Names come from the price-list Items catalog that the item picker also uses: the English display name, or the Thai one when the English name is blank.
+
+Garments that have no registered type, or whose type is not in the catalog, gather in one Uncategorized row. It is always last, is styled as a warning with the warning colour tokens, and is shown only while it holds garments. The total at the bottom counts all garments. With no garments the paper shows an empty state asking staff to scan a garment tag. The grouping is a pure function in `order-intake-items.ts`, unit tested.
+
+## Adding garments by scanning
+
+A garment is added by its tag alone; nothing is photographed and nothing is sent at scan time except a lookup.
+
+There are two ways to scan:
+
+- The hardware scanner gun is the main way. The page listens for the gun through the shared scanner gun input with staff cards skipped, and the listener is enabled only while no overlay or sheet is open: the camera, scanners, weight prompt, photos sheet, row sheet, picker and the order details sheet all disable it.
+- The Garments entry in the camera menu opens the shared QR scanner overlay in the phone camera. It reads only tags, adds them, and stays open for more scans. A line at the bottom shows how many garments are in the order, followed by the scan banner without its action buttons.
+
+Each scanned code goes through the same steps:
+
+1. A code that is not a garment tag is refused with "Not a garment tag".
+2. A tag already in this draft is not added again; the banner shows a warning "Already in this order".
+3. Otherwise the page looks the tag up among the customer's registered garments, which it loads once when it opens (one LaundryItems list request filtered by customer). A tag not found there (another customer's, unregistered, or registered after the page opened) is looked up on the server. A scan made while the list is still loading waits for it. If the list fails to load, every tag is looked up on the server. A repeat scan of the same tag is ignored while its lookup is pending.
+
+The lookup has these outcomes:
+
+- The garment belongs to this order's customer: it is added with its registered type and registration photo. A garment with no type goes to Uncategorized.
+- The garment belongs to another customer: refused with "<tag> belongs to another customer".
+- The tag is not registered: refused with "<tag> is not registered. Register it on Register Garments first."
+- Any other error: refused with "Could not check <tag>. Try again."
+
+A success plays the shared success feedback; a warning or a refusal plays the failure feedback.
+
+## Scan banner
+
+Every scan shows a large scan card (`OrderIntakeScanCard`) in the middle of the page: a see-through dark glass card, about 22rem wide, with the garment photo filling its top as a square and the details and actions below. It does not block the page or the scanner gun; it is hidden while any sheet, camera or picker is open. The footer's own notice is for the Save message only. The latest scan replaces the previous card and restarts a short pop-in (none under reduced motion). A close button sits at its top right. It has three tones:
+
+- Success: the garment was added. The garment's registration photo is shown in full, with nothing drawn over it except the close button inset from its corner. Below it are the tag with a lime check badge at the right end of its line, the garment's item type (or "Uncategorized" in the warning colour), and two actions. A garment with no photo, or whose photo fails to load, shows a placeholder garment icon instead.
+- Warning: the tag is already in the draft. Same card as success, with a warning badge in the same place and the pill "Already in this order".
+- Error: nothing was added (not a garment tag, another customer's, not registered, or lookup failed). A red tile with a cross replaces the photo, the tag is shown (or "Scan" when the code was not a tag), and a red pill carries the message.
+
+There is no timer. The banner stays until the next scan, until it is dismissed, or, for success and warning, until its garment is removed from the draft. The phone scanner overlay shows the same result as a compact banner (`OrderIntakeScanBanner`) in its bottom area, without the actions.
+
+The two actions are:
+
+- Defect photo opens the defect camera for that garment. The label becomes "Defect N" once the garment has N defect photos. Closing the camera returns to the page, not to the row sheet.
+- Change type opens the item picker for that garment. Choosing a type or closing the picker returns to the page.
+
+Opened from the row sheet, both actions keep returning to the row sheet as described below. The banner follows the draft, so after a type change it shows the new type.
+
+## Row sheet
+
+Tapping a row of the Items paper opens a bottom sheet titled with the row's item name (or Uncategorized) and its garment count. It lists one line per garment: the registration photo thumbnail, the tag, a defect badge with the number of defect photos when there are any, and a note field. The note field reads and writes through the input event, not a two-way binding, so Thai IME composition works. Each line has these actions:
+
+- Change type opens the price-list item picker. Choosing an item changes the garment's type in the draft only, so it moves to that type's row, and a new row appears if needed. Nothing is written anywhere. The sheet then returns to the row it came from, or closes when that row has no garments left.
+- Defect photo opens the shared camera, which stays open for several photos. The photos stay in the draft with their files and previews and appear as thumbnails in the line. Tapping a thumbnail opens the shared photo viewer with a Remove action; closing or removing returns to the sheet.
+- Remove takes the garment out of this order, including its defect photos. When the last garment of the open row is removed the sheet closes.
 
 ## Order details sheet
 
@@ -32,29 +92,21 @@ Tapping the customer card opens a bottom sheet. It holds the customer (read only
 
 ## Capture
 
-The camera button opens a menu under it listing four categories, each with its current photo count. A tap outside or Escape closes the menu.
+The camera button opens a menu under it listing four categories, each with its current count. A tap outside or Escape closes the menu.
 
-- Garments: opens the garment registration camera without an order item. A tag is accepted only if it passes `validGarmentTag` and is not already used by a garment in this draft. A valid tag plus a photo adds the garment to the draft. Nothing is sent to the server at capture time. Tags registered on other orders cannot be checked before the order exists.
+- Garments: opens the tag scanner described above. Its count is the number of garments in the draft.
 - Document: opens the document scanner.
 - Weight: asks for the weight with the shared weight prompt, then opens the shared camera for one photo, which closes after the capture.
 - Customer assets: opens the shared camera; it stays open for several photos. Photos are stored as `BELONGING` order images.
 
-The camera, scanner and weight prompt are route-owned overlays held in the `intake` query value (`garments`, `document`, `weight`, `belonging`, `photos`, `view:<id>`), so browser Back closes them without leaving the page. A refresh drops the query because photos live only in page state.
+All overlays, including the row sheet, the item picker and the defect camera, are route-owned and held in the `intake` query value, so browser Back closes them without leaving the page. The values are `garments`, `document`, `weight`, `belonging`, `photos`, `view:<photo id>`, `row:<item id or uncategorized>`, `pick:<tag>` and `defect:<tag>`. Opening one overlay from another replaces the query value, so a single Back returns to the page. A refresh drops the query, and the whole draft with it, because everything lives in page state.
 
-Photo files and their object-URL previews stay in the draft. A preview URL is released when its photo is removed and when the page is left.
+Photo files and their object-URL previews stay in the draft. A preview URL is released when its photo or its garment is removed and when the page is left.
 
 ## Preview stack and photos sheet
 
-Beside the camera button, up to three overlapping thumbnails show the newest photos, with a badge for the total count. Tapping it opens the photos sheet: all four categories as stacked sections, each with a sticky header (icon, name, count), three-column square tiles, and garment tiles labelled with their tag. An empty category reads "No photos yet". Tapping a tile opens the shared photo viewer with a Remove action; removing returns to the sheet.
+Beside the camera button, up to three overlapping thumbnails show the newest photos, with a badge for the total count. Defect photos are included. Tapping it opens the photos sheet: the categories Document, Weight, Customer assets and Defects as stacked sections, each with a sticky header (icon, name, count) and three-column square tiles; defect tiles are labelled with their garment's tag. An empty category reads "No photos yet". Tapping a tile opens the shared photo viewer with a Remove action; removing returns to the sheet.
 
 ## Save
 
-The new backend flow does not exist yet, so Save uses existing APIs only:
-
-1. Creates the order with `useOrderStore().create` and `workOrderCreateSchema`: customer, received and due dates, service type, quantity equal to the number of garments (null with none), order name and note (null when empty), `createdBy` from `currentActor()`, and no items. The order stays `PENDING`.
-2. For each garment, uploads its file and creates the LaundryPhotos row exactly as the order detail garment registration does: no order item, and the tag as `itemId`.
-3. Uploads documents, weights and customer assets through `useOrderImageStore().captureImage` with the created order id, the image type, and the weight for `WEIGHT`.
-
-A failure after the order exists does not undo it. The footer shows a notice with the order id and an "Open order" link, and Save stays disabled. Save is disabled while saving and after success. Full success replaces the route with the order detail. Discard and the header close control leave the page like the other forms.
-
-Later work will move the order to `RECEIVED`, copy the garment photos, and let AI classify them into order items. None of that happens in this page yet.
+The backend for intake does not exist yet, so Save writes nothing. It is disabled when the draft has no garment or when the Uncategorized row holds garments. Tapping it builds the request body described in the plan's save request from the draft and the rows: customer, dates, service type, order name and note (null when empty), one item per row with its tags, one entry per garment with its note, empty defect image URLs and no registration image, and one image placeholder with an empty URL for each document, weight (with its kilograms) and customer asset photo. The body builder lives in `order-intake-draft.ts` and is unit tested. The page logs the body to the browser console and shows the footer notice "Backend not connected yet — nothing was saved." The page stays as it is. Discard and the header close control leave the page like the other forms.

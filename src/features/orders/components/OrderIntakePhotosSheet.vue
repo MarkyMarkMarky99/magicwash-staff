@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import DetailOverlay from '@/shared/layouts/DetailOverlay.vue'
 import {
-  orderIntakeCategories,
+  orderIntakePhotoCategories,
   photosOf,
   type OrderIntakePhoto,
 } from '@/features/orders/utils/order-intake-draft'
@@ -16,7 +16,7 @@ const emit = defineEmits<{ close: [], view: [id: string] }>()
       <h2 class="px-5 pb-2 pr-16 pt-1 font-headline text-lg font-extrabold">Photos<small class="ml-1.5 text-xs font-bold text-on-surface-variant">{{ photos.length }}</small></h2>
     </template>
     <div class="px-5 pb-5">
-      <section v-for="category in orderIntakeCategories" :key="category.key" class="mt-3 first:mt-0">
+      <section v-for="category in orderIntakePhotoCategories" :key="category.key" class="mt-3 first:mt-0">
         <div class="sticky top-0 z-[3] mb-2.5 flex items-center gap-2 border-b border-outline-variant bg-surface py-2 font-headline text-[15px] font-extrabold">
           <span class="material-symbols-outlined text-[20px] text-primary" aria-hidden="true">{{ category.icon }}</span>
           <span>{{ category.name }}</span>

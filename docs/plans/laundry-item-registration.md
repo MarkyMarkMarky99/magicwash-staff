@@ -82,9 +82,9 @@ Every photo of a garment, of every kind, in one sheet. The kind is a column, not
 - Photos of a garment in one order = rows with its `laundry_item_id` and that `order_id`.
 - All photos of a garment = rows with its `laundry_item_id`.
 - `REGISTRATION` is the garment's first photo at registration; `order_id` stays null forever.
-- `BEFORE` is the first photo of the garment in each order. For the garment's first order the
-  backend writes a `BEFORE` row reusing the registration photo's URL (no second shot); later orders
-  get their own `BEFORE` photo.
+- `BEFORE` is not written by the Intake Order flow: orders take no per-garment photo; CCTV covers
+  the unpacking, and only a garment with a problem gets a `DEFECT` photo (owner, 2026-10-24,
+  `order-intake-flow.md`). The value stays reserved.
 - New photo kinds are new `photo_type` values, never new sheets.
 
 Old LaundryPhotos and AfterPhotos rows are not migrated: most lack a tag, so they cannot be joined to
@@ -93,7 +93,7 @@ a garment.
 ## Registration flow (branch `feat/laundry-item-registration`)
 
 Cut from `feat/order-intake-page` (same round, 2026-10-24). The Intake Order save
-(`received-ai-classification.md`) calls the registration service built here instead of writing
+(`order-intake-flow.md`) calls the registration service built here instead of writing
 LaundryItems itself.
 
 1. From the customer's Order History create menu, staff open **Register Garments**
@@ -191,7 +191,7 @@ Claude (minor, decided without asking):
 8. Sheet names `OrderGarments` and `LaundryItemPhotos`.
 9. `status` value list and write events above.
 10. `photo_type` values `REGISTRATION`, `BEFORE`, `AFTER`, `DEFECT` (owner split registration from
-    per-order before photos, 2026-10-24); first order's `BEFORE` reuses the registration URL.
+    per-order before photos, 2026-10-24); intake writes no `BEFORE` (see above).
 11. Registration page lives under the customer, reached from the Order History create menu.
 12. Unknown garment type stays null at save. The register route triggers MagicwashAI's
     `classify-laundry-items` (live since 2026-10-24) when a new garment has no type.

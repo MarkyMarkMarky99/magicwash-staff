@@ -1,3 +1,10 @@
+<script setup lang="ts">
+import type { OrderIntakeRow } from '@/features/orders/utils/order-intake-items'
+
+defineProps<{ rows: readonly OrderIntakeRow[], total: number }>()
+const emit = defineEmits<{ select: [key: string] }>()
+</script>
+
 <template>
   <div class="paper">
     <span class="paper__tab">Items</span>
@@ -5,13 +12,30 @@
       <span>Item</span>
       <span>Qty</span>
     </div>
-    <div class="paper__state" role="status">
+    <div v-if="rows.length === 0" class="paper__state" role="status">
       <span class="material-symbols-outlined paper__state-icon" aria-hidden="true">checkroom</span>
-      <p>No items yet</p>
+      <p>Scan a garment tag to add it</p>
     </div>
+    <ul v-else class="paper__rows">
+      <li v-for="row in rows" :key="row.key">
+        <button
+          type="button"
+          class="cols paper__row"
+          :class="{ 'paper__row--warning': row.uncategorized }"
+          :aria-label="`${row.name}, ${row.garments.length} ${row.garments.length === 1 ? 'garment' : 'garments'}. Open garments`"
+          @click="emit('select', row.key)"
+        >
+          <span class="paper__name">
+            <span v-if="row.uncategorized" class="material-symbols-outlined paper__warn-icon" aria-hidden="true">warning</span>
+            <span class="truncate">{{ row.name }}</span>
+          </span>
+          <span class="paper__qty">{{ row.garments.length }}</span>
+        </button>
+      </li>
+    </ul>
     <div class="cols paper__total">
       <div>Total</div>
-      <div><span>0</span><small>pcs</small></div>
+      <div><span>{{ total }}</span><small>pcs</small></div>
     </div>
   </div>
 </template>
@@ -86,6 +110,57 @@
 .paper__state-icon {
   color: var(--color-primary);
   font-size: 28px;
+}
+
+.paper__rows > li + li {
+  border-top: 1px solid var(--color-outline-variant);
+}
+
+.paper__row {
+  width: 100%;
+  align-items: center;
+  text-align: left;
+}
+
+.paper__row:active {
+  background: var(--color-surface-container-low);
+}
+
+.paper__row:focus-visible {
+  outline: 2px solid var(--color-lime);
+  outline-offset: -2px;
+}
+
+.paper__row--warning {
+  background: var(--color-warning-container);
+  color: var(--color-on-warning-container);
+}
+
+.paper__row--warning:active {
+  background: var(--color-warning-container);
+}
+
+.paper__name {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px 12px 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.paper__warn-icon {
+  flex: none;
+  font-size: 18px;
+}
+
+.paper__qty {
+  padding: 12px 6px;
+  font-size: 16px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
 .paper__total {
