@@ -9,6 +9,7 @@ Also holds garment registration (merged from `feat/laundry-item-registration` 20
 - Register Garments page browser-checked (tag check, upload at capture, remove/Discard delete Firebase files).
 - Register endpoint: batchAppends LaundryItems + REGISTRATION photos, triggers MagicwashAI `{ input: {} }` via `VITE_AI_GATEWAY_URL`. Service live-tested on Marky's order `5aed2e17`: 32 garments kept as real data, AI typed 31.
 - MagicwashAI classify now sees active Items only (MagicwashAI `00a6e9d`).
+- Garment detail page `#/garments/:tagId` built (doc `docs/features/laundry-items/laundry-item-detail-page.md`, prototype `.user/item-detail-design/zone-5.html`); Intake row sheet opens it as a full-screen overlay.
 
 ## Pending
 - Register Garments Save → endpoint not yet run in a browser (`vercel dev` needs a restart to load `AI_GATEWAY_SECRET`/`VITE_AI_GATEWAY_URL`).
@@ -16,6 +17,8 @@ Also holds garment registration (merged from `feat/laundry-item-registration` 20
 - Owner deferred: unregistered tag at intake (blocked for now), LaundryPhotos vs OrderGarments for tickets, status after Save.
 - Defect photos stay local in the draft; upload at capture comes with the backend.
 - Order `5aed2e17` (created 2026-10-24) uses inactive Items ids — check how staff can still pick inactive types.
-- Intake only chooses a type for untyped garments (owner 2026-10-24); Register Garments has no way yet to change a registered type.
+- Intake only chooses a type for untyped garments (owner 2026-10-24); a registered type is changed on the garment detail page.
+- Garment detail not yet tried on real data in a browser after Sonnet's header/size fix; its type change writes LaundryItems live.
+- `AppHeader` `backAction` and `PickerOverlay` `closeButton` were added outside a shared refactor; settled in `refactor/shared-ui` Round 6.
 - Merging to main ships both pages; Intake Save must be finished (or its menu hidden) first.
 - Vite `scanic-ml` overlay on camera open under `vercel dev` predates this branch.

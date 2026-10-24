@@ -32,6 +32,12 @@ export const useJobTicketStore = defineStore('job-tickets', () => {
   const error = computed(() => activeState.value?.error ?? null)
   const truncated = computed(() => departmentRows.value.length >= MAX_DEPARTMENT_TICKETS)
 
+  async function loadGarment(laundryItemId: string): Promise<JobTicketDto[]> {
+    const result = await listJobTickets({ laundryItemId, perPage: 1000 })
+    merge(result.items)
+    return result.items
+  }
+
   function departmentView(department: Department): DepartmentView {
     if (!departments.has(department)) departments.set(department, { ids: [], loaded: false, loadedAt: 0, stale: false, loading: false, error: null, requestId: 0 })
     return departments.get(department)!
@@ -213,5 +219,5 @@ export const useJobTicketStore = defineStore('job-tickets', () => {
   })
   onScopeDispose(stopInvalidationListener)
 
-  return { rows, tickets, loading, error, truncated, loadDepartment, activateDepartment, releaseDepartment, orderTickets, orderView, loadOrder, retainOrder, startOrder, completeOrder, advanceTickets }
+  return { rows, tickets, loading, error, truncated, loadGarment, loadDepartment, activateDepartment, releaseDepartment, orderTickets, orderView, loadOrder, retainOrder, startOrder, completeOrder, advanceTickets }
 })

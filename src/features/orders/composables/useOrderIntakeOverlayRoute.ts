@@ -7,10 +7,11 @@ export type OrderIntakeOverlay =
   | { kind: 'row', key: string }
   | { kind: 'pick', tag: string }
   | { kind: 'defect', tag: string }
+  | { kind: 'item', tag: string }
 
 const QUERY_KEY = 'intake'
 const PLAIN_KINDS = ['garments', 'document', 'weight', 'belonging', 'photos'] as const
-const VALUE_KINDS = ['view', 'row', 'pick', 'defect'] as const
+const VALUE_KINDS = ['view', 'row', 'pick', 'defect', 'item'] as const
 
 export function parseOrderIntakeOverlay(raw: unknown): OrderIntakeOverlay | null {
   const value = Array.isArray(raw) ? raw[0] : raw
@@ -34,6 +35,7 @@ export function serializeOrderIntakeOverlay(overlay: OrderIntakeOverlay): string
     case 'row': return `row:${overlay.key}`
     case 'pick': return `pick:${overlay.tag}`
     case 'defect': return `defect:${overlay.tag}`
+    case 'item': return `item:${overlay.tag}`
     default: return overlay.kind
   }
 }
@@ -42,9 +44,9 @@ export function useOrderIntakeOverlayRoute() {
   const route = useRoute()
   const router = useRouter()
   const overlay = computed(() => parseOrderIntakeOverlay(route.query[QUERY_KEY]))
-  let pushedByUs = false
+  const ownedEntries = new Set<string>()
 
-  watch(overlay, (current) => { if (current === null) pushedByUs = false })
+  watch(overlay, (current) => { if (current === null) ownedEntries.clear() })
 
   function withoutOverlay() {
     const query = { ...route.query }
@@ -54,18 +56,19 @@ export function useOrderIntakeOverlayRoute() {
 
   function open(next: OrderIntakeOverlay): void {
     const query = { ...route.query, [QUERY_KEY]: serializeOrderIntakeOverlay(next) }
-    if (overlay.value !== null) {
+    const path = router.resolve({ query }).fullPath
+    if (overlay.value !== null && next.kind !== 'item') {
+      if (ownedEntries.has(route.fullPath)) ownedEntries.add(path)
       void router.replace({ query })
       return
     }
-    pushedByUs = true
+    ownedEntries.add(path)
     void router.push({ query })
   }
 
   function close(): void {
     if (overlay.value === null) return
-    if (pushedByUs) {
-      pushedByUs = false
+    if (ownedEntries.has(route.fullPath)) {
       router.back()
       return
     }

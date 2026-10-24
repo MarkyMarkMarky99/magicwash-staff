@@ -29,11 +29,11 @@ The customer comes from the route parameter and is found in the preloaded custom
 A plain full-screen page with the corporate order form's shell: green header, body overlapping the header by 16px with rounded top corners, and a footer bar with Discard and Save order.
 
 - Header: label "New laundry intake", title "New order", the shared close button on dark, and the customer card. The card shows the customer name and sub line, a dashed divider, the order name, the note on one line with ellipsis, and a bottom line "Received <date> · <service type>". The service type is a pill like the corporate turnaround chip, but shows the service label and no turnaround. The due calendar tile sits inside the card on the right. A small edit icon marks the card as tappable. The tile turns to a warning when due is before received.
-- Items section: the shared section header "Items" whose subtitle counts the garments ("No garments yet", "1 garment", "5 garments"). Its action area holds the photo preview stack and the camera button. Below it is the Items paper and an information strip saying that garments are grouped by their registered type and every Uncategorized garment needs a type chosen before saving.
+- Items section: the shared section header "Items" whose subtitle counts the garments ("No garments yet", "1 garment", "5 garments"). Its action area holds the photo preview stack and the camera button. Below it is the Items paper, with no information strip.
 
 ## Items paper
 
-The paper has one row per item type: the item name and the number of garments in it. Rows are sorted by name. Names come from the price-list Items catalog that the item picker also uses: the English display name, or the Thai one when the English name is blank.
+The paper has one row per item type, laid out like a WashQueue row without the separate card: the garment count with "pcs" in a left block behind a vertical rule, then the item name, a warning label ("Choose a type" on Uncategorized, or how many garments have a defect photo), and the Thai name when it differs, then the price-list item's image on the right (an icon when it has none). Rows are separated by dashed lines, as on the corporate count sheet. The total row is a short strip: "Total" on the left, the count with "pcs" on the right. Rows are sorted by name. Names come from the price-list Items catalog that the item picker also uses: the English display name, or the Thai one when the English name is blank.
 
 Garments that have no registered type, or whose type is not in the catalog, gather in one Uncategorized row. It is always last, is styled as a warning with the warning colour tokens, and is shown only while it holds garments. The total at the bottom counts all garments. With no garments the paper shows an empty state asking staff to scan a garment tag. The grouping is a pure function in `order-intake-items.ts`, unit tested.
 
@@ -73,18 +73,16 @@ There is no timer. The banner stays until the next scan, until it is dismissed, 
 
 The actions are:
 
-- Defect photo opens the defect camera for that garment. The label becomes "Defect N" once the garment has N defect photos. Closing the camera returns to the page, not to the row sheet.
-- Choose type appears only for an Uncategorized garment. It opens the item picker for that garment; choosing a type or closing the picker returns to the page. A garment that already has a type has no type action: changing a registered type is Register Garments' job, not order intake's.
+- Defect photo opens the defect camera for that garment. The label becomes "Defect N" once the garment has N defect photos. Closing the camera returns to the page.
+- Choose type appears only for an Uncategorized garment. It opens the item picker for that garment; choosing a type or closing the picker returns to the page. A garment that already has a type has no type action on the scan card; its registered type can be changed from the row sheet's garment detail overlay.
 
-Opened from the row sheet, both actions keep returning to the row sheet as described below. The banner follows the draft, so after a type is chosen it shows the new type and the Choose type action goes away.
+The banner follows the draft, so after a type is chosen it shows the new type and the Choose type action goes away.
 
 ## Row sheet
 
-Tapping a row of the Items paper opens a bottom sheet titled with the row's item name (or Uncategorized) and its garment count. It lists one line per garment: the registration photo thumbnail, the tag, a defect badge with the number of defect photos when there are any, and a note field. The note field reads and writes through the input event, not a two-way binding, so Thai IME composition works. Each line has these actions:
+Tapping a row of the Items paper opens a bottom sheet in the style of the Packing bag sheet, without selection. Its header has the lime bar, the row's item name (or Uncategorized) and the garment count, and a close button. Below is a three-column grid of the garments' registration photos, with no caption (the row already names the type), and a "Defect N" badge on a garment that has defect photos.
 
-- Choose type, on the Uncategorized row only, opens the price-list item picker. Choosing an item changes the garment's type in the draft only, so it moves to that type's row, and a new row appears if needed. Nothing is written anywhere. The sheet then returns to the row it came from, or closes when that row has no garments left.
-- Defect photo opens the shared camera, which stays open for several photos. The photos stay in the draft with their files and previews and appear as thumbnails in the line. Tapping a thumbnail opens the shared photo viewer with a Remove action; closing or removing returns to the sheet.
-- Remove takes the garment out of this order, including its defect photos. When the last garment of the open row is removed the sheet closes.
+Tapping a garment photo opens the shared garment detail view in a full-screen route-owned overlay, keeping the Intake draft in page state. Each tile is a button labelled "Open <tag>". Back returns to the row sheet. Changing type there persists the garment's type and also updates its draft item id so the Items paper regroups. If the original row becomes empty, the returning sheet shows the garment's new row. See [Garment detail](../laundry-items/laundry-item-detail-page.md). The page has no per-garment remove: a wrong garment is cleared with Discard. Defect photos and choosing a type for an Uncategorized garment are also available from the scan card.
 
 ## Order details sheet
 
@@ -99,7 +97,7 @@ The camera button opens a menu under it listing four categories, each with its c
 - Weight: asks for the weight with the shared weight prompt, then opens the shared camera for one photo, which closes after the capture.
 - Customer assets: opens the shared camera; it stays open for several photos. Photos are stored as `BELONGING` order images.
 
-All overlays, including the row sheet, the item picker and the defect camera, are route-owned and held in the `intake` query value, so browser Back closes them without leaving the page. The values are `garments`, `document`, `weight`, `belonging`, `photos`, `view:<photo id>`, `row:<item id or uncategorized>`, `pick:<tag>` and `defect:<tag>`. Opening one overlay from another replaces the query value, so a single Back returns to the page. A refresh drops the query, and the whole draft with it, because everything lives in page state.
+All overlays, including the row sheet, the item picker and the defect camera, are route-owned and held in the `intake` query value, so browser Back closes them without leaving the page. The values are `garments`, `document`, `weight`, `belonging`, `photos`, `view:<photo id>`, `row:<item id or uncategorized>`, `pick:<tag>`, `defect:<tag>` and `item:<tag>`. Opening garment detail from a row pushes an entry, so Back returns to the row sheet. Other Intake overlay transitions replace the query value. The garment's album, viewer and type picker own a separate `garmentDetail` query. A refresh preserves an `item:<tag>` deep link and can reload its garment; other Intake overlays are cleared. The draft is lost on every refresh because everything lives in page state.
 
 Photo files and their object-URL previews stay in the draft. A preview URL is released when its photo or its garment is removed and when the page is left.
 

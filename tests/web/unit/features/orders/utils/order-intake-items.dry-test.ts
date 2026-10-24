@@ -4,7 +4,7 @@ import type { OrderIntakeGarment } from '@/features/orders/utils/order-intake-dr
 import { groupOrderIntakeGarments, orderIntakeItemName } from '@/features/orders/utils/order-intake-items'
 
 const catalog = [
-  { id: 'i-shirt', displayNameTh: 'เสื้อเชิ้ต', displayNameEn: 'Shirt' },
+  { id: 'i-shirt', displayNameTh: 'เสื้อเชิ้ต', displayNameEn: 'Shirt', imageUrl: 'https://example.test/shirt.png' },
   { id: 'i-dress', displayNameTh: 'ชุดเดรส', displayNameEn: 'Dress' },
   { id: 'i-th', displayNameTh: 'ผ้าห่ม', displayNameEn: '  ' },
 ]
@@ -49,6 +49,15 @@ test('null and unknown item ids gather in a last Uncategorized row', () => {
   ])
   assert.equal(rows.at(-1)!.itemId, null)
   assert.equal(rows.at(-1)!.name, 'Uncategorized')
+})
+
+test('rows carry the Thai name and the price-list image', () => {
+  const { rows } = groupOrderIntakeGarments([garment('AAAA0001', 'i-shirt'), garment('AAAA0002', 'i-th'), garment('AAAA0003', null)], catalog)
+  assert.deepEqual(rows.map((row) => [row.name, row.nameTh, row.imageUrl]), [
+    ['ผ้าห่ม', null, null],
+    ['Shirt', 'เสื้อเชิ้ต', 'https://example.test/shirt.png'],
+    ['Uncategorized', null, null],
+  ])
 })
 
 test('an empty catalog puts every garment in Uncategorized', () => {

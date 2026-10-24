@@ -6,6 +6,9 @@ import CameraOverlay from '@/shared/components/CameraOverlay.vue'
 import PhotoViewer from '@/shared/components/PhotoViewer.vue'
 import QrScannerOverlay from '@/shared/components/QrScannerOverlay.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
+import AppHeader from '@/shared/components/AppHeader.vue'
+import PickerOverlay from '@/shared/layouts/PickerOverlay.vue'
+import LaundryItemDetailView from '@/features/laundry-items/components/LaundryItemDetailView.vue'
 import WeightPrompt from '@/shared/components/WeightPrompt.vue'
 import { useScannerGunInput } from '@/shared/composables/useScannerGunInput'
 import { useCloseRoute } from '@/shared/navigation/use-close-route'
@@ -49,7 +52,7 @@ const { close: closeRoute } = useCloseRoute({ name: 'order-list' })
 const { customers, loaded: customersLoaded, error: customersError } = storeToRefs(customerStore)
 
 const customerId = computed(() => (typeof route.params.customerId === 'string' ? route.params.customerId.trim() : ''))
-const { draft, addGarment, removeGarment, setGarmentItem, setGarmentNote, addPhoto, removePhoto } = useOrderIntakeDraft(() => customerId.value)
+const { draft, addGarment, setGarmentItem, addPhoto, removePhoto } = useOrderIntakeDraft(() => customerId.value)
 const intakeOverlay = useOrderIntakeOverlayRoute()
 
 const customer = computed(() => customers.value.find((entry) => entry.customerId === customerId.value) ?? null)
@@ -67,9 +70,7 @@ const customerProblem = computed(() => {
 const detailsOpen = ref(false)
 const saveNotice = ref<string | null>(null)
 const weightKg = ref<number | null>(null)
-const pickReturnKey = ref<string | null>(null)
 // True while the defect camera was opened from the scan banner: closing it returns to the page, not the row sheet.
-const defectFromBanner = ref(false)
 const shownRow = ref<OrderIntakeRow | null>(null)
 const viewerRevision = ref(0)
 let remountingViewer = false
@@ -100,7 +101,13 @@ const sheetPhotos = computed(() => orderIntakePhotoCategories.flatMap((category)
 const overlay = computed(() => intakeOverlay.overlay.value)
 const overlayKind = computed(() => overlay.value?.kind ?? null)
 const rowOverlayKey = computed(() => (overlay.value?.kind === 'row' ? overlay.value.key : null))
-const openRowEntry = computed(() => grouped.value.rows.find((row) => row.key === rowOverlayKey.value) ?? null)
+const detailTag = computed(() => overlay.value?.kind === 'item' ? overlay.value.tag : null)
+const returnedRowTag = ref<string | null>(null)
+const openRowEntry = computed(() => {
+  if (rowOverlayKey.value === null) return null
+  return grouped.value.rows.find(row => row.key === rowOverlayKey.value)
+    ?? grouped.value.rows.find(row => row.garments.some(garment => garment.tag === returnedRowTag.value)) ?? null
+})
 const viewedPhoto = computed(() => {
   const current = overlay.value
   return current?.kind === 'view' ? allPhotos.value.find((photo) => photo.id === current.id) ?? null : null
@@ -145,7 +152,6 @@ watch(() => draft.garments.length, () => {
   if (banner && banner.tone !== 'error' && bannerGarment.value === null) scan.dismissBanner()
 })
 
-watch(overlayKind, (kind) => { if (kind === null) defectFromBanner.value = false })
 
 watch(openRowEntry, (entry) => { if (entry) shownRow.value = entry }, { immediate: true })
 
@@ -188,30 +194,22 @@ function onCameraCapture(file: File): void {
   addPhoto('belonging', file)
 }
 
-function rowKeyOf(tag: string): string | null {
-  return grouped.value.rows.find((row) => row.garments.some((garment) => garment.tag === tag))?.key ?? null
-}
-
-function reopenRowOf(tag: string): void {
-  const key = rowKeyOf(tag)
-  if (key === null) intakeOverlay.close()
-  else intakeOverlay.open({ kind: 'row', key })
-}
-
 function openRow(key: string): void {
+  returnedRowTag.value = null
   intakeOverlay.open({ kind: 'row', key })
 }
 
-function startChangeType(tag: string): void {
-  pickReturnKey.value = rowOverlayKey.value
-  intakeOverlay.open({ kind: 'pick', tag })
+function openGarment(tag: string): void {
+  returnedRowTag.value = tag
+  intakeOverlay.open({ kind: 'item', tag })
+}
+
+function updateDetailType(itemId: string): void {
+  if (detailTag.value) setGarmentItem(detailTag.value, itemId)
 }
 
 function returnFromPicker(): void {
-  const key = pickReturnKey.value
-  pickReturnKey.value = null
-  if (key !== null && grouped.value.rows.some((row) => row.key === key)) intakeOverlay.open({ kind: 'row', key })
-  else intakeOverlay.close()
+  intakeOverlay.close()
 }
 
 function selectItemType(item: ItemDto): void {
@@ -220,57 +218,41 @@ function selectItemType(item: ItemDto): void {
   returnFromPicker()
 }
 
-function openDefectFromRow(tag: string): void {
-  defectFromBanner.value = false
-  intakeOverlay.open({ kind: 'defect', tag })
-}
-
 function openDefectFromBanner(): void {
   const garment = bannerGarment.value
   if (!garment) return
-  defectFromBanner.value = true
   intakeOverlay.open({ kind: 'defect', tag: garment.tag })
 }
 
 function changeTypeFromBanner(): void {
   const garment = bannerGarment.value
-  if (garment) startChangeType(garment.tag)
-}
-
-function closeDefectCamera(): void {
-  const current = overlay.value
-  if (current?.kind === 'defect' && !defectFromBanner.value) reopenRowOf(current.tag)
-  else intakeOverlay.close()
+  if (garment) intakeOverlay.open({ kind: 'pick', tag: garment.tag })
 }
 
 function openViewer(id: string): void {
   intakeOverlay.open({ kind: 'view', id })
 }
 
-function leaveViewer(photo: { category: string, tag: string | null } | null): void {
-  if (photo?.category === 'defect' && photo.tag) reopenRowOf(photo.tag)
-  else intakeOverlay.open({ kind: 'photos' })
+function leaveViewer(): void {
+  intakeOverlay.open({ kind: 'photos' })
 }
 
 function onViewerClose(): void {
   if (remountingViewer || overlayKind.value !== 'view') return
-  leaveViewer(viewedPhoto.value)
+  leaveViewer()
 }
 
 function removeViewedPhoto(id: string): void {
-  const photo = viewedPhoto.value
-  const origin = photo ? { category: photo.category, tag: photo.tag } : null
   // Remounting the viewer destroys the old PhotoSwipe, which emits close; that close is not the user's.
   remountingViewer = true
   removePhoto(id)
   viewerRevision.value += 1
-  leaveViewer(origin)
+  leaveViewer()
   void nextTick(() => { remountingViewer = false })
 }
 
 function onCameraClose(): void {
-  if (overlayKind.value === 'defect') closeDefectCamera()
-  else intakeOverlay.close()
+  intakeOverlay.close()
 }
 
 function save(): void {
@@ -280,7 +262,7 @@ function save(): void {
 }
 
 onMounted(() => {
-  intakeOverlay.clear()
+  if (overlayKind.value !== 'item') intakeOverlay.clear()
   void customerStore.loadCustomers()
   void itemsStore.load()
   scan.preload()
@@ -315,10 +297,6 @@ onMounted(() => {
           </OrderFormSectionHeader>
         </div>
         <OrderIntakeItemsPaper :rows="grouped.rows" :total="grouped.total" @select="openRow" />
-        <p class="mt-3.5 flex items-start gap-2.5 rounded-[14px] bg-info-container p-3 text-[12.5px] font-medium leading-[1.4] text-on-info-container">
-          <span class="material-symbols-outlined flex-none text-[20px]" aria-hidden="true">info</span>
-          <span>Garments are grouped by their registered type. Choose a type for every Uncategorized garment before saving.</span>
-        </p>
       </div>
     </ScrollRegion>
 
@@ -358,14 +336,13 @@ onMounted(() => {
       :open="openRowEntry !== null"
       :title="shownRow?.name ?? ''"
       :garments="shownRow?.garments ?? []"
-      :choose-type="shownRow?.uncategorized ?? false"
       @close="intakeOverlay.close"
-      @change-type="startChangeType"
-      @note="setGarmentNote"
-      @defect="openDefectFromRow"
-      @view-defect="openViewer"
-      @remove="removeGarment"
+      @open-item="openGarment"
     />
+    <PickerOverlay :open="detailTag !== null" size="full" :draggable="false" ariaLabel="Garment detail" :close-button="false" @close="intakeOverlay.close">
+      <template #header><AppHeader :back-action="intakeOverlay.close" /></template>
+      <LaundryItemDetailView v-if="detailTag" :key="detailTag" :tag-id="detailTag" @type-changed="updateDetailType" />
+    </PickerOverlay>
     <PriceListItemPicker
       selection-mode="item"
       :open="overlayKind === 'pick'"

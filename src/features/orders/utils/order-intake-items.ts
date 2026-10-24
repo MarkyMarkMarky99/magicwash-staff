@@ -7,12 +7,15 @@ export interface OrderIntakeCatalogItem {
   id: string
   displayNameTh: string
   displayNameEn: string | null
+  imageUrl?: string | null
 }
 
 export interface OrderIntakeRow {
   key: string
   itemId: string | null
   name: string
+  nameTh: string | null
+  imageUrl: string | null
   uncategorized: boolean
   garments: OrderIntakeGarment[]
 }
@@ -30,22 +33,26 @@ export function groupOrderIntakeGarments(
   garments: readonly OrderIntakeGarment[],
   catalog: readonly OrderIntakeCatalogItem[],
 ): OrderIntakeRows {
-  const names = new Map(catalog.map((item) => [item.id, orderIntakeItemName(item)]))
+  const items = new Map(catalog.map((item) => [item.id, item]))
   const typed = new Map<string, OrderIntakeRow>()
   const uncategorized: OrderIntakeGarment[] = []
   for (const garment of garments) {
-    const name = garment.itemId === null ? undefined : names.get(garment.itemId)
-    if (garment.itemId === null || name === undefined) {
+    const item = garment.itemId === null ? undefined : items.get(garment.itemId)
+    if (garment.itemId === null || item === undefined) {
       uncategorized.push(garment)
       continue
     }
     const row = typed.get(garment.itemId)
     if (row) row.garments.push(garment)
-    else typed.set(garment.itemId, { key: garment.itemId, itemId: garment.itemId, name, uncategorized: false, garments: [garment] })
+    else {
+      const name = orderIntakeItemName(item)
+      const nameTh = item.displayNameTh.trim() && item.displayNameTh.trim() !== name ? item.displayNameTh.trim() : null
+      typed.set(garment.itemId, { key: garment.itemId, itemId: garment.itemId, name, nameTh, imageUrl: item.imageUrl ?? null, uncategorized: false, garments: [garment] })
+    }
   }
   const rows = [...typed.values()].sort((a, b) => a.name.localeCompare(b.name, 'th-TH') || a.key.localeCompare(b.key))
   if (uncategorized.length > 0) {
-    rows.push({ key: UNCATEGORIZED_ROW_KEY, itemId: null, name: UNCATEGORIZED_ROW_NAME, uncategorized: true, garments: uncategorized })
+    rows.push({ key: UNCATEGORIZED_ROW_KEY, itemId: null, name: UNCATEGORIZED_ROW_NAME, nameTh: null, imageUrl: null, uncategorized: true, garments: uncategorized })
   }
   return { rows, total: garments.length }
 }

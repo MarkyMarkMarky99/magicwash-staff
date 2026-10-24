@@ -9,11 +9,13 @@ withDefaults(defineProps<{
   panelClass?: string
   size?: '90dvh' | 'full'
   draggable?: boolean
+  closeButton?: boolean
 }>(), {
   closeOnBackdrop: true,
   panelClass: '',
   size: '90dvh',
   draggable: true,
+  closeButton: true,
 })
 
 const emit = defineEmits<{
@@ -28,7 +30,7 @@ const emit = defineEmits<{
     :size="size"
     backdrop="translucent"
     :draggable="draggable"
-    close-button
+    :close-button="closeButton"
     close-button-tone="onDark"
     close-button-class="text-white"
     :panel-class="`picker-overlay-panel ${panelClass}`"

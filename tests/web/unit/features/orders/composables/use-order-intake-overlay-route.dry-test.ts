@@ -13,6 +13,7 @@ const overlays: OrderIntakeOverlay[] = [
   { kind: 'row', key: 'uncategorized' },
   { kind: 'pick', tag: 'AAAA0001' },
   { kind: 'defect', tag: 'AAAA0001' },
+  { kind: 'item', tag: 'AAAA0001' },
 ]
 
 test('every overlay survives a round trip through the query value', () => {
@@ -20,7 +21,7 @@ test('every overlay survives a round trip through the query value', () => {
 })
 
 test('unknown or empty values are not overlays', () => {
-  for (const raw of [undefined, null, '', 'nope', 'row:', 'pick:', 'defect:', 'view:']) assert.equal(parseOrderIntakeOverlay(raw), null)
+  for (const raw of [undefined, null, '', 'nope', 'row:', 'pick:', 'defect:', 'view:', 'item:']) assert.equal(parseOrderIntakeOverlay(raw), null)
 })
 
 test('the first value of a repeated query key is used', () => {

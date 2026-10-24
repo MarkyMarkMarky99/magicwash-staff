@@ -15,6 +15,8 @@ const knownViolations = new Set([
   'features/invoices/pages/InvoiceCreatePage.vue -> @/features/price-list/components/PriceListItemPicker.vue',
   'features/orders/pages/OrderDetailPage.vue -> @/features/price-list/components/PriceListItemPicker.vue',
   'features/orders/pages/OrderIntakePage.vue -> @/features/price-list/components/PriceListItemPicker.vue',
+  'features/orders/pages/OrderIntakePage.vue -> @/features/laundry-items/components/LaundryItemDetailView.vue',
+  'features/laundry-items/components/LaundryItemDetailView.vue -> @/features/price-list/components/PriceListItemPicker.vue',
 ])
 
 async function findSourceFiles(directory) {

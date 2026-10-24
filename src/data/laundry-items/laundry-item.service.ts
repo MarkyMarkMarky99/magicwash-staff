@@ -1,10 +1,19 @@
 import type { z } from 'zod'
-import { laundryItemListQuerySchema, laundryItemResponseSchema } from '@contracts/laundry-items/laundry-item-api.schema'
+import { laundryItemListQuerySchema, laundryItemResponseSchema, laundryItemUpdateSchema } from '@contracts/laundry-items/laundry-item-api.schema'
 import { laundryItemRegisterRequestSchema, laundryItemRegisterResponseSchema } from '@contracts/laundry-items/laundry-item-register-api.schema'
-import { ApiError, apiGet, apiGetList, apiPost } from '@/shared/api/api-client'
+import { ApiError, apiGet, apiGetList, apiPatch, apiPost } from '@/shared/api/api-client'
+import { currentActor } from '@/shared/config/actor'
 import { invalidate } from '@/shared/api/response-cache'
 
 export type LaundryItemDto = z.infer<typeof laundryItemResponseSchema>
+
+export async function updateLaundryItem(id: string, payload: Omit<z.input<typeof laundryItemUpdateSchema>, 'updatedBy'>): Promise<LaundryItemDto> {
+  const result = laundryItemResponseSchema.parse(await apiPatch<unknown>(`/api/laundry-items/${encodeURIComponent(id)}`, {
+    data: { ...payload, updatedBy: currentActor() }, requestSchema: laundryItemUpdateSchema,
+  }))
+  invalidate('/api/laundry-items')
+  return result
+}
 
 export async function registerLaundryItems(payload: z.input<typeof laundryItemRegisterRequestSchema>) {
   const response = laundryItemRegisterResponseSchema.parse(await apiPost<unknown>('/api/laundry-items/register', {

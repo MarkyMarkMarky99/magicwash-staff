@@ -1,66 +1,66 @@
 <script setup lang="ts">
-import BaseBadge from '@/shared/components/BaseBadge.vue'
-import ImageOrIcon from '@/shared/components/ImageOrIcon.vue'
+import CloseButton from '@/shared/components/CloseButton.vue'
+import SquareImageCard from '@/shared/components/SquareImageCard.vue'
 import DetailOverlay from '@/shared/layouts/DetailOverlay.vue'
 import type { OrderIntakeGarment } from '@/features/orders/utils/order-intake-draft'
 
-defineProps<{ open: boolean, title: string, garments: readonly OrderIntakeGarment[], chooseType: boolean }>()
-const emit = defineEmits<{
-  close: []
-  changeType: [tag: string]
-  note: [tag: string, value: string]
-  defect: [tag: string]
-  viewDefect: [id: string]
-  remove: [tag: string]
-}>()
-
-const ACTION = 'inline-flex h-10 items-center gap-1.5 rounded-full border border-outline-variant bg-white px-3.5 text-[13px] font-bold text-primary focus-visible:outline-2 focus-visible:outline-lime'
+defineProps<{ open: boolean, title: string, garments: readonly OrderIntakeGarment[] }>()
+const emit = defineEmits<{ close: [], openItem: [tag: string] }>()
 </script>
 
 <template>
-  <DetailOverlay :open="open" :ariaLabel="title" @close="emit('close')">
+  <DetailOverlay :open="open" :ariaLabel="title" size="auto" :close-button="false" @close="emit('close')">
     <template #header>
-      <h2 class="px-5 pb-2 pr-16 pt-1 font-headline text-lg font-extrabold">{{ title }}<small class="ml-1.5 text-xs font-bold text-on-surface-variant">{{ garments.length }}</small></h2>
+      <!-- Same header as the Packing bag sheet: pulled up over the drag-handle row; pointer-events stay off so the handle still drags. -->
+      <header class="row-sec pointer-events-none relative -mt-[26px]">
+        <div class="row-sec__bar" />
+        <div class="min-w-0 flex-1">
+          <h2 class="row-sec__title">{{ title }}</h2>
+          <small class="row-sec__sub">{{ garments.length }} {{ garments.length === 1 ? 'garment' : 'garments' }}</small>
+        </div>
+        <CloseButton class="pointer-events-auto shrink-0 text-on-surface-variant" @click="emit('close')" />
+      </header>
     </template>
-    <ul class="flex flex-col gap-3 px-5 pb-5">
-      <li v-for="garment in garments" :key="garment.tag" class="rounded-2xl border border-outline-variant bg-surface-container-lowest p-3">
-        <div class="flex gap-3">
-          <ImageOrIcon :image-url="garment.imageUrl" icon="checkroom" class="h-16 w-16 rounded-xl" />
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-2">
-              <span class="font-body text-sm font-extrabold tracking-[0.06em] text-primary">{{ garment.tag }}</span>
-              <BaseBadge v-if="garment.defectPhotos.length > 0" :label="`Defect ${garment.defectPhotos.length}`" tone="warning" />
-            </div>
-            <input
-              :value="garment.note ?? ''"
-              type="text"
-              autocomplete="off"
-              :aria-label="`Note for ${garment.tag}`"
-              placeholder="Note (stain, missing button)"
-              class="mt-1.5 h-10 w-full rounded-xl border border-outline-variant bg-white px-3 font-body text-sm text-on-surface outline-none placeholder:text-on-surface-variant focus:border-lime focus:ring-2 focus:ring-lime"
-              @input="emit('note', garment.tag, ($event.target as HTMLInputElement).value)"
-            >
-          </div>
-        </div>
-        <ul v-if="garment.defectPhotos.length > 0" class="mt-2.5 flex flex-wrap gap-2">
-          <li v-for="(photo, index) in garment.defectPhotos" :key="photo.id">
-            <button type="button" class="block h-14 w-14 overflow-hidden rounded-lg border border-outline-variant bg-surface-container focus-visible:outline-2 focus-visible:outline-lime" :aria-label="`View defect photo ${index + 1} of ${garment.tag}`" @click="emit('viewDefect', photo.id)">
-              <img :src="photo.previewUrl" alt="" class="h-full w-full object-cover">
-            </button>
-          </li>
-        </ul>
-        <div class="mt-2.5 flex flex-wrap gap-2">
-          <button v-if="chooseType" type="button" :class="ACTION" :aria-label="`Choose type of ${garment.tag}`" @click="emit('changeType', garment.tag)">
-            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">category</span>Choose type
-          </button>
-          <button type="button" :class="ACTION" :aria-label="`Add defect photo for ${garment.tag}`" @click="emit('defect', garment.tag)">
-            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">photo_camera</span>Defect photo
-          </button>
-          <button type="button" class="ml-auto inline-flex h-10 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-bold text-error focus-visible:outline-2 focus-visible:outline-lime" :aria-label="`Remove ${garment.tag} from this order`" @click="emit('remove', garment.tag)">
-            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">delete</span>Remove
-          </button>
-        </div>
+    <ul class="grid grid-cols-3 content-start gap-2.5 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1.5">
+      <li v-for="garment in garments" :key="garment.tag" class="relative min-w-0" :aria-label="garment.tag">
+        <button type="button" class="block w-full rounded-xl focus-visible:outline-2 focus-visible:outline-lime" :aria-label="`Open ${garment.tag}`" @click="emit('openItem', garment.tag)"><SquareImageCard :image-url="garment.imageUrl" /></button>
+        <span v-if="garment.defectPhotos.length > 0" class="pointer-events-none absolute right-2 top-2 rounded-full bg-warning px-2 py-0.5 font-label text-[10px] font-extrabold text-white">Defect {{ garment.defectPhotos.length }}</span>
       </li>
     </ul>
   </DetailOverlay>
 </template>
+
+<style scoped>
+/* Section header matches the Packing bag sheet (PackagingBagSheet .bag-sec). */
+.row-sec {
+  display: flex;
+  align-items: center;
+  margin: 0 12px 8px 16px;
+}
+
+.row-sec__bar {
+  align-self: stretch;
+  width: 4px;
+  margin-right: 10px;
+  border-radius: 2px;
+  background: var(--color-lime);
+}
+
+.row-sec__title {
+  margin: 0;
+  overflow: hidden;
+  font: 800 20px/1.1 var(--font-headline);
+  color: var(--color-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-sec__sub {
+  display: block;
+  margin-top: 3px;
+  font: 800 10px/1 var(--font-body);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+}
+</style>

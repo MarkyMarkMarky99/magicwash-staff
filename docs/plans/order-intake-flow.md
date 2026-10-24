@@ -22,8 +22,9 @@ The old pages are removed only once the new flow has proven itself.
    No photo per garment. CCTV records the unpacking.
 2. Each scan adds the garment to the Items paper at once: one row per `LaundryItems.item_id`, quantity
    = garments in it. A garment with no type (AI not done or failed) goes to the **Uncategorized** row.
-3. Tapping a row opens a bottom sheet with the garments in it. There staff add a note or a `DEFECT`
-   photo, and choose a type for an Uncategorized garment.
+3. Each scan shows a scan card; there staff add a `DEFECT` photo, and choose a type for an
+   Uncategorized garment. Tapping a row opens a bottom sheet showing its garments as photos.
+   Tapping a garment will open an item detail page (not designed yet; note and remove move there).
 4. **Save**: one request with the order, its items and its garments. The backend writes everything
    and the order becomes `RECEIVED` (open point 3).
 5. Staff approve on order detail with the existing Approve button; job tickets as today.
@@ -96,16 +97,14 @@ picker.
 
 - One row per type: item name, quantity (garment count). Rows sorted by name; **Uncategorized** last,
   styled as a warning, shown only when it has garments. Total = all garments.
-- The info strip says garments are grouped by their registered type and Uncategorized must be empty
-  to save.
 
 ### Row bottom sheet
 
-- Title: the row's item name (or Uncategorized) and count.
-- One line per garment: registration photo, tag, defect badge, note.
-- Per garment: **Choose type** on the Uncategorized row only (price-list picker; the garment moves to
-  that row, a new row if needed), **Note**, **Defect photo** (camera, several allowed), **Remove** from this order.
-- A row whose last garment leaves disappears.
+- Same look as the Packing bag sheet, without selection: title = the row's item name (or
+  Uncategorized) and count, then a 3-column grid of registration photos (no caption) and a
+  defect badge when it has defect photos.
+- Tapping a garment does nothing yet; it will open the item detail page (owner 2026-10-25). Until then
+  there is no per-garment note or remove on the page.
 
 ## Save request
 
