@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InlineNotice from '@/shared/components/InlineNotice.vue'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
@@ -265,12 +266,7 @@ onMounted(() => {
     </ScrollRegion>
 
     <footer class="flex-none border-t border-outline-variant/70 bg-surface/95 px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-2.5 shadow-[0_-5px_18px_color-mix(in_srgb,var(--color-primary)_7%,transparent)]">
-      <div v-if="saveNotice" role="status" class="mb-2.5 flex items-start gap-2 rounded-xl bg-warning-container px-3 py-2 text-sm text-on-warning-container">
-        <span class="flex-1 font-semibold">{{ saveNotice }}</span>
-        <button type="button" class="shrink-0 rounded p-0.5 focus-visible:outline-2 focus-visible:outline-lime" aria-label="Dismiss notice" @click="saveNotice = null">
-          <span class="material-symbols-outlined text-[16px]" aria-hidden="true">close</span>
-        </button>
-      </div>
+      <InlineNotice v-if="saveNotice" tone="warning" size="sm" dismissible class="mb-2.5" @dismiss="saveNotice = null">{{ saveNotice }}</InlineNotice>
       <RouterLink v-if="savedOrderId && !saving" :to="{ name: 'order-detail', params: { orderId: savedOrderId } }" class="mb-2.5 block text-sm font-semibold text-primary underline">Open order {{ savedOrderId }}</RouterLink>
       <div class="flex gap-2.5">
         <button type="button" class="h-[52px] flex-1 rounded-full border-2 border-primary bg-white font-headline text-base font-bold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime" :disabled="saving" @click="closeRoute">Discard</button>

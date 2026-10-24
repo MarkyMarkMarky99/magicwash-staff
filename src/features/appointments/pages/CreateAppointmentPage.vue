@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InlineNotice from '@/shared/components/InlineNotice.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
@@ -111,8 +112,6 @@ async function submit() {
   >
     <p v-if="loading" class="px-4 py-6 text-sm text-on-surface-variant">Loading appointment...</p>
     <AppointmentForm v-else-if="!error" ref="form" mode="create" :customer="customer" :delivery-order-id="deliveryOrderId" />
-    <div v-if="error" class="mb-6 flex items-center gap-2 px-4 py-3 rounded-xl bg-error-container text-on-error-container text-sm font-body">
-      <span class="material-symbols-outlined text-[18px] shrink-0">error</span>{{ error }}
-    </div>
+    <InlineNotice v-if="error" tone="error" icon="error" class="mb-6">{{ error }}</InlineNotice>
   </FormOverlay>
 </template>

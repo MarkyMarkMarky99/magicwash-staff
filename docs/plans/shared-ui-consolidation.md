@@ -41,7 +41,7 @@ measured identical in the browser (23px/800 title, 72.5×22.8 tab, same rotation
 `.cust__tab`, loading skeleton). New `src/shared/components/FormPageHeader.vue` with slots for the
 title, eyebrow and customer box content; the three become thin wrappers or are deleted.
 
-### Round 2 — Extract: section header (`SectionHeader`) — done (wash-queue detail sheet only; see report)
+### Round 2 — Extract: section header (`SectionHeader`) — done
 
 `LaundryItemSectionHeader.vue` and `OrderFormSectionHeader.vue` are byte-identical. Promote one to
 `src/shared/components/SectionHeader.vue` and replace both. Same round: the copies with the same
@@ -56,7 +56,7 @@ The `.paper` + `.paper__tab` trio is the same CSS in `CorporateCountSheet.vue`,
 primary/warning, default slot). `AgentCardFrame` (agents feature) is the same idea with a tone;
 fold it in if its screenshots match, otherwise Round 7.
 
-### Round 4 — Extract: inline notice (`InlineNotice`)
+### Round 4 — Extract: inline notice (`InlineNotice`) — done
 
 About 40 hand-rolled `bg-success|warning|error|info-container` blocks with three different tone maps
 (`ScanResultCard`, `WashQueueNotice`, `OrderBagsView`). First take only the groups that are already

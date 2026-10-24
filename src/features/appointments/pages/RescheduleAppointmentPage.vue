@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InlineNotice from '@/shared/components/InlineNotice.vue'
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
@@ -87,8 +88,6 @@ watch(() => props.appointmentId, () => void loadAppointment(), { immediate: true
   >
     <p v-if="loading" class="py-5 text-sm text-on-surface-variant">Loading appointment…</p>
     <AppointmentForm v-else-if="appointment" ref="form" mode="reschedule" :appointment="appointment" />
-    <div v-if="error" class="my-5 flex items-center gap-2 px-4 py-3 rounded-xl bg-error-container text-on-error-container text-sm font-body">
-      <span class="material-symbols-outlined text-[18px] shrink-0">error</span>{{ error }}
-    </div>
+    <InlineNotice v-if="error" tone="error" icon="error" class="my-5">{{ error }}</InlineNotice>
   </FormOverlay>
 </template>
