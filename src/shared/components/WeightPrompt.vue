@@ -75,7 +75,7 @@ watch(() => props.open, (isOpen) => {
     </template>
     <WeightField v-model="rawWeight" :input-id="inputId" :error="weightError" @invalid="showWeightError">
       <template #action>
-        <StickerFab class="mr-1 shrink-0 !h-[47px] !w-[47px] !rounded-[15px_18px_16px_17px]" :label="confirmLabel" aria-label="Take photo" :disabled="!valid" @click="submit">
+        <StickerFab size="field" class="mr-1 shrink-0" :label="confirmLabel" aria-label="Take photo" :disabled="!valid" @click="submit">
           <span class="material-symbols-outlined text-[20px] leading-none" aria-hidden="true">photo_camera</span>
         </StickerFab>
       </template>

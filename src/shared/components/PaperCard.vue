@@ -1,10 +1,10 @@
 <script setup lang="ts">
-withDefaults(defineProps<{ tab: string, as?: 'div' | 'fieldset' }>(), { as: 'div' })
+withDefaults(defineProps<{ tab: string, as?: 'div' | 'fieldset', tone?: 'brand' | 'warning' }>(), { as: 'div', tone: 'brand' })
 </script>
 
 <template>
   <component :is="as" class="paper">
-    <span class="paper__tab">{{ tab }}</span>
+    <span class="paper__tab" :class="{ 'paper__tab--warning': tone === 'warning' }">{{ tab }}</span>
     <slot />
   </component>
 </template>
@@ -36,5 +36,10 @@ withDefaults(defineProps<{ tab: string, as?: 'div' | 'fieldset' }>(), { as: 'div
   line-height: 1.1;
   transform: rotate(-3deg);
   pointer-events: none;
+}
+
+.paper__tab--warning {
+  background: var(--color-warning);
+  box-shadow: 1px 1px 0 color-mix(in srgb, var(--color-warning) 70%, black);
 }
 </style>

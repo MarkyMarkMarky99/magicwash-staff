@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import FormOptionGrid from '@/shared/components/FormOptionGrid.vue'
 import FormTextarea from '@/shared/components/FormTextarea.vue'
+import InlineNotice from '@/shared/components/InlineNotice.vue'
 import {
   addSheetDateDays,
   getBangkokClock,
@@ -166,9 +167,7 @@ defineExpose({ createData, rescheduleData, isValid })
 
 <template>
   <div class="flex flex-col gap-4 py-5 pb-6">
-    <p v-if="isCreate && !hasCustomerSnapshot" class="rounded-xl bg-error-container px-4 py-3 text-sm font-body text-on-error-container">
-      {{ customerBookingMessage }}
-    </p>
+    <InlineNotice v-if="isCreate && !hasCustomerSnapshot" tone="error">{{ customerBookingMessage }}</InlineNotice>
 
     <AppointmentDatePicker :selected-date="selectedDate" :title="isCreate ? 'Select Date' : 'Select New Date'" :include-today="isCreate" :disabled-days-of-week="isCreate ? [2] : []" @select="selectDate" />
 

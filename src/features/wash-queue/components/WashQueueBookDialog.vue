@@ -57,7 +57,7 @@ const chosenLabel = computed(() => props.machineId ? machineLabel(props.machineI
       </PhotoCapturePanel>
       <WeightField class="wq-book-weight" :model-value="rawWeight" input-id="wash-queue-weight" :error="weightError" @update:model-value="emit('update:rawWeight', $event)" @invalid="emit('weightInvalid')">
         <template #action>
-          <StickerFab class="wq-book-photo mr-1 shrink-0 !h-[47px] !w-[47px] !rounded-[15px_18px_16px_17px]" :done="Boolean(photoUrl && !uploading)" :label="photoUrl ? 'Retake' : 'Photo'" :aria-label="photoUrl ? 'Retake photo' : 'Take photo'" :saving="uploading" saving-label="Uploading" :disabled="!weightValid || saving" @click="emit('photo')">
+          <StickerFab size="field" class="wq-book-photo mr-1 shrink-0" :done="Boolean(photoUrl && !uploading)" :label="photoUrl ? 'Retake' : 'Photo'" :aria-label="photoUrl ? 'Retake photo' : 'Take photo'" :saving="uploading" saving-label="Uploading" :disabled="!weightValid || saving" @click="emit('photo')">
             <span class="material-symbols-outlined text-[20px] leading-none" aria-hidden="true">{{ photoUrl ? 'flip_camera_ios' : 'photo_camera' }}</span>
           </StickerFab>
         </template>

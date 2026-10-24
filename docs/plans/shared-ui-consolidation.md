@@ -79,9 +79,9 @@ dedicated refactor (for the garment detail overlay). Review them here: keep them
 or replace them with a cleaner API, and convert `AppHeader`'s runtime `defineProps` to the typed form
 the rest of shared uses.
 
-### Round 7 — Unify (owner picks the look per item)
+### Round 7 — Unify (items A–F done; the rest below are open)
 
-Each item is a separate decision with screenshots of every variant side by side:
+Done: StickerFab `size` prop, `OrderBagRow` uses `ThumbStatusBubble`, garment detail Orders paper and `AgentCardFrame` use `PaperCard`, list-card status badges are `sm` uppercase, two more error alerts use `InlineNotice`. Open items need design work:
 
 1. **StickerFab sizes.** Today 72, 48, 47 and 46px for the same lime square role, plus icon sizes 20,
    26 and 36px set three different ways. Proposal: two sizes as a prop (`md` 72px page action,

@@ -170,7 +170,8 @@ onBeforeUnmount(() => {
         <SectionHeader title="Items" :subtitle="subtitle">
           <template #action>
             <StickerFab
-              class="!h-[46px] !w-[46px] !rounded-[17px_20px_17px_19px] [&_.sticker-label]:hidden"
+              size="sm"
+              class="[&_.sticker-label]:hidden"
               label="Take photo"
               aria-label="Take photo"
               :disabled="saving"

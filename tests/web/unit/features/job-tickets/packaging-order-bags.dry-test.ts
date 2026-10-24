@@ -128,7 +128,7 @@ assert.doesNotMatch(sheetSource, /primary-text="garment\.tagId"|Garment \$\{garm
 assert.match(sheetSource, /<PhotoCapturePanel class="max-h-\[200px\]" :photo-url="photoUrl \?\? ''"/)
 assert.doesNotMatch(sheetSource, /tappable|@capture=/, 'the sticker is the only photo action')
 assert.match(sheetSource, /<WeightField class="bag-weight" :model-value="weight"[^>]*@update:model-value="emit\('update:weight', \$event\)">/)
-assert.match(sheetSource, /<StickerFab class="bag-photo [^"]*"[^>]*:disabled="!weightValid \|\| loading" @click="emit\('photo'\)">/)
+assert.match(sheetSource, /<StickerFab size="field" class="bag-photo [^"]*"[^>]*:disabled="!weightValid \|\| loading" @click="emit\('photo'\)">/)
 assert.doesNotMatch(sheetSource, /wash-queue\//)
 assert.match(viewSource, /:weight="sheetBag\?\.weight \?\? ''"/)
 assert.match(viewSource, /@update:weight="weight => sheetBag && packaging\?\.setWeight\(sheetBag\.id, weight\)"/)

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import type { z } from 'zod'
+import InlineNotice from '@/shared/components/InlineNotice.vue'
 import type { customerPackageListResponseSchema } from '@contracts/customer-packages/customer-package-api.schema'
 import FormOverlay from '@/shared/layouts/FormOverlay.vue'
 import FormLabel from '@/shared/components/FormLabel.vue'
@@ -87,7 +88,7 @@ function submit() {
         <p class="font-body text-xs text-on-surface-variant">Enter a positive amount to deduct from the package.</p>
       </section>
       <FormTextarea id="order-usage-notes" v-model="notes" label="Notes (optional)" />
-      <p v-if="error" role="alert" class="rounded-xl bg-error-container px-4 py-3 font-body text-sm text-on-error-container">{{ error }}</p>
+      <InlineNotice v-if="error" tone="error">{{ error }}</InlineNotice>
     </fieldset>
   </FormOverlay>
 </template>

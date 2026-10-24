@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import BaseSwipeCard from '@/shared/components/BaseSwipeCard.vue'
+import ThumbStatusBubble from '@/shared/components/ThumbStatusBubble.vue'
 
 export type BagRowTone = 'success' | 'muted' | 'warning' | 'error'
 
@@ -52,8 +53,7 @@ const countClass = computed(() => props.tone === 'error' ? 'border-error/50 text
         </button>
         <div v-else class="relative h-14 w-14">
           <div class="h-full overflow-hidden rounded-[10px] bg-surface-container" :class="dimPhoto ? 'opacity-60 saturate-50' : ''"><img v-if="photo" :src="photo" :alt="`${title} photo`" class="h-full w-full object-cover"><span v-else class="material-symbols-outlined grid h-full place-items-center text-on-surface-variant" aria-hidden="true">image</span></div>
-          <span v-if="done" class="material-symbols-outlined absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full border-2 border-surface bg-lime text-[15px] text-primary" aria-hidden="true">check</span>
-          <span v-else class="absolute -right-1.5 -top-1.5 h-6 w-6 rounded-full border-2 border-dashed border-outline-variant bg-surface" />
+          <ThumbStatusBubble :state="done ? 'done' : 'pending'" />
         </div>
       </div>
     </component>

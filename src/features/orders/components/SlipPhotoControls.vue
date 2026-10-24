@@ -19,7 +19,7 @@ const emit = defineEmits<{ scan: [], view: [] }>()
         <img :src="photos[0]!.url" alt="">
       </span>
     </button>
-    <StickerFab class="!h-[46px] !w-[46px] !rounded-[17px_20px_17px_19px]" :label="photos.length ? 'Retake' : 'Scan'" :aria-label="photos.length ? 'Retake the count slip' : 'Scan the count slip'" @click="emit('scan')">
+    <StickerFab size="sm" :label="photos.length ? 'Retake' : 'Scan'" :aria-label="photos.length ? 'Retake the count slip' : 'Scan the count slip'" @click="emit('scan')">
       <span class="material-symbols-outlined text-[22px]" aria-hidden="true">document_scanner</span>
     </StickerFab>
   </div>

@@ -110,7 +110,7 @@ onMounted(() => {
         <h2 class="font-headline text-xl font-bold leading-tight text-primary">Price list{{ filter.category === 'ALL' ? '' : ` · ${filter.category}` }}</h2>
         <span class="mt-0.5 block font-label text-[10px] font-extrabold uppercase tracking-[0.08em] text-on-surface-variant">{{ subtitle }}</span>
       </div>
-      <StickerFab class="!h-12 !w-12 !rounded-[17px_20px_17px_19px]" label="Ask AI" aria-label="Ask the price agent" @click="openPriceAgent">
+      <StickerFab size="sm" label="Ask AI" aria-label="Ask the price agent" @click="openPriceAgent">
         <span class="material-symbols-outlined text-[22px]" aria-hidden="true">smart_toy</span>
       </StickerFab>
     </div>

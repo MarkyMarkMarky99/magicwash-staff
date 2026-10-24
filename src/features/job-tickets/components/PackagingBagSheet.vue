@@ -47,7 +47,7 @@ function blockedLabel(state: GarmentState): string | null {
       <PhotoCapturePanel class="max-h-[200px]" :photo-url="photoUrl ?? ''" :uploading="uploading" title="No photo yet" hint="Weigh the bag, then tap Photo." :alt="`Bag ${bagNumber} photo`" />
       <WeightField class="bag-weight" :model-value="weight" :input-id="`bag-weight-${bagNumber}`" :error="weightError" @update:model-value="emit('update:weight', $event)">
         <template #action>
-          <StickerFab class="bag-photo mr-1 shrink-0 !h-[47px] !w-[47px] !rounded-[15px_18px_16px_17px]" :done="Boolean(photoUrl && !uploading)" :label="photoUrl ? 'Retake' : 'Photo'" :aria-label="photoUrl ? 'Retake photo' : 'Take photo'" :saving="uploading" saving-label="Uploading" :disabled="!weightValid || loading" @click="emit('photo')">
+          <StickerFab size="field" class="bag-photo mr-1 shrink-0" :done="Boolean(photoUrl && !uploading)" :label="photoUrl ? 'Retake' : 'Photo'" :aria-label="photoUrl ? 'Retake photo' : 'Take photo'" :saving="uploading" saving-label="Uploading" :disabled="!weightValid || loading" @click="emit('photo')">
             <span class="material-symbols-outlined text-[20px] leading-none" aria-hidden="true">{{ photoUrl ? 'flip_camera_ios' : 'photo_camera' }}</span>
           </StickerFab>
         </template>

@@ -6,12 +6,14 @@ withDefaults(defineProps<{
   savingLabel?: string
   disabled?: boolean
   done?: boolean
+  size?: 'md' | 'sm' | 'field'
 }>(), {
   ariaLabel: undefined,
   saving: false,
   savingLabel: 'Saving…',
   disabled: false,
   done: false,
+  size: 'md',
 })
 
 const emit = defineEmits<{
@@ -23,7 +25,7 @@ const emit = defineEmits<{
   <button
     type="button"
     class="sticker-fab"
-    :class="{ 'is-saving': saving, 'is-done': done }"
+    :class="[`is-${size}`, { 'is-saving': saving, 'is-done': done }]"
     :disabled="disabled || saving"
     :aria-label="ariaLabel ?? label"
     @click="emit('click')"
@@ -52,6 +54,18 @@ const emit = defineEmits<{
   box-shadow: 4px 4px 0 color-mix(in srgb, var(--color-primary) 70%, black);
   transform: rotate(-7deg);
   transition: transform 160ms, box-shadow 160ms, background-color 160ms, color 160ms;
+}
+
+.sticker-fab.is-sm {
+  width: 46px;
+  height: 46px;
+  border-radius: 17px 20px 17px 19px;
+}
+
+.sticker-fab.is-field {
+  width: 47px;
+  height: 47px;
+  border-radius: 15px 18px 16px 17px;
 }
 
 .sticker-fab:focus {

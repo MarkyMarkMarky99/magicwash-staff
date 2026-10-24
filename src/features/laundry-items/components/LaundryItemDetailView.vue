@@ -7,6 +7,7 @@ import CloseButton from '@/shared/components/CloseButton.vue'
 import DetailOverlay from '@/shared/layouts/DetailOverlay.vue'
 import PriceListItemPicker from '@/features/price-list/components/PriceListItemPicker.vue'
 import SectionHeader from '@/shared/components/SectionHeader.vue'
+import PaperCard from '@/shared/components/PaperCard.vue'
 import { useLaundryItemDetail } from '../composables/useLaundryItemDetail'
 import { useLaundryItemDetailOverlayRoute } from '../composables/useLaundryItemDetailOverlayRoute'
 import { garmentAlbum, garmentCurrentPlace, garmentDate, garmentLastSeen, garmentOrderRows, garmentTimeline } from '../utils/laundry-item-detail'
@@ -74,10 +75,9 @@ async function selectType(selected: ItemDto): Promise<void> {
         <div v-for="cell in metadata" :key="cell.label" class="metadata-cell" :class="{ full: cell.full }"><dt>{{ cell.label }}</dt><dd>{{ cell.value }}</dd></div>
       </dl>
       <SectionHeader class="!mb-6 !mt-7" title="Order history" subtitle="Newest first · tap to see steps" />
-      <div class="orders-paper">
-        <span class="paper-tab">Orders</span>
+      <PaperCard tab="Orders" class="!m-0">
         <p v-if="rows.length === 0" class="px-4 py-8 text-center text-on-surface-variant">Not in any order yet</p>
-        <ul v-else>
+        <ul v-else class="order-list">
           <li v-for="(order, index) in rows" :key="order.orderId" class="order-entry">
             <button :id="`garment-order-${order.orderId}`" type="button" class="order-row" :aria-expanded="expanded === order.orderId" :aria-controls="`garment-steps-${order.orderId}`" @click="expanded = expanded === order.orderId ? null : order.orderId">
               <span class="order-date">{{ garmentDate(order.receivedDate) }}</span>
@@ -101,7 +101,7 @@ async function selectType(selected: ItemDto): Promise<void> {
             </div>
           </li>
         </ul>
-      </div>
+      </PaperCard>
     </template>
     <DetailOverlay :open="albumOpen" :ariaLabel="`Photos · ${images.length}`" :close-button="false" @close="overlay.close">
       <template #header><div class="flex items-center justify-between px-4 pb-2"><h2 class="font-headline text-[22px] font-extrabold text-primary">Photos · {{ images.length }}</h2><CloseButton label="Close photos" @click="overlay.close" /></div></template>
@@ -197,26 +197,8 @@ async function selectType(selected: ItemDto): Promise<void> {
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
-.orders-paper {
-  position: relative;
-  border: 2px solid var(--color-primary);
-  border-radius: 11px 15px 12px 14px;
-  background: white;
-  box-shadow: 4px 4px 0 color-mix(in srgb, var(--color-primary) 70%, black);
-}
-.orders-paper > ul {
+.order-list {
   padding-top: 8px;
-}
-.paper-tab {
-  position: absolute;
-  left: 14px;
-  top: -13px;
-  padding: 2px 12px 3px;
-  border-radius: 10px 12px 10px 11px;
-  background: var(--color-primary);
-  font: 800 12px/1.4 var(--font-headline);
-  color: white;
-  transform: rotate(-3deg);
 }
 .order-entry + .order-entry {
   border-top: 1px dashed var(--color-outline-variant);
