@@ -19,6 +19,7 @@ Also holds garment registration (merged from `feat/laundry-item-registration` 20
 - Order `5aed2e17` (created 2026-10-24) uses inactive Items ids — check how staff can still pick inactive types.
 - Intake only chooses a type for untyped garments (owner 2026-10-24); a registered type is changed on the garment detail page.
 - Garment detail not yet tried on real data in a browser after Sonnet's header/size fix; its type change writes LaundryItems live.
-- `AppHeader` `backAction` and `PickerOverlay` `closeButton` were added outside a shared refactor; settled in `refactor/shared-ui` Round 6.
+- Shared UI consolidation (plan `docs/plans/shared-ui-consolidation.md`) merged in; owner has not yet viewed the Round 7 visual changes; leftover design work in `.user/memory/shared-ui-later.md`.
+- 13 dry-test files already failing before the refactor (list in `.user/memory/shared-ui-later.md`).
 - Merging to main ships both pages; Intake Save must be finished (or its menu hidden) first.
 - Vite `scanic-ml` overlay on camera open under `vercel dev` predates this branch.
