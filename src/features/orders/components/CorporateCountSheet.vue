@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PaperCard from '@/shared/components/PaperCard.vue'
 import ImageOrIcon from '@/shared/components/ImageOrIcon.vue'
 import CountStepper from '@/features/orders/components/CountStepper.vue'
 import { lineSubtitle, lineTitle, type CorporateOrderLine } from '@/features/orders/utils/corporate-order-draft'
@@ -21,8 +22,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <fieldset class="paper" :disabled="disabled" :aria-busy="disabled">
-    <span class="paper__tab">Count sheet</span>
+  <PaperCard as="fieldset" tab="Count sheet" :disabled="disabled" :aria-busy="disabled">
     <div class="cols paper__head">
       <span>Item</span>
       <span>Counted</span>
@@ -73,38 +73,10 @@ const emit = defineEmits<{
       <div>Total</div>
       <div><span>{{ total }}</span><small>pcs</small></div>
     </div>
-  </fieldset>
+  </PaperCard>
 </template>
 
 <style scoped>
-.paper {
-  min-width: 0;
-  padding: 0;
-  position: relative;
-  margin: 22px 4px 6px 2px;
-  border: 2px solid var(--color-primary);
-  border-radius: 11px 15px 12px 14px;
-  background: white;
-  box-shadow: 4px 4px 0 color-mix(in srgb, var(--color-primary) 70%, black);
-}
-
-.paper__tab {
-  position: absolute;
-  top: -12px;
-  left: 10px;
-  z-index: 8;
-  padding: 3px 9px 4px;
-  border-radius: 6px 8px 6px 7px;
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  box-shadow: 1px 1px 0 color-mix(in srgb, var(--color-primary) 70%, black);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.1;
-  transform: rotate(-3deg);
-  pointer-events: none;
-}
-
 .cols {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 118px;

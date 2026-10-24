@@ -48,7 +48,7 @@ title, eyebrow and customer box content; the three become thin wrappers or are d
 metrics — `PackagingBagSheet` `.bag-sec`, `OrderIntakeRowSheet` `.row-sec`, `wash-program.css` `.sec` —
 only if their screenshots match; otherwise they move to Round 7.
 
-### Round 3 — Extract: paper card (`PaperCard`)
+### Round 3 — Extract: paper card (`PaperCard`) — done
 
 The `.paper` + `.paper__tab` trio is the same CSS in `CorporateCountSheet.vue`,
 `OrderIntakeItemsPaper.vue`, `LaundryItemRegisterPaper.vue` (measured identical: radius 11/15/12/14,
