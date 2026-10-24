@@ -34,6 +34,7 @@ implemented behavior, correct the canonical document rather than adding a compet
 - [Order photo library](docs/design/order-photo-library.md)
 - [WashQueue](docs/features/wash-queue/wash-queue.md)
 - [Corporate order form](docs/features/orders/corporate-order-form.md)
+- [Order intake form](docs/features/orders/order-intake-form.md)
 - [Agent chat](docs/features/agents/agent-chat.md)
 
 ## Verification

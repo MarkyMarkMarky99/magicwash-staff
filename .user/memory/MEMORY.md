@@ -5,6 +5,7 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
+- **`feat/order-intake-page`** — new Intake Order page built and browser-checked; Save not yet run end to end; see `.user/memory/feat-order-intake-page.md`.
 
 ## Pending work
 - **MagicwashAI local gateway** — handoff: `.user/memory/magicwash-ai-gateway-handoff.md`
@@ -144,4 +145,4 @@
   - `ListContainer` collapsible header is a non-focusable `div` without `aria-expanded`.
   - Browser-check ListContainer search, theme consistency, and the order-detail dropdown at the bottom edge.
   - Delete `docs/plans/scroll-region.md` and `docs/plans/overlay-frame.md` once unreferenced.
-  - Delete sheet test data: `Items` `ITM-0099` / `2e6b91d2`; `OrderForm` `246fde2b`, `cc4d375e`, `f68ae08d`; `LaundryPhotos` `QK0H9DT1`, `a260b2b1`, `1b7649ba`; `AfterPhoto` `0aacd052`; soft-deleted live-test rows `OrderGarments` `8f88c37d`, `LaundryItemPhotos` `ad0806c7`, `LaundryItems` `ZZTEST02`–`ZZTEST04`.
+  - Delete sheet test data: `Items` `ITM-0099` / `2e6b91d2`; `OrderForm` `246fde2b`, `cc4d375e`, `f68ae08d`; `LaundryPhotos` `QK0H9DT1`, `a260b2b1`, `1b7649ba`; `AfterPhoto` `0aacd052`; soft-deleted live-test rows `OrderGarments` `8f88c37d`, `LaundryItemPhotos` `ad0806c7`, `LaundryItems` `ZZTEST02`–`ZZTEST05`.
