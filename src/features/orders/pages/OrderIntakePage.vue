@@ -345,7 +345,7 @@ onMounted(() => {
     />
     <PickerOverlay :open="detailTag !== null" size="full" :draggable="false" ariaLabel="Garment detail" :close-button="false" @close="intakeOverlay.close">
       <template #header><AppHeader :back-action="intakeOverlay.close" /></template>
-      <LaundryItemDetailView v-if="detailTag" :key="detailTag" :tag-id="detailTag" @type-changed="updateDetailType" />
+      <LaundryItemDetailView v-if="detailTag" :key="detailTag" :tag-id="detailTag" readonly @type-changed="updateDetailType" />
     </PickerOverlay>
     <PriceListItemPicker
       selection-mode="item"

@@ -6,6 +6,11 @@ in place. The layout follows `.user/item-detail-design/zone-5.html` using the ap
 The standalone page is excluded from KeepAlive so an inactive copy cannot react to the Intake
 view's photo or picker query, and returning to it reloads its garment.
 
+`/garments/:tagId?order=<orderId>` opens the garment for one order. The page passes `order` to the
+view as `orderId`; a blank value counts as absent. `LaundryItemDetailView` also takes `readonly`:
+the Intake overlay sets it, which hides the Add photo action because the order does not exist yet.
+Changing the garment type stays available there.
+
 The registration photo fills a large rounded square with the WashQueue-style TAG sticker. The title
 uses the Items catalog's English display name, falling back to its stored Thai name; the Thai name
 also appears underneath. A missing type reads "Uncategorized" in the warning colour. The borderless
@@ -23,18 +28,63 @@ order has a lime place stamp: the In Progress department plus "now", otherwise t
 department plus "next". Completed, cancelled and delivered orders have no stamp. One accordion row
 opens at a time. An empty history reads "Not in any order yet".
 
+With `order`, the history section is titled "This order" and lists only that order's row. If the
+garment has no live order-garment link to that order, an InlineNotice reads "This garment is not in
+this order" in place of the list, and the Add photo action is hidden. A linked order that the
+customer's orders do not include reads "Order not found".
+
+Photos with an empty order id, other than Registration, are shared garment history. When any exist,
+a "Garment history" card sits above the order history in both modes: a three-column grid, newest
+first, each tile labelled with its capitalised type, opening the shared PhotoViewer.
+
 Each expanded panel starts with that order's defect thumbnails, then the garment's tickets sorted by
 step number. Completed dots are dark green, In Progress dots are lime with a ring, and future dots
 are hollow. Started and completed events display their own timestamp and staff member; Pending
 steps read "Not started yet". Cancelled tickets are labelled as cancelled. Deleted records are ignored.
 
-The lime photo sticker opens a route-owned `DetailOverlay` titled "Photos · N". Registration,
+The header, right of the title, copies the corporate count sheet's photo controls
+(`LaundryItemPhotoControls`). On the left sits a stack of up to three tilted paper thumbnails of the
+photos the album shows for the current mode, newest on top, with a badge holding the photo count; it is
+hidden when there are no photos. Photos captured in the current visit appear in it at once, above the
+saved ones. Tapping it opens the album. On the right a lime `StickerFab` (`size="sm"`, label "Add",
+aria-label "Add photo", glyph `add_a_photo`) opens the type menu; it is hidden when adding is not
+allowed (`readonly`, or `order` with the garment not in that order), and the stack stays. While photos
+upload or save it shows the saving state ("Saving").
+
+The album is a route-owned `DetailOverlay` titled "Photos · N" (`garmentDetail=album`). Registration,
 Defects, Before and After sections appear only when nonempty, with a three-column square grid.
 The registration image is included even when it has no separate photo row, without adding it again
 when its URL already appears in Registration. Other tiles carry their order's received-date chip,
-or "–" if the order date is unavailable. All thumbnails open the shared PhotoViewer.
+or "–" if the order date is unavailable. All thumbnails open the shared PhotoViewer. With `order`
+the album holds only Registration, shared history and that order's photos; without it, every photo.
 
-The album, type picker and viewer use the `garmentDetail` query (`album`, `type`, `photo:<id>`).
+Add opens `LaundryItemPhotoTypeMenu`, a dropdown anchored under the button with the look and behavior of
+the Intake capture menu (tap outside or Escape closes). A line above the items reads "Saves to: This
+order" with `order`, otherwise "Saves to: Garment history". The items come from the contract enum minus
+`REGISTRATION` (Defect, Before, After today; a new value appears by itself), each with an icon
+(`report`, `photo_camera_back`, `photo_camera_front`, otherwise `photo_camera`) and a hint ("Damage or
+stain", "As received", "After cleaning", none for other types).
+
+Picking a type opens the camera directly, route-owned as `garmentDetail=camera:<TYPE>` (for example
+`camera:DEFECT`), so Back closes it. `CameraOverlay` has no title. Staff may take several photos in one
+camera session. Each capture starts a Firebase upload at once through `useGarmentPhotoUploads` and shows
+in the header stack with the shared `UploadStateOverlay` (spinner while uploading, error glyph when
+failed). The state lives in `useLaundryItemPhotoCapture`.
+
+Closing the camera saves the session: once every upload has settled, the uploaded photos go in one
+request (`photoType` the chosen type, `orderId` from the URL or null, no note), then the page's photos
+reload. Failures show an `InlineNotice` under the header with a Retry button and a dismiss control:
+- Uploads that failed: warning "<n> photo(s) did not upload." Retry re-runs those uploads and saves the
+  ones that finish in one more request. Dismiss drops them.
+- A failed save request: error with the server message. Retry resends the same request. Uploaded files
+  are kept while a retry is possible and deleted only on Dismiss.
+
+Leaving the page with unsaved uploads deletes their files, except photos whose save request is in
+flight. The server rejects an `orderId` the garment is not linked to (400 "Garment is not in this
+order") and any `REGISTRATION` photo. Notes are not part of this flow.
+
+The album, type picker, camera and viewer use the `garmentDetail` query (`album`, `type`,
+`camera:<TYPE>`, `photo:<id>`); `order` is never removed by closing them.
 Opening pushes a history entry; swiping photos replaces it. Close uses Back only for entries opened
 by this view; a refreshed deep link removes its query with replace. Intake uses `intake=item:<tag>`
 for the outer overlay and pushes it over the row sheet. Back restores the row sheet; if changing type

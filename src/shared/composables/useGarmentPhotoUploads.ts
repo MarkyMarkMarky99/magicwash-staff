@@ -54,9 +54,14 @@ export function useGarmentPhotoUploads() {
     if (url) void deleteQuietly(url)
   }
 
+  function forget(id: string): void {
+    entries.delete(id)
+    delete uploads[id]
+  }
+
   function discardAll(): void {
     for (const id of [...entries.keys()]) remove(id)
   }
 
-  return { uploads, start, retry, remove, discardAll }
+  return { uploads, start, retry, remove, forget, discardAll }
 }

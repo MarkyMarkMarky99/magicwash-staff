@@ -1,36 +1,51 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import ImageOrIcon from '@/shared/components/ImageOrIcon.vue'
-import StickerFab from '@/shared/components/StickerFab.vue'
+import CameraOverlay from '@/shared/components/CameraOverlay.vue'
 import PhotoViewer from '@/shared/components/PhotoViewer.vue'
 import CloseButton from '@/shared/components/CloseButton.vue'
 import DetailOverlay from '@/shared/layouts/DetailOverlay.vue'
 import PriceListItemPicker from '@/features/price-list/components/PriceListItemPicker.vue'
 import SectionHeader from '@/shared/components/SectionHeader.vue'
+import InlineNotice from '@/shared/components/InlineNotice.vue'
+import LaundryItemPhotoControls from './LaundryItemPhotoControls.vue'
 import PaperCard from '@/shared/components/PaperCard.vue'
 import { useLaundryItemDetail } from '../composables/useLaundryItemDetail'
 import { useLaundryItemDetailOverlayRoute } from '../composables/useLaundryItemDetailOverlayRoute'
-import { garmentAlbum, garmentCurrentPlace, garmentDate, garmentLastSeen, garmentOrderRows, garmentTimeline } from '../utils/laundry-item-detail'
+import { useLaundryItemPhotoCapture } from '../composables/useLaundryItemPhotoCapture'
+import { garmentAlbum, garmentCurrentPlace, garmentDate, garmentInOrder, garmentLastSeen, garmentOrderRows, garmentPhotoPreview, garmentPhotoTypeOptions, garmentSharedHistory, garmentTimeline } from '../utils/laundry-item-detail'
 import { serviceTypeLabelEn } from '@/shared/utils/service-type-labels'
 import type { ItemDto } from '@/data/items/items.service'
 
-const props = defineProps<{ tagId: string }>()
+const props = withDefaults(defineProps<{ tagId: string, orderId?: string | null, readonly?: boolean }>(), { orderId: null, readonly: false })
 const emit = defineEmits<{ typeChanged: [itemId: string] }>()
 const detail = useLaundryItemDetail(() => props.tagId, itemId => emit('typeChanged', itemId))
 const { garment, loading, error, saving, saveError, item, customerName, programName } = detail
 const overlay = useLaundryItemDetailOverlayRoute()
 const expanded = ref<string | null>(null)
-const rows = computed(() => garmentOrderRows(props.tagId, detail.links.value, detail.orders.value))
+const rows = computed(() => garmentOrderRows(props.tagId, detail.links.value, detail.orders.value, props.orderId))
+const inOrder = computed(() => props.orderId === null || garmentInOrder(props.tagId, props.orderId, detail.links.value))
+const history = computed(() => garmentSharedHistory(props.tagId, detail.photos.value))
+const canAdd = computed(() => !props.readonly && inOrder.value && garment.value !== null)
+const photoTypes = garmentPhotoTypeOptions()
+const cameraType = computed(() => {
+  const value = overlay.value.value
+  if (!canAdd.value || !value?.startsWith('camera:')) return null
+  return photoTypes.find(option => option.value === value.slice(7))?.value ?? null
+})
+const destination = computed(() => props.orderId === null ? 'Garment history' : 'This order')
+const capture = useLaundryItemPhotoCapture({ orderId: () => props.orderId, save: request => detail.addPhotos(request) })
+const { items: captured, problems, saving: capturing } = capture
 const stamp = computed(() => garmentCurrentPlace(props.tagId, rows.value[0], detail.tickets.value))
 const lastSeen = computed(() => garmentLastSeen(props.tagId, detail.tickets.value))
-const album = computed(() => garment.value ? garmentAlbum(garment.value, detail.photos.value, detail.orders.value) : [])
+const album = computed(() => garment.value ? garmentAlbum(garment.value, detail.photos.value, detail.orders.value, props.orderId) : [])
 const images = computed(() => album.value.flatMap(section => section.photos))
+const preview = computed(() => [...captured.value, ...(garment.value ? garmentPhotoPreview(garment.value, album.value, detail.photos.value) : [])])
 const activePhoto = computed(() => overlay.value.value?.startsWith('photo:') ? overlay.value.value.slice(6) : null)
 const albumOpen = computed(() => overlay.value.value === 'album' || activePhoto.value !== null)
 const title = computed(() => item.value ? item.value.displayNameEn?.trim() || item.value.displayNameTh : 'Uncategorized')
 const titleHead = computed(() => { const i = title.value.lastIndexOf(' '); return i < 0 ? '' : title.value.slice(0, i + 1) })
 const titleTail = computed(() => title.value.slice(titleHead.value.length))
-const photoLabel = computed(() => `${images.value.length} ${images.value.length === 1 ? 'photo' : 'photos'}`)
 const metadata = computed(() => [
   { label: 'Customer', value: customerName.value },
   { label: 'Registered', value: garmentDate(garment.value?.createdAt, true) },
@@ -42,6 +57,14 @@ const metadata = computed(() => [
 function defects(orderId: string) {
   return album.value.find(section => section.type === 'DEFECT')?.photos.filter(photo => photo.orderId === orderId) ?? []
 }
+
+function onCapture(file: File): void {
+  if (cameraType.value !== null) capture.add(file, cameraType.value)
+}
+
+watch(cameraType, (current, previous) => {
+  if (previous !== null && current === null) void capture.finish()
+})
 
 async function selectType(selected: ItemDto): Promise<void> {
   await detail.changeType(selected.id)
@@ -63,20 +86,40 @@ async function selectType(selected: ItemDto): Promise<void> {
       </div>
       <section class="flex items-center gap-3 px-0.5 pt-4">
         <div class="min-w-0 flex-1 break-words">
-          <h1 class="font-headline text-[22px] font-extrabold leading-[1.15]" :class="item ? 'text-primary' : 'text-warning'">
+          <h1 class="font-headline text-xl font-extrabold leading-[1.1]" :class="item ? 'text-primary' : 'text-warning'">
             {{ titleHead }}<span class="whitespace-nowrap">{{ titleTail }}<button type="button" aria-label="Change type" class="ml-1 inline-grid h-8 w-8 place-items-center rounded-lg border-0 align-[-4px] text-on-surface-variant" :disabled="saving" @click="overlay.open('type')"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">edit</span></button></span>
           </h1>
-          <p v-if="item?.displayNameTh" lang="th" class="mt-0.5 text-[15px] font-semibold text-on-surface-variant">{{ item.displayNameTh }}</p>
+          <p v-if="item?.displayNameTh" lang="th" class="mt-[3px] font-label text-[10px] font-extrabold leading-none text-on-surface-variant">{{ item.displayNameTh }}</p>
         </div>
-        <StickerFab class="mr-1 shrink-0" :label="photoLabel" :aria-label="`Open photo album, ${photoLabel}`" @click="overlay.open('album')"><span class="material-symbols-outlined text-[26px]" aria-hidden="true">photo_library</span></StickerFab>
+        <LaundryItemPhotoControls class="shrink-0" :photos="preview" :can-add="canAdd" :saving="capturing" :destination="destination" @view="overlay.open('album')" @select="overlay.open(`camera:${$event}`)" />
       </section>
+      <div v-if="problems.length" class="mt-4 flex flex-col gap-2">
+        <InlineNotice v-for="problem in problems" :key="problem.key" :tone="problem.kind === 'upload' ? 'warning' : 'error'" :dismissible="!problem.busy" @dismiss="capture.dismiss(problem)">
+          <span class="min-w-0 flex-1">{{ problem.message }}</span>
+          <button type="button" class="shrink-0 rounded-full border-2 border-current px-3 py-1 font-bold focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-40" :disabled="problem.busy" @click="capture.retry(problem)">{{ problem.busy ? 'Retrying…' : 'Retry' }}</button>
+        </InlineNotice>
+      </div>
       <p v-if="saveError" role="alert" class="mt-4 rounded-xl bg-error-container p-3 text-on-error-container">{{ saveError }}</p>
       <dl class="metadata">
         <div v-for="cell in metadata" :key="cell.label" class="metadata-cell" :class="{ full: cell.full }"><dt>{{ cell.label }}</dt><dd>{{ cell.value }}</dd></div>
       </dl>
-      <SectionHeader class="!mb-6 !mt-7" title="Order history" subtitle="Newest first · tap to see steps" />
-      <PaperCard tab="Orders" class="!m-0">
-        <p v-if="rows.length === 0" class="px-4 py-8 text-center text-on-surface-variant">Not in any order yet</p>
+      <template v-if="history.length">
+        <SectionHeader class="!mb-6 !mt-7" title="Garment history" subtitle="Shared by all orders" />
+        <PaperCard tab="History" class="!m-0">
+          <ul class="grid grid-cols-3 gap-2 px-3.5 pb-4 pt-5">
+            <li v-for="photo in history" :key="photo.id" class="min-w-0">
+              <button type="button" class="relative block w-full overflow-hidden rounded-[10px_12px_10px_11px] border-2 border-primary" :aria-label="`View ${photo.alt}`" @click="overlay.open(`photo:${photo.id}`)">
+                <ImageOrIcon :image-url="photo.src" icon="image" class="aspect-square w-full" />
+                <span class="absolute bottom-1 left-1 rounded-[7px] bg-primary px-1.5 text-[11px] font-extrabold text-on-primary">{{ photo.label }}</span>
+              </button>
+            </li>
+          </ul>
+        </PaperCard>
+      </template>
+      <SectionHeader class="!mb-6 !mt-7" :title="orderId === null ? 'Order history' : 'This order'" :subtitle="orderId === null ? 'Newest first · tap to see steps' : 'Tap to see steps'" />
+      <InlineNotice v-if="!inOrder" tone="warning" icon="info">This garment is not in this order</InlineNotice>
+      <PaperCard v-else tab="Orders" class="!m-0">
+        <p v-if="rows.length === 0" class="px-4 py-8 text-center text-on-surface-variant">{{ orderId === null ? 'Not in any order yet' : 'Order not found' }}</p>
         <ul v-else class="order-list">
           <li v-for="(order, index) in rows" :key="order.orderId" class="order-entry">
             <button :id="`garment-order-${order.orderId}`" type="button" class="order-row" :aria-expanded="expanded === order.orderId" :aria-controls="`garment-steps-${order.orderId}`" @click="expanded = expanded === order.orderId ? null : order.orderId">
@@ -119,6 +162,7 @@ async function selectType(selected: ItemDto): Promise<void> {
       </div>
     </DetailOverlay>
     <PriceListItemPicker selection-mode="item" :open="overlay.value.value === 'type'" :detail="customerName" :items="detail.items.items" :loading="detail.items.loading || saving" :error="detail.items.error" :truncated="detail.items.truncated" @close="overlay.close" @retry="detail.items.load" @select="selectType" />
+    <CameraOverlay :open="cameraType !== null" @close="overlay.close" @capture="onCapture" />
     <PhotoViewer v-if="activePhoto" :images="images" :active-id="activePhoto" @change="overlay.open(`photo:${$event}`, true)" @close="overlay.close" />
   </main>
 </template>

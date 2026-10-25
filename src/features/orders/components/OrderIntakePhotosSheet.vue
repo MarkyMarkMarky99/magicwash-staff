@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { GarmentUpload } from '@/shared/composables/useGarmentPhotoUploads'
-import OrderIntakeUploadState from './OrderIntakeUploadState.vue'
+import UploadStateOverlay from '@/shared/components/UploadStateOverlay.vue'
 import DetailOverlay from '@/shared/layouts/DetailOverlay.vue'
 import {
   orderIntakePhotoCategories,
@@ -29,7 +29,7 @@ const emit = defineEmits<{ close: [], view: [id: string] }>()
           <li v-for="photo in photosOf(photos, category.key)" :key="photo.id">
             <button type="button" class="relative block aspect-square w-full overflow-hidden rounded-[10px] border border-outline-variant bg-surface-container focus-visible:outline-2 focus-visible:outline-lime" :aria-label="uploads[photo.id]?.status === 'failed' ? `Retry ${category.name} photo upload` : `View ${category.name} photo`" @click="emit('view', photo.id)">
               <img :src="photo.previewUrl" alt="" class="h-full w-full object-cover">
-              <OrderIntakeUploadState :status="uploads[photo.id]?.status" />
+              <UploadStateOverlay :status="uploads[photo.id]?.status" />
             </button>
           </li>
         </ul>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { GarmentUpload } from '@/shared/composables/useGarmentPhotoUploads'
-import OrderIntakeUploadState from './OrderIntakeUploadState.vue'
+import UploadStateOverlay from '@/shared/components/UploadStateOverlay.vue'
 import { computed } from 'vue'
 import type { OrderIntakePhoto } from '@/features/orders/utils/order-intake-draft'
 
@@ -23,7 +23,7 @@ const visible = computed(() => props.photos.slice(-3))
       :style="{ left: `${index * 6}px`, top: `${index * 3 + 2}px`, transform: `rotate(${ROTATIONS[index]}deg)`, zIndex: index + 1 }"
     >
       <img :src="photo.previewUrl" alt="">
-      <OrderIntakeUploadState :status="uploads[photo.id]?.status" />
+      <UploadStateOverlay :status="uploads[photo.id]?.status" />
     </button>
     <span class="badge" :style="{ left: `${(visible.length - 1) * 6 + 24}px` }">{{ photos.length }}</span>
   </div>

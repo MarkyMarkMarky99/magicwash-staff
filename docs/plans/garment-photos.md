@@ -1,6 +1,7 @@
 # Plan — Garment photos on the garment detail page
 
-Status: **design agreed with the owner 2026-10-25; not built.** Builds on the garment detail page
+Status: **decisions 1–9 built 2026-10-26 (type menu, camera session and batch save), not yet verified in a browser against live Sheets; the "Later"
+items are not built.** Builds on the garment detail page
 (`docs/features/laundry-items/laundry-item-detail-page.md`) on branch `feat/order-intake-page`.
 
 ## Why
@@ -22,9 +23,8 @@ Owner (2026-10-25):
    saved with `order_id` empty: shared garment history.
 4. Shared garment history is shown in both modes; with `order` it sits in its own section above the
    order's history.
-5. No new photo type now. Photos use the existing `BEFORE`, `AFTER` and `DEFECT` types with an
-   optional note. The design must allow adding a type (for example `ALTERATION`) later by a
-   registry change only.
+5. No new photo type now. Photos use the existing `BEFORE`, `AFTER` and `DEFECT` types. The design
+   must allow adding a type (for example `ALTERATION`) later by a registry change only.
 6. Garment detail opened from the Intake page is view only: the order does not exist yet, so it has
    no add or edit actions. Staff save the intake first, then open the garment from order detail.
 
@@ -34,14 +34,19 @@ Claude (minor):
 8. When `orderId` is sent, the server checks that the garment is linked to that order through a
    non-deleted OrderGarments row (1 GViz read) and rejects it otherwise (400). Without `orderId`, no
    order check.
-9. Photos upload to Firebase when captured (shared upload composable); the row is written once on
-   confirm, one `LaundryItemPhotos` append per photo set.
+9. Photos upload to Firebase when captured (shared upload composable). Closing the camera writes
+   the whole session in one request: one `batchAppend` of all rows.
 
 ## Page
 
-- Header action "Add photo" opens a sheet: type (`Defect`, `Before`, `After`), camera, optional
-  note, Save. The sheet title states where the photo goes: "Order <received date>" with `order`, or
-  "Garment history (all orders)" without.
+- The header copies the corporate count sheet's controls: a stacked-paper preview of the album's
+  photos with a count badge (opens the album), and a lime "Add" sticker.
+- Add opens a type menu (`Defect`, `Before`, `After`, each with an icon and a hint) headed by
+  "Saves to: This order" with `order`, otherwise "Saves to: Garment history". Picking a type opens
+  the camera (`garmentDetail=camera:<TYPE>`, Back closes it). Each capture uploads at once and shows
+  in the preview with an upload overlay. Closing the camera waits for the uploads, then saves the
+  uploaded photos in one batch request. Failed uploads and failed saves show a notice with Retry;
+  Dismiss deletes the files. There is no note field this round.
 - With `order`: the page reads the order's OrderGarments link; if the garment is not in that order
   it shows "This garment is not in this order" and no add action.
 - The type list comes from the API contract enum, so a new type shows up without page changes.
@@ -50,8 +55,15 @@ Claude (minor):
 ## Backend
 
 - `POST /api/laundry-item-photos` (existing CRUD create) gains the order check of decision 8 and
-  accepts `photoType` `BEFORE | AFTER | DEFECT` only (`REGISTRATION` stays register-only).
-- Calls per add: 0–1 GViz read (OrderGarments, only with `orderId`), 1 Sheets API write.
+  accepts `photoType` `BEFORE | AFTER | DEFECT` only (`REGISTRATION` stays register-only). The page
+  no longer uses it.
+- `POST /api/laundry-item-photos/batch` takes `{ laundryItemId, orderId | null, photoType,
+  imageUrls (1–20, https on firebasestorage.googleapis.com) }`, `createdBy` from the session. It
+  rejects `REGISTRATION` (400), reads OrderGarments once when `orderId` is set (400 "Garment is not in
+  this order" without a live link), then appends all rows in one `batchAppend` (notes empty). Response
+  201 `{ created }`.
+- Calls per save, whatever the photo count: 0–1 GViz read (OrderGarments, only with `orderId`) and 1
+  Sheets API write.
 
 ## Entry points
 

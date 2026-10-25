@@ -5,7 +5,7 @@ import { laundryItemPhotoResponseSchema } from '@contracts/laundry-item-photos/l
 import { orderGarmentResponseSchema } from '@contracts/order-garments/order-garment-api.schema'
 import { jobTicketResponseSchema } from '@contracts/job-tickets/job-ticket-api.schema'
 import type { OrderListDto } from '@/data/orders/order.service'
-import { garmentAlbum, garmentCurrentPlace, garmentDate, garmentLastSeen, garmentOrderRows, garmentTimeline } from '@/features/laundry-items/utils/laundry-item-detail'
+import { garmentAlbum, garmentCurrentPlace, garmentDate, garmentInOrder, garmentLastSeen, garmentOrderRows, garmentPhotoPreview, garmentPhotoTypeHint, garmentPhotoTypeIcon, garmentPhotoTypeLabel, garmentPhotoTypeOptions, garmentSharedHistory, garmentTimeline } from '@/features/laundry-items/utils/laundry-item-detail'
 
 const audit = { createdAt: '2026-08-12 09:40:00', createdBy: 'staff', updatedAt: null, updatedBy: null, deletedAt: null, deletedBy: null }
 const tag = 'AAAA0001'
@@ -87,4 +87,73 @@ test('dates use Bangkok with an unpadded day, no seconds, and empty fallback', (
   assert.equal(garmentDate('2026-10-04'), '4 Oct 2026')
   assert.equal(garmentDate(null, true), '–')
   assert.equal(garmentDate('invalid', true), '–')
+})
+
+test('an order filter keeps only that order and an unlinked order yields no rows', () => {
+  const orders = [order('old', '2026-09-01'), order('new', '2026-10-24')]
+  const links = [link('old'), link('new'), link('gone', { deletedAt: '2026-10-25 12:00:00' })]
+  assert.deepEqual(garmentOrderRows(tag, links, orders, 'old').map(row => row.orderId), ['old'])
+  assert.deepEqual(garmentOrderRows(tag, links, orders, 'unlinked'), [])
+  assert.deepEqual(garmentOrderRows(tag, links, orders, null).map(row => row.orderId), ['new', 'old'])
+})
+
+test('a garment is in an order only through a live link to this garment', () => {
+  const links = [link('new'), link('gone', { deletedAt: '2026-10-25 12:00:00' }), link('other', { laundryItemId: 'AAAA0002' })]
+  assert.equal(garmentInOrder(tag, 'new', links), true)
+  assert.equal(garmentInOrder(tag, 'gone', links), false)
+  assert.equal(garmentInOrder(tag, 'other', links), false)
+  assert.equal(garmentInOrder(tag, 'missing', links), false)
+})
+
+test('shared history is live non-registration photos without an order, newest first', () => {
+  const history = garmentSharedHistory(tag, [
+    photo('registration', 'REGISTRATION', { orderId: null }),
+    photo('old', 'DEFECT', { orderId: null, createdAt: '2026-10-01 09:00:00' }),
+    photo('new', 'AFTER', { orderId: '', createdAt: '2026-10-20 09:00:00' }),
+    photo('ordered', 'BEFORE', { orderId: 'new' }),
+    photo('deleted', 'BEFORE', { orderId: null, deletedAt: '2026-10-24 12:00:00' }),
+    photo('other', 'BEFORE', { orderId: null, laundryItemId: 'AAAA0002' }),
+  ])
+  assert.deepEqual(history.map(item => [item.id, item.label, item.alt]), [['new', 'After', 'After photo'], ['old', 'Defect', 'Defect photo']])
+  assert.deepEqual(garmentSharedHistory(tag, []), [])
+})
+
+test('an order filter keeps registration, shared and that order photos in the album', () => {
+  const photos = [
+    photo('registration', 'REGISTRATION', { imageUrl: garment.imageUrl, orderId: null }),
+    photo('shared', 'BEFORE', { orderId: null }), photo('shared-empty', 'DEFECT', { orderId: '' }),
+    photo('mine', 'DEFECT', { orderId: 'new' }), photo('theirs', 'DEFECT', { orderId: 'old' }),
+  ]
+  const orders = [order('new', '2026-10-24'), order('old', '2026-09-01')]
+  const ids = (orderId: string | null) => garmentAlbum(garment, photos, orders, orderId).flatMap(group => group.photos.map(item => item.id))
+  assert.deepEqual(ids('new'), ['registration', 'shared-empty', 'mine', 'shared'])
+  assert.deepEqual(ids('old'), ['registration', 'shared-empty', 'theirs', 'shared'])
+  assert.deepEqual(ids(null), ['registration', 'shared-empty', 'mine', 'theirs', 'shared'])
+  assert.deepEqual(ids('unlinked'), ['registration', 'shared-empty', 'shared'])
+})
+
+test('photo type choices come from the contract enum without registration', () => {
+  assert.deepEqual(garmentPhotoTypeOptions(), [{ value: 'BEFORE', label: 'Before' }, { value: 'AFTER', label: 'After' }, { value: 'DEFECT', label: 'Defect' }])
+  assert.equal(garmentPhotoTypeLabel('REGISTRATION'), 'Registration')
+})
+
+test('every photo type choice has an icon and the known ones a hint', () => {
+  const types = garmentPhotoTypeOptions().map(option => [option.value, garmentPhotoTypeIcon(option.value), garmentPhotoTypeHint(option.value)])
+  assert.deepEqual(types, [['BEFORE', 'photo_camera_back', 'As received'], ['AFTER', 'photo_camera_front', 'After cleaning'], ['DEFECT', 'report', 'Damage or stain']])
+  assert.equal(garmentPhotoTypeIcon('REGISTRATION'), 'photo_camera')
+  assert.equal(garmentPhotoTypeHint('REGISTRATION'), '')
+})
+
+test('the header preview holds the album photos newest first', () => {
+  const photos = [
+    photo('registration', 'REGISTRATION', { imageUrl: garment.imageUrl, orderId: null, createdAt: '2026-08-12 09:40:00' }),
+    photo('old', 'DEFECT', { orderId: 'new', createdAt: '2026-10-01 09:00:00' }),
+    photo('newest', 'AFTER', { orderId: null, createdAt: '2026-10-20 09:00:00' }),
+    photo('theirs', 'DEFECT', { orderId: 'old', createdAt: '2026-10-25 09:00:00' }),
+  ]
+  const orders = [order('new', '2026-10-24'), order('old', '2026-09-01')]
+  const preview = (orderId: string | null) => garmentPhotoPreview(garment, garmentAlbum(garment, photos, orders, orderId), photos).map(item => item.id)
+  assert.deepEqual(preview(null), ['theirs', 'newest', 'old', 'registration'])
+  assert.deepEqual(preview('new'), ['newest', 'old', 'registration'])
+  assert.deepEqual(garmentPhotoPreview(garment, garmentAlbum(garment, [], orders, null), []), [{ id: `registration:${garment.id}`, src: garment.imageUrl }])
 })

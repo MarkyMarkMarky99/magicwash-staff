@@ -62,6 +62,24 @@ test('refreshed Intake deep link closes with replace and preserves unrelated que
   scope.stop()
 })
 
+test('the camera is route-owned, keeps the order query, and Back closes it', async () => {
+  const { router, scope, detail } = await setup('/garments/AAAA0001?order=ORD-1')
+  await navigate(router, () => detail.open('camera:DEFECT'))
+  assert.deepEqual(router.currentRoute.value.query, { order: 'ORD-1', garmentDetail: 'camera:DEFECT' })
+  assert.equal(detail.value.value, 'camera:DEFECT')
+  await navigate(router, () => detail.close())
+  assert.deepEqual(router.currentRoute.value.query, { order: 'ORD-1' })
+  assert.equal(detail.value.value, null)
+  scope.stop()
+})
+
+test('refreshed camera deep link closes with replace and keeps the order query', async () => {
+  const { router, scope, detail } = await setup('/garments/AAAA0001?order=ORD-1&garmentDetail=camera:BEFORE')
+  await navigate(router, () => detail.close())
+  assert.deepEqual(router.currentRoute.value.query, { order: 'ORD-1' })
+  scope.stop()
+})
+
 test('standalone photo deep link closes to the garment and picker has its own Back entry', async () => {
   const { router, scope, detail } = await setup('/garments/AAAA0001?garmentDetail=photo:one')
   await navigate(router, () => detail.close())

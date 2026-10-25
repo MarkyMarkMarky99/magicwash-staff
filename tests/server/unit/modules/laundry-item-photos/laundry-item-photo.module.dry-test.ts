@@ -8,6 +8,7 @@ import { ApiError } from '../../../../../server/shared/http/api-error.js'
 import { createCrudRoutes } from '../../../../../server/shared/http/crud-routes.js'
 import type { ApiHandlerRequest } from '../../../../../server/shared/http/api-handler.js'
 import { laundryItemPhotosDbContract } from '../../../../../server/sheets/LaundryItemPhotos/LaundryItemPhotos.db-contract.js'
+import type { orderGarmentsRowSchema } from '../../../../../server/sheets/OrderGarments/OrderGarments.db-contract.js'
 import { SheetRepository } from '../../../../../server/shared/repositories/sheet.repository.js'
 import { buildSheetHeaderMap } from '../../../../../server/shared/repositories/sheet-header-map.js'
 import { SheetsApiClient, type SheetsApiValue } from '../../../../../server/shared/repositories/sheets-api.client.js'
@@ -19,6 +20,19 @@ const row: Row = {
   created_by: 'staff-1', updated_at: null, updated_by: null, deleted_at: null, deleted_by: null,
 }
 const rows: Row[] = [{ ...row, id: 'deleted1', deleted_at: '2026-10-23 11:00:00' }, row, { ...row, id: 'next0002', deleted_at: '' }]
+type LinkRow = z.infer<typeof orderGarmentsRowSchema>
+const link: LinkRow = {
+  id: 'link-1', order_id: 'order-1', laundry_item_id: 'aB01zZ89', orderitem_id: null, notes: null, status: 'RECEIVED',
+  created_at: '2026-10-23 09:00:00', created_by: 'staff-1', updated_at: null, updated_by: null, deleted_at: null, deleted_by: null,
+}
+const linkRows: LinkRow[] = [link, { ...link, id: 'link-gone', order_id: 'order-gone', deleted_at: '2026-10-23 10:00:00' }]
+const linkReads: Array<Partial<LinkRow> | undefined> = []
+const orderGarments = () => ({
+  read: async (query?: ReadQueryDTO<Partial<LinkRow>>) => {
+    linkReads.push(query?.where)
+    return linkRows.filter((item) => Object.entries(query?.where ?? {}).every(([field, value]) => item[field as keyof LinkRow] === value))
+  },
+})
 const reads: Array<ReadQueryDTO<Partial<Row>> | undefined> = []
 const appends: Array<Partial<Row>> = []
 const updates: Array<{ id: string; patch: Partial<Row> }> = []
@@ -49,7 +63,7 @@ const service = createLaundryItemPhotoService(() => ({
     updates.push({ id, patch })
     return { ...rows.find((item) => item.id === id)!, ...patch }
   },
-}))
+}), orderGarments)
 const routes = createCrudRoutes(service, laundryItemPhotoApiContract, { create: ['createdBy'], update: ['updatedBy'] })
 const request = (method: string, body: unknown = {}, id = row.id): ApiHandlerRequest => ({
   method, body, query: {}, params: { id }, headers: {},
@@ -84,6 +98,30 @@ for (const body of [{ ...create, id: 'client-id' }, {}]) {
   assert.equal((await routes.collection.handleRequest(request('POST', body))).status, 422)
 }
 assert.equal(appends.length, 1)
+assert.deepEqual(linkReads, [{ laundry_item_id: 'aB01zZ89', order_id: 'order-1' }], 'one OrderGarments read, only for the order check')
+
+const badRequest = (error: unknown, message: string) => error instanceof ApiError && error.status === 400 && error.message === message
+for (const orderId of ['order-other', 'order-gone']) {
+  await assert.rejects(service.create({ ...create, orderId }), (error: unknown) => badRequest(error, 'Garment is not in this order'))
+}
+await assert.rejects(service.create({ ...create, laundryItemId: 'zZ99aB01' }), (error: unknown) => badRequest(error, 'Garment is not in this order'))
+assert.equal((await routes.collection.handleRequest(request('POST', { ...create, orderId: 'order-other' }))).status, 400)
+assert.equal(appends.length, 1, 'rejected order links must not append')
+const linkReadsBefore = linkReads.length
+for (const orderId of [null, '', undefined]) {
+  await service.create({ ...create, orderId })
+}
+assert.equal(linkReads.length, linkReadsBefore, 'shared history photos skip the order check')
+assert.equal(appends.length, 4)
+assert.equal(appends[3]!.order_id, undefined)
+for (const photoType of ['BEFORE', 'AFTER', 'DEFECT']) {
+  await service.create({ ...create, photoType })
+}
+assert.equal(appends.length, 7)
+await assert.rejects(service.create({ ...create, photoType: 'REGISTRATION' }), (error: unknown) => badRequest(error, 'Registration photos cannot be added here'))
+await assert.rejects(service.create({ ...create, photoType: 'REGISTRATION', orderId: null }), (error: unknown) => badRequest(error, 'Registration photos cannot be added here'))
+assert.equal((await routes.collection.handleRequest(request('POST', { ...create, photoType: 'REGISTRATION' }))).status, 400)
+assert.equal(appends.length, 7, 'registration photos must not append')
 const patched = await routes.item!.handleRequest(request('PATCH', { orderId: null, notes: '', photoType: 'AFTER', updatedBy: 'payload-staff' }))
 assert.equal(patched.status, 200)
 assert.deepEqual(updates[0], { id: row.id, patch: { order_id: null, notes: '', photo_type: 'AFTER', updated_by: 'session-staff' } })
@@ -136,7 +174,7 @@ realRepository.read = async (query) => {
   if (stored.length === 0 || (query?.id !== undefined && query.id !== stored[0])) return []
   return [Object.fromEntries(headers.map((header, index) => [header, stored[index]])) as Row]
 }
-const realService = createLaundryItemPhotoService(() => realRepository)
+const realService = createLaundryItemPhotoService(() => realRepository, orderGarments)
 const stamped = await realService.create(create)
 assert.match(stamped.id, /^[0-9a-f]{8}$/)
 assert.equal(stored[0], stamped.id)

@@ -2,7 +2,7 @@ import { computed, onScopeDispose, ref, watch } from 'vue'
 import { laundryTagIdSchema } from '@contracts/laundry-tag-prints/laundry-tag-print.schema'
 import { getLaundryItem, updateLaundryItem, type LaundryItemDto } from '@/data/laundry-items/laundry-item.service'
 import { listGarmentOrders, type OrderGarmentDto } from '@/data/order-garments/order-garment.service'
-import { listLaundryItemPhotos, type LaundryItemPhotoDto } from '@/data/laundry-item-photos/laundry-item-photo.service'
+import { createLaundryItemPhotoBatch, listLaundryItemPhotos, type LaundryItemPhotoDto } from '@/data/laundry-item-photos/laundry-item-photo.service'
 import { listOrdersByCustomer, type OrderListDto } from '@/data/orders/order.service'
 import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
 import type { JobTicketDto } from '@/data/job-tickets/job-ticket.service'
@@ -10,6 +10,7 @@ import { useItemsStore } from '@/data/items/items.store'
 import { useCustomerStore } from '@/data/customers/customer.store'
 import { useWashProgramsStore } from '@/data/wash-programs/wash-programs.store'
 import { useStaffStore } from '@/data/staff/staff.store'
+import type { GarmentPhotoSave } from './useLaundryItemPhotoCapture'
 
 export function useLaundryItemDetail(tag: () => string, changed: (itemId: string) => void) {
   const garment = ref<LaundryItemDto | null>(null)
@@ -82,10 +83,22 @@ export function useLaundryItemDetail(tag: () => string, changed: (itemId: string
     } finally { saving.value = false }
   }
 
+  async function addPhotos(input: GarmentPhotoSave): Promise<void> {
+    if (!garment.value) throw new Error('Garment is not loaded')
+    const currentTag = garment.value.id
+    await createLaundryItemPhotoBatch({ laundryItemId: currentTag, orderId: input.orderId, photoType: input.photoType, imageUrls: input.imageUrls })
+    try {
+      const fresh = await listLaundryItemPhotos(currentTag)
+      if (tag() === currentTag) photos.value = fresh
+    } catch {
+      saveError.value = 'Saved, but the photo list could not refresh'
+    }
+  }
+
   const item = computed(() => items.items.find(item => item.id === garment.value?.itemId) ?? null)
   const customerName = computed(() => customers.customers.find(customer => customer.customerId === garment.value?.customerId)?.customerName ?? '–')
   const programName = computed(() => programs.items.find(program => program.id === garment.value?.washProgram)?.name ?? '–')
   watch(tag, () => { void load() }, { immediate: true })
   onScopeDispose(() => { requestId += 1 })
-  return { garment, links, photos, orders, tickets, loading, error, saving, saveError, items, staff, item, customerName, programName, load, changeType }
+  return { garment, links, photos, orders, tickets, loading, error, saving, saveError, items, staff, item, customerName, programName, load, changeType, addPhotos }
 }
