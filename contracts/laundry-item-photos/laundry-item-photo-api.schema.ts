@@ -46,16 +46,6 @@ export const laundryItemPhotoCreateSchema = z.object({
   createdBy: requiredName,
 }).strict()
 
-export const laundryItemPhotoBatchCreateSchema = z.object({
-  laundryItemId: laundryTagIdSchema,
-  orderId: requiredName.nullable(),
-  photoType: laundryItemPhotoTypeSchema,
-  imageUrls: z.array(requiredName).min(1).max(20),
-  createdBy: requiredName,
-}).strict()
-
-export const laundryItemPhotoBatchResponseSchema = z.object({ created: z.number().int().nonnegative() })
-
 export const laundryItemPhotoUpdateSchema = z.object({
   ...editableFields,
   updatedBy: requiredName,

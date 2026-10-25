@@ -48,8 +48,8 @@ photos the album shows for the current mode, newest on top, with a badge holding
 hidden when there are no photos. Photos captured in the current visit appear in it at once, above the
 saved ones. Tapping it opens the album. On the right a lime `StickerFab` (`size="sm"`, label "Add",
 aria-label "Add photo", glyph `add_a_photo`) opens the type menu; it is hidden when adding is not
-allowed (`readonly`, or `order` with the garment not in that order), and the stack stays. While photos
-upload or save it shows the saving state ("Saving").
+allowed (`readonly`, or `order` with the garment not in that order), and the stack stays. While a photo
+uploads or saves it shows the saving state ("Saving").
 
 The album is a route-owned `DetailOverlay` titled "Photos · N" (`garmentDetail=album`). Registration,
 Defects, Before and After sections appear only when nonempty, with a three-column square grid.
@@ -66,21 +66,22 @@ order" with `order`, otherwise "Saves to: Garment history". The items come from 
 stain", "As received", "After cleaning", none for other types).
 
 Picking a type opens the camera directly, route-owned as `garmentDetail=camera:<TYPE>` (for example
-`camera:DEFECT`), so Back closes it. `CameraOverlay` has no title. Staff may take several photos in one
-camera session. Each capture starts a Firebase upload at once through `useGarmentPhotoUploads` and shows
-in the header stack with the shared `UploadStateOverlay` (spinner while uploading, error glyph when
-failed). The state lives in `useLaundryItemPhotoCapture`.
+`camera:DEFECT`), so Back closes it. `CameraOverlay` has no title. Each Add takes exactly one photo:
+the first capture closes the camera at once, as the Intake document capture does. The capture starts a
+Firebase upload through `useGarmentPhotoUploads` and shows at the front of the header stack with the
+shared `UploadStateOverlay` (spinner while uploading, error glyph when failed). The state lives in
+`useLaundryItemPhotoCapture`. Each photo is independent: another Add can be opened while earlier photos
+upload or save.
 
-Closing the camera saves the session: once every upload has settled, the uploaded photos go in one
-request (`photoType` the chosen type, `orderId` from the URL or null, no note), then the page's photos
-reload. Failures show an `InlineNotice` under the header with a Retry button and a dismiss control:
-- Uploads that failed: warning "<n> photo(s) did not upload." Retry re-runs those uploads and saves the
-  ones that finish in one more request. Dismiss drops them.
-- A failed save request: error with the server message. Retry resends the same request. Uploaded files
-  are kept while a retry is possible and deleted only on Dismiss.
+When the upload is done the photo is saved with one create call (`POST /api/laundry-item-photos`:
+`photoType` the chosen type, `orderId` from the URL or null, no note), then the page's photos reload and
+the local capture is dropped without deleting its file. Failures show an `InlineNotice` under the header
+with a Retry button and a dismiss control, per photo:
+- Upload failed: warning "Photo did not upload." Retry re-runs the upload and then saves. Dismiss drops it.
+- Save failed: error with the server message. Retry resends the same request. The uploaded file is kept
+  while a retry is possible and deleted only on Dismiss.
 
-Leaving the page with unsaved uploads deletes their files, except photos whose save request is in
-flight. The server rejects an `orderId` the garment is not linked to (400 "Garment is not in this
+Leaving the page with unsaved photos deletes their files, except photos whose save is in flight. The server rejects an `orderId` the garment is not linked to (400 "Garment is not in this
 order") and any `REGISTRATION` photo. Notes are not part of this flow.
 
 The album, type picker, camera and viewer use the `garmentDetail` query (`album`, `type`,

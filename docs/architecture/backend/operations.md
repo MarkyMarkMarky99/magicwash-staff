@@ -165,13 +165,8 @@ Create rejects `photoType` `REGISTRATION` with 400, because registration photos 
 the garment register route. When `orderId` is present and nonempty, create reads `OrderGarments` for that
 `laundryItemId` and `orderId` and rejects with 400 "Garment is not in this order" unless a row with an
 empty `deleted_at` exists. Without `orderId` there is no order read.
-`POST /api/laundry-item-photos/batch` creates several rows for one garment in one request. The body is
-`laundryItemId`, `orderId` (string or null), `photoType`, and `imageUrls` (1–20 `https` URLs on
-`firebasestorage.googleapis.com`; other URLs return 400). `createdBy` is replaced by the session staff
-actor. It applies the same `REGISTRATION` and order checks as create, then writes every row with one
-`batchAppend` (server-generated ids, empty `notes`) and returns 201 `{ created }`. Cost per request:
-0 or 1 `OrderGarments` read (only with `orderId`) and 1 Sheets API write, regardless of the URL count.
-GET and PATCH on the id `batch` return 404.
+The garment detail page saves one photo per create call. Cost per call: 0 or 1 `OrderGarments` read
+(only with `orderId`) and 1 Sheets API write.
 
 ## Public delivery tracking
 

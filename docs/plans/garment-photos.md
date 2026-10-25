@@ -1,6 +1,6 @@
 # Plan — Garment photos on the garment detail page
 
-Status: **decisions 1–9 built 2026-10-26 (type menu, camera session and batch save), not yet verified in a browser against live Sheets; the "Later"
+Status: **decisions 1–9 built 2026-10-26 (type menu, one photo per Add, single-row save), not yet verified in a browser against live Sheets; the "Later"
 items are not built.** Builds on the garment detail page
 (`docs/features/laundry-items/laundry-item-detail-page.md`) on branch `feat/order-intake-page`.
 
@@ -34,8 +34,9 @@ Claude (minor):
 8. When `orderId` is sent, the server checks that the garment is linked to that order through a
    non-deleted OrderGarments row (1 GViz read) and rejects it otherwise (400). Without `orderId`, no
    order check.
-9. Photos upload to Firebase when captured (shared upload composable). Closing the camera writes
-   the whole session in one request: one `batchAppend` of all rows.
+9. Staff photograph one garment at a time, so each Add takes exactly one photo and the camera closes
+   after the capture. The photo uploads to Firebase at once (shared upload composable) and is saved
+   with the single-row create.
 
 ## Page
 
@@ -43,10 +44,10 @@ Claude (minor):
   photos with a count badge (opens the album), and a lime "Add" sticker.
 - Add opens a type menu (`Defect`, `Before`, `After`, each with an icon and a hint) headed by
   "Saves to: This order" with `order`, otherwise "Saves to: Garment history". Picking a type opens
-  the camera (`garmentDetail=camera:<TYPE>`, Back closes it). Each capture uploads at once and shows
-  in the preview with an upload overlay. Closing the camera waits for the uploads, then saves the
-  uploaded photos in one batch request. Failed uploads and failed saves show a notice with Retry;
-  Dismiss deletes the files. There is no note field this round.
+  the camera (`garmentDetail=camera:<TYPE>`, Back closes it). The first capture closes the camera,
+  uploads at once and shows in the preview with an upload overlay; when the upload is done the photo
+  is saved with one create call. Failed uploads and failed saves show a notice per photo with Retry;
+  Dismiss deletes the file. There is no note field this round.
 - With `order`: the page reads the order's OrderGarments link; if the garment is not in that order
   it shows "This garment is not in this order" and no add action.
 - The type list comes from the API contract enum, so a new type shows up without page changes.
@@ -55,15 +56,11 @@ Claude (minor):
 ## Backend
 
 - `POST /api/laundry-item-photos` (existing CRUD create) gains the order check of decision 8 and
-  accepts `photoType` `BEFORE | AFTER | DEFECT` only (`REGISTRATION` stays register-only). The page
-  no longer uses it.
-- `POST /api/laundry-item-photos/batch` takes `{ laundryItemId, orderId | null, photoType,
-  imageUrls (1–20, https on firebasestorage.googleapis.com) }`, `createdBy` from the session. It
-  rejects `REGISTRATION` (400), reads OrderGarments once when `orderId` is set (400 "Garment is not in
-  this order" without a live link), then appends all rows in one `batchAppend` (notes empty). Response
-  201 `{ created }`.
-- Calls per save, whatever the photo count: 0–1 GViz read (OrderGarments, only with `orderId`) and 1
-  Sheets API write.
+  accepts `photoType` `BEFORE | AFTER | DEFECT` only (`REGISTRATION` stays register-only) and an
+  `imageUrl` on https `firebasestorage.googleapis.com` only. The page
+  saves each photo with it: `{ laundryItemId, photoType, imageUrl, orderId | null, notes: null }`,
+  `createdBy` from the session. There is no batch route.
+- Calls per photo: 0–1 GViz read (OrderGarments, only with `orderId`) and 1 Sheets API write.
 
 ## Entry points
 

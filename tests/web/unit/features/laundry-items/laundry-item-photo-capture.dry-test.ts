@@ -7,7 +7,7 @@ const source = readFileSync(new URL('../../../../../src/features/laundry-items/c
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
 
 type Status = 'uploading' | 'done' | 'failed'
-interface Request { photoType: string, orderId: string | null, imageUrls: string[] }
+interface Request { photoType: string, orderId: string | null, imageUrl: string }
 type Capture = ReturnType<typeof import('@/features/laundry-items/composables/useLaundryItemPhotoCapture').useLaundryItemPhotoCapture>
 
 function setup(orderId: string | null = 'ORD-1') {
@@ -43,24 +43,19 @@ const url = (id: string) => `https://firebasestorage.googleapis.com/${id}`
 
 {
   const t = setup()
-  t.capture.add(t.file(), 'DEFECT')
-  t.capture.add(t.file(), 'DEFECT')
-  t.capture.add(t.file(), 'DEFECT')
-  assert.deepEqual(t.capture.items.value.map(item => [item.id, item.status]), [['garment-photo-3', 'uploading'], ['garment-photo-2', 'uploading'], ['garment-photo-1', 'uploading']], 'newest first, each capture uploads at once')
-  const finishing = t.capture.finish()
+  const adding = t.capture.add(t.file(), 'DEFECT')
+  assert.deepEqual(t.capture.items.value.map(item => [item.id, item.status]), [['garment-photo-1', 'uploading']], 'the capture shows at once, uploading')
   assert.equal(t.capture.saving.value, true)
-  t.settle('garment-photo-1', 'done')
   await tick()
-  assert.equal(t.saves.length, 0, 'waits until every upload has settled')
-  t.settle('garment-photo-2', 'done')
-  t.settle('garment-photo-3', 'done')
-  await finishing
-  assert.equal(t.saves.length, 1, 'one save request for the whole session')
-  assert.deepEqual(t.saves[0], { photoType: 'DEFECT', orderId: 'ORD-1', imageUrls: ['garment-photo-1', 'garment-photo-2', 'garment-photo-3'].map(url) })
+  assert.equal(t.saves.length, 0, 'nothing is saved before the upload is done')
+  t.settle('garment-photo-1', 'done')
+  await adding
+  assert.equal(t.saves.length, 1, 'one save call for the photo')
+  assert.deepEqual(t.saves[0], { photoType: 'DEFECT', orderId: 'ORD-1', imageUrl: url('garment-photo-1') })
   assert.equal(t.capture.saving.value, false)
   assert.equal(t.capture.items.value.length, 0)
   assert.equal(t.capture.problems.value.length, 0)
-  assert.deepEqual(t.forgotten.sort(), ['garment-photo-1', 'garment-photo-2', 'garment-photo-3'])
+  assert.deepEqual(t.forgotten, ['garment-photo-1'])
   assert.equal(t.removed.length, 0, 'saved files are never deleted')
   t.scope.stop()
   assert.equal(t.removed.length, 0, 'leaving the page keeps saved files')
@@ -68,54 +63,64 @@ const url = (id: string) => `https://firebasestorage.googleapis.com/${id}`
 
 {
   const t = setup(null)
-  t.capture.add(t.file(), 'BEFORE')
-  t.capture.add(t.file(), 'BEFORE')
+  const first = t.capture.add(t.file(), 'BEFORE')
+  const second = t.capture.add(t.file(), 'AFTER')
+  assert.deepEqual(t.capture.items.value.map(item => item.id), ['garment-photo-2', 'garment-photo-1'], 'newest first')
+  t.settle('garment-photo-2', 'done')
+  await second
+  assert.equal(t.saves.length, 1, 'photos are independent')
+  assert.deepEqual(t.saves[0], { photoType: 'AFTER', orderId: null, imageUrl: url('garment-photo-2') })
+  assert.equal(t.capture.saving.value, true, 'still saving while the other photo uploads')
   t.settle('garment-photo-1', 'done')
-  t.settle('garment-photo-2', 'failed')
-  await t.capture.finish()
-  assert.equal(t.saves.length, 1)
-  assert.deepEqual(t.saves[0].imageUrls, [url('garment-photo-1')])
-  assert.equal(t.saves[0].orderId, null)
+  await first
+  assert.equal(t.saves.length, 2)
+  assert.equal(t.saves[1].photoType, 'BEFORE')
+  assert.equal(t.capture.saving.value, false)
+}
+
+{
+  const t = setup(null)
+  const adding = t.capture.add(t.file(), 'BEFORE')
+  t.settle('garment-photo-1', 'failed')
+  await adding
+  assert.equal(t.saves.length, 0, 'a failed upload is not saved')
   assert.equal(t.capture.problems.value.length, 1)
-  assert.deepEqual([t.capture.problems.value[0].kind, t.capture.problems.value[0].message], ['upload', '1 photo did not upload.'])
-  assert.deepEqual(t.capture.items.value.map(item => [item.id, item.status]), [['garment-photo-2', 'failed']])
+  assert.deepEqual([t.capture.problems.value[0].kind, t.capture.problems.value[0].message], ['upload', 'Photo did not upload.'])
+  assert.deepEqual(t.capture.items.value.map(item => [item.id, item.status]), [['garment-photo-1', 'failed']])
   const retrying = t.capture.retry(t.capture.problems.value[0])
   assert.equal(t.capture.problems.value[0].busy, true)
-  assert.equal(t.uploads['garment-photo-2'].status, 'uploading')
-  t.settle('garment-photo-2', 'done')
+  assert.equal(t.uploads['garment-photo-1'].status, 'uploading')
+  t.settle('garment-photo-1', 'done')
   await retrying
-  assert.equal(t.saves.length, 2, 'retried uploads are saved in one more request')
-  assert.deepEqual(t.saves[1].imageUrls, [url('garment-photo-2')])
+  assert.equal(t.saves.length, 1, 'a retried upload is saved with one call')
+  assert.equal(t.saves[0].orderId, null)
   assert.equal(t.capture.problems.value.length, 0)
   assert.equal(t.removed.length, 0)
 }
 
 {
   const t = setup()
-  t.capture.add(t.file(), 'AFTER')
-  t.capture.add(t.file(), 'AFTER')
+  const adding = t.capture.add(t.file(), 'AFTER')
   t.settle('garment-photo-1', 'failed')
-  t.settle('garment-photo-2', 'failed')
-  await t.capture.finish()
-  assert.equal(t.saves.length, 0, 'nothing uploaded means no request')
-  assert.equal(t.capture.problems.value[0].message, '2 photos did not upload.')
+  await adding
   t.capture.dismiss(t.capture.problems.value[0])
   assert.equal(t.capture.problems.value.length, 0)
   assert.equal(t.capture.items.value.length, 0)
-  assert.deepEqual(t.removed.sort(), ['garment-photo-1', 'garment-photo-2'])
+  assert.deepEqual(t.removed, ['garment-photo-1'])
 }
 
 {
   const t = setup()
   t.setBehaviour(async () => { throw new Error('Garment is not in this order') })
-  t.capture.add(t.file(), 'DEFECT')
+  const adding = t.capture.add(t.file(), 'DEFECT')
   t.settle('garment-photo-1', 'done')
-  await t.capture.finish()
+  await adding
   assert.equal(t.capture.problems.value.length, 1)
   const problem = t.capture.problems.value[0]
   assert.deepEqual([problem.kind, problem.message], ['save', 'Garment is not in this order'])
-  assert.equal(t.removed.length, 0, 'uploaded files stay while a retry is possible')
+  assert.equal(t.removed.length, 0, 'the uploaded file stays while a retry is possible')
   assert.equal(t.capture.items.value.length, 1)
+  assert.equal(t.capture.saving.value, false)
   t.setBehaviour(async () => {})
   await t.capture.retry(problem)
   assert.equal(t.saves.length, 2)
@@ -128,42 +133,38 @@ const url = (id: string) => `https://firebasestorage.googleapis.com/${id}`
 {
   const t = setup()
   t.setBehaviour(async () => { throw new Error('boom') })
-  t.capture.add(t.file(), 'DEFECT')
+  const adding = t.capture.add(t.file(), 'DEFECT')
   t.settle('garment-photo-1', 'done')
-  await t.capture.finish()
+  await adding
   t.capture.dismiss(t.capture.problems.value[0])
-  assert.deepEqual(t.removed, ['garment-photo-1'], 'dismissing a failed save deletes the files')
+  assert.deepEqual(t.removed, ['garment-photo-1'], 'dismissing a failed save deletes the file')
   assert.equal(t.capture.items.value.length, 0)
 }
 
 {
   const t = setup()
-  t.capture.add(t.file(), 'DEFECT')
+  const adding = t.capture.add(t.file(), 'DEFECT')
   t.capture.add(t.file(), 'DEFECT')
   t.settle('garment-photo-1', 'done')
+  await adding
   t.scope.stop()
-  assert.deepEqual(t.removed.sort(), ['garment-photo-1', 'garment-photo-2'], 'leaving with unsaved uploads deletes their files')
+  assert.deepEqual(t.removed, ['garment-photo-2'], 'leaving with an unsaved upload deletes its file')
+  await tick()
+  assert.equal(t.saves.length, 1, 'a photo released on leaving is never saved')
 }
 
 {
   const t = setup()
   let finishSave!: () => void
   t.setBehaviour(() => new Promise<void>(resolve => { finishSave = resolve }))
-  t.capture.add(t.file(), 'DEFECT')
+  const adding = t.capture.add(t.file(), 'DEFECT')
   t.settle('garment-photo-1', 'done')
-  const finishing = t.capture.finish()
   await tick()
   t.scope.stop()
-  assert.equal(t.removed.length, 0, 'a save in flight keeps its files')
+  assert.equal(t.removed.length, 0, 'a save in flight keeps its file')
   finishSave()
-  await finishing
+  await adding
   assert.deepEqual(t.forgotten, ['garment-photo-1'])
   assert.equal(t.removed.length, 0)
-}
-
-{
-  const t = setup()
-  await t.capture.finish()
-  assert.equal(t.saves.length, 0, 'closing the camera without photos saves nothing')
 }
 console.log('laundry item photo capture dry tests passed')

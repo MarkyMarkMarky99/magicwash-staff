@@ -86,7 +86,7 @@ assert.deepEqual(await service.getById(row.id), {
 })
 await assert.rejects(service.getById('missing'), (error: unknown) => error instanceof ApiError && error.status === 404)
 const create = {
-  laundryItemId: 'aB01zZ89', photoType: 'BEFORE', imageUrl: 'https://example.test/photo.jpg',
+  laundryItemId: 'aB01zZ89', photoType: 'BEFORE', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/test/o/photo.jpg',
   orderId: 'order-1', notes: 'silk', createdBy: 'staff-1',
 }
 const created = await routes.collection.handleRequest(request('POST', { ...create, createdBy: 'payload-staff' }))
@@ -120,6 +120,9 @@ for (const photoType of ['BEFORE', 'AFTER', 'DEFECT']) {
 assert.equal(appends.length, 7)
 await assert.rejects(service.create({ ...create, photoType: 'REGISTRATION' }), (error: unknown) => badRequest(error, 'Registration photos cannot be added here'))
 await assert.rejects(service.create({ ...create, photoType: 'REGISTRATION', orderId: null }), (error: unknown) => badRequest(error, 'Registration photos cannot be added here'))
+for (const imageUrl of ['https://example.test/photo.jpg', 'http://firebasestorage.googleapis.com/x.jpg', 'not a url']) {
+  await assert.rejects(service.create({ ...create, imageUrl }), (error: unknown) => badRequest(error, 'Image URL must use https://firebasestorage.googleapis.com'))
+}
 assert.equal((await routes.collection.handleRequest(request('POST', { ...create, photoType: 'REGISTRATION' }))).status, 400)
 assert.equal(appends.length, 7, 'registration photos must not append')
 const patched = await routes.item!.handleRequest(request('PATCH', { orderId: null, notes: '', photoType: 'AFTER', updatedBy: 'payload-staff' }))

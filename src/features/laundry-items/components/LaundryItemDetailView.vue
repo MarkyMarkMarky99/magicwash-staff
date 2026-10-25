@@ -34,7 +34,7 @@ const cameraType = computed(() => {
   return photoTypes.find(option => option.value === value.slice(7))?.value ?? null
 })
 const destination = computed(() => props.orderId === null ? 'Garment history' : 'This order')
-const capture = useLaundryItemPhotoCapture({ orderId: () => props.orderId, save: request => detail.addPhotos(request) })
+const capture = useLaundryItemPhotoCapture({ orderId: () => props.orderId, save: request => detail.addPhoto(request) })
 const { items: captured, problems, saving: capturing } = capture
 const stamp = computed(() => garmentCurrentPlace(props.tagId, rows.value[0], detail.tickets.value))
 const lastSeen = computed(() => garmentLastSeen(props.tagId, detail.tickets.value))
@@ -58,13 +58,16 @@ function defects(orderId: string) {
   return album.value.find(section => section.type === 'DEFECT')?.photos.filter(photo => photo.orderId === orderId) ?? []
 }
 
+let taken = false
+
 function onCapture(file: File): void {
-  if (cameraType.value !== null) capture.add(file, cameraType.value)
+  if (cameraType.value === null || taken) return
+  taken = true
+  void capture.add(file, cameraType.value)
+  overlay.close()
 }
 
-watch(cameraType, (current, previous) => {
-  if (previous !== null && current === null) void capture.finish()
-})
+watch(cameraType, () => { taken = false })
 
 async function selectType(selected: ItemDto): Promise<void> {
   await detail.changeType(selected.id)

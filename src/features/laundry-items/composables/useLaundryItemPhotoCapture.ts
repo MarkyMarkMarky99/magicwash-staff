@@ -2,16 +2,14 @@ import { computed, onScopeDispose, reactive, ref, watch } from 'vue'
 import { useGarmentPhotoUploads, type GarmentUploadStatus } from '@/shared/composables/useGarmentPhotoUploads'
 import type { GarmentPhotoType } from '../utils/laundry-item-detail'
 
-interface Capture { id: string, previewUrl: string, photoType: GarmentPhotoType, session: boolean }
+interface Capture { id: string, previewUrl: string, photoType: GarmentPhotoType, orderId: string | null }
 
-export interface GarmentPhotoSave { photoType: GarmentPhotoType, orderId: string | null, imageUrls: string[] }
+export interface GarmentPhotoSave { photoType: GarmentPhotoType, orderId: string | null, imageUrl: string }
 
 export interface GarmentPhotoProblem {
   key: number
   kind: 'upload' | 'save'
-  ids: string[]
-  photoType: GarmentPhotoType
-  orderId: string | null
+  id: string
   message: string
   busy: boolean
 }
@@ -32,32 +30,28 @@ export function useLaundryItemPhotoCapture(options: { orderId: () => string | nu
     .map(capture => ({ id: capture.id, src: capture.previewUrl, status: uploads.uploads[capture.id]?.status })))
   const saving = computed(() => active.value > 0)
 
-  function add(file: File, photoType: GarmentPhotoType): void {
-    const id = `garment-photo-${++sequence}`
-    captures.value.push({ id, previewUrl: URL.createObjectURL(file), photoType, session: true })
-    uploads.start(id, file)
+  function find(id: string): Capture | undefined {
+    return captures.value.find(capture => capture.id === id)
   }
 
-  function release(ids: readonly string[], deleteFiles: boolean): void {
-    for (const id of ids) {
-      const index = captures.value.findIndex(capture => capture.id === id)
-      if (index >= 0) {
-        URL.revokeObjectURL(captures.value[index].previewUrl)
-        captures.value.splice(index, 1)
-      }
-      if (deleteFiles) uploads.remove(id)
-      else uploads.forget(id)
+  function release(id: string, deleteFile: boolean): void {
+    const index = captures.value.findIndex(capture => capture.id === id)
+    if (index >= 0) {
+      URL.revokeObjectURL(captures.value[index].previewUrl)
+      captures.value.splice(index, 1)
     }
+    if (deleteFile) uploads.remove(id)
+    else uploads.forget(id)
   }
 
-  function settled(ids: readonly string[]): Promise<void> {
-    const done = () => ids.every(id => uploads.uploads[id]?.status !== 'uploading')
+  function settled(id: string): Promise<GarmentUploadStatus | undefined> {
+    const current = () => uploads.uploads[id]?.status
     return new Promise(resolve => {
-      if (done()) { resolve(); return }
-      const stop = watch(done, finished => {
-        if (!finished) return
+      if (current() !== 'uploading') { resolve(current()); return }
+      const stop = watch(current, status => {
+        if (status === 'uploading') return
         stop()
-        resolve()
+        resolve(status)
       })
     })
   }
@@ -67,45 +61,41 @@ export function useLaundryItemPhotoCapture(options: { orderId: () => string | nu
     if (index >= 0) problems.value.splice(index, 1)
   }
 
-  function report(kind: GarmentPhotoProblem['kind'], ids: string[], photoType: GarmentPhotoType, orderId: string | null, message: string): void {
-    problems.value.push(reactive({ key: ++problemKey, kind, ids, photoType, orderId, message, busy: false }))
+  function report(kind: GarmentPhotoProblem['kind'], id: string, message: string): void {
+    problems.value.push(reactive({ key: ++problemKey, kind, id, message, busy: false }))
   }
 
-  async function saveIds(ids: string[], photoType: GarmentPhotoType, orderId: string | null): Promise<void> {
-    ids.forEach(id => inFlight.add(id))
+  async function persist(capture: Capture): Promise<void> {
+    const imageUrl = uploads.uploads[capture.id]?.url
+    if (!imageUrl) return
+    inFlight.add(capture.id)
     try {
-      await options.save({ photoType, orderId, imageUrls: ids.map(id => uploads.uploads[id]!.url!) })
-      release(ids, false)
+      await options.save({ photoType: capture.photoType, orderId: capture.orderId, imageUrl })
+      release(capture.id, false)
     } catch (reason) {
-      if (disposed) release(ids, true)
-      else report('save', ids, photoType, orderId, reason instanceof Error ? reason.message : 'Unable to save photos')
+      if (disposed) release(capture.id, true)
+      else report('save', capture.id, reason instanceof Error ? reason.message : 'Unable to save photo')
     } finally {
-      ids.forEach(id => inFlight.delete(id))
+      inFlight.delete(capture.id)
     }
   }
 
-  async function resolveIds(ids: string[], photoType: GarmentPhotoType, orderId: string | null): Promise<void> {
-    const uploaded = ids.filter(id => uploads.uploads[id]?.status === 'done')
-    const failed = ids.filter(id => uploads.uploads[id]?.status === 'failed')
-    if (failed.length > 0) {
-      report('upload', failed, photoType, orderId, `${failed.length} ${failed.length === 1 ? 'photo' : 'photos'} did not upload.`)
-    }
-    if (uploaded.length > 0) await saveIds(uploaded, photoType, orderId)
+  async function resolveUpload(id: string, resolved?: GarmentPhotoProblem): Promise<void> {
+    const status = await settled(id)
+    if (resolved) drop(resolved)
+    const capture = find(id)
+    if (!capture || disposed) return
+    if (status === 'done') await persist(capture)
+    else if (status === 'failed') report('upload', id, 'Photo did not upload.')
   }
 
-  async function finish(): Promise<void> {
-    const session = captures.value.filter(capture => capture.session)
-    if (session.length === 0) return
-    const orderId = options.orderId()
-    const byType = new Map<GarmentPhotoType, string[]>()
-    for (const capture of session) {
-      capture.session = false
-      byType.set(capture.photoType, [...(byType.get(capture.photoType) ?? []), capture.id])
-    }
+  async function add(file: File, photoType: GarmentPhotoType): Promise<void> {
+    const id = `garment-photo-${++sequence}`
+    captures.value.push({ id, previewUrl: URL.createObjectURL(file), photoType, orderId: options.orderId() })
+    uploads.start(id, file)
     active.value += 1
     try {
-      await settled(session.map(capture => capture.id))
-      for (const [photoType, ids] of byType) await resolveIds(ids, photoType, orderId)
+      await resolveUpload(id)
     } finally {
       active.value -= 1
     }
@@ -113,16 +103,16 @@ export function useLaundryItemPhotoCapture(options: { orderId: () => string | nu
 
   async function retry(problem: GarmentPhotoProblem): Promise<void> {
     if (problem.busy) return
+    const capture = find(problem.id)
+    if (!capture) { drop(problem); return }
     problem.busy = true
     active.value += 1
     try {
       if (problem.kind === 'upload') {
-        problem.ids.forEach(id => uploads.retry(id))
-        await settled(problem.ids)
-        drop(problem)
-        await resolveIds(problem.ids, problem.photoType, problem.orderId)
+        uploads.retry(problem.id)
+        await resolveUpload(problem.id, problem)
       } else {
-        await saveIds(problem.ids, problem.photoType, problem.orderId)
+        await persist(capture)
         drop(problem)
       }
     } finally {
@@ -132,14 +122,14 @@ export function useLaundryItemPhotoCapture(options: { orderId: () => string | nu
 
   function dismiss(problem: GarmentPhotoProblem): void {
     if (problem.busy) return
-    release(problem.ids, true)
+    release(problem.id, true)
     drop(problem)
   }
 
   onScopeDispose(() => {
     disposed = true
-    release(captures.value.map(capture => capture.id).filter(id => !inFlight.has(id)), true)
+    captures.value.map(capture => capture.id).filter(id => !inFlight.has(id)).forEach(id => release(id, true))
   })
 
-  return { items, problems, saving, add, finish, retry, dismiss }
+  return { items, problems, saving, add, retry, dismiss }
 }
