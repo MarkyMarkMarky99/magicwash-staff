@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
-  allIntakePhotos,
   orderIntakeSaveBody,
   type OrderIntakeDraft,
   type OrderIntakeGarment,
@@ -14,12 +13,12 @@ const catalog = [
   { id: 'i-dress', displayNameTh: 'ชุดเดรส', displayNameEn: 'Dress' },
 ]
 
-function photo(id: string, category: OrderIntakePhoto['category'], extra: Partial<OrderIntakePhoto> = {}): OrderIntakePhoto {
-  return { id, category, file: new File([], `${id}.jpg`), previewUrl: `blob:${id}`, tag: null, weight: null, ...extra }
+function photo(id: string, category: OrderIntakePhoto['category']): OrderIntakePhoto {
+  return { id, category, file: new File([], `${id}.jpg`), previewUrl: `blob:${id}` }
 }
 
-function garment(tag: string, itemId: string | null, extra: Partial<OrderIntakeGarment> = {}): OrderIntakeGarment {
-  return { tag, itemId, imageUrl: `https://example.test/${tag}.jpg`, note: null, defectPhotos: [], ...extra }
+function garment(tag: string, itemId: string | null): OrderIntakeGarment {
+  return { tag, itemId, imageUrl: `https://example.test/${tag}.jpg` }
 }
 
 function draftOf(garments: OrderIntakeGarment[], photos: OrderIntakePhoto[] = []): OrderIntakeDraft {
@@ -35,18 +34,20 @@ function draftOf(garments: OrderIntakeGarment[], photos: OrderIntakePhoto[] = []
   }
 }
 
-test('save body lists items from rows, garments, and image placeholders', () => {
+test('save body lists items from rows and uploaded image URLs', () => {
   const garments = [
-    garment('AAAA0001', 'i-shirt', { note: '  missing button ', defectPhotos: [photo('d1', 'defect', { tag: 'AAAA0001' })] }),
+    garment('AAAA0001', 'i-shirt'),
     garment('AAAA0002', 'i-dress'),
     garment('AAAA0003', 'i-shirt'),
   ]
   const draft = draftOf(garments, [
     photo('p1', 'document'),
-    photo('p2', 'weight', { weight: 4.5 }),
     photo('p3', 'belonging'),
   ])
-  const body = orderIntakeSaveBody(draft, groupOrderIntakeGarments(garments, catalog).rows)
+  const body = orderIntakeSaveBody(draft, groupOrderIntakeGarments(garments, catalog).rows, {
+    p1: { status: 'done', url: 'https://firebasestorage.googleapis.com/document' },
+    p3: { status: 'done', url: 'https://firebasestorage.googleapis.com/belonging' },
+  })
   assert.deepEqual(body, {
     customerId: 'CUS-1',
     receivedDate: '2026-10-24',
@@ -58,30 +59,25 @@ test('save body lists items from rows, garments, and image placeholders', () => 
       { itemId: 'i-dress', tags: ['AAAA0002'] },
       { itemId: 'i-shirt', tags: ['AAAA0001', 'AAAA0003'] },
     ],
-    garments: [
-      { tag: 'AAAA0001', note: 'missing button', defectImageUrls: [], registrationImageUrl: null },
-      { tag: 'AAAA0002', note: null, defectImageUrls: [], registrationImageUrl: null },
-      { tag: 'AAAA0003', note: null, defectImageUrls: [], registrationImageUrl: null },
-    ],
     images: [
-      { imageType: 'DOCUMENT', imageUrl: '', quantity: null },
-      { imageType: 'WEIGHT', imageUrl: '', quantity: 4.5 },
-      { imageType: 'BELONGING', imageUrl: '', quantity: null },
+      { imageType: 'DOCUMENT', imageUrl: 'https://firebasestorage.googleapis.com/document' },
+      { imageType: 'BELONGING', imageUrl: 'https://firebasestorage.googleapis.com/belonging' },
     ],
   })
   const itemTags = body.items.flatMap((item) => item.tags).sort()
-  assert.deepEqual(itemTags, body.garments.map((entry) => entry.tag).sort())
+  assert.deepEqual(itemTags, garments.map((entry) => entry.tag).sort())
 })
 
 test('save body refuses Uncategorized garments', () => {
   const garments = [garment('AAAA0001', null)]
-  assert.throws(() => orderIntakeSaveBody(draftOf(garments), groupOrderIntakeGarments(garments, catalog).rows), /Uncategorized/)
+  assert.throws(() => orderIntakeSaveBody(draftOf(garments), groupOrderIntakeGarments(garments, catalog).rows, {}), /Uncategorized/)
 })
 
-test('all photos include the defect photos of every garment', () => {
-  const draft = draftOf(
-    [garment('AAAA0001', 'i-shirt', { defectPhotos: [photo('d1', 'defect', { tag: 'AAAA0001' })] })],
-    [photo('p1', 'document')],
-  )
-  assert.deepEqual(allIntakePhotos(draft).map((entry) => entry.id), ['p1', 'd1'])
+test('save body refuses missing, uploading and failed photos', () => {
+  const garments = [garment('AAAA0001', 'i-shirt')]
+  const draft = draftOf(garments, [photo('p1', 'document')])
+  const rows = groupOrderIntakeGarments(garments, catalog).rows
+  for (const uploads of [{}, { p1: { status: 'uploading' as const, url: null } }, { p1: { status: 'failed' as const, url: null } }, { p1: { status: 'done' as const, url: null } }]) {
+    assert.throws(() => orderIntakeSaveBody(draft, rows, uploads), /every photo to upload/)
+  }
 })

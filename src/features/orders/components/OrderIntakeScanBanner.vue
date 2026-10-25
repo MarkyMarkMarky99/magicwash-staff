@@ -3,18 +3,15 @@ import { ref, watch } from 'vue'
 import type { OrderIntakeGarment } from '@/features/orders/utils/order-intake-draft'
 import type { OrderIntakeScanBanner } from '@/features/orders/utils/order-intake-scan'
 
-const props = withDefaults(defineProps<{
+const props = defineProps<{
   banner: OrderIntakeScanBanner
   garment: OrderIntakeGarment | null
   itemName: string | null
-  actions?: boolean
-}>(), { actions: true })
-const emit = defineEmits<{ dismiss: [], defect: [], changeType: [] }>()
+}>()
+const emit = defineEmits<{ dismiss: [] }>()
 
 const imageFailed = ref(false)
 watch(() => props.garment?.imageUrl, () => { imageFailed.value = false })
-
-const ACTION = 'inline-flex h-9 items-center gap-1 rounded-full bg-white/15 px-3 text-[13px] font-bold focus-visible:outline-2 focus-visible:outline-lime'
 </script>
 
 <template>
@@ -46,14 +43,6 @@ const ACTION = 'inline-flex h-9 items-center gap-1 rounded-full bg-white/15 px-3
       <template v-if="banner.tone !== 'error'">
         <span v-if="itemName" class="text-[15px] font-bold">{{ itemName }}</span>
         <span v-else class="text-[15px] font-bold text-warning">Uncategorized</span>
-        <div v-if="actions" class="mt-1 flex gap-2">
-          <button type="button" :class="ACTION" @click="emit('defect')">
-            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">photo_camera</span>{{ garment && garment.defectPhotos.length > 0 ? `Defect ${garment.defectPhotos.length}` : 'Defect photo' }}
-          </button>
-          <button type="button" :class="ACTION" @click="emit('changeType')">
-            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">swap_horiz</span>Change type
-          </button>
-        </div>
       </template>
     </div>
   </div>

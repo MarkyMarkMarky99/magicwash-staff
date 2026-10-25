@@ -10,7 +10,7 @@ const props = defineProps<{
   garment: OrderIntakeGarment | null
   itemName: string | null
 }>()
-const emit = defineEmits<{ dismiss: [], defect: [], changeType: [] }>()
+const emit = defineEmits<{ dismiss: [], changeType: [] }>()
 
 const imageFailed = ref(false)
 watch(() => props.garment?.imageUrl, () => { imageFailed.value = false })
@@ -53,11 +53,8 @@ const ACTION = 'inline-flex h-12 flex-1 items-center justify-center gap-1.5 roun
         <template v-if="banner.tone !== 'error'">
           <span v-if="itemName" class="font-headline text-lg font-bold">{{ itemName }}</span>
           <span v-else class="font-headline text-lg font-bold text-warning">Uncategorized</span>
-          <div class="mt-2 flex gap-2">
-            <button type="button" :class="ACTION" @click="emit('defect')">
-              <span class="material-symbols-outlined text-[20px]" aria-hidden="true">photo_camera</span>{{ garment && garment.defectPhotos.length > 0 ? `Defect ${garment.defectPhotos.length}` : 'Defect photo' }}
-            </button>
-            <button v-if="!itemName" type="button" :class="ACTION" @click="emit('changeType')">
+          <div v-if="!itemName" class="mt-2 flex gap-2">
+            <button type="button" :class="ACTION" @click="emit('changeType')">
               <span class="material-symbols-outlined text-[20px]" aria-hidden="true">category</span>Choose type
             </button>
           </div>

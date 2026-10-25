@@ -26,12 +26,10 @@ import type { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import type { ServiceListResult } from '../../shared/services/base-crud.service.js'
 import { BaseCrudService } from '../../shared/services/base-crud.service.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
-import { classifySheetWriteFailure } from '../../shared/repositories/write-failure.js'
 import { getStaffList, type StaffMember } from '../../shared/auth/staff-list.js'
 import { getWorkTransactionsRepository } from '../../sheets/WorkTransactions/WorkTransactions.repository.js'
 import { workTransactionsRowSchema } from '../../sheets/WorkTransactions/WorkTransactions.db-contract.js'
 import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
-import { buildEarnRows } from '../work-transactions/work-transaction-earn.js'
 import { generateShortId } from '../../shared/utils/id.js'
 import {
   orderFormFieldMap,
@@ -39,7 +37,9 @@ import {
   type OrderFormApiRow,
   type OrderFormDbRow,
 } from './work-order.mapping.js'
-import { buildJobTickets } from './job-ticket-provisioning.js'
+import { provisionOrderTickets } from './provision-order-tickets.js'
+import { getOrderGarmentsRepository } from '../../sheets/OrderGarments/OrderGarments.repository.js'
+import { getLaundryItemsRepository } from '../../sheets/LaundryItems/LaundryItems.repository.js'
 import { readWorkRates, type WorkRateReader } from './work-rate-lookup.js'
 
 type OrderItemFormsDbRow = z.infer<typeof orderItemFormsRowSchema>
@@ -89,6 +89,8 @@ export interface WorkOrderServiceOptions {
   orderFormRepository?: () => Pick<SheetRepositoryContract<OrderFormDbRow>, 'read' | 'append' | 'update'>
   orderItemPort?: OrderItemPort
   orderItemWriter?: OrderItemWriter
+  orderGarmentRepository?: () => Pick<ReturnType<typeof getOrderGarmentsRepository>, 'read'>
+  laundryItemRepository?: () => Pick<ReturnType<typeof getLaundryItemsRepository>, 'read'>
   laundryPhotoRepository?: () => LaundryPhotoReader
   orderItemRepository?: () => OrderItemReader
   jobTicketRepository?: () => JobTicketProvisioningRepository
@@ -136,6 +138,8 @@ export class WorkOrderService extends BaseCrudService<
   private readonly orderFormRepository: () => Pick<SheetRepositoryContract<OrderFormDbRow>, 'read' | 'append' | 'update'>
   private readonly orderItemPort: OrderItemPort
   private readonly orderItemWriter: OrderItemWriter
+  private readonly orderGarmentRepository: NonNullable<WorkOrderServiceOptions['orderGarmentRepository']>
+  private readonly laundryItemRepository: NonNullable<WorkOrderServiceOptions['laundryItemRepository']>
   private readonly laundryPhotoRepository: () => LaundryPhotoReader
   private readonly orderItemRepository: () => OrderItemReader
   private readonly jobTicketCompletionRepository: () => JobTicketCompletionRepository
@@ -159,6 +163,8 @@ export class WorkOrderService extends BaseCrudService<
     this.orderFormRepository = orderFormRepository
     this.orderItemPort = input.orderItemPort ?? defaultOrderItemPort
     this.orderItemWriter = input.orderItemWriter ?? orderItemService
+    this.orderGarmentRepository = input.orderGarmentRepository ?? getOrderGarmentsRepository
+    this.laundryItemRepository = input.laundryItemRepository ?? getLaundryItemsRepository
     this.laundryPhotoRepository = input.laundryPhotoRepository ?? getLaundryPhotosRepository
     this.orderItemRepository = input.orderItemRepository ?? getOrderItemFormsRepository
     this.jobTicketCompletionRepository = input.jobTicketCompletionRepository ?? getJobTicketsRepository
@@ -260,19 +266,7 @@ export class WorkOrderService extends BaseCrudService<
   override async create(payload: unknown): Promise<WorkOrderCreateResponse> {
     const data = parseOrThrow(workOrderApiContract.request.create, payload)
     const orderId = createOrderId()
-    const headerRow: Partial<OrderFormDbRow> = {
-      id: orderId,
-      customer_id: data.customerId,
-      received_date: data.receivedDate,
-      due_date: data.dueDate,
-      service_type: data.serviceType,
-      status: 'PENDING',
-      quantity: data.quantity,
-      note: data.note,
-      created_by: data.createdBy,
-      order_name: data.orderName,
-      order_description: data.orderDescription,
-    }
+    const headerRow = toOrderHeaderRow(data, orderId)
 
     const storedHeader = await this.orderFormRepository().append(headerRow)
     const storedApiHeader = orderFormMapper.toApi<OrderFormApiRow>(storedHeader)
@@ -348,7 +342,7 @@ export class WorkOrderService extends BaseCrudService<
       return { ...updatedOrder, ticketProvisioning: emptyProvisioning }
     }
 
-    const [orderHeaderRows, photoRows, itemRows, existingTicketRows, ratesByTask, staffMembers] = await Promise.all([
+    const [orderHeaderRows, photoRows, itemRows, existingTicketRows, ratesByTask, staffMembers, orderGarmentRows] = await Promise.all([
       this.orderFormRepository().read({ id: updatedOrder.orderId }),
       this.laundryPhotoRepository().read({ where: { order_id: updatedOrder.orderId } }),
       this.orderItemRepository().read({ where: { order_id: updatedOrder.orderId } }),
@@ -358,6 +352,7 @@ export class WorkOrderService extends BaseCrudService<
         console.error('Failed to read staff list for Tagging', error)
         return new Map<string, StaffMember>()
       }),
+      this.orderGarmentRepository().read({ where: { order_id: updatedOrder.orderId } }),
     ])
     const activeStaffIds = new Set([...staffMembers.values()]
       .map((member) => member.staffId)
@@ -365,7 +360,15 @@ export class WorkOrderService extends BaseCrudService<
     const linesById = new Map(
       itemRows.flatMap((row) => typeof row.id === 'string' && row.id !== '' ? [[row.id, row] as const] : []),
     )
-    const garments = photoRows
+    const liveGarments = orderGarmentRows.filter(row => !row.deleted_at)
+    const registeredGarments = liveGarments.length > 0
+      ? await this.laundryItemRepository().read({ where: { customer_id: updatedOrder.customerId } })
+      : []
+    const garmentPhotos = new Map(registeredGarments.map(row => [row.id, row.image_url]))
+    const garmentSources = liveGarments.length > 0
+      ? liveGarments.map(row => ({ ...row, item_id: row.laundry_item_id, image_url: garmentPhotos.get(row.laundry_item_id) ?? null }))
+      : photoRows
+    const garments = garmentSources
       .filter((photo) => photo.deleted_at == null || photo.deleted_at === '')
       .map((photo) => {
         const line = typeof photo.orderitem_id === 'string'
@@ -380,8 +383,8 @@ export class WorkOrderService extends BaseCrudService<
           photoEvidenceUrl: typeof photo.image_url === 'string' ? photo.image_url : null,
         }
       })
-    const provisioning = buildJobTickets(
-      {
+    const ticketProvisioning = await provisionOrderTickets({
+      order: {
         orderId: updatedOrder.orderId,
         customerId: updatedOrder.customerId,
         orderName: orderHeaderRows[0]?.order_name ?? null,
@@ -390,65 +393,16 @@ export class WorkOrderService extends BaseCrudService<
         createdBy: request.updatedBy,
         completedAt: formatBangkokTimestamp(this.now()),
       },
+      lines: itemRows,
       garments,
-      existingTicketRows.flatMap((ticket) =>
-        typeof ticket.id === 'string' && typeof ticket.laundry_item_id === 'string' && typeof ticket.department === 'string'
-          ? [{
-              id: ticket.id,
-              laundryItemId: ticket.laundry_item_id,
-              department: ticket.department,
-              taskCode: typeof ticket.task_code === 'string' ? ticket.task_code : null,
-            }]
-          : [],
-      ),
-      ratesByTask,
-    )
-
-    if (provisioning.rows.length === 0) {
-      return {
-        ...updatedOrder,
-        ticketProvisioning: {
-          ticketsCreated: 0,
-          scoreFailed: 0,
-          skippedGarments: provisioning.unroutableGarments,
-          failure: null,
-        },
-      }
-    }
-
-    try {
-      await this.jobTicketRepository().batchAppend(provisioning.rows)
-    } catch (error) {
-      return {
-        ...updatedOrder,
-        ticketProvisioning: {
-          ticketsCreated: 0,
-          scoreFailed: 0,
-          skippedGarments: provisioning.unroutableGarments,
-          failure: { certainty: classifySheetWriteFailure(error).certainty },
-        },
-      }
-    }
-
-    const earnRows = buildEarnRows(provisioning.rows)
-    let scoreFailed = 0
-    if (earnRows.length > 0) {
-      try {
-        await this.workTransactionRepository().batchAppend(earnRows)
-      } catch (error) {
-        console.error('Failed to save Tagging scores', error)
-        scoreFailed = earnRows.length
-      }
-    }
-    return {
-      ...updatedOrder,
-      ticketProvisioning: {
-        ticketsCreated: provisioning.rows.length,
-        scoreFailed,
-        skippedGarments: provisioning.unroutableGarments,
-        failure: null,
-      },
-    }
+      existingTickets: existingTicketRows,
+      rates: ratesByTask,
+      staff: staffMembers,
+      actor: request.updatedBy,
+      jobTickets: this.jobTicketRepository(),
+      workTransactions: { batchAppend: rows => this.workTransactionRepository().batchAppend(rows) },
+    })
+    return { ...updatedOrder, ticketProvisioning }
   }
 }
 
@@ -456,7 +410,7 @@ function normalizeCustomerId(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-function toOrderItemRow(
+export function toOrderItemRow(
   item: WorkOrderCreateItem,
   orderId: string,
   data: WorkOrderCreate,
@@ -471,5 +425,21 @@ function toOrderItemRow(
     service_type: data.serviceType,
     special_instructions: item.specialInstructions,
     created_by: data.createdBy,
+  }
+}
+
+export function toOrderHeaderRow(data: WorkOrderCreate, orderId: string): Partial<OrderFormDbRow> {
+  return {
+    id: orderId,
+    customer_id: data.customerId,
+    received_date: data.receivedDate,
+    due_date: data.dueDate,
+    service_type: data.serviceType,
+    status: 'PENDING',
+    quantity: data.quantity,
+    note: data.note,
+    created_by: data.createdBy,
+    order_name: data.orderName,
+    order_description: data.orderDescription,
   }
 }

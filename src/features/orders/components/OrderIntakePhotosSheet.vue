@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { GarmentUpload } from '@/shared/composables/useGarmentPhotoUploads'
+import OrderIntakeUploadState from './OrderIntakeUploadState.vue'
 import DetailOverlay from '@/shared/layouts/DetailOverlay.vue'
 import {
   orderIntakePhotoCategories,
@@ -6,7 +8,7 @@ import {
   type OrderIntakePhoto,
 } from '@/features/orders/utils/order-intake-draft'
 
-defineProps<{ open: boolean, photos: readonly OrderIntakePhoto[] }>()
+defineProps<{ open: boolean, photos: readonly OrderIntakePhoto[], uploads: Readonly<Record<string, GarmentUpload>> }>()
 const emit = defineEmits<{ close: [], view: [id: string] }>()
 </script>
 
@@ -25,9 +27,9 @@ const emit = defineEmits<{ close: [], view: [id: string] }>()
         <p v-if="photosOf(photos, category.key).length === 0" class="pb-1.5 pt-1 text-[13px] text-on-surface-variant">No photos yet</p>
         <ul v-else class="grid grid-cols-3 gap-2">
           <li v-for="photo in photosOf(photos, category.key)" :key="photo.id">
-            <button type="button" class="relative block aspect-square w-full overflow-hidden rounded-[10px] border border-outline-variant bg-surface-container focus-visible:outline-2 focus-visible:outline-lime" :aria-label="`View ${category.name} photo${photo.tag ? ` ${photo.tag}` : ''}`" @click="emit('view', photo.id)">
+            <button type="button" class="relative block aspect-square w-full overflow-hidden rounded-[10px] border border-outline-variant bg-surface-container focus-visible:outline-2 focus-visible:outline-lime" :aria-label="uploads[photo.id]?.status === 'failed' ? `Retry ${category.name} photo upload` : `View ${category.name} photo`" @click="emit('view', photo.id)">
               <img :src="photo.previewUrl" alt="" class="h-full w-full object-cover">
-              <span v-if="photo.tag" class="absolute inset-x-1 bottom-1 rounded-md bg-on-surface/90 py-0.5 text-center font-body text-[10px] font-bold tracking-[0.06em] text-white">{{ photo.tag }}</span>
+              <OrderIntakeUploadState :status="uploads[photo.id]?.status" />
             </button>
           </li>
         </ul>

@@ -13,12 +13,10 @@ Also holds garment registration (merged from `feat/laundry-item-registration` 20
 
 ## Pending
 - Register Garments Save → endpoint not yet run in a browser (`vercel dev` needs a restart to load `AI_GATEWAY_SECRET`/`VITE_AI_GATEWAY_URL`).
-- Intake Save is not connected (logs the request body only); backend `POST /api/order-intakes` not built.
-- Owner deferred: unregistered tag at intake (blocked for now), LaundryPhotos vs OrderGarments for tickets, status after Save.
-- Defect photos stay local in the draft; upload at capture comes with the backend.
+- Intake Save wired to `POST /api/order-intakes` (built, dry-tested); not tested live or in a browser yet.
+- Owner decided 2026-10-25: unregistered tag blocked; tickets + Tagging read OrderGarments (LaundryPhotos fallback); Save ends APPROVED; no defect or weight photos at intake (weight is Packing's). Next: live test with a test order.
 - Order `5aed2e17` (created 2026-10-24) uses inactive Items ids — check how staff can still pick inactive types.
 - Intake only chooses a type for untyped garments (owner 2026-10-24); a registered type is changed on the garment detail page.
-- Garment detail not yet tried on real data in a browser after Sonnet's header/size fix; its type change writes LaundryItems live.
 - Shared UI consolidation (plan `docs/plans/shared-ui-consolidation.md`) merged in; owner has not yet viewed the Round 7 visual changes; leftover design work in `.user/memory/shared-ui-later.md`.
 - 13 dry-test files already failing before the refactor (list in `.user/memory/shared-ui-later.md`).
 - Merging to main ships both pages; Intake Save must be finished (or its menu hidden) first.

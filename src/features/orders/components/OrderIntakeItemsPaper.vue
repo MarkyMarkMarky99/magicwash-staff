@@ -6,10 +6,6 @@ import type { OrderIntakeRow } from '@/features/orders/utils/order-intake-items'
 defineProps<{ rows: readonly OrderIntakeRow[], total: number }>()
 const emit = defineEmits<{ select: [key: string] }>()
 
-function defectCount(row: OrderIntakeRow): number {
-  return row.garments.filter((garment) => garment.defectPhotos.length > 0).length
-}
-
 function figureClass(count: number): string {
   return count >= 100 ? 'text-[20px]' : 'text-[28px]'
 }
@@ -44,7 +40,6 @@ function figureClass(count: number): string {
               <span class="truncate">{{ row.name }}</span>
             </span>
             <span v-if="row.uncategorized" class="mt-1 block font-label text-[10px] font-extrabold uppercase text-warning">Choose a type</span>
-            <span v-else-if="defectCount(row) > 0" class="mt-1 block font-label text-[10px] font-extrabold uppercase text-warning">{{ defectCount(row) }} with defect</span>
             <span v-if="row.nameTh" class="mt-1 block truncate font-label text-[11px] text-on-surface-variant">{{ row.nameTh }}</span>
           </span>
           <ImageOrIcon :image-url="row.imageUrl" :icon="row.uncategorized ? 'help' : 'checkroom'" class="h-14 w-14 rounded-[10px]" />

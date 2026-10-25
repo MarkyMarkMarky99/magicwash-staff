@@ -55,6 +55,7 @@ function orderRow(overrides: Partial<OrderFormDbRow> = {}): OrderFormDbRow {
 
 function createService(repository: RecordingRepository): WorkOrderService {
   return new WorkOrderService({
+    orderGarmentRepository: () => ({ read: async () => [] }),
     staffReader: async () => new Map(),
     workRateRepository: () => ({ async read() { return [] } }),
     orderFormRepository: () => repository,

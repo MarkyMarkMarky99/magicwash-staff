@@ -24,7 +24,6 @@ const emit = defineEmits<{ close: [], openItem: [tag: string] }>()
     <ul class="grid grid-cols-3 content-start gap-2.5 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1.5">
       <li v-for="garment in garments" :key="garment.tag" class="relative min-w-0" :aria-label="garment.tag">
         <button type="button" class="block w-full rounded-xl focus-visible:outline-2 focus-visible:outline-lime" :aria-label="`Open ${garment.tag}`" @click="emit('openItem', garment.tag)"><SquareImageCard :image-url="garment.imageUrl" /></button>
-        <span v-if="garment.defectPhotos.length > 0" class="pointer-events-none absolute right-2 top-2 rounded-full bg-warning px-2 py-0.5 font-label text-[10px] font-extrabold text-white">Defect {{ garment.defectPhotos.length }}</span>
       </li>
     </ul>
   </DetailOverlay>

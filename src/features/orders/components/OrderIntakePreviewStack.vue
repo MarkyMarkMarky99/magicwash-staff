@@ -1,26 +1,32 @@
 <script setup lang="ts">
+import type { GarmentUpload } from '@/shared/composables/useGarmentPhotoUploads'
+import OrderIntakeUploadState from './OrderIntakeUploadState.vue'
 import { computed } from 'vue'
 import type { OrderIntakePhoto } from '@/features/orders/utils/order-intake-draft'
 
-const props = defineProps<{ photos: readonly OrderIntakePhoto[] }>()
-const emit = defineEmits<{ open: [] }>()
+const props = defineProps<{ photos: readonly OrderIntakePhoto[], uploads: Readonly<Record<string, GarmentUpload>> }>()
+const emit = defineEmits<{ open: [], view: [id: string] }>()
 
 const ROTATIONS = [-4, 2, 6]
 const visible = computed(() => props.photos.slice(-3))
 </script>
 
 <template>
-  <button v-if="photos.length > 0" type="button" class="stack" aria-label="Open photos" @click="emit('open')">
-    <span
+  <div v-if="photos.length > 0" class="stack">
+    <button
       v-for="(photo, index) in visible"
       :key="photo.id"
+      type="button"
       class="thumb"
+      :aria-label="uploads[photo.id]?.status === 'failed' ? 'Retry photo upload' : 'Open photos'"
+      @click="uploads[photo.id]?.status === 'failed' ? emit('view', photo.id) : emit('open')"
       :style="{ left: `${index * 6}px`, top: `${index * 3 + 2}px`, transform: `rotate(${ROTATIONS[index]}deg)`, zIndex: index + 1 }"
     >
       <img :src="photo.previewUrl" alt="">
-    </span>
+      <OrderIntakeUploadState :status="uploads[photo.id]?.status" />
+    </button>
     <span class="badge" :style="{ left: `${(visible.length - 1) * 6 + 24}px` }">{{ photos.length }}</span>
-  </button>
+  </div>
 </template>
 
 <style scoped>
@@ -32,7 +38,7 @@ const visible = computed(() => props.photos.slice(-3))
   padding: 0;
 }
 
-.stack:focus-visible {
+.thumb:focus-visible {
   outline: 2px solid var(--color-lime);
   outline-offset: 4px;
   border-radius: 8px;
@@ -58,6 +64,7 @@ const visible = computed(() => props.photos.slice(-3))
 
 .badge {
   position: absolute;
+  pointer-events: none;
   top: -4px;
   z-index: 9;
   display: grid;

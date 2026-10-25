@@ -1,12 +1,15 @@
+import type { z } from 'zod'
+import type { orderIntakeCreateSchema } from '@contracts/order-intakes/order-intake-api.schema'
+import type { GarmentUpload } from '@/shared/composables/useGarmentPhotoUploads'
 import { serviceTypeSchema } from '@contracts/shared/service-type.schema'
 import { serviceTypePresentation } from '@/shared/utils/service-type-labels'
 import { sheetDateDaysBetween } from '@/shared/utils/sheet-date'
 import type { OrderIntakeRow } from '@/features/orders/utils/order-intake-items'
 
 export type OrderIntakeServiceType = (typeof serviceTypeSchema.options)[number]
-export type OrderIntakeCategory = 'garments' | 'document' | 'weight' | 'belonging'
-export type OrderIntakePhotoCategory = 'document' | 'weight' | 'belonging' | 'defect'
-export type OrderIntakeImageType = 'DOCUMENT' | 'WEIGHT' | 'BELONGING'
+export type OrderIntakeCategory = 'garments' | 'document' | 'belonging'
+export type OrderIntakePhotoCategory = 'document' | 'belonging'
+export type OrderIntakeImageType = 'DOCUMENT' | 'BELONGING'
 
 export const ORDER_INTAKE_DEFAULT_SERVICE_TYPE: OrderIntakeServiceType = 'WSIR'
 
@@ -30,20 +33,16 @@ export function orderIntakeServiceLabel(serviceType: OrderIntakeServiceType): st
 export const orderIntakeCategories: readonly { key: OrderIntakeCategory, icon: string, name: string, hint: string }[] = [
   { key: 'garments', icon: 'checkroom', name: 'Garments', hint: 'Scan the tag with the camera' },
   { key: 'document', icon: 'description', name: 'Document', hint: 'Slip or customer form' },
-  { key: 'weight', icon: 'scale', name: 'Weight', hint: 'Bag on the scale' },
   { key: 'belonging', icon: 'diamond', name: 'Customer assets', hint: 'Items found with the laundry' },
 ]
 
 export const orderIntakePhotoCategories: readonly { key: OrderIntakePhotoCategory, icon: string, name: string }[] = [
   { key: 'document', icon: 'description', name: 'Document' },
-  { key: 'weight', icon: 'scale', name: 'Weight' },
   { key: 'belonging', icon: 'diamond', name: 'Customer assets' },
-  { key: 'defect', icon: 'report', name: 'Defects' },
 ]
 
-const IMAGE_TYPES: Record<Exclude<OrderIntakePhotoCategory, 'defect'>, OrderIntakeImageType> = {
+const IMAGE_TYPES: Record<OrderIntakePhotoCategory, OrderIntakeImageType> = {
   document: 'DOCUMENT',
-  weight: 'WEIGHT',
   belonging: 'BELONGING',
 }
 
@@ -52,16 +51,12 @@ export interface OrderIntakePhoto {
   category: OrderIntakePhotoCategory
   file: File
   previewUrl: string
-  tag: string | null
-  weight: number | null
 }
 
 export interface OrderIntakeGarment {
   tag: string
   itemId: string | null
   imageUrl: string | null
-  note: string | null
-  defectPhotos: OrderIntakePhoto[]
 }
 
 export interface OrderIntakeDraft {
@@ -83,17 +78,7 @@ export interface OrderIntakeDetails {
   dueDate: string
 }
 
-export interface OrderIntakeSaveBody {
-  customerId: string
-  receivedDate: string
-  dueDate: string
-  serviceType: OrderIntakeServiceType
-  orderName: string | null
-  note: string | null
-  items: { itemId: string, tags: string[] }[]
-  garments: { tag: string, note: string | null, defectImageUrls: string[], registrationImageUrl: string | null }[]
-  images: { imageType: OrderIntakeImageType, imageUrl: string, quantity: number | null }[]
-}
+export type OrderIntakeSaveBody = z.input<typeof orderIntakeCreateSchema>
 
 export function dueBeforeReceived(receivedDate: string, dueDate: string): boolean {
   const days = sheetDateDaysBetween(dueDate, receivedDate)
@@ -104,12 +89,8 @@ export function photosOf(photos: readonly OrderIntakePhoto[], category: OrderInt
   return photos.filter((photo) => photo.category === category)
 }
 
-export function allIntakePhotos(draft: Pick<OrderIntakeDraft, 'photos' | 'garments'>): OrderIntakePhoto[] {
-  return [...draft.photos, ...draft.garments.flatMap((garment) => garment.defectPhotos)]
-}
-
-export function orderIntakeSaveBody(draft: OrderIntakeDraft, rows: readonly OrderIntakeRow[]): OrderIntakeSaveBody {
-  if (rows.some((row) => row.uncategorized)) throw new Error('Move every Uncategorized garment to a type before saving')
+export function orderIntakeSaveBody(draft: OrderIntakeDraft, rows: readonly OrderIntakeRow[], uploads: Readonly<Record<string, GarmentUpload>>): OrderIntakeSaveBody {
+  if (rows.some((row) => row.uncategorized)) throw new Error('Choose a type for every Uncategorized garment before saving')
   return {
     customerId: draft.customerId,
     receivedDate: draft.receivedDate,
@@ -118,14 +99,10 @@ export function orderIntakeSaveBody(draft: OrderIntakeDraft, rows: readonly Orde
     orderName: draft.orderName.trim() || null,
     note: draft.note.trim() || null,
     items: rows.flatMap((row) => (row.itemId === null ? [] : [{ itemId: row.itemId, tags: row.garments.map((garment) => garment.tag) }])),
-    garments: draft.garments.map((garment) => ({
-      tag: garment.tag,
-      note: garment.note?.trim() || null,
-      defectImageUrls: [],
-      registrationImageUrl: null,
-    })),
-    images: draft.photos.flatMap((photo) => (photo.category === 'defect'
-      ? []
-      : [{ imageType: IMAGE_TYPES[photo.category], imageUrl: '', quantity: photo.category === 'weight' ? photo.weight : null }])),
+    images: draft.photos.map((photo) => {
+      const upload = uploads[photo.id]
+      if (upload?.status !== 'done' || !upload.url) throw new Error('Wait for every photo to upload before saving')
+      return { imageType: IMAGE_TYPES[photo.category], imageUrl: upload.url }
+    }),
   }
 }

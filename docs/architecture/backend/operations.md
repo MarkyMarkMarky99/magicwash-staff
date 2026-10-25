@@ -124,6 +124,14 @@ When a newly created garment has null itemId, the service awaits a best-effort
 and a 15-second timeout. Any 2xx sets `aiTriggered` true. Missing configuration or trigger failure
 returns false and never fails registration. No secret is logged.
 
+The staff-authenticated `POST /api/order-intakes` validates registered garment ownership, item types,
+unique tags and Firebase image URLs before writing. It batches chosen types, a PENDING OrderForm,
+OrderItemForms, OrderGarments and DOCUMENT/BELONGING OrderImages, then provisions tickets and
+Tagging scores from memory before approving through the OrderForm repository. It shares ticket
+provisioning with work-order approval, which prefers live OrderGarments and falls back to
+LaundryPhotos. See [Intake Order plan](../../plans/order-intake-flow.md) for the call budget and
+partial-failure policy, and [Intake form](../../features/orders/order-intake-form.md) for client behavior.
+
 The staff-authenticated `order-garments` module exposes collection GET/POST and item GET/PATCH
 at `/api/order-garments`, bound to tab `OrderGarments` in `LAUNDRY_ITEMS_SPREADSHEET_ID`.
 API fields use camelCase. The server generates the row id using the order-items short-id generator;

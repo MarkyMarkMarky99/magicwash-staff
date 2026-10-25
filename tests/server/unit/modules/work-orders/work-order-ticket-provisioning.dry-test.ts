@@ -26,7 +26,7 @@ const standardRates = () => [
   { task_code: 'IRN-STANDARD', department: 'Ironing', active: true, minutes: 5 },
 ]
 
-function createService(appendError?: Error, workRateError?: Error, scoreError?: Error, staffError?: Error, rateRows: Array<Record<string, unknown>> = standardRates()) {
+function createService(appendError?: Error, workRateError?: Error, scoreError?: Error, staffError?: Error, rateRows: Array<Record<string, unknown>> = standardRates(), garmentSource: 'none' | 'deleted' | 'live' = 'none') {
   resetWorkRatesCache()
   const orderRepository: Pick<SheetRepositoryContract<OrderFormRow>, 'read' | 'append' | 'update'> = {
     async read() { return [orderRow()] },
@@ -41,6 +41,18 @@ function createService(appendError?: Error, workRateError?: Error, scoreError?: 
   ]
   const workRateCalls = { getters: 0, reads: 0 }
   const service = new WorkOrderService({
+    orderGarmentRepository: () => ({ async read(query) {
+      assert.deepEqual(query, { where: { order_id: 'order-1' } })
+      return garmentSource === 'none' ? [] : [
+        { laundry_item_id: 'TAG00001', orderitem_id: 'line-1', created_by: ' tagger-1 ', deleted_at: garmentSource === 'deleted' ? '2026-10-25 10:00:00' : null },
+        { laundry_item_id: 'TAG00002', orderitem_id: 'missing-line', created_by: 'inactive', deleted_at: garmentSource === 'deleted' ? '2026-10-25 10:00:00' : null },
+      ]
+    } }),
+    laundryItemRepository: () => ({ async read(query) {
+      assert.equal(garmentSource, 'live')
+      assert.deepEqual(query, { where: { customer_id: 'customer-1' } })
+      return [{ id: 'TAG00001', image_url: 'https://example.test/registered.jpg' }]
+    } }),
     now: () => new Date('2026-10-06T03:00:00Z'),
     staffReader: async () => {
       if (staffError) throw staffError
@@ -233,4 +245,26 @@ try {
 } finally {
   console.error = originalConsoleError
 }
+
+const deletedGarments = createService(undefined, undefined, undefined, undefined, standardRates(), 'deleted')
+assert.deepEqual((await deletedGarments.service.update('order-1', { status: 'APPROVED', updatedBy: 'staff-2' })).ticketProvisioning, response.ticketProvisioning)
+assert.deepEqual(deletedGarments.appendCalls, successful.appendCalls)
+const intakeGarments = createService(undefined, undefined, undefined, undefined, standardRates(), 'live')
+const intakeResponse = await intakeGarments.service.update('order-1', { status: 'APPROVED', updatedBy: 'staff-2' })
+assert.equal(intakeResponse.ticketProvisioning.ticketsCreated, 6)
+assert.deepEqual(intakeGarments.appendCalls[0]?.map(row => [row.laundry_item_id, row.department, row.photo_evidence_url]), [
+  ['TAG00001', 'Tagging', 'https://example.test/registered.jpg'],
+  ['TAG00001', 'Washing', 'https://example.test/registered.jpg'],
+  ['TAG00001', 'Ironing', 'https://example.test/registered.jpg'],
+  ['TAG00001', 'Packaging', 'https://example.test/registered.jpg'],
+  ['TAG00002', 'Washing', null], ['TAG00002', 'Packaging', null],
+])
+assert.equal(intakeResponse.ticketProvisioning.ticketsCreated, 6)
+intakeGarments.existingRows.push(...intakeGarments.appendCalls[0]!.map(row => ({
+  id: String(row.id), order_id: String(row.order_id), laundry_item_id: String(row.laundry_item_id),
+  department: row.department as typeof intakeGarments.existingRows[number]['department'], task_code: String(row.task_code),
+})))
+assert.equal((await intakeGarments.service.update('order-1', { status: 'APPROVED', updatedBy: 'staff-2' })).ticketProvisioning.ticketsCreated, 0)
+assert.equal(intakeGarments.appendCalls.length, 1)
+
 console.log('work-order ticket provisioning dry test passed')

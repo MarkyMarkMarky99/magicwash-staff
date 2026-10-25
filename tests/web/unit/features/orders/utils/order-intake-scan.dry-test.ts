@@ -25,7 +25,7 @@ test('adds a garment of this customer with its type and photo', async () => {
   const result = await resolveScannedTag('AAAA0001', context(async () => ({ customerId: 'CUS-1', itemId: 'i-shirt', imageUrl: 'https://example.test/a.jpg' })))
   assert.deepEqual(result, {
     kind: 'added',
-    garment: { tag: 'AAAA0001', itemId: 'i-shirt', imageUrl: 'https://example.test/a.jpg', note: null, defectPhotos: [] },
+    garment: { tag: 'AAAA0001', itemId: 'i-shirt', imageUrl: 'https://example.test/a.jpg' },
     banner: { tone: 'success', tag: 'AAAA0001', message: null },
   })
 })

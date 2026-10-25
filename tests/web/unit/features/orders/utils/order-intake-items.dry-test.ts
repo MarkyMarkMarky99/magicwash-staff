@@ -10,7 +10,7 @@ const catalog = [
 ]
 
 function garment(tag: string, itemId: string | null): OrderIntakeGarment {
-  return { tag, itemId, imageUrl: null, note: null, defectPhotos: [] }
+  return { tag, itemId, imageUrl: null }
 }
 
 test('names come from English, falling back to Thai when English is blank', () => {

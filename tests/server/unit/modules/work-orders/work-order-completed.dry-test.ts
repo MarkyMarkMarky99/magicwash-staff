@@ -68,6 +68,7 @@ let batches = 0
 let earnWrites = 0
 let failure: 'read' | 'write' | null = null
 const service = new WorkOrderService({
+    orderGarmentRepository: () => ({ read: async () => [] }),
   orderFormRepository: () => repository,
   now: () => new Date('2026-10-08T05:34:56Z'),
   jobTicketCompletionRepository: () => ({ async read(query) {

@@ -43,7 +43,7 @@ export async function resolveScannedTag(tag: string, context: OrderIntakeScanCon
   if (found.customerId !== context.customerId) return refused(tag, `${tag} belongs to another customer`)
   return {
     kind: 'added',
-    garment: { tag, itemId: found.itemId, imageUrl: found.imageUrl, note: null, defectPhotos: [] },
+    garment: { tag, itemId: found.itemId, imageUrl: found.imageUrl },
     banner: { tone: 'success', tag, message: null },
   }
 }

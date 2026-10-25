@@ -2,16 +2,15 @@ import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 export type OrderIntakeOverlay =
-  | { kind: 'garments' | 'document' | 'weight' | 'belonging' | 'photos' }
+  | { kind: 'garments' | 'document' | 'belonging' | 'photos' }
   | { kind: 'view', id: string }
   | { kind: 'row', key: string }
   | { kind: 'pick', tag: string }
-  | { kind: 'defect', tag: string }
   | { kind: 'item', tag: string }
 
 const QUERY_KEY = 'intake'
-const PLAIN_KINDS = ['garments', 'document', 'weight', 'belonging', 'photos'] as const
-const VALUE_KINDS = ['view', 'row', 'pick', 'defect', 'item'] as const
+const PLAIN_KINDS = ['garments', 'document', 'belonging', 'photos'] as const
+const VALUE_KINDS = ['view', 'row', 'pick', 'item'] as const
 
 export function parseOrderIntakeOverlay(raw: unknown): OrderIntakeOverlay | null {
   const value = Array.isArray(raw) ? raw[0] : raw
@@ -34,7 +33,6 @@ export function serializeOrderIntakeOverlay(overlay: OrderIntakeOverlay): string
     case 'view': return `view:${overlay.id}`
     case 'row': return `row:${overlay.key}`
     case 'pick': return `pick:${overlay.tag}`
-    case 'defect': return `defect:${overlay.tag}`
     case 'item': return `item:${overlay.tag}`
     default: return overlay.kind
   }
