@@ -13,11 +13,27 @@ Also holds garment registration (merged from `feat/laundry-item-registration` 20
 
 ## Pending
 - Register Garments Save → endpoint not yet run in a browser (`vercel dev` needs a restart to load `AI_GATEWAY_SECRET`/`VITE_AI_GATEWAY_URL`).
-- Intake Save wired to `POST /api/order-intakes` (built, dry-tested); not tested live or in a browser yet.
+- Intake Save wired to `POST /api/order-intakes` (commit `1c7eb580`, dry-tested); live browser test pending — checklist below.
 - Owner decided 2026-10-25: unregistered tag blocked; tickets + Tagging read OrderGarments (LaundryPhotos fallback); Save ends APPROVED; no defect or weight photos at intake (weight is Packing's). Next: live test with a test order.
 - Order `5aed2e17` (created 2026-10-24) uses inactive Items ids — check how staff can still pick inactive types.
+- Garment photos (add on garment detail, `?order=` filter, shared history): design agreed 2026-10-25 in `docs/plans/garment-photos.md`, not built.
 - Intake only chooses a type for untyped garments (owner 2026-10-24); a registered type is changed on the garment detail page.
 - Shared UI consolidation (plan `docs/plans/shared-ui-consolidation.md`) merged in; owner has not yet viewed the Round 7 visual changes; leftover design work in `.user/memory/shared-ui-later.md`.
 - 13 dry-test files already failing before the refactor (list in `.user/memory/shared-ui-later.md`).
 - Merging to main ships both pages; Intake Save must be finished (or its menu hidden) first.
 - Vite `scanic-ml` overlay on camera open under `vercel dev` predates this branch.
+
+## Intake live test checklist (pending; writes real sheets)
+- Setup: test customer with 2–3 registered garments, one with no type; `vercel dev` restarted.
+- Page: scan each tag; untyped one lands in Uncategorized; Choose type moves it; an unregistered tag is blocked.
+- Photos: 1 Document + 1 Customer asset; spinner while uploading; Save stays disabled until done.
+- Save: lands on order detail, status APPROVED.
+- OrderForm: 1 row, APPROVED, quantity = garment count.
+- OrderItemForms: 1 row per type, quantity = tag count, price empty.
+- OrderGarments: 1 row per garment, RECEIVED, orderitem_id set, created_by = me.
+- OrderImages: 2 rows (DOCUMENT, BELONGING), Firebase URLs, quantity empty.
+- LaundryItems: the untyped garment now has item_id.
+- JobTickets: tickets per garment per department, photo evidence = registration photo.
+- WorkTransactions: Tagging credit to me.
+- Error path: a tag of another customer → 409 lists the tag, nothing written.
+- Old Approve on an old-page order still creates tickets from LaundryPhotos.
