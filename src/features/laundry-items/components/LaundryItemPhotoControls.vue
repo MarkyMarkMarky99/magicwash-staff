@@ -10,7 +10,7 @@ const emit = defineEmits<{ view: [], select: [type: GarmentPhotoType] }>()
 
 const BACK = { left: 0, top: 0, rotate: -7 }
 const FRONT = { left: 7, top: 5, rotate: -2 }
-const SINGLE = { left: 4, top: 4, rotate: -2 }
+const SINGLE = { left: 7, top: 5, rotate: -2 }
 const front = computed(() => props.photos[0] ?? null)
 const back = computed(() => props.photos[1] ?? null)
 const place = (sheet: typeof BACK) => ({ left: `${sheet.left}px`, top: `${sheet.top}px`, transform: `rotate(${sheet.rotate}deg)` })
@@ -18,7 +18,7 @@ const label = computed(() => `${props.photos.length} ${props.photos.length === 1
 </script>
 
 <template>
-  <div class="flex items-center gap-3">
+  <div class="flex items-center gap-2">
     <button
       v-if="photos.length > 0"
       type="button"
@@ -44,7 +44,7 @@ const label = computed(() => `${props.photos.length} ${props.photos.length === 1
 .stack {
   position: relative;
   flex: none;
-  width: 50px;
+  width: 42px;
   height: 56px;
   padding: 0;
 }
@@ -76,8 +76,8 @@ const label = computed(() => `${props.photos.length} ${props.photos.length === 1
 .badge {
   position: absolute;
   pointer-events: none;
-  top: -9px;
-  right: -10px;
+  top: -8px;
+  right: -7px;
   z-index: 9;
   display: grid;
   place-items: center;
