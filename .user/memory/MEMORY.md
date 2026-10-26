@@ -5,7 +5,6 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
-- **`feat/order-intake-page`** — Intake Order page + `POST /api/order-intakes` (dry-tested, not live-tested) + Register Garments page and register endpoint; next: real-gun + real-print test (owner at the printer), then merge; see `.user/memory/feat-order-intake-page.md`.
 
 ## Pending work
 - **MagicwashAI local gateway** — handoff: `.user/memory/magicwash-ai-gateway-handoff.md`
@@ -61,7 +60,8 @@
 - **Garment tracking and job tickets**
   - JobTickets `started_by` (col Y) shipped in code; add the header to the live sheet right after deploy, then curl prod.
   - Garment registration plan: `docs/plans/laundry-item-registration.md`; intake plan `docs/plans/order-intake-flow.md`.
-  - LaundryItems, OrderGarments, LaundryItemPhotos: backend CRUD only (no UI); next = registration endpoint + page, needs owner go-ahead.
+  - Garment workflow shipped 2026-10-27; PENDING real print test (garment `MWG-` QR + bag `MWB-` barcode, owner at the printer) — see `.user/memory/garment-workflow-followups.md`.
+  - NEXT: registration camera takes gun scans into its Tag ID field while open (details in the same file).
   - MagicwashAI `classify-laundry-items` writes `itemId` via PATCH /api/laundry-items/:id + `x-service-key` (`AI_SERVICE_KEY` set in Vercel); plan in C:\MagicwashAI\docs\plans\.
   - LaundryItems holds 125 rows backfilled 2026-10-22 (image_url = Drive flat-lay images); timestamps read back as GViz `Date(...)`.
   - Before LaundryItems: split WashPrograms into parent `WashPrograms` (1 row per program) and child `WashProgramSteps`; new tab first, deploy reader, then reshape parent.
