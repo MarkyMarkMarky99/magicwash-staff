@@ -5,7 +5,7 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
-- **`feat/order-intake-page`** — Intake Order page + `POST /api/order-intakes` (dry-tested, not live-tested) + Register Garments page and register endpoint; next: clean up test orders, Register Save browser test, real-gun + real-print test, then merge; see `.user/memory/feat-order-intake-page.md`.
+- **`feat/order-intake-page`** — Intake Order page + `POST /api/order-intakes` (dry-tested, not live-tested) + Register Garments page and register endpoint; next: Register Save browser test on test customer `cbcc555a`, real-gun + real-print test, then merge; see `.user/memory/feat-order-intake-page.md`.
 
 ## Pending work
 - **MagicwashAI local gateway** — handoff: `.user/memory/magicwash-ai-gateway-handoff.md`
@@ -117,7 +117,7 @@
 - **Customers and registration**
   - Browser-check forms using the restyled `FormTextarea` and rounded `FormOverlay` body; the helper text keeps a stray bullet dot.
   - No tests for the POST route response or an empty label pool.
-  - Test customer `cbcc555a` (KLX, "ทดสอบ แก้แล้ว") is a leftover live row from 2026-10-21; delete by hand in the sheet.
+  - Test customer `cbcc555a` (KLX) is the dedicated customer for every live test that writes (owner 2026-10-27); keep it.
   - Admin customer edit live in prod (2026-10-22); device account verified blocked in browser; server-side 403 on prod not yet hit (curl gets Vercel bot challenge).
   - Form spacing rule (forms.md "Vertical spacing"): phone check pending; price-list dark price panel hides the "บริการ *" picker label.
   - Deferred by user: duplicate-phone check misses legacy phones without a leading 0; map picker (Leaflet + Nominatim/Longdo), location field hidden until then.
