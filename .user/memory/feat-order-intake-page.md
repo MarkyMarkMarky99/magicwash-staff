@@ -13,7 +13,8 @@ Also holds garment registration (merged from `feat/laundry-item-registration` 20
 
 ## Pending
 - Register Garments Save → endpoint not yet run in a browser (`vercel dev` needs a restart to load `AI_GATEWAY_SECRET`/`VITE_AI_GATEWAY_URL`).
-- Intake Save wired to `POST /api/order-intakes` (commit `1c7eb580`, dry-tested); live browser test pending — checklist below.
+- Intake Save live-tested 2026-10-27 on Marky (order `499cde06`): all sheet rows correct; save-navigation and empty line description fixed after; not re-run in a browser; 409 other-customer path untested.
+- Test orders on live sheets to clean up (owner to decide cancel/delete): `499cde06` (open Washing/Ironing/Packaging tickets), `ba45cd70` (no tickets).
 - Owner decided 2026-10-25: unregistered tag blocked; tickets + Tagging read OrderGarments (LaundryPhotos fallback); Save ends APPROVED; no defect or weight photos at intake (weight is Packing's). Next: live test with a test order.
 - Order `5aed2e17` (created 2026-10-24) uses inactive Items ids — check how staff can still pick inactive types.
 - Garment photos on garment detail (plan `docs/plans/garment-photos.md`): built 2026-10-26; one-photo capture + save not tried live; no page links with `?order=` yet.

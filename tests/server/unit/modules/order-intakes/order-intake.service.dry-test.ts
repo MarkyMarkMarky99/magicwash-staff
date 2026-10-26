@@ -61,7 +61,7 @@ assert.deepEqual(fixture.rows.OrderForm, [{
   order_name: 'Intake', order_description: null,
 }, { id: response.orderId, status: 'APPROVED', updated_by: 'staff-1' }])
 assert.deepEqual(fixture.rows.OrderItemForms!.map(row => ({ ...row, id: undefined })), intakePayload().items.map(item => ({
-  id: undefined, order_id: response.orderId, item_id: item.itemId, description: null, quantity: item.tags.length,
+  id: undefined, order_id: response.orderId, item_id: item.itemId, description: `เสื้อ ${item.itemId.slice(-1)}`, quantity: item.tags.length,
   price: null, category: null, service_type: 'WSIR', special_instructions: null, created_by: 'staff-1',
 })))
 for (const [index, item] of intakePayload().items.entries()) {

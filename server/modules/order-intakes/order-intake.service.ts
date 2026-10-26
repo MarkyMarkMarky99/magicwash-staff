@@ -43,6 +43,7 @@ export class OrderIntakeService {
     const deps = this.dependencies
     const items = await deps.items.read()
     const itemIds = new Set(items.map(item => item.id))
+    const itemNames = new Map(items.map(item => [item.id, item.display_name_th ?? null]))
     const unknownItems = data.items.filter(item => !itemIds.has(item.itemId)).map(item => item.itemId)
     if (unknownItems.length > 0) throw ApiError.badRequest(`Unknown items: ${unknownItems.join(', ')}`)
     const registered = (await deps.laundryItems.read({ where: { customer_id: data.customerId } })).filter(row => !row.deleted_at)
@@ -81,7 +82,7 @@ export class OrderIntakeService {
     const orderId = createOrderId()
     const orderData = {
       ...data, createdBy: staffId, quantity: tags.length, orderDescription: null,
-      items: data.items.map(item => ({ itemId: item.itemId, quantity: item.tags.length, price: null, description: null, specialInstructions: null })),
+      items: data.items.map(item => ({ itemId: item.itemId, quantity: item.tags.length, price: null, description: itemNames.get(item.itemId) ?? null, specialInstructions: null })),
     }
     const header = toOrderHeaderRow(orderData, orderId)
     const lines = orderData.items.map(item => ({ ...toOrderItemRow(item, orderId, orderData), id: createOrderItemId() }))

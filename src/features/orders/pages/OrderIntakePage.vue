@@ -268,7 +268,7 @@ async function save(): Promise<void> {
   }
 }
 
-onBeforeRouteLeave(() => !saving.value)
+onBeforeRouteLeave(() => saved.value || !saving.value)
 onScopeDispose(() => { if (!saved.value) photoUploads.discardAll() })
 
 onMounted(() => {

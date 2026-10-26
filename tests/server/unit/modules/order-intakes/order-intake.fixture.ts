@@ -42,7 +42,7 @@ export function intakeFixture(payload = intakePayload(), failure?: string, untyp
   const deps: OrderIntakeDependencies = {
     items: { async read() {
       calls.push('read Items'); increment(gviz, 'Items')
-      return [{ id: 'item0001' }, { id: 'item0002' }, { id: 'item0003' }]
+      return [{ id: 'item0001', display_name_th: 'เสื้อ 1' }, { id: 'item0002', display_name_th: 'เสื้อ 2' }, { id: 'item0003', display_name_th: 'เสื้อ 3' }]
     } },
     laundryItems: {
       async read(query) {
