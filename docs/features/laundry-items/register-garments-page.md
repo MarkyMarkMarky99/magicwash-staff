@@ -12,6 +12,9 @@ audit_sources:
 
 Camera tag input uses the shared scan code reader: `MWG-<tagId>` and legacy bare IDs both work.
 Prefixes match case-insensitively; saved tags contain only the case-sensitive eight-character ID.
+While the camera is open and the page is not saving, a gun scan goes through the same tag check
+even when the Tag ID field is not focused; staff cards are ignored. The order detail camera does
+not do this.
 
 ## Purpose
 

@@ -4,6 +4,12 @@ Intake Order, Register Garments, garment detail, garment photos and scan prefixe
 `feat/order-intake-page`. Plans: `docs/plans/order-intake-flow.md`, `docs/plans/garment-photos.md`,
 `docs/plans/scan-code-prefix.md`, `docs/plans/laundry-item-registration.md`.
 
+## Go-live conditions (owner, 2026-10-27)
+- The new workflow goes live only when paper tags are replaced by permanent fabric (ribbon) tags
+  and the CCTV system is ready for real use.
+- Until then the old order-detail registration (writes LaundryPhotos only) stays as is; do not
+  adapt it. Delete it after the switch; optionally run a one-time LaundryPhotos → LaundryItems copy.
+
 ## Must test
 - Real print: one garment tag (QR now `MWG-<tag>`) and one bag tag (Code 128 now `MWB-<id>`, longer)
   on the real printer, then scan both with the real gun. Owner must be at the printer.
@@ -12,10 +18,9 @@ Intake Order, Register Garments, garment detail, garment photos and scan prefixe
 - Garment photo Add (one photo per Add) not tried live.
 - Prod timing of garment detail not measured (vercel dev: garment after one request, ~2.5–4 s).
 
-## Next task
-- Registration camera (order detail and Register Garments): while it is open, gun scans should
-  go into its Tag ID field. Today an unfocused gun scan on order detail reaches the app-level
-  garment scanner. Camera QR reading is not affected.
+## Watch
+- vercel dev showed a Vite overlay "Failed to load url /scanic-ml/ort-wasm-simd-threaded.mjs" once
+  on the Register Garments page (2026-10-27); console clean, scanning worked. Dev-only, unchecked.
 
 ## Known gaps
 - Server photo create with `orderId` checks OrderGarments, so it rejects orders that have only

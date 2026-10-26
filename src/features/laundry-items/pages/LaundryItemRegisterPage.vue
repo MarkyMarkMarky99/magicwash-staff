@@ -9,6 +9,7 @@ import PhotoViewer from '@/shared/components/PhotoViewer.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import StickerFab from '@/shared/components/StickerFab.vue'
 import { useGarmentPhotoUploads } from '@/shared/composables/useGarmentPhotoUploads'
+import { useScannerGunInput } from '@/shared/composables/useScannerGunInput'
 import { useCloseRoute } from '@/shared/navigation/use-close-route'
 import { primeFeedbackAudio } from '@/shared/utils/scan-feedback'
 import { ApiError } from '@/shared/api/api-client'
@@ -73,6 +74,12 @@ const registerGarments = useLaundryItemRegisterGarments(
   () => customerId.value,
   () => new Set(garments.map((garment) => garment.tag)),
   (tag, file) => { photoUploads.start(addGarment(tag, file), file) },
+)
+
+useScannerGunInput(
+  (code) => { void registerGarments.acceptTag(code) },
+  () => overlayKind.value === 'camera' && !saving.value,
+  { staffCards: 'skip' },
 )
 
 watch(overlayKind, (kind) => {

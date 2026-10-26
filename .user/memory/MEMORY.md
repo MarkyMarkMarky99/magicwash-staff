@@ -61,7 +61,7 @@
   - JobTickets `started_by` (col Y) shipped in code; add the header to the live sheet right after deploy, then curl prod.
   - Garment registration plan: `docs/plans/laundry-item-registration.md`; intake plan `docs/plans/order-intake-flow.md`.
   - Garment workflow shipped 2026-10-27; PENDING real print test (garment `MWG-` QR + bag `MWB-` barcode, owner at the printer) — see `.user/memory/garment-workflow-followups.md`.
-  - NEXT: registration camera takes gun scans into its Tag ID field while open (details in the same file).
+  - BLOCKER for real use: new garment workflow goes live only once paper tags become permanent fabric (ribbon) tags and CCTV is ready (owner, 2026-10-27).
   - MagicwashAI `classify-laundry-items` writes `itemId` via PATCH /api/laundry-items/:id + `x-service-key` (`AI_SERVICE_KEY` set in Vercel); plan in C:\MagicwashAI\docs\plans\.
   - LaundryItems holds 125 rows backfilled 2026-10-22 (image_url = Drive flat-lay images); timestamps read back as GViz `Date(...)`.
   - Before LaundryItems: split WashPrograms into parent `WashPrograms` (1 row per program) and child `WashProgramSteps`; new tab first, deploy reader, then reshape parent.
