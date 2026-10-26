@@ -31,6 +31,8 @@ const isDevice = computed(() => authStore.status === 'signedIn' && authStore.sta
 useScannerGunInput(operatorStore.scanCard, isDevice, { staffCards: 'only' })
 const garmentScan = useAppGarmentScan(() => authStore.status === 'signedIn')
 const { tagId: scannedGarmentId, notice: garmentScanNotice } = garmentScan
+const shellMounted = ref(false)
+onMounted(() => { shellMounted.value = true })
 useScannerGunInput(garmentScan.scan, garmentScan.enabled)
 const { pendingCount } = storeToRefs(appointmentStore)
 const route = useRoute()
@@ -186,10 +188,6 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
       {{ operatorStore.name ? `ผู้ใช้งาน: ${operatorStore.name}` : 'ยิงบัตรพนักงานก่อนทำงาน' }}
     </div>
     <div v-if="isDevice && operatorStore.notice" role="alert" class="fixed inset-x-4 bottom-4 z-[100] rounded-xl bg-error-container px-4 py-3 text-center font-body text-on-error-container shadow-lg">{{ operatorStore.notice }}</div>
-    <PickerOverlay :open="scannedGarmentId !== null" size="full" :draggable="false" ariaLabel="Garment detail" :close-button="false" @close="garmentScan.close">
-      <template #header><AppHeader :back-action="garmentScan.close" /></template>
-      <LaundryItemDetailView v-if="scannedGarmentId" :key="scannedGarmentId" :tag-id="scannedGarmentId" />
-    </PickerOverlay>
     <div v-if="garmentScanNotice" class="app-column fixed inset-x-0 bottom-4 z-[100] px-4">
       <InlineNotice tone="error" dismissible @dismiss="garmentScanNotice = null">{{ garmentScanNotice }}</InlineNotice>
     </div>
@@ -215,6 +213,10 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
       </KeepAlive>
       </RouterView>
     </div>
+    <PickerOverlay v-if="shellMounted && scannedGarmentId !== null" open size="full" :draggable="false" ariaLabel="Garment detail" :close-button="false" @close="garmentScan.close">
+      <template #header><AppHeader :back-action="garmentScan.close" /></template>
+      <LaundryItemDetailView v-if="scannedGarmentId" :key="scannedGarmentId" :tag-id="scannedGarmentId" />
+    </PickerOverlay>
 
     <button
       v-if="drawerOpen"
