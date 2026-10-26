@@ -10,6 +10,9 @@ audit_sources:
 
 # Register Garments page
 
+Camera tag input uses the shared scan code reader: `MWG-<tagId>` and legacy bare IDs both work.
+Prefixes match case-insensitively; saved tags contain only the case-sensitive eight-character ID.
+
 ## Purpose
 
 Staff register a customer's garments (tag plus photo) into LaundryItems before any order exists. The page is a reduced copy of the [order intake form](../orders/order-intake-form.md): garments only, no order details. Plan: `docs/plans/laundry-item-registration.md`.

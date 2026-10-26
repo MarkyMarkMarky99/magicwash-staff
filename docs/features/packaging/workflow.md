@@ -1,5 +1,10 @@
 # Packaging workflow
 
+Garment gun and camera scans pass through the shared scan code reader before existing matching:
+`MWG-<tagId>` (case-insensitive prefix) and bare IDs both work, preserving the ID's case. Packaging
+routes disable the app-level garment detail scanner; scan messages and bag assignment rules stay
+with Packaging.
+
 Packaging staff put each order's garments into bags (packages) so the order is ready for delivery.
 
 ## Flow

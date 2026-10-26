@@ -57,7 +57,7 @@ retries read the landed rows and append or update only missing work. Reads and w
 separate operations in Sheets, so concurrent confirmations are not an atomic transaction.
 
 After every write succeeds, tags print when `BAG_TAG_PRINT_ENABLED=true`. The bag-tag request
-contains `qrValue` (tracking prefix plus bag ID), `barcodeValue` (bag ID), resolved nullable
+contains `qrValue` (tracking prefix plus bag ID), `barcodeValue` (`MWB-` plus bag ID), resolved nullable
 `customerIndex`, the saved `weightKg` of the bag, its positive `itemCount`, and Bangkok `packedAt`.
 Customer ID comes from the ticket snapshot; customer index is resolved once for all bags.
 One print request is sent per bag. Print failures are logged and do not fail confirmation.

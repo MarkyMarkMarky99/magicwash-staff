@@ -272,6 +272,11 @@ the invoice number to the shop print service. `PRINT_SERVER_URL`, `CF_ACCESS_CLI
 `CF_ACCESS_CLIENT_SECRET` are server-only environment variables; Cloudflare Access credentials must
 never be exposed to browser code or API responses.
 
+Garment print requests use `MWG-<tagId>` in `tags[].tagId`, validated by the printed-code schema;
+the sheet ID schema stays eight alphanumeric characters. IDs are generated and deduplicated before
+adding the print prefix. The printer encodes the supplied field unchanged. Bag print requests use
+`MWB-<orderImageId>` in `barcodeValue`; their QR remains the customer tracking link.
+
 `BAG_TAG_PRINT_ENABLED` enables one bag tag after each saved WEIGHT order image and each confirmed Packaging bag only when set to `true`; `BAG_TAG_TRACKING_URL_BASE` is the QR URL prefix concatenated with the saved image ID. The backend awaits POST /print-bag-tag with a 10-second timeout using the same print server credentials; failures are logged as `bag_tag_print_failure` and leave the save response unchanged.
 
 Payments are a ledger. `POST /api/payments` appends a staff-recorded payment as `VERIFIED`, so it

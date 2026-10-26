@@ -2,9 +2,11 @@ import { z } from 'zod'
 
 export const laundryTagIdSchema = z.string().regex(/^[0-9A-Za-z]{8}$/)
 
+export const laundryTagPrintedCodeSchema = z.string().regex(/^MWG-[0-9A-Za-z]{8}$/)
+
 const tagSchema = z.object({
   sequence: z.number().int().positive().max(999),
-  tagId: laundryTagIdSchema,
+  tagId: laundryTagPrintedCodeSchema,
 }).strict()
 
 export const laundryTagPrintRequestSchema = z.object({
@@ -21,10 +23,11 @@ export const laundryTagPrintRequestSchema = z.object({
     if (tag.sequence !== index + 1) {
       context.addIssue({ code: z.ZodIssueCode.custom, path: ['tags', index, 'sequence'], message: 'Tags must be sequential' })
     }
-    if (seenIds.has(tag.tagId)) {
+    const id = tag.tagId.slice(4)
+    if (seenIds.has(id)) {
       context.addIssue({ code: z.ZodIssueCode.custom, path: ['tags', index, 'tagId'], message: 'Tag IDs must be unique' })
     }
-    seenIds.add(tag.tagId)
+    seenIds.add(id)
   })
 })
 

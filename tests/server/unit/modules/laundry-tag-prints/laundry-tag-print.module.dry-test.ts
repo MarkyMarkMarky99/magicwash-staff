@@ -13,9 +13,9 @@ const payload = {
   customerIndex: '1999',
   totalCount: 3,
   tags: [
-    { sequence: 1, tagId: '12345678' },
-    { sequence: 2, tagId: 'Ab12Cd34' },
-    { sequence: 3, tagId: 'Zz90Yy12' },
+    { sequence: 1, tagId: 'MWG-12345678' },
+    { sequence: 2, tagId: 'MWG-Ab12Cd34' },
+    { sequence: 3, tagId: 'MWG-Zz90Yy12' },
   ],
 }
 const request = (body: unknown) => ({

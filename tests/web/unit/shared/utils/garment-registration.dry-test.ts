@@ -11,6 +11,10 @@ const cameraSource = readFileSync(new URL('../../../../../src/shared/components/
 test('tag validation uses the print contract format', () => {
   assert.equal(validGarmentTag(' 12345678 '), '12345678')
   assert.equal(validGarmentTag('0AaZ9bY1'), '0AaZ9bY1')
+  assert.equal(validGarmentTag('MWG-0AaZ9bY1'), '0AaZ9bY1')
+  assert.equal(validGarmentTag('mwg-0AaZ9bY1'), '0AaZ9bY1')
+  assert.equal(canSaveGarment(validGarmentTag('MWG-0AaZ9bY1'), new File(['photo'], 'photo.jpg'), new Set(), new Set()), true)
+  for (const prefix of ['MWB-', 'MWO-', 'MWS-']) assert.equal(validGarmentTag(prefix + '0AaZ9bY1'), null)
   for (const value of ['1234567', '123456789', '1234-678', 'abcdefgh!']) {
     assert.equal(validGarmentTag(value), null)
   }

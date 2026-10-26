@@ -30,6 +30,10 @@ Order due dates and customer IDs come directly from the loaded tickets. Names co
 
 In the four garment departments, the Pending tab selects jobs to move to In Progress; the In Progress tab selects jobs to complete. Tapping an eligible image toggles its selection and marks it with a lime ring and check badge. The action button shows the selected count and asks for confirmation before one batch submission. All and Completed tabs do not permit image updates or show the scanner button. The selected tickets must have the active tab status in this department. Changing tabs clears the selection after Send or Discard confirmation when anything is pending.
 
+Gun and camera input first pass through the shared scan code reader. Garment tags accept
+`MWG-<tagId>` (case-insensitive prefix) or the legacy bare ID, preserving ID case. Department and
+order-bag routes own their scans, so no scan there opens the app-level garment detail overlay.
+
 A keyboard-wedge barcode gun can scan directly on the list page in the Pending and In Progress tabs when the camera and confirmation dialogs are closed. Each gun read shows a compact dark glass popup (5 s, replaced by the next read, dismissible) with the matched ticket's photo flush on the left, the customer name and the customer index; order IDs and tag codes are not shown because staff cannot read them. Success draws an animated neon check over the photo and shows no message; a rejected or repeated read shows the message in a tone-coloured pill and a warning or error mark. A ticket without a photo shows a striped "No photo" block; a tag with no ticket in the department shows an error block and "Not found in this department". Tickets matched by a rejected read (wrong tab, already queued, several tasks) still show their data. The camera overlay keeps the plain text result card.
 
 A gun read that selects a ticket, or repeats a selected one ("Already selected"), moves that ticket to the top of the list and scrolls the list to the top; earlier reads follow, newest first, then the normal order. In the order view, order cards sort by their newest read ticket and each expanded card lists its read tickets first. Tapping a ticket never reorders. Clearing the selection, deselecting the ticket, switching tab, or sending restores the normal order. The move animates over 300 ms and is instant under `prefers-reduced-motion`.
@@ -98,7 +102,7 @@ ticket do not create rows. The header shows customer, bag weights, and scanning 
 order-status badge. Bags sort by ticket createdAt ascending after Bangkok timestamp normalization,
 then by orderImageId. In Progress and Completed bags are already scanned.
 
-Scan opens the existing shared camera overlay with `scan=1`. Each read accepts a trimmed bare
+Scan opens the existing shared camera overlay with `scan=1`. Each read accepts `MWB-<orderImageId>` (case-insensitive prefix), a trimmed bare
 orderImageId or the text after the last `/b/` segment, and matches against this order's loaded bags.
 Pending matches are marked scanned only in memory. Unmatched ids show “Not a bag of this order”;
 repeated local scans and already In Progress or Completed bags show “already scanned”. Reads provide

@@ -1,7 +1,7 @@
 import type { RouteRecordRaw } from 'vue-router'
 
 export const jobTicketRoutes: RouteRecordRaw[] = [
-  { path: '/departments/:department(logistics)/:orderId', name: 'logistics-order-bags', component: () => import('./pages/OrderBagsPage.vue'), meta: { parent: 'department-work' }, props: true },
-  { path: '/departments/:department(packaging)/:orderId', name: 'packaging-order-bags', component: () => import('./pages/OrderBagsPage.vue'), meta: { parent: 'department-work' }, props: true },
-  { path: '/departments/:department', name: 'department-work', component: () => import('./pages/DepartmentWorkPage.vue') },
+  { path: '/departments/:department(logistics)/:orderId', name: 'logistics-order-bags', component: () => import('./pages/OrderBagsPage.vue'), meta: { parent: 'department-work', ownsWorkScan: true }, props: true },
+  { path: '/departments/:department(packaging)/:orderId', name: 'packaging-order-bags', component: () => import('./pages/OrderBagsPage.vue'), meta: { parent: 'department-work', ownsWorkScan: true }, props: true },
+  { path: '/departments/:department', name: 'department-work', component: () => import('./pages/DepartmentWorkPage.vue'), meta: { ownsWorkScan: true } },
 ]

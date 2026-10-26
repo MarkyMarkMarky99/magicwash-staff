@@ -181,9 +181,9 @@ try {
       assert.equal(context.prints[0]?.itemCount, 2)
       assert.equal(context.prints[1]?.itemCount, 1)
       for (const print of context.prints) {
-        assert.equal(print.weightKg, print.barcodeValue === 'aabbccdd' ? 2.5 : 1.2)
+        assert.equal(print.weightKg, print.barcodeValue === 'MWB-aabbccdd' ? 2.5 : 1.2)
         assert.equal(print.packedAt, '2026-10-09 12:34:56')
-        assert.equal(print.qrValue, `https://shop.example/b/${print.barcodeValue}`)
+        assert.equal(print.qrValue, `https://shop.example/b/${print.barcodeValue.slice(4)}`)
         assert.equal(print.customerIndex, '12')
       }
       const before = [context.images.length, context.items.length, context.tickets.length, context.scores.length]

@@ -16,7 +16,9 @@ Also holds garment registration (merged from `feat/laundry-item-registration` 20
 - Intake Save wired to `POST /api/order-intakes` (commit `1c7eb580`, dry-tested); live browser test pending — checklist below.
 - Owner decided 2026-10-25: unregistered tag blocked; tickets + Tagging read OrderGarments (LaundryPhotos fallback); Save ends APPROVED; no defect or weight photos at intake (weight is Packing's). Next: live test with a test order.
 - Order `5aed2e17` (created 2026-10-24) uses inactive Items ids — check how staff can still pick inactive types.
-- Garment photos on garment detail (plan `docs/plans/garment-photos.md`): built 2026-10-26; capture + batch save not tried live; no page links with `?order=` yet.
+- Garment photos on garment detail (plan `docs/plans/garment-photos.md`): built 2026-10-26; one-photo capture + save not tried live; no page links with `?order=` yet.
+- Scan prefixes `MWG-`/`MWB-` + any-page garment scan (plan `docs/plans/scan-code-prefix.md`): built 2026-10-26, dry-tested only; pending gun test on a normal page and the 4 work pages, and one real print each of a garment tag and a bag tag (longer Code 128).
+- Garment detail entry points still open: order detail (needs OrderGarments read) and customer Garments tab.
 - Garment `DWaIjLch` has empty `created_at` in LaundryItems, so its detail page errors (strict parse).
 - Intake only chooses a type for untyped garments (owner 2026-10-24); a registered type is changed on the garment detail page.
 - Shared UI consolidation (plan `docs/plans/shared-ui-consolidation.md`) merged in; owner has not yet viewed the Round 7 visual changes; leftover design work in `.user/memory/shared-ui-later.md`.

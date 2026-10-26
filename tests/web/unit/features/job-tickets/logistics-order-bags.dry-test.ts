@@ -5,6 +5,7 @@ import { transpileModule, ScriptTarget } from 'typescript'
 import { parse } from '@vue/compiler-sfc'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { normalizeSheetTimestamp } from '@shared/utils/bangkok-datetime'
+import { readScanCode } from '@/shared/utils/scan-code'
 import { useScanNotice } from '@/features/job-tickets/composables/useScanNotice'
 
 const source = readFileSync(new URL('../../../../../src/features/job-tickets/composables/useLogisticsBags.ts', import.meta.url), 'utf8')
@@ -56,7 +57,7 @@ async function harness(options: { cached?: boolean; wait?: Promise<void> } = {})
       back: () => { backs += 1; route.query = { keep: 'yes' } },
     }),
     useCustomerStore: () => ({ customers: [] }), currentActor: () => 'staff-1',
-    feedback: () => {}, primeFeedbackAudio: () => {}, filterTickets, normalizeSheetTimestamp,
+    feedback: () => {}, primeFeedbackAudio: () => {}, filterTickets, normalizeSheetTimestamp, readScanCode,
     invalidate: (path: string) => { invalidations.push(path) },
     getWorkOrder: async () => ({ orderId: 'order-1', customerId: 'customer-1' }),
     listOrderImages: async () => ({ items: [
@@ -87,6 +88,16 @@ finishCachedLoad()
 await cached.ready
 assert.equal(cached.page.bags.value.length, 3)
 cached.scope.stop()
+
+for (const code of ['bag-a', 'MWB-bag-a', 'mwb-bag-a', 'https://host/b/bag-a']) {
+  const prefixed = await harness()
+  prefixed.page.handleScan(code)
+  assert.equal(prefixed.page.notice.value.message, 'Bag bag-a scanned')
+  assert.deepEqual([...prefixed.page.scannedTicketIds.value], ['LOG-order-1-bag-a-LOG-BAG'])
+  prefixed.page.handleScan(code)
+  assert.equal(prefixed.page.notice.value.message, 'Bag bag-a already scanned')
+  prefixed.scope.stop()
+}
 
 const local = await harness()
 assert.deepEqual(local.page.bags.value.map((bag: any) => bag.orderImageId), ['bag-a', 'bag-b', 'bag-done'])

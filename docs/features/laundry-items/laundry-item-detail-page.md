@@ -1,5 +1,17 @@
 # Garment detail
 
+For signed-in accounts, a scanner-gun `MWG-<tagId>` scan on any non-public page outside Intake,
+department work, Packaging and Logistics opens this view in the app-level full-screen overlay
+`?scannedGarment=<tagId>`. Prefix matching ignores case; the eight-character ID keeps its case.
+The scan checks registration with one item lookup, without preloading garments. A missing tag
+shows "Tag not registered" through the app notice and opens nothing; a lookup error asks staff
+to try again. Other code kinds and bare IDs are ignored outside work pages.
+The overlay keeps the underlying page and its draft mounted. It passes neither `orderId` nor
+`readonly`, so photos save to shared garment history. Another garment scan replaces the open
+garment. Back closes the pushed overlay entry; closing a refreshed deep link removes its query
+with replace. Navigation to another page replaces the overlay entry.
+
+
 `/garments/:tagId` opens a registered garment with the normal app header and Back. The same
 `LaundryItemDetailView` is used in a full-screen overlay on Order Intake, keeping its unsaved draft
 in place. The layout follows `.user/item-detail-design/zone-5.html` using the app's theme tokens.

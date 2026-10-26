@@ -1,3 +1,4 @@
+import { readScanCode } from '@/shared/utils/scan-code'
 import { computed, onActivated, onDeactivated, onBeforeUnmount, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { listOrderImages, type OrderImageDto } from '@/data/order-images/order-image.service'
@@ -105,9 +106,7 @@ export function useLogisticsBags(orderId: () => string) {
 
   function handleScan(value: string): void {
     if (!scannerOpen.value || submitting.value || loading.value || error.value) return
-    const text = value.trim()
-    const marker = text.lastIndexOf('/b/')
-    const id = marker === -1 ? text : text.slice(marker + 3).trim()
+    const id = readScanCode(value).id
     const bag = bags.value.find(row => row.orderImageId === id)
     if (!bag) return showNotice('Not a bag of this order')
     if (bag.scanned) return showNotice(`Bag ${id} already scanned`)

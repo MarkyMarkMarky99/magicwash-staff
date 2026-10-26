@@ -88,7 +88,7 @@ try {
     'CF-Access-Client-Secret': 'test-client-secret',
   })
   const expectedBody = {
-    qrValue: `https://staff.example/#/b/${saved.orderImageId}`, barcodeValue: saved.orderImageId,
+    qrValue: `https://staff.example/#/b/${saved.orderImageId}`, barcodeValue: `MWB-${saved.orderImageId}`,
     customerIndex: 'A 12._:-z', weightKg: 2.5, itemCount: null, packedAt: '2026-10-07 12:34:56',
   }
   assert.deepEqual(lastBody(), expectedBody)

@@ -37,7 +37,13 @@ listen for `popstate`.
 
 An overlay that must close through browser or Android Back is route-owned. The default convention
 for new route-owned overlays is a query parameter; `CameraOverlay` is the established exception,
-using a path plus route metadata. The navigation drawer uses `?menu=1`; other overlays use local state.
+using a path plus route metadata. The navigation drawer uses `?menu=1`; the app-level garment scan
+uses `?scannedGarment=<tagId>`, with a second scan replacing the open garment. Its nested photo and
+picker state uses the existing `garmentDetail` query. Other overlays use local state.
+
+The `ownsWorkScan: true` route meta flag disables the app-level garment scanner on
+`order-create-intake`, `department-work`, `packaging-order-bags`, and `logistics-order-bags`.
+The global listener also stays off on public routes and for signed-out accounts.
 
 Derive route-owned open state from the route. Close with `router.back()` only for an entry pushed by
 the current page; on a deep link or refresh, remove the route-owned state with `router.replace`.

@@ -4,6 +4,12 @@ import { checkScannedTag, preloadedLookup, resolveScannedTag, type OrderIntakeSc
 
 const none = () => false
 
+for (const hasTag of [none, (tag: string) => tag === 'AAAA0001']) {
+  assert.deepEqual(checkScannedTag('MWG-AAAA0001', hasTag), checkScannedTag('AAAA0001', hasTag))
+  assert.deepEqual(checkScannedTag('mwg-AAAA0001', hasTag), checkScannedTag('AAAA0001', hasTag))
+}
+
+
 test('rejects codes that are not garment tags', () => {
   const banner = { tone: 'error', tag: null, message: 'Not a garment tag' }
   assert.deepEqual(checkScannedTag('MWS-STAFF', none), { banner })

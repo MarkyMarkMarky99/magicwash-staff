@@ -57,7 +57,10 @@ The Packaging Confirm action uses
 `contracts/packaging-bags/packaging-bag-api.schema.ts`; its create/response slots describe
 `POST /api/packaging-bags/confirm`, and unused list/update slots are `z.never()`.
 The shared bag-tag print request in `contracts/bag-tag-prints/bag-tag-print.schema.ts` now carries
-nullable `weightKg`, nullable positive integer `itemCount`, and Bangkok `packedAt`.
+nullable `weightKg`, nullable positive integer `itemCount`, and Bangkok `packedAt`. Its barcode
+uses `MWB-<orderImageId>` while the QR keeps the tracking link.
+Garment print `tags[].tagId` uses `laundryTagPrintedCodeSchema` (`MWG-` plus eight alphanumeric
+characters); `laundryTagIdSchema` remains the unprefixed, case-sensitive sheet ID.
 See [Packaging Confirm](../../features/packaging/confirm.md) for the complete action contract.
 
 ## References

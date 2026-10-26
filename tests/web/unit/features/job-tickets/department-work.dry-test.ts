@@ -50,6 +50,15 @@ const taskTickets = [
   { ...ticket('wash-solo', 'order-1', 'Pending'), laundryItemId: 'tag-solo', taskCode: 'WSH-B', stepNo: 2 },
   { ...ticket('wash-legacy', 'order-1', 'Pending'), laundryItemId: 'tag-legacy', taskCode: null },
 ]
+for (const tag of ['tag-m', 'tag-solo', 'tag-legacy', 'unknown']) {
+  for (const status of ['Pending', 'In Progress'] as const) {
+    for (const queue of [[], [{ ticketId: 'wash-solo', orderId: 'order-1', tag: 'tag-solo' }]]) {
+      assert.deepEqual(resolveScanTag(`MWG-${tag}`, taskTickets, status, queue, 'Washing'), resolveScanTag(tag, taskTickets, status, queue, 'Washing'))
+      assert.deepEqual(resolveScanTag(`mwg-${tag}`, taskTickets, status, queue, 'Washing'), resolveScanTag(tag, taskTickets, status, queue, 'Washing'))
+    }
+  }
+}
+
 assert.deepEqual(resolveScanTag('tag-m', taskTickets, 'Pending', [], 'Washing'), {
   ticket: taskTickets[0],
   message: '2 tasks for this tag (WSH-B, WSH-A). Select them from the list',

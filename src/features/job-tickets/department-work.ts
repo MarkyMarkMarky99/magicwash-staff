@@ -1,3 +1,4 @@
+import { readScanCode } from '@/shared/utils/scan-code'
 import type { z } from 'zod'
 import { isDepartmentWorkTicket } from '@shared/job-tickets/department-work'
 import { jobTicketDepartmentSchema, jobTicketStatusSchema } from '@contracts/job-tickets/job-ticket-api.schema'
@@ -36,7 +37,7 @@ export function ticketSelectLabel(ticket: JobTicketDto): string {
 }
 
 export function resolveScanTag(value: string, tickets: readonly JobTicketDto[], status: AdvanceStatus, queue: readonly ScanQueueEntry[], department: Department): { entry?: ScanQueueEntry; ticket?: JobTicketDto; message: string } {
-  const tag = normalizeGarmentTagId(value)
+  const tag = normalizeGarmentTagId(readScanCode(value).id)
   const matching = tickets.filter(ticket => ticket.id && ticket.department === department && ticket.laundryItemId === tag)
   const candidates = matching.filter(row => row.status === status)
   if (candidates.length > 1) return { ticket: candidates[0], message: `${candidates.length} tasks for this tag (${candidates.map(row => taskLabel(row) ?? 'no task').join(', ')}). Select them from the list` }

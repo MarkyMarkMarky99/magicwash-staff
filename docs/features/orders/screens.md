@@ -62,7 +62,8 @@ Actions:
   while detail is loading, if the index is missing, or if the order header quantity is
   missing or invalid. For totals above 999, the dialog starts at the per-request maximum of 999 so staff can print in batches.
 - The page sends a complete body to POST /api/laundry-tag-prints; the backend
-  forwards it to the TSC print server. Tag IDs are not yet persisted.
+  forwards it to the TSC print server. Each `tags[].tagId` is `MWG-` followed by the eight-character
+  tag ID; the QR encodes that field unchanged. Tag IDs are not yet persisted.
 
 ## Logistics bag scan
 

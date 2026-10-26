@@ -21,6 +21,13 @@ assert.equal(order.orderId, 'order-1')
 assert.equal(unassignedCount(order, []), 6)
 assert.equal(confirmedItemCount(order, 'bag-1'), 4)
 
+for (const tag of [...order.garments.map(row => row.tagId), 'unknown']) {
+  for (const bags of [[bag('a')], [bag('a', ['x9a3e5pn'])], [bag('a'), bag('b', ['x9a3e5pn'])]]) {
+    assert.deepEqual(scanGarment(order, bags, 'a', `MWG-${tag}`), scanGarment(order, bags, 'a', tag))
+    assert.deepEqual(scanGarment(order, bags, 'a', `mwg-${tag}`), scanGarment(order, bags, 'a', tag))
+  }
+}
+
 let bags = [bag('a'), bag('b')]
 assert.equal(bagNumber(order, bags, 'a'), 3)
 assert.equal(bagNumber(order, bags, 'b'), 4)

@@ -57,7 +57,7 @@ export class BagTagPrintService {
 
     const request = {
       qrValue: `${process.env.BAG_TAG_TRACKING_URL_BASE ?? ''}${image.orderImageId}`,
-      barcodeValue: image.orderImageId,
+      barcodeValue: `MWB-${image.orderImageId}`,
       customerIndex,
       weightKg: image.weightKg,
       itemCount: image.itemCount,

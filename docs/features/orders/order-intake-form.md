@@ -46,6 +46,10 @@ There are two ways to scan:
 - The hardware scanner gun is the main way. The page listens for the gun through the shared scanner gun input with staff cards skipped, and the listener is enabled only while no overlay or sheet is open: the camera, scanners, photos sheet, row sheet, picker and the order details sheet all disable it.
 - The Garments entry in the camera menu opens the shared QR scanner overlay in the phone camera. It reads only tags, adds them, and stays open for more scans. A line at the bottom shows how many garments are in the order, followed by the scan banner without its action buttons.
 
+Both inputs use the shared scan code reader, accepting `MWG-<tagId>` (case-insensitive prefix)
+and legacy bare garment IDs without changing the case of the ID. Intake owns scans on this route;
+the app-level garment detail scan is disabled.
+
 Each scanned code goes through the same steps:
 
 1. A code that is not a garment tag is refused with "Not a garment tag".

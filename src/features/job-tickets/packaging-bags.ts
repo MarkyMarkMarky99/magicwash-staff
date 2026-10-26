@@ -1,3 +1,4 @@
+import { readScanCode } from '@/shared/utils/scan-code'
 import { formatSheetDateTime, getBangkokClock } from '@/shared/utils/sheet-date'
 import { parseWeightKg } from '@shared/utils/item-quantity'
 import type { z } from 'zod'
@@ -86,7 +87,7 @@ export function toggleGarment(order: PackagingOrder, bags: readonly NewBag[], ba
 }
 
 export function scanGarment(order: PackagingOrder, bags: readonly NewBag[], bagId: string, value: string): BagScanOutcome {
-  const tagId = value.trim()
+  const tagId = readScanCode(value).id
   const fail = (message: string, tone: 'warning' | 'error' = 'error'): BagScanOutcome => ({ bags: [...bags], tagId, success: false, tone, message })
   const garment = order.garments.find(row => row.tagId === tagId)
   if (!garment) return fail('Not a garment of this order')

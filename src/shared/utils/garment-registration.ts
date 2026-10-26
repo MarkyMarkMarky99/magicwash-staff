@@ -1,7 +1,10 @@
+import { readScanCode } from './scan-code'
 import { laundryTagIdSchema } from '@contracts/laundry-tag-prints/laundry-tag-print.schema'
 
 export function validGarmentTag(value: string): string | null {
-  const tag = value.trim()
+  const code = readScanCode(value)
+  if (code.kind !== 'garment' && code.kind !== 'unknown') return null
+  const tag = code.id
   return laundryTagIdSchema.safeParse(tag).success ? tag : null
 }
 

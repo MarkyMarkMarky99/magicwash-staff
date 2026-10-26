@@ -14,6 +14,11 @@ import { APP_Z_INDEX_CLASS } from '@/shared/layouts/z-index'
 import { useNavDrawer } from '@/shared/composables/use-nav-drawer'
 import { useRoute, useRouter } from 'vue-router'
 import NavSidebar from '@/shared/components/NavSidebar.vue'
+import AppHeader from '@/shared/components/AppHeader.vue'
+import InlineNotice from '@/shared/components/InlineNotice.vue'
+import PickerOverlay from '@/shared/layouts/PickerOverlay.vue'
+import LaundryItemDetailView from '@/features/laundry-items/components/LaundryItemDetailView.vue'
+import { useAppGarmentScan } from '@/app/composables/useAppGarmentScan'
 import { preloadDocumentScanner } from '@/features/orders/utils/document-scanner-model'
 
 const appointmentStore = useAppointmentStore()
@@ -24,6 +29,9 @@ const authStore = useAuthStore()
 const operatorStore = useOperatorStore()
 const isDevice = computed(() => authStore.status === 'signedIn' && authStore.staff?.role === 'device')
 useScannerGunInput(operatorStore.scanCard, isDevice, { staffCards: 'only' })
+const garmentScan = useAppGarmentScan(() => authStore.status === 'signedIn')
+const { tagId: scannedGarmentId, notice: garmentScanNotice } = garmentScan
+useScannerGunInput(garmentScan.scan, garmentScan.enabled)
 const { pendingCount } = storeToRefs(appointmentStore)
 const route = useRoute()
 const router = useRouter()
@@ -178,6 +186,13 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
       {{ operatorStore.name ? `ผู้ใช้งาน: ${operatorStore.name}` : 'ยิงบัตรพนักงานก่อนทำงาน' }}
     </div>
     <div v-if="isDevice && operatorStore.notice" role="alert" class="fixed inset-x-4 bottom-4 z-[100] rounded-xl bg-error-container px-4 py-3 text-center font-body text-on-error-container shadow-lg">{{ operatorStore.notice }}</div>
+    <PickerOverlay :open="scannedGarmentId !== null" size="full" :draggable="false" ariaLabel="Garment detail" :close-button="false" @close="garmentScan.close">
+      <template #header><AppHeader :back-action="garmentScan.close" /></template>
+      <LaundryItemDetailView v-if="scannedGarmentId" :key="scannedGarmentId" :tag-id="scannedGarmentId" />
+    </PickerOverlay>
+    <div v-if="garmentScanNotice" class="app-column fixed inset-x-0 bottom-4 z-[100] px-4">
+      <InlineNotice tone="error" dismissible @dismiss="garmentScanNotice = null">{{ garmentScanNotice }}</InlineNotice>
+    </div>
     <NavSidebar v-if="!isPublicRoute" :open="drawerOpen" />
 
     <div

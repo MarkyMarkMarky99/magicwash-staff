@@ -28,7 +28,7 @@ export function createLaundryTagPrintRequest(
       tagId = generateId({ length: 8, alphabet: TAG_ALPHABET })
     } while (usedIds.has(tagId))
     usedIds.add(tagId)
-    return { sequence: index + 1, tagId }
+    return { sequence: index + 1, tagId: `MWG-${tagId}` }
   })
 
   return laundryTagPrintRequestSchema.parse({ customerIndex, totalCount, tags })

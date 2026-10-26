@@ -40,7 +40,8 @@ shared/         # Runtime logic shared by frontend and backend
 
 Application-level behavior is owned by the root entry points: `src/main.js` bootstraps the app,
 `src/App.vue` owns the root shell, and `src/router/index.js` owns routing. Use `src/app/` only for
-application-level pages or development tools when one is needed.
+application-level pages, composables used only by `src/App.vue`, or development tools when one is
+needed.
 
 - The application root may provide data-layer state to shared shell components through typed
   injection keys owned by `src/shared/`; shared code must not import the data layer directly.

@@ -1,5 +1,8 @@
 # Garment registration
 
+Camera tag input uses the shared scan code reader: `MWG-<tagId>` and legacy bare IDs both work.
+Prefixes match case-insensitively; saved tags contain only the case-sensitive eight-character ID.
+
 The order detail item menu opens the before-photo registration overlay with
 `?orderAction=register-garment&registerItem=<orderItemId>`. The order ID comes from
 `/orders/:orderId`. The item row itself still opens that item's before-photo gallery.
