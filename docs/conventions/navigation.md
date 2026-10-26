@@ -42,7 +42,7 @@ uses `?scannedGarment=<tagId>`, with a second scan replacing the open garment. I
 picker state uses the existing `garmentDetail` query. Other overlays use local state.
 
 The `ownsWorkScan: true` route meta flag disables the app-level garment scanner on
-`order-create-intake`, `department-work`, `packaging-order-bags`, and `logistics-order-bags`.
+`order-create-intake`, `laundry-item-register`, `department-work`, `packaging-order-bags`, and `logistics-order-bags`.
 The global listener also stays off on public routes and for signed-out accounts.
 
 Derive route-owned open state from the route. Close with `router.back()` only for an entry pushed by

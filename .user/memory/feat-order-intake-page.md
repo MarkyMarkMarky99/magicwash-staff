@@ -12,7 +12,8 @@ Also holds garment registration (merged from `feat/laundry-item-registration` 20
 - Garment detail page `#/garments/:tagId` built (doc `docs/features/laundry-items/laundry-item-detail-page.md`, prototype `.user/item-detail-design/zone-5.html`); Intake row sheet opens it as a full-screen overlay.
 
 ## Pending
-- Register Garments Save → endpoint not yet run in a browser (`vercel dev` needs a restart to load `AI_GATEWAY_SECRET`/`VITE_AI_GATEWAY_URL`).
+- Register Save + Intake re-run live-tested 2026-10-27 on test customer `cbcc555a` (TEST0001–0003, order `6dc8190f`, open tickets cancelled, Tagging voided).
+- Order detail registration camera: an unfocused gun scan reaches the app-level garment scanner (order-detail has no `ownsWorkScan`); not fixed.
 - Intake Save live-tested 2026-10-27 on Marky (order `499cde06`): all sheet rows correct; save-navigation and empty line description fixed after; not re-run in a browser; 409 other-customer path untested.
 - Test orders `499cde06`, `ba45cd70` on Marky cancelled 2026-10-27 (9 open tickets Cancelled); their 3 Tagging EARN rows voided and `dZaBsip0` type reset to empty.
 - Owner decided 2026-10-25: unregistered tag blocked; tickets + Tagging read OrderGarments (LaundryPhotos fallback); Save ends APPROVED; no defect or weight photos at intake (weight is Packing's). Next: live test with a test order.

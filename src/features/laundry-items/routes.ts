@@ -12,6 +12,6 @@ export const laundryItemRoutes: RouteRecordRaw[] = [
     path: '/customers/:customerId/garments/register',
     name: LAUNDRY_ITEM_REGISTER_ROUTE_NAME,
     component: () => import('./pages/LaundryItemRegisterPage.vue'),
-    meta: { parent: 'customer-detail' },
+    meta: { parent: 'customer-detail', ownsWorkScan: true },
   },
 ]

@@ -16,8 +16,8 @@ Owner (2026-10-26):
    prints.
 2. The prefix lives only in the printed code. IDs in the sheets do not change.
 3. Codes printed before this change stay as they are and are not reprinted.
-4. Work pages keep their flow exactly: Intake, department work (every department and status),
-   Packaging and Logistics. A scan there never opens garment detail. They accept a code with or
+4. Work pages keep their flow exactly: Intake, Register Garments, department work (every department
+   and status), Packaging and Logistics. A scan there never opens garment detail. They accept a code with or
    without its prefix.
 5. On every other page a garment tag scan only opens garment detail, with no order (shared mode).
 6. The bag tag QR stays a tracking link (`<BAG_TAG_TRACKING_URL_BASE><id>`), so customers can scan

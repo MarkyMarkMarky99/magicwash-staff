@@ -357,7 +357,7 @@ onBeforeUnmount(() => {
           <span class="material-symbols-outlined text-lime" aria-hidden="true">qr_code_2</span>
           <span class="min-w-0 flex-1">
             <span class="block font-label text-xs text-white/70">Tag</span>
-            <input :value="tagInput" type="text" maxlength="8" autocomplete="off" enterkeyhint="done" aria-label="Tag ID" placeholder="None yet" class="w-full bg-transparent font-body text-sm text-white outline-none placeholder:text-white/70" @input="updateTagInput" @keydown.enter.prevent="submitTag">
+            <input :value="tagInput" type="text" maxlength="12" autocomplete="off" enterkeyhint="done" aria-label="Tag ID" placeholder="None yet" class="w-full bg-transparent font-body text-sm text-white outline-none placeholder:text-white/70" @input="updateTagInput" @keydown.enter.prevent="submitTag">
           </span>
           <span v-if="tagChecking" class="material-symbols-outlined animate-spin text-[18px] text-lime" role="status" aria-label="Checking tag">progress_activity</span>
         </label>
