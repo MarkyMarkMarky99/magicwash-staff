@@ -1,17 +1,25 @@
 import { computed, onScopeDispose, ref, watch } from 'vue'
 import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
-import { getLaundryItem } from '@/data/laundry-items/laundry-item.service'
+import { getLaundryItem, type LaundryItemDto } from '@/data/laundry-items/laundry-item.service'
+import { listLaundryItemPhotos } from '@/data/laundry-item-photos/laundry-item-photo.service'
+import { useJobTicketStore } from '@/data/job-tickets/job-ticket.store'
+import type { GarmentPrefetch } from '@/features/laundry-items/composables/useLaundryItemDetail'
 import { laundryTagIdSchema } from '@contracts/laundry-tag-prints/laundry-tag-print.schema'
 import { anyPageGarmentScan } from '@/shared/utils/scan-code'
 
 export function useAppGarmentScan(signedIn: () => boolean) {
   const route = useRoute()
   const router = useRouter()
+  const jobTickets = useJobTicketStore()
   const enabled = computed(() => signedIn() && route.meta.public !== true && route.meta.ownsWorkScan !== true)
   const tagId = computed(() => {
     const raw = route.query.scannedGarment
     return enabled.value && laundryTagIdSchema.safeParse(raw).success ? raw as string : null
   })
+  const scannedRow = ref<LaundryItemDto | null>(null)
+  const initialGarment = computed(() => scannedRow.value?.id === tagId.value ? scannedRow.value : null)
+  const scannedLoads = ref<GarmentPrefetch | null>(null)
+  const initialLoads = computed(() => initialGarment.value ? scannedLoads.value : null)
   const notice = ref<string | null>(null)
   let pushedByUs = false
   let sequence = 0
@@ -20,7 +28,7 @@ export function useAppGarmentScan(signedIn: () => boolean) {
   watch(() => route.fullPath, () => {
     sequence += 1
     notice.value = null
-    if (!tagId.value) pushedByUs = false
+    if (!tagId.value) { pushedByUs = false; scannedRow.value = null; scannedLoads.value = null }
   }, { flush: 'sync' })
   watch(enabled, () => { sequence += 1 }, { flush: 'sync' })
 
@@ -39,6 +47,10 @@ export function useAppGarmentScan(signedIn: () => boolean) {
       showNotice('Tag not registered')
       return
     }
+    const photos = listLaundryItemPhotos(id)
+    const tickets = jobTickets.loadGarment(id)
+    photos.catch(() => undefined)
+    tickets.catch(() => undefined)
     try {
       const garment = await getLaundryItem(id)
       if (current !== sequence || !enabled.value) return
@@ -46,6 +58,8 @@ export function useAppGarmentScan(signedIn: () => boolean) {
         showNotice('Tag not registered')
         return
       }
+      scannedRow.value = garment
+      scannedLoads.value = { photos, tickets }
       if (tagId.value === id) return
       const query: LocationQueryRaw = { ...route.query, scannedGarment: id }
       delete query.garmentDetail
@@ -84,5 +98,5 @@ export function useAppGarmentScan(signedIn: () => boolean) {
     if (noticeTimer) clearTimeout(noticeTimer)
   })
 
-  return { enabled, tagId, notice, scan, close }
+  return { enabled, tagId, initialGarment, initialLoads, notice, scan, close }
 }

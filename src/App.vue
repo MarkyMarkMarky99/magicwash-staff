@@ -215,7 +215,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
     </div>
     <PickerOverlay v-if="shellMounted && scannedGarmentId !== null" open size="full" :draggable="false" ariaLabel="Garment detail" :close-button="false" @close="garmentScan.close">
       <template #header><AppHeader :back-action="garmentScan.close" /></template>
-      <LaundryItemDetailView v-if="scannedGarmentId" :key="scannedGarmentId" :tag-id="scannedGarmentId" />
+      <LaundryItemDetailView v-if="scannedGarmentId" :key="scannedGarmentId" :tag-id="scannedGarmentId" :initial-garment="garmentScan.initialGarment.value" :initial-loads="garmentScan.initialLoads.value" />
     </PickerOverlay>
 
     <button

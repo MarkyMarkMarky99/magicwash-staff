@@ -1,8 +1,6 @@
 import { laundryItemPhotoTypeSchema } from '@contracts/laundry-item-photos/laundry-item-photo-api.schema'
 import type { LaundryItemDto } from '@/data/laundry-items/laundry-item.service'
 import type { LaundryItemPhotoDto } from '@/data/laundry-item-photos/laundry-item-photo.service'
-import type { OrderGarmentDto } from '@/data/order-garments/order-garment.service'
-import type { OrderListDto } from '@/data/orders/order.service'
 import type { JobTicketDto } from '@/data/job-tickets/job-ticket.service'
 import { formatSheetDate, formatSheetDateTime, sheetTimestampMs } from '@/shared/utils/sheet-date'
 
@@ -12,14 +10,19 @@ export function garmentDate(value: string | null | undefined, withTime = false):
   return formatted === '—' ? '–' : formatted.replace(/^0/, '')
 }
 
-export function garmentInOrder(tag: string, orderId: string, links: readonly OrderGarmentDto[]): boolean {
-  return links.some(row => row.laundryItemId === tag && row.orderId === orderId && row.deletedAt === null)
+export function garmentInOrder(tag: string, orderId: string, tickets: readonly JobTicketDto[]): boolean {
+  return tickets.some(row => row.laundryItemId === tag && row.orderId === orderId && row.deletedAt === null)
 }
 
-export function garmentOrderRows(tag: string, links: readonly OrderGarmentDto[], orders: readonly OrderListDto[], orderId: string | null = null): OrderListDto[] {
-  const ids = new Set(links.filter(row => row.laundryItemId === tag && row.deletedAt === null).map(row => row.orderId))
-  return orders.filter(order => ids.has(order.orderId) && (orderId === null || order.orderId === orderId)).sort((a, b) =>
-    (b.receivedDate ?? '').localeCompare(a.receivedDate ?? '') || b.orderId.localeCompare(a.orderId))
+export function garmentOrderRows(tag: string, tickets: readonly JobTicketDto[], orderId: string | null = null): Array<{ orderId: string, createdAt: string | null }> {
+  const dates = new Map<string, string | null>()
+  for (const ticket of tickets) {
+    if (ticket.deletedAt !== null || ticket.laundryItemId !== tag || (orderId !== null && ticket.orderId !== orderId)) continue
+    const earliest = dates.get(ticket.orderId)
+    if (earliest === undefined || earliest === null || (ticket.createdAt !== null && ticket.createdAt < earliest)) dates.set(ticket.orderId, ticket.createdAt)
+  }
+  return [...dates].map(([orderId, createdAt]) => ({ orderId, createdAt })).sort((a, b) =>
+    (b.createdAt ?? '').localeCompare(a.createdAt ?? '') || b.orderId.localeCompare(a.orderId))
 }
 
 export function garmentTimeline(tag: string, orderId: string, tickets: readonly JobTicketDto[]) {
@@ -36,9 +39,9 @@ export function garmentTimeline(tag: string, orderId: string, tickets: readonly 
     }))
 }
 
-export function garmentCurrentPlace(tag: string, order: OrderListDto | undefined, tickets: readonly JobTicketDto[]): string | null {
-  if (!order || ['COMPLETED', 'CANCELLED', 'DELIVERED'].includes(order.status?.toUpperCase() ?? '')) return null
-  const steps = garmentTimeline(tag, order.orderId, tickets)
+export function garmentCurrentPlace(tag: string, orderId: string | undefined, tickets: readonly JobTicketDto[]): string | null {
+  if (!orderId) return null
+  const steps = garmentTimeline(tag, orderId, tickets)
   const current = steps.find(step => step.status === 'In Progress')
   if (current) return `${current.departmentLabel} now`
   const pending = steps.find(step => step.status === 'Pending')
@@ -102,8 +105,8 @@ export function garmentSharedHistory(tag: string, photos: readonly LaundryItemPh
 const albumTitles: Record<string, string> = { REGISTRATION: 'Registration', DEFECT: 'Defects', BEFORE: 'Before', AFTER: 'After' }
 const albumOrder = [...Object.keys(albumTitles), ...laundryItemPhotoTypeSchema.options.filter(type => !(type in albumTitles))] as Array<LaundryItemPhotoDto['photoType']>
 
-export function garmentAlbum(garment: LaundryItemDto, photos: readonly LaundryItemPhotoDto[], orders: readonly OrderListDto[], orderId: string | null = null) {
-  const orderDates = new Map(orders.map(order => [order.orderId, order.receivedDate]))
+export function garmentAlbum(garment: LaundryItemDto, photos: readonly LaundryItemPhotoDto[], tickets: readonly JobTicketDto[], orderId: string | null = null) {
+  const orderDates = new Map(garmentOrderRows(garment.id, tickets).map(order => [order.orderId, order.createdAt]))
   const sections = albumOrder.map(type => {
     const title = albumTitles[type] ?? garmentPhotoTypeLabel(type)
     return {

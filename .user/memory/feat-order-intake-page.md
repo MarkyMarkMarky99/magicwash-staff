@@ -17,7 +17,10 @@ Also holds garment registration (merged from `feat/laundry-item-registration` 20
 - Owner decided 2026-10-25: unregistered tag blocked; tickets + Tagging read OrderGarments (LaundryPhotos fallback); Save ends APPROVED; no defect or weight photos at intake (weight is Packing's). Next: live test with a test order.
 - Order `5aed2e17` (created 2026-10-24) uses inactive Items ids — check how staff can still pick inactive types.
 - Garment photos on garment detail (plan `docs/plans/garment-photos.md`): built 2026-10-26; one-photo capture + save not tried live; no page links with `?order=` yet.
-- Scan prefixes `MWG-`/`MWB-` + any-page garment scan (plan `docs/plans/scan-code-prefix.md`): built 2026-10-26, browser-tested 2026-10-27 with a simulated gun on Marky (plan `.user/scan-prefix-test/plan.md`); pending real gun test, one real print each of a garment tag and a bag tag (longer Code 128), and the slow garment overlay load (8–15 s).
+- Scan prefixes `MWG-`/`MWB-` + any-page garment scan (plan `docs/plans/scan-code-prefix.md`): built 2026-10-26, browser-tested 2026-10-27 with a simulated gun on Marky (plan `.user/scan-prefix-test/plan.md`); pending real gun test, one real print each of a garment tag and a bag tag (longer Code 128), and a real-gun check of the faster garment overlay.
+- Garment detail now reads only LaundryItems, LaundryItemPhotos and JobTickets (history from tickets, no service name); measured 2026-10-27: garment shows after one request (~4 s on vercel dev); prod timing not measured.
+- Open: garment reads skip the browser cache on purpose (`invalidate` before each read); owner asked why reopening is not instant from cache.
+- Server photo create with `orderId` still checks OrderGarments, so it rejects orders that have only JobTickets.
 - Garment detail entry points still open: order detail (needs OrderGarments read) and customer Garments tab.
 - Garment `DWaIjLch` has empty `created_at` in LaundryItems, so its detail page errors (strict parse).
 - Intake only chooses a type for untyped garments (owner 2026-10-24); a registered type is changed on the garment detail page.

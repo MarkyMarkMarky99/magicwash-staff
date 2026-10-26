@@ -358,10 +358,8 @@ provided columns. Rows with empty Email are absent; legacy owner rows with empty
 remain visible but cannot be addressed by an empty ID. Duplicate email lookup is
 case-insensitive; Sheets provides no atomic unique-email constraint across concurrent requests.
 
-The app prefetches appointments, customers, staff, and prices once, on its first signed-in state,
-to prepare business data and map StaffIds to names. Frontend routes other than login and staff
-registration await auth readiness and require signed-in status, redirecting other sessions to
-login with the requested full path in the redirect query. Frontend writes record
+App startup, the route guard and the preloaded data are described in
+[App startup](../frontend/app-startup.md). Frontend writes record
 the signed-in StaffId as actor, or `unknown` when signed out; `?by=` is ignored.
 
 `FIREBASE_PROJECT_ID` and `STAFF_SPREADSHEET_ID` are server-only environment variables.

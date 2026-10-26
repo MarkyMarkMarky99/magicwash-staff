@@ -86,7 +86,7 @@ export const appointmentSortFieldSchema = z.enum([
   'status',
 ])
 
-export const MAX_APPOINTMENTS_PER_PAGE = 100
+export const MAX_APPOINTMENTS_PER_PAGE = 1000
 
 export const appointmentListQuerySchema = z.object({
   keyword: z.string().default(''),

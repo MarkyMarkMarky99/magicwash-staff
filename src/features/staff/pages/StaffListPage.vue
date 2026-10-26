@@ -58,6 +58,10 @@ async function loadScores(): Promise<void> {
 }
 
 async function load(): Promise<void> {
+  await Promise.all([staffStore.loaded ? Promise.resolve() : staffStore.load(), loadScores()])
+}
+
+async function refresh(): Promise<void> {
   await Promise.all([staffStore.load(), loadScores()])
 }
 
@@ -106,7 +110,7 @@ onActivated(() => {
       </div>
     </template>
 
-    <ListContainer :refresh="load"
+    <ListContainer :refresh="refresh"
       title="Staff ranking"
       icon="leaderboard"
       :count="board.length"

@@ -1,19 +1,10 @@
 import assert from 'node:assert/strict'
 import { createPinia, setActivePinia } from 'pinia'
+import { MAX_APPOINTMENTS_PER_PAGE } from '@contracts/appointments/appointment-api.schema'
+import { invalidate } from '@/shared/api/response-cache'
+import { todaySheetDate } from '@/shared/utils/sheet-date'
 
 import { useAppointmentStore } from '@/data/appointments/appointment.store'
-
-/**
- * Executable, not a source scan. The store used to page-walk the whole sheet and
- * filter dates in the browser because the API's `appointmentDate` filter silently
- * returned nothing (a native Sheets date cell needs a typed GViz literal). That
- * cost five sequential reads, ~10.7s, on every hard page load of ANY page, since
- * `App.vue` calls `loadInitial()` on mount.
- *
- * Counting real requests through a stubbed `fetch` is what pins the fix: a source
- * scan would still pass if the loop came back, and so would any assertion that only
- * looks at the resulting rows.
- */
 
 type AppointmentRow = Record<string, unknown>
 
@@ -33,18 +24,19 @@ interface Call {
 }
 
 async function withStore(
-  respond: (url: URL) => AppointmentRow[],
+  respond: (url: URL, init?: RequestInit) => AppointmentRow[] | AppointmentRow | Promise<AppointmentRow[]>,
   run: (store: ReturnType<typeof useAppointmentStore>, calls: Call[]) => Promise<void>,
 ): Promise<void> {
   const originalFetch = globalThis.fetch
   const calls: Call[] = []
 
-  globalThis.fetch = (async (input: URL | string) => {
+  invalidate('/api/appointments')
+  globalThis.fetch = (async (input: URL | string, init?: RequestInit) => {
     const url = new URL(String(input), 'http://localhost')
     calls.push({ url })
 
     return new Response(
-      JSON.stringify({ data: respond(url), meta: { pagination: { page: 1, perPage: 100 } } }),
+      JSON.stringify({ data: await respond(url, init), meta: { pagination: { page: 1, perPage: MAX_APPOINTMENTS_PER_PAGE } } }),
       { status: 200, headers: { 'Content-Type': 'application/json' } },
     )
   }) as typeof fetch
@@ -57,68 +49,123 @@ async function withStore(
   }
 }
 
-const dailyCalls = (calls: Call[]): Call[] =>
-  calls.filter((call) => call.url.searchParams.get('status') !== 'PENDING')
-
-// A day loads in exactly one request, and that request carries the date filter.
 await withStore(
-  () => [row('APPT-1'), row('APPT-2', { timeSlot: '10:00-12:00' })],
+  () => [
+    row('APPT-1'),
+    row('APPT-2', { timeSlot: '10:00-12:00' }),
+    row('PAST', { appointmentDate: '2000-01-01' }),
+    row('FUTURE', { appointmentDate: '2099-01-01' }),
+    row('PENDING-PAST', { status: 'PENDING', appointmentDate: '2000-01-01' }),
+    row('PENDING-FUTURE', { status: 'PENDING', appointmentDate: '2099-01-01' }),
+    row('PENDING-TODAY', { status: 'PENDING', appointmentDate: todaySheetDate() }),
+    row('PENDING-SELECTED', { status: 'PENDING' }),
+  ],
   async (store, calls) => {
+    await store.loadInitial()
     await store.loadDate('2026-09-07')
-
-    const daily = dailyCalls(calls)
-    assert.equal(daily.length, 1, 'loading a date must issue exactly one request, not a page walk')
-    assert.equal(daily[0]!.url.pathname, '/api/appointments')
-    assert.equal(
-      daily[0]!.url.searchParams.get('appointmentDate'),
-      '2026-09-07',
-      'the date must be filtered by the API, not in the browser',
-    )
-    // `page` is the schema's default, not a walk — the request COUNT above is the guard.
-    assert.equal(daily[0]!.url.searchParams.get('page'), '1', 'only ever the first page')
-
-    assert.equal(store.dailyItems.length, 2)
+    assert.equal(calls.length, 1)
+    const url = calls[0]!.url
+    assert.equal(url.pathname, '/api/appointments')
+    assert.equal(url.searchParams.get('perPage'), '1000')
+    assert.equal(url.searchParams.get('page'), '1')
+    assert.equal(url.searchParams.get('sortBy'), 'appointmentDate')
+    assert.equal(url.searchParams.get('sortOrder'), 'asc')
+    assert.equal(url.searchParams.has('appointmentDate'), false)
+    assert.equal(url.searchParams.has('status'), false)
+    assert.deepEqual(store.dailyItems.map((item) => item.appointmentId), ['APPT-2', 'APPT-1'])
+    assert.equal(store.dailyItems[0]!.appointmentDate, '2026-09-07')
+    assert.deepEqual(store.pendingItems.map((item) => item.appointmentId), ['PENDING-TODAY', 'PENDING-FUTURE'])
+    assert.equal(store.pendingCount, 2)
     assert.equal(store.error, null)
+    await store.loadDate('2000-01-01')
+    assert.deepEqual(store.dailyItems.map((item) => item.appointmentId), ['PAST'])
+    await store.loadDate('2099-01-01')
+    assert.deepEqual(store.dailyItems.map((item) => item.appointmentId), ['FUTURE'])
+    await store.loadPending()
+    await store.loadInitial()
+    assert.equal(calls.length, 1)
+    await store.refreshDate()
+    assert.equal(calls.length, 2)
+    await store.loadPending(true)
+    assert.equal(calls.length, 3)
   },
 )
 
-// GViz returns a native date cell in its wire format; the store must still normalize it.
+let release: (items: AppointmentRow[]) => void
+const response = new Promise<AppointmentRow[]>((resolve) => { release = resolve })
 await withStore(
-  () => [row('APPT-1')],
-  async (store) => {
-    await store.loadDate('2026-09-07')
-
-    assert.equal(
-      store.dailyItems[0]!.appointmentDate,
-      '2026-09-07',
-      'Date(Y,M,D) must be normalized to ISO before it reaches the view',
-    )
-  },
-)
-
-// PENDING belongs to the pending queue only, never to a day.
-await withStore(
-  () => [row('APPT-1'), row('APPT-2', { status: 'PENDING' })],
-  async (store) => {
-    await store.loadDate('2026-09-07')
-
-    assert.equal(store.dailyItems.length, 1)
+  () => response,
+  async (store, calls) => {
+    const first = store.loadInitial()
+    let secondFinished = false
+    const second = store.loadDate('2026-09-07').then(() => { secondFinished = true })
+    await new Promise((resolve) => setImmediate(resolve))
+    assert.equal(store.loading, true)
+    assert.equal(secondFinished, false)
+    assert.equal(calls.length, 1)
+    release!([row('APPT-1')])
+    await Promise.all([first, second])
+    assert.equal(secondFinished, true)
+    assert.equal(store.loading, false)
     assert.equal(store.dailyItems[0]!.appointmentId, 'APPT-1')
   },
 )
 
-// A loaded date is cached: revisiting it must not refetch.
+let persisted = row('APPT-1', { status: 'PENDING', appointmentDate: '2099-01-01' })
 await withStore(
-  () => [row('APPT-1')],
+  (_url, init) => init?.method === 'PATCH' || init?.method === 'POST' ? persisted : [persisted],
+  async (store) => {
+    await store.loadDate('2099-01-01')
+    assert.equal(store.pendingCount, 1)
+    persisted = { ...persisted, status: 'CONFIRMED' }
+    await store.updateStatus('APPT-1', 'CONFIRMED')
+    assert.equal(store.pendingCount, 0)
+    assert.equal(store.dailyItems.length, 1)
+    persisted = { ...persisted, appointmentDate: '2000-01-01' }
+    await store.updateStatus('APPT-1', 'CONFIRMED')
+    assert.equal(store.dailyItems.length, 0)
+    await store.loadDate('2000-01-01')
+    assert.equal(store.dailyItems.length, 1)
+    persisted = { ...persisted, status: 'PENDING' }
+    await store.updateStatus('APPT-1', 'PENDING')
+    assert.equal(store.dailyItems.length, 0)
+    assert.equal(store.pendingCount, 0)
+    persisted = row('APPT-NEW', { status: 'PENDING', appointmentDate: '2099-01-01' })
+    await store.createNewAppointment({
+      customerId: 'CUS-1',
+      customerName: 'Customer',
+      customerCode: 'C1',
+      phone: '0800000000',
+      address: 'Address',
+      location: '',
+      appointmentType: 'PICKUP',
+      appointmentDate: '2099-01-01',
+      timeSlot: '13:00-15:00',
+    })
+    assert.deepEqual(store.pendingItems.map((item) => item.appointmentId), ['APPT-NEW'])
+    persisted = { ...persisted, status: 'CONFIRMED' }
+    await store.updateStatus('APPT-NEW', 'CONFIRMED')
+    await store.loadDate('2099-01-01')
+    assert.deepEqual(store.dailyItems.map((item) => item.appointmentId), ['APPT-NEW'])
+    assert.equal(store.pendingCount, 0)
+  },
+)
+
+let fail = true
+await withStore(
+  () => {
+    if (fail) throw new Error('Offline')
+    return [row('APPT-1')]
+  },
   async (store, calls) => {
+    await store.loadPending()
+    assert.equal(store.error, 'Offline')
+    assert.equal(store.loading, false)
+    fail = false
     await store.loadDate('2026-09-07')
-    const after = dailyCalls(calls).length
-
-    await store.loadDate('2026-09-07')
-    assert.equal(dailyCalls(calls).length, after, 'a loaded date must not refetch')
-
-    await store.loadDate('2026-09-05')
-    assert.equal(dailyCalls(calls).length, after + 1, 'a different date must fetch once')
+    assert.equal(calls.length, 2)
+    assert.equal(store.error, null)
+    assert.equal(store.dailyItems.length, 1)
   },
 )
 

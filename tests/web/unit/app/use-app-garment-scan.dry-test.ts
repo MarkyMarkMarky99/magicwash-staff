@@ -21,17 +21,20 @@ async function harness(path = '/form?keep=yes') {
   await router.push(path)
   const signedIn = ref(true)
   const lookups: string[] = []
-  let lookup = async (_id: string): Promise<unknown> => ({ deletedAt: null })
+  const prefetches: string[] = []
+  let lookup = async (_id: string): Promise<unknown> => ({ id: _id, deletedAt: null })
   const scope = effectScope()
   const dependencies = {
     computed, onScopeDispose, ref, watch, laundryTagIdSchema, anyPageGarmentScan,
     useRoute: () => new Proxy({}, { get: (_target, key) => Reflect.get(router.currentRoute.value, key) }),
     useRouter: () => router,
     getLaundryItem: (id: string) => { lookups.push(id); return lookup(id) },
+    listLaundryItemPhotos: (id: string) => { prefetches.push(`photos:${id}`); return Promise.resolve([]) },
+    useJobTicketStore: () => ({ loadGarment: (id: string) => { prefetches.push(`tickets:${id}`); return Promise.resolve([]) } }),
     setTimeout: () => 1, clearTimeout: () => {},
   }
   const scan = scope.run(() => new Function(...Object.keys(dependencies), `${code}; return useAppGarmentScan(arguments[arguments.length - 1]);`)(...Object.values(dependencies), () => signedIn.value))!
-  return { scan, router, history, scope, lookups, signedIn, setLookup: (next: typeof lookup) => { lookup = next } }
+  return { scan, router, history, scope, lookups, prefetches, signedIn, setLookup: (next: typeof lookup) => { lookup = next } }
 }
 
 const app = await harness()
@@ -41,13 +44,18 @@ assert.equal(app.lookups.length, 0)
 await app.scan.scan('MWG-Ab12Cd34')
 assert.deepEqual(app.lookups, ['Ab12Cd34'])
 assert.equal(app.scan.tagId.value, 'Ab12Cd34')
+assert.deepEqual(app.scan.initialGarment.value, { id: 'Ab12Cd34', deletedAt: null })
+assert.ok(app.prefetches.includes('photos:Ab12Cd34') && app.prefetches.includes('tickets:Ab12Cd34'))
+assert.ok(app.scan.initialLoads.value?.photos instanceof Promise)
 assert.equal(app.router.currentRoute.value.query.keep, 'yes')
 await app.scan.scan('mwg-Zz12Cd34')
 assert.equal(app.scan.tagId.value, 'Zz12Cd34')
+assert.equal(app.scan.initialGarment.value.id, 'Zz12Cd34')
 app.scan.close()
 await tick()
 assert.equal(app.router.currentRoute.value.fullPath, '/form?keep=yes')
 assert.equal(app.scan.tagId.value, null)
+assert.equal(app.scan.initialGarment.value, null)
 app.setLookup(async () => null)
 await app.scan.scan('MWG-Ab12Cd34')
 assert.equal(app.scan.notice.value, 'Tag not registered')
@@ -59,7 +67,7 @@ let release!: (value: unknown) => void
 app.setLookup(() => new Promise(resolve => { release = resolve }))
 const pending = app.scan.scan('MWG-Ab12Cd34')
 await app.router.push('/other')
-release({ deletedAt: null })
+release({ id: 'Ab12Cd34', deletedAt: null })
 await pending
 assert.equal(app.scan.tagId.value, null)
 for (const path of ['/public', '/work']) {
@@ -79,6 +87,7 @@ app.scope.stop()
 const deep = await harness('/form?keep=yes&scannedGarment=Ab12Cd34')
 assert.equal(deep.scan.tagId.value, 'Ab12Cd34')
 assert.equal(deep.lookups.length, 0)
+assert.equal(deep.scan.initialGarment.value, null)
 deep.scan.close()
 await tick()
 assert.equal(deep.router.currentRoute.value.fullPath, '/form?keep=yes')

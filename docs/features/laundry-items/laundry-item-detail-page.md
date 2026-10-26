@@ -3,7 +3,8 @@
 For signed-in accounts, a scanner-gun `MWG-<tagId>` scan on any non-public page outside Intake,
 department work, Packaging and Logistics opens this view in the app-level full-screen overlay
 `?scannedGarment=<tagId>`. Prefix matching ignores case; the eight-character ID keeps its case.
-The scan checks registration with one item lookup, without preloading garments. A missing tag
+The scan checks registration with one item lookup, without preloading garments, and passes that row
+to the view through its optional `initialGarment` prop so the view does not read it again. A missing tag
 shows "Tag not registered" through the app notice and opens nothing; a lookup error asks staff
 to try again. Other code kinds and bare IDs are ignored outside work pages.
 The overlay keeps the underlying page and its draft mounted. It passes neither `orderId` nor
@@ -34,16 +35,18 @@ The two-column metadata card shows Customer, Registered, Wash program, Last seen
 Note. Missing values use "–". Dates show `d MMM yyyy HH:mm` in Bangkok. Last seen is the latest start
 or completion timestamp among this garment's live tickets across every order.
 
-Order history joins live order-garment links to the customer's orders, newest received date first.
-Rows show the received date and English service label, without order ids. Only the newest unfinished
-order has a lime place stamp: the In Progress department plus "now", otherwise the first Pending
-department plus "next". Completed, cancelled and delivered orders have no stamp. One accordion row
-opens at a time. An empty history reads "Not in any order yet".
+Order history comes only from live JobTickets for this garment: one row per distinct `orderId`,
+dated by its earliest ticket `createdAt`, sorted newest first, then descending order id on ties.
+Rows show that date without service labels or order ids. The newest row has a lime place stamp
+when its tickets have an In Progress department (plus "now"), otherwise the first Pending department
+(plus "next"). Without either, no stamp appears; order status is not read. One accordion row opens
+at a time. An empty history reads "Not in any order yet" after tickets have loaded; until then the
+history section is absent.
 
 With `order`, the history section is titled "This order" and lists only that order's row. If the
-garment has no live order-garment link to that order, an InlineNotice reads "This garment is not in
-this order" in place of the list, and the Add photo action is hidden. A linked order that the
-customer's orders do not include reads "Order not found".
+garment has no live ticket for that order, an InlineNotice reads "This garment is not in
+this order" in place of the list, and the Add photo action is hidden. The notice appears only after
+tickets load; adding to that order also waits for its ticket membership to be known.
 
 Photos with an empty order id, other than Registration, are shared garment history. When any exist,
 a "Garment history" card sits above the order history in both modes: a three-column grid, newest
@@ -57,7 +60,8 @@ steps read "Not started yet". Cancelled tickets are labelled as cancelled. Delet
 The header, right of the title, copies the corporate count sheet's photo controls
 (`LaundryItemPhotoControls`). On the left sits a stack of up to three tilted paper thumbnails of the
 photos the album shows for the current mode, newest on top, with a badge holding the photo count; it is
-hidden when there are no photos. Photos captured in the current visit appear in it at once, above the
+hidden when there are no photos. Until the photo list arrives, the stack shows the registration
+image without a count badge. Shared history and defect thumbnails appear when photos arrive. Photos captured in the current visit appear in it at once, above the
 saved ones. Tapping it opens the album. On the right a lime `StickerFab` (`size="sm"`, label "Add",
 aria-label "Add photo", glyph `add_a_photo`) opens the type menu; it is hidden when adding is not
 allowed (`readonly`, or `order` with the garment not in that order), and the stack stays. While a photo
@@ -66,7 +70,7 @@ uploads or saves it shows the saving state ("Saving").
 The album is a route-owned `DetailOverlay` titled "Photos · N" (`garmentDetail=album`). Registration,
 Defects, Before and After sections appear only when nonempty, with a three-column square grid.
 The registration image is included even when it has no separate photo row, without adding it again
-when its URL already appears in Registration. Other tiles carry their order's received-date chip,
+when its URL already appears in Registration. Other tiles carry their order's earliest-ticket-date chip,
 or "–" if the order date is unavailable. All thumbnails open the shared PhotoViewer. With `order`
 the album holds only Registration, shared history and that order's photos; without it, every photo.
 
@@ -104,10 +108,18 @@ for the outer overlay and pushes it over the row sheet. Back restores the row sh
 emptied the old row, it shows the changed garment's new row. Refreshing an Intake garment deep link
 can reload the garment, but cannot restore the page-only draft.
 
-The loading composable starts the garment, links, photos, tickets and catalog reads in parallel.
-Customer orders start as soon as the garment's customer is known. Ticket reads go through the
-JobTickets store. A loading message precedes the view, and load failures or missing/deleted garments
-show an error with Retry. The link, photo and garment ticket requests use the brief's 1,000-row limit;
-customer orders use the existing customer-order service.
+Only the garment row blocks rendering: a loading message precedes it, and lookup failures or
+missing/deleted garments show an error with Retry. A matching `initialGarment` row renders immediately;
+route and Intake opens without that prop read the garment themselves. Photos and tickets load in
+parallel in the background, each with its own InlineNotice on failure, leaving the rest of the page
+usable. Ticket reads go through the JobTickets store. Photos and tickets use a 1,000-row limit.
+No OrderGarments or OrderForm reads are made.
+
+Items load only when the Items store is empty. Wash programs use their store's existing loaded and
+in-flight guards; staff load only when `!staff.loaded`. Their failures appear as separate InlineNotices.
+Customers come from the preloaded store. Request ids prevent stale garment, photo and ticket responses
+from updating a different tag or a disposed view.
 
 Pure derivations are covered by `tests/web/unit/features/laundry-items/utils/laundry-item-detail.dry-test.ts`.
+Mocked load decisions and background state are covered by
+`tests/web/unit/features/laundry-items/laundry-item-detail-load.dry-test.ts`.
