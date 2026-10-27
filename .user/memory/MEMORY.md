@@ -5,7 +5,6 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
-- **`claude/busy-gates-y1qid9`** — day-off booking (phase 1) built and live-tested locally; admin UI pending; see `.user/memory/claude-busy-gates-y1qid9.md`.
 
 ## Pending work
 - **MagicwashAI local gateway** — handoff: `.user/memory/magicwash-ai-gateway-handoff.md`
@@ -48,6 +47,9 @@
   - Accepted risk: two simultaneous completions of one ticket can write two EARNs; correct with a VOID row.
   - Future: supervisor-created tickets with custom `work_minutes`; Month view; Attendance for efficiency % (plan: `docs/plans/staff-attendance.md`).
   - Design canvas for the profile: claude.ai/artifact/NACQydNrsqjzx31RrK6tsX.
+- **Attendance / day off** (plan: `docs/plans/staff-attendance.md`)
+  - Admin UI pending (LEAVE/ABSENT, edit, cancel, book for others); meanwhile cancel by setting `deleted_at` in the sheet.
+  - Open: day-off page close button returns to `/`, not the staff profile.
 - **Packages**
   - Package detail hero card: low-credit badge threshold (20%) was Claude's pick, not confirmed by user.
   - Package Add transaction form: browser-check each type; voiding a past credit-add can still drive the balance negative.
