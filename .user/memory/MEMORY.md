@@ -1,8 +1,7 @@
 # Project memory
-- Branch: `claude/eager-ritchie-pvgp9f` (off `main`); `main` customer-package invoice deployment still needs verification.
+- Branch: `main`; `main` customer-package invoice deployment still needs verification.
 
 ## Branches in flight
-- **`claude/eager-ritchie-pvgp9f`** — Print invoice button on the invoice-created screen, needs a real printer test; see `.user/memory/claude-eager-ritchie-pvgp9f.md`.
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
@@ -115,6 +114,7 @@
   - Decide whether to renumber the four legacy uuid-shaped invoice numbers; they are referenced as `invoiceId` on customer-package rows.
   - Confirm `OVERDUE` outranks `PARTIALLY_PAID` in derived invoice status.
   - Browser-verify payment review (verify and reject) on a real PENDING slip.
+  - Print invoice button on the invoice-created screen: test a real print at the shop printer.
   - Clean sheet data: the blank customer row, dirty Orders rows, LaundryPhotos ordering, and page-walks using non-unique sort keys.
 - **Customers and registration**
   - Browser-check forms using the restyled `FormTextarea` and rounded `FormOverlay` body; the helper text keeps a stray bullet dot.
