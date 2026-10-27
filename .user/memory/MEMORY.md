@@ -5,6 +5,7 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
+- **`claude/busy-gates-y1qid9`** — staff attendance/day-off plan written, phase 1 not built; see `.user/memory/claude-busy-gates-y1qid9.md`.
 
 ## Pending work
 - **MagicwashAI local gateway** — handoff: `.user/memory/magicwash-ai-gateway-handoff.md`
@@ -45,7 +46,7 @@
   - Browser-check the staff profile page `/staff/:staffId` (Day date strip, Week leaderboard); only unit-tested.
   - Staff list daily ranking: check as non-admin.
   - Accepted risk: two simultaneous completions of one ticket can write two EARNs; correct with a VOID row.
-  - Future: supervisor-created tickets with custom `work_minutes`; Month view; Attendance for efficiency %.
+  - Future: supervisor-created tickets with custom `work_minutes`; Month view; Attendance for efficiency % (plan: `docs/plans/staff-attendance.md`).
   - Design canvas for the profile: claude.ai/artifact/NACQydNrsqjzx31RrK6tsX.
 - **Packages**
   - Package detail hero card: low-credit badge threshold (20%) was Claude's pick, not confirmed by user.
