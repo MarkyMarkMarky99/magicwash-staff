@@ -69,7 +69,7 @@ Frontend:
 - `src/features/attendance/` page: 7-day grid per week (free / mine / taken by name), week switcher
   limited to the bookable range for staff (admin: any week), admin sees who has no day off yet
   and can add/edit/cancel any row (DAY_OFF, LEAVE, ABSENT)
-- Nav link in `src/shared/components/NavSidebar.vue`
+- Entry point: "Day off" button on the staff profile page (own profile, or any profile for admin); no nav link
 
 Tests: backend unit tests for every rule (on create and on update), staff cancel/edit/create-for-others
 rejected, staff date window vs admin past date, admin cancel then rebook, update into an occupied

@@ -5,7 +5,7 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
-- **`claude/busy-gates-y1qid9`** — staff attendance/day-off plan written, phase 1 not built; see `.user/memory/claude-busy-gates-y1qid9.md`.
+- **`claude/busy-gates-y1qid9`** — day-off booking (phase 1) built and live-tested locally; admin UI pending; see `.user/memory/claude-busy-gates-y1qid9.md`.
 
 ## Pending work
 - **MagicwashAI local gateway** — handoff: `.user/memory/magicwash-ai-gateway-handoff.md`

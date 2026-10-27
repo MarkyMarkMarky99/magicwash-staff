@@ -67,7 +67,7 @@ reuse their store's loaded guard. These reads run in the background and do not d
 - Fresh for 1 hour: customers, price list, laundry photos, after photos, order reports. 24 hours:
   machines. Everything else: always refreshed.
 - Kept in `localStorage` across reloads: customers, price list, machines.
-- Never cached: job tickets, auth, staff, work transactions, order snapshots.
+- Never cached: job tickets, auth, staff, work transactions, order snapshots, attendance.
 - Writes call `invalidate()` on the endpoints they change. The nav sidebar refresh control clears
   the cache for changes made on another device or in the sheet.
 

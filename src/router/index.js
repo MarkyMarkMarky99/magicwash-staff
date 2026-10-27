@@ -14,6 +14,7 @@ import { orderRoutes } from '@/features/orders/routes'
 import { tagScannerRoutes } from '@/features/tag-scanner/routes'
 import { jobTicketRoutes } from '@/features/job-tickets/routes'
 import { staffRoutes } from '@/features/staff/routes'
+import { attendanceRoutes } from '@/features/attendance/routes'
 import { orderReportRoutes } from '@/features/order-reports/routes'
 import { deliveryTrackingRoutes } from '@/features/delivery-tracking/routes'
 import { agentRoutes } from '@/features/agents/routes'
@@ -33,6 +34,7 @@ const routes = [
   ...tagScannerRoutes,
   ...jobTicketRoutes,
   ...staffRoutes,
+  ...attendanceRoutes,
   ...orderReportRoutes,
   ...deliveryTrackingRoutes,
   ...agentRoutes,

@@ -35,7 +35,7 @@ const MINI_RADIUS = 23
 
 const authStore = useAuthStore()
 const staffStore = useStaffStore()
-const { isAdmin } = storeToRefs(authStore)
+const { isAdmin, staff } = storeToRefs(authStore)
 const { error: staffError, loaded: staffLoaded } = storeToRefs(staffStore)
 
 const today = ref(bangkokToday())
@@ -197,6 +197,14 @@ watch(() => props.staffId, () => {
             <button type="button" class="ml-1 min-h-11 font-bold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime" @click="staffStore.load()">Retry</button>
           </p>
         </div>
+        <RouterLink
+          v-if="isAdmin || staff?.staffId === props.staffId"
+          to="/attendance"
+          class="flex min-h-11 shrink-0 items-center gap-1.5 rounded-[14px] border border-on-primary/10 bg-on-primary/5 px-3.5 font-label text-[13px] font-semibold text-on-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime"
+        >
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">event_busy</span>
+          Day off
+        </RouterLink>
         <RouterLink
           v-if="isAdmin"
           :to="staffEditRoute(props.staffId)"
