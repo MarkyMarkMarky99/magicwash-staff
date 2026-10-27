@@ -38,7 +38,8 @@ created_at | created_by | updated_at | updated_by | deleted_at | deleted_by
 - A staff member can have at most 1 active `DAY_OFF` row per Monday-Sunday week.
 - Bookable dates: tomorrow up to 14 days ahead.
 - Booking checks both rules, then appends. A failed check returns `409` with the reason.
-- Cancel = set `deleted_at` / `deleted_by`. Admin can cancel or assign any day.
+- Cancel = set `deleted_at` / `deleted_by`. Only admin can cancel; staff cannot cancel their own booking.
+- Admin can also assign a day off to any staff member.
 - On the shared device the actor is the scanned operator (`docs/features/staff/shared-device.md`).
 
 ## Phase 1 — day-off booking
@@ -52,7 +53,7 @@ Backend (mirror `server/modules/bag-items/` and `server/sheets/LaundryItems/`):
 ```text
 GET    /attendance/day-off?week=yyyy-MM-dd   week grid: who is off on each day
 POST   /attendance/day-off                   book { workDate } for the acting staff
-DELETE /attendance/day-off/:id               cancel (own row, or admin any row)
+DELETE /attendance/day-off/:id               cancel (admin only)
 POST   /attendance/day-off/assign            admin books { staffId, workDate }
 ```
 
@@ -62,7 +63,7 @@ Frontend:
   limited to the bookable range, admin sees who has no day off yet
 - Nav link in `src/shared/components/NavSidebar.vue`
 
-Tests: backend unit tests for both rules, cancel then rebook, and week boundary (Sunday vs Monday).
+Tests: backend unit tests for both rules, staff cancel rejected, admin cancel then rebook, and week boundary (Sunday vs Monday).
 
 ## Phase 2 — check-in / check-out
 
@@ -76,5 +77,4 @@ Tests: backend unit tests for both rules, cancel then rebook, and week boundary 
 
 ## Open
 
-- Cancel deadline for staff (how many days before the date).
 - Days when nobody may take a day off (e.g. weekends) — none for now.
