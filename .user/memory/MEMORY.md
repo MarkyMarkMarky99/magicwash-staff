@@ -47,8 +47,7 @@
   - Accepted risk: two simultaneous completions of one ticket can write two EARNs; correct with a VOID row.
   - Future: supervisor-created tickets with custom `work_minutes`; Month view; Attendance for efficiency % (plan: `docs/plans/staff-attendance.md`).
   - Design canvas for the profile: claude.ai/artifact/NACQydNrsqjzx31RrK6tsX.
-- **Attendance / day off** (plan: `docs/plans/staff-attendance.md`)
-  - Admin UI pending (LEAVE/ABSENT, edit, cancel, book for others); meanwhile cancel by setting `deleted_at` in the sheet.
+- **Attendance / day off** — admin UI pending (LEAVE/ABSENT, edit, cancel, book for others); cancel via sheet `deleted_at` meanwhile.
   - Open: day-off page close button returns to `/`, not the staff profile.
 - **Packages**
   - Package detail hero card: low-credit badge threshold (20%) was Claude's pick, not confirmed by user.
