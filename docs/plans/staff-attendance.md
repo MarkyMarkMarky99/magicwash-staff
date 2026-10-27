@@ -6,7 +6,7 @@ Status: **planned, not built.** When phase 1 ships, move the rules below into
 ## Goal
 
 Staff pick their own weekly day off in the app instead of the owner fitting days by hand.
-The same sheet later holds check-in/check-out for attendance and KPI efficiency %.
+Attendance (who worked which day) comes from `WorkTransactions`; there is no check-in.
 
 ## Decisions — do not reopen
 
@@ -22,13 +22,13 @@ The same sheet later holds check-in/check-out for attendance and KPI efficiency 
 Column order = physical order.
 
 ```text
-id | staff_id | work_date | status | check_in_at | check_out_at | notes
+id | staff_id | work_date | status | notes
 created_at | created_by | updated_at | updated_by | deleted_at | deleted_by
 ```
 
 - `work_date`: `yyyy-MM-dd`. Timestamps: `yyyy-MM-dd HH:mm:ss` (see `docs/conventions/datetime.md`).
 - `status`: `DAY_OFF` (weekly day off, counts toward quota), `LEAVE` (sick/personal, type in
-  `notes`, no quota), `PRESENT`, `ABSENT` (set by admin only).
+  `notes`, no quota), `ABSENT` (set by admin only).
 - Every rule and report ignores rows where `deleted_at` is set.
 - Writes: append and update; no hard delete.
 
@@ -65,15 +65,12 @@ Frontend:
 
 Tests: backend unit tests for both rules, staff cancel rejected, admin cancel then rebook, and week boundary (Sunday vs Monday).
 
-## Phase 2 — check-in / check-out
+## Phase 2 — attendance from WorkTransactions
 
-- Check-in creates or updates today's row to `PRESENT` with `check_in_at`.
-- Check-in on a `DAY_OFF` date soft-deletes the day-off row and creates a `PRESENT` row.
-- How staff check in is not decided (scan `MWS-` card on the shared device is the simplest).
-
-## Phase 3 — KPI
-
-- Use `Attendance` for efficiency % in the staff KPI views.
+- No check-in. A staff member worked on a date when they have `WorkTransactions` rows that day
+  (`staffId`, day of `created_at`), the same rule as `src/features/staff/utils/staff-performance.ts`.
+- Per day: worked / day off / leave / absent (admin) / no record.
+- Use it for efficiency % in the staff KPI views.
 
 ## Open
 

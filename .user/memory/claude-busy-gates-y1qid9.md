@@ -2,4 +2,3 @@
 
 - Holds the staff attendance / day-off plan: `docs/plans/staff-attendance.md`.
 - Nothing built yet; next is phase 1 (day-off booking).
-- Open: check-in method for phase 2.
