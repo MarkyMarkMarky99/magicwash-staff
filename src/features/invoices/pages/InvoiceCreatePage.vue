@@ -36,6 +36,7 @@ import {
 import { addSheetDateDays, sheetDateDaysBetween, todaySheetDate } from '@/shared/utils/sheet-date'
 import { useDuplicateInvoiceWarning } from '@/shared/composables/use-duplicate-invoice-warning'
 import { useInvoiceItemPickerRoute } from '../composables/useInvoiceItemPickerRoute'
+import { useInvoicePrint } from '../composables/useInvoicePrint'
 import { usePriceListStore } from '@/data/price-list/price-list.store'
 import type { PriceListDto } from '@/data/price-list/price-list.service'
 import { isValidItemQuantity } from '@shared/utils/item-quantity'
@@ -203,6 +204,13 @@ const requestPayload = computed<CreateInvoiceRequest | null>(() => {
 
 const submitting = ref(false)
 const result = ref<CreateInvoiceResponse | null>(null)
+const { printing, printSuccess, printError, resetPrintStatus, print } = useInvoicePrint()
+
+watch(result, resetPrintStatus)
+
+function handlePrint(invoiceNumber: string) {
+  void print(invoiceNumber, () => isInvoicePersisted(result.value) && result.value.invoiceNumber === invoiceNumber)
+}
 
 function initializeForm(currentOrder: InvoiceCreateOrder) {
   order.value = currentOrder
@@ -422,7 +430,36 @@ async function copyLiffUrl(invoiceNumber: string) {
           </button>
         </div>
 
+        <p
+          v-if="printSuccess"
+          class="rounded-xl bg-success-container px-3 py-2 text-left font-body text-xs text-on-success-container"
+          role="status"
+        >
+          {{ printSuccess }}
+        </p>
+        <p
+          v-else-if="printError"
+          class="rounded-xl bg-error-container px-3 py-2 text-left font-body text-xs text-on-error-container"
+          role="alert"
+        >
+          {{ printError }}
+        </p>
+
         <div class="flex flex-col gap-2 pt-2">
+          <button
+            type="button"
+            class="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-label text-[12px] font-semibold text-on-primary disabled:cursor-wait disabled:opacity-60"
+            :disabled="printing"
+            :aria-busy="printing"
+            @click="handlePrint(result.invoiceNumber)"
+          >
+            <span
+              class="material-symbols-outlined text-[18px] leading-none"
+              :class="{ 'animate-spin': printing }"
+              aria-hidden="true"
+            >{{ printing ? 'progress_activity' : 'print' }}</span>
+            {{ printing ? 'Printing…' : 'Print invoice' }}
+          </button>
           <button type="button" class="rounded-xl bg-primary px-4 py-2.5 font-label text-[12px] font-semibold text-on-primary" @click="backToOrderHistory">
             Back to order history
           </button>

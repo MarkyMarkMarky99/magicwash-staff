@@ -1,7 +1,8 @@
 # Project memory
-- Branch: `main`; `main` customer-package invoice deployment still needs verification.
+- Branch: `claude/eager-ritchie-pvgp9f` (off `main`); `main` customer-package invoice deployment still needs verification.
 
 ## Branches in flight
+- **`claude/eager-ritchie-pvgp9f`** — Print invoice button on the invoice-created screen, needs a real printer test; see `.user/memory/claude-eager-ritchie-pvgp9f.md`.
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
@@ -92,8 +93,7 @@
   - Remove dead CSS `.invoice-line-select` in `InvoiceLineItemsEditor.vue`.
   - Some forms `push` on exit, so Back re-opens the form after save. See `.user/memory/form-exit-history.md`.
   - Browser-verify the form-routes refactor; unticked to-dos in `docs/plans/form-routes.md`.
-- **Order detail UI**
-  - Open phone/browser checks and decisions: see `.user/memory/order-detail-ui.md`.
+- **Order detail UI** — open phone/browser checks and decisions: see `.user/memory/order-detail-ui.md`.
 - **Images and gallery**
   - Backfill `Cache-Control` on existing photos after Firebase bucket credentials are available. See `docs/plans/image-pipeline.md`.
   - Deferred: preloading image files on order detail; decide once photo counts per order are known.

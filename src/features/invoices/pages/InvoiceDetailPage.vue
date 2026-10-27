@@ -13,8 +13,7 @@ import {
   InvalidInvoiceNumberError,
 } from '@/data/invoices/invoice-detail.service'
 import type { InvoiceDetailDto } from '@/data/invoices/invoice-detail.service'
-import { printInvoice } from '@/data/invoices/invoice-print.service'
-import { ApiError } from '@/shared/api/api-client'
+import { useInvoicePrint } from '../composables/useInvoicePrint'
 import { formatSheetDate } from '@/shared/utils/sheet-date'
 import { invoicePaymentCreateRoute, invoicePaymentReviewRoute } from '@/shared/navigation/form-routes'
 
@@ -26,9 +25,7 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const notFound = ref(false)
 const proofUrl = ref<string | null>(null)
-const printing = ref(false)
-const printSuccess = ref<string | null>(null)
-const printError = ref<string | null>(null)
+const { printing, printSuccess, printError, resetPrintStatus, print } = useInvoicePrint()
 let latestRequest = 0
 
 const canRecordPayment = computed(() => {
@@ -61,8 +58,7 @@ async function loadInvoice(silent = false) {
     notFound.value = false
     invoice.value = null
     proofUrl.value = null
-    printSuccess.value = null
-    printError.value = null
+    resetPrintStatus()
   }
 
   try {
@@ -86,29 +82,9 @@ async function loadInvoice(silent = false) {
 }
 
 async function handlePrint() {
-  if (!invoice.value || printing.value) return
-
+  if (!invoice.value) return
   const invoiceNumber = invoice.value.invoiceNumber
-  printing.value = true
-  printSuccess.value = null
-  printError.value = null
-
-  try {
-    const result = await printInvoice(invoiceNumber)
-    if (invoice.value?.invoiceNumber !== invoiceNumber) return
-    printSuccess.value = `ส่งคำขอพิมพ์ไปยัง ${result.printerName} แล้ว`
-  } catch (reason) {
-    if (invoice.value?.invoiceNumber !== invoiceNumber) return
-    if (reason instanceof ApiError && reason.status === 422) {
-      printError.value = 'เลขที่ใบแจ้งหนี้ไม่ถูกต้อง กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง'
-    } else if (reason instanceof ApiError && reason.status === 502) {
-      printError.value = 'ไม่สามารถติดต่อเครื่องพิมพ์ได้ กรุณาตรวจสอบเครื่องพิมพ์แล้วลองอีกครั้ง'
-    } else {
-      printError.value = 'ไม่สามารถส่งคำขอพิมพ์ได้ กรุณาตรวจสอบเครื่องพิมพ์ก่อนลองอีกครั้ง'
-    }
-  } finally {
-    printing.value = false
-  }
+  await print(invoiceNumber, () => invoice.value?.invoiceNumber === invoiceNumber)
 }
 
 watch(() => props.invoiceNumber, () => loadInvoice(), { immediate: true })
