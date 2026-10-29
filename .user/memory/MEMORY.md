@@ -30,8 +30,7 @@
   - Open: Hand wash option (needs a no-machine booking contract); tag label look not owner-approved; >1:30 warning colour, dryer copy, Photo button edge; KPI deferred.
 - Approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
 - **Packaging bags and Logistics**
-  - Print one unweighed (PACK) bag tag on prod; PACK photos do not show on order detail yet.
-  - Test order `ffa710fc` on live sheets is packed test data (bag `e7f8a9b0`).
+  - Print one unweighed (PACK) bag tag on prod; PACK photos not on order detail yet. Test order `ffa710fc` (bag `e7f8a9b0`) is live test data.
   - Packaging bag sheet gun scan, item names, weight + photo: owner to test on prod; camera overlay still shows the old text scan card.
   - Later, needs design: customer page listing the garments in a bag from BagItems.
   - Print server must run C:\MagicwashInvoice `bc80a4e`+; older code rejects `packedAt`.
