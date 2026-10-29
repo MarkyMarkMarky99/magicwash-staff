@@ -143,7 +143,7 @@ export class PackagingBagService {
       let printed = false
       try {
         printed = await this.printer.printBag({ orderId: request.orderId, orderImageId: bag.orderImageId,
-          customerId, customerIndex, weightKg: bag.weightKg, itemCount: bag.laundryItemIds.length, packedAt })
+          customerId, customerIndex, createdBy: request.createdBy, weightKg: bag.weightKg, itemCount: bag.laundryItemIds.length, packedAt })
       } catch {
         logBagTagFailure('unexpected_error')
       }

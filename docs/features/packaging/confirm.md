@@ -58,14 +58,23 @@ separate operations in Sheets, so concurrent confirmations are not an atomic tra
 
 After every write succeeds, tags print when `BAG_TAG_PRINT_ENABLED=true`. The bag-tag request
 contains `qrValue` (tracking prefix plus bag ID), `barcodeValue` (`MWB-` plus bag ID), resolved nullable
-`customerIndex`, the saved `weightKg` of the bag, its positive `itemCount`, and Bangkok `packedAt`.
+`customerIndex`, the saved `weightKg` of the bag, its positive `itemCount`, nullable `employeeName`, and Bangkok `packedAt`.
 Customer ID comes from the ticket snapshot; customer index is resolved once for all bags.
+Employee name is resolved through `StaffService.getById` using the confirmation's `createdBy`.
+Names are trimmed and cut to 100 characters. Lookup failures, unknown staff, blank names, or
+names containing control characters send null and log `bag_tag_print_failure` with
+`failureKind: staff_lookup_error`; they never prevent printing.
 One print request is sent per bag. Print failures are logged and do not fail confirmation.
 
 Response in the normal success envelope: `{ bags: [{ orderImageId, printed }] }`.
 There is no print receipt ledger; retrying a successfully saved confirmation can print again.
 
 The shared bag-tag print contract requires `weightKg` (null or greater than 0 and less than 1000),
-`itemCount` (null or a positive integer), and `packedAt` (`yyyy-MM-dd HH:mm:ss`). WEIGHT sends
-its saved weight, null item count, and its image creation time as packedAt. The print response
-is unchanged. The separate printer project must accept this request shape.
+`itemCount` (null or an integer 1–999), `employeeName` (null or a trimmed string of at most
+100 characters without Unicode Cc control characters), and `packedAt` (`yyyy-MM-dd HH:mm:ss`).
+At least one of `weightKg` and `itemCount` must be non-null; both can be sent together.
+`BagTagPrintService.print(image, { itemCount })` supports a count alongside a WEIGHT image's
+saved weight, resolves employee name from `image.createdBy`, and uses image creation time as
+packedAt. The order-images hook continues calling `print(image)` with a null item count by
+default. The order-images HTTP request/response and sheet contracts remain unchanged.
+The print response is unchanged.

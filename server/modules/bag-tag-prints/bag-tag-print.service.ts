@@ -4,12 +4,14 @@ import { bagTagCustomerIndexSchema } from '../../../contracts/bag-tag-prints/bag
 import { normalizeSheetTimestamp } from '../../../shared/utils/bangkok-datetime.js'
 import { getOrderFormRepository } from '../../sheets/OrderForm/OrderForm.repository.js'
 import { customerService } from '../customers/customer.module.js'
+import { createStaffService } from '../staff/staff.service.js'
 import { requestBagTagPrint } from './bag-tag-print-client.js'
 
 type OrderImage = z.infer<typeof orderImageResponseSchema>
 
 export interface BagTagPrintServiceOptions {
   customerReader?: (customerId: string) => Promise<{ customerIndex: unknown } | null>
+  staffReader?: (staffId: string) => Promise<{ name: string } | null>
   orderCustomerIdReader?: (orderId: string) => Promise<unknown>
   printClient?: typeof requestBagTagPrint
 }
@@ -20,17 +22,19 @@ export function logBagTagFailure(failureKind: string): void {
 
 export class BagTagPrintService {
   private readonly customerReader
+  private readonly staffReader
   private readonly orderCustomerIdReader
   private readonly printClient
 
   constructor(input: BagTagPrintServiceOptions = {}) {
     this.customerReader = input.customerReader ?? ((id) => customerService.getById(id))
+    this.staffReader = input.staffReader ?? ((id) => createStaffService().getById(id))
     this.orderCustomerIdReader = input.orderCustomerIdReader
       ?? (async (orderId: string) => (await getOrderFormRepository().read({ id: orderId }))[0]?.customer_id)
     this.printClient = input.printClient ?? requestBagTagPrint
   }
 
-  async print(image: OrderImage): Promise<void> {
+  async print(image: OrderImage, { itemCount = null }: { itemCount?: number | null } = {}): Promise<void> {
     if (process.env.BAG_TAG_PRINT_ENABLED !== 'true' || image.imageType !== 'WEIGHT') return
 
     const weightKg = typeof image.quantity === 'number' || typeof image.quantity === 'string'
@@ -40,10 +44,10 @@ export class BagTagPrintService {
       return
     }
 
-    await this.printBag({ ...image, weightKg, itemCount: null, packedAt: normalizeSheetTimestamp(image.createdAt) })
+    await this.printBag({ ...image, weightKg, itemCount, packedAt: normalizeSheetTimestamp(image.createdAt) })
   }
 
-  async printBag(image: Pick<OrderImage, 'orderId' | 'orderImageId' | 'customerId'> & { weightKg: number | null; itemCount: number | null; packedAt: string; customerIndex?: string | null }): Promise<boolean> {
+  async printBag(image: Pick<OrderImage, 'orderId' | 'orderImageId' | 'customerId' | 'createdBy'> & { weightKg: number | null; itemCount: number | null; packedAt: string; customerIndex?: string | null }): Promise<boolean> {
     if (process.env.BAG_TAG_PRINT_ENABLED !== 'true') return false
     let customerIndex = image.customerIndex ?? null
     if (image.customerIndex === undefined) {
@@ -55,12 +59,24 @@ export class BagTagPrintService {
       }
     }
 
+    let employeeName: string | null = null
+    try {
+      const staff = image.createdBy ? await this.staffReader(image.createdBy) : null
+      const rawName = staff?.name ?? ''
+      const name = rawName.trim()
+      if (name && !/\p{Cc}/u.test(rawName)) employeeName = name.slice(0, 100)
+      else logBagTagFailure('staff_lookup_error')
+    } catch {
+      logBagTagFailure('staff_lookup_error')
+    }
+
     const request = {
       qrValue: `${process.env.BAG_TAG_TRACKING_URL_BASE ?? ''}${image.orderImageId}`,
       barcodeValue: `MWB-${image.orderImageId}`,
       customerIndex,
       weightKg: image.weightKg,
       itemCount: image.itemCount,
+      employeeName,
       packedAt: image.packedAt,
     }
     return (await this.printClient(request)).outcome === 'accepted'

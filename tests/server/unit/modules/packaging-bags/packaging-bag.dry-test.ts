@@ -94,6 +94,7 @@ function setup(failAt?: string, afterCommit = false, printerThrows = false) {
     workTransactionRepository: () => scoreRepository,
   })
   const printer = new BagTagPrintService({
+    async staffReader(id) { assert.equal(id, request.createdBy); return { name: '  Packaging Staff  ' } },
     async orderCustomerIdReader(orderId) { reads.OrderForm += 1; throw new Error('Packaging must not read OrderForm') },
     async customerReader(id) { assert.equal(id, 'customer-1'); reads.Customers += 1; return { customerIndex: '12' } },
     async printClient(payload) {
@@ -181,6 +182,7 @@ try {
       assert.equal(context.prints[0]?.itemCount, 2)
       assert.equal(context.prints[1]?.itemCount, 1)
       for (const print of context.prints) {
+        assert.equal(print.employeeName, 'Packaging Staff')
         assert.equal(print.weightKg, print.barcodeValue === 'MWB-aabbccdd' ? 2.5 : 1.2)
         assert.equal(print.packedAt, '2026-10-09 12:34:56')
         assert.equal(print.qrValue, `https://shop.example/b/${print.barcodeValue.slice(4)}`)

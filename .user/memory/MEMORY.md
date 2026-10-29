@@ -1,9 +1,10 @@
 # Project memory
-- Branch: `main`; `main` customer-package invoice deployment still needs verification.
+- Branch: `feat/bag-tag-employee-name` (off `main`); `main` customer-package invoice deployment still needs verification.
 
 ## Branches in flight
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
+- **`feat/bag-tag-employee-name`** — backend sends employeeName to bag tags and accepts itemCount; frontend count design pending; see `.user/memory/feat-bag-tag-employee-name.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 
 ## Pending work
@@ -20,7 +21,6 @@
 - **Corporate count-sheet order** — see `docs/features/orders/corporate-order-form.md`
   - Slip-photo upload on Save not yet tried in a real browser.
   - Owner: update G Drive `PriceList.json` description (price-0 rows may be active for CRYO).
-  - Items ITM-0099 is a leftover inactive "ZZ TEST" row; CRYO white bathrobe uses ITM-0117.
 - **Wash queue + dryer queue** — see `docs/features/wash-queue/wash-queue.md`
   - Owner: update G Drive `WashQueue.json` `tag_code` description (still says one A-Z letter).
   - NEXT: drying steps (tumble/line dry, auto dryer booking on unload) — full handoff in `.user/memory/wash-drying-steps-handoff.md`.
@@ -33,7 +33,7 @@
   - Test order `ffa710fc` on live sheets is packed test data (bag `e7f8a9b0`).
   - Packaging bag sheet gun scan, item names, weight + photo: owner to test on prod; camera overlay still shows the old text scan card.
   - Later, needs design: customer page listing the garments in a bag from BagItems.
-  - Print server must run C:\MagicwashInvoice `bc80a4e`+; older code rejects `packedAt`.
+  - Print server must run C:\MagicwashInvoice `8e41fa4`+ (Block A tag, `MWB-` barcode, employeeName); restarted 2026-10-30.
   - Next perf items (1, 3, 5–7) in `.user/memory/perf-research-2026-10-09.md`.
   - Admin "Complete all" (In Progress tab) closes an order's open jobs with no gating and no score.
   - No backfill: bags weighed before 2026-10-08 have no LOG-BAG ticket, so those orders never reach the Logistics list.

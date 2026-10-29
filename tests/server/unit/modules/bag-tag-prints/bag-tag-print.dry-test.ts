@@ -19,6 +19,9 @@ let customer: { customerIndex: unknown } | null = { customerIndex: 'A 12._:-z' }
 let customerThrows = false
 let customerReads = 0
 let orderReads = 0
+let staff: { name: string } | null = { name: '  พนักงาน Test  ' }
+let staffThrows = false
+let staffReads = 0
 let ticketThrows = false
 let ticketCalls = 0
 let savedOverrides: Partial<Row> = {}
@@ -38,6 +41,12 @@ const repository: Pick<SheetRepositoryContract<Row>, 'read' | 'append' | 'update
   async update() { throw new Error('unexpected update') },
 }
 const printer = new BagTagPrintService({
+  async staffReader(id) {
+    assert.equal(id, 'staff-1')
+    staffReads++
+    if (staffThrows) throw new Error('sensitive staff lookup details')
+    return staff
+  },
   async customerReader(id) {
     assert.equal(id, 'customer-1')
     customerReads++
@@ -89,10 +98,37 @@ try {
   })
   const expectedBody = {
     qrValue: `https://staff.example/#/b/${saved.orderImageId}`, barcodeValue: `MWB-${saved.orderImageId}`,
-    customerIndex: 'A 12._:-z', weightKg: 2.5, itemCount: null, packedAt: '2026-10-07 12:34:56',
+    customerIndex: 'A 12._:-z', weightKg: 2.5, itemCount: null, employeeName: 'พนักงาน Test', packedAt: '2026-10-07 12:34:56',
   }
   assert.deepEqual(lastBody(), expectedBody)
   assert.equal(logs.length, 0)
+  assert.equal(staffReads, 1)
+  await printer.print(saved, { itemCount: 7 })
+  assert.deepEqual(lastBody(), { ...expectedBody, itemCount: 7 })
+  await printer.print(saved, { itemCount: null })
+  assert.deepEqual(lastBody(), expectedBody)
+  for (const [value, throws] of [
+    [null, false], [{ name: 'unused' }, true], [{ name: '   ' }, false],
+    [{ name: 'Staff\u0085Name' }, false],
+  ] as const) {
+    staff = value
+    staffThrows = throws
+    const count: number = calls.length
+    assert.deepEqual(await service.create(payload), saved)
+    assert.equal(calls.length, count + 1)
+    assert.deepEqual(lastBody(), { ...expectedBody, employeeName: null })
+    assert.equal(latestFailure().failureKind, 'staff_lookup_error')
+  }
+  staffThrows = false
+  staff = { name: '  ' + 'ก'.repeat(101) + '  ' }
+  await printer.print(saved)
+  assert.equal(lastBody().employeeName, 'ก'.repeat(100))
+  const staffReadsBefore = staffReads
+  await printer.print({ ...saved, createdBy: null })
+  assert.equal(staffReads, staffReadsBefore)
+  assert.equal(lastBody().employeeName, null)
+  assert.equal(latestFailure().failureKind, 'staff_lookup_error')
+  staff = { name: '  พนักงาน Test  ' }
   for (const flag of [undefined, 'false', 'TRUE', '1', '']) {
     if (flag === undefined) delete process.env.BAG_TAG_PRINT_ENABLED
     else process.env.BAG_TAG_PRINT_ENABLED = flag
@@ -210,7 +246,7 @@ try {
   ))
   await service.create(payload)
   assert.equal(String(latestFailure().responseBodyPrefix).length, 500)
-  assert.doesNotMatch(logs.join('\n'), /printer\.example|test-client-id|test-client-secret|sensitive lookup/)
+  assert.doesNotMatch(logs.join('\n'), /printer\.example|test-client-id|test-client-secret|sensitive lookup|sensitive staff/)
   mockFetch(async () => Response.json({ success: true, accepted: true, printerName: 'Test', totalCount: 1, 'test-client-secret': true }))
   await service.create(payload)
   assert.equal(latestFailure().failureKind, 'invalid_response_schema')
@@ -250,7 +286,19 @@ try {
   }
   assert.equal(bagTagPrintRequestSchema.safeParse({ ...expectedBody, qrValue: 'a'.repeat(64), barcodeValue: 'a'.repeat(32), weightKg: 999.9 }).success, true)
   assert.equal(bagTagPrintRequestSchema.safeParse({ ...expectedBody, weightKg: null, itemCount: 3 }).success, true)
-  for (const itemCount of [0, -1, 1.5, Infinity, '2']) assert.equal(bagTagPrintRequestSchema.safeParse({ ...expectedBody, itemCount }).success, false)
+  assert.equal(bagTagPrintRequestSchema.safeParse({ ...expectedBody, itemCount: 999 }).success, true)
+  assert.equal(bagTagPrintRequestSchema.safeParse({ ...expectedBody, weightKg: null, itemCount: null }).success, false)
+  assert.equal(bagTagPrintRequestSchema.safeParse({ ...expectedBody, unexpected: true }).success, false)
+  for (const itemCount of [0, -1, 1.5, 1000, Infinity, '2']) assert.equal(bagTagPrintRequestSchema.safeParse({ ...expectedBody, itemCount }).success, false)
+  for (const [employeeName, expected] of [
+    ['  พนักงาน Test  ', 'พนักงาน Test'], ['   ', ''], ['', ''], [null, null],
+    ['  ' + 'ก'.repeat(100) + '  ', 'ก'.repeat(100)],
+  ] as const) {
+    assert.equal(bagTagPrintRequestSchema.parse({ ...expectedBody, employeeName }).employeeName, expected)
+  }
+  for (const employeeName of ['a'.repeat(101), 'a\n', '\tStaff', 'a\u0000b', 'a\u007fb', 'a\u0085b', 42]) {
+    assert.equal(bagTagPrintRequestSchema.safeParse({ ...expectedBody, employeeName }).success, false)
+  }
   const invalidCount = calls.length
   await requestBagTagPrint({ ...expectedBody, qrValue: 'a'.repeat(65) })
   assert.equal(calls.length, invalidCount)

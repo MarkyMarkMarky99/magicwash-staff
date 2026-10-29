@@ -7,9 +7,12 @@ export const bagTagPrintRequestSchema = z.object({
   barcodeValue: z.string().min(1).max(32).regex(/^[\x20-\x7e]+$/),
   customerIndex: bagTagCustomerIndexSchema.nullable(),
   weightKg: z.number().finite().gt(0).lt(1000).nullable(),
-  itemCount: z.number().int().positive().nullable(),
+  itemCount: z.number().int().positive().max(999).nullable(),
+  employeeName: z.string().regex(/^[^\p{Cc}]*$/u).trim().max(100).nullable(),
   packedAt: z.string().regex(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/),
-}).strict()
+}).strict().refine(request => request.weightKg !== null || request.itemCount !== null, {
+  message: 'At least one of weightKg or itemCount is required',
+})
 
 export const bagTagPrintResponseSchema = z.object({
   success: z.literal(true),
