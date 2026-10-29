@@ -1,10 +1,9 @@
 # Project memory
-- Branch: `feat/bag-tag-employee-name` (off `main`); `main` customer-package invoice deployment still needs verification.
+- Branch: `main`; `main` customer-package invoice deployment still needs verification.
 
 ## Branches in flight
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
-- **`feat/bag-tag-employee-name`** — bag tags get employeeName + optional Count from the weight prompt; prompt not browser-checked; see `.user/memory/feat-bag-tag-employee-name.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 
 ## Pending work
@@ -33,6 +32,7 @@
   - Test order `ffa710fc` on live sheets is packed test data (bag `e7f8a9b0`).
   - Packaging bag sheet gun scan, item names, weight + photo: owner to test on prod; camera overlay still shows the old text scan card.
   - Later, needs design: customer page listing the garments in a bag from BagItems.
+  - Bag tag Count field + employee name shipped 2026-10-30 unverified: phone-check the weight prompt, real-print a tag.
   - Print server must run C:\MagicwashInvoice `8e41fa4`+ (Block A tag, `MWB-` barcode, employeeName); restarted 2026-10-30.
   - Next perf items (1, 3, 5–7) in `.user/memory/perf-research-2026-10-09.md`.
   - Admin "Complete all" (In Progress tab) closes an order's open jobs with no gating and no score.
