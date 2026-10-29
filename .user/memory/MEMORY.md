@@ -2,6 +2,7 @@
 - Branch: `main`; `main` customer-package invoice deployment still needs verification.
 
 ## Branches in flight
+- **`claude/dazzling-keller-sgjdk3`** — bag tag test-print script, MWB vs 8-char barcode; see `.user/memory/claude-dazzling-keller-sgjdk3.md`.
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
