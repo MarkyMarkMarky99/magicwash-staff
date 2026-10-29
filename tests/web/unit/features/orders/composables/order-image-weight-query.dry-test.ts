@@ -5,6 +5,7 @@ import {
   buildOrderOverlayQuery,
   MAX_ORDER_IMAGE_WEIGHT_KG,
   parseOrderImageWeight,
+  readOrderImageItemCount,
   readOrderImageWeight,
 } from '@/features/orders/composables/use-order-overlay-route'
 
@@ -23,13 +24,29 @@ test('rejects every invalid weight so the camera cannot open', () => {
 
 test('the weight prompt exposes the same one-decimal rule to the browser', () => {
   const source = readFileSync(
-    new URL('../../../../../../src/shared/components/WeightPrompt.vue', import.meta.url),
+    new URL('../../../../../../src/shared/components/WeightField.vue', import.meta.url),
     'utf8',
   )
 
-  assert.match(source, /step="0\.1"/)
-  assert.match(source, /inputmode="decimal"/)
+  assert.match(source, /step: '0\.1'/)
+  assert.match(source, /inputmode: 'decimal'/)
   assert.match(source, /@invalid="handleInvalid"/)
+})
+
+test('reads an optional bag item count from the route', () => {
+  assert.equal(readOrderImageItemCount({ count: '12' }), 12)
+  assert.equal(readOrderImageItemCount({ count: ' 999 ' }), 999)
+  for (const count of ['', '0', '1000', '1.5', '-1', '1e2', 'abc']) {
+    assert.equal(readOrderImageItemCount({ count }), null, count)
+  }
+  assert.equal(readOrderImageItemCount({}), null)
+})
+
+test('opening an overlay drops a stale item count', () => {
+  assert.deepEqual(
+    buildOrderOverlayQuery({ weight: '20.5', count: '12', orderAction: 'photo-weight' }, null),
+    {},
+  )
 })
 
 test('the prompt and the route share one validator', () => {

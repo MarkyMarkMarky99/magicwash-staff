@@ -1,8 +1,8 @@
 # feat/bag-tag-employee-name
 
-- Backend only: bag-tag print request now carries `employeeName` (resolved from `createdBy` via StaffService) and caps `itemCount` at 999.
-- `BagTagPrintService.print(image, { itemCount })` is ready; the order-images hook still passes no count.
-- Open: owner and Claude to design how Order Detail sends a garment count with the WEIGHT photo (frontend + order-images API).
-- Deploy order: print server must run C:\MagicwashInvoice `8e41fa4`+ before this ships, or employeeName is unknown to it.
-- Not done: real print test of the new Block A tag with a live employee name.
+- Bag-tag print request carries `employeeName` (cached staff list via `findStaffById`) and an optional `itemCount`.
+- Order Detail weight prompt has an optional Count field; the count is printed only, never saved to OrderImages.
+- Not done: browser check of the weight prompt Count field (login blocked the local check).
+- Not done: real print test of the Block A tag with weight + count + employee name.
+- Deploy order: print server must run C:\MagicwashInvoice `8e41fa4`+ before this ships.
 - Layout prototypes: `.user/bag-tag-layout/` (v8 approved; real renders in `real-render/`).

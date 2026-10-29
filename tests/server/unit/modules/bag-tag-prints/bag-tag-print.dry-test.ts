@@ -107,6 +107,16 @@ try {
   assert.deepEqual(lastBody(), { ...expectedBody, itemCount: 7 })
   await printer.print(saved, { itemCount: null })
   assert.deepEqual(lastBody(), expectedBody)
+  const appendsBeforeCount = appendRows.length
+  await service.create({ ...payload, itemCount: 12 })
+  assert.deepEqual({ ...lastBody(), qrValue: '', barcodeValue: '' }, { ...expectedBody, qrValue: '', barcodeValue: '', itemCount: 12 })
+  assert.equal(appendRows.length, appendsBeforeCount + 1)
+  assert.equal(Object.hasOwn(appendRows.at(-1)!, 'itemCount') || Object.hasOwn(appendRows.at(-1)!, 'item_count'), false)
+  for (const itemCount of [0, 1000, 1.5]) {
+    await assert.rejects(() => service.create({ ...payload, itemCount }))
+  }
+  await assert.rejects(() => service.create({ ...payload, imageType: 'BELONGING', quantity: null, itemCount: 3 }))
+  assert.equal(appendRows.length, appendsBeforeCount + 1)
   for (const [value, throws] of [
     [null, false], [{ name: 'unused' }, true], [{ name: '   ' }, false],
     [{ name: 'Staff\u0085Name' }, false],

@@ -2,8 +2,9 @@ import { z } from 'zod'
 import { BagTagPrintService, logBagTagFailure } from '../bag-tag-prints/bag-tag-print.service.js'
 import { BagLogisticsTicketService } from './bag-logistics-ticket.service.js'
 import { WeightPhotoTicketService } from './weight-photo-ticket.service.js'
-import { orderImageApiContract } from '../../../contracts/order-images/order-image-api.schema.js'
+import { orderImageApiContract, orderImageCreateRequestSchema } from '../../../contracts/order-images/order-image-api.schema.js'
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
+import { parseOrThrow } from '../../shared/http/validate.js'
 import type {
   ApiRowFromFieldMap,
   RepositoryTransformer,
@@ -121,6 +122,7 @@ export class OrderImageService extends BaseCrudService<
   }
 
   override async create(payload: unknown): Promise<OrderImageCreateResponse> {
+    const { itemCount } = parseOrThrow(orderImageCreateRequestSchema, payload)
     const image = await super.create(payload)
     if (image.imageType === 'WEIGHT') {
       try {
@@ -134,7 +136,7 @@ export class OrderImageService extends BaseCrudService<
         console.error('Failed to provision bag logistics ticket', error)
       }
       try {
-        await this.bagTagPrintService.print(image)
+        await this.bagTagPrintService.print(image, { itemCount })
       } catch {
         logBagTagFailure('unexpected_error')
       }

@@ -22,6 +22,7 @@ Purpose:
 | image_type | FormOptionGrid | Free string in the data, no enum defined and none proposed. 13 distinct live values — see Known data debt in `data-model.md`. The option set the form offers is unresolved. |
 | notes | FormTextarea | Optional text; blank on 16,680 of 17,376 live rows |
 | quantity | FormInput | Decimal weight in kg (e.g. `20.5`, `8.7`), limited to one decimal place and not a count. Blank on 13,258 of 17,376 rows. What it means for an `image_type` other than `WEIGHT` is undocumented and unresolved. |
+| itemCount | WeightPrompt Count field | WEIGHT only, optional whole number 1–999 (blank sends `null`). Sent in the `POST /api/order-images` body (`orderImageCreateRequestSchema`), printed on the bag tag beside the weight, and **never saved** — the stored-row schema drops it. |
 
 ## Not user-supplied fields
 

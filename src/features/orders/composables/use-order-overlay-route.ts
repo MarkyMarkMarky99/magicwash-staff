@@ -2,7 +2,7 @@ import { computed, watch } from 'vue'
 import type { LocationQuery, LocationQueryRaw } from 'vue-router'
 import { useRoute, useRouter } from 'vue-router'
 import type { OrderImageType } from '@/features/orders/order-image-labels'
-import { MAX_ORDER_IMAGE_WEIGHT_KG, parseWeightKg } from '@shared/utils/item-quantity'
+import { MAX_ORDER_IMAGE_WEIGHT_KG, parseItemCount, parseWeightKg } from '@shared/utils/item-quantity'
 
 export type OrderOverlay = 'item' | 'photo-weight' | 'photo-belonging' | 'photo-document' | 'register-garment'
 
@@ -14,6 +14,7 @@ const OVERLAY_QUERY_KEY = 'orderAction'
 const LEGACY_ITEM_QUERY_KEY = 'item'
 const LEGACY_CAPTURE_QUERY_KEY = 'capture'
 const WEIGHT_QUERY_KEY = 'weight'
+const ITEM_COUNT_QUERY_KEY = 'count'
 const REGISTER_ITEM_QUERY_KEY = 'registerItem'
 export { MAX_ORDER_IMAGE_WEIGHT_KG }
 
@@ -37,6 +38,7 @@ export function buildOrderOverlayQuery(query: LocationQuery, overlay: OrderOverl
   delete nextQuery[LEGACY_ITEM_QUERY_KEY]
   delete nextQuery[LEGACY_CAPTURE_QUERY_KEY]
   delete nextQuery[WEIGHT_QUERY_KEY]
+  delete nextQuery[ITEM_COUNT_QUERY_KEY]
   delete nextQuery[REGISTER_ITEM_QUERY_KEY]
   if (overlay) nextQuery[OVERLAY_QUERY_KEY] = overlay
   return nextQuery
@@ -56,6 +58,10 @@ export function readOrderImageWeight(query: LocationQuery): number | null {
   const raw = readFirstQueryValue(query[WEIGHT_QUERY_KEY])
   if (raw === null) return null
   return parseOrderImageWeight(raw)
+}
+
+export function readOrderImageItemCount(query: LocationQuery): number | null {
+  return parseItemCount(readFirstQueryValue(query[ITEM_COUNT_QUERY_KEY]) ?? '')
 }
 
 export function useOrderOverlayRoute() {
@@ -96,8 +102,11 @@ export function useOrderOverlayRoute() {
     void router.replace({ query: buildOrderOverlayQuery(route.query, null) })
   }
 
-  function setWeight(weight: number): void {
-    void router.replace({ query: { ...route.query, [WEIGHT_QUERY_KEY]: String(weight) } })
+  function setWeight(weight: number, itemCount: number | null = null): void {
+    const query: LocationQueryRaw = { ...route.query, [WEIGHT_QUERY_KEY]: String(weight) }
+    delete query[ITEM_COUNT_QUERY_KEY]
+    if (itemCount !== null) query[ITEM_COUNT_QUERY_KEY] = String(itemCount)
+    void router.replace({ query })
   }
 
   return { activeOverlay, isItemOpen, open, close, setWeight }

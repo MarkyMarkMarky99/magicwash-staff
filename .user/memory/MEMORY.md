@@ -4,7 +4,7 @@
 ## Branches in flight
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
-- **`feat/bag-tag-employee-name`** — backend sends employeeName to bag tags and accepts itemCount; frontend count design pending; see `.user/memory/feat-bag-tag-employee-name.md`.
+- **`feat/bag-tag-employee-name`** — bag tags get employeeName + optional Count from the weight prompt; prompt not browser-checked; see `.user/memory/feat-bag-tag-employee-name.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 
 ## Pending work

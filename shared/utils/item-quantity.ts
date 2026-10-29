@@ -31,6 +31,15 @@ export function isValidOrderImageWeight(quantity: string | number): boolean {
   return Number(quantity) <= MAX_ORDER_IMAGE_WEIGHT_KG && isValidItemQuantity(quantity, 'kg')
 }
 
+export const MAX_BAG_ITEM_COUNT = 999
+
+export function parseItemCount(raw: string): number | null {
+  const trimmed = raw.trim()
+  if (!/^\d+$/.test(trimmed)) return null
+  const count = Number(trimmed)
+  return count >= 1 && count <= MAX_BAG_ITEM_COUNT ? count : null
+}
+
 export function parseWeightKg(raw: string): number | null {
   const trimmed = raw.trim()
   if (!isValidOrderImageWeight(trimmed)) return null

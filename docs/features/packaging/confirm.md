@@ -75,6 +75,6 @@ The shared bag-tag print contract requires `weightKg` (null or greater than 0 an
 At least one of `weightKg` and `itemCount` must be non-null; both can be sent together.
 `BagTagPrintService.print(image, { itemCount })` supports a count alongside a WEIGHT image's
 saved weight, resolves employee name from `image.createdBy`, and uses image creation time as
-packedAt. The order-images hook continues calling `print(image)` with a null item count by
-default. The order-images HTTP request/response and sheet contracts remain unchanged.
+packedAt. The order-images create hook passes the request's optional `itemCount` (Order Detail
+weight prompt Count field); it is printed only, never saved, and the sheet contract is unchanged.
 The print response is unchanged.

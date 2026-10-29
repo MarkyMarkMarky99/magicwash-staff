@@ -37,7 +37,7 @@ const imagePathSchema = z
     message: 'imagePath must start with http:// or https://',
   })
 
-export const orderImageCreateSchema = z.object({
+const orderImageCreateFieldsSchema = z.object({
   orderId: z.string().trim().min(1),
   customerId: z.string().trim().min(1).nullable().default(null),
   deliveryId: z.string().trim().min(1).nullable().default(null),
@@ -46,7 +46,27 @@ export const orderImageCreateSchema = z.object({
   notes: z.string().trim().min(1).nullable().default(null),
   quantity: z.number().nonnegative().nullable().default(null),
   createdBy: z.string().trim().min(1),
+})
+
+export const orderImageCreateSchema = orderImageCreateFieldsSchema.superRefine(refineOrderImageQuantity)
+
+export const orderImageCreateRequestSchema = orderImageCreateFieldsSchema.extend({
+  itemCount: z.number().int().min(1).max(999).nullable().default(null),
 }).superRefine((image, context) => {
+  refineOrderImageQuantity(image, context)
+  if (image.imageType !== 'WEIGHT' && image.itemCount !== null) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'itemCount is only allowed for WEIGHT images',
+      path: ['itemCount'],
+    })
+  }
+})
+
+function refineOrderImageQuantity(
+  image: { imageType: string; quantity: number | null },
+  context: z.RefinementCtx,
+): void {
   if (image.imageType === 'WEIGHT') {
     if (image.quantity === null || !isValidOrderImageWeight(image.quantity)) {
       context.addIssue({
@@ -65,7 +85,7 @@ export const orderImageCreateSchema = z.object({
       path: ['quantity'],
     })
   }
-})
+}
 
 export const orderImageUpdateSchema = z.never()
 

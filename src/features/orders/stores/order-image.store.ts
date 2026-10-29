@@ -36,17 +36,18 @@ export const useOrderImageStore = defineStore('order-images', () => {
     }
   }
 
-  async function captureImage(input: { orderId: string; imageType: OrderImageType; file: File; quantity: number | null }): Promise<void> {
+  async function captureImage(input: { orderId: string; imageType: OrderImageType; file: File; quantity: number | null; itemCount?: number | null }): Promise<void> {
     if (input.imageType === 'WEIGHT' && (input.quantity === null || !(input.quantity > 0))) {
       uploadError.value = 'รูปน้ำหนักต้องระบุน้ำหนักก่อน'
       return
     }
     const quantity = input.imageType === 'WEIGHT' ? input.quantity : null
+    const itemCount = input.imageType === 'WEIGHT' ? input.itemCount ?? null : null
     uploadingCount.value += 1
     uploadError.value = null
     try {
       const imagePath = await uploadToStorage(input.file, `order-images/${input.orderId}`)
-      const created = await createOrderImage({ orderId: input.orderId, customerId: null, deliveryId: null, imageType: input.imageType, imagePath, notes: null, quantity, createdBy: currentActor() })
+      const created = await createOrderImage({ orderId: input.orderId, customerId: null, deliveryId: null, imageType: input.imageType, imagePath, notes: null, quantity, itemCount, createdBy: currentActor() })
       if (imagesOrderId.value === input.orderId) images.value = [...images.value, created]
     } catch (reason) {
       uploadError.value = errorMessage(reason, 'อัปโหลดรูปภาพไม่สำเร็จ')

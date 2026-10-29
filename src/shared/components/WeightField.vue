@@ -1,11 +1,27 @@
 <script setup lang="ts">
 import { MAX_ORDER_IMAGE_WEIGHT_KG } from '@shared/utils/item-quantity'
 
-defineProps<{
+withDefaults(defineProps<{
   modelValue: string
   inputId: string
   error?: string | null
-}>()
+  label?: string
+  unit?: string
+  placeholder?: string
+  min?: string
+  max?: string
+  step?: string
+  inputmode?: 'decimal' | 'numeric'
+}>(), {
+  error: null,
+  label: 'Weight',
+  unit: 'kg',
+  placeholder: 'e.g. 20.5',
+  min: '0.1',
+  max: String(MAX_ORDER_IMAGE_WEIGHT_KG),
+  step: '0.1',
+  inputmode: 'decimal',
+})
 const emit = defineEmits<{
   'update:modelValue': [value: string]
   invalid: []
@@ -22,9 +38,9 @@ function handleInvalid(event: Event): void {
     <div class="weight-field flex items-end gap-4 pb-2 pr-2">
       <div class="weight-field__col min-w-0 flex-1">
         <div class="weight-field__wrap" :class="{ 'is-invalid': Boolean(error) }">
-          <label :for="inputId" class="weight-field__tab">Weight</label>
-          <input :id="inputId" :value="modelValue" class="weight-field__input" type="number" placeholder="e.g. 20.5" min="0.1" :max="String(MAX_ORDER_IMAGE_WEIGHT_KG)" step="0.1" inputmode="decimal" :aria-describedby="error ? `${inputId}-error` : undefined" :aria-invalid="Boolean(error)" @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)" @invalid="handleInvalid">
-          <span class="weight-field__unit" aria-hidden="true"><span>kg</span></span>
+          <label :for="inputId" class="weight-field__tab">{{ label }}</label>
+          <input :id="inputId" :value="modelValue" class="weight-field__input" type="number" :placeholder="placeholder" :min="min" :max="max" :step="step" :inputmode="inputmode" :aria-describedby="error ? `${inputId}-error` : undefined" :aria-invalid="Boolean(error)" @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)" @invalid="handleInvalid">
+          <span class="weight-field__unit" aria-hidden="true"><span>{{ unit }}</span></span>
         </div>
       </div>
       <slot name="action" />
