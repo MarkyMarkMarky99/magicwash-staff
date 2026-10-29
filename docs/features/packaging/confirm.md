@@ -60,7 +60,7 @@ After every write succeeds, tags print when `BAG_TAG_PRINT_ENABLED=true`. The ba
 contains `qrValue` (tracking prefix plus bag ID), `barcodeValue` (`MWB-` plus bag ID), resolved nullable
 `customerIndex`, the saved `weightKg` of the bag, its positive `itemCount`, nullable `employeeName`, and Bangkok `packedAt`.
 Customer ID comes from the ticket snapshot; customer index is resolved once for all bags.
-Employee name is resolved through `StaffService.getById` using the confirmation's `createdBy`.
+Employee name is resolved from the cached staff list (`findStaffById`, the same list the auth gateway loads) using the confirmation's `createdBy`.
 Names are trimmed and cut to 100 characters. Lookup failures, unknown staff, blank names, or
 names containing control characters send null and log `bag_tag_print_failure` with
 `failureKind: staff_lookup_error`; they never prevent printing.

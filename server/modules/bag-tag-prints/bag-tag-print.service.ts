@@ -4,7 +4,7 @@ import { bagTagCustomerIndexSchema } from '../../../contracts/bag-tag-prints/bag
 import { normalizeSheetTimestamp } from '../../../shared/utils/bangkok-datetime.js'
 import { getOrderFormRepository } from '../../sheets/OrderForm/OrderForm.repository.js'
 import { customerService } from '../customers/customer.module.js'
-import { createStaffService } from '../staff/staff.service.js'
+import { findStaffById } from '../../shared/auth/staff-list.js'
 import { requestBagTagPrint } from './bag-tag-print-client.js'
 
 type OrderImage = z.infer<typeof orderImageResponseSchema>
@@ -28,7 +28,7 @@ export class BagTagPrintService {
 
   constructor(input: BagTagPrintServiceOptions = {}) {
     this.customerReader = input.customerReader ?? ((id) => customerService.getById(id))
-    this.staffReader = input.staffReader ?? ((id) => createStaffService().getById(id))
+    this.staffReader = input.staffReader ?? (async (id) => (await findStaffById(id)) ?? null)
     this.orderCustomerIdReader = input.orderCustomerIdReader
       ?? (async (orderId: string) => (await getOrderFormRepository().read({ id: orderId }))[0]?.customer_id)
     this.printClient = input.printClient ?? requestBagTagPrint
