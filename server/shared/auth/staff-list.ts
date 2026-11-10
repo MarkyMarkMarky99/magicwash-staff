@@ -42,7 +42,7 @@ async function loadStaffList(): Promise<Map<string, StaffMember>> {
   const spreadsheetId = process.env.STAFF_SPREADSHEET_ID
   if (!spreadsheetId?.trim()) throw new Error('STAFF_SPREADSHEET_ID is not set')
   const client = new SheetsApiClient({ spreadsheetId, sheetName: 'Staff' })
-  return parseStaffList(await client.readRange('A:I', { valueRenderOption: 'UNFORMATTED_VALUE' }))
+  return parseStaffList(await client.readRange('A:ZZ', { valueRenderOption: 'UNFORMATTED_VALUE' }))
 }
 
 export function getStaffList(): Promise<Map<string, StaffMember>> {

@@ -10,4 +10,4 @@ Requests include `X-Operator-Id` while an operator is selected. For a device ses
 
 The server takes write actors from the resolved session StaffId. Client-supplied actor fields remain in existing API requests for compatibility but cannot select who performed the write. Payments and invoices receive the StaffId separately from their business request payloads.
 
-The card code is `MWS-<StaffId>`, derived from the StaffId, not stored, and never reissued. A lost card is reprinted with the same code. The login reader reads A:I.
+The card code is `MWS-<StaffId>`, derived from the StaffId, not stored, and never reissued. A lost card is reprinted with the same code. The login reader reads the whole sheet (A:ZZ) and finds columns by header name.

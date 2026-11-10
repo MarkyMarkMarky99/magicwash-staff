@@ -14,6 +14,13 @@ import { completeRedirectSignIn, onUserChanged, signInWithGoogle, signInWithGoog
  */
 export type AuthStatus = 'loading' | 'signedOut' | 'signedIn' | 'unregistered' | 'pending'
 
+/** Session-check failure message; the HTTP status (or "network") tells us which layer failed. */
+function sessionCheckError(reason: unknown): string {
+  console.error('Staff session check failed', reason)
+  const detail = reason instanceof ApiError ? String(reason.status) : 'network'
+  return `ตรวจสอบสิทธิ์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง (${detail})`
+}
+
 const CANCELLED_SIGN_IN_CODES = new Set(['auth/popup-closed-by-user', 'auth/cancelled-popup-request'])
 
 function signInError(reason: unknown): string | null {
@@ -76,7 +83,7 @@ export const useAuthStore = defineStore('auth', () => {
         await resolveForbiddenUser(user, id)
         return
       }
-      await rejectUser('ตรวจสอบสิทธิ์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')
+      await rejectUser(sessionCheckError(reason))
     }
   }
 
@@ -100,7 +107,7 @@ export const useAuthStore = defineStore('auth', () => {
         resolveReady()
         return
       }
-      await rejectUser('ตรวจสอบสิทธิ์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')
+      await rejectUser(sessionCheckError(reason))
     }
   }
 

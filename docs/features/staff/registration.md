@@ -8,7 +8,7 @@ Backend contract: `contracts/staff/staff-api.schema.ts`. Routes: `GET /api/staff
 
 `auth.store.ts` drives them; `LoginPage.vue` renders them. See `docs/architecture/frontend/project-structure.md` for the sequence.
 
-- `GET /api/auth/me` succeeds: `signedIn`; the response includes `staffId`. The login reader reads A:I. The server records the authenticated session StaffId for writes; shared devices use the scanned operator. Client actor fields and `?by=` cannot select the server actor.
+- `GET /api/auth/me` succeeds: `signedIn`; the response includes `staffId`. The login reader reads the whole sheet (A:ZZ) and finds columns by header name. The server records the authenticated session StaffId for writes; shared devices use the scanned operator. Client actor fields and `?by=` cannot select the server actor.
 - 403 then `GET /api/staff/me` returns 404: `unregistered`. Signing in navigates (replace) to `/staff/register`. Opening `/login` while still unregistered shows a register button and a logout button instead of redirecting, so Back from the form cannot loop.
 - 403 then a row with `role = null` or `active = false`: `pending`. The login page shows "ลงทะเบียนแล้ว รอผู้ดูแลอนุมัติ" and a logout button. A pending user is never `signedIn`.
 - 403 then a row that is active with a role: contradictory, treated as an error and signed out.
@@ -47,6 +47,6 @@ Every signed-in staff member (`status = signedIn`, any role) sees the nav entry,
 
 Approved roles are `admin`, `staff`, and `device`. An active `device` row belongs to a shared shop Google account; it does not grant admin rights. Admins can select this role in the existing staff form.
 
-The card code is `MWS-<StaffId>`, derived from the StaffId, not stored, and never reissued. A lost card is reprinted with the same code. The login reader reads A:I.
+The card code is `MWS-<StaffId>`, derived from the StaffId, not stored, and never reissued. A lost card is reprinted with the same code. The login reader reads the whole sheet (A:ZZ) and finds columns by header name.
 
 See [Shared shop device and staff card operator](shared-device.md) for scanning, expiry, and server authorization.

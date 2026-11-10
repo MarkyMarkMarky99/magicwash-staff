@@ -18,7 +18,7 @@ const values: SheetsApiValue[][] = [
   ['inactive@test', 'Inactive', 'staff', false, 'inactive', '', '', '', ''],
 ]
 SheetsApiClient.prototype.readRange = async range => {
-  assert.equal(range, 'A:I')
+  assert.equal(range, 'A:ZZ')
   return values
 }
 const device = { staffId: 'device', name: 'Shop', email: 'device@test', role: 'device' as const }

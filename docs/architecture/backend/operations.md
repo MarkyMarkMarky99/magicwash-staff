@@ -351,7 +351,7 @@ reads with `UNFORMATTED_VALUE`, coercing text cells with `String()`. StartDate n
 use whole days from the Google Sheets epoch (1899-12-30) with UTC arithmetic; valid
 `yyyy-MM-dd` strings are preserved, and other values become empty strings. Read rows are
 mapped directly without strict response-schema parsing so a bad cell cannot break all staff
-reads and patches. Request bodies remain schema-validated. The login reader reads A:I. Staff writes use `RAW` for every cell so phone numbers retain leading zeroes;
+reads and patches. Request bodies remain schema-validated. The login reader reads the whole sheet (A:ZZ) and finds columns by header name. Staff writes use `RAW` for every cell so phone numbers retain leading zeroes;
 Active is a native boolean. Registration appends a full-width row with an unprefixed
 `generateShortId()`, blank Role/Position/StartDate, and Active false. PATCH writes only the
 provided columns. Rows with empty Email are absent; legacy owner rows with empty StaffId

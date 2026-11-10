@@ -5,6 +5,7 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
+- **`ccr-403098c8-ftoikm`** — login 'ตรวจสอบสิทธิ์ไม่สำเร็จ' fix-attempt; prod root cause unconfirmed; see `.user/memory/ccr-403098c8-ftoikm.md`.
 
 ## Pending work
 - **MagicwashAI local gateway** — handoff: `.user/memory/magicwash-ai-gateway-handoff.md`
