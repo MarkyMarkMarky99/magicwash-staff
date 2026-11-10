@@ -6,7 +6,6 @@
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 - **`ccr-403098c8-ftoikm`** — login 'ตรวจสอบสิทธิ์ไม่สำเร็จ' fix-attempt; prod root cause unconfirmed; see `.user/memory/ccr-403098c8-ftoikm.md`.
-
 ## Pending work
 - **MagicwashAI local gateway** — handoff: `.user/memory/magicwash-ai-gateway-handoff.md`
   - Live at `ai.magicwash-laundry.com`; corporate-form AI prefill merged to main; prod `VITE_AI_GATEWAY_URL` is set.
