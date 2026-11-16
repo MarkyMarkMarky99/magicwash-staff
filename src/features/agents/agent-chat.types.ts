@@ -1,4 +1,8 @@
-export const AGENT_IDS = ['register-customer', 'price-check', 'order-tracking'] as const
+export const CHAT_AGENT_IDS = ['register-customer', 'price-check', 'order-tracking'] as const
+
+export type ChatAgentId = typeof CHAT_AGENT_IDS[number]
+
+export const AGENT_IDS = [...CHAT_AGENT_IDS, 'appointments'] as const
 
 export type AgentId = typeof AGENT_IDS[number]
 
@@ -55,7 +59,7 @@ export interface AgentChatReply {
 }
 
 export interface AgentChatRequest {
-  agentId: AgentId
+  agentId: ChatAgentId
   sessionId: string | null
   message: string
   images: File[]
@@ -94,6 +98,6 @@ export function isTrackingProposal(proposal: AgentProposal): proposal is Trackin
   return 'steps' in proposal
 }
 
-export function isAgentId(value: unknown): value is AgentId {
-  return typeof value === 'string' && (AGENT_IDS as readonly string[]).includes(value)
+export function isChatAgentId(value: unknown): value is ChatAgentId {
+  return typeof value === 'string' && (CHAT_AGENT_IDS as readonly string[]).includes(value)
 }

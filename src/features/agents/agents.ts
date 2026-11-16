@@ -7,6 +7,7 @@ export interface AgentInfo {
   description: string
   greeting: string
   suggestions: { icon: string; text: string }[]
+  adminOnly?: boolean
 }
 
 export const AGENTS: AgentInfo[] = [
@@ -45,6 +46,15 @@ export const AGENTS: AgentInfo[] = [
       { icon: 'call', text: 'ออเดอร์ของเบอร์ 081-234-5678' },
       { icon: 'schedule', text: 'วันนี้มีออเดอร์ที่ใกล้ครบกำหนดไหม' },
     ],
+  },
+  {
+    id: 'appointments',
+    name: 'น้องนัดหมาย',
+    role: 'Appointments',
+    description: 'Shared team chat that books, reschedules and cancels pickup appointments',
+    greeting: 'สวัสดีค่ะ หนูดูแลนัดหมายรับผ้าให้ทั้งทีม สั่งให้สร้าง เลื่อน หรือยกเลิกนัดได้เลยค่ะ',
+    suggestions: [],
+    adminOnly: true,
   },
 ]
 

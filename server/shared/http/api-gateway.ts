@@ -42,18 +42,19 @@ export class ApiGateway {
     }
 
     const loader = this.registry[moduleName]
-    const hasAiServiceKey = hasLaundryItemServiceKey(req, segments)
-    if (hasAiServiceKey && Object.keys(req.body ?? {}).some((field) => field !== 'itemId' && field !== 'updatedBy')) {
+    const hasAiServiceKey = hasAiRouteServiceKey(req, segments)
+    if (hasAiServiceKey && moduleName === 'laundry-items' && Object.keys(req.body ?? {}).some((field) => field !== 'itemId' && field !== 'updatedBy')) {
       throw ApiError.forbidden('AI service key may only update itemId (and optional updatedBy)')
     }
     const identity = moduleName === 'staff' ? await this.authenticateIdentity(req) : undefined
     let staff = moduleName === 'staff'
       ? identity?.staff
       : hasAiServiceKey
-        ? { staffId: 'AI', name: 'AI', email: '', role: 'staff' } satisfies StaffMember
+        ? await findStaffById('AI')
         : isPublicModule(moduleName) || hasInvoicePrintKey(req, segments)
           ? undefined
           : await this.authenticate(req)
+    if (hasAiServiceKey && !staff) throw ApiError.forbidden('AI is not an active staff member')
     if (staff?.role === 'device' && moduleName !== 'auth' && moduleName !== 'staff') {
       const operatorId = req.headers['x-operator-id']
       if (operatorId !== undefined) {
@@ -97,8 +98,16 @@ function hasInvoicePrintKey(req: VercelRequest, segments: string[]): boolean {
   return expected.length === supplied.length && timingSafeEqual(expected, supplied)
 }
 
-function hasLaundryItemServiceKey(req: VercelRequest, segments: string[]): boolean {
-  if (segments[0] !== 'laundry-items' || segments.length !== 2 || req.method !== 'PATCH') return false
+function hasAiRouteServiceKey(req: VercelRequest, segments: string[]): boolean {
+  const [moduleName] = segments
+  const allowed = (moduleName === 'laundry-items' && segments.length === 2 && req.method === 'PATCH')
+    || (moduleName === 'appointments' && (
+      (req.method === 'GET' && segments.length <= 2)
+      || (req.method === 'POST' && segments.length === 1)
+      || (req.method === 'PATCH' && segments.length === 2)
+    ))
+    || (moduleName === 'customers' && req.method === 'GET' && segments.length <= 2)
+  if (!allowed) return false
   const expectedKey = process.env.AI_SERVICE_KEY
   const suppliedKey = req.headers['x-service-key']
   if (!expectedKey?.trim() || typeof suppliedKey !== 'string') return false

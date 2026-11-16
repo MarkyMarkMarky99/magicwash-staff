@@ -1,10 +1,10 @@
 # Agent chat
 
-Agents are AI helpers staff chat with from the side menu entry "Agents". `register-customer` and `price-check` use the live MagicwashAI `chat` task. `order-tracking` still returns a canned reply.
+Agents are AI helpers staff chat with from the side menu entry "Agents". `register-customer` and `price-check` use the live MagicwashAI `chat` task. `order-tracking` still returns a canned reply. `appointments` is a shared admin-only team chat (see [Appointments agent](#appointments-agent)).
 
 ## Screens and routes
 
-- `/agents` (`agent-list`): one row card per agent, avatar at the left edge, name, role line, description, chevron. Three agents: `register-customer` (น้องลงทะเบียน), `price-check` (น้องราคา), `order-tracking` (น้องติดตาม).
+- `/agents` (`agent-list`): one row card per agent, avatar at the left edge, name, role line, description, chevron. Four agents: `register-customer` (น้องลงทะเบียน), `price-check` (น้องราคา), `order-tracking` (น้องติดตาม), `appointments` (น้องนัดหมาย, admin only: hidden from the list for other roles).
 - `/agents/:agentId` (`agent-chat`, `meta.parent = agent-list`): a full page with its own top bar (back, avatar, name, role, "End"). Back returns to the list through `useGoBack`. An unknown `agentId` replaces the route with the list. The page is excluded from `KeepAlive`; the history lives in the store, not the component.
 - UI text is English; only staff messages, agent replies, agent names, greetings and suggestion chips stay in Thai. The not-saved notice shows once per device (localStorage `agent-chat-notice-seen`) and hides itself after 6 seconds. The thinking bubble reads "Thinking… (may take up to a few min)". The composer textarea hides its scrollbar.
 - The chat shows the not-saved notice, an empty state with greeting and three suggestion chips, staff bubbles with up to three image thumbnails, agent bubbles with the avatar, a thinking bubble, an error bubble with "Retry", and a composer (attach up to three images, multi-line input, send disabled while thinking).
@@ -41,6 +41,17 @@ Each screenshot is resized to at most 1080 px wide with proportional height and 
 
 Only `order-tracking` keeps the approximately 2 s fake response and the exact `error` message trick for showing a generic error bubble.
 
+## Appointments agent
+
+`appointments` (น้องนัดหมาย) is one shop-wide conversation that every admin sees; the AI side keeps the history. It has its own route `/agents/appointments` (`appointments-agent-chat`, page `AppointmentsChatPage`, excluded from `KeepAlive`) and does not use `useAgentChatStore`. A non-admin who opens the route is replaced to the agent list once the session has loaded.
+
+- State lives in `useAppointmentsAgentStore` (`src/data/appointments-agent/`), memory only, except the last-seen event ID in localStorage (`appointments-agent-last-seen-event`, per device, every access in try/catch). The calls go through `shared/ai-gateway/tasks/appointments-agent.ts` with a 20 s deadline: send (`POST /tasks/chat`, returns `{ accepted, turnId, eventId }` at once), history, reminders list, reminder cancel, notes.
+- Opening the page loads the latest 200 events. Each shows the speaker name (staff name, "AI", or "System"); `action` events are compact lines with an OK / Failed / Unknown outcome chip. Event text is shown as received.
+- Sending shows an optimistic staff bubble, posts, then polls. The bubble is dropped once its `eventId` is in the history. A failed send removes the bubble, shows the error and puts the text back in the composer if it is empty. There is no auto-retry.
+- Polling fetches only events after the last known event ID: on window focus, after a send, and every 15 s while the page is open. While history reports `busy` the list ends with a quiet "Working…" row.
+- No End button, no clear or session reset, no "not saved" notice, and no image attach. The bar's "Reminders" button opens a panel: pending reminders (due time, note, created-at) each with Cancel, and the AI's notes read-only (file name and content), both reloaded on open.
+- Unread badge: `src/App.vue` provides `agentsUnreadKey` (`src/shared/agents-unread.ts`) from `useAppointmentsAgentUnread`, which polls every 60 s while signed in as admin. The "Agents" menu entry shows the count of events after the last-seen ID. A device with no stored ID starts from the latest event (no badge for old history). The count clears when the chat page shows the latest event.
+
 ## Verification
 
-Run the chat wrapper test with `npx tsx tests/shared/ai-gateway/chat.dry-test.ts`. Run the Pinia workflow test with `npx tsx --tsconfig jsconfig.json --experimental-test-module-mocks tests/web/unit/features/agents/stores/agent-chat.store.dry-test.ts` (Node 22 module mocking isolates gateway configuration). Both use fake fetch responses and make no live service calls.
+Run the chat wrapper test with `npx tsx tests/shared/ai-gateway/chat.dry-test.ts`. Run the Pinia workflow test with `npx tsx --tsconfig jsconfig.json --experimental-test-module-mocks tests/web/unit/features/agents/stores/agent-chat.store.dry-test.ts` (Node 22 module mocking isolates gateway configuration). Run the appointments endpoint wrapper test with `npx tsx tests/shared/ai-gateway/appointments-agent.dry-test.ts` and its store test with `npx tsx --tsconfig jsconfig.json --experimental-test-module-mocks tests/web/unit/data/appointments-agent/appointments-agent.store.dry-test.ts`. All use fake fetch responses and make no live service calls.

@@ -6,6 +6,8 @@ import { ApiError } from '../../../../server/shared/http/api-error.js'
 import { bodyWithSessionActor } from '../../../../server/shared/http/session-actor.js'
 import type { StaffAuthenticator, StaffIdentityAuthenticator } from '../../../../server/shared/auth/staff-auth.js'
 import { authenticateStaff } from '../../../../server/shared/auth/staff-auth.js'
+import { invalidateStaffListCache } from '../../../../server/shared/auth/staff-list.js'
+import { SheetsApiClient } from '../../../../server/shared/repositories/sheets-api.client.js'
 
 const staff = { staffId: 'staff-id', email: 'worker@example.com', name: 'Worker', role: 'staff' as const }
 const request = (path: string, authorization?: string) => ({
@@ -36,6 +38,14 @@ function gateway(authenticate: StaffAuthenticator, authenticateIdentity?: StaffI
       item: new ApiHandler({
         PATCH: (req) => ({ status: 200, body: { staff: req.staff, payload: bodyWithSessionActor(req, 'updatedBy') } }),
       }),
+    }),
+    appointments: async () => ({
+      collection: new ApiHandler({ GET: (req) => ({ status: 200, body: req.staff }), POST: (req) => ({ status: 201, body: bodyWithSessionActor(req, 'createdBy') }) }),
+      item: new ApiHandler({ GET: (req) => ({ status: 200, body: req.staff }), PATCH: (req) => ({ status: 200, body: bodyWithSessionActor(req, 'updatedBy') }) }),
+    }),
+    customers: async () => ({
+      collection: new ApiHandler({ GET: (req) => ({ status: 200, body: req.staff }) }),
+      item: new ApiHandler({ GET: (req) => ({ status: 200, body: req.staff }) }),
     }),
     portal: async () => ({
       collection: new ApiHandler({ GET: (req) => ({ status: 200, body: req.staff }) }),
@@ -140,6 +150,16 @@ try {
 }
 
 const previousAiKey = process.env.AI_SERVICE_KEY
+const previousStaffSheet = process.env.STAFF_SPREADSHEET_ID
+const originalReadRange = SheetsApiClient.prototype.readRange
+let aiActive = true
+let aiPresent = true
+SheetsApiClient.prototype.readRange = async () => [
+  ['Email', 'Name', 'Role', 'Active', 'StaffId'],
+  ...(aiPresent ? [['ai@example.com', 'Appointment assistant', 'staff', aiActive, 'AI']] : []),
+]
+process.env.STAFF_SPREADSHEET_ID = 'dry-test-staff'
+invalidateStaffListCache()
 try {
   process.env.AI_SERVICE_KEY = 'ai-service-secret'
   const serviceRequest = (path = '/api/laundry-items/Ab12Cd34', key: string | string[] = 'ai-service-secret', method = 'PATCH') => {
@@ -150,7 +170,7 @@ try {
     return req
   }
   const callsBeforeAi = authCalls
-  const aiStaff = { staffId: 'AI', name: 'AI', email: '', role: 'staff' }
+  const aiStaff = { staffId: 'AI', name: 'Appointment assistant', email: 'ai@example.com', role: 'staff' }
   for (const body of [{ itemId: 'shirt' }, { itemId: 'shirt', updatedBy: 'spoofed' }]) {
     const req = serviceRequest()
     req.body = body
@@ -166,11 +186,40 @@ try {
     assert.match(JSON.stringify(result.body), /only update itemId/)
   }
   assert.equal(authCalls, callsBeforeAi)
+  for (const path of ['/api/appointments', '/api/appointments/APPT-1', '/api/customers', '/api/customers/CUST-1']) {
+    assert.deepEqual((await api.handleRequest(serviceRequest(path, undefined, 'GET'))).body, aiStaff)
+  }
+  for (const [path, method, actorField, status] of [
+    ['/api/appointments', 'POST', 'createdBy', 201],
+    ['/api/appointments/APPT-1', 'PATCH', 'updatedBy', 200],
+  ] as const) {
+    const req = serviceRequest(path, undefined, method)
+    req.body = { appointmentDate: '2026-11-18', notes: 'Allowed appointment fields', [actorField]: 'spoofed' }
+    const result = await api.handleRequest(req)
+    assert.equal(result.status, status)
+    assert.deepEqual(result.body, { ...req.body, [actorField]: 'AI' })
+  }
+  assert.equal(authCalls, callsBeforeAi)
+  for (const active of [false, true]) {
+    aiActive = active
+    aiPresent = !active
+    invalidateStaffListCache()
+    for (const [path, method] of [['/api/appointments', 'POST'], ['/api/customers', 'GET'], ['/api/laundry-items/Ab12Cd34', 'PATCH']]) {
+      const result = await api.handleRequest(serviceRequest(path, undefined, method))
+      assert.equal(result.status, 403)
+      assert.match(JSON.stringify(result.body), /AI is not an active staff member/)
+    }
+  }
+  aiActive = aiPresent = true
+  invalidateStaffListCache()
   for (const [path, method] of [
     ['/api/laundry-items/Ab12Cd34', 'GET'], ['/api/laundry-items/Ab12Cd34', 'POST'],
     ['/api/laundry-items/Ab12Cd34', 'DELETE'], ['/api/laundry-items', 'PATCH'],
     ['/api/laundry-items', 'POST'], ['/api/laundry-items/Ab12Cd34/extra', 'PATCH'],
     ['/api/invoices/X', 'PATCH'],
+    ['/api/appointments', 'PATCH'], ['/api/appointments/APPT-1', 'POST'],
+    ['/api/appointments/APPT-1', 'DELETE'], ['/api/appointments/APPT-1/extra', 'GET'],
+    ['/api/customers', 'POST'], ['/api/customers/CUST-1', 'PATCH'],
   ]) {
     assert.equal((await api.handleRequest(serviceRequest(path!, 'ai-service-secret', method))).status, 401)
   }
@@ -192,6 +241,10 @@ try {
     assert.equal((await api.handleRequest(serviceRequest())).status, 401)
   }
 } finally {
+  SheetsApiClient.prototype.readRange = originalReadRange
+  invalidateStaffListCache()
+  if (previousStaffSheet === undefined) delete process.env.STAFF_SPREADSHEET_ID
+  else process.env.STAFF_SPREADSHEET_ID = previousStaffSheet
   if (previousAiKey === undefined) delete process.env.AI_SERVICE_KEY
   else process.env.AI_SERVICE_KEY = previousAiKey
 }

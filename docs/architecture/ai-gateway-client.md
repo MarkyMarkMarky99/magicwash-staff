@@ -13,3 +13,7 @@ Gateway tests use injected fetch implementations and never contact a service. Sh
 `shared/ai-gateway/tasks/chat.ts` calls `POST /tasks/chat` with a 95 s deadline and validates input/results using `contracts/ai-gateway/chat-api.schema.ts`. Input is `{ agentId, message, sessionId? }` for `register-customer` or `price-check`; messages are at most 4000 characters and may be empty only with images. Attachments are 0–3 JPEG/PNG images, at most 5 MiB each, with role `reference`. The client uses multipart when images are present and JSON otherwise.
 
 The first turn omits `sessionId`; later turns send the returned ID with only new text and images. Results contain `agentId`, `sessionId`, `reply`, a nullable customer or price proposal, and top-level warnings. `SESSION_NOT_FOUND` (404) means the session expired or the gateway restarted; the Agents store clears its session so a retry starts a new chat. See [Agent chat](../features/agents/agent-chat.md) for image preparation and UI behavior.
+
+## Appointments agent endpoints
+
+`shared/ai-gateway/tasks/appointments-agent.ts` sends `POST /tasks/chat` with `agentId: 'appointments'` through `callAiTask` and reads the four `/agents/appointments/...` endpoints (history, reminders, reminder cancel, notes) through `callAiGatewayEndpoint`, which shares the base URL, Bearer token, deadline and error-envelope handling with `callAiTask`. These are quick reads with a 20 s deadline. A body wrapped in the success envelope is unwrapped. See [Agent chat](../features/agents/agent-chat.md#appointments-agent).

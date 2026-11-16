@@ -4,8 +4,8 @@ import { APP_Z_INDEX_CLASS } from '@/shared/layouts/z-index'
 import type { AgentInfo } from '../agents'
 import AgentAvatar from './AgentAvatar.vue'
 
-defineProps<{ agent: AgentInfo }>()
-defineEmits<{ back: []; end: [] }>()
+withDefaults(defineProps<{ agent: AgentInfo; showEnd?: boolean; showPanel?: boolean }>(), { showEnd: true, showPanel: false })
+defineEmits<{ back: []; end: []; panel: [] }>()
 </script>
 
 <template>
@@ -16,7 +16,10 @@ defineEmits<{ back: []; end: [] }>()
       <b class="block truncate font-headline text-base font-extrabold leading-tight">{{ agent.name }}</b>
       <small class="mt-px block font-label text-[10px] font-extrabold uppercase tracking-[0.08em] text-lime">{{ agent.role }}</small>
     </div>
-    <button type="button" class="inline-flex h-10 items-center gap-1 rounded-[14px_16px_14px_15px] border-2 border-lime px-3.5 font-body text-sm font-extrabold text-lime transition-colors hover:bg-lime hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime active:bg-lime active:text-primary" @click="$emit('end')">
+    <button v-if="showPanel" type="button" class="inline-flex h-10 items-center gap-1 rounded-[14px_16px_14px_15px] border-2 border-lime px-3.5 font-body text-sm font-extrabold text-lime transition-colors hover:bg-lime hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime active:bg-lime active:text-primary" aria-label="Reminders and notes" @click="$emit('panel')">
+      <span class="material-symbols-outlined text-[18px]" aria-hidden="true">alarm</span>Reminders
+    </button>
+    <button v-if="showEnd" type="button" class="inline-flex h-10 items-center gap-1 rounded-[14px_16px_14px_15px] border-2 border-lime px-3.5 font-body text-sm font-extrabold text-lime transition-colors hover:bg-lime hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime active:bg-lime active:text-primary" @click="$emit('end')">
       <span class="material-symbols-outlined text-[18px]" aria-hidden="true">logout</span>End
     </button>
   </header>

@@ -9,7 +9,7 @@ import AgentChatBar from '../components/AgentChatBar.vue'
 import AgentComposer from '../components/AgentComposer.vue'
 import AgentMessageList from '../components/AgentMessageList.vue'
 import { agentById } from '../agents'
-import { isAgentId, type AgentId, type CustomerProposal } from '../agent-chat.types'
+import { isChatAgentId, type ChatAgentId, type CustomerProposal } from '../agent-chat.types'
 import { useAgentChatStore } from '../stores/agent-chat.store'
 
 const props = defineProps<{ agentId: string }>()
@@ -18,7 +18,7 @@ const router = useRouter()
 const { goBack } = useGoBack()
 const store = useAgentChatStore()
 
-const validId = computed<AgentId | null>(() => isAgentId(props.agentId) ? props.agentId : null)
+const validId = computed<ChatAgentId | null>(() => isChatAgentId(props.agentId) ? props.agentId : null)
 const agent = computed(() => validId.value ? agentById(validId.value) : null)
 const chat = computed(() => validId.value ? store.chats[validId.value] : null)
 // The "not saved" notice shows once per device, then hides itself after a few seconds.

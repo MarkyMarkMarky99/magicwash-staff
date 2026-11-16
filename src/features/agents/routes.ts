@@ -7,6 +7,12 @@ export const agentRoutes: RouteRecordRaw[] = [
     component: () => import('./pages/AgentListPage.vue'),
   },
   {
+    path: '/agents/appointments',
+    name: 'appointments-agent-chat',
+    component: () => import('./pages/AppointmentsChatPage.vue'),
+    meta: { parent: 'agent-list' },
+  },
+  {
     path: '/agents/:agentId',
     name: 'agent-chat',
     component: () => import('./pages/AgentChatPage.vue'),

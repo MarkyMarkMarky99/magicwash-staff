@@ -5,6 +5,7 @@ import { invalidate } from '@/shared/api/response-cache'
 import { onUserChanged, signOutUser } from '@/shared/api/firebase-auth'
 import { useNavDrawer } from '@/shared/composables/use-nav-drawer'
 import { staffSignedInKey } from '@/shared/staff-session'
+import { agentsUnreadKey } from '@/shared/agents-unread'
 
 defineProps({
   open: Boolean
@@ -15,6 +16,7 @@ const router = useRouter()
 const route = useRoute()
 const signedIn = ref(false)
 const staffSignedIn = inject(staffSignedInKey, ref(false))
+const agentsUnread = inject(agentsUnreadKey, ref(0))
 onScopeDispose(onUserChanged((user) => { signedIn.value = user !== null }))
 
 function navigate(path) {
@@ -123,6 +125,7 @@ function logout() {
           >
             <span class="material-symbols-outlined">smart_toy</span>
             <span>Agents</span>
+            <span v-if="agentsUnread > 0" class="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-error px-1.5 text-[11px] font-bold leading-none text-on-error" :aria-label="`${agentsUnread} unread`">{{ agentsUnread > 99 ? '99+' : agentsUnread }}</span>
           </button>
         </li>
         <li v-if="staffSignedIn">

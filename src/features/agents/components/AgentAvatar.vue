@@ -48,6 +48,23 @@ withDefaults(defineProps<{ agentId: AgentId; size?: number }>(), { size: 56 })
       <text x="54" y="55.4" font-size="9" font-weight="800" text-anchor="middle" class="fill-on-warning-container font-headline">฿</text>
     </template>
 
+    <template v-else-if="agentId === 'appointments'">
+      <rect width="64" height="64" class="fill-success-container" />
+      <rect x="11" y="13" width="42" height="40" rx="9" class="fill-white stroke-primary" stroke-width="3" />
+      <path d="M11 24L11 22C11 17 14 13 20 13L44 13C50 13 53 17 53 22L53 24Z" class="fill-primary" />
+      <rect x="20" y="8" width="4.5" height="10" rx="2.2" class="fill-lime stroke-primary" stroke-width="1.6" />
+      <rect x="39.5" y="8" width="4.5" height="10" rx="2.2" class="fill-lime stroke-primary" stroke-width="1.6" />
+      <circle cx="25.5" cy="35" r="2.6" class="fill-on-surface" />
+      <circle cx="38.5" cy="35" r="2.6" class="fill-on-surface" />
+      <circle cx="26.3" cy="34.2" r=".9" class="fill-white" />
+      <circle cx="39.3" cy="34.2" r=".9" class="fill-white" />
+      <circle cx="21" cy="41" r="3" class="fill-error" opacity=".3" />
+      <circle cx="43" cy="41" r="3" class="fill-error" opacity=".3" />
+      <path d="M28.5 41.5Q32 45.5 35.5 41.5" fill="none" class="stroke-on-surface" stroke-width="2" stroke-linecap="round" />
+      <circle cx="51" cy="51" r="8" class="fill-lime stroke-primary" stroke-width="2" />
+      <path d="M47.2 51.2L50 54L55 48.2" fill="none" class="stroke-primary" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+    </template>
+
     <template v-else>
       <rect width="64" height="64" class="fill-info-container" />
       <path d="M32 14L32 7" class="stroke-on-surface-variant" stroke-width="2.6" stroke-linecap="round" />

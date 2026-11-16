@@ -6,7 +6,7 @@ import {
   MAX_DRAFT_IMAGES,
   type AgentChat,
   type AgentChatRequest,
-  type AgentId,
+  type ChatAgentId,
 } from '../agent-chat.types'
 
 function emptyChat(): AgentChat {
@@ -20,20 +20,20 @@ function nextId(): string {
 }
 
 export const useAgentChatStore = defineStore('agent-chat', () => {
-  const chats = ref<Record<AgentId, AgentChat>>({
+  const chats = ref<Record<ChatAgentId, AgentChat>>({
     'register-customer': emptyChat(),
     'price-check': emptyChat(),
     'order-tracking': emptyChat(),
   })
-  const generations: Record<AgentId, number> = { 'register-customer': 0, 'price-check': 0, 'order-tracking': 0 }
-  const controllers: Partial<Record<AgentId, AbortController>> = {}
-  const lastRequests: Partial<Record<AgentId, AgentChatRequest>> = {}
+  const generations: Record<ChatAgentId, number> = { 'register-customer': 0, 'price-check': 0, 'order-tracking': 0 }
+  const controllers: Partial<Record<ChatAgentId, AbortController>> = {}
+  const lastRequests: Partial<Record<ChatAgentId, AgentChatRequest>> = {}
 
-  function setDraftText(agentId: AgentId, text: string): void {
+  function setDraftText(agentId: ChatAgentId, text: string): void {
     chats.value[agentId].draftText = text
   }
 
-  function addDraftImages(agentId: AgentId, files: File[]): void {
+  function addDraftImages(agentId: ChatAgentId, files: File[]): void {
     const chat = chats.value[agentId]
     for (const file of files) {
       if (chat.draftImages.length >= MAX_DRAFT_IMAGES) break
@@ -42,7 +42,7 @@ export const useAgentChatStore = defineStore('agent-chat', () => {
     }
   }
 
-  function removeDraftImage(agentId: AgentId, id: string): void {
+  function removeDraftImage(agentId: ChatAgentId, id: string): void {
     const chat = chats.value[agentId]
     const image = chat.draftImages.find(item => item.id === id)
     if (!image) return
@@ -50,7 +50,7 @@ export const useAgentChatStore = defineStore('agent-chat', () => {
     chat.draftImages = chat.draftImages.filter(item => item.id !== id)
   }
 
-  async function deliver(agentId: AgentId, request: AgentChatRequest): Promise<void> {
+  async function deliver(agentId: ChatAgentId, request: AgentChatRequest): Promise<void> {
     const chat = chats.value[agentId]
     const generation = generations[agentId]
     lastRequests[agentId] = request
@@ -78,7 +78,7 @@ export const useAgentChatStore = defineStore('agent-chat', () => {
     }
   }
 
-  async function send(agentId: AgentId): Promise<void> {
+  async function send(agentId: ChatAgentId): Promise<void> {
     const chat = chats.value[agentId]
     const text = chat.draftText.trim()
     if (chat.thinking || (!text && !chat.draftImages.length)) return
@@ -89,12 +89,12 @@ export const useAgentChatStore = defineStore('agent-chat', () => {
     await deliver(agentId, { agentId, sessionId: chat.sessionId, message: text, images: images.map(image => image.file) })
   }
 
-  async function sendText(agentId: AgentId, text: string): Promise<void> {
+  async function sendText(agentId: ChatAgentId, text: string): Promise<void> {
     setDraftText(agentId, text)
     await send(agentId)
   }
 
-  async function retry(agentId: AgentId): Promise<void> {
+  async function retry(agentId: ChatAgentId): Promise<void> {
     const chat = chats.value[agentId]
     const request = lastRequests[agentId]
     if (chat.thinking || !request) return
@@ -102,7 +102,7 @@ export const useAgentChatStore = defineStore('agent-chat', () => {
     await deliver(agentId, { ...request, sessionId: chat.sessionId })
   }
 
-  function reset(agentId: AgentId): void {
+  function reset(agentId: ChatAgentId): void {
     const chat = chats.value[agentId]
     for (const message of chat.messages) {
       if (message.role === 'staff') message.imageUrls.forEach(url => URL.revokeObjectURL(url))

@@ -1,5 +1,4 @@
-import { appointmentApiContract } from '../../../contracts/appointments/appointment-api.schema.js'
-import { createCrudRoutes } from '../../shared/http/crud-routes.js'
+import { createAppointmentRoutes } from './appointment.routes.js'
 import { AppointmentService } from './appointment.service.js'
 import { getAppointmentsRepository } from '../../sheets/Appointments/Appointments.repository.js'
 import { createAppointmentTransformer } from './appointment.transformer.js'
@@ -18,4 +17,4 @@ export const appointmentService = new AppointmentService({
   transformer: createAppointmentTransformer(),
 })
 
-export const appointmentRoutes = createCrudRoutes(appointmentService, appointmentApiContract, { create: ['createdBy'], update: ['updatedBy'] })
+export const appointmentRoutes = createAppointmentRoutes(appointmentService)

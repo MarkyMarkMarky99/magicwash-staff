@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-const chatAgentIdSchema = z.enum(['register-customer', 'price-check'])
+const chatAgentIdSchema = z.enum(['register-customer', 'price-check', 'appointments'])
 
 export const chatInputSchema = z.object({
   agentId: chatAgentIdSchema,

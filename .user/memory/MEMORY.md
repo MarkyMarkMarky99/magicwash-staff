@@ -11,12 +11,12 @@
   - Live at `ai.magicwash-laundry.com`; corporate-form AI prefill merged to main; prod `VITE_AI_GATEWAY_URL` is set.
   - Need 3–5 more real slips (other branches, harder handwriting) for `scripts/eval-read-slip.js`.
   - Price groups KLINIQ, KLINIQUE, MAISON, MAISON_GAYSORN, SOULTEL live (2026-10-21) on the shared default slip prompt; only blank forms tested, need filled slips (esp. KLINIQ, whose LAUNDRY COUNT sits beside SPA COUNT).
-  - Open: timeouts (gateway 90 s, client 120 s) exceed Cloudflare's ~100 s; proposed 60 s / 95 s, owner not decided.
 - **Agent chat (`/agents`)** — see `docs/features/agents/agent-chat.md`
   - Owner to decide: switch app-wide UI text (nav: รายการราคา, แจ้งปัญหา, พนักงาน) to English like agents/price-list.
   - Prod chats need MagicwashAI running on this PC; if it stops, register/price chats show the error bubble.
   - NEXT session: build น้องติดตาม (order-tracking) — handoff `.user/memory/order-tracking-agent-handoff.md`; prod shows its fake reply until then.
   - Local test: MagicwashAI `ALLOWED_ORIGINS` must include `http://localhost:3000` for `vercel dev`.
+  - น้องนัดหมาย (`appointments`) shipped 2026-11-16, live test in progress; plan `docs/plans/appointments-agent.md`.
 - **Corporate count-sheet order** — see `docs/features/orders/corporate-order-form.md`
   - Slip-photo upload on Save not yet tried in a real browser.
   - Owner: update G Drive `PriceList.json` description (price-0 rows may be active for CRYO).

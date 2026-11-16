@@ -97,11 +97,24 @@ Create requires `id`, `customerId`, and `createdBy`; optional fields are `itemId
 fields; null clears an optional field, including the cover photo URL. Identity, customer, creation and deletion fields are not patchable.
 The gateway also accepts `PATCH /api/laundry-items/:id` (exactly two path segments) with
 `x-service-key` exactly matching server-only `AI_SERVICE_KEY` via `crypto.timingSafeEqual` on equal-length buffers; an unset or blank key disables this exception, and a wrong key falls through to normal staff authentication.
-This key permits only `itemId` and optional `updatedBy` (other fields return 403), using the fixed staff actor `AI` (name `AI`, empty email, role `staff`) so the shared CRUD handler replaces `updatedBy` with `AI`; other methods and routes still require their normal authentication.
+On this laundry route the key permits only `itemId` and optional `updatedBy` (other fields return 403).
+The same key also permits collection/item appointments GET, collection POST, item PATCH, and
+collection/item customers GET. All service-key requests resolve their actor via `findStaffById('AI')`
+from the active Staff allowlist; a missing or inactive AI row returns 403. Actor fields are replaced
+with that row's StaffId. Other methods and routes retain their normal authentication.
 The shared CRUD handler supplies authenticated staff actors. Repository audit declarations
 stamp `created_at` on append and `updated_at` on update using Bangkok `yyyy-MM-dd HH:mm:ss`.
 Item GET/PATCH validate the same tag format and return 404 for missing rows. There is no delete
 endpoint. Job-ticket orchestration remains outside this module.
+
+Appointments retain generic CRUD behind an appointment-specific request boundary. For `req.staff`
+with StaffId AI, create accepts Bangkok today through today+13 inclusive, excludes Tuesdays, and
+requires today's slot start to be strictly later than the current Bangkok minute. PATCH changing
+the stored date accepts tomorrow through today+14 inclusive, including Tuesdays. Unchanged dates
+(compared after sheet-date normalization), cancellations (`status: CANCELLED`), and PATCHes without
+a date have no date policy. Other staff retain existing behavior. Policy failures return 422 with
+a readable message and applicable date bounds before any write. AI date-changing PATCH adds one
+appointment read for comparison; it is not atomic with the existing service read/write.
 
 `POST /api/laundry-items/register` accepts `{ customerId, garments: [{ tag, imageUrl, itemId }] }`
 with at least one unique tag and a nullable itemId. The session supplies `createdBy` and the

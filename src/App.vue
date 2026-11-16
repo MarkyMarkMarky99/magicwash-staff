@@ -10,6 +10,7 @@ import { usePriceListStore } from '@/data/price-list/price-list.store'
 import { useStaffStore } from '@/data/staff/staff.store'
 import { appointmentPendingCountKey } from '@/shared/appointment-pending-count'
 import { staffSignedInKey } from '@/shared/staff-session'
+import { agentsUnreadKey } from '@/shared/agents-unread'
 import { APP_Z_INDEX_CLASS } from '@/shared/layouts/z-index'
 import { useNavDrawer } from '@/shared/composables/use-nav-drawer'
 import { useRoute, useRouter } from 'vue-router'
@@ -19,6 +20,7 @@ import InlineNotice from '@/shared/components/InlineNotice.vue'
 import PickerOverlay from '@/shared/layouts/PickerOverlay.vue'
 import LaundryItemDetailView from '@/features/laundry-items/components/LaundryItemDetailView.vue'
 import { useAppGarmentScan } from '@/app/composables/useAppGarmentScan'
+import { useAppointmentsAgentUnread } from '@/app/composables/useAppointmentsAgentUnread'
 import { preloadDocumentScanner } from '@/features/orders/utils/document-scanner-model'
 
 const appointmentStore = useAppointmentStore()
@@ -161,6 +163,7 @@ function onKeydown(event: KeyboardEvent) {
 
 provide(appointmentPendingCountKey, pendingCount)
 provide(staffSignedInKey, computed(() => authStore.status === 'signedIn'))
+provide(agentsUnreadKey, useAppointmentsAgentUnread(() => authStore.isAdmin))
 
 // Keep the schedule and pending badge ready from the same backend-backed store.
 onMounted(async () => {
@@ -207,7 +210,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
       <RouterView v-slot="{ Component }">
       <!-- Form pages must not be cached: their component-local refs would otherwise survive across subjects. `exclude` matches component names, so renaming one of these files silently removes it from this list. -->
       <KeepAlive
-        :exclude="['WashQueuePage', 'CreateAppointmentPage', 'RescheduleAppointmentPage', 'InvoiceCreatePage', 'InvoicePaymentFormPage', 'InvoicePaymentReviewPage', 'CustomerFormPage', 'CustomerPackageCreatePage', 'PriceListFormPage', 'PriceListItemCreatePage', 'PackageFormPage', 'IssueReportFormPage', 'OrderCreatePage', 'CorporateOrderPage', 'OrderIntakePage', 'LaundryItemRegisterPage', 'LaundryItemDetailPage', 'StaffFormPage', 'AgentChatPage']"
+        :exclude="['WashQueuePage', 'CreateAppointmentPage', 'RescheduleAppointmentPage', 'InvoiceCreatePage', 'InvoicePaymentFormPage', 'InvoicePaymentReviewPage', 'CustomerFormPage', 'CustomerPackageCreatePage', 'PriceListFormPage', 'PriceListItemCreatePage', 'PackageFormPage', 'IssueReportFormPage', 'OrderCreatePage', 'CorporateOrderPage', 'OrderIntakePage', 'LaundryItemRegisterPage', 'LaundryItemDetailPage', 'StaffFormPage', 'AgentChatPage', 'AppointmentsChatPage']"
       >
         <component :is="Component" />
       </KeepAlive>

@@ -39,6 +39,16 @@ async function withDeadline<T>(
   }
 }
 
+async function readGatewayJson(response: Response): Promise<unknown> {
+  let data: unknown
+  try { data = await response.json() } catch {
+    throw new AiGatewayError('INVALID_RESPONSE', 'AI gateway returned invalid JSON', response.status)
+  }
+  const failure = aiGatewayErrorSchema.safeParse(data)
+  if (failure.success) throw new AiGatewayError(failure.data.error.code, failure.data.error.message, response.status)
+  return data
+}
+
 export async function callAiTask({
   baseUrl, task, input, files = [], getToken, signal, timeoutMs = 120000, fetchImpl = fetch, requestId,
 }: CallAiTaskOptions) {
@@ -64,17 +74,42 @@ export async function callAiTask({
       const response = await fetchImpl(`${baseUrl.trim().replace(/\/+$/, '')}/tasks/${encodeURIComponent(task)}`, {
         method: 'POST', headers, body, signal: combinedSignal,
       })
-      let data: unknown
-      try { data = await response.json() } catch {
-        throw new AiGatewayError('INVALID_RESPONSE', 'AI gateway returned invalid JSON', response.status)
-      }
-      const failure = aiGatewayErrorSchema.safeParse(data)
-      if (failure.success) throw new AiGatewayError(failure.data.error.code, failure.data.error.message, response.status)
+      const data = await readGatewayJson(response)
       const success = aiGatewaySuccessSchema.safeParse(data)
       if (!response.ok || !success.success) {
         throw new AiGatewayError('INVALID_RESPONSE', 'AI gateway returned an invalid response', response.status)
       }
       return success.data
+    } catch (reason) {
+      if (reason instanceof AiGatewayError) throw reason
+      throw new AiGatewayError('NETWORK', 'Unable to reach the AI gateway. Try again.')
+    }
+  }, timeoutMs, signal)
+}
+
+export async function callAiGatewayEndpoint({
+  baseUrl, method, path, getToken, signal, timeoutMs = 20000, fetchImpl = fetch,
+}: {
+  baseUrl: string
+  method: 'GET' | 'POST'
+  path: string
+  getToken: () => Promise<string | null>
+  signal?: AbortSignal
+  timeoutMs?: number
+  fetchImpl?: typeof fetch
+}): Promise<unknown> {
+  if (!baseUrl.trim()) throw new AiGatewayError('NOT_CONFIGURED', 'AI gateway is not configured')
+  return withDeadline(async (combinedSignal) => {
+    try {
+      const token = await getToken()
+      if (combinedSignal.aborted) throw new AiGatewayError('ABORTED', 'AI request cancelled')
+      const headers: Record<string, string> = {}
+      if (token !== null) headers.Authorization = `Bearer ${token}`
+      const response = await fetchImpl(`${baseUrl.trim().replace(/\/+$/, '')}${path}`, { method, headers, signal: combinedSignal })
+      const data = await readGatewayJson(response)
+      if (!response.ok) throw new AiGatewayError('INVALID_RESPONSE', 'AI gateway returned an invalid response', response.status)
+      const success = aiGatewaySuccessSchema.safeParse(data)
+      return success.success ? success.data.result : data
     } catch (reason) {
       if (reason instanceof AiGatewayError) throw reason
       throw new AiGatewayError('NETWORK', 'Unable to reach the AI gateway. Try again.')

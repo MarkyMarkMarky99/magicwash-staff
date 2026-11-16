@@ -1,14 +1,21 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/data/auth/auth.store'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import AgentRow from '../components/AgentRow.vue'
 import { AGENTS } from '../agents'
 import type { AgentId } from '../agent-chat.types'
 
 const router = useRouter()
+const { isAdmin } = storeToRefs(useAuthStore())
+const visibleAgents = computed(() => AGENTS.filter(agent => !agent.adminOnly || isAdmin.value))
 
 function openAgent(agentId: AgentId): void {
-  void router.push({ name: 'agent-chat', params: { agentId } })
+  void router.push(agentId === 'appointments'
+    ? { name: 'appointments-agent-chat' }
+    : { name: 'agent-chat', params: { agentId } })
 }
 </script>
 
@@ -22,7 +29,7 @@ function openAgent(agentId: AgentId): void {
         </div>
       </div>
       <ul class="grid gap-2.5 px-3">
-        <li v-for="agent in AGENTS" :key="agent.id">
+        <li v-for="agent in visibleAgents" :key="agent.id">
           <AgentRow :agent="agent" @open="openAgent(agent.id)" />
         </li>
       </ul>
