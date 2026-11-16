@@ -38,7 +38,8 @@ No approval workflow, no Redis/scheduler framework, no extra roles.
     address, location`), reschedule (PATCH date/slot + `status: PENDING`), cancel (PATCH `CANCELLED`).
   - `remind` (create/list) — calls the local listener, not a file.
   - every write script reports attempt + result (including unknown outcome) to the local listener.
-- `work/appointments/notes/` — agent-writable memory. Recurring customers use one fixed format:
+- `work/appointments/notes/` — agent-writable memory, indexed by `notes/MEMORY.md` (≤ 60 lines, read
+  every turn); one topic per note, ≤ 20 lines; no diaries or appointment-id lists. Recurring customers use one fixed format:
   customer ID, weekdays, time slot, type, exceptions.
 - `docker-entrypoint.sh` copies `.agents/` and `scripts/` too, and makes `notes/` writable by the
   Codex child (uid 1002) after its ownership reset.
