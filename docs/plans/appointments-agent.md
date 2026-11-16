@@ -20,7 +20,6 @@ No approval workflow, no Redis/scheduler framework, no extra roles.
 - Recurring customers are kept in the agent's own notes; the daily run creates missing appointments.
 - Appointment dates follow the web form's limits, enforced server-side for the AI actor.
 - After a container restart, unfinished work resumes automatically.
-- Text only in v1 (no images).
 
 ## AI (MagicwashAI)
 
@@ -98,19 +97,28 @@ No approval workflow, no Redis/scheduler framework, no extra roles.
 - History read (since an event id), pending reminders list, reminder cancel, notes read-only
   (files inside `notes/` only).
 
-### Gateway HTTP interface (shared by AI and W; JSON, existing error envelope)
+### Gateway HTTP interface (shared by AI and W; JSON/multipart, existing error envelope)
 
 - `POST /tasks/chat` `{ input: { agentId: 'appointments', message } }` → 202
   `{ ok: true, result: { accepted: true, turnId, eventId } }` (wrap in the existing success envelope).
+  Also accepts `multipart/form-data`: a `request` JSON field containing the same input plus
+  `attachments: [{ file: '<upload-field>', role: 'reference' }]`, and matching uploaded file fields.
+  Up to 3 JPEG/PNG images, each at most 5 MiB; message may be empty when images are attached.
+  Images are copied to persistent `logs/appointments/images/` before 202 and replayed with the turn after recovery.
 - `GET /agents/appointments/history?after=<eventId>&limit=<n≤500>` →
   `{ events: Event[], busy: boolean }`, oldest first; without `after` returns the latest `limit`.
   `Event = { id, at, kind: 'staff'|'agent'|'action'|'system', speaker: { staffId, name } | null,
-  text, action?: { type: 'create'|'reschedule'|'cancel'|'remind'|'reminder-cancelled',
+  text, images?: { id, name, type }[], action?: { type: 'create'|'reschedule'|'cancel'|'remind'|'reminder-cancelled',
   appointmentId?, outcome: 'ok'|'failed'|'unknown' } }`. `at` = `yyyy-MM-dd HH:mm:ss` Asia/Bangkok.
 - `GET /agents/appointments/reminders` → `{ reminders: [{ id, dueAt, note, createdAt, status }] }`.
 - `POST /agents/appointments/reminders/:id/cancel` → `{ reminder }`.
 - `GET /agents/appointments/notes` → `{ files: [{ name, content, updatedAt }] }`.
-- All five require a Firebase admin. W calls them only through typed functions in
+- `GET /agents/appointments/images/:id` streams the persisted image as `image/jpeg` or `image/png`;
+  validates the opaque image id and rejects path traversal. Errors use the existing JSON error envelope.
+- Visible history text is concise Thai prose, with Bangkok local dates/times; no JSON, UUIDs or ISO timestamps.
+  Daily/reminder events show short Thai labels while Codex receives the full internal prompt.
+  Identifiers and attachment metadata remain in structured fields.
+- All six require a Firebase admin. W calls them only through typed functions in
   `shared/ai-gateway/tasks/appointments-agent.ts`.
 
 ## W backend
@@ -122,7 +130,7 @@ No approval workflow, no Redis/scheduler framework, no extra roles.
 - AI date policy at an appointment-specific request boundary using `req.staff` (generic CRUD passes
   no actor to the service). Applies only when the actor is AI:
   - create: today … today+13, not Tuesday, no slot that has already started today;
-  - date-changing PATCH: tomorrow … today+14, any weekday;
+  - date-changing PATCH: tomorrow … today+14, not Tuesday (shop closed);
   - cancel / other PATCH: no date check.
 
 ## W frontend
@@ -144,4 +152,4 @@ No approval workflow, no Redis/scheduler framework, no extra roles.
 
 ## Out of scope for v1
 
-Images, LINE/push notifications, AI reading work orders, approval cards, configurable schedules.
+LINE/push notifications, AI reading work orders, approval cards, configurable schedules.

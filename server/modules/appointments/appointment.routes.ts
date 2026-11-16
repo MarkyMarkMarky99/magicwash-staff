@@ -36,7 +36,8 @@ export function createAppointmentRoutes(service: AppointmentService, now: () => 
           if (data.status !== 'CANCELLED' && data.appointmentDate !== undefined) {
             const existing = await service.getById(req.params.id)
             if (data.appointmentDate !== normalizeSheetDate(existing.appointmentDate)) {
-              validateDateWindow(data.appointmentDate, now(), 1, 14)
+              const date = validateDateWindow(data.appointmentDate, now(), 1, 14)
+              if (date.getUTCDay() === 2) throw ApiError.validation('AI cannot move appointments to Tuesday: the shop is closed (Asia/Bangkok)')
             }
           }
         }

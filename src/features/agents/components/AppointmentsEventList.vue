@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
-import type { PendingAppointmentsMessage } from '@/data/appointments-agent/appointments-agent.store'
+import type { AppointmentsImageState, PendingAppointmentsMessage } from '@/data/appointments-agent/appointments-agent.store'
 import type { AppointmentsAgentEvent } from '@/data/appointments-agent/appointments-agent.service'
 import type { AgentInfo } from '../agents'
 import { formatEventTime } from '../utils/format-event-time'
 import AgentAvatar from './AgentAvatar.vue'
+import AppointmentsEventImages from './AppointmentsEventImages.vue'
 
 type ActionType = NonNullable<AppointmentsAgentEvent['action']>['type']
 type Outcome = NonNullable<AppointmentsAgentEvent['action']>['outcome']
@@ -14,6 +15,7 @@ const props = defineProps<{
   agent: AgentInfo
   events: AppointmentsAgentEvent[]
   pending: PendingAppointmentsMessage[]
+  imageStates: Record<string, AppointmentsImageState>
   busy: boolean
   loading: boolean
   ownStaffId: string
@@ -83,14 +85,16 @@ watch(() => [props.events.length, props.pending.length, props.busy, props.loadin
           <span class="self-start"><AgentAvatar :agent-id="agent.id" :size="32" /></span>
           <div class="flex min-w-0 max-w-[calc(100%-44px)] flex-col">
             <span class="mb-0.5 px-1 font-label text-[10px] font-extrabold uppercase tracking-[0.08em] text-on-surface-variant">AI · {{ formatEventTime(event.at) }}</span>
-            <p class="whitespace-pre-wrap break-words rounded-[6px_18px_18px_18px] bg-white px-3.5 py-2 font-body text-sm leading-relaxed shadow-[0_1px_0_color-mix(in_srgb,var(--color-on-surface)_6%,transparent)] [overflow-wrap:anywhere]">{{ event.text }}</p>
+            <AppointmentsEventImages v-if="event.images?.length" class="mb-1.5" :images="event.images" :states="imageStates" />
+            <p v-if="event.text" class="whitespace-pre-wrap break-words rounded-[6px_18px_18px_18px] bg-white px-3.5 py-2 font-body text-sm leading-relaxed shadow-[0_1px_0_color-mix(in_srgb,var(--color-on-surface)_6%,transparent)] [overflow-wrap:anywhere]">{{ event.text }}</p>
           </div>
         </div>
 
         <div v-else class="flex" :class="event.speaker?.staffId === ownStaffId ? 'justify-end' : 'justify-start'">
           <div class="flex min-w-0 max-w-[86%] flex-col" :class="event.speaker?.staffId === ownStaffId ? 'items-end' : 'items-start'">
             <span class="mb-0.5 px-1 font-label text-[10px] font-extrabold uppercase tracking-[0.08em] text-on-surface-variant">{{ event.speaker?.name ?? 'Staff' }} · {{ formatEventTime(event.at) }}</span>
-            <p class="whitespace-pre-wrap break-words px-3.5 py-2 font-body text-sm font-semibold leading-relaxed text-primary [overflow-wrap:anywhere]" :class="event.speaker?.staffId === ownStaffId ? 'rounded-[18px_6px_18px_18px] bg-lime' : 'rounded-[6px_18px_18px_18px] bg-secondary-container'">{{ event.text }}</p>
+            <AppointmentsEventImages v-if="event.images?.length" class="mb-1.5" :images="event.images" :states="imageStates" :align-end="event.speaker?.staffId === ownStaffId" />
+            <p v-if="event.text" class="whitespace-pre-wrap break-words px-3.5 py-2 font-body text-sm font-semibold leading-relaxed text-primary [overflow-wrap:anywhere]" :class="event.speaker?.staffId === ownStaffId ? 'rounded-[18px_6px_18px_18px] bg-lime' : 'rounded-[6px_18px_18px_18px] bg-secondary-container'">{{ event.text }}</p>
           </div>
         </div>
       </template>
@@ -98,7 +102,10 @@ watch(() => [props.events.length, props.pending.length, props.busy, props.loadin
       <div v-for="entry in pending" :key="entry.localId" class="flex justify-end">
         <div class="flex min-w-0 max-w-[86%] flex-col items-end opacity-70">
           <span class="mb-0.5 px-1 font-label text-[10px] font-extrabold uppercase tracking-[0.08em] text-on-surface-variant">{{ ownName }} · Sending…</span>
-          <p class="whitespace-pre-wrap break-words rounded-[18px_6px_18px_18px] bg-lime px-3.5 py-2 font-body text-sm font-semibold leading-relaxed text-primary [overflow-wrap:anywhere]">{{ entry.text }}</p>
+          <div v-if="entry.imageUrls.length" class="mb-1.5 flex flex-wrap justify-end gap-1.5">
+            <img v-for="url in entry.imageUrls" :key="url" :src="url" alt="Attached image" class="rounded-xl border-2 border-white bg-surface-container object-cover" :class="entry.imageUrls.length === 1 ? 'h-40 w-40' : 'h-[92px] w-[92px]'" />
+          </div>
+          <p v-if="entry.text" class="whitespace-pre-wrap break-words rounded-[18px_6px_18px_18px] bg-lime px-3.5 py-2 font-body text-sm font-semibold leading-relaxed text-primary [overflow-wrap:anywhere]">{{ entry.text }}</p>
         </div>
       </div>
 

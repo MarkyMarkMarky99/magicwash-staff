@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   cancelAppointmentReminder,
+  getAppointmentImage,
   getAppointmentNotes,
   getAppointmentsHistory,
   listAppointmentReminders,
@@ -22,6 +23,60 @@ test('send posts the chat task and returns the accepted turn', async () => {
     return Response.json({ ok: true, requestId: 'r', task: 'chat', taskVersion: 1, ms: 1, result: { accepted: true, turnId: 't1', eventId: 'e2' } }, { status: 202 })
   } })
   assert.deepEqual(accepted, { accepted: true, turnId: 't1', eventId: 'e2' })
+})
+
+test('send with images posts multipart with reference attachments and allows an empty message', async () => {
+  const jpeg = new Blob(['a'], { type: 'image/jpeg' })
+  const png = new Blob(['b'], { type: 'image/png' })
+  const accepted = await sendAppointmentsMessage({ ...access, message: '', files: [{ blob: jpeg, filename: 'image-1.jpg' }, { blob: png, filename: 'image-2.png' }], fetchImpl: async (url, init) => {
+    assert.equal(url, 'http://stub.invalid/tasks/chat')
+    assert.equal((init!.headers as Record<string, string>).Authorization, 'Bearer token-1')
+    assert.equal((init!.headers as Record<string, string>)['Content-Type'], undefined)
+    const form = init!.body as FormData
+    const request = JSON.parse(form.get('request') as string)
+    assert.deepEqual(request.input, { agentId: 'appointments', message: '' })
+    assert.deepEqual(request.attachments, [{ file: 'file0', role: 'reference' }, { file: 'file1', role: 'reference' }])
+    assert.equal((form.get('file0') as File).name, 'image-1.jpg')
+    assert.equal((form.get('file1') as File).name, 'image-2.png')
+    return Response.json({ ok: true, requestId: 'r', task: 'chat', taskVersion: 1, ms: 1, result: { accepted: true, turnId: 't1', eventId: 'e2' } }, { status: 202 })
+  } })
+  assert.equal(accepted.eventId, 'e2')
+})
+
+test('send rejects bad attachments without a request', async () => {
+  const noRequest = async () => { throw new Error('no request') }
+  const good = { blob: new Blob(['a'], { type: 'image/jpeg' }), filename: 'a.jpg' }
+  for (const files of [
+    [good, good, good, good],
+    [{ blob: new Blob(['a'], { type: 'image/gif' }), filename: 'a.gif' }],
+    [{ blob: new Blob([new Uint8Array(5 * 1024 * 1024 + 1)], { type: 'image/jpeg' }), filename: 'big.jpg' }],
+  ]) {
+    await assert.rejects(sendAppointmentsMessage({ ...access, message: 'x', files, fetchImpl: noRequest }),
+      (error: unknown) => error instanceof AiGatewayError && error.code === 'INVALID_ATTACHMENT')
+  }
+})
+
+test('image fetch sends the bearer token and returns a blob', async () => {
+  const blob = await getAppointmentImage({ ...access, id: 'img/1', fetchImpl: async (url, init) => {
+    assert.equal(url, 'http://stub.invalid/agents/appointments/images/img%2F1')
+    assert.equal(init?.method, 'GET')
+    assert.equal((init!.headers as Record<string, string>).Authorization, 'Bearer token-1')
+    return new Response(new Blob(['png-bytes'], { type: 'image/png' }), { headers: { 'Content-Type': 'image/png' } })
+  } })
+  assert.equal(blob.type, 'image/png')
+  assert.equal(await blob.text(), 'png-bytes')
+  await assert.rejects(getAppointmentImage({ ...access, id: 'x', fetchImpl: async () => Response.json({ ok: false, requestId: null, task: null, error: { code: 'NOT_FOUND', message: 'No image' } }, { status: 404 }) }),
+    (error: unknown) => error instanceof AiGatewayError && error.status === 404)
+  await assert.rejects(getAppointmentImage({ ...access, id: 'x', fetchImpl: async () => new Response('boom', { status: 500 }) }),
+    (error: unknown) => error instanceof AiGatewayError && error.code === 'INVALID_RESPONSE')
+})
+
+test('history events keep images metadata', async () => {
+  const history = await getAppointmentsHistory({ ...access, fetchImpl: async () => Response.json({
+    events: [{ ...event, images: [{ id: 'img1', name: 'a.jpg', type: 'image/jpeg' }] }, event], busy: false,
+  }) })
+  assert.deepEqual(history.events[0]!.images, [{ id: 'img1', name: 'a.jpg', type: 'image/jpeg' }])
+  assert.equal(history.events[1]!.images, undefined)
 })
 
 test('send rejects an empty message without a request', async () => {

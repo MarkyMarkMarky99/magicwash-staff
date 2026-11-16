@@ -110,7 +110,7 @@ endpoint. Job-ticket orchestration remains outside this module.
 Appointments retain generic CRUD behind an appointment-specific request boundary. For `req.staff`
 with StaffId AI, create accepts Bangkok today through today+13 inclusive, excludes Tuesdays, and
 requires today's slot start to be strictly later than the current Bangkok minute. PATCH changing
-the stored date accepts tomorrow through today+14 inclusive, including Tuesdays. Unchanged dates
+the stored date accepts tomorrow through today+14 inclusive, excluding Tuesdays (shop closed). Unchanged dates
 (compared after sheet-date normalization), cancellations (`status: CANCELLED`), and PATCHes without
 a date have no date policy. Other staff retain existing behavior. Policy failures return 422 with
 a readable message and applicable date bounds before any write. AI date-changing PATCH adds one

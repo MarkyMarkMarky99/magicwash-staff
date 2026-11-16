@@ -1,9 +1,11 @@
 import { z } from 'zod'
-import { callAiGatewayEndpoint, callAiTask } from '../ai-gateway.client.js'
+import { callAiGatewayBlob, callAiGatewayEndpoint, callAiTask } from '../ai-gateway.client.js'
 import { AiGatewayError } from '../ai-gateway.errors.js'
 
 const MAX_MESSAGE_LENGTH = 4000
 const HISTORY_MAX_LIMIT = 500
+const MAX_IMAGES = 3
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 const eventSchema = z.object({
   id: z.coerce.string(),
@@ -11,6 +13,7 @@ const eventSchema = z.object({
   kind: z.enum(['staff', 'agent', 'action', 'system']),
   speaker: z.object({ staffId: z.string(), name: z.string() }).nullish(),
   text: z.string(),
+  images: z.array(z.object({ id: z.coerce.string(), name: z.string(), type: z.string() })).nullish(),
   action: z.object({
     type: z.enum(['create', 'reschedule', 'cancel', 'remind', 'reminder-cancelled']),
     appointmentId: z.string().nullish(),
@@ -35,6 +38,7 @@ const notesSchema = z.object({
 })
 
 export type AppointmentsAgentEvent = z.infer<typeof eventSchema>
+export type AppointmentsAgentEventImage = NonNullable<AppointmentsAgentEvent['images']>[number]
 export type AppointmentsAgentReminder = z.infer<typeof reminderSchema>
 export type AppointmentsAgentNote = z.infer<typeof notesSchema>['files'][number]
 export type AppointmentsAgentAccepted = z.infer<typeof acceptedSchema>
@@ -57,16 +61,24 @@ async function readEndpoint<T extends z.ZodType>(
 }
 
 export async function sendAppointmentsMessage(
-  { message, ...access }: AppointmentsAgentAccess & { message: string },
+  { message, files = [], ...access }: AppointmentsAgentAccess & { message: string, files?: { blob: Blob, filename: string }[] },
 ): Promise<AppointmentsAgentAccepted> {
-  if (!message.trim()) throw new AiGatewayError('INVALID_INPUT', 'A message is required')
+  if (!message.trim() && !files.length) throw new AiGatewayError('INVALID_INPUT', 'A message or image is required')
   if (message.length > MAX_MESSAGE_LENGTH) throw new AiGatewayError('INVALID_INPUT', 'The message is too long')
+  if (files.length > MAX_IMAGES || files.some(({ blob }) => !['image/jpeg', 'image/png'].includes(blob.type) || blob.size > MAX_IMAGE_BYTES)) {
+    throw new AiGatewayError('INVALID_ATTACHMENT', 'Attach up to three JPEG or PNG images, at most 5 MiB each')
+  }
   const envelope = await callAiTask({
     ...access, task: 'chat', input: { agentId: 'appointments', message }, timeoutMs: 20000,
+    files: files.map(file => ({ ...file, role: 'reference' })),
   })
   const accepted = acceptedSchema.safeParse(envelope.result)
   if (!accepted.success) throw new AiGatewayError('INVALID_RESPONSE', 'AI gateway returned an invalid appointments reply')
   return accepted.data
+}
+
+export function getAppointmentImage({ id, ...access }: AppointmentsAgentAccess & { id: string }): Promise<Blob> {
+  return callAiGatewayBlob({ ...access, path: `/agents/appointments/images/${encodeURIComponent(id)}` })
 }
 
 export function getAppointmentsHistory(

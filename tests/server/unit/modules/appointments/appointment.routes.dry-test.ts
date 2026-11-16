@@ -71,7 +71,8 @@ assert.equal((await create('2027-01-14')).status, 201)
 await rejected(() => create('2027-01-15'), /between 2027-01-01 and 2027-01-14/)
 
 instant = new Date('2026-11-16T03:00:00Z')
-assert.equal((await patch({ appointmentDate: '2026-11-17', timeSlot: '10:00-12:00', status: 'PENDING' })).status, 200) // Tuesday allowed
+await rejected(() => patch({ appointmentDate: '2026-11-17', timeSlot: '10:00-12:00', status: 'PENDING' }), /Tuesday/) // shop closed
+assert.equal((await patch({ appointmentDate: '2026-11-18', timeSlot: '10:00-12:00', status: 'PENDING' })).status, 200)
 assert.equal(writes.at(-1)?.UpdatedBy, 'AI')
 assert.equal((await patch({ appointmentDate: '2026-11-30' })).status, 200) // today + 14
 await rejected(() => patch({ appointmentDate: '2026-11-16' }), /between 2026-11-17 and 2026-11-30/)

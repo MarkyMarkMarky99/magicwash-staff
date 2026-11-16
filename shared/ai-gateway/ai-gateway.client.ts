@@ -117,6 +117,36 @@ export async function callAiGatewayEndpoint({
   }, timeoutMs, signal)
 }
 
+export async function callAiGatewayBlob({
+  baseUrl, path, getToken, signal, timeoutMs = 20000, fetchImpl = fetch,
+}: {
+  baseUrl: string
+  path: string
+  getToken: () => Promise<string | null>
+  signal?: AbortSignal
+  timeoutMs?: number
+  fetchImpl?: typeof fetch
+}): Promise<Blob> {
+  if (!baseUrl.trim()) throw new AiGatewayError('NOT_CONFIGURED', 'AI gateway is not configured')
+  return withDeadline(async (combinedSignal) => {
+    try {
+      const token = await getToken()
+      if (combinedSignal.aborted) throw new AiGatewayError('ABORTED', 'AI request cancelled')
+      const headers: Record<string, string> = {}
+      if (token !== null) headers.Authorization = `Bearer ${token}`
+      const response = await fetchImpl(`${baseUrl.trim().replace(/\/+$/, '')}${path}`, { method: 'GET', headers, signal: combinedSignal })
+      if (!response.ok) {
+        await readGatewayJson(response)
+        throw new AiGatewayError('INVALID_RESPONSE', 'AI gateway returned an invalid response', response.status)
+      }
+      return await response.blob()
+    } catch (reason) {
+      if (reason instanceof AiGatewayError) throw reason
+      throw new AiGatewayError('NETWORK', 'Unable to reach the AI gateway. Try again.')
+    }
+  }, timeoutMs, signal)
+}
+
 export async function checkAiGatewayHealth({
   baseUrl, fetchImpl = fetch, timeoutMs = 5000, signal,
 }: { baseUrl: string, fetchImpl?: typeof fetch, timeoutMs?: number, signal?: AbortSignal }) {

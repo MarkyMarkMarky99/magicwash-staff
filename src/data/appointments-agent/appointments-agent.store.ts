@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import {
   cancelReminder,
   fetchHistory,
+  fetchImage,
   fetchNotes,
   fetchReminders,
   sendMessage,
@@ -11,11 +12,27 @@ import {
   type AppointmentsAgentReminder,
 } from './appointments-agent.service'
 
+export interface OutgoingAppointmentsImage {
+  blob: Blob
+  filename: string
+  url: string
+}
+
 export interface PendingAppointmentsMessage {
   localId: string
   text: string
+  imageUrls: string[]
   eventId: string | null
 }
+
+export type AppointmentsImageState =
+  | { status: 'loading' }
+  | { status: 'ready', url: string }
+  | { status: 'failed' }
+
+const ATTEMPT_SUFFIX = ':attempt'
+const RESULT_SUFFIX = ':result'
+const ACTION_PREFIX = 'action:'
 
 const LAST_SEEN_KEY = 'appointments-agent-last-seen-event'
 const CHAT_HISTORY_LIMIT = 200
@@ -41,6 +58,16 @@ function errorMessage(reason: unknown): string {
   return reason instanceof Error ? reason.message : 'Something went wrong. Try again.'
 }
 
+function attemptKey(id: string): string | null {
+  if (!id.startsWith(ACTION_PREFIX) || !id.endsWith(ATTEMPT_SUFFIX)) return null
+  return id.slice(ACTION_PREFIX.length, id.length - ATTEMPT_SUFFIX.length)
+}
+
+function resultKey(id: string): string | null {
+  if (!id.startsWith(ACTION_PREFIX) || !id.endsWith(RESULT_SUFFIX)) return null
+  return id.slice(ACTION_PREFIX.length, id.length - RESULT_SUFFIX.length)
+}
+
 let localCounter = 0
 
 export const useAppointmentsAgentStore = defineStore('appointments-agent', () => {
@@ -58,6 +85,19 @@ export const useAppointmentsAgentStore = defineStore('appointments-agent', () =>
   const panelLoading = ref(false)
   const panelError = ref<string | null>(null)
   const cancellingId = ref<string | null>(null)
+  const images = ref<Record<string, AppointmentsImageState>>({})
+
+  const visibleEvents = computed(() => {
+    const finished = new Set<string>()
+    for (const event of events.value) {
+      const key = resultKey(event.id)
+      if (key !== null) finished.add(key)
+    }
+    return events.value.filter((event) => {
+      const key = attemptKey(event.id)
+      return key === null || !finished.has(key)
+    })
+  })
 
   let viewing = false
   let latestId: string | null = null
@@ -65,6 +105,7 @@ export const useAppointmentsAgentStore = defineStore('appointments-agent', () =>
   let baselineEmpty = false
   let tail: Promise<void> = Promise.resolve()
   let queuedRefresh: Promise<void> | null = null
+  let imageGeneration = 0
 
   function enqueue(operation: () => Promise<void>): Promise<void> {
     const next = tail.then(operation)
@@ -79,9 +120,50 @@ export const useAppointmentsAgentStore = defineStore('appointments-agent', () =>
     writeLastSeen(latestId)
   }
 
+  function removePending(keep: (entry: PendingAppointmentsMessage) => boolean): void {
+    const kept: PendingAppointmentsMessage[] = []
+    for (const entry of pending.value) {
+      if (keep(entry)) kept.push(entry)
+      else entry.imageUrls.forEach(url => URL.revokeObjectURL(url))
+    }
+    pending.value = kept
+  }
+
   function dropReconciledPending(): void {
     const ids = new Set(events.value.map(event => event.id))
-    pending.value = pending.value.filter(entry => entry.eventId === null || !ids.has(entry.eventId))
+    removePending(entry => entry.eventId === null || !ids.has(entry.eventId))
+  }
+
+  async function loadImage(id: string, generation: number): Promise<void> {
+    let next: AppointmentsImageState
+    try {
+      next = { status: 'ready', url: URL.createObjectURL(await fetchImage(id)) }
+    } catch {
+      next = { status: 'failed' }
+    }
+    if (generation !== imageGeneration) {
+      if (next.status === 'ready') URL.revokeObjectURL(next.url)
+      return
+    }
+    images.value = { ...images.value, [id]: next }
+  }
+
+  function loadEventImages(list: AppointmentsAgentEvent[]): void {
+    const wanted = list.flatMap(event => event.images ?? []).map(image => image.id)
+    const missing = [...new Set(wanted)].filter(id => images.value[id] === undefined)
+    if (!missing.length) return
+    const loading: Record<string, AppointmentsImageState> = {}
+    for (const id of missing) loading[id] = { status: 'loading' }
+    images.value = { ...images.value, ...loading }
+    for (const id of missing) void loadImage(id, imageGeneration)
+  }
+
+  function releaseImages(): void {
+    imageGeneration += 1
+    for (const state of Object.values(images.value)) {
+      if (state.status === 'ready') URL.revokeObjectURL(state.url)
+    }
+    images.value = {}
   }
 
   async function runRefresh(): Promise<void> {
@@ -108,6 +190,7 @@ export const useAppointmentsAgentStore = defineStore('appointments-agent', () =>
       latestId = fresh[fresh.length - 1]!.id
       if (loaded.value) {
         events.value = [...events.value, ...fresh]
+        if (viewing) loadEventImages(fresh)
         dropReconciledPending()
       }
       if (viewing) markSeen()
@@ -127,6 +210,7 @@ export const useAppointmentsAgentStore = defineStore('appointments-agent', () =>
     try {
       const history = await fetchHistory({ limit: CHAT_HISTORY_LIMIT })
       events.value = history.events
+      if (viewing) loadEventImages(history.events)
       busy.value = history.busy
       loaded.value = true
       error.value = null
@@ -147,24 +231,25 @@ export const useAppointmentsAgentStore = defineStore('appointments-agent', () =>
 
   function closeChat(): void {
     viewing = false
+    releaseImages()
   }
 
-  async function send(text: string): Promise<boolean> {
+  async function send(text: string, outgoing: OutgoingAppointmentsImage[] = []): Promise<boolean> {
     const localId = `local-${++localCounter}`
-    pending.value = [...pending.value, { localId, text, eventId: null }]
+    pending.value = [...pending.value, { localId, text, imageUrls: outgoing.map(image => image.url), eventId: null }]
     sendError.value = null
     sending.value = true
     try {
-      const accepted = await sendMessage(text)
+      const accepted = await sendMessage(text, outgoing.map(({ blob, filename }) => ({ blob, filename })))
       const entry = pending.value.find(item => item.localId === localId)
       if (entry) entry.eventId = accepted.eventId
       dropReconciledPending()
       sending.value = false
       await refresh()
-      if (!error.value) pending.value = pending.value.filter(item => item.localId !== localId)
+      if (!error.value) removePending(item => item.localId !== localId)
       return true
     } catch (reason) {
-      pending.value = pending.value.filter(item => item.localId !== localId)
+      removePending(item => item.localId !== localId)
       sendError.value = errorMessage(reason)
       sending.value = false
       void refresh()
@@ -203,6 +288,8 @@ export const useAppointmentsAgentStore = defineStore('appointments-agent', () =>
 
   return {
     events,
+    visibleEvents,
+    images,
     busy,
     loaded,
     loading,

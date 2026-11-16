@@ -1,6 +1,7 @@
 import { AiGatewayError } from '@shared/ai-gateway/ai-gateway.errors'
 import {
   cancelAppointmentReminder,
+  getAppointmentImage,
   getAppointmentNotes,
   getAppointmentsHistory,
   listAppointmentReminders,
@@ -12,6 +13,7 @@ import { aiGatewayBaseUrl, aiGatewayToken } from '@/shared/ai-gateway/ai-gateway
 export type {
   AppointmentsAgentAccepted,
   AppointmentsAgentEvent,
+  AppointmentsAgentEventImage,
   AppointmentsAgentNote,
   AppointmentsAgentReminder,
 } from '@shared/ai-gateway/tasks/appointments-agent'
@@ -22,8 +24,12 @@ function access(): AppointmentsAgentAccess {
   return { baseUrl, getToken: aiGatewayToken }
 }
 
-export function sendMessage(message: string) {
-  return sendAppointmentsMessage({ ...access(), message })
+export function sendMessage(message: string, files: { blob: Blob, filename: string }[] = []) {
+  return sendAppointmentsMessage({ ...access(), message, files })
+}
+
+export function fetchImage(id: string) {
+  return getAppointmentImage({ ...access(), id })
 }
 
 export function fetchHistory(options: { after?: string, limit?: number }) {
