@@ -9,6 +9,7 @@ import ListContainer from '@/shared/components/ListContainer.vue'
 import { useAppointmentStore } from '@/data/appointments/appointment.store'
 import { appointmentDateFromString, toAppointmentDate } from '../utils/appointment-date'
 import AppointmentCard from '../components/AppointmentCard.vue'
+import AppointmentTypeSwitch from '../components/AppointmentTypeSwitch.vue'
 import DateTabs from '@/shared/components/DateTabs.vue'
 
 const router = useRouter()
@@ -24,8 +25,12 @@ const slots = [
   { value: '18:00-20:00', label: '18:00–20:00', icon: 'nights_stay' },
 ] as const
 
+const type = ref<'PICKUP' | 'DELIVERY'>('PICKUP')
+
+// A legacy PICKUP_DELIVERY appointment is listed under both types.
+const typeItems = computed(() => dailyItems.value.filter((item) => item.appointmentType === type.value || item.appointmentType === 'PICKUP_DELIVERY'))
 const itemsBySlot = computed(() => Object.fromEntries(
-  slots.map((slot) => [slot.value, dailyItems.value.filter((item) => item.timeSlot === slot.value)]),
+  slots.map((slot) => [slot.value, typeItems.value.filter((item) => item.timeSlot === slot.value)]),
 ))
 
 onMounted(() => void store.loadDate(selectedDate.value))
@@ -101,6 +106,9 @@ async function refreshList(): Promise<void> {
           @open-customer="openCustomer"
         />
       </ListContainer>
+      <div class="h-12" aria-hidden="true" />
     </ScrollRegion>
+
+    <AppointmentTypeSwitch :type="type" @select="type = $event" />
   </AppLayout>
 </template>
