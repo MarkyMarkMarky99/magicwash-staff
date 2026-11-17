@@ -10,7 +10,7 @@ export const agentRoutes: RouteRecordRaw[] = [
   {
     path: `/agents/:agentId(${TEAM_AGENT_IDS.join('|')})`,
     name: 'team-agent-chat',
-    component: () => import('./pages/TeamAgentChatPage.vue'),
+    component: () => import('./pages/TeamAgentChatRoute.vue'),
     meta: { parent: 'agent-list' },
     props: true,
   },
