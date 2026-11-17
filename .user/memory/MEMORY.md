@@ -18,6 +18,7 @@
   - Local test: MagicwashAI `ALLOWED_ORIGINS` must include `http://localhost:3000` for `vercel dev`.
   - น้องนัดหมาย (`appointments`) live 2026-11-16; schedule page has a Pickup/Delivery filter; plan `docs/plans/appointments-agent.md`.
   - น้องซักผ้า/น้องรีดผ้า live 2026-11-17 (live-tested close/reopen/gate on KLX 6dc8190f); next: own avatars, review greetings; plan `docs/plans/department-agents.md`.
+  - Personal assistants (one per employee, admin assigns via it): plan reviewed 2026-11-18, not built; `docs/plans/personal-agents.md`.
 - **Corporate count-sheet order** — see `docs/features/orders/corporate-order-form.md`
   - Slip-photo upload on Save not yet tried in a real browser.
   - Owner: update G Drive `PriceList.json` description (price-0 rows may be active for CRYO).
