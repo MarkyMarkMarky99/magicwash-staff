@@ -18,9 +18,13 @@ const props = defineProps<{
   imageStates: Record<string, TeamAgentImageState>
   busy: boolean
   loading: boolean
+  hasOlder: boolean
+  olderLoading: boolean
   ownStaffId: string
   ownName: string
 }>()
+
+const emit = defineEmits<{ loadOlder: [] }>()
 
 const ACTION_ICONS: Record<ActionType, string> = {
   create: 'event_available',
@@ -30,6 +34,10 @@ const ACTION_ICONS: Record<ActionType, string> = {
   'reminder-cancelled': 'alarm_off',
   close: 'task_alt',
   reopen: 'replay',
+  assign: 'assignment_ind',
+  'assignment-done': 'assignment_turned_in',
+  'assignment-cancelled': 'block',
+  'assignment-overdue': 'assignment_late',
 }
 
 const OUTCOME_LABELS: Record<Outcome, string> = { ok: 'OK', failed: 'Failed', unknown: 'Unknown' }
@@ -48,13 +56,29 @@ function onScroll(): void {
   if (el) stickToBottom = el.scrollHeight - el.scrollTop - el.clientHeight < STICK_DISTANCE_PX
 }
 
+let heightBeforeOlder: number | null = null
+
 onMounted(() => region.value?.el?.addEventListener('scroll', onScroll, { passive: true }))
 onBeforeUnmount(() => region.value?.el?.removeEventListener('scroll', onScroll))
 
-watch(() => [props.events.length, props.pending.length, props.busy, props.loading], async () => {
+function loadOlder(): void {
+  heightBeforeOlder = region.value?.el?.scrollHeight ?? null
+  emit('loadOlder')
+}
+
+watch(() => props.olderLoading, async (loadingOlder) => {
+  if (loadingOlder) return
   await nextTick()
   const el = region.value?.el
-  if (el && stickToBottom) el.scrollTop = el.scrollHeight
+  if (el && heightBeforeOlder !== null) el.scrollTop += el.scrollHeight - heightBeforeOlder
+  heightBeforeOlder = null
+}, { flush: 'post' })
+
+watch(() => [props.events.length, props.pending.length, props.busy, props.loading], async () => {
+  const prepending = heightBeforeOlder !== null
+  await nextTick()
+  const el = region.value?.el
+  if (el && stickToBottom && !prepending) el.scrollTop = el.scrollHeight
 }, { flush: 'post' })
 </script>
 
@@ -71,6 +95,10 @@ watch(() => [props.events.length, props.pending.length, props.busy, props.loadin
     </div>
 
     <template v-else>
+      <button v-if="hasOlder" type="button" class="mx-auto h-9 flex-none rounded-full border-[1.5px] border-outline-variant bg-white px-4 font-body text-[13px] font-extrabold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime active:bg-surface-container disabled:opacity-50" :disabled="olderLoading" @click="loadOlder">
+        {{ olderLoading ? 'Loading…' : 'Load earlier messages' }}
+      </button>
+
       <template v-for="event in events" :key="event.id">
         <div v-if="event.kind === 'action'" class="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl bg-surface-container px-3 py-1.5 font-body text-[12.5px] leading-snug text-on-surface-variant">
           <span class="material-symbols-outlined shrink-0 text-[16px] text-primary" aria-hidden="true">{{ event.action ? ACTION_ICONS[event.action.type] : 'bolt' }}</span>

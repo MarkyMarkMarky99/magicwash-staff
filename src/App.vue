@@ -163,7 +163,7 @@ function onKeydown(event: KeyboardEvent) {
 
 provide(appointmentPendingCountKey, pendingCount)
 provide(staffSignedInKey, computed(() => authStore.status === 'signedIn'))
-provide(agentsUnreadKey, useAgentsUnread(() => authStore.role))
+provide(agentsUnreadKey, useAgentsUnread(() => authStore.role, () => authStore.staff?.staffId ?? null))
 
 // Keep the schedule and pending badge ready from the same backend-backed store.
 onMounted(async () => {

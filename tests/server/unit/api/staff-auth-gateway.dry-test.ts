@@ -55,6 +55,10 @@ function gateway(authenticate: StaffAuthenticator, authenticateIdentity?: StaffI
       collection: new ApiHandler({ GET: (req) => ({ status: 200, body: req.staff }) }),
       item: new ApiHandler({ GET: (req) => ({ status: 200, body: req.staff }) }),
     }),
+    'work-transactions': async () => ({
+      collection: new ApiHandler({ GET: (req) => ({ status: 200, body: req.staff }), POST: (req) => ({ status: 200, body: req.staff }) }),
+      item: new ApiHandler({ GET: (req) => ({ status: 200, body: req.staff }) }),
+    }),
     portal: async () => ({
       collection: new ApiHandler({ GET: (req) => ({ status: 200, body: req.staff }) }),
     }),
@@ -201,7 +205,8 @@ try {
     ['/api/job-tickets/department-work', 'GET'], ['/api/job-tickets', 'GET'],
     ['/api/job-tickets?orderId=o1&page=2&perPage=1', 'GET'],
     ['/api/job-tickets?laundryItemId=tag1&page=2&perPage=1', 'GET'],
-    ['/api/work-orders', 'GET'], ['/api/job-tickets/complete-order', 'POST'], ['/api/job-tickets/reopen', 'POST'],
+    ['/api/work-orders', 'GET'], ['/api/work-transactions', 'GET'], ['/api/work-transactions?from=2026-11-01&to=2026-11-02', 'GET'],
+    ['/api/job-tickets/complete-order', 'POST'], ['/api/job-tickets/reopen', 'POST'],
   ]) assert.deepEqual((await api.handleRequest(serviceRequest(path, undefined, method))).body, aiStaff)
   for (const [path, method, actorField, status] of [
     ['/api/appointments', 'POST', 'createdBy', 201],
@@ -218,7 +223,7 @@ try {
     aiActive = active
     aiPresent = !active
     invalidateStaffListCache()
-    for (const [path, method] of [['/api/appointments', 'POST'], ['/api/customers', 'GET'], ['/api/laundry-items/Ab12Cd34', 'PATCH'], ['/api/job-tickets', 'GET'], ['/api/job-tickets/reopen', 'POST'], ['/api/job-tickets/complete-order', 'POST'], ['/api/work-orders', 'GET']]) {
+    for (const [path, method] of [['/api/appointments', 'POST'], ['/api/customers', 'GET'], ['/api/laundry-items/Ab12Cd34', 'PATCH'], ['/api/job-tickets', 'GET'], ['/api/job-tickets/reopen', 'POST'], ['/api/job-tickets/complete-order', 'POST'], ['/api/work-orders', 'GET'], ['/api/work-transactions', 'GET']]) {
       const result = await api.handleRequest(serviceRequest(path, undefined, method))
       assert.equal(result.status, 403)
       assert.match(JSON.stringify(result.body), /AI is not an active staff member/)
@@ -240,6 +245,7 @@ try {
     ['/api/job-tickets/reopen', 'GET'], ['/api/job-tickets/complete-order', 'GET'],
     ['/api/job-tickets/reopen/extra', 'POST'], ['/api/work-orders/o1', 'GET'],
     ['/api/work-orders', 'POST'], ['/api/work-orders/o1', 'PATCH'],
+    ['/api/work-transactions', 'POST'], ['/api/work-transactions/w1', 'GET'], ['/api/work-transactions', 'DELETE'],
   ]) {
     assert.equal((await api.handleRequest(serviceRequest(path!, 'ai-service-secret', method))).status, 401)
   }

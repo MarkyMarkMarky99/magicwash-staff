@@ -111,6 +111,7 @@ function hasAiRouteServiceKey(req: VercelRequest, segments: string[]): boolean {
       || (req.method === 'POST' && segments.length === 2 && ['complete-order', 'reopen'].includes(segments[1]!))
     ))
     || (moduleName === 'work-orders' && req.method === 'GET' && segments.length === 1)
+    || (moduleName === 'work-transactions' && req.method === 'GET' && segments.length === 1)
     || (moduleName === 'customers' && req.method === 'GET' && segments.length <= 2)
   if (!allowed) return false
   const expectedKey = process.env.AI_SERVICE_KEY

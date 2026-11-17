@@ -12,11 +12,14 @@ const eventSchema = z.object({
   id: z.coerce.string(),
   at: z.string(),
   kind: z.enum(['staff', 'agent', 'action', 'system']),
-  speaker: z.object({ staffId: z.string(), name: z.string() }).nullish(),
+  speaker: z.object({ staffId: z.string(), name: z.string(), role: z.enum(['admin', 'staff', 'system']).nullish() }).nullish(),
   text: z.string(),
   images: z.array(z.object({ id: z.coerce.string(), name: z.string(), type: z.string() })).nullish(),
   action: z.object({
-    type: z.enum(['create', 'reschedule', 'cancel', 'remind', 'reminder-cancelled', 'close', 'reopen']),
+    type: z.enum([
+      'create', 'reschedule', 'cancel', 'remind', 'reminder-cancelled', 'close', 'reopen',
+      'assign', 'assignment-done', 'assignment-cancelled', 'assignment-overdue',
+    ]),
     appointmentId: z.string().nullish(),
     outcome: z.enum(['ok', 'failed', 'unknown']),
   }).nullish(),
@@ -30,10 +33,31 @@ const reminderSchema = z.object({
   status: z.string(),
 })
 
+const assignmentSchema = z.object({
+  id: z.coerce.string(),
+  version: z.coerce.number().nullish(),
+  assigneeStaffId: z.string(),
+  assigneeName: z.string().nullish(),
+  createdBy: z.object({
+    kind: z.string(),
+    staffId: z.string().nullish(),
+    agentId: z.string().nullish(),
+    name: z.string().nullish(),
+  }).nullish(),
+  requestedByAdmin: z.string().nullish(),
+  detail: z.string(),
+  dueAt: z.string().nullish(),
+  status: z.enum(['open', 'done', 'cancelled']),
+  dueNotified: z.boolean().nullish(),
+  failedDeliveries: z.coerce.number().nullish(),
+})
+
 const acceptedSchema = z.object({ accepted: z.literal(true), turnId: z.coerce.string(), eventId: z.coerce.string() })
 const historySchema = z.object({ events: z.array(eventSchema), busy: z.boolean() })
 const remindersSchema = z.object({ reminders: z.array(reminderSchema) })
 const cancelledReminderSchema = z.object({ reminder: reminderSchema })
+const assignmentsSchema = z.object({ assignments: z.array(assignmentSchema) })
+const cancelledAssignmentSchema = z.object({ assignment: assignmentSchema })
 const notesSchema = z.object({
   files: z.array(z.object({ name: z.string(), content: z.string(), updatedAt: z.string().nullish() })),
 })
@@ -42,6 +66,8 @@ export type TeamAgentEvent = z.infer<typeof eventSchema>
 export type TeamAgentEventImage = NonNullable<TeamAgentEvent['images']>[number]
 export type TeamAgentReminder = z.infer<typeof reminderSchema>
 export type TeamAgentNote = z.infer<typeof notesSchema>['files'][number]
+export type TeamAgentAssignment = z.infer<typeof assignmentSchema>
+export type TeamAgentAssignmentStatus = TeamAgentAssignment['status'] | 'all'
 export type TeamAgentAccepted = z.infer<typeof acceptedSchema>
 export type TeamAgentHistory = z.infer<typeof historySchema>
 
@@ -51,8 +77,20 @@ export interface TeamAgentAccess {
   agentId: TeamAgentId
   baseUrl: string
   getToken: () => Promise<string | null>
+  staffId?: string
+  /** Admin-only: the target's display name from the staff list, so the assistant knows who it serves. */
+  staffName?: string
   signal?: AbortSignal
   fetchImpl?: typeof fetch
+}
+
+export type PersonalAssignmentsAccess = Omit<TeamAgentAccess, 'agentId' | 'staffId' | 'staffName'>
+
+function agentPath(access: TeamAgentAccess, suffix: string, query: URLSearchParams = new URLSearchParams()): string {
+  if (access.staffId) query.set('staffId', access.staffId)
+  if (access.staffId && access.staffName) query.set('staffName', access.staffName)
+  const queryText = query.toString()
+  return `/agents/${access.agentId}/${suffix}${queryText ? `?${queryText}` : ''}`
 }
 
 async function readEndpoint<T extends z.ZodType>(
@@ -73,7 +111,7 @@ export async function sendTeamAgentMessage(
     throw new AiGatewayError('INVALID_ATTACHMENT', 'Attach up to three JPEG or PNG images, at most 5 MiB each')
   }
   const envelope = await callAiTask({
-    ...access, task: 'chat', input: { agentId: access.agentId, message }, timeoutMs: 20000,
+    ...access, task: 'chat', input: { agentId: access.agentId, message, ...(access.staffId ? { staffId: access.staffId } : {}) }, timeoutMs: 20000,
     files: files.map(file => ({ ...file, role: 'reference' })),
   })
   const accepted = acceptedSchema.safeParse(envelope.result)
@@ -82,31 +120,45 @@ export async function sendTeamAgentMessage(
 }
 
 export function getTeamAgentImage({ id, ...access }: TeamAgentAccess & { id: string }): Promise<Blob> {
-  return callAiGatewayBlob({ ...access, path: `/agents/${access.agentId}/images/${encodeURIComponent(id)}` })
+  return callAiGatewayBlob({ ...access, path: agentPath(access, `images/${encodeURIComponent(id)}`) })
 }
 
-export function getTeamAgentHistory(
-  { after, limit, ...access }: TeamAgentAccess & { after?: string, limit?: number },
+export async function getTeamAgentHistory(
+  { after, before, limit, ...access }: TeamAgentAccess & { after?: string, before?: string, limit?: number },
 ): Promise<TeamAgentHistory> {
+  if (after !== undefined && before !== undefined) throw new AiGatewayError('INVALID_INPUT', 'History cannot use after and before together')
   const query = new URLSearchParams()
   if (after !== undefined) query.set('after', after)
+  if (before !== undefined) query.set('before', before)
   if (limit !== undefined) query.set('limit', String(Math.min(Math.max(Math.trunc(limit), 1), HISTORY_MAX_LIMIT)))
-  const queryText = query.toString()
-  const suffix = queryText ? `?${queryText}` : ''
-  return readEndpoint(access, 'GET', `/agents/${access.agentId}/history${suffix}`, historySchema)
+  return readEndpoint(access, 'GET', agentPath(access, 'history', query), historySchema)
 }
 
 export async function listTeamAgentReminders(access: TeamAgentAccess): Promise<TeamAgentReminder[]> {
-  return (await readEndpoint(access, 'GET', `/agents/${access.agentId}/reminders`, remindersSchema)).reminders
+  return (await readEndpoint(access, 'GET', agentPath(access, 'reminders'), remindersSchema)).reminders
 }
 
 export async function cancelTeamAgentReminder(
   { id, ...access }: TeamAgentAccess & { id: string },
 ): Promise<TeamAgentReminder> {
-  const path = `/agents/${access.agentId}/reminders/${encodeURIComponent(id)}/cancel`
+  const path = agentPath(access, `reminders/${encodeURIComponent(id)}/cancel`)
   return (await readEndpoint(access, 'POST', path, cancelledReminderSchema)).reminder
 }
 
 export async function getTeamAgentNotes(access: TeamAgentAccess): Promise<TeamAgentNote[]> {
-  return (await readEndpoint(access, 'GET', `/agents/${access.agentId}/notes`, notesSchema)).files
+  return (await readEndpoint(access, 'GET', agentPath(access, 'notes'), notesSchema)).files
+}
+
+export async function listPersonalAssignments(
+  { status, ...access }: PersonalAssignmentsAccess & { status: TeamAgentAssignmentStatus },
+): Promise<TeamAgentAssignment[]> {
+  const path = `/agents/personal/assignments?${new URLSearchParams({ status })}`
+  return (await readEndpoint({ ...access, agentId: 'personal' }, 'GET', path, assignmentsSchema)).assignments
+}
+
+export async function cancelPersonalAssignment(
+  { id, ...access }: PersonalAssignmentsAccess & { id: string },
+): Promise<TeamAgentAssignment> {
+  const path = `/agents/personal/assignments/${encodeURIComponent(id)}/cancel`
+  return (await readEndpoint({ ...access, agentId: 'personal' }, 'POST', path, cancelledAssignmentSchema)).assignment
 }

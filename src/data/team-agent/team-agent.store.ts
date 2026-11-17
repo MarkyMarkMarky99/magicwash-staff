@@ -39,17 +39,24 @@ const LEGACY_APPOINTMENTS_KEY = 'appointments-agent-last-seen-event'
 const CHAT_HISTORY_LIMIT = 200
 const POLL_LIMIT = 500
 
-function lastSeenKey(agentId: TeamAgentId): string {
-  return `team-agent-last-seen-event:${agentId}`
+function storeId(agentId: TeamAgentId, target: string | undefined): string {
+  return agentId === 'personal' ? `team-agent-personal:${target ?? 'self'}` : `team-agent-${agentId}`
 }
 
-function readLastSeen(agentId: TeamAgentId): string | null {
+function lastSeenKey(agentId: TeamAgentId, target: string | undefined, viewer: string | null): string | null {
+  if (agentId !== 'personal') return `team-agent-last-seen-event:${agentId}`
+  return viewer === null ? null : `team-agent-last-seen-event:personal:${viewer}:${target ?? 'self'}`
+}
+
+function readLastSeen(agentId: TeamAgentId, target: string | undefined, viewer: string | null): string | null {
+  const key = lastSeenKey(agentId, target, viewer)
+  if (key === null) return null
   try {
-    const stored = localStorage.getItem(lastSeenKey(agentId))
+    const stored = localStorage.getItem(key)
     if (stored !== null || agentId !== 'appointments') return stored
     const legacy = localStorage.getItem(LEGACY_APPOINTMENTS_KEY)
     if (legacy !== null) {
-      localStorage.setItem(lastSeenKey(agentId), legacy)
+      localStorage.setItem(key, legacy)
       localStorage.removeItem(LEGACY_APPOINTMENTS_KEY)
     }
     return legacy
@@ -58,9 +65,11 @@ function readLastSeen(agentId: TeamAgentId): string | null {
   }
 }
 
-function writeLastSeen(agentId: TeamAgentId, id: string): void {
+function writeLastSeen(agentId: TeamAgentId, target: string | undefined, viewer: string | null, id: string): void {
+  const key = lastSeenKey(agentId, target, viewer)
+  if (key === null) return
   try {
-    localStorage.setItem(lastSeenKey(agentId), id)
+    localStorage.setItem(key, id)
   } catch {
     // Storage blocked: the badge just starts over on this device.
   }
@@ -82,12 +91,14 @@ function resultKey(id: string): string | null {
 
 let localCounter = 0
 
-function defineTeamAgentStore(agentId: TeamAgentId) {
-  return defineStore(`team-agent-${agentId}`, () => {
+function defineTeamAgentStore(agentId: TeamAgentId, target: string | undefined) {
+  return defineStore(storeId(agentId, target), () => {
     const events = ref<TeamAgentEvent[]>([])
     const busy = ref(false)
     const loaded = ref(false)
     const loading = ref(false)
+    const olderLoading = ref(false)
+    const hasOlder = ref(false)
     const error = ref<string | null>(null)
     const sendError = ref<string | null>(null)
     const sending = ref(false)
@@ -114,7 +125,9 @@ function defineTeamAgentStore(agentId: TeamAgentId) {
 
     let viewing = false
     let latestId: string | null = null
-    let lastSeenId: string | null = readLastSeen(agentId)
+    let viewer: string | null = null
+    let lastSeenId: string | null = readLastSeen(agentId, target, viewer)
+    let generation = 0
     let baselineEmpty = false
     let tail: Promise<void> = Promise.resolve()
     let queuedRefresh: Promise<void> | null = null
@@ -130,7 +143,7 @@ function defineTeamAgentStore(agentId: TeamAgentId) {
       unreadCount.value = 0
       if (latestId === null || latestId === lastSeenId) return
       lastSeenId = latestId
-      writeLastSeen(agentId, latestId)
+      writeLastSeen(agentId, target, viewer, latestId)
     }
 
     function removePending(keep: (entry: PendingTeamAgentMessage) => boolean): void {
@@ -150,7 +163,7 @@ function defineTeamAgentStore(agentId: TeamAgentId) {
     async function loadImage(id: string, generation: number): Promise<void> {
       let next: TeamAgentImageState
       try {
-        next = { status: 'ready', url: URL.createObjectURL(await fetchImage(agentId, id)) }
+        next = { status: 'ready', url: URL.createObjectURL(await fetchImage(agentId, target, id)) }
       } catch {
         next = { status: 'failed' }
       }
@@ -181,10 +194,12 @@ function defineTeamAgentStore(agentId: TeamAgentId) {
 
     async function runRefresh(): Promise<void> {
       queuedRefresh = null
+      const run = generation
       const cursor = latestId ?? lastSeenId
       const baseline = cursor === null && !loaded.value && !baselineEmpty
       try {
-        const history = await fetchHistory(agentId, baseline ? { limit: 1 } : { after: cursor ?? undefined, limit: POLL_LIMIT })
+        const history = await fetchHistory(agentId, target, baseline ? { limit: 1 } : { after: cursor ?? undefined, limit: POLL_LIMIT })
+        if (run !== generation) return
         busy.value = history.busy
         error.value = null
         if (baseline) {
@@ -209,7 +224,7 @@ function defineTeamAgentStore(agentId: TeamAgentId) {
         if (viewing) markSeen()
         else unreadCount.value += fresh.length
       } catch (reason) {
-        error.value = errorMessage(reason)
+        if (run === generation) error.value = errorMessage(reason)
       }
     }
 
@@ -219,10 +234,13 @@ function defineTeamAgentStore(agentId: TeamAgentId) {
     }
 
     async function runLoadLatest(): Promise<void> {
+      const run = generation
       loading.value = true
       try {
-        const history = await fetchHistory(agentId, { limit: CHAT_HISTORY_LIMIT })
+        const history = await fetchHistory(agentId, target, { limit: CHAT_HISTORY_LIMIT })
+        if (run !== generation) return
         events.value = history.events
+        hasOlder.value = history.events.length >= CHAT_HISTORY_LIMIT
         if (viewing) loadEventImages(history.events)
         busy.value = history.busy
         loaded.value = true
@@ -231,10 +249,36 @@ function defineTeamAgentStore(agentId: TeamAgentId) {
         dropReconciledPending()
         if (viewing) markSeen()
       } catch (reason) {
-        error.value = errorMessage(reason)
+        if (run === generation) error.value = errorMessage(reason)
       } finally {
-        loading.value = false
+        if (run === generation) loading.value = false
       }
+    }
+
+    async function runLoadOlder(): Promise<void> {
+      const run = generation
+      const oldest = events.value[0]?.id
+      try {
+        if (oldest === undefined) return
+        const history = await fetchHistory(agentId, target, { before: oldest, limit: CHAT_HISTORY_LIMIT })
+        if (run !== generation) return
+        const known = new Set(events.value.map(event => event.id))
+        const older = history.events.filter(event => !known.has(event.id))
+        events.value = [...older, ...events.value]
+        hasOlder.value = history.events.length >= CHAT_HISTORY_LIMIT
+        if (viewing) loadEventImages(older)
+        error.value = null
+      } catch (reason) {
+        if (run === generation) error.value = errorMessage(reason)
+      } finally {
+        if (run === generation) olderLoading.value = false
+      }
+    }
+
+    function loadOlder(): Promise<void> {
+      if (!loaded.value || !hasOlder.value || olderLoading.value) return Promise.resolve()
+      olderLoading.value = true
+      return enqueue(runLoadOlder)
     }
 
     function openChat(): Promise<void> {
@@ -248,12 +292,14 @@ function defineTeamAgentStore(agentId: TeamAgentId) {
     }
 
     async function send(text: string, outgoing: OutgoingTeamAgentImage[] = []): Promise<boolean> {
+      const run = generation
       const localId = `local-${++localCounter}`
       pending.value = [...pending.value, { localId, text, imageUrls: outgoing.map(image => image.url), eventId: null }]
       sendError.value = null
       sending.value = true
       try {
-        const accepted = await sendMessage(agentId, text, outgoing.map(({ blob, filename }) => ({ blob, filename })))
+        const accepted = await sendMessage(agentId, target, text, outgoing.map(({ blob, filename }) => ({ blob, filename })))
+        if (run !== generation) return true
         const entry = pending.value.find(item => item.localId === localId)
         if (entry) entry.eventId = accepted.eventId
         dropReconciledPending()
@@ -262,6 +308,7 @@ function defineTeamAgentStore(agentId: TeamAgentId) {
         if (!error.value) removePending(item => item.localId !== localId)
         return true
       } catch (reason) {
+        if (run !== generation) return false
         removePending(item => item.localId !== localId)
         sendError.value = errorMessage(reason)
         sending.value = false
@@ -271,32 +318,67 @@ function defineTeamAgentStore(agentId: TeamAgentId) {
     }
 
     async function loadPanel(): Promise<void> {
+      const run = generation
       panelLoading.value = true
       panelError.value = null
       try {
-        const [nextReminders, nextNotes] = await Promise.all([fetchReminders(agentId), fetchNotes(agentId)])
+        const [nextReminders, nextNotes] = await Promise.all([fetchReminders(agentId, target), fetchNotes(agentId, target)])
+        if (run !== generation) return
         reminders.value = nextReminders
         notes.value = nextNotes
       } catch (reason) {
-        panelError.value = errorMessage(reason)
+        if (run === generation) panelError.value = errorMessage(reason)
       } finally {
-        panelLoading.value = false
+        if (run === generation) panelLoading.value = false
       }
     }
 
     async function cancelPendingReminder(id: string): Promise<void> {
       if (cancellingId.value !== null) return
+      const run = generation
       cancellingId.value = id
       panelError.value = null
       try {
-        await cancelReminder(agentId, id)
+        await cancelReminder(agentId, target, id)
+        if (run !== generation) return
         reminders.value = reminders.value.filter(reminder => reminder.id !== id)
         void refresh()
       } catch (reason) {
-        panelError.value = errorMessage(reason)
+        if (run === generation) panelError.value = errorMessage(reason)
       } finally {
-        cancellingId.value = null
+        if (run === generation) cancellingId.value = null
       }
+    }
+
+    function reset(): void {
+      generation += 1
+      events.value = []
+      busy.value = false
+      loaded.value = false
+      loading.value = false
+      olderLoading.value = false
+      hasOlder.value = false
+      error.value = null
+      sendError.value = null
+      sending.value = false
+      removePending(() => false)
+      unreadCount.value = 0
+      reminders.value = []
+      notes.value = []
+      panelLoading.value = false
+      panelError.value = null
+      cancellingId.value = null
+      releaseImages()
+      latestId = null
+      baselineEmpty = false
+      queuedRefresh = null
+    }
+
+    function bindViewer(staffId: string | null): void {
+      if (agentId !== 'personal' || staffId === viewer) return
+      reset()
+      viewer = staffId
+      lastSeenId = readLastSeen(agentId, target, viewer)
     }
 
     return {
@@ -306,6 +388,8 @@ function defineTeamAgentStore(agentId: TeamAgentId) {
       busy,
       loaded,
       loading,
+      olderLoading,
+      hasOlder,
       error,
       sendError,
       sending,
@@ -317,6 +401,9 @@ function defineTeamAgentStore(agentId: TeamAgentId) {
       panelError,
       cancellingId,
       refresh,
+      loadOlder,
+      bindViewer,
+      reset,
       openChat,
       closeChat,
       send,
@@ -326,9 +413,15 @@ function defineTeamAgentStore(agentId: TeamAgentId) {
   })
 }
 
-const definitions: Partial<Record<TeamAgentId, ReturnType<typeof defineTeamAgentStore>>> = {}
+const definitions = new Map<string, ReturnType<typeof defineTeamAgentStore>>()
 
-export function useTeamAgentStore(agentId: TeamAgentId) {
-  definitions[agentId] ??= defineTeamAgentStore(agentId)
-  return definitions[agentId]()
+export function useTeamAgentStore(agentId: TeamAgentId, target?: string) {
+  const personalTarget = agentId === 'personal' ? target || undefined : undefined
+  const id = storeId(agentId, personalTarget)
+  let definition = definitions.get(id)
+  if (!definition) {
+    definition = defineTeamAgentStore(agentId, personalTarget)
+    definitions.set(id, definition)
+  }
+  return definition()
 }

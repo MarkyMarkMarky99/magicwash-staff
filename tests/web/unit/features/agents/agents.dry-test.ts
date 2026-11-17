@@ -9,4 +9,8 @@ assert.deepEqual(visible('device').filter(id => ['appointments', 'washing', 'iro
 assert.deepEqual(visible(null).filter(id => ['appointments', 'washing', 'ironing'].includes(id)), [])
 assert.equal(agentById('washing').name, 'น้องซักผ้า')
 assert.equal(agentById('ironing').name, 'น้องรีดผ้า')
+assert.equal(agentById('personal').name, 'ผู้ช่วยส่วนตัว')
+assert.equal(agentById('personal').role, 'My assistant')
+assert.ok(visible('admin').includes('personal') && visible('staff').includes('personal'))
+assert.ok(!visible('device').includes('personal') && !visible(null).includes('personal'))
 console.log('agents.dry-test: OK')

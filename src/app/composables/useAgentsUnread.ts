@@ -6,7 +6,7 @@ import type { StaffSession } from '@/data/auth/auth.service'
 
 const BACKGROUND_POLL_MS = 60000
 
-export function useAgentsUnread(role: () => StaffSession['role'] | null) {
+export function useAgentsUnread(role: () => StaffSession['role'] | null, viewerStaffId: () => string | null) {
   const stores = Object.fromEntries(TEAM_AGENT_IDS.map(id => [id, useTeamAgentStore(id)])) as Record<TeamAgentId, ReturnType<typeof useTeamAgentStore>>
   const visibleIds = computed(() => TEAM_AGENT_IDS.filter(id => agentVisibleToRole(agentById(id), role())))
   let timer: ReturnType<typeof setInterval> | null = null
@@ -16,8 +16,9 @@ export function useAgentsUnread(role: () => StaffSession['role'] | null) {
     timer = null
   }
 
-  watch(visibleIds, (ids) => {
+  watch([visibleIds, viewerStaffId], ([ids, viewer]) => {
     stop()
+    stores.personal.bindViewer(viewer)
     if (!ids.length) return
     const refreshAll = () => ids.forEach(id => void stores[id].refresh())
     refreshAll()

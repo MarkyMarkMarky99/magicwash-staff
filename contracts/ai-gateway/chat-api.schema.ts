@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const TEAM_AGENT_IDS = ['appointments', 'washing', 'ironing'] as const
+export const TEAM_AGENT_IDS = ['appointments', 'washing', 'ironing', 'personal'] as const
 
 const chatAgentIdSchema = z.enum(['register-customer', 'price-check', ...TEAM_AGENT_IDS])
 
@@ -8,6 +8,7 @@ export const chatInputSchema = z.object({
   agentId: chatAgentIdSchema,
   message: z.string().max(4000),
   sessionId: z.string().optional(),
+  staffId: z.string().optional(),
 })
 
 export const customerProposalSchema = z.object({

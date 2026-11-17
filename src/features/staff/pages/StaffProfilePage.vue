@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia'
 import { bangkokToday } from '@shared/utils/bangkok-datetime'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
-import { staffEditRoute } from '@/shared/navigation/form-routes'
+import { personalAgentTargetRoute, staffEditRoute } from '@/shared/navigation/form-routes'
 import { useAuthStore } from '@/data/auth/auth.store'
 import { useStaffStore } from '@/data/staff/staff.store'
 import { listWorkTransactions, type WorkTransactionDto } from '@/data/work-transactions/work-transaction.service'
@@ -204,6 +204,14 @@ watch(() => props.staffId, () => {
         >
           <span class="material-symbols-outlined text-[18px]" aria-hidden="true">event_busy</span>
           Day off
+        </RouterLink>
+        <RouterLink
+          v-if="isAdmin"
+          :to="personalAgentTargetRoute(props.staffId)"
+          class="flex min-h-11 shrink-0 items-center gap-1.5 rounded-[14px] border border-on-primary/10 bg-on-primary/5 px-3.5 font-label text-[13px] font-semibold text-on-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime"
+        >
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">smart_toy</span>
+          Open assistant
         </RouterLink>
         <RouterLink
           v-if="isAdmin"

@@ -15,6 +15,7 @@ export const CUSTOMER_CREATE_ROUTE_NAME = 'customer-create'
 export const STAFF_REGISTER_ROUTE_NAME = 'staff-register'
 export const STAFF_EDIT_ROUTE_NAME = 'staff-edit'
 export const STAFF_PROFILE_ROUTE_NAME = 'staff-profile'
+export const PERSONAL_AGENT_TARGET_ROUTE_NAME = 'personal-agent-target'
 
 interface AppointmentCreateRouteContext {
   customerId: string
@@ -125,6 +126,10 @@ export function staffRegisterRoute(): RouteLocationRaw {
 
 export function staffEditRoute(staffId: string): RouteLocationRaw {
   return { name: STAFF_EDIT_ROUTE_NAME, params: { staffId } }
+}
+
+export function personalAgentTargetRoute(staffId: string): RouteLocationRaw {
+  return { name: PERSONAL_AGENT_TARGET_ROUTE_NAME, params: { staffId } }
 }
 
 export function staffProfileRoute(staffId: string): RouteLocationRaw {

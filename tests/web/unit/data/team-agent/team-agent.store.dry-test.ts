@@ -23,6 +23,9 @@ interface FakeEvent {
 const server: { events: FakeEvent[], busy: boolean, posts: string[], failPost: boolean, imageRequests: string[], failImages: Set<string>, uploads: string[][], washingHistoryRequests: number } = {
   events: [], busy: false, posts: [], failPost: false, imageRequests: [], failImages: new Set(), uploads: [], washingHistoryRequests: 0,
 }
+const personalServer: Record<string, FakeEvent[]> = {}
+const personalRequests: URL[] = []
+const chatTargets: (string | null)[] = []
 let counter = 0
 function add(kind: 'staff' | 'agent' | 'action', text: string, extra: Partial<FakeEvent> = {}): FakeEvent {
   counter += 1
@@ -48,7 +51,9 @@ globalThis.fetch = async (input, init) => {
     let message: string
     let images: FakeEvent['images']
     if (typeof init!.body === 'string') {
-      message = JSON.parse(init!.body).input.message
+      const input = JSON.parse(init!.body).input
+      message = input.message
+      chatTargets.push(input.staffId ?? null)
     } else {
       const form = init!.body as FormData
       const request = JSON.parse(form.get('request') as string)
@@ -65,6 +70,24 @@ globalThis.fetch = async (input, init) => {
     server.imageRequests.push(id)
     if (server.failImages.has(id)) return Response.json({ ok: false, requestId: null, task: null, error: { code: 'NOT_FOUND', message: 'No image' } }, { status: 404 })
     return new Response(new Blob([id], { type: 'image/jpeg' }), { headers: { 'Content-Type': 'image/jpeg' } })
+  }
+  if (url.pathname === '/agents/personal/history') {
+    personalRequests.push(url)
+    const list = personalServer[url.searchParams.get('staffId') ?? ''] ?? []
+    const limit = Number(url.searchParams.get('limit'))
+    const after = url.searchParams.get('after')
+    const before = url.searchParams.get('before')
+    let slice: FakeEvent[]
+    if (before !== null) {
+      const index = list.findIndex(event => event.id === before)
+      slice = list.slice(Math.max(0, index - limit), index)
+    } else if (after !== null) {
+      const start = list.findIndex(event => event.id === after) + 1
+      slice = list.slice(start, start + limit)
+    } else {
+      slice = list.slice(Math.max(0, list.length - limit))
+    }
+    return Response.json({ events: slice, busy: false })
   }
   if (url.pathname === '/agents/washing/history') {
     server.washingHistoryRequests += 1
@@ -196,6 +219,69 @@ try {
   assert.equal(server.washingHistoryRequests, 1)
   assert.equal(washing.unreadCount, 0)
   assert.equal(storage.get('team-agent-last-seen-event:washing'), undefined)
+  // Personal chats: keyed by target, last-seen key carries viewer and target, older events load by cursor.
+  const personalEvent = (id: string): FakeEvent => ({ id, at: '2026-11-16 09:00:00', kind: 'agent', speaker: null, text: id })
+  personalServer[''] = ['m1', 'm2'].map(personalEvent)
+  personalServer.S2 = Array.from({ length: 250 }, (_, index) => personalEvent(`p${String(index + 1).padStart(3, '0')}`))
+  storage.clear()
+  setActivePinia(createPinia())
+  const own = useTeamAgentStore('personal')
+  const target = useTeamAgentStore('personal', 'S2')
+  assert.notEqual(own, target)
+  assert.equal(own.$id, 'team-agent-personal:self')
+  assert.equal(target.$id, 'team-agent-personal:S2')
+  assert.equal(useTeamAgentStore('personal', ''), own)
+  assert.equal(useTeamAgentStore('washing', 'S2').$id, 'team-agent-washing')
+  own.bindViewer('S1')
+  target.bindViewer('S1')
+  await own.refresh()
+  assert.equal(storage.get('team-agent-last-seen-event:personal:S1:self'), 'm2')
+  assert.equal(personalRequests.at(-1)!.searchParams.get('staffId'), null)
+
+  await target.openChat()
+  assert.equal(personalRequests.at(-1)!.searchParams.get('staffId'), 'S2')
+  assert.equal(target.events.length, 200)
+  assert.equal(target.hasOlder, true)
+  assert.equal(storage.get('team-agent-last-seen-event:personal:S1:S2'), 'p250')
+  assert.equal(storage.get('team-agent-last-seen-event:personal:S1:self'), 'm2', 'reading a target never moves the own marker')
+  assert.equal(storage.has('team-agent-last-seen-event:personal:S2:self'), false)
+
+  await target.loadOlder()
+  const olderRequest = personalRequests.at(-1)!
+  assert.equal(olderRequest.searchParams.get('before'), 'p051')
+  assert.equal(olderRequest.searchParams.get('after'), null)
+  assert.equal(olderRequest.searchParams.get('staffId'), 'S2')
+  assert.equal(target.events.length, 250)
+  assert.equal(target.events[0]!.id, 'p001')
+  assert.equal(target.events.at(-1)!.id, 'p250')
+  assert.equal(target.hasOlder, false)
+  assert.equal(target.olderLoading, false)
+  const requestsBefore = personalRequests.length
+  await target.loadOlder()
+  assert.equal(personalRequests.length, requestsBefore, 'nothing older: no request')
+
+  await target.send('hello S2')
+  assert.equal(chatTargets.at(-1), 'S2')
+  await own.send('hello me')
+  assert.equal(chatTargets.at(-1), null)
+
+  // A new signed-in identity resets the personal stores and reads its own marker.
+  storage.set('team-agent-last-seen-event:personal:S3:self', 'm1')
+  own.bindViewer('S3')
+  assert.equal(own.loaded, false)
+  assert.equal(own.events.length, 0)
+  assert.equal(own.unreadCount, 0)
+  await own.refresh()
+  assert.equal(own.unreadCount, 1)
+  assert.equal(storage.get('team-agent-last-seen-event:personal:S1:self'), 'm2', 'the previous identity keeps its own marker')
+  own.bindViewer('S3')
+  assert.equal(own.unreadCount, 1, 'binding the same viewer again keeps state')
+
+  // Existing agents ignore viewer binding.
+  const appointments = useTeamAgentStore('appointments')
+  const appointmentsUnread = appointments.unreadCount
+  appointments.bindViewer('S9')
+  assert.equal(appointments.unreadCount, appointmentsUnread)
   console.log('team-agent.store.dry-test: OK')
 } finally {
   globalThis.fetch = originalFetch

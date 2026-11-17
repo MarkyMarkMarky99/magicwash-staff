@@ -1,18 +1,24 @@
 import { AiGatewayError } from '@shared/ai-gateway/ai-gateway.errors'
 import {
+  cancelPersonalAssignment,
   cancelTeamAgentReminder,
   getTeamAgentHistory,
   getTeamAgentImage,
   getTeamAgentNotes,
+  listPersonalAssignments,
   listTeamAgentReminders,
   sendTeamAgentMessage,
+  type PersonalAssignmentsAccess,
   type TeamAgentAccess,
+  type TeamAgentAssignmentStatus,
   type TeamAgentId,
 } from '@shared/ai-gateway/tasks/team-agent'
 import { aiGatewayBaseUrl, aiGatewayToken } from '@/shared/ai-gateway/ai-gateway.config'
 
 export type {
   TeamAgentAccepted,
+  TeamAgentAssignment,
+  TeamAgentAssignmentStatus,
   TeamAgentEvent,
   TeamAgentEventImage,
   TeamAgentId,
@@ -20,32 +26,56 @@ export type {
   TeamAgentReminder,
 } from '@shared/ai-gateway/tasks/team-agent'
 
-function access(agentId: TeamAgentId): TeamAgentAccess {
+function gatewayBaseUrl(): string {
   const baseUrl = aiGatewayBaseUrl()
   if (!baseUrl) throw new AiGatewayError('NOT_CONFIGURED', 'AI gateway is not configured')
-  return { agentId, baseUrl, getToken: aiGatewayToken }
+  return baseUrl
 }
 
-export function sendMessage(agentId: TeamAgentId, message: string, files: { blob: Blob, filename: string }[] = []) {
-  return sendTeamAgentMessage({ ...access(agentId), message, files })
+const targetNames = new Map<string, string>()
+
+/** Remember an admin target's display name; it is sent with that target's requests. */
+export function setTargetName(staffId: string, name: string): void {
+  if (name.trim()) targetNames.set(staffId, name.trim())
 }
 
-export function fetchImage(agentId: TeamAgentId, id: string) {
-  return getTeamAgentImage({ ...access(agentId), id })
+function access(agentId: TeamAgentId, staffId?: string): TeamAgentAccess {
+  const staffName = staffId ? targetNames.get(staffId) : undefined
+  return { agentId, baseUrl: gatewayBaseUrl(), getToken: aiGatewayToken, ...(staffId ? { staffId } : {}), ...(staffName ? { staffName } : {}) }
 }
 
-export function fetchHistory(agentId: TeamAgentId, options: { after?: string, limit?: number }) {
-  return getTeamAgentHistory({ ...access(agentId), ...options })
+function assignmentsAccess(): PersonalAssignmentsAccess {
+  return { baseUrl: gatewayBaseUrl(), getToken: aiGatewayToken }
 }
 
-export function fetchReminders(agentId: TeamAgentId) {
-  return listTeamAgentReminders(access(agentId))
+export function sendMessage(agentId: TeamAgentId, staffId: string | undefined, message: string, files: { blob: Blob, filename: string }[] = []) {
+  return sendTeamAgentMessage({ ...access(agentId, staffId), message, files })
 }
 
-export function cancelReminder(agentId: TeamAgentId, id: string) {
-  return cancelTeamAgentReminder({ ...access(agentId), id })
+export function fetchImage(agentId: TeamAgentId, staffId: string | undefined, id: string) {
+  return getTeamAgentImage({ ...access(agentId, staffId), id })
 }
 
-export function fetchNotes(agentId: TeamAgentId) {
-  return getTeamAgentNotes(access(agentId))
+export function fetchHistory(agentId: TeamAgentId, staffId: string | undefined, options: { after?: string, before?: string, limit?: number }) {
+  return getTeamAgentHistory({ ...access(agentId, staffId), ...options })
+}
+
+export function fetchReminders(agentId: TeamAgentId, staffId?: string) {
+  return listTeamAgentReminders(access(agentId, staffId))
+}
+
+export function cancelReminder(agentId: TeamAgentId, staffId: string | undefined, id: string) {
+  return cancelTeamAgentReminder({ ...access(agentId, staffId), id })
+}
+
+export function fetchNotes(agentId: TeamAgentId, staffId?: string) {
+  return getTeamAgentNotes(access(agentId, staffId))
+}
+
+export function fetchPersonalAssignments(status: TeamAgentAssignmentStatus) {
+  return listPersonalAssignments({ ...assignmentsAccess(), status })
+}
+
+export function cancelAssignment(id: string) {
+  return cancelPersonalAssignment({ ...assignmentsAccess(), id })
 }

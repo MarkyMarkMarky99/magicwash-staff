@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  cancelPersonalAssignment,
   cancelTeamAgentReminder,
   getTeamAgentImage,
   getTeamAgentNotes,
   getTeamAgentHistory,
+  listPersonalAssignments,
   listTeamAgentReminders,
   sendTeamAgentMessage,
 } from '../../../shared/ai-gateway/tasks/team-agent.js'
@@ -161,4 +163,92 @@ test('history accepts close and reopen action events', async () => {
     events: ['close', 'reopen'].map((type, index) => ({ ...event, id: `a${index}`, kind: 'action', text: type, action: { type, outcome: 'ok' } })), busy: false,
   }) })
   assert.deepEqual(history.events.map(item => item.action?.type), ['close', 'reopen'])
+})
+
+const personal = { ...access, agentId: 'personal' as const }
+const assignment = {
+  id: 'as1', version: 2, assigneeStaffId: 'S2', assigneeName: 'Mali', createdBy: { kind: 'admin', staffId: 'S1', name: 'Boss' },
+  requestedByAdmin: 'S1', detail: 'Finish the coats', dueAt: '2026-11-19T10:00:00+07:00', status: 'open', reportTo: 'personal:S1',
+  dueNotified: false, log: [{ at: '2026-11-18T09:00:00+07:00', by: 'S1', change: 'created' }], failedDeliveries: 1,
+}
+
+test('personal send, history, images, reminders and notes carry the optional staffId target', async () => {
+  await sendTeamAgentMessage({ ...personal, staffId: 'S2', message: 'hi', fetchImpl: async (_url, init) => {
+    assert.deepEqual(JSON.parse(init!.body as string).input, { agentId: 'personal', message: 'hi', staffId: 'S2' })
+    return Response.json({ ok: true, requestId: 'r', task: 'chat', taskVersion: 1, ms: 1, result: { accepted: true, turnId: 't1', eventId: 'e2' } }, { status: 202 })
+  } })
+  await sendTeamAgentMessage({ ...personal, message: 'own', fetchImpl: async (_url, init) => {
+    assert.deepEqual(JSON.parse(init!.body as string).input, { agentId: 'personal', message: 'own' })
+    return Response.json({ ok: true, requestId: 'r', task: 'chat', taskVersion: 1, ms: 1, result: { accepted: true, turnId: 't1', eventId: 'e2' } }, { status: 202 })
+  } })
+  await getTeamAgentHistory({ ...personal, staffId: 'S2', after: 'e0', limit: 5, fetchImpl: async (url) => {
+    assert.equal(url, 'http://stub.invalid/agents/personal/history?after=e0&limit=5&staffId=S2')
+    return Response.json({ events: [], busy: false })
+  } })
+  await getTeamAgentImage({ ...personal, staffId: 'S2', id: 'i1', fetchImpl: async (url) => {
+    assert.equal(url, 'http://stub.invalid/agents/personal/images/i1?staffId=S2')
+    return new Response(new Blob(['x'], { type: 'image/png' }), { headers: { 'Content-Type': 'image/png' } })
+  } })
+  await listTeamAgentReminders({ ...personal, staffId: 'S2', fetchImpl: async (url) => {
+    assert.equal(url, 'http://stub.invalid/agents/personal/reminders?staffId=S2')
+    return Response.json({ reminders: [] })
+  } })
+  await cancelTeamAgentReminder({ ...personal, staffId: 'S2', id: 'r1', fetchImpl: async (url, init) => {
+    assert.equal(url, 'http://stub.invalid/agents/personal/reminders/r1/cancel?staffId=S2')
+    assert.equal(init?.method, 'POST')
+    return Response.json({ reminder })
+  } })
+  await getTeamAgentNotes({ ...personal, staffId: 'S2', fetchImpl: async (url) => {
+    assert.equal(url, 'http://stub.invalid/agents/personal/notes?staffId=S2')
+    return Response.json({ files: [] })
+  } })
+  await getTeamAgentNotes({ ...personal, fetchImpl: async (url) => {
+    assert.equal(url, 'http://stub.invalid/agents/personal/notes')
+    return Response.json({ files: [] })
+  } })
+})
+
+test('history supports the before cursor and refuses after together with before', async () => {
+  await getTeamAgentHistory({ ...access, before: 'e9', limit: 200, fetchImpl: async (url) => {
+    assert.equal(url, 'http://stub.invalid/agents/appointments/history?before=e9&limit=200')
+    return Response.json({ events: [], busy: false })
+  } })
+  await assert.rejects(getTeamAgentHistory({ ...access, after: 'e1', before: 'e9', fetchImpl: async () => { throw new Error('no request') } }),
+    (error: unknown) => error instanceof AiGatewayError && error.code === 'INVALID_INPUT')
+})
+
+test('history accepts the speaker role and the assignment action types', async () => {
+  const types = ['assign', 'assignment-done', 'assignment-cancelled', 'assignment-overdue']
+  const history = await getTeamAgentHistory({ ...personal, fetchImpl: async () => Response.json({
+    events: [
+      { ...event, speaker: { staffId: 'S1', name: 'Boss', role: 'admin' } },
+      { ...event, id: 'e2', speaker: { staffId: 'S1', name: 'Boss' } },
+      ...types.map((type, index) => ({ ...event, id: `a${index}`, kind: 'action', text: type, speaker: null, action: { type, outcome: 'ok' } })),
+    ], busy: false,
+  }) })
+  assert.equal(history.events[0]!.speaker?.role, 'admin')
+  assert.equal(history.events[1]!.speaker?.role, undefined)
+  assert.deepEqual(history.events.slice(2).map(item => item.action?.type), types)
+})
+
+test('assignments list and cancel use the personal admin endpoints', async () => {
+  const listed = await listPersonalAssignments({ baseUrl: access.baseUrl, getToken: access.getToken, status: 'open', fetchImpl: async (url, init) => {
+    assert.equal(url, 'http://stub.invalid/agents/personal/assignments?status=open')
+    assert.equal(init?.method, 'GET')
+    assert.equal((init!.headers as Record<string, string>).Authorization, 'Bearer token-1')
+    return Response.json({ assignments: [assignment, { ...assignment, id: 'as2', dueAt: null, assigneeName: null, createdBy: null, failedDeliveries: null }] })
+  } })
+  assert.equal(listed.length, 2)
+  assert.equal(listed[0]!.failedDeliveries, 1)
+  assert.equal(listed[1]!.dueAt, null)
+  const cancelled = await cancelPersonalAssignment({ baseUrl: access.baseUrl, getToken: access.getToken, id: 'as/1', fetchImpl: async (url, init) => {
+    assert.equal(url, 'http://stub.invalid/agents/personal/assignments/as%2F1/cancel')
+    assert.equal(init?.method, 'POST')
+    return Response.json({ assignment: { ...assignment, status: 'cancelled' } })
+  } })
+  assert.equal(cancelled.status, 'cancelled')
+  await assert.rejects(listPersonalAssignments({ baseUrl: access.baseUrl, getToken: access.getToken, status: 'all', fetchImpl: async () => Response.json({ assignments: [{ ...assignment, status: 'weird' }] }) }),
+    (error: unknown) => error instanceof AiGatewayError && error.code === 'INVALID_RESPONSE')
+  await assert.rejects(listPersonalAssignments({ baseUrl: access.baseUrl, getToken: access.getToken, status: 'all', fetchImpl: async () => Response.json({ ok: false, requestId: null, task: null, error: { code: 'FORBIDDEN', message: 'Admins only' } }, { status: 403 }) }),
+    (error: unknown) => error instanceof AiGatewayError && error.code === 'FORBIDDEN')
 })
