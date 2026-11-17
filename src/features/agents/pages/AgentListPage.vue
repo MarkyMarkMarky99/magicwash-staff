@@ -5,17 +5,15 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/data/auth/auth.store'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import AgentRow from '../components/AgentRow.vue'
-import { AGENTS } from '../agents'
-import type { AgentId } from '../agent-chat.types'
+import { AGENTS, agentVisibleToRole } from '../agents'
+import { isTeamAgentId, type AgentId } from '../agent-chat.types'
 
 const router = useRouter()
-const { isAdmin } = storeToRefs(useAuthStore())
-const visibleAgents = computed(() => AGENTS.filter(agent => !agent.adminOnly || isAdmin.value))
+const { role } = storeToRefs(useAuthStore())
+const visibleAgents = computed(() => AGENTS.filter(agent => agentVisibleToRole(agent, role.value)))
 
 function openAgent(agentId: AgentId): void {
-  void router.push(agentId === 'appointments'
-    ? { name: 'appointments-agent-chat' }
-    : { name: 'agent-chat', params: { agentId } })
+  void router.push({ name: isTeamAgentId(agentId) ? 'team-agent-chat' : 'agent-chat', params: { agentId } })
 }
 </script>
 

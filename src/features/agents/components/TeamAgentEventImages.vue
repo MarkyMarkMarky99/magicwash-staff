@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import type { AppointmentsAgentEventImage } from '@/data/appointments-agent/appointments-agent.service'
-import type { AppointmentsImageState } from '@/data/appointments-agent/appointments-agent.store'
+import type { TeamAgentEventImage } from '@/data/team-agent/team-agent.service'
+import type { TeamAgentImageState } from '@/data/team-agent/team-agent.store'
 
 const props = defineProps<{
-  images: AppointmentsAgentEventImage[]
-  states: Record<string, AppointmentsImageState>
+  images: TeamAgentEventImage[]
+  states: Record<string, TeamAgentImageState>
   alignEnd?: boolean
 }>()
 

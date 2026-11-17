@@ -33,6 +33,7 @@ export const useAuthStore = defineStore('auth', () => {
   const error = ref<string | null>(null)
   const signingIn = ref(false)
   const isAdmin = computed(() => status.value === 'signedIn' && staff.value?.role === 'admin')
+  const role = computed(() => status.value === 'signedIn' ? staff.value?.role ?? null : null)
   let started = false
   let sequence = 0
   let currentUser: User | null = null
@@ -169,6 +170,7 @@ export const useAuthStore = defineStore('auth', () => {
     error,
     signingIn,
     isAdmin,
+    role,
     ready,
     signIn,
     signOut,

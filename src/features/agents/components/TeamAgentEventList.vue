@@ -1,21 +1,21 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
-import type { AppointmentsImageState, PendingAppointmentsMessage } from '@/data/appointments-agent/appointments-agent.store'
-import type { AppointmentsAgentEvent } from '@/data/appointments-agent/appointments-agent.service'
+import type { PendingTeamAgentMessage, TeamAgentImageState } from '@/data/team-agent/team-agent.store'
+import type { TeamAgentEvent } from '@/data/team-agent/team-agent.service'
 import type { AgentInfo } from '../agents'
 import { formatEventTime } from '../utils/format-event-time'
 import AgentAvatar from './AgentAvatar.vue'
-import AppointmentsEventImages from './AppointmentsEventImages.vue'
+import TeamAgentEventImages from './TeamAgentEventImages.vue'
 
-type ActionType = NonNullable<AppointmentsAgentEvent['action']>['type']
-type Outcome = NonNullable<AppointmentsAgentEvent['action']>['outcome']
+type ActionType = NonNullable<TeamAgentEvent['action']>['type']
+type Outcome = NonNullable<TeamAgentEvent['action']>['outcome']
 
 const props = defineProps<{
   agent: AgentInfo
-  events: AppointmentsAgentEvent[]
-  pending: PendingAppointmentsMessage[]
-  imageStates: Record<string, AppointmentsImageState>
+  events: TeamAgentEvent[]
+  pending: PendingTeamAgentMessage[]
+  imageStates: Record<string, TeamAgentImageState>
   busy: boolean
   loading: boolean
   ownStaffId: string
@@ -28,6 +28,8 @@ const ACTION_ICONS: Record<ActionType, string> = {
   cancel: 'event_busy',
   remind: 'alarm',
   'reminder-cancelled': 'alarm_off',
+  close: 'task_alt',
+  reopen: 'replay',
 }
 
 const OUTCOME_LABELS: Record<Outcome, string> = { ok: 'OK', failed: 'Failed', unknown: 'Unknown' }
@@ -85,7 +87,7 @@ watch(() => [props.events.length, props.pending.length, props.busy, props.loadin
           <span class="self-start"><AgentAvatar :agent-id="agent.id" :size="32" /></span>
           <div class="flex min-w-0 max-w-[calc(100%-44px)] flex-col">
             <span class="mb-0.5 px-1 font-label text-[10px] font-extrabold uppercase tracking-[0.08em] text-on-surface-variant">AI · {{ formatEventTime(event.at) }}</span>
-            <AppointmentsEventImages v-if="event.images?.length" class="mb-1.5" :images="event.images" :states="imageStates" />
+            <TeamAgentEventImages v-if="event.images?.length" class="mb-1.5" :images="event.images" :states="imageStates" />
             <p v-if="event.text" class="whitespace-pre-wrap break-words rounded-[6px_18px_18px_18px] bg-white px-3.5 py-2 font-body text-sm leading-relaxed shadow-[0_1px_0_color-mix(in_srgb,var(--color-on-surface)_6%,transparent)] [overflow-wrap:anywhere]">{{ event.text }}</p>
           </div>
         </div>
@@ -93,7 +95,7 @@ watch(() => [props.events.length, props.pending.length, props.busy, props.loadin
         <div v-else class="flex" :class="event.speaker?.staffId === ownStaffId ? 'justify-end' : 'justify-start'">
           <div class="flex min-w-0 max-w-[86%] flex-col" :class="event.speaker?.staffId === ownStaffId ? 'items-end' : 'items-start'">
             <span class="mb-0.5 px-1 font-label text-[10px] font-extrabold uppercase tracking-[0.08em] text-on-surface-variant">{{ event.speaker?.name ?? 'Staff' }} · {{ formatEventTime(event.at) }}</span>
-            <AppointmentsEventImages v-if="event.images?.length" class="mb-1.5" :images="event.images" :states="imageStates" :align-end="event.speaker?.staffId === ownStaffId" />
+            <TeamAgentEventImages v-if="event.images?.length" class="mb-1.5" :images="event.images" :states="imageStates" :align-end="event.speaker?.staffId === ownStaffId" />
             <p v-if="event.text" class="whitespace-pre-wrap break-words px-3.5 py-2 font-body text-sm font-semibold leading-relaxed text-primary [overflow-wrap:anywhere]" :class="event.speaker?.staffId === ownStaffId ? 'rounded-[18px_6px_18px_18px] bg-lime' : 'rounded-[6px_18px_18px_18px] bg-secondary-container'">{{ event.text }}</p>
           </div>
         </div>

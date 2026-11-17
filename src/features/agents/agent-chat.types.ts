@@ -1,8 +1,14 @@
+import { TEAM_AGENT_IDS } from '@contracts/ai-gateway/chat-api.schema'
+import type { TeamAgentId } from '@shared/ai-gateway/tasks/team-agent'
+
+export { TEAM_AGENT_IDS }
+export type { TeamAgentId }
+
 export const CHAT_AGENT_IDS = ['register-customer', 'price-check', 'order-tracking'] as const
 
 export type ChatAgentId = typeof CHAT_AGENT_IDS[number]
 
-export const AGENT_IDS = [...CHAT_AGENT_IDS, 'appointments'] as const
+export const AGENT_IDS = [...CHAT_AGENT_IDS, ...TEAM_AGENT_IDS] as const
 
 export type AgentId = typeof AGENT_IDS[number]
 
@@ -96,6 +102,10 @@ export function isPriceProposal(proposal: AgentProposal): proposal is PricePropo
 
 export function isTrackingProposal(proposal: AgentProposal): proposal is TrackingProposal {
   return 'steps' in proposal
+}
+
+export function isTeamAgentId(value: unknown): value is TeamAgentId {
+  return typeof value === 'string' && (TEAM_AGENT_IDS as readonly string[]).includes(value)
 }
 
 export function isChatAgentId(value: unknown): value is ChatAgentId {

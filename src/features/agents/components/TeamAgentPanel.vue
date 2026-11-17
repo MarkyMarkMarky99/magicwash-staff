@@ -3,15 +3,15 @@ import PickerOverlay from '@/shared/layouts/PickerOverlay.vue'
 import InlineNotice from '@/shared/components/InlineNotice.vue'
 import SectionHeader from '@/shared/components/SectionHeader.vue'
 import type {
-  AppointmentsAgentNote,
-  AppointmentsAgentReminder,
-} from '@/data/appointments-agent/appointments-agent.service'
+  TeamAgentNote,
+  TeamAgentReminder,
+} from '@/data/team-agent/team-agent.service'
 import { formatEventTime } from '../utils/format-event-time'
 
 defineProps<{
   open: boolean
-  reminders: AppointmentsAgentReminder[]
-  notes: AppointmentsAgentNote[]
+  reminders: TeamAgentReminder[]
+  notes: TeamAgentNote[]
   loading: boolean
   error: string | null
   cancellingId: string | null

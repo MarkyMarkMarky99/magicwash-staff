@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict'
+import { AGENTS, agentById, agentVisibleToRole } from '../../../../../src/features/agents/agents.ts'
+
+const visible = (role: 'admin' | 'staff' | 'device' | null) => AGENTS.filter(agent => agentVisibleToRole(agent, role)).map(agent => agent.id)
+
+assert.ok(visible('admin').includes('appointments') && visible('admin').includes('washing') && visible('admin').includes('ironing'))
+assert.deepEqual(visible('staff').filter(id => ['appointments', 'washing', 'ironing'].includes(id)), ['washing', 'ironing'])
+assert.deepEqual(visible('device').filter(id => ['appointments', 'washing', 'ironing'].includes(id)), [])
+assert.deepEqual(visible(null).filter(id => ['appointments', 'washing', 'ironing'].includes(id)), [])
+assert.equal(agentById('washing').name, 'น้องซักผ้า')
+assert.equal(agentById('ironing').name, 'น้องรีดผ้า')
+console.log('agents.dry-test: OK')

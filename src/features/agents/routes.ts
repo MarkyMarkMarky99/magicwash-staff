@@ -1,4 +1,5 @@
 import type { RouteRecordRaw } from 'vue-router'
+import { TEAM_AGENT_IDS } from './agent-chat.types'
 
 export const agentRoutes: RouteRecordRaw[] = [
   {
@@ -7,10 +8,11 @@ export const agentRoutes: RouteRecordRaw[] = [
     component: () => import('./pages/AgentListPage.vue'),
   },
   {
-    path: '/agents/appointments',
-    name: 'appointments-agent-chat',
-    component: () => import('./pages/AppointmentsChatPage.vue'),
+    path: `/agents/:agentId(${TEAM_AGENT_IDS.join('|')})`,
+    name: 'team-agent-chat',
+    component: () => import('./pages/TeamAgentChatPage.vue'),
     meta: { parent: 'agent-list' },
+    props: true,
   },
   {
     path: '/agents/:agentId',

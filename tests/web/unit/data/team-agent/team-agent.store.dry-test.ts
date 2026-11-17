@@ -8,7 +8,7 @@ mock.module('../../../../../src/shared/ai-gateway/ai-gateway.config.ts', {
 
 const storage = new Map<string, string>()
 Object.defineProperty(globalThis, 'localStorage', {
-  value: { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => void storage.set(key, value) },
+  value: { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => void storage.set(key, value), removeItem: (key: string) => void storage.delete(key) },
   configurable: true,
 })
 
@@ -20,8 +20,8 @@ interface FakeEvent {
   text: string
   images?: { id: string, name: string, type: string }[]
 }
-const server: { events: FakeEvent[], busy: boolean, posts: string[], failPost: boolean, imageRequests: string[], failImages: Set<string>, uploads: string[][] } = {
-  events: [], busy: false, posts: [], failPost: false, imageRequests: [], failImages: new Set(), uploads: [],
+const server: { events: FakeEvent[], busy: boolean, posts: string[], failPost: boolean, imageRequests: string[], failImages: Set<string>, uploads: string[][], washingHistoryRequests: number } = {
+  events: [], busy: false, posts: [], failPost: false, imageRequests: [], failImages: new Set(), uploads: [], washingHistoryRequests: 0,
 }
 let counter = 0
 function add(kind: 'staff' | 'agent' | 'action', text: string, extra: Partial<FakeEvent> = {}): FakeEvent {
@@ -66,6 +66,10 @@ globalThis.fetch = async (input, init) => {
     if (server.failImages.has(id)) return Response.json({ ok: false, requestId: null, task: null, error: { code: 'NOT_FOUND', message: 'No image' } }, { status: 404 })
     return new Response(new Blob([id], { type: 'image/jpeg' }), { headers: { 'Content-Type': 'image/jpeg' } })
   }
+  if (url.pathname === '/agents/washing/history') {
+    server.washingHistoryRequests += 1
+    return Response.json({ events: [], busy: false })
+  }
   assert.equal(url.pathname, '/agents/appointments/history')
   const after = url.searchParams.get('after')
   const limit = Number(url.searchParams.get('limit'))
@@ -73,16 +77,16 @@ globalThis.fetch = async (input, init) => {
   return Response.json({ events: server.events.slice(start, start + limit), busy: server.busy })
 }
 
-const { useAppointmentsAgentStore } = await import('../../../../../src/data/appointments-agent/appointments-agent.store.ts')
+const { useTeamAgentStore } = await import('../../../../../src/data/team-agent/team-agent.store.ts')
 
 try {
   add('staff', 'old 1')
   add('agent', 'old 2')
   setActivePinia(createPinia())
-  const background = useAppointmentsAgentStore()
+  const background = useTeamAgentStore('appointments')
   await background.refresh()
   assert.equal(background.unreadCount, 0)
-  assert.equal(storage.get('appointments-agent-last-seen-event'), 'e2')
+  assert.equal(storage.get('team-agent-last-seen-event:appointments'), 'e2')
   add('agent', 'new 1')
   add('agent', 'new 2')
   await background.refresh()
@@ -91,7 +95,7 @@ try {
   await background.openChat()
   assert.deepEqual(background.events.map(event => event.id), ['e1', 'e2', 'e3', 'e4'])
   assert.equal(background.unreadCount, 0)
-  assert.equal(storage.get('appointments-agent-last-seen-event'), 'e4')
+  assert.equal(storage.get('team-agent-last-seen-event:appointments'), 'e4')
 
   server.busy = true
   const accepted = await background.send('book Sam')
@@ -165,12 +169,34 @@ try {
   storage.clear()
   server.events = []
   setActivePinia(createPinia())
-  const fresh = useAppointmentsAgentStore()
+  const fresh = useTeamAgentStore('appointments')
   await fresh.refresh()
   add('agent', 'first ever')
   await fresh.refresh()
   assert.equal(fresh.unreadCount, 1)
-  console.log('appointments-agent.store.dry-test: OK')
+
+  // The old appointments key migrates once, so existing devices do not show everything unread.
+  storage.clear()
+  storage.set('appointments-agent-last-seen-event', 'e1')
+  server.events = []
+  add('agent', 'seen')
+  add('agent', 'unseen')
+  server.events[0]!.id = 'e1'
+  setActivePinia(createPinia())
+  const migrated = useTeamAgentStore('appointments')
+  await migrated.refresh()
+  assert.equal(migrated.unreadCount, 1)
+  assert.equal(storage.get('team-agent-last-seen-event:appointments'), 'e1')
+  assert.equal(storage.has('appointments-agent-last-seen-event'), false)
+
+  // Each agent has its own state and endpoint.
+  const washing = useTeamAgentStore('washing')
+  assert.notEqual(washing, migrated)
+  await washing.refresh()
+  assert.equal(server.washingHistoryRequests, 1)
+  assert.equal(washing.unreadCount, 0)
+  assert.equal(storage.get('team-agent-last-seen-event:washing'), undefined)
+  console.log('team-agent.store.dry-test: OK')
 } finally {
   globalThis.fetch = originalFetch
 }

@@ -17,7 +17,8 @@
   - NEXT session: build น้องติดตาม (order-tracking) — handoff `.user/memory/order-tracking-agent-handoff.md`; prod shows its fake reply until then.
   - Local test: MagicwashAI `ALLOWED_ORIGINS` must include `http://localhost:3000` for `vercel dev`.
   - น้องนัดหมาย (`appointments`) live 2026-11-16; schedule page has a Pickup/Delivery filter; plan `docs/plans/appointments-agent.md`.
-  - Washing/ironing agents: plan reviewed, not built; plan `docs/plans/department-agents.md`.
+  - Washing/ironing agents in progress on main (shared AI runtime + generic chat page done; W backend next); plan `docs/plans/department-agents.md`.
+  - Do not push main until AI has the washing/ironing agents: staff would see chats that cannot load.
 - **Corporate count-sheet order** — see `docs/features/orders/corporate-order-form.md`
   - Slip-photo upload on Save not yet tried in a real browser.
   - Owner: update G Drive `PriceList.json` description (price-0 rows may be active for CRYO).

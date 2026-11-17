@@ -1,4 +1,7 @@
+import type { StaffSession } from '@/data/auth/auth.service'
 import type { AgentId } from './agent-chat.types'
+
+type StaffRole = StaffSession['role']
 
 export interface AgentInfo {
   id: AgentId
@@ -7,7 +10,8 @@ export interface AgentInfo {
   description: string
   greeting: string
   suggestions: { icon: string; text: string }[]
-  adminOnly?: boolean
+  /** Roles that may see and open the agent; absent means every signed-in role. */
+  roles?: readonly StaffRole[]
 }
 
 export const AGENTS: AgentInfo[] = [
@@ -54,9 +58,31 @@ export const AGENTS: AgentInfo[] = [
     description: 'Shared team chat that books, reschedules and cancels pickup appointments',
     greeting: 'สวัสดีค่ะ หนูดูแลนัดหมายรับผ้าให้ทั้งทีม สั่งให้สร้าง เลื่อน หรือยกเลิกนัดได้เลยค่ะ',
     suggestions: [],
-    adminOnly: true,
+    roles: ['admin'],
+  },
+  {
+    id: 'washing',
+    name: 'น้องซักผ้า',
+    role: 'Washing',
+    description: 'Shared team chat for the Washing department: open and slow work, closing and reopening tickets',
+    greeting: 'สวัสดีค่ะ หนูดูแลงานแผนกซักผ้าให้ทั้งทีม ถามงานค้าง งานช้า หรือสั่งปิดงานได้เลยค่ะ',
+    suggestions: [],
+    roles: ['admin', 'staff'],
+  },
+  {
+    id: 'ironing',
+    name: 'น้องรีดผ้า',
+    role: 'Ironing',
+    description: 'Shared team chat for the Ironing department: open and slow work, closing and reopening tickets',
+    greeting: 'สวัสดีค่ะ หนูดูแลงานแผนกรีดผ้าให้ทั้งทีม ถามงานค้าง งานช้า หรือสั่งปิดงานได้เลยค่ะ',
+    suggestions: [],
+    roles: ['admin', 'staff'],
   },
 ]
+
+export function agentVisibleToRole(agent: AgentInfo, role: StaffRole | null): boolean {
+  return !agent.roles || (role !== null && agent.roles.includes(role))
+}
 
 export function agentById(id: AgentId): AgentInfo {
   return AGENTS.find(agent => agent.id === id) as AgentInfo
