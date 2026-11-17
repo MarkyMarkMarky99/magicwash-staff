@@ -37,3 +37,14 @@ for (const query of [{}, { from: '2026-10-05', to: '2026-10-04' }, { from: '2026
 assert.equal(reads, 1, 'an invalid query must not read the sheet')
 
 console.log('work-transaction service dry test passed')
+
+const cycles = await new WorkTransactionService(() => ({ async read() { return [
+  { id: 'a', job_ticket_id: 'WSH-o-tag', type: 'EARN', minutes: 7, created_by: 'A', created_at: '2026-10-03 09:00:00' },
+  { id: 'va', job_ticket_id: 'WSH-o-tag', type: 'VOID', minutes: -7, created_by: 'AI', notes: 'earn:a reopen: stain', created_at: '2026-10-04 09:00:00' },
+  { id: 'b', job_ticket_id: 'WSH-o-tag', type: 'EARN', minutes: 7, created_by: 'B', created_at: '2026-10-04 10:00:00' },
+  { id: 'vb', job_ticket_id: 'WSH-o-tag', type: 'VOID', minutes: -7, created_by: 'AI', notes: 'earn:b reopen: stain', created_at: '2026-10-04 11:00:00' },
+  { id: 'old', job_ticket_id: 'WSH-o-tag', type: 'VOID', minutes: -7, created_by: 'admin', notes: 'old void', created_at: '2026-10-04 12:00:00' },
+] } })).list({ from: '2026-10-04', to: '2026-10-04' })
+assert.deepEqual(cycles.map(row => [row.id, row.staffId]), [['va', 'A'], ['b', 'B'], ['vb', 'B'], ['old', 'A']])
+assert.equal(cycles.filter(row => row.id !== 'old').reduce((total, row) => total + row.minutes, 0), -7)
+assert.equal(cycles.find(row => row.id === 'vb')!.createdBy, 'AI')

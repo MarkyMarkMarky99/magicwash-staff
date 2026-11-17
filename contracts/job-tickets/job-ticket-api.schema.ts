@@ -89,6 +89,29 @@ export const jobTicketCompleteOrderResponseSchema = z.discriminatedUnion('kind',
   }),
 ])
 
+export const jobTicketReopenRequestSchema = z.object({
+  orderId: z.string().trim().min(1),
+  department: jobTicketDepartmentSchema,
+  ticketIds: z.array(z.string().trim().min(1)).min(1),
+  reason: z.string().trim().min(1).regex(/^[^\r\n]+$/, 'Reason must be one line'),
+}).strict()
+
+const jobTicketReopenResultsSchema = z.object({
+  results: z.array(z.discriminatedUnion('outcome', [
+    z.object({ ticketId: z.string(), outcome: z.literal('reopened') }),
+    z.object({ ticketId: z.string(), outcome: z.literal('already_reopened') }),
+    z.object({ ticketId: z.string(), outcome: z.literal('blocked'),
+      reason: z.enum(['later_step', 'legacy_void']), blockedByDepartment: jobTicketDepartmentSchema.optional() }),
+    z.object({ ticketId: z.string(), outcome: z.literal('skipped'), reason: z.enum(['not_found', 'status_changed']) }),
+  ])),
+  voidsWritten: z.array(z.object({ id: z.string(), ticketId: z.string(), earnId: z.string() })),
+})
+
+export const jobTicketReopenResponseSchema = z.discriminatedUnion('kind', [
+  jobTicketReopenResultsSchema.extend({ kind: z.literal('completed') }),
+  jobTicketReopenResultsSchema.extend({ kind: z.literal('write_failed'), certainty: z.enum(['rejected', 'unknown']) }),
+])
+
 export const jobTicketAdvanceRequestSchema = z.object({
   department: jobTicketDepartmentSchema,
   fromStatus: z.enum(['Pending', 'In Progress']),

@@ -104,7 +104,7 @@ The unwrapped response is `completed` with HTTP 200, or `write_failed` with HTTP
 
 ## `POST /api/job-tickets/complete-order`
 
-Admin-only department closure accepts `{ orderId, department }`, with a trimmed nonempty order ID
+Admin or AI department closure accepts `{ orderId, department }`, with a trimmed nonempty order ID
 and Washing, DryCleaning, Ironing, Packaging, or Logistics. Non-admin callers receive 403 before
 any service read or write. The scan and update actor is always `req.staff.staffId`; request-body
 actors are ignored.
@@ -126,6 +126,48 @@ completed entry contains `ticketId`, `status: 'Completed'`, `startedAt`, nullabl
 `scannedBy` is the server actor used to patch shared frontend rows. Write failure returns
 `{ kind: 'write_failed', certainty }`, with HTTP 502 for rejected and HTTP 500 for unknown
 persistence. Failed responses do not claim closed tickets.
+
+## `POST /api/job-tickets/reopen`
+
+Admin or StaffId `AI` accepts `{ orderId, department, ticketIds, reason }`. AI may close or reopen
+only Washing and Ironing; admins retain all existing complete-order departments and may reopen
+any department. Actors come from the authenticated session, never the body. The service key also
+allows exactly GET department-work, GET the paginated job-ticket collection (including its existing
+orderId and laundryItemId filters), GET the work-order collection, and POST complete-order/reopen.
+It grants no job-ticket detail reads or other job-ticket writes.
+
+Reopen requires a trimmed nonempty orderId, a JobTicket department, one or more nonempty ticket IDs
+(deduplicated after trimming), and a trimmed nonempty single-line reason. Unknown body
+fields return 422. Missing, deleted, wrong-order, and wrong-department tickets are skipped as
+`not_found`; statuses other than Completed are skipped as `status_changed`, except retry reconciliation
+below. A non-deleted ticket in the same order with the same nonempty garment tag and higher stepNo
+blocks when In Progress or Completed, including later tasks in the same department. The earliest
+such step supplies blockedByDepartment. Other orders, tags, deleted rows, Pending, and Cancelled
+later steps do not block.
+
+Each eligible ticket's unreversed WorkTransactions EARNs receive one VOID apiece, with negated
+minutes, created_by set to the actor, and notes `earn:<EARN id> reopen: <reason>`. A linked VOID
+reverses only that EARN. Any VOID without a matching EARN link on that ticket blocks the ticket as
+`legacy_void` for manual review. A ticket without EARNs needs no VOID. All required VOIDs for a ticket
+are appended before its ticket update. The update sets Pending; clears started_at, started_by,
+completed_at, and scanned_by; records updated_by; and appends
+`reopen <Bangkok yyyy-MM-dd HH:mm:ss> <actor>: <reason>` to existing notes. Other fields are retained.
+
+Retries read current tickets and the ledger. Pending with a final reopen notes line counts as
+`already_reopened`: remaining unreversed EARNs are still voided, but there is no second ticket write or later-step gate.
+Completed tickets with previously committed VOIDs reuse those reversals. A new completion earns
+again normally; reopening A's completion then B's completion reverses each EARN once and attributes
+each linked VOID to its EARN's staff. Older VOIDs retain the reader's first-earner fallback.
+
+The response is unwrapped `{ kind: 'completed', results, voidsWritten }` (200), or
+`{ kind: 'write_failed', certainty, results, voidsWritten }` (502 rejected, 500 unknown).
+Each results entry contains ticketId and outcome `reopened`, `already_reopened`, `blocked`, or
+`skipped`. Blocked entries include reason `later_step` (and blockedByDepartment) or `legacy_void`;
+skipped entries include `not_found` or `status_changed`. voidsWritten lists `{ id, ticketId, earnId }`
+for acknowledged VOID appends in this request, including known committed appends whose readback failed. Processing stops at the first write failure; results
+retain only previously resolved tickets and make no success claim for the failed or unprocessed
+tickets. Unknown writes may have committed; retry the same request to reconcile. Sheets offers no
+cross-request transaction or lock, so concurrent reopens of the same ticket must be avoided.
 
 ## Weight photo credit
 

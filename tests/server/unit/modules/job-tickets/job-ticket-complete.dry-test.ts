@@ -87,3 +87,16 @@ for (const payload of [{ orderId: ' ', department: 'Packaging' }, { orderId: '12
   await assert.rejects(invalid.service.completeOrder(payload, 'admin-id'))
 assert.equal(invalid.reads.length, 0)
 console.log('job-ticket-complete.dry-test: OK')
+
+for (const department of ['Washing', 'DryCleaning', 'Ironing', 'Packaging', 'Logistics'] as const) {
+  const ai = setup([row('ai', { department })])
+  if (department === 'Washing' || department === 'Ironing') {
+    const result = await ai.service.completeOrder({ orderId: '123', department }, 'AI')
+    assert.equal(result.kind, 'completed')
+    assert.equal(ai.updates[0]![0]!.patch.scanned_by, 'AI')
+    assert.equal(ai.scores, 0)
+  } else {
+    await assert.rejects(ai.service.completeOrder({ orderId: '123', department }, 'AI'))
+    assert.equal(ai.reads.length, 0)
+  }
+}

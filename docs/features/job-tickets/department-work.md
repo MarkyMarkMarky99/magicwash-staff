@@ -66,7 +66,7 @@ including jobs without tags, with no earlier-department gate and no score. Non-a
 per-order button on this tab. The shared confirm dialog asks “Complete all <n> open jobs of order
 <id> in <Department>? This skips the workflow and gives no score.” The count includes both open
 statuses from the shared department list. Confirm calls only the resource store's `completeOrder`;
-the server enforces the admin role and supplies the StaffId actor.
+the server permits admins or StaffId AI (AI only for Washing and Ironing) and supplies the StaffId actor.
 
 The order button disables and uses the existing spinning sync state during saving. Success patches
 shared ticket rows in place and reports the completed count and no score; affected selections and
@@ -188,3 +188,11 @@ department page ignores gun reads while this page is active.
 
 The Packaging bag workflow (create bags, assign garments, confirm, print tags) is in
 [Packaging workflow](../packaging/workflow.md).
+
+
+The backend also exposes admin/AI `POST /api/job-tickets/reopen` for Completed tickets. AI is limited
+to Washing and Ironing. It requires a reason, blocks rework when a later step of the same garment
+and order is already In Progress or Completed, voids each unreversed EARN before resetting the
+ticket to Pending, and retains the reason in ticket notes. Retries reconcile linked VOIDs and the
+last reopen notes line. This adds no department-page control. See the
+[job-ticket API contract](../orders/contracts/job-ticket.md) for outcomes and partial-write behavior.

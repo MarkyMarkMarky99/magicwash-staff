@@ -2,6 +2,7 @@ import type { z } from 'zod'
 import { jobTicketCompleteOrderRequestSchema, jobTicketCompleteOrderResponseSchema } from '../../../contracts/job-tickets/job-ticket-api.schema.js'
 import { isDepartmentWorkTicket } from '../../../shared/job-tickets/department-work.js'
 import { getJobTicketsRepository } from '../../sheets/JobTickets/JobTickets.repository.js'
+import { ApiError } from '../../shared/http/api-error.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import { JobTicketTransitionService, type JobTicketTransitionServiceOptions } from './job-ticket-transition.service.js'
 
@@ -12,6 +13,9 @@ export class JobTicketCompleteService {
 
   async completeOrder(payload: unknown, actor: string): Promise<JobTicketCompleteOrderResponse> {
     const request = parseOrThrow(jobTicketCompleteOrderRequestSchema, payload)
+    if (actor === 'AI' && request.department !== 'Washing' && request.department !== 'Ironing') {
+      throw ApiError.forbidden('AI may only close Washing and Ironing tickets')
+    }
     const repository = (this.options.repository ?? getJobTicketsRepository)()
     const tickets = await repository.read({ where: { order_id: request.orderId } })
     const open = tickets.filter(ticket => String(ticket.order_id ?? '') === request.orderId

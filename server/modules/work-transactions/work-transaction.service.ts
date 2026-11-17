@@ -24,6 +24,7 @@ export class WorkTransactionService {
     const { from, to } = parseOrThrow(workTransactionListQuerySchema, query)
     const rows = await this.repository().read()
 
+    const earnById = new Map(rows.filter(row => row.type === 'EARN').map(row => [toRequiredString(row.id), row]))
     const earnerByTicket = new Map<string, string>()
     for (const row of rows) {
       const ticketId = toRequiredString(row.job_ticket_id)
@@ -40,13 +41,17 @@ export class WorkTransactionService {
       const day = createdAt.slice(0, 10)
       if (!type.success || jobTicketId === '' || day < from || day > to) continue
       const createdBy = toRequiredString(row.created_by)
+      const earnId = /^earn:([^\s]+)/.exec(row.notes ?? '')?.[1]
+      const linkedEarn = type.data === 'VOID' && earnId ? earnById.get(earnId) : undefined
+      const voidStaff = linkedEarn && toRequiredString(linkedEarn.job_ticket_id) === jobTicketId
+        ? toRequiredString(linkedEarn.created_by) : earnerByTicket.get(jobTicketId) ?? createdBy
       items.push({
         id: toRequiredString(row.id),
         jobTicketId,
         department: departmentForJobTicketId(jobTicketId),
         type: type.data,
         minutes: toNumber(row.minutes),
-        staffId: type.data === 'EARN' ? createdBy : earnerByTicket.get(jobTicketId) ?? createdBy,
+        staffId: type.data === 'EARN' ? createdBy : voidStaff,
         createdAt,
         createdBy,
       })

@@ -5,6 +5,7 @@ import {
   jobTicketDepartmentWorkService,
   jobTicketService,
   jobTicketCompleteService,
+  jobTicketReopenService,
   jobTicketAdvanceService,
   jobTicketRoutes,
   jobTicketStartService,
@@ -22,6 +23,7 @@ assert.deepEqual(jobTicketFieldMap, {
 })
 assert.equal(typeof routeRegistry['job-tickets'], 'function')
 assert.strictEqual((await routeRegistry['job-tickets']()).collection, jobTicketRoutes.collection)
+assert.strictEqual((await routeRegistry['job-tickets']()).item, jobTicketRoutes.item)
 
 function request(id: string): ApiHandlerRequest {
   return {
@@ -37,6 +39,7 @@ const startMethods = jobTicketStartService as unknown as {
 const originalStart = startMethods.startOrder
 const advanceMethods = jobTicketAdvanceService as unknown as { advance: (payload: unknown) => Promise<unknown> }
 const originalAdvance = advanceMethods.advance
+const originalReopen = jobTicketReopenService.reopen
 const originalComplete = jobTicketCompleteService.completeOrder
 const originalDepartmentWork = jobTicketDepartmentWorkService.list
 const originalGetById = jobTicketService.getById
@@ -81,6 +84,28 @@ try {
     jobTicketCompleteService.completeOrder = async () => ({ kind: 'write_failed', certainty })
     assert.equal((await jobTicketRoutes.item!.handleRequest(adminRequest)).status, status)
   }
+  for (const endpoint of ['complete-order', 'reopen']) {
+    let calls = 0
+    const respond = async (_payload: unknown, actor: string) => {
+      calls++
+      assert.equal(actor, 'AI')
+      return { kind: 'completed' as const, completed: [], scannedBy: actor, results: [], voidsWritten: [] }
+    }
+    jobTicketCompleteService.completeOrder = respond
+    jobTicketReopenService.reopen = respond
+    const aiRequest = { ...request(endpoint), body: { orderId: 'o1', department: 'Washing', ticketIds: ['t1'], reason: 'redo' },
+      staff: { staffId: 'AI', role: 'staff' as const, name: 'AI', email: 'ai@test' } }
+    const result = await jobTicketRoutes.item!.handleRequest(aiRequest)
+    assert.equal(result.status, 200)
+    assert.equal((result.body as { kind: string }).kind, 'completed')
+    assert.equal(calls, 1)
+    assert.equal((await jobTicketRoutes.item!.handleRequest({ ...aiRequest, staff: undefined })).status, 403)
+    assert.equal((await jobTicketRoutes.item!.handleRequest({ ...aiRequest, staff: { ...aiRequest.staff, staffId: 'other' } })).status, 403)
+  }
+  for (const [certainty, status] of [['rejected', 502], ['unknown', 500]] as const) {
+    jobTicketReopenService.reopen = async () => ({ kind: 'write_failed', certainty, results: [], voidsWritten: [] })
+    assert.equal((await jobTicketRoutes.item!.handleRequest({ ...adminRequest, params: { id: 'reopen' } })).status, status)
+  }
   assert.equal((await jobTicketRoutes.item!.handleRequest(request('scan'))).status, 404)
 
   startMethods.startOrder = async () => ({ kind: 'completed', advanced: [], blocked: [], skippedWithoutTag: 0 })
@@ -104,6 +129,7 @@ try {
 } finally {
   jobTicketDepartmentWorkService.list = originalDepartmentWork
   jobTicketService.getById = originalGetById
+  jobTicketReopenService.reopen = originalReopen
   jobTicketCompleteService.completeOrder = originalComplete
   startMethods.startOrder = originalStart
   advanceMethods.advance = originalAdvance

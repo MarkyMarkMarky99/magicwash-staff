@@ -16,6 +16,7 @@ import type { GatewayModuleRoutes } from '../../shared/http/gateway.types.js'
 import { ok, type ApiResult } from '../../shared/http/response.js'
 import { JobTicketAdvanceService } from './job-ticket-advance.service.js'
 import { JobTicketCompleteService, type JobTicketCompleteOrderResponse } from './job-ticket-complete.service.js'
+import { JobTicketReopenService, type JobTicketReopenResponse } from './job-ticket-reopen.service.js'
 import { JobTicketStartService } from './job-ticket-start.service.js'
 import { JobTicketDepartmentWorkService } from './job-ticket-department-work.service.js'
 import { jobTicketFieldMap } from './job-ticket.field-map.js'
@@ -58,6 +59,7 @@ export const jobTicketService = new BaseCrudService<
   },
 })
 
+export const jobTicketReopenService = new JobTicketReopenService()
 export const jobTicketCompleteService = new JobTicketCompleteService()
 export const jobTicketStartService = new JobTicketStartService()
 export const jobTicketAdvanceService = new JobTicketAdvanceService()
@@ -74,9 +76,14 @@ export const jobTicketRoutes: GatewayModuleRoutes = {
       return crudRoutes.item!.handleRequest(req)
     },
     PATCH: async (req) => crudRoutes.item!.handleRequest(req),
-    POST: async (req): Promise<ApiResult<JobTicketStartOrderResponse | JobTicketAdvanceResponse | JobTicketCompleteOrderResponse>> => {
+    POST: async (req): Promise<ApiResult<JobTicketStartOrderResponse | JobTicketAdvanceResponse | JobTicketCompleteOrderResponse | JobTicketReopenResponse>> => {
+      if (req.params.id === 'reopen') {
+        if (!req.staff || (req.staff.role !== 'admin' && req.staff.staffId !== 'AI')) throw ApiError.forbidden()
+        const response = await jobTicketReopenService.reopen(req.body, req.staff.staffId)
+        return { status: response.kind === 'completed' ? 200 : response.certainty === 'rejected' ? 502 : 500, body: response }
+      }
       if (req.params.id === 'complete-order') {
-        if (req.staff?.role !== 'admin') throw ApiError.forbidden()
+        if (!req.staff || (req.staff.role !== 'admin' && req.staff.staffId !== 'AI')) throw ApiError.forbidden()
         const response = await jobTicketCompleteService.completeOrder(req.body, req.staff.staffId)
         return { status: response.kind === 'completed' ? 200 : response.certainty === 'rejected' ? 502 : 500, body: response }
       }

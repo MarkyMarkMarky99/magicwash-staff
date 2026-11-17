@@ -99,7 +99,9 @@ The gateway also accepts `PATCH /api/laundry-items/:id` (exactly two path segmen
 `x-service-key` exactly matching server-only `AI_SERVICE_KEY` via `crypto.timingSafeEqual` on equal-length buffers; an unset or blank key disables this exception, and a wrong key falls through to normal staff authentication.
 On this laundry route the key permits only `itemId` and optional `updatedBy` (other fields return 403).
 The same key also permits collection/item appointments GET, collection POST, item PATCH, and
-collection/item customers GET. All service-key requests resolve their actor via `findStaffById('AI')`
+collection/item customers GET; job-ticket collection/department-work GET; work-order collection GET;
+and job-ticket complete-order/reopen POST. Job-ticket AI writes are limited to Washing and Ironing.
+All service-key requests resolve their actor via `findStaffById('AI')`
 from the active Staff allowlist; a missing or inactive AI row returns 403. Actor fields are replaced
 with that row's StaffId. Other methods and routes retain their normal authentication.
 The shared CRUD handler supplies authenticated staff actors. Repository audit declarations
