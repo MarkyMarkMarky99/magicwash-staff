@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, onActivated, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import type { RouteLocationRaw } from 'vue-router'
 import { bangkokToday } from '@shared/utils/bangkok-datetime'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
+import BaseDropdown from '@/shared/components/BaseDropdown.vue'
 import { personalAgentTargetRoute, staffEditRoute } from '@/shared/navigation/form-routes'
 import { useAuthStore } from '@/data/auth/auth.store'
 import { useStaffStore } from '@/data/staff/staff.store'
@@ -53,6 +55,17 @@ const subtitle = computed(() => {
   const parts = [member.value.position, member.value.role === 'admin' ? 'Admin' : 'Staff']
   if (member.value.startDate) parts.push(`Since ${formatMonth(member.value.startDate)}`)
   return parts.filter(Boolean).join(' · ')
+})
+const menuActions = computed(() => {
+  const actions: { key: string; label: string; icon: string; to: RouteLocationRaw }[] = []
+  if (isAdmin.value) {
+    actions.push({ key: 'edit', label: 'Edit', icon: 'edit', to: staffEditRoute(props.staffId) })
+    actions.push({ key: 'assistant', label: 'Open assistant', icon: 'smart_toy', to: personalAgentTargetRoute(props.staffId) })
+  }
+  if (isAdmin.value || staff.value?.staffId === props.staffId) {
+    actions.push({ key: 'day-off', label: 'Day off', icon: 'event_busy', to: '/attendance' })
+  }
+  return actions
 })
 const resultsReady = computed(() => loadedFor.value === fortnight.value[0] && !error.value)
 
@@ -200,29 +213,40 @@ watch(() => props.staffId, () => {
             <button type="button" class="ml-1 min-h-11 font-bold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime" @click="staffStore.load()">Retry</button>
           </p>
         </div>
-        <RouterLink
-          v-if="isAdmin || staff?.staffId === props.staffId"
-          to="/attendance"
-          class="flex min-h-11 shrink-0 items-center gap-1.5 rounded-[14px] border border-on-primary/10 bg-on-primary/5 px-3.5 font-label text-[13px] font-semibold text-on-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime"
+        <BaseDropdown
+          v-if="menuActions.length"
+          panel-class="w-48 rounded-2xl border border-outline-variant/30 bg-surface-container-lowest py-1 shadow-2xl"
         >
-          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">event_busy</span>
-          Day off
-        </RouterLink>
-        <RouterLink
-          v-if="isAdmin"
-          :to="personalAgentTargetRoute(props.staffId)"
-          class="flex min-h-11 shrink-0 items-center gap-1.5 rounded-[14px] border border-on-primary/10 bg-on-primary/5 px-3.5 font-label text-[13px] font-semibold text-on-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime"
-        >
-          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">smart_toy</span>
-          Open assistant
-        </RouterLink>
-        <RouterLink
-          v-if="isAdmin"
-          :to="staffEditRoute(props.staffId)"
-          class="flex min-h-11 shrink-0 items-center rounded-[14px] border border-on-primary/10 bg-on-primary/5 px-3.5 font-label text-[13px] font-semibold text-on-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime"
-        >
-          Edit
-        </RouterLink>
+          <template #trigger="{ setTrigger, toggle, triggerAttrs }">
+            <button
+              :ref="setTrigger"
+              v-bind="triggerAttrs"
+              type="button"
+              class="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[14px] border border-on-primary/10 bg-on-primary/5 text-on-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime"
+              aria-label="Staff actions"
+              aria-haspopup="menu"
+              @click="toggle"
+            >
+              <span class="material-symbols-outlined text-[20px]" aria-hidden="true">more_vert</span>
+            </button>
+          </template>
+
+          <template #default="{ close }">
+            <div class="py-1" role="menu" aria-label="Staff actions">
+              <RouterLink
+                v-for="action in menuActions"
+                :key="action.key"
+                :to="action.to"
+                role="menuitem"
+                class="flex min-h-11 w-full items-center gap-2 px-3 py-2 text-left font-body text-[12px] text-on-surface transition-colors hover:bg-surface-container-low focus:bg-surface-container-low focus:outline-none active:bg-surface-container"
+                @click="close()"
+              >
+                <span class="material-symbols-outlined text-[16px] leading-none text-primary" aria-hidden="true">{{ action.icon }}</span>
+                {{ action.label }}
+              </RouterLink>
+            </div>
+          </template>
+        </BaseDropdown>
       </section>
 
       <div class="mx-4 mt-4 grid grid-cols-2 gap-1 rounded-2xl border border-on-primary/10 bg-on-primary/5 p-1" role="group" aria-label="Period">
