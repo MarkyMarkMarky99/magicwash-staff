@@ -10,6 +10,8 @@ import GenericTabs from '@/shared/components/GenericTabs.vue'
 import PullToRefresh from '@/shared/components/PullToRefresh.vue'
 import BaseBadge, { type BadgeTone } from '@/shared/components/BaseBadge.vue'
 import InlineNotice from '@/shared/components/InlineNotice.vue'
+import { agentById } from '@/features/agents/agents'
+import type { AgentId } from '@/features/agents/agent-chat.types'
 import { useAuthStore } from '@/data/auth/auth.store'
 import { usePersonalAssignmentsStore } from '@/data/team-agent/personal-assignments.store'
 import type { TeamAgentAssignment } from '@/data/team-agent/team-agent.service'
@@ -78,6 +80,10 @@ function dueParts(assignment: TeamAgentAssignment): { day: string, month: string
   }
 }
 
+function orderText(assignment: TeamAgentAssignment): string {
+  return assignment.orderId ? `Order ${assignment.orderId}` : ''
+}
+
 function dueText(assignment: TeamAgentAssignment): string {
   const due = dueParts(assignment)
   if (!due) return 'No due time'
@@ -92,6 +98,7 @@ function overdue(assignment: TeamAgentAssignment): boolean {
 function creatorText(assignment: TeamAgentAssignment): string {
   const creator = assignment.createdBy
   if (!creator) return ''
+  if (creator.kind === 'agent' && creator.agentId) return agentById(creator.agentId as AgentId)?.name ?? creator.agentId
   return creator.name ?? creator.staffId ?? creator.agentId ?? ''
 }
 
@@ -171,7 +178,7 @@ onBeforeUnmount(() => store.reset())
                   </p>
                   <p class="mt-1 line-clamp-2 whitespace-pre-wrap break-words font-body text-xs leading-snug [overflow-wrap:anywhere]">{{ assignment.detail }}</p>
                   <p v-if="creatorText(assignment)" class="mt-1 truncate font-label text-[10px] font-extrabold uppercase text-warning">By {{ creatorText(assignment) }}</p>
-                  <p class="mt-1 truncate font-label text-[11px] text-on-surface-variant">{{ dueText(assignment) }}</p>
+                  <p class="mt-1 truncate font-label text-[11px] text-on-surface-variant">{{ [orderText(assignment), dueText(assignment)].filter(Boolean).join(' · ') }}</p>
                 </div>
                 <button
                   v-if="assignment.status === 'open'"

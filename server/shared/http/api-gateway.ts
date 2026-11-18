@@ -46,11 +46,11 @@ export class ApiGateway {
     if (hasAiServiceKey && moduleName === 'laundry-items' && Object.keys(req.body ?? {}).some((field) => field !== 'itemId' && field !== 'updatedBy')) {
       throw ApiError.forbidden('AI service key may only update itemId (and optional updatedBy)')
     }
-    const identity = moduleName === 'staff' ? await this.authenticateIdentity(req) : undefined
-    let staff = moduleName === 'staff'
-      ? identity?.staff
-      : hasAiServiceKey
-        ? await findStaffById('AI')
+    const identity = moduleName === 'staff' && !hasAiServiceKey ? await this.authenticateIdentity(req) : undefined
+    let staff = hasAiServiceKey
+      ? await findStaffById('AI')
+      : moduleName === 'staff'
+        ? identity?.staff
         : isPublicModule(moduleName) || hasInvoicePrintKey(req, segments)
           ? undefined
           : await this.authenticate(req)
@@ -112,6 +112,7 @@ function hasAiRouteServiceKey(req: VercelRequest, segments: string[]): boolean {
     ))
     || (moduleName === 'work-orders' && req.method === 'GET' && segments.length === 1)
     || (moduleName === 'work-transactions' && req.method === 'GET' && segments.length === 1)
+    || (moduleName === 'staff' && req.method === 'GET' && segments.length === 2 && segments[1] === 'directory')
     || (moduleName === 'customers' && req.method === 'GET' && segments.length <= 2)
   if (!allowed) return false
   const expectedKey = process.env.AI_SERVICE_KEY

@@ -11,6 +11,8 @@ the results area shows a loading line or the error with Retry, never empty resul
 include correction rows: a VOID lowers both, an ADJUSTMENT changes minutes only. The name and
 details come from the prefetched staff list.
 
+The member's departments show as small chips under the subtitle (same English labels as the task rows; nothing renders when there are none).
+
 The page is dark (`bg-on-surface`) with lime as the accent and shows two views:
 
 - **Day**: a strip of the last 7 days (today selected first; a dot marks a day with minutes). For

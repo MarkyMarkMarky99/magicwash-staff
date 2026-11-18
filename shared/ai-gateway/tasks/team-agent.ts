@@ -18,7 +18,7 @@ const eventSchema = z.object({
   action: z.object({
     type: z.enum([
       'create', 'reschedule', 'cancel', 'remind', 'reminder-cancelled', 'close', 'reopen',
-      'assign', 'assignment-done', 'assignment-cancelled', 'assignment-overdue',
+      'assign', 'assignment-done', 'assignment-cancelled', 'assignment-overdue', 'assignment-closed',
     ]),
     appointmentId: z.string().nullish(),
     outcome: z.enum(['ok', 'failed', 'unknown']),
@@ -45,6 +45,7 @@ const assignmentSchema = z.object({
     name: z.string().nullish(),
   }).nullish(),
   requestedByAdmin: z.string().nullish(),
+  orderId: z.string().nullish(),
   detail: z.string(),
   dueAt: z.string().nullish(),
   status: z.enum(['open', 'done', 'cancelled']),

@@ -16,7 +16,7 @@ Prefer shared controls:
 
 - `FormInput`
 - `FormTextarea`
-- `FormOptionGrid`
+- `FormOptionGrid` (single-select; pass `multiple` with an array model for a multi-select)
 - `FormSwitch`
 - `FormToggleInput` for an optional text field that stays hidden until its switch is on
 - `FormLabel`

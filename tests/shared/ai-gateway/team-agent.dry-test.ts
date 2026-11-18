@@ -218,7 +218,7 @@ test('history supports the before cursor and refuses after together with before'
 })
 
 test('history accepts the speaker role and the assignment action types', async () => {
-  const types = ['assign', 'assignment-done', 'assignment-cancelled', 'assignment-overdue']
+  const types = ['assign', 'assignment-done', 'assignment-cancelled', 'assignment-overdue', 'assignment-closed']
   const history = await getTeamAgentHistory({ ...personal, fetchImpl: async () => Response.json({
     events: [
       { ...event, speaker: { staffId: 'S1', name: 'Boss', role: 'admin' } },
@@ -236,11 +236,19 @@ test('assignments list and cancel use the personal admin endpoints', async () =>
     assert.equal(url, 'http://stub.invalid/agents/personal/assignments?status=open')
     assert.equal(init?.method, 'GET')
     assert.equal((init!.headers as Record<string, string>).Authorization, 'Bearer token-1')
-    return Response.json({ assignments: [assignment, { ...assignment, id: 'as2', dueAt: null, assigneeName: null, createdBy: null, failedDeliveries: null }] })
+    return Response.json({ assignments: [
+      assignment,
+      { ...assignment, id: 'as2', dueAt: null, assigneeName: null, createdBy: null, failedDeliveries: null, orderId: null },
+      { ...assignment, id: 'as3', orderId: 'ORD-123', createdBy: { kind: 'agent', agentId: 'washing' } },
+    ] })
   } })
-  assert.equal(listed.length, 2)
+  assert.equal(listed.length, 3)
   assert.equal(listed[0]!.failedDeliveries, 1)
+  assert.equal(listed[0]!.orderId, undefined)
   assert.equal(listed[1]!.dueAt, null)
+  assert.equal(listed[1]!.orderId, null)
+  assert.equal(listed[2]!.orderId, 'ORD-123')
+  assert.deepEqual(listed[2]!.createdBy, { kind: 'agent', agentId: 'washing' })
   const cancelled = await cancelPersonalAssignment({ baseUrl: access.baseUrl, getToken: access.getToken, id: 'as/1', fetchImpl: async (url, init) => {
     assert.equal(url, 'http://stub.invalid/agents/personal/assignments/as%2F1/cancel')
     assert.equal(init?.method, 'POST')

@@ -17,6 +17,7 @@ const row = {
   role: null,
   position: '',
   startDate: '',
+  departments: [] as ('Washing' | 'Ironing')[],
   active: false,
 }
 
@@ -32,6 +33,13 @@ assert.deepEqual(
   { name: 'สมศักดิ์', role: 'staff', active: true, startDate: '2026-10-01' },
   'only changed fields are sent',
 )
+assert.deepEqual(updateStaffPayload({ ...original, departments: ['Washing', 'Ironing'] }, original), { departments: ['Washing', 'Ironing'] }, 'changed departments are sent')
+assert.deepEqual(
+  updateStaffPayload({ ...original, departments: [] }, { ...original, departments: ['Washing'] }),
+  { departments: [] },
+  'clearing departments sends an empty array',
+)
+assert.deepEqual(updateStaffPayload({ ...original, departments: ['Ironing', 'Washing'] }, { ...original, departments: ['Washing', 'Ironing'] }), {}, 'same departments in another order are not a change')
 assert.deepEqual(updateStaffPayload({ ...original, name: ' สมชาย ' }, original), {}, 'whitespace-only edits are not changes')
 assert.deepEqual(updateStaffPayload({ ...original, role: '' }, original), {}, 'an unset role is never sent')
 assert.equal(updateStaffBodySchema.safeParse(updateStaffPayload({ ...original, name: '' }, original)).success, false, 'blank name is rejected by the contract')

@@ -64,6 +64,7 @@ function gateway(authenticate: StaffAuthenticator, authenticateIdentity?: StaffI
     }),
     staff: async () => ({
       collection: new ApiHandler({ GET: (req) => ({ status: 200, body: req.staff }) }),
+      item: new ApiHandler({ GET: (req) => ({ status: 200, body: req.staff }) }),
     }),
   }, authenticate, authenticateIdentity)
 }
@@ -163,6 +164,7 @@ try {
 
 const previousAiKey = process.env.AI_SERVICE_KEY
 const previousStaffSheet = process.env.STAFF_SPREADSHEET_ID
+const previousProjectId = process.env.FIREBASE_PROJECT_ID
 const originalReadRange = SheetsApiClient.prototype.readRange
 let aiActive = true
 let aiPresent = true
@@ -171,6 +173,7 @@ SheetsApiClient.prototype.readRange = async () => [
   ...(aiPresent ? [['ai@example.com', 'Appointment assistant', 'staff', aiActive, 'AI']] : []),
 ]
 process.env.STAFF_SPREADSHEET_ID = 'dry-test-staff'
+process.env.FIREBASE_PROJECT_ID = 'magicwashlaundry-a50ca'
 invalidateStaffListCache()
 try {
   process.env.AI_SERVICE_KEY = 'ai-service-secret'
@@ -206,6 +209,7 @@ try {
     ['/api/job-tickets?orderId=o1&page=2&perPage=1', 'GET'],
     ['/api/job-tickets?laundryItemId=tag1&page=2&perPage=1', 'GET'],
     ['/api/work-orders', 'GET'], ['/api/work-transactions', 'GET'], ['/api/work-transactions?from=2026-11-01&to=2026-11-02', 'GET'],
+    ['/api/staff/directory', 'GET'],
     ['/api/job-tickets/complete-order', 'POST'], ['/api/job-tickets/reopen', 'POST'],
   ]) assert.deepEqual((await api.handleRequest(serviceRequest(path, undefined, method))).body, aiStaff)
   for (const [path, method, actorField, status] of [
@@ -223,7 +227,7 @@ try {
     aiActive = active
     aiPresent = !active
     invalidateStaffListCache()
-    for (const [path, method] of [['/api/appointments', 'POST'], ['/api/customers', 'GET'], ['/api/laundry-items/Ab12Cd34', 'PATCH'], ['/api/job-tickets', 'GET'], ['/api/job-tickets/reopen', 'POST'], ['/api/job-tickets/complete-order', 'POST'], ['/api/work-orders', 'GET'], ['/api/work-transactions', 'GET']]) {
+    for (const [path, method] of [['/api/appointments', 'POST'], ['/api/customers', 'GET'], ['/api/laundry-items/Ab12Cd34', 'PATCH'], ['/api/job-tickets', 'GET'], ['/api/job-tickets/reopen', 'POST'], ['/api/job-tickets/complete-order', 'POST'], ['/api/work-orders', 'GET'], ['/api/work-transactions', 'GET'], ['/api/staff/directory', 'GET']]) {
       const result = await api.handleRequest(serviceRequest(path, undefined, method))
       assert.equal(result.status, 403)
       assert.match(JSON.stringify(result.body), /AI is not an active staff member/)
@@ -246,11 +250,15 @@ try {
     ['/api/job-tickets/reopen/extra', 'POST'], ['/api/work-orders/o1', 'GET'],
     ['/api/work-orders', 'POST'], ['/api/work-orders/o1', 'PATCH'],
     ['/api/work-transactions', 'POST'], ['/api/work-transactions/w1', 'GET'], ['/api/work-transactions', 'DELETE'],
+    ['/api/staff', 'GET'], ['/api/staff/worker-id', 'GET'], ['/api/staff/me', 'GET'],
+    ['/api/staff', 'POST'], ['/api/staff/worker-id', 'PATCH'],
+    ['/api/staff/directory', 'POST'], ['/api/staff/directory', 'PATCH'], ['/api/staff/directory/extra', 'GET'],
   ]) {
     assert.equal((await api.handleRequest(serviceRequest(path!, 'ai-service-secret', method))).status, 401)
   }
   for (const key of ['wrong-key-secret!', 'short', ['ai-service-secret']]) {
     assert.equal((await api.handleRequest(serviceRequest(undefined, key))).status, 401)
+    assert.equal((await api.handleRequest(serviceRequest('/api/staff/directory', key, 'GET'))).status, 401)
   }
   const noKey = serviceRequest()
   delete noKey.headers['x-service-key']
@@ -265,7 +273,11 @@ try {
     if (key === undefined) delete process.env.AI_SERVICE_KEY
     else process.env.AI_SERVICE_KEY = key
     assert.equal((await api.handleRequest(serviceRequest())).status, 401)
+    assert.equal((await api.handleRequest(serviceRequest('/api/staff/directory', undefined, 'GET'))).status, 401)
   }
+  const realGateway = gateway(authenticateStaff)
+  assert.equal((await realGateway.handleRequest(request('/api/auth/me'))).status, 401)
+  assert.equal((await realGateway.handleRequest(request('/api/auth/me', 'Bearer bad'))).status, 401)
 } finally {
   SheetsApiClient.prototype.readRange = originalReadRange
   invalidateStaffListCache()
@@ -273,15 +285,6 @@ try {
   else process.env.STAFF_SPREADSHEET_ID = previousStaffSheet
   if (previousAiKey === undefined) delete process.env.AI_SERVICE_KEY
   else process.env.AI_SERVICE_KEY = previousAiKey
-}
-
-const previousProjectId = process.env.FIREBASE_PROJECT_ID
-process.env.FIREBASE_PROJECT_ID = 'magicwashlaundry-a50ca'
-try {
-  const realGateway = gateway(authenticateStaff)
-  assert.equal((await realGateway.handleRequest(request('/api/auth/me'))).status, 401)
-  assert.equal((await realGateway.handleRequest(request('/api/auth/me', 'Bearer bad'))).status, 401)
-} finally {
   if (previousProjectId === undefined) delete process.env.FIREBASE_PROJECT_ID
   else process.env.FIREBASE_PROJECT_ID = previousProjectId
 }

@@ -1,5 +1,5 @@
 import type { RegisterStaffInput, StaffDto, UpdateStaffInput } from '@/data/staff/staff.service'
-import type { StaffRole } from './staff-presentation'
+import type { StaffDepartment, StaffRole } from './staff-presentation'
 
 export interface StaffFormState {
   name: string
@@ -9,11 +9,12 @@ export interface StaffFormState {
   role: StaffRole | ''
   position: string
   startDate: string
+  departments: StaffDepartment[]
   active: boolean
 }
 
 export function emptyStaffForm(): StaffFormState {
-  return { name: '', phone: '', address: '', role: '', position: '', startDate: '', active: false }
+  return { name: '', phone: '', address: '', role: '', position: '', startDate: '', departments: [], active: false }
 }
 
 export function staffFormFromRow(row: StaffDto): StaffFormState {
@@ -24,6 +25,7 @@ export function staffFormFromRow(row: StaffDto): StaffFormState {
     role: row.role ?? '',
     position: row.position,
     startDate: row.startDate,
+    departments: [...row.departments],
     active: row.active,
   }
 }
@@ -45,6 +47,10 @@ export function updateStaffPayload(form: StaffFormState, original: StaffFormStat
   if (form.role !== '' && form.role !== original.role) payload.role = form.role
   if (form.position.trim() !== original.position.trim()) payload.position = form.position.trim()
   if (form.startDate !== original.startDate) payload.startDate = form.startDate
+  if (form.departments.length !== original.departments.length
+    || form.departments.some((department) => !original.departments.includes(department))) {
+    payload.departments = [...form.departments]
+  }
   if (form.active !== original.active) payload.active = form.active
   return payload
 }

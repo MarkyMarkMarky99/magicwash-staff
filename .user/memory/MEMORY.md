@@ -20,7 +20,7 @@
   - น้องซักผ้า/น้องรีดผ้า live 2026-11-17 (live-tested close/reopen/gate on KLX 6dc8190f); next: own avatars, review greetings; plan `docs/plans/department-agents.md`.
   - Unread badges per chat + draggable floating AI bubble live 2026-11-18; real finger drag not yet checked on a phone.
   - Personal assistants live 2026-11-18 (plan `docs/plans/personal-agents.md`); staff scores need W prod deploy; not yet seen live: open-card Cancel, Overdue pill.
-  - Department agents assigning work to their own staff: plan reviewed 2026-11-18, not built; `docs/plans/department-staff-assignments.md`.
+  - Department agents assign work to their own staff: live 2026-11-18 (`docs/plans/department-staff-assignments.md`); owner must set each employee's Departments.
   - Assignments now follow up halfway and 1 h before the deadline (MagicwashAI 8d20297).
 - **Corporate count-sheet order** — see `docs/features/orders/corporate-order-form.md`
   - Slip-photo upload on Save not yet tried in a real browser.

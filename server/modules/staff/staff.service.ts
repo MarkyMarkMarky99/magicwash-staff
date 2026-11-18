@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { registerStaffBodySchema, staffSchema, updateStaffBodySchema } from '../../../contracts/staff/staff-api.schema.js'
+import { jobTicketDepartmentSchema } from '../../../contracts/job-tickets/job-ticket-api.schema.js'
+import { registerStaffBodySchema, staffDirectoryEntrySchema, staffSchema, updateStaffBodySchema } from '../../../contracts/staff/staff-api.schema.js'
 import { invalidateStaffListCache } from '../../shared/auth/staff-list.js'
 import { ApiError } from '../../shared/http/api-error.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
@@ -8,11 +9,13 @@ import { SheetsApiClient, type SheetsApiValue } from '../../shared/repositories/
 import { generateShortId } from '../../shared/utils/id.js'
 
 type Staff = z.infer<typeof staffSchema>
+type StaffDirectoryEntry = z.infer<typeof staffDirectoryEntrySchema>
 
+const departmentsColumn = 'Departments'
 const staffColumns = {
   email: 'Email', name: 'Name', role: 'Role', active: 'Active', staffId: 'StaffId',
   phone: 'Phone', address: 'Address', position: 'Position', startDate: 'StartDate',
-} satisfies Record<keyof Staff, string>
+} satisfies Record<Exclude<keyof Staff, 'departments'>, string>
 
 function normalizeStartDate(value: SheetsApiValue | undefined): string {
   let date: Date
@@ -35,6 +38,10 @@ export class StaffService {
     return (await this.load()).rows.map(({ staff }) => staff)
   }
 
+  async listDirectory(): Promise<StaffDirectoryEntry[]> {
+    return (await this.list()).map((staff) => staffDirectoryEntrySchema.parse(staff))
+  }
+
   async me(email: string): Promise<Staff> {
     const row = (await this.load()).rows.find(({ staff }) => staff.email.trim().toLowerCase() === email)
     if (!row) throw ApiError.notFound('Staff not found')
@@ -55,11 +62,11 @@ export class StaffService {
       throw ApiError.conflict('This email is already registered')
     }
     const staff: Staff = {
-      ...body, email, staffId: generateShortId(), role: null, active: false, position: '', startDate: '',
+      ...body, email, staffId: generateShortId(), role: null, active: false, position: '', startDate: '', departments: [],
     }
     const values: SheetsApiValue[] = Array(header.width).fill('')
     for (const [field, column] of Object.entries(staffColumns)) {
-      values[header.indexByName[column]] = staff[field as keyof Staff] ?? ''
+      values[header.indexByName[column]] = staff[field as keyof typeof staffColumns] ?? ''
     }
     await this.client.appendRows([values], 'RAW', header.width)
     invalidateStaffListCache()
@@ -68,7 +75,7 @@ export class StaffService {
 
   async update(staffId: string, email: string, payload: unknown): Promise<Staff> {
     const id = parseOrThrow(z.string().min(1), staffId)
-    const body = parseOrThrow(updateStaffBodySchema, payload)
+    const { departments, ...body } = parseOrThrow(updateStaffBodySchema, payload)
     const { header, rows } = await this.load()
     const row = rows.find(({ staff }) => staff.staffId === id)
     if (!row) throw ApiError.notFound('Staff not found')
@@ -79,9 +86,14 @@ export class StaffService {
       const column = header.letterByName[staffColumns[field as keyof typeof body]]
       return { range: `Staff!${column}${row.rowNumber}`, values: [[value!]] }
     })
+    if (departments !== undefined) {
+      const column = header.letterByName[departmentsColumn]
+      if (!column) throw ApiError.conflict('The Staff sheet is missing the Departments column')
+      updates.push({ range: `Staff!${column}${row.rowNumber}`, values: [[departments.join(', ')]] })
+    }
     await this.client.updateCells(updates, 'RAW')
     invalidateStaffListCache()
-    return { ...row.staff, ...body }
+    return { ...row.staff, ...body, departments: departments ?? row.staff.departments }
   }
 
   private async load() {
@@ -91,6 +103,7 @@ export class StaffService {
       valueRenderOption: 'UNFORMATTED_VALUE',
     })
     const rows: { staff: Staff; rowNumber: number }[] = []
+    const departmentsIndex = header.indexByName[departmentsColumn]
     for (const [index, cells] of data.entries()) {
       const values = Object.fromEntries(Object.entries(staffColumns).map(([field, column]) => [
         field, String(cells[header.indexByName[column]] ?? ''),
@@ -98,6 +111,8 @@ export class StaffService {
       if (!values.email!.trim()) continue
       const role = values.role!.trim().toLowerCase()
       const active = cells[header.indexByName.Active]
+      const departmentsCell = departmentsIndex === undefined ? '' : String(cells[departmentsIndex] ?? '')
+      const departments = departmentsCell.split(',').map((value) => value.trim())
       const staff: Staff = {
         staffId: values.staffId!,
         email: values.email!,
@@ -106,6 +121,9 @@ export class StaffService {
         address: values.address!,
         position: values.position!,
         startDate: normalizeStartDate(cells[header.indexByName.StartDate]),
+        departments: jobTicketDepartmentSchema.options.filter((department) =>
+          departments.includes(department),
+        ),
         role: role === 'admin' || role === 'staff' || role === 'device' ? role : null,
         active: active === true || (typeof active === 'string' && active.trim().toLowerCase() === 'true'),
       }

@@ -1,12 +1,24 @@
 <script setup>
-defineProps({
+const props = defineProps({
   label:      { type: String, required: true },
-  modelValue: { type: /** @type {import('vue').PropType<string | null>} */ (String), default: '' },
+  modelValue: { type: /** @type {import('vue').PropType<string | string[] | null>} */ ([String, Array]), default: '' },
   options:    { type: Array, required: true },
   variant:    { type: String, default: 'card' },
+  /** Multi-select: modelValue is an array and a click toggles that option. */
+  multiple:   { type: Boolean, default: false },
 })
 
-defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue'])
+
+function isSelected(value) {
+  return props.multiple ? Array.isArray(props.modelValue) && props.modelValue.includes(value) : value === props.modelValue
+}
+
+function choose(value) {
+  if (!props.multiple) return emit('update:modelValue', value)
+  const current = Array.isArray(props.modelValue) ? props.modelValue : []
+  emit('update:modelValue', current.includes(value) ? current.filter((item) => item !== value) : [...current, value])
+}
 </script>
 
 <template>
@@ -21,16 +33,17 @@ defineEmits(['update:modelValue'])
         :key="option.value"
         type="button"
         :disabled="option.disabled"
+        :aria-pressed="multiple ? isSelected(option.value) : undefined"
         class="option-button"
         :class="[
           variant === 'compact' ? 'option-button--compact' : 'option-button--card',
           option.disabled
             ? 'option-button--disabled'
-            : option.value === modelValue
+            : isSelected(option.value)
               ? 'option-button--selected'
               : 'option-button--unselected',
         ]"
-        @click="!option.disabled && $emit('update:modelValue', option.value)"
+        @click="!option.disabled && choose(option.value)"
       >
         <span
           v-if="option.icon"

@@ -21,7 +21,7 @@ import {
   updateStaffPayload,
   type StaffFormState,
 } from '../utils/staff-form-payload'
-import { STAFF_ROLE_OPTIONS, type StaffRole } from '../utils/staff-presentation'
+import { STAFF_DEPARTMENT_OPTIONS, STAFF_ROLE_OPTIONS, type StaffDepartment, type StaffRole } from '../utils/staff-presentation'
 
 defineOptions({ name: 'StaffFormPage' })
 
@@ -116,6 +116,10 @@ function setRole(value: string | null): void {
   form.role = (value ?? '') as StaffRole | ''
 }
 
+function setDepartments(value: string | string[] | null): void {
+  form.departments = Array.isArray(value) ? (value as StaffDepartment[]) : []
+}
+
 async function submit(): Promise<void> {
   if (!canSubmit.value) return
   formError.value = null
@@ -139,6 +143,7 @@ async function submit(): Promise<void> {
 
 async function describeError(reason: unknown): Promise<string> {
   if (reason instanceof ApiError && reason.status === 409) {
+    if (isEdit.value && 'departments' in changes.value) return reason.message
     if (isEdit.value) return 'ไม่สามารถเปลี่ยนสิทธิ์หรือสถานะการใช้งานของตัวเองได้'
     await authStore.recheck()
     return 'บัญชีนี้ลงทะเบียนแล้ว'
@@ -199,6 +204,14 @@ onMounted(() => void authStore.ready())
           :options="roleOptions"
           :model-value="form.role"
           @update:model-value="setRole"
+        />
+        <FormOptionGrid
+          label="Departments"
+          variant="compact"
+          multiple
+          :options="STAFF_DEPARTMENT_OPTIONS"
+          :model-value="form.departments"
+          @update:model-value="setDepartments"
         />
         <FormInput
           id="staff-position"

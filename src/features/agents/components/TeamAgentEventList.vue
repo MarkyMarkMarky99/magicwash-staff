@@ -38,6 +38,7 @@ const ACTION_ICONS: Record<ActionType, string> = {
   'assignment-done': 'assignment_turned_in',
   'assignment-cancelled': 'block',
   'assignment-overdue': 'assignment_late',
+  'assignment-closed': 'task_alt',
 }
 
 const OUTCOME_LABELS: Record<Outcome, string> = { ok: 'OK', failed: 'Failed', unknown: 'Unknown' }

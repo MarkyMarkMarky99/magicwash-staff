@@ -4,6 +4,22 @@ A Google account that is not on the `Staff` allow-list registers itself, then wa
 
 Backend contract: `contracts/staff/staff-api.schema.ts`. Routes: `GET /api/staff/me`, `POST /api/staff`, authenticated `GET /api/staff`, and admin-only `GET /api/staff/:staffId`, `PATCH /api/staff/:staffId`. The authenticated list returns every staff profile, including pending/inactive rows. Invalid or missing authentication returns 401. The app prefetches it at load to map StaffIds to names. All staff GETs bypass the response cache (`/api/staff` is in `NEVER_CACHE`), so an approval is visible on the next read.
 
+## Departments and directory
+
+Staff API responses include a `departments` array using the JobTicket department enum. The Staff
+sheet stores it in the optional `Departments` column after `StartDate` (column J). Reads split
+cells on commas, trim whitespace, discard unknown values, and return unique values in enum
+order. A blank cell or missing column returns `[]`.
+
+Admins can set departments with `PATCH /api/staff/:staffId`. The request accepts only exact enum
+values and stores unique values in enum order, joined by a comma and space (for example,
+`Washing, Ironing`). An empty array clears the cell. A PATCH that supplies departments before
+the column exists returns 409 before writing any fields. Registration starts with `departments: []`.
+
+`GET /api/staff/directory` is available to signed-in staff of any role and to the AI service key.
+It returns `{ staffId, name, role, active, departments }` for each row included in the staff list.
+The AI integration can use role, active status, and departments to select eligible staff.
+
 ## Login states
 
 `auth.store.ts` drives them; `LoginPage.vue` renders them. See `docs/architecture/frontend/project-structure.md` for the sequence.
@@ -29,7 +45,7 @@ Route names and builders live in `src/shared/navigation/form-routes.ts`.
 - Email is a read-only display in both modes: the signed-in Google email on create, the row's email on edit.
 - Name, phone, and address are editable in both modes. Phone is a `tel` input holding text, so a leading zero survives.
 - Staff ID is shown read-only on edit only.
-- Role, position, start date, and active are shown on edit only. Role starts unselected for a pending row, and an unset role is never sent.
+- Role, Departments, position, start date, and active are shown on edit only. Departments is a multi-select (`FormOptionGrid` with `multiple`) of the JobTicket departments, labelled Tagging, Washing, Dry cleaning, Ironing, Packing and Delivery; it sends `departments` only when the selection changed. A 409 on a save that includes departments (the sheet column is missing) shows the server message inline. Role starts unselected for a pending row, and an unset role is never sent.
 - Create posts name, phone, and address as validated by `registerStaffBodySchema`; the server takes the email from the Google token. On success the store enters `pending` and the page replaces itself with `/login`.
 - Edit sends only changed fields to `PATCH`. Submit stays disabled until something changed and the payload passes `updateStaffBodySchema`.
 - An admin editing their own row cannot change role or active (the backend answers 409), so those controls are disabled for that row.

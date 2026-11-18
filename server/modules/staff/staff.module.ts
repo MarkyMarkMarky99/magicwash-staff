@@ -26,12 +26,17 @@ export function createStaffRoutes(service: StaffService): GatewayModuleRoutes {
     }),
     item: new ApiHandler({
       GET: async (req) => {
+        if (req.params.id === 'directory') {
+          if (!req.staff) throw ApiError.unauthorized()
+          return ok(await service.listDirectory())
+        }
         if (req.params.id === 'me') return ok(await service.me(requireIdentity(req)))
         requireAdmin(req)
         return ok(await service.getById(req.params.id!))
       },
       PATCH: async (req) => {
         const email = requireAdmin(req)
+        if (req.params.id === 'directory') throw ApiError.notFound('Route not found')
         return ok(await service.update(req.params.id!, email, req.body))
       },
     }),

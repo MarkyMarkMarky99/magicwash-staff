@@ -15,6 +15,7 @@ import {
   rankStaff,
   summarizeDay,
 } from '../utils/staff-performance'
+import { STAFF_DEPARTMENT_LABELS } from '../utils/staff-presentation'
 
 defineOptions({ name: 'StaffProfilePage' })
 
@@ -22,14 +23,7 @@ const props = defineProps<{ staffId: string }>()
 
 type ProfileView = 'day' | 'week'
 
-const DEPARTMENT_LABELS: Record<string, string> = {
-  Tagging: 'Tagging',
-  Washing: 'Washing',
-  DryCleaning: 'Dry cleaning',
-  Ironing: 'Ironing',
-  Packaging: 'Packing',
-  Logistics: 'Delivery',
-}
+const DEPARTMENT_LABELS: Record<string, string> = STAFF_DEPARTMENT_LABELS
 const HERO_RADIUS = 81
 const MINI_RADIUS = 23
 
@@ -192,6 +186,15 @@ watch(() => props.staffId, () => {
         <div class="min-w-0 flex-1">
           <h2 class="truncate font-headline text-[20px] font-bold leading-tight">{{ displayName }}</h2>
           <p class="truncate text-[13px] text-on-primary/60">{{ subtitle }}</p>
+          <ul v-if="member?.departments.length" class="mt-1.5 flex flex-wrap gap-1.5" aria-label="Departments">
+            <li
+              v-for="department in member.departments"
+              :key="department"
+              class="rounded-full border border-on-primary/10 bg-on-primary/5 px-2.5 py-0.5 text-[11px] font-semibold text-on-primary/75"
+            >
+              {{ DEPARTMENT_LABELS[department] ?? department }}
+            </li>
+          </ul>
           <p v-if="staffError && !staffLoaded" class="text-[13px] text-on-primary/60">
             Could not load staff details
             <button type="button" class="ml-1 min-h-11 font-bold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime" @click="staffStore.load()">Retry</button>

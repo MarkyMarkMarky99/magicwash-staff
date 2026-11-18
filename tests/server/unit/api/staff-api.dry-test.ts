@@ -12,13 +12,14 @@ const { createStaffRoutes } = await import('../../../../server/modules/staff/sta
 if (previousSpreadsheetId === undefined) delete process.env.STAFF_SPREADSHEET_ID
 else process.env.STAFF_SPREADSHEET_ID = previousSpreadsheetId
 
-const header = ['Email', 'Name', 'Role', 'Active', 'StaffId', 'Phone', 'Address', 'Position', 'StartDate']
+const header = ['Email', 'Name', 'Role', 'Active', 'StaffId', 'Phone', 'Address', 'Position', 'StartDate', 'Departments']
 const rows: SheetsApiValue[][] = [
   ['OWNER@EXAMPLE.COM', 'Owner', 'admin', true, '', '0800000000', '', '', 46023],
-  ['worker@example.com', 'Worker', 'staff', true, 'worker-id', 812345678, 'Home', 'Washing', '2026-01-01'],
+  ['worker@example.com', 'Worker', 'staff', true, 'worker-id', 812345678, 'Home', 'Washing', '2026-01-01', ' Ironing, Washing, , Unknown, Washing'],
   ['', 'Absent', 'admin', true, 'absent-id'],
   ['admin@example.com', 'Admin', 'admin', true, 'admin-id', '', '', '', ''],
   ['inactive@example.com', 'Inactive', 'staff', false, 'inactive-id', '', '', '', 'not-a-date'],
+  ['device@example.com', 'Device', 'device', true, 'device-id'],
 ]
 const writes: { url: string; body: Record<string, unknown> }[] = []
 const fetchImpl: typeof fetch = async (input, init) => {
@@ -35,7 +36,7 @@ const fetchImpl: typeof fetch = async (input, init) => {
     const values = body.values as SheetsApiValue[][]
     rows.push(values[0]!)
     return Response.json({ updates: {
-      updatedRows: 1, updatedRange: `Staff!A${rows.length + 1}:I${rows.length + 1}`,
+      updatedRows: 1, updatedRange: `Staff!A${rows.length + 1}:J${rows.length + 1}`,
       updatedData: { values },
     } })
   }
@@ -60,7 +61,7 @@ const gateway = new ApiGateway({ staff: async () => routes }, async () => {
   const email = token.slice('Bearer '.length).trim().toLowerCase()
   const listed = rows.find((row) => String(row[0]).toLowerCase() === email && row[3] === true)
   const role = listed?.[2]
-  return { email, staff: role === 'admin' || role === 'staff' ? { staffId: String(listed![4] ?? '').trim(), email, name: String(listed![1]), role } : undefined }
+  return { email, staff: role === 'admin' || role === 'staff' || role === 'device' ? { staffId: String(listed![4] ?? '').trim(), email, name: String(listed![1]), role } : undefined }
 })
 const call = (method: string, path: string, email?: string, body?: unknown) => gateway.handleRequest({
   method, url: path, query: {}, headers: email ? { authorization: `Bearer ${email}` } : {}, body,
@@ -91,7 +92,7 @@ try {
 }
 
 for (const [method, path] of [
-  ['GET', '/api/staff/me'], ['POST', '/api/staff'],
+  ['GET', '/api/staff/me'], ['GET', '/api/staff/directory'], ['POST', '/api/staff'],
   ['GET', '/api/staff/worker-id'], ['PATCH', '/api/staff/worker-id'],
 ]) {
   assert.equal((await call(method!, path!)).status, 401)
@@ -122,11 +123,11 @@ const newStaff = staffSchema.parse(data(registered))
 assert.match(newStaff.staffId, /^[0-9a-f]{8}$/)
 assert.deepEqual(newStaff, {
   staffId: newStaff.staffId, email: 'new@example.com', name: 'New Staff', phone: '0812345678',
-  address: 'Home', role: null, active: false, position: '', startDate: '',
+  address: 'Home', role: null, active: false, position: '', startDate: '', departments: [],
 })
 assert.equal(new URL(writes[0]!.url).searchParams.get('valueInputOption'), 'RAW')
 assert.deepEqual(writes[0]!.body.values, [[
-  'new@example.com', 'New Staff', '', false, newStaff.staffId, '0812345678', 'Home', '', '',
+  'new@example.com', 'New Staff', '', false, newStaff.staffId, '0812345678', 'Home', '', '', '',
 ]])
 assert.equal((await call('POST', '/api/staff', 'New@Example.com', {
   name: 'Duplicate', phone: '0', address: 'Home',
@@ -150,13 +151,24 @@ assert.equal((await call('GET', '/api/staff')).status, 401)
 const listResult = await call('GET', '/api/staff', 'worker@example.com')
 assert.equal(listResult.status, 200)
 const list = (data(listResult) as unknown[]).map((row) => staffSchema.parse(row))
-assert.equal(list.length, 5)
+assert.equal(list.length, 6)
 assert.equal(list[0]!.staffId, '')
 assert.equal(list[0]!.startDate, '2026-01-01')
 assert.equal(list[1]!.startDate, '2026-01-01')
+assert.deepEqual(list[1]!.departments, ['Washing', 'Ironing'])
 assert.equal(list.find((row) => row.staffId === 'inactive-id')!.startDate, '')
 assert.equal(list.find((row) => row.staffId === 'inactive-id')!.active, false)
 assert.deepEqual(list.find((row) => row.staffId === newStaff.staffId), newStaff)
+const expectedDirectory = list.map(({ staffId, name, role, active, departments }) => ({
+  staffId, name, role, active, departments,
+}))
+for (const email of ['admin@example.com', 'worker@example.com', 'device@example.com']) {
+  const directory = await call('GET', '/api/staff/directory', email)
+  assert.equal(directory.status, 200)
+  assert.deepEqual(data(directory), expectedDirectory)
+}
+assert.equal((await call('GET', '/api/staff/directory', 'new@example.com')).status, 401)
+assert.equal((await call('PATCH', '/api/staff/directory', 'admin@example.com', { name: 'Changed' })).status, 404)
 assert.equal((await call('GET', '/api/staff/missing', 'admin@example.com')).status, 404)
 assert.equal((await call('PATCH', '/api/staff/missing', 'admin@example.com', { active: true })).status, 404)
 assert.equal((await call('PATCH', '/api/staff/absent-id', 'admin@example.com', { active: true })).status, 404)
@@ -185,6 +197,20 @@ assert.equal(registerStaffBodySchema.safeParse({ name: ' ', phone: '0', address:
 assert.equal(registerStaffBodySchema.safeParse({ name: 'A', phone: '0', address: 'Home', email: 'x' }).success, false)
 assert.equal(updateStaffBodySchema.safeParse({ startDate: '' }).success, true)
 assert.equal(updateStaffBodySchema.safeParse({ startDate: '2026-10-03' }).success, true)
+assert.equal(registerStaffBodySchema.safeParse({ name: 'A', phone: '0', address: 'Home', departments: [] }).success, false)
+for (const departments of [null, 'Washing', ['washing'], ['Unknown'], [' Washing ']]) {
+  assert.equal((await call('PATCH', '/api/staff/worker-id', 'admin@example.com', { departments })).status, 422)
+}
+for (const [departments, expected] of [
+  [['Ironing', 'Washing', 'Ironing'], ['Washing', 'Ironing']],
+  [[], []],
+]) {
+  const result = await call('PATCH', '/api/staff/worker-id', 'admin@example.com', { departments })
+  assert.equal(result.status, 200)
+  assert.deepEqual(staffSchema.parse(data(result)).departments, expected)
+  assert.deepEqual(writes.at(-1)!.body.data, [{ range: 'Staff!J3', values: [[expected.join(', ')]] }])
+  assert.deepEqual((await service.getById('worker-id')).departments, expected)
+}
 
 const reorderedHeader = ['Phone', 'StaffId', 'StartDate', 'Email', 'Position', 'Active', 'Address', 'Role', 'Name']
 let appendValues: unknown
@@ -206,11 +232,21 @@ const reorderedService = new StaffService({
   },
 })
 assert.equal((await reorderedService.list())[0]!.phone, '123')
+assert.deepEqual((await reorderedService.list())[0]!.departments, [])
 const reorderedStaff = await reorderedService.register('another@example.com', { name: 'Another', phone: '001', address: 'Home' })
+assert.deepEqual(reorderedStaff.departments, [])
 assert.deepEqual(appendValues, [['001', reorderedStaff.staffId, '', 'another@example.com', '', false, 'Home', '', 'Another']])
 await reorderedService.update('reordered-id', 'admin@example.com', { phone: '002', role: 'staff', active: true })
 assert.deepEqual(updateValues, [
   { range: 'Staff!A2', values: [['002']] }, { range: 'Staff!H2', values: [['staff']] },
   { range: 'Staff!F2', values: [[true]] },
 ])
+const previousUpdate = updateValues
+for (const departments of [[], ['Washing']]) {
+  await assert.rejects(
+    reorderedService.update('reordered-id', 'admin@example.com', { departments, name: 'Changed' }),
+    (error: unknown) => error instanceof ApiError && error.status === 409 && /missing the Departments column/.test(error.message),
+  )
+}
+assert.equal(updateValues, previousUpdate)
 console.log('staff API dry test passed')

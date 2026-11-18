@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { jobTicketDepartmentSchema } from '../job-tickets/job-ticket-api.schema.js'
 import type { ModuleApiContract } from '../shared/module-api-contract.js'
 
 export const staffRoleSchema = z.enum(['admin', 'staff', 'device'])
@@ -15,7 +16,12 @@ export const staffSchema = z.object({
   role: staffRoleSchema.nullable(),
   position: z.string(),
   startDate: startDateSchema,
+  departments: z.array(jobTicketDepartmentSchema),
   active: z.boolean(),
+})
+
+export const staffDirectoryEntrySchema = staffSchema.pick({
+  staffId: true, name: true, role: true, active: true, departments: true,
 })
 
 export const registerStaffBodySchema = z.object({
@@ -31,6 +37,9 @@ export const updateStaffBodySchema = z.object({
   role: staffRoleSchema.optional(),
   position: z.string().trim().optional(),
   startDate: startDateSchema.optional(),
+  departments: z.array(jobTicketDepartmentSchema).transform((departments) =>
+    jobTicketDepartmentSchema.options.filter((department) => departments.includes(department)),
+  ).optional(),
   active: z.boolean().optional(),
 }).strict().refine((body) => Object.values(body).some((value) => value !== undefined), {
   message: 'At least one field is required',

@@ -100,6 +100,7 @@ The gateway also accepts `PATCH /api/laundry-items/:id` (exactly two path segmen
 On this laundry route the key permits only `itemId` and optional `updatedBy` (other fields return 403).
 The same key also permits collection/item appointments GET, collection POST, item PATCH, and
 collection/item customers GET; job-ticket collection/department-work GET; work-order collection GET; work-transaction collection GET;
+staff directory GET (exactly `GET /api/staff/directory`);
 and job-ticket complete-order/reopen POST. Job-ticket AI writes are limited to Washing and Ironing.
 All service-key requests resolve their actor via `findStaffById('AI')`
 from the active Staff allowlist; a missing or inactive AI row returns 403. Actor fields are replaced
@@ -313,12 +314,13 @@ JSON, schema, and count-mismatch failures and redact the print server URL and Ac
 
 ## Environment and external state
 
-The gateway leaves `portal` and `delivery-tracking` public. The `staff` module always verifies identity through
+The gateway leaves `portal` and `delivery-tracking` public. Outside the AI service-key exception for the directory,
+the `staff` module verifies identity through
 `authenticateIdentity`; missing or invalid Firebase ID tokens in the `Authorization: Bearer`
 header return 401. Token verification uses Firebase's public keys for `FIREBASE_PROJECT_ID` and requires
 a verified email, normalized by trimming and lowercasing. Missing or invalid tokens return 401.
 The restricted `Staff` tab in `STAFF_SPREADSHEET_ID` is read through the authenticated Sheets
-API, never GViz. The active allowlist includes only `admin` and `staff` roles and is cached
+API, never GViz. The active allowlist includes `admin`, `staff`, and `device` roles and is cached
 for 60 seconds. Successful staff POST and PATCH invalidate that instance's cache; an older
 in-flight read cannot repopulate the cache after invalidation.
 
@@ -352,6 +354,7 @@ OrderForm tab once and aggregates it in memory, including per-day detail in `day
 | `GET /api/staff/me` | Valid token | Own row including pending/inactive rows; 404 if absent |
 | `POST /api/staff` | Valid token | Register own verified email; 201, or 409 for any existing email |
 | `GET /api/staff` | Approved staff; verified identities without an approved StaffMember return 401 | Every row in the existing list response, with all columns and no role/active filtering; rows with nonempty Email include blank StaffIds |
+| `GET /api/staff/directory` | Approved staff of any role or AI service key | The same rows projected to `{ staffId, name, role, active, departments }` |
 | `GET /api/staff/:staffId` | Active admin | Staff row, or 404 |
 | `PATCH /api/staff/:staffId` | Active admin | Updated row, or 404; own role/active fields return 409 |
 
@@ -372,6 +375,8 @@ Active is a native boolean. Registration appends a full-width row with an unpref
 provided columns. Rows with empty Email are absent; legacy owner rows with empty StaffId
 remain visible but cannot be addressed by an empty ID. Duplicate email lookup is
 case-insensitive; Sheets provides no atomic unique-email constraint across concurrent requests.
+See [Staff registration and management](../../features/staff/registration.md) for department mapping
+and missing-column behavior.
 
 App startup, the route guard and the preloaded data are described in
 [App startup](../frontend/app-startup.md). Frontend writes record
