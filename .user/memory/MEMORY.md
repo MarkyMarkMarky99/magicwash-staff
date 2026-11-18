@@ -11,18 +11,7 @@
   - Live at `ai.magicwash-laundry.com`; corporate-form AI prefill merged to main; prod `VITE_AI_GATEWAY_URL` is set.
   - Need 3–5 more real slips (other branches, harder handwriting) for `scripts/eval-read-slip.js`.
   - Price groups KLINIQ, KLINIQUE, MAISON, MAISON_GAYSORN, SOULTEL live (2026-10-21) on the shared default slip prompt; only blank forms tested, need filled slips (esp. KLINIQ, whose LAUNDRY COUNT sits beside SPA COUNT).
-- **Agent chat (`/agents`)** — see `docs/features/agents/agent-chat.md`
-  - Owner to decide: switch app-wide UI text (nav: รายการราคา, แจ้งปัญหา, พนักงาน) to English like agents/price-list.
-  - Prod chats need MagicwashAI running on this PC; if it stops, register/price chats show the error bubble.
-  - NEXT session: build น้องติดตาม (order-tracking) — handoff `.user/memory/order-tracking-agent-handoff.md`; prod shows its fake reply until then.
-  - Local test: MagicwashAI `ALLOWED_ORIGINS` must include `http://localhost:3000` for `vercel dev`.
-  - น้องนัดหมาย (`appointments`) live 2026-11-16; schedule page has a Pickup/Delivery filter; plan `docs/plans/appointments-agent.md`.
-  - น้องซักผ้า/น้องรีดผ้า live 2026-11-17 (live-tested close/reopen/gate on KLX 6dc8190f); next: own avatars, review greetings; plan `docs/plans/department-agents.md`.
-  - Unread badges per chat + draggable floating AI bubble live 2026-11-18; real finger drag not yet checked on a phone.
-  - Personal assistants live 2026-11-18 (plan `docs/plans/personal-agents.md`); staff scores need W prod deploy; not yet seen live: open-card Cancel, Overdue pill.
-  - Staff profile uses shared report components (src/shared/components/reports) + open assignments, live 2026-11-18; staff-viewer case not browser-tested.
-  - Department agents assign work to their own staff: live 2026-11-18 (`docs/plans/department-staff-assignments.md`); owner must set each employee's Departments.
-  - Assignments now follow up halfway and 1 h before the deadline (MagicwashAI 8d20297).
+- **Agent chat (`/agents`)** — pending items in `.user/memory/agent-chat.md`; prod chats need MagicwashAI running on this PC.
 - **Corporate count-sheet order** — see `docs/features/orders/corporate-order-form.md`
   - Slip-photo upload on Save not yet tried in a real browser.
   - Owner: update G Drive `PriceList.json` description (price-0 rows may be active for CRYO).

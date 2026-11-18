@@ -49,7 +49,7 @@ function gateway(authenticate: StaffAuthenticator, authenticateIdentity?: StaffI
     }),
     'work-orders': async () => ({
       collection: new ApiHandler({ GET: req => ({ status: 200, body: req.staff }) }),
-      item: new ApiHandler({ GET: req => ({ status: 200, body: req.staff }) }),
+      item: new ApiHandler({ GET: req => ({ status: 200, body: req.staff }), PATCH: req => ({ status: 200, body: bodyWithSessionActor(req, 'updatedBy') }) }),
     }),
     customers: async () => ({
       collection: new ApiHandler({ GET: (req) => ({ status: 200, body: req.staff }) }),
@@ -222,6 +222,20 @@ try {
     assert.equal(result.status, status)
     assert.deepEqual(result.body, { ...req.body, [actorField]: 'AI' })
   }
+  {
+    const req = serviceRequest('/api/work-orders/o1', undefined, 'PATCH')
+    req.body = { status: 'COMPLETED', updatedBy: 'spoofed' }
+    const result = await api.handleRequest(req)
+    assert.equal(result.status, 200)
+    assert.deepEqual(result.body, { status: 'COMPLETED', updatedBy: 'AI' })
+  }
+  for (const body of [{ status: 'CANCELLED' }, { status: 'APPROVED' }, { status: 'COMPLETED', note: 'x' }, { dueDate: '2026-11-18' }]) {
+    const req = serviceRequest('/api/work-orders/o1', undefined, 'PATCH')
+    req.body = body
+    const result = await api.handleRequest(req)
+    assert.equal(result.status, 403)
+    assert.match(JSON.stringify(result.body), /only set work order status to COMPLETED/)
+  }
   assert.equal(authCalls, callsBeforeAi)
   for (const active of [false, true]) {
     aiActive = active
@@ -248,7 +262,7 @@ try {
     ['/api/job-tickets', 'POST'], ['/api/job-tickets/department-work', 'POST'],
     ['/api/job-tickets/reopen', 'GET'], ['/api/job-tickets/complete-order', 'GET'],
     ['/api/job-tickets/reopen/extra', 'POST'], ['/api/work-orders/o1', 'GET'],
-    ['/api/work-orders', 'POST'], ['/api/work-orders/o1', 'PATCH'],
+    ['/api/work-orders', 'POST'], ['/api/work-orders', 'PATCH'], ['/api/work-orders/o1', 'DELETE'],
     ['/api/work-transactions', 'POST'], ['/api/work-transactions/w1', 'GET'], ['/api/work-transactions', 'DELETE'],
     ['/api/staff', 'GET'], ['/api/staff/worker-id', 'GET'], ['/api/staff/me', 'GET'],
     ['/api/staff', 'POST'], ['/api/staff/worker-id', 'PATCH'],

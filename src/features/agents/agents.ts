@@ -56,10 +56,10 @@ export const AGENTS: AgentInfo[] = [
     id: 'appointments',
     name: AGENT_DISPLAY_NAMES['appointments'],
     role: 'Appointments',
-    description: 'Shared team chat that books, reschedules and cancels pickup appointments',
-    greeting: 'สวัสดีค่ะ หนูดูแลนัดหมายรับผ้าให้ทั้งทีม สั่งให้สร้าง เลื่อน หรือยกเลิกนัดได้เลยค่ะ',
+    description: 'Shared team chat for pickup and delivery appointments; closes orders once staff confirm delivery',
+    greeting: 'สวัสดีค่ะ หนูดูแลนัดหมายรับ–ส่งผ้าให้ทั้งทีม ส่งผ้าให้ลูกค้าแล้วบอกหนูได้เลย หนูปิดออเดอร์ให้ค่ะ',
     suggestions: [],
-    roles: ['admin'],
+    roles: ['admin', 'staff'],
   },
   {
     id: 'washing',

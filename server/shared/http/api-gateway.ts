@@ -46,6 +46,10 @@ export class ApiGateway {
     if (hasAiServiceKey && moduleName === 'laundry-items' && Object.keys(req.body ?? {}).some((field) => field !== 'itemId' && field !== 'updatedBy')) {
       throw ApiError.forbidden('AI service key may only update itemId (and optional updatedBy)')
     }
+    if (hasAiServiceKey && moduleName === 'work-orders' && req.method === 'PATCH'
+      && (req.body?.status !== 'COMPLETED' || Object.keys(req.body ?? {}).some((field) => field !== 'status' && field !== 'updatedBy'))) {
+      throw ApiError.forbidden('AI service key may only set work order status to COMPLETED')
+    }
     const identity = moduleName === 'staff' && !hasAiServiceKey ? await this.authenticateIdentity(req) : undefined
     let staff = hasAiServiceKey
       ? await findStaffById('AI')
@@ -110,7 +114,10 @@ function hasAiRouteServiceKey(req: VercelRequest, segments: string[]): boolean {
       (req.method === 'GET' && (segments.length === 1 || (segments.length === 2 && segments[1] === 'department-work')))
       || (req.method === 'POST' && segments.length === 2 && ['complete-order', 'reopen'].includes(segments[1]!))
     ))
-    || (moduleName === 'work-orders' && req.method === 'GET' && segments.length === 1)
+    || (moduleName === 'work-orders' && (
+      (req.method === 'GET' && segments.length === 1)
+      || (req.method === 'PATCH' && segments.length === 2)
+    ))
     || (moduleName === 'work-transactions' && req.method === 'GET' && segments.length === 1)
     || (moduleName === 'staff' && req.method === 'GET' && segments.length === 2 && segments[1] === 'directory')
     || (moduleName === 'customers' && req.method === 'GET' && segments.length <= 2)
