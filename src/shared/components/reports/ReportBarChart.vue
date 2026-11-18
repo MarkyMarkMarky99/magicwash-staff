@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { barHeights, type ChartBar } from '../utils/order-report'
+import { barHeights } from '@/shared/utils/report-format'
+import type { ReportBar } from './report-types'
 
 const BAR_AREA_PIXELS = 118
 
-const props = defineProps<{ title: string; bars: ChartBar[] }>()
+const props = defineProps<{ title: string; bars: ReportBar[] }>()
 
 const columns = computed(() => ({ gridTemplateColumns: `repeat(${props.bars.length}, minmax(0, 1fr))` }))
 const heights = computed(() => barHeights(props.bars.map((bar) => bar.value), BAR_AREA_PIXELS))

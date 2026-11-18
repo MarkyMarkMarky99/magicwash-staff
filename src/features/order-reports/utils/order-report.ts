@@ -1,4 +1,6 @@
 import type { OrderReportDto } from '@/data/order-reports/order-report.service'
+import type { ReportBreakdownRow, ReportRing, ReportStat } from '@/shared/components/reports/report-types'
+import { formatCount, percentOf, shiftDate } from '@/shared/utils/report-format'
 
 export const ORDER_REPORT_ROUTE_NAME = 'order-report'
 
@@ -32,7 +34,6 @@ export interface ServiceRow {
   width: number
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000
 const WEEK_DAYS = 7
 
 const SERVICE_LABELS: Record<OrderReportDto['byService'][number]['serviceType'], string> = {
@@ -52,10 +53,6 @@ function isRealDate(value: string): boolean {
 function firstValue(value: unknown): string {
   const raw = Array.isArray(value) ? value[0] : value
   return typeof raw === 'string' ? raw : ''
-}
-
-export function shiftDate(date: string, days: number): string {
-  return new Date(Date.parse(`${date}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10)
 }
 
 export function parseReportQuery(query: Record<string, unknown>, today: string): ReportView {
@@ -94,48 +91,12 @@ export function stepDate(period: ReportPeriod, date: string, direction: -1 | 1, 
   return monthOf(target) >= monthOf(today) ? today : target
 }
 
-export function percentOf(count: number, total: number): number {
-  if (total <= 0) return 0
-  return Math.min(100, Math.max(0, Math.round(count / total * 100)))
-}
-
 export function previousPeriodLabel(period: ReportPeriod, previousRange: OrderReportDto['previousRange']): string {
   if (period === 'week') return 'Previous 7 days'
   const year = Number(previousRange.to.slice(0, 4))
   const month = Number(previousRange.to.slice(5, 7))
   const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate()
   return Number(previousRange.to.slice(8)) < lastDay ? 'Same days last month' : 'Previous month'
-}
-
-export function changePercent(current: number, previous: number): string | null {
-  if (previous === 0) return null
-  const change = Math.round((current - previous) / previous * 100)
-  return `${change > 0 ? '+' : ''}${change}%`
-}
-
-export function barHeights(values: readonly number[], maxPixels: number, minPixels = 4): number[] {
-  const max = Math.max(...values, 1)
-  return values.map((value) => Math.max(minPixels, Math.round(value / max * maxPixels)))
-}
-
-export function formatCount(value: number): string {
-  return value.toLocaleString('en-US')
-}
-
-export function shortDate(date: string): string {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
-}
-
-export function weekdayLabel(date: string): string {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' })
-}
-
-export function monthLabel(date: string): string {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
-}
-
-export function tileLabel(date: string, today: string): string {
-  return date === today ? `Today, ${shortDate(date)}` : `${weekdayLabel(date)}, ${shortDate(date)}`
 }
 
 export function completionNote(report: ReportFocus): string {
@@ -180,4 +141,34 @@ export function dayFocus(report: OrderReportDto, date: string): ReportFocus | nu
     byService: entry.byService,
     sevenDayAverage: entry.sevenDayAverage,
   }
+}
+
+export function completionRing(report: ReportFocus): ReportRing {
+  const orders = report.totals.orders
+  return {
+    percentage: percentOf(report.status.completed, orders),
+    completed: report.status.completed,
+    total: orders,
+    label: String(orders),
+  }
+}
+
+export function statusStats(report: ReportFocus): ReportStat[] {
+  const orders = report.totals.orders
+  const stats: Omit<ReportStat, 'share'>[] = [
+    { key: 'pending', label: 'Pending', icon: 'schedule', value: report.status.pending, tone: 'warning' },
+    { key: 'in-progress', label: 'In progress', icon: 'autorenew', value: report.status.inProgress, tone: 'info' },
+    { key: 'completed', label: 'Completed', icon: 'check_circle', value: report.status.completed, tone: 'lime' },
+  ]
+  return stats.map((stat) => ({ ...stat, share: percentOf(Number(stat.value), orders) }))
+}
+
+export function serviceBreakdown(rows: readonly ServiceRow[]): ReportBreakdownRow[] {
+  return rows.map((row) => ({
+    key: row.key,
+    label: row.label,
+    value: row.orders,
+    suffix: `orders · ${formatCount(row.pieces)} pcs`,
+    width: row.width,
+  }))
 }

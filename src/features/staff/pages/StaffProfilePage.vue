@@ -1,14 +1,30 @@
 <script setup lang="ts">
 import { computed, onActivated, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import type { RouteLocationRaw } from 'vue-router'
+import { useRouter, type RouteLocationRaw } from 'vue-router'
 import { bangkokToday } from '@shared/utils/bangkok-datetime'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
-import ScrollRegion from '@/shared/components/ScrollRegion.vue'
+import PullToRefresh from '@/shared/components/PullToRefresh.vue'
 import BaseDropdown from '@/shared/components/BaseDropdown.vue'
+import AssignmentCard from '@/shared/components/AssignmentCard.vue'
+import ReportBarChart from '@/shared/components/reports/ReportBarChart.vue'
+import ReportBreakdownCard from '@/shared/components/reports/ReportBreakdownCard.vue'
+import ReportCard from '@/shared/components/reports/ReportCard.vue'
+import ReportCompletion from '@/shared/components/reports/ReportCompletion.vue'
+import ReportDayPicker from '@/shared/components/reports/ReportDayPicker.vue'
+import ReportEmptyCard from '@/shared/components/reports/ReportEmptyCard.vue'
+import ReportFocusLabel from '@/shared/components/reports/ReportFocusLabel.vue'
+import ReportHeading from '@/shared/components/reports/ReportHeading.vue'
+import ReportMessage from '@/shared/components/reports/ReportMessage.vue'
+import ReportPeriodHeader from '@/shared/components/reports/ReportPeriodHeader.vue'
+import ReportPeriodToggle from '@/shared/components/reports/ReportPeriodToggle.vue'
+import ReportTotal from '@/shared/components/reports/ReportTotal.vue'
+import type { ReportOption } from '@/shared/components/reports/report-types'
 import { personalAgentTargetRoute, staffEditRoute } from '@/shared/navigation/form-routes'
+import { changePercent, formatCount, shortDate, tileLabel } from '@/shared/utils/report-format'
 import { useAuthStore } from '@/data/auth/auth.store'
 import { useStaffStore } from '@/data/staff/staff.store'
+import { useStaffOpenAssignmentsStore } from '@/data/team-agent/staff-open-assignments.store'
 import { listWorkTransactions, type WorkTransactionDto } from '@/data/work-transactions/work-transaction.service'
 import {
   averageWorkedDay,
@@ -18,21 +34,33 @@ import {
   summarizeDay,
 } from '../utils/staff-performance'
 import { STAFF_DEPARTMENT_LABELS } from '../utils/staff-presentation'
+import {
+  assignmentAccess,
+  dayRing,
+  dayStats,
+  departmentBreakdown,
+  versusAverageNote,
+  weekBars,
+  type StaffProfileView,
+} from '../utils/staff-report'
 
 defineOptions({ name: 'StaffProfilePage' })
 
 const props = defineProps<{ staffId: string }>()
 
-type ProfileView = 'day' | 'week'
-
 const DEPARTMENT_LABELS: Record<string, string> = STAFF_DEPARTMENT_LABELS
-const HERO_RADIUS = 81
-const MINI_RADIUS = 23
+const VIEW_OPTIONS: ReportOption<StaffProfileView>[] = [
+  { key: 'day', label: 'Day' },
+  { key: 'week', label: 'Week' },
+]
 
+const router = useRouter()
 const authStore = useAuthStore()
 const staffStore = useStaffStore()
-const { isAdmin, staff } = storeToRefs(authStore)
+const assignmentsStore = useStaffOpenAssignmentsStore()
+const { isAdmin, staff, role } = storeToRefs(authStore)
 const { error: staffError, loaded: staffLoaded } = storeToRefs(staffStore)
+const { items: openAssignments, error: assignmentsError } = storeToRefs(assignmentsStore)
 
 const today = ref(bangkokToday())
 const fortnight = computed(() => daysEndingAt(today.value, 14))
@@ -43,7 +71,7 @@ const rows = ref<WorkTransactionDto[]>([])
 const loading = ref(false)
 const loadedFor = ref<string | null>(null)
 const error = ref<string | null>(null)
-const view = ref<ProfileView>('day')
+const view = ref<StaffProfileView>('day')
 const selectedDay = ref(today.value)
 let latestLoad = 0
 
@@ -76,54 +104,19 @@ const average = computed(() => averageWorkedDay(weekMinutes.value))
 const day = computed(() => summarizeDay(rows.value, props.staffId, selectedDay.value))
 const dayRanking = computed(() => rankStaff(rows.value, [selectedDay.value]))
 const dayRank = computed(() => dayRanking.value.findIndex((total) => total.staffId === props.staffId) + 1)
-const versusAverage = computed(() => {
-  if (day.value.minutes === 0) return 'No work recorded'
-  if (average.value === 0) return 'First day with work this week'
-  return `${Math.round(day.value.minutes / average.value * 100)}% of 7-day average (${average.value} min)`
-})
 
-const heroDash = computed(() => ringDash(HERO_RADIUS, average.value === 0 ? 0 : day.value.minutes / average.value))
-const jobsDash = computed(() => ringDash(MINI_RADIUS, day.value.jobs > 0 ? 1 : 0))
-const rankDash = computed(() => ringDash(
-  MINI_RADIUS,
-  dayRank.value === 0 ? 0 : (dayRanking.value.length - dayRank.value + 1) / dayRanking.value.length,
-))
-
-const dateTabs = computed(() => week.value.map((date, index) => ({
-  date,
-  weekday: weekdayLabel(date),
-  dayOfMonth: Number(date.slice(8, 10)),
-  label: date === today.value ? `Today, ${shortDate(date)}` : `${weekdayLabel(date)}, ${shortDate(date)}`,
-  hasWork: weekMinutes.value[index]! > 0,
-})))
-const selectedLabel = computed(() => dateTabs.value.find((tab) => tab.date === selectedDay.value)?.label ?? selectedDay.value)
-const monthLabel = computed(() => formatMonth(selectedDay.value, 'long'))
-
-const departmentRows = computed(() => day.value.byDepartment.map((share) => ({
-  key: share.department ?? 'other',
-  label: share.department ? DEPARTMENT_LABELS[share.department] ?? share.department : 'Other',
-  jobs: share.jobs,
-  minutes: share.minutes,
-  width: `${day.value.minutes > 0 ? Math.max(0, Math.round(share.minutes / day.value.minutes * 100)) : 0}%`,
-})))
+const rangeLabel = computed(() => `Last 7 days · ${shortDate(week.value[0]!)} – ${shortDate(today.value)}`)
+const pickerDays = computed(() => week.value.map((date, index) => ({ date, value: weekMinutes.value[index]! })))
+const selectedLabel = computed(() => tileLabel(selectedDay.value, today.value))
+const ring = computed(() => dayRing(day.value.minutes, average.value))
+const stats = computed(() => dayStats(day.value.jobs, dayRank.value, dayRanking.value.length, average.value))
+const dayNote = computed(() => versusAverageNote(day.value.minutes, average.value))
+const departmentRows = computed(() => departmentBreakdown(day.value, DEPARTMENT_LABELS))
 
 const weekTotal = computed(() => weekMinutes.value.reduce((sum, minutes) => sum + minutes, 0))
 const previousWeekTotal = computed(() => previousWeekMinutes.value.reduce((sum, minutes) => sum + minutes, 0))
-const weekChange = computed(() => {
-  if (previousWeekTotal.value === 0) return null
-  const change = Math.round((weekTotal.value - previousWeekTotal.value) / previousWeekTotal.value * 100)
-  return `${change > 0 ? '+' : ''}${change}%`
-})
-const weekBars = computed(() => {
-  const max = Math.max(...weekMinutes.value, 1)
-  return week.value.map((date, index) => ({
-    date,
-    weekday: weekdayLabel(date),
-    minutes: weekMinutes.value[index]!,
-    height: `${Math.max(4, Math.round(weekMinutes.value[index]! / max * 118))}px`,
-    isToday: date === today.value,
-  }))
-})
+const weekChange = computed(() => changePercent(weekTotal.value, previousWeekTotal.value))
+const bars = computed(() => weekBars(week.value, weekMinutes.value, today.value))
 const leaderboard = computed(() => {
   const ranking = rankStaff(rows.value, week.value)
   const top = ranking[0]?.minutes ?? 1
@@ -137,23 +130,13 @@ const leaderboard = computed(() => {
   }))
 })
 
-function ringDash(radius: number, fraction: number): string {
-  const circumference = 2 * Math.PI * radius
-  return `${(circumference * Math.min(1, Math.max(0, fraction))).toFixed(1)} ${circumference.toFixed(1)}`
-}
+const access = computed(() => assignmentAccess(role.value, staff.value?.staffId ?? null, props.staffId))
+const assignmentTarget = computed(() => (access.value.visible ? (access.value.staffId ?? 'self') : null))
 
-function weekdayLabel(date: string): string {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' })
-}
-
-function shortDate(date: string): string {
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
-}
-
-function formatMonth(date: string, month: 'short' | 'long' = 'short'): string {
+function formatMonth(date: string): string {
   const parsed = new Date(`${date.slice(0, 10)}T00:00:00Z`)
   if (Number.isNaN(parsed.getTime())) return date
-  return parsed.toLocaleDateString('en-US', { month, year: 'numeric', timeZone: 'UTC' })
+  return parsed.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' })
 }
 
 async function load(): Promise<void> {
@@ -173,6 +156,22 @@ async function load(): Promise<void> {
   }
 }
 
+function loadAssignments(): Promise<void> {
+  if (!access.value.visible) {
+    assignmentsStore.reset()
+    return Promise.resolve()
+  }
+  return assignmentsStore.load(access.value.staffId)
+}
+
+function refresh(): Promise<void> {
+  return Promise.all([load(), loadAssignments()]).then(() => undefined)
+}
+
+function openAssignmentsPage(): void {
+  void router.push({ name: 'personal-assignments' })
+}
+
 // The page stays cached; re-read on every visit so new scores and a new Bangkok day show up.
 onActivated(() => {
   const now = bangkokToday()
@@ -181,209 +180,110 @@ onActivated(() => {
     selectedDay.value = now
   }
   void load()
+  void loadAssignments()
   if (!staffStore.loaded) void staffStore.load()
 })
 
 watch(() => props.staffId, () => {
   selectedDay.value = today.value
 })
+
+// The viewer's role arrives after sign-in and the profile can change while the page is cached.
+watch([assignmentTarget, () => props.staffId], () => {
+  void loadAssignments()
+})
 </script>
 
 <template>
   <AppLayout>
-    <ScrollRegion as="main" class="bg-on-surface pb-8 font-body text-on-primary">
-      <section class="flex items-center gap-3.5 px-5 pb-1 pt-5" aria-label="Staff member">
-        <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-lime bg-on-primary/5 font-headline text-[22px] font-bold text-lime">
-          {{ initial }}
-        </div>
-        <div class="min-w-0 flex-1">
-          <h2 class="truncate font-headline text-[20px] font-bold leading-tight">{{ displayName }}</h2>
-          <p class="truncate text-[13px] text-on-primary/60">{{ subtitle }}</p>
-          <ul v-if="member?.departments.length" class="mt-1.5 flex flex-wrap gap-1.5" aria-label="Departments">
-            <li
-              v-for="department in member.departments"
-              :key="department"
-              class="rounded-full border border-on-primary/10 bg-on-primary/5 px-2.5 py-0.5 text-[11px] font-semibold text-on-primary/75"
-            >
-              {{ DEPARTMENT_LABELS[department] ?? department }}
-            </li>
-          </ul>
-          <p v-if="staffError && !staffLoaded" class="text-[13px] text-on-primary/60">
-            Could not load staff details
-            <button type="button" class="ml-1 min-h-11 font-bold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime" @click="staffStore.load()">Retry</button>
-          </p>
-        </div>
-        <BaseDropdown
-          v-if="menuActions.length"
-          panel-class="w-48 rounded-2xl border border-outline-variant/30 bg-surface-container-lowest py-1 shadow-2xl"
-        >
-          <template #trigger="{ setTrigger, toggle, triggerAttrs }">
-            <button
-              :ref="setTrigger"
-              v-bind="triggerAttrs"
-              type="button"
-              class="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[14px] border border-on-primary/10 bg-on-primary/5 text-on-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime"
-              aria-label="Staff actions"
-              aria-haspopup="menu"
-              @click="toggle"
-            >
-              <span class="material-symbols-outlined text-[20px]" aria-hidden="true">more_vert</span>
-            </button>
-          </template>
+    <PullToRefresh as="main" class="bg-on-surface pb-28 font-body text-on-primary" :refresh="refresh">
+      <ReportHeading :title="displayName" :subtitle="subtitle" section-label="Staff member">
+        <template #leading>
+          <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-lime bg-on-primary/5 font-headline text-[22px] font-bold text-lime">
+            {{ initial }}
+          </div>
+        </template>
 
-          <template #default="{ close }">
-            <div class="py-1" role="menu" aria-label="Staff actions">
-              <RouterLink
-                v-for="action in menuActions"
-                :key="action.key"
-                :to="action.to"
-                role="menuitem"
-                class="flex min-h-11 w-full items-center gap-2 px-3 py-2 text-left font-body text-[12px] text-on-surface transition-colors hover:bg-surface-container-low focus:bg-surface-container-low focus:outline-none active:bg-surface-container"
-                @click="close()"
+        <ul v-if="member?.departments.length" class="mt-1.5 flex flex-wrap gap-1.5" aria-label="Departments">
+          <li
+            v-for="department in member.departments"
+            :key="department"
+            class="rounded-full border border-on-primary/10 bg-on-primary/5 px-2.5 py-0.5 text-[11px] font-semibold text-on-primary/75"
+          >
+            {{ DEPARTMENT_LABELS[department] ?? department }}
+          </li>
+        </ul>
+        <p v-if="staffError && !staffLoaded" class="text-[13px] text-on-primary/60">
+          Could not load staff details
+          <button type="button" class="ml-1 min-h-11 font-bold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime" @click="staffStore.load()">Retry</button>
+        </p>
+
+        <template #action>
+          <BaseDropdown
+            v-if="menuActions.length"
+            panel-class="w-48 rounded-2xl border border-outline-variant/30 bg-surface-container-lowest py-1 shadow-2xl"
+          >
+            <template #trigger="{ setTrigger, toggle, triggerAttrs }">
+              <button
+                :ref="setTrigger"
+                v-bind="triggerAttrs"
+                type="button"
+                class="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[14px] border border-on-primary/10 bg-on-primary/5 text-on-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime"
+                aria-label="Staff actions"
+                aria-haspopup="menu"
+                @click="toggle"
               >
-                <span class="material-symbols-outlined text-[16px] leading-none text-primary" aria-hidden="true">{{ action.icon }}</span>
-                {{ action.label }}
-              </RouterLink>
-            </div>
-          </template>
-        </BaseDropdown>
-      </section>
+                <span class="material-symbols-outlined text-[20px]" aria-hidden="true">more_vert</span>
+              </button>
+            </template>
 
-      <div class="mx-4 mt-4 grid grid-cols-2 gap-1 rounded-2xl border border-on-primary/10 bg-on-primary/5 p-1" role="group" aria-label="Period">
-        <button
-          v-for="option in (['day', 'week'] as const)"
-          :key="option"
-          type="button"
-          :aria-pressed="view === option"
-          class="min-h-11 rounded-xl font-label text-[14px] font-bold capitalize focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime"
-          :class="view === option ? 'bg-lime text-on-surface' : 'text-on-primary'"
-          @click="view = option"
-        >
-          {{ option }}
-        </button>
-      </div>
+            <template #default="{ close }">
+              <div class="py-1" role="menu" aria-label="Staff actions">
+                <RouterLink
+                  v-for="action in menuActions"
+                  :key="action.key"
+                  :to="action.to"
+                  role="menuitem"
+                  class="flex min-h-11 w-full items-center gap-2 px-3 py-2 text-left font-body text-[12px] text-on-surface transition-colors hover:bg-surface-container-low focus:bg-surface-container-low focus:outline-none active:bg-surface-container"
+                  @click="close()"
+                >
+                  <span class="material-symbols-outlined text-[16px] leading-none text-primary" aria-hidden="true">{{ action.icon }}</span>
+                  {{ action.label }}
+                </RouterLink>
+              </div>
+            </template>
+          </BaseDropdown>
+        </template>
+      </ReportHeading>
 
-      <p v-if="error" class="mx-4 mt-4 rounded-xl bg-error-container px-3 py-2 text-sm text-on-error-container" role="alert">
-        {{ error }}
-        <button type="button" class="ml-2 min-h-11 min-w-11 font-bold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime" @click="load">Retry</button>
-      </p>
+      <ReportPeriodHeader variant="range" section-label="Last 7 days" :label="rangeLabel" :navigable="false" />
 
-      <p v-if="!resultsReady && !error" class="px-5 pt-8 text-center text-[13px] text-on-primary/60" aria-live="polite">Loading work scores…</p>
+      <ReportMessage v-if="error" kind="error" @retry="load">{{ error }}</ReportMessage>
 
-      <template v-else-if="resultsReady && view === 'day'">
-        <section class="px-4 pt-4" aria-label="Choose a day">
-          <div class="flex items-baseline justify-between px-1 pb-2">
-            <span class="text-[13px] font-bold">{{ monthLabel }}</span>
-            <span class="text-[12px] text-on-primary/60">{{ selectedLabel }}</span>
-          </div>
-          <div class="grid grid-cols-[repeat(7,minmax(44px,1fr))] gap-1.5 overflow-x-auto">
-            <button
-              v-for="tab in dateTabs"
-              :key="tab.date"
-              type="button"
-              :aria-label="tab.label"
-              :aria-pressed="tab.date === selectedDay"
-              class="flex h-[60px] flex-col items-center justify-center gap-0.5 rounded-[14px] border focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime"
-              :class="tab.date === selectedDay ? 'border-lime bg-lime text-on-surface' : 'border-on-primary/10 bg-on-primary/5 text-on-primary'"
-              @click="selectedDay = tab.date"
-            >
-              <span class="text-[11px] font-semibold opacity-80">{{ tab.weekday }}</span>
-              <span class="font-headline text-[17px] font-extrabold leading-none">{{ tab.dayOfMonth }}</span>
-              <span
-                class="h-[5px] w-[5px] rounded-full"
-                :class="!tab.hasWork ? 'bg-transparent' : tab.date === selectedDay ? 'bg-on-surface' : 'bg-secondary-container'"
-              />
-            </button>
-          </div>
-        </section>
+      <ReportMessage v-else-if="!resultsReady" kind="loading">Loading work scores…</ReportMessage>
 
-        <section class="flex flex-col items-center px-5 pt-4" aria-label="Work score">
-          <div class="relative h-[188px] w-[188px]" :aria-busy="loading">
-            <svg width="188" height="188" viewBox="0 0 188 188" class="-rotate-90" aria-hidden="true">
-              <circle cx="94" cy="94" :r="HERO_RADIUS" fill="none" stroke-width="14" class="stroke-on-primary/10" />
-              <circle cx="94" cy="94" :r="HERO_RADIUS" fill="none" stroke-width="14" stroke-linecap="round" class="stroke-lime" :stroke-dasharray="heroDash" />
-            </svg>
-            <div class="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
-              <span class="text-[12px] font-semibold tracking-[0.12em] text-on-primary/60">WORK SCORE</span>
-              <span class="font-headline text-[54px] font-extrabold leading-none tracking-[-0.02em]">{{ day.minutes }}</span>
-              <span class="text-[14px] text-on-primary/60">standard minutes</span>
-            </div>
-          </div>
-          <p class="mt-2 flex items-center gap-2 text-[13px] text-on-primary/60">
-            <span class="inline-block h-2 w-2 rounded-full bg-lime" />
-            {{ versusAverage }}
-          </p>
-        </section>
+      <template v-else-if="view === 'day'">
+        <ReportFocusLabel>{{ selectedLabel }}</ReportFocusLabel>
+        <ReportCompletion section-label="Work score" :ring="ring" :stats="stats" :note="dayNote" />
 
-        <section class="grid grid-cols-2 gap-3 px-4 pt-3" aria-label="Day summary">
-          <div class="flex items-center gap-3 rounded-[20px] border border-on-primary/10 bg-on-primary/5 p-3.5">
-            <svg width="56" height="56" viewBox="0 0 56 56" class="shrink-0 -rotate-90" aria-hidden="true">
-              <circle cx="28" cy="28" :r="MINI_RADIUS" fill="none" stroke-width="6" class="stroke-on-primary/10" />
-              <circle cx="28" cy="28" :r="MINI_RADIUS" fill="none" stroke-width="6" stroke-linecap="round" class="stroke-secondary-container" :stroke-dasharray="jobsDash" />
-            </svg>
-            <div class="min-w-0">
-              <div class="font-headline text-[24px] font-extrabold leading-tight">{{ day.jobs }}</div>
-              <div class="text-[12px] text-on-primary/60">Jobs completed</div>
-            </div>
-          </div>
-          <div class="flex items-center gap-3 rounded-[20px] border border-on-primary/10 bg-on-primary/5 p-3.5">
-            <svg width="56" height="56" viewBox="0 0 56 56" class="shrink-0 -rotate-90" aria-hidden="true">
-              <circle cx="28" cy="28" :r="MINI_RADIUS" fill="none" stroke-width="6" class="stroke-on-primary/10" />
-              <circle cx="28" cy="28" :r="MINI_RADIUS" fill="none" stroke-width="6" stroke-linecap="round" class="stroke-lime" :stroke-dasharray="rankDash" />
-            </svg>
-            <div class="min-w-0">
-              <div class="font-headline text-[24px] font-extrabold leading-tight">{{ dayRank ? `#${dayRank}` : '–' }}</div>
-              <div class="text-[12px] text-on-primary/60">Rank of {{ dayRanking.length }} that day</div>
-            </div>
-          </div>
-        </section>
+        <ReportDayPicker section-label="Minutes per day, choose a day" unit="minutes" :days="pickerDays" :selected="selectedDay" :today="today" @select="selectedDay = $event" />
 
-        <section class="mx-4 mt-3 flex flex-col gap-2.5 rounded-[20px] border border-on-primary/10 bg-on-primary/5 px-4 py-3.5" aria-labelledby="profile-by-task">
-          <div class="flex items-baseline justify-between">
-            <h3 id="profile-by-task" class="text-[15px] font-bold">By task</h3>
-            <span class="text-[12px] text-on-primary/60">jobs · minutes</span>
-          </div>
-          <p v-if="!departmentRows.length" class="text-[13px] text-on-primary/60">No completed jobs this day.</p>
-          <div v-for="row in departmentRows" :key="row.key" class="flex flex-col gap-1.5">
-            <div class="flex justify-between text-[13px]">
-              <span>{{ row.label }} <span class="text-on-primary/60">{{ row.jobs }} jobs</span></span>
-              <span class="font-headline font-bold">{{ row.minutes }}</span>
-            </div>
-            <div class="h-1.5 overflow-hidden rounded-full bg-on-primary/10">
-              <div class="h-1.5 rounded-full bg-lime" :style="{ width: row.width }" />
-            </div>
-          </div>
-        </section>
+        <ReportEmptyCard v-if="!departmentRows.length">No completed jobs this day.</ReportEmptyCard>
+        <ReportBreakdownCard v-else title="By task" hint="jobs · minutes" heading-id="profile-by-task" :rows="departmentRows" />
       </template>
 
-      <template v-else-if="resultsReady">
-        <section class="flex flex-col gap-1 px-5 pt-5" aria-label="Week total">
-          <span class="text-[12px] font-semibold uppercase tracking-[0.12em] text-on-primary/60">Last 7 days · {{ shortDate(week[0]!) }} – {{ shortDate(today) }}</span>
-          <div class="flex items-baseline gap-2.5">
-            <span class="font-headline text-[52px] font-extrabold leading-none tracking-[-0.02em]">{{ weekTotal.toLocaleString('en-US') }}</span>
-            <span class="text-[14px] text-on-primary/60">minutes</span>
-            <span v-if="weekChange" class="ml-auto rounded-full bg-secondary-container px-2.5 py-1 font-headline text-[13px] font-bold text-on-secondary-container">{{ weekChange }}</span>
-          </div>
-          <span class="text-[13px] text-on-primary/60">Previous 7 days · {{ previousWeekTotal.toLocaleString('en-US') }} min</span>
-        </section>
+      <template v-else>
+        <ReportTotal
+          section-label="Week total"
+          :value="formatCount(weekTotal)"
+          unit="minutes"
+          :change="weekChange"
+          :comparison="`Previous 7 days · ${formatCount(previousWeekTotal)} min`"
+        />
 
-        <section class="mx-4 mt-4 rounded-[20px] border border-on-primary/10 bg-on-primary/5 px-3.5 pb-3 pt-4" aria-label="Minutes per day">
-          <div class="grid h-[150px] grid-cols-7 items-end gap-2.5">
-            <div v-for="bar in weekBars" :key="bar.date" class="flex h-[150px] flex-col items-center justify-end gap-1.5">
-              <span class="font-headline text-[11px] font-bold" :class="bar.isToday ? 'text-lime' : 'text-on-primary/60'">{{ bar.minutes || '–' }}</span>
-              <div class="w-full rounded-lg" :class="bar.isToday ? 'bg-lime' : bar.minutes ? 'bg-on-primary/25' : 'bg-on-primary/10'" :style="{ height: bar.height }" />
-            </div>
-          </div>
-          <div class="mt-2 grid grid-cols-7 gap-2.5">
-            <span v-for="bar in weekBars" :key="bar.date" class="text-center text-[12px]" :class="bar.isToday ? 'text-lime' : 'text-on-primary/60'">{{ bar.weekday }}</span>
-          </div>
-        </section>
+        <ReportBarChart title="Minutes per day" :bars="bars" />
 
-        <section class="mx-4 mt-3 flex flex-col gap-2.5 rounded-[20px] border border-on-primary/10 bg-on-primary/5 p-4" aria-labelledby="profile-leaderboard">
-          <div class="flex items-baseline justify-between">
-            <h3 id="profile-leaderboard" class="text-[15px] font-bold">All staff</h3>
-            <span class="text-[12px] text-on-primary/60">min / 7 days</span>
-          </div>
+        <ReportCard title="All staff" hint="min / 7 days" heading-id="profile-leaderboard">
           <p v-if="!leaderboard.length" class="text-[13px] text-on-primary/60">No work recorded in the last 7 days.</p>
           <div
             v-for="entry in leaderboard"
@@ -400,8 +300,27 @@ watch(() => props.staffId, () => {
             </div>
             <span class="w-12 text-right font-headline text-[14px] font-bold">{{ entry.minutes.toLocaleString('en-US') }}</span>
           </div>
-        </section>
+        </ReportCard>
       </template>
-    </ScrollRegion>
+
+      <ReportCard v-if="openAssignments.length" title="Open assignments" :hint="`${openAssignments.length} open`" heading-id="profile-open-assignments">
+        <ul class="grid gap-2.5">
+          <AssignmentCard
+            v-for="assignment in openAssignments"
+            :key="assignment.id"
+            :assignment="assignment"
+            :show-assignee="false"
+            :tappable="isAdmin"
+            @select="openAssignmentsPage"
+          />
+        </ul>
+      </ReportCard>
+      <p v-else-if="assignmentsError" class="mx-4 mt-3 text-[13px] text-on-primary/60" role="status">
+        {{ assignmentsError }}
+        <button type="button" class="ml-1 min-h-11 font-bold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime" @click="loadAssignments()">Retry</button>
+      </p>
+    </PullToRefresh>
+
+    <ReportPeriodToggle :options="VIEW_OPTIONS" :active="view" group-label="Period" @select="view = $event" />
   </AppLayout>
 </template>

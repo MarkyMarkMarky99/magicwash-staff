@@ -2,16 +2,13 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
-import { formatSheetDateTime, normalizeSheetDate, sheetTimestampMs, todaySheetDate } from '@/shared/utils/sheet-date'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import ConfirmOverlay from '@/shared/layouts/ConfirmOverlay.vue'
 import ListContainer from '@/shared/components/ListContainer.vue'
 import GenericTabs from '@/shared/components/GenericTabs.vue'
 import PullToRefresh from '@/shared/components/PullToRefresh.vue'
-import BaseBadge, { type BadgeTone } from '@/shared/components/BaseBadge.vue'
+import AssignmentCard from '@/shared/components/AssignmentCard.vue'
 import InlineNotice from '@/shared/components/InlineNotice.vue'
-import { agentById } from '@/features/agents/agents'
-import type { AgentId } from '@/features/agents/agent-chat.types'
 import { useAuthStore } from '@/data/auth/auth.store'
 import { usePersonalAssignmentsStore } from '@/data/team-agent/personal-assignments.store'
 import type { TeamAgentAssignment } from '@/data/team-agent/team-agent.service'
@@ -32,9 +29,6 @@ const TAB_EMPTY_TEXT: Record<TabKey, string> = {
   cancelled: 'No cancelled assignments.',
   all: 'No assignments.',
 }
-const STATUS_LABELS: Record<TeamAgentAssignment['status'], string> = { open: 'Open', done: 'Done', cancelled: 'Cancelled' }
-const STATUS_TONES: Record<TeamAgentAssignment['status'], BadgeTone> = { open: 'info', done: 'success', cancelled: 'neutral' }
-const DUE_PATTERN = /^(\d{2}) ([A-Za-z]{3}) (\d{4}) (\d{2}:\d{2}):\d{2}$/
 
 const route = useRoute()
 const router = useRouter()
@@ -64,42 +58,6 @@ function changeTab(key: string): void {
 
 function refresh(): Promise<void> {
   return store.load('all')
-}
-
-// dueAt arrives as `yyyy-MM-dd HH:mm:ss` in Asia/Bangkok; formatSheetDateTime also accepts the other sheet formats.
-function dueParts(assignment: TeamAgentAssignment): { day: string, month: string, year: string, time: string, today: boolean } | null {
-  if (!assignment.dueAt) return null
-  const match = DUE_PATTERN.exec(formatSheetDateTime(assignment.dueAt))
-  if (!match) return null
-  return {
-    day: String(Number(match[1])),
-    month: match[2],
-    year: match[3],
-    time: match[4],
-    today: normalizeSheetDate(assignment.dueAt) === todaySheetDate(),
-  }
-}
-
-function orderText(assignment: TeamAgentAssignment): string {
-  return assignment.orderId ? `Order ${assignment.orderId}` : ''
-}
-
-function dueText(assignment: TeamAgentAssignment): string {
-  const due = dueParts(assignment)
-  if (!due) return 'No due time'
-  return due.today ? `due today ${due.time}` : `due ${due.day} ${due.month} ${due.time}`
-}
-
-function overdue(assignment: TeamAgentAssignment): boolean {
-  const due = assignment.dueAt ? sheetTimestampMs(assignment.dueAt) : null
-  return assignment.status === 'open' && due !== null && due < Date.now()
-}
-
-function creatorText(assignment: TeamAgentAssignment): string {
-  const creator = assignment.createdBy
-  if (!creator) return ''
-  if (creator.kind === 'agent' && creator.agentId) return agentById(creator.agentId as AgentId)?.name ?? creator.agentId
-  return creator.name ?? creator.staffId ?? creator.agentId ?? ''
 }
 
 async function confirmCancel(): Promise<void> {
@@ -160,28 +118,9 @@ onBeforeUnmount(() => store.reset())
             </div>
           </div>
           <ul class="grid gap-2.5 px-3">
-            <li v-for="assignment in visible" :key="assignment.id" class="relative overflow-hidden [border-radius:14px] bg-white shadow-[0_1px_0_rgba(7,63,56,0.05)]">
-              <div class="grid items-center gap-2.5 px-3 py-2.5" :class="assignment.status === 'open' ? 'grid-cols-[56px_minmax(0,1fr)_56px]' : 'grid-cols-[56px_minmax(0,1fr)]'">
-                <p class="flex flex-col items-center justify-center self-stretch border-r border-outline-variant pr-2 text-primary">
-                  <template v-if="dueParts(assignment)">
-                    <span class="font-headline text-[36px] font-extrabold leading-none tabular-nums" :aria-label="dueText(assignment)">{{ dueParts(assignment)?.day }}</span>
-                    <span class="mt-1.5 whitespace-nowrap font-label text-xs font-bold leading-none text-on-surface-variant">{{ dueParts(assignment)?.month }}</span>
-                  </template>
-                  <span v-else class="font-headline text-[36px] font-extrabold leading-none text-on-surface-variant opacity-60" aria-label="No due time">–</span>
-                </p>
-                <div class="min-w-0">
-                  <p class="flex items-center gap-1.5 font-body text-sm font-extrabold">
-                    <span class="truncate">{{ assignment.assigneeName ?? assignment.assigneeStaffId }}</span>
-                    <BaseBadge v-if="overdue(assignment)" label="Overdue" tone="lime" uppercase />
-                    <BaseBadge v-else-if="assignment.status !== 'open'" :label="STATUS_LABELS[assignment.status]" :tone="STATUS_TONES[assignment.status]" uppercase />
-                    <BaseBadge v-if="(assignment.failedDeliveries ?? 0) > 0" :label="`${assignment.failedDeliveries} failed`" tone="warning" uppercase />
-                  </p>
-                  <p class="mt-1 line-clamp-2 whitespace-pre-wrap break-words font-body text-xs leading-snug [overflow-wrap:anywhere]">{{ assignment.detail }}</p>
-                  <p v-if="creatorText(assignment)" class="mt-1 truncate font-label text-[10px] font-extrabold uppercase text-warning">By {{ creatorText(assignment) }}</p>
-                  <p class="mt-1 truncate font-label text-[11px] text-on-surface-variant">{{ [orderText(assignment), dueText(assignment)].filter(Boolean).join(' · ') }}</p>
-                </div>
+            <AssignmentCard v-for="assignment in visible" :key="assignment.id" :assignment="assignment">
+              <template v-if="assignment.status === 'open'" #action>
                 <button
-                  v-if="assignment.status === 'open'"
                   type="button"
                   class="flex h-14 w-14 flex-col items-center justify-center gap-0.5 rounded-[10px] bg-error-container font-label text-[9px] font-extrabold uppercase text-on-error-container focus-visible:outline-2 focus-visible:outline-lime active:opacity-80 disabled:opacity-50"
                   :aria-label="`Cancel assignment for ${assignment.assigneeName ?? assignment.assigneeStaffId}`"
@@ -190,8 +129,8 @@ onBeforeUnmount(() => store.reset())
                 >
                   <span class="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>Cancel
                 </button>
-              </div>
-            </li>
+              </template>
+            </AssignmentCard>
             <li v-if="visible.length === 0" class="px-1 py-4 text-sm italic text-on-surface-variant">{{ TAB_EMPTY_TEXT[activeTab] }}</li>
           </ul>
         </section>

@@ -1,21 +1,20 @@
 import assert from 'node:assert/strict'
 import type { OrderReportDto } from '@/data/order-reports/order-report.service'
+import { barHeights, changePercent, percentOf, shiftDate, tileLabel } from '@/shared/utils/report-format'
 import {
-  barHeights,
   canStepForward,
-  changePercent,
   chartBars,
   completionNote,
+  completionRing,
   dayColumns,
   dayFocus,
   parseReportQuery,
-  percentOf,
   previousPeriodLabel,
   reportQueryFor,
+  serviceBreakdown,
   serviceRows,
-  shiftDate,
+  statusStats,
   stepDate,
-  tileLabel,
 } from '@/features/order-reports/utils/order-report'
 
 const TODAY = '2026-10-05'
@@ -106,6 +105,18 @@ assert.deepEqual(serviceRows(report({})).map((row) => [row.key, row.label, row.o
   ['DRCL', 'Dry cleaning', 2, 25],
   ['IRON', 'Iron only', 2, 25],
   ['WASH', 'Wash only', 0, 0],
+])
+assert.deepEqual(completionRing(report({})), { percentage: 50, completed: 4, total: 8, label: '8' })
+assert.deepEqual(completionRing(report({ totals: { orders: 0, pieces: 0, cancelled: 0 }, status: { pending: 0, inProgress: 0, completed: 0 } })),
+  { percentage: 0, completed: 0, total: 0, label: '0' })
+assert.deepEqual(statusStats(report({})).map((stat) => [stat.key, stat.value, stat.share, stat.tone]), [
+  ['pending', 1, 13, 'warning'],
+  ['in-progress', 3, 38, 'info'],
+  ['completed', 4, 50, 'lime'],
+])
+assert.deepEqual(serviceBreakdown(serviceRows(report({}))).slice(0, 2), [
+  { key: 'WSIR', label: 'Wash & iron', value: 4, suffix: 'orders · 54 pcs', width: 50 },
+  { key: 'DRCL', label: 'Dry cleaning', value: 2, suffix: 'orders · 13 pcs', width: 25 },
 ])
 const withOther = report({
   byService: [...report({}).byService.slice(0, 4), { serviceType: 'OTHER', orders: 1, pieces: 2 }],

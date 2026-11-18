@@ -1,4 +1,5 @@
 import type { StaffSession } from '@/data/auth/auth.service'
+import { AGENT_DISPLAY_NAMES } from '@/shared/utils/agent-display-names'
 import type { AgentId } from './agent-chat.types'
 
 type StaffRole = StaffSession['role']
@@ -17,7 +18,7 @@ export interface AgentInfo {
 export const AGENTS: AgentInfo[] = [
   {
     id: 'register-customer',
-    name: 'น้องลงทะเบียน',
+    name: AGENT_DISPLAY_NAMES['register-customer'],
     role: 'New customer',
     description: 'Send a message or LINE chat screenshot to fill in a new customer',
     greeting: 'สวัสดีค่ะ หนูช่วยกรอกข้อมูลลูกค้าใหม่ให้ได้ แปะข้อความหรือแนบแคปแชต LINE มาได้เลยค่ะ',
@@ -29,7 +30,7 @@ export const AGENTS: AgentInfo[] = [
   },
   {
     id: 'price-check',
-    name: 'น้องราคา',
+    name: AGENT_DISPLAY_NAMES['price-check'],
     role: 'Price check',
     description: 'Ask for service and item prices from the price list',
     greeting: 'สวัสดีค่ะ ถามราคาได้เลย หนูค้นจากใบราคาของร้านให้ค่ะ',
@@ -41,7 +42,7 @@ export const AGENTS: AgentInfo[] = [
   },
   {
     id: 'order-tracking',
-    name: 'น้องติดตาม',
+    name: AGENT_DISPLAY_NAMES['order-tracking'],
     role: 'Order tracking',
     description: 'Ask for an order status by order number or customer phone',
     greeting: 'สวัสดีครับ บอกเลขออเดอร์หรือเบอร์โทรลูกค้า เดี๋ยวผมเช็กสถานะให้ครับ',
@@ -53,7 +54,7 @@ export const AGENTS: AgentInfo[] = [
   },
   {
     id: 'appointments',
-    name: 'น้องนัดหมาย',
+    name: AGENT_DISPLAY_NAMES['appointments'],
     role: 'Appointments',
     description: 'Shared team chat that books, reschedules and cancels pickup appointments',
     greeting: 'สวัสดีค่ะ หนูดูแลนัดหมายรับผ้าให้ทั้งทีม สั่งให้สร้าง เลื่อน หรือยกเลิกนัดได้เลยค่ะ',
@@ -62,7 +63,7 @@ export const AGENTS: AgentInfo[] = [
   },
   {
     id: 'washing',
-    name: 'น้องซักผ้า',
+    name: AGENT_DISPLAY_NAMES['washing'],
     role: 'Washing',
     description: 'Shared team chat for the Washing department: open and slow work, closing and reopening tickets',
     greeting: 'สวัสดีค่ะ หนูดูแลงานแผนกซักผ้าให้ทั้งทีม ถามงานค้าง งานช้า หรือสั่งปิดงานได้เลยค่ะ',
@@ -71,7 +72,7 @@ export const AGENTS: AgentInfo[] = [
   },
   {
     id: 'ironing',
-    name: 'น้องรีดผ้า',
+    name: AGENT_DISPLAY_NAMES['ironing'],
     role: 'Ironing',
     description: 'Shared team chat for the Ironing department: open and slow work, closing and reopening tickets',
     greeting: 'สวัสดีค่ะ หนูดูแลงานแผนกรีดผ้าให้ทั้งทีม ถามงานค้าง งานช้า หรือสั่งปิดงานได้เลยค่ะ',
@@ -80,7 +81,7 @@ export const AGENTS: AgentInfo[] = [
   },
   {
     id: 'personal',
-    name: 'ผู้ช่วยส่วนตัว',
+    name: AGENT_DISPLAY_NAMES['personal'],
     role: 'My assistant',
     description: 'Your own assistant: your tickets, score, reminders and work your manager assigns',
     greeting: 'สวัสดีค่ะ หนูเป็นผู้ช่วยส่วนตัวของคุณ ถามงานค้าง คะแนนงาน ให้ช่วยเตือน หรือรับงานที่หัวหน้ามอบหมายได้เลยค่ะ',

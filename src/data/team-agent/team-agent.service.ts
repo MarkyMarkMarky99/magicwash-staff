@@ -72,8 +72,9 @@ export function fetchNotes(agentId: TeamAgentId, staffId?: string) {
   return getTeamAgentNotes(access(agentId, staffId))
 }
 
-export function fetchPersonalAssignments(status: TeamAgentAssignmentStatus) {
-  return listPersonalAssignments({ ...assignmentsAccess(), status })
+/** `staffId` filters to one assignee and is admin-only; a staff viewer omits it and gets their own. */
+export function fetchPersonalAssignments(status: TeamAgentAssignmentStatus, staffId?: string) {
+  return listPersonalAssignments({ ...assignmentsAccess(), status, ...(staffId ? { staffId } : {}) })
 }
 
 export function cancelAssignment(id: string) {

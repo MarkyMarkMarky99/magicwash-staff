@@ -7,28 +7,34 @@ import AppLayout from '@/shared/layouts/AppLayout.vue'
 import PullToRefresh from '@/shared/components/PullToRefresh.vue'
 import { useOrderSnapshotStore } from '@/data/order-snapshots/order-snapshot.store'
 import { buildOrderReport } from '@shared/reports/order-report.aggregate'
-import OrderReportChart from '../components/OrderReportChart.vue'
-import OrderReportDayPicker from '../components/OrderReportDayPicker.vue'
-import OrderReportCompletion from '../components/OrderReportCompletion.vue'
-import OrderReportPeriodToggle from '../components/OrderReportPeriodToggle.vue'
-import OrderReportServices from '../components/OrderReportServices.vue'
+import ReportBarChart from '@/shared/components/reports/ReportBarChart.vue'
+import ReportBreakdownCard from '@/shared/components/reports/ReportBreakdownCard.vue'
+import ReportCompletion from '@/shared/components/reports/ReportCompletion.vue'
+import ReportDayPicker from '@/shared/components/reports/ReportDayPicker.vue'
+import ReportEmptyCard from '@/shared/components/reports/ReportEmptyCard.vue'
+import ReportFocusLabel from '@/shared/components/reports/ReportFocusLabel.vue'
+import ReportHeading from '@/shared/components/reports/ReportHeading.vue'
+import ReportMessage from '@/shared/components/reports/ReportMessage.vue'
+import ReportPeriodHeader from '@/shared/components/reports/ReportPeriodHeader.vue'
+import ReportPeriodToggle from '@/shared/components/reports/ReportPeriodToggle.vue'
+import ReportTotal from '@/shared/components/reports/ReportTotal.vue'
+import type { ReportOption } from '@/shared/components/reports/report-types'
+import { changePercent, formatCount, monthLabel, shiftDate, shortDate, tileLabel } from '@/shared/utils/report-format'
 import {
   ORDER_REPORT_ROUTE_NAME,
   canStepForward,
-  changePercent,
   chartBars,
+  completionNote,
+  completionRing,
   dayColumns,
   dayFocus,
-  formatCount,
-  monthLabel,
   parseReportQuery,
   previousPeriodLabel,
   reportQueryFor,
+  serviceBreakdown,
   serviceRows,
-  shiftDate,
-  shortDate,
+  statusStats,
   stepDate,
-  tileLabel,
   type ReportPeriod,
   type ReportView,
 } from '../utils/order-report'
@@ -37,6 +43,11 @@ defineOptions({ name: 'OrderReportPage' })
 
 const route = useRoute()
 const router = useRouter()
+
+const PERIOD_OPTIONS: ReportOption<ReportPeriod>[] = [
+  { key: 'week', label: 'Week' },
+  { key: 'month', label: 'Month' },
+]
 
 const today = ref(bangkokToday())
 const view = ref<ReportView>(parseReportQuery(route.query, today.value))
@@ -57,9 +68,11 @@ const change = computed(() => (loaded.value ? changePercent(loaded.value.totals.
 const previousLabel = computed(() => (loaded.value
   ? previousPeriodLabel(view.value.period, loaded.value.previousRange)
   : view.value.period === 'month' ? 'Previous month' : 'Previous 7 days'))
-const days = computed(() => (loaded.value && view.value.period === 'week' ? dayColumns(loaded.value) : []))
+const days = computed(() => (loaded.value && view.value.period === 'week'
+  ? dayColumns(loaded.value).map((column) => ({ date: column.date, value: column.orders }))
+  : []))
 const bars = computed(() => (loaded.value ? chartBars(loaded.value, today.value) : []))
-const services = computed(() => (focus.value ? serviceRows(focus.value) : []))
+const services = computed(() => (focus.value ? serviceBreakdown(serviceRows(focus.value)) : []))
 const focusLabel = computed(() => (view.value.day === null ? null : tileLabel(view.value.day, today.value)))
 
 function updateQuery(next: ReportView): void {
@@ -99,65 +112,55 @@ onActivated(() => {
 <template>
   <AppLayout>
     <PullToRefresh as="main" class="bg-on-surface pb-28 font-body text-on-primary" :refresh="refresh">
-      <section class="px-5 pb-1 pt-5" aria-label="Report title">
-        <h2 class="font-headline text-[20px] font-bold leading-tight">Orders report</h2>
-        <p class="text-[13px] text-on-primary/60">Orders received, by service and status</p>
-      </section>
+      <ReportHeading title="Orders report" subtitle="Orders received, by service and status" section-label="Report title" />
 
-      <section v-if="view.period === 'week'" class="px-4 pt-4" aria-label="Week">
-        <div class="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center">
-          <button type="button" aria-label="Previous 7 days" class="flex h-11 w-11 items-center justify-center rounded-xl text-on-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime" @click="step(-1)">
-            <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
-          </button>
-          <span class="text-center text-[12px] font-semibold uppercase tracking-[0.12em] text-on-primary/60">Last 7 days · {{ shortDate(weekFrom) }} – {{ shortDate(view.date) }}</span>
-          <button type="button" aria-label="Next 7 days" :disabled="!canForward" class="flex h-11 w-11 items-center justify-center rounded-xl text-on-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-30" @click="step(1)">
-            <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
-          </button>
-        </div>
-      </section>
+      <ReportPeriodHeader
+        v-if="view.period === 'week'"
+        variant="range"
+        section-label="Week"
+        :label="`Last 7 days · ${shortDate(weekFrom)} – ${shortDate(view.date)}`"
+        previous-label="Previous 7 days"
+        next-label="Next 7 days"
+        :can-next="canForward"
+        @step="step"
+      />
+      <ReportPeriodHeader
+        v-else
+        variant="navigator"
+        section-label="Month"
+        :label="monthLabel(view.date)"
+        previous-label="Previous month"
+        next-label="Next month"
+        :can-next="canForward"
+        @step="step"
+      />
 
-      <section v-else class="px-4 pt-4" aria-label="Month">
-        <div class="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center rounded-2xl border border-on-primary/10 bg-on-primary/5">
-          <button type="button" aria-label="Previous month" class="flex h-11 w-11 items-center justify-center rounded-xl text-on-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime" @click="step(-1)">
-            <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
-          </button>
-          <span class="text-center text-[13px] font-bold">{{ monthLabel(view.date) }}</span>
-          <button type="button" aria-label="Next month" :disabled="!canForward" class="flex h-11 w-11 items-center justify-center rounded-xl text-on-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-30" @click="step(1)">
-            <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
-          </button>
-        </div>
-      </section>
+      <ReportMessage v-if="error" kind="error" @retry="snapshotStore.load()">{{ error }}</ReportMessage>
 
-      <p v-if="error" class="mx-4 mt-4 rounded-xl bg-error-container px-3 py-2 text-sm text-on-error-container" role="alert">
-        {{ error }}
-        <button type="button" class="ml-2 min-h-11 min-w-11 font-bold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime" @click="snapshotStore.load()">Retry</button>
-      </p>
-
-      <p v-else-if="!loaded" class="px-5 pt-8 text-center text-[13px] text-on-primary/60" aria-live="polite">Loading report…</p>
+      <ReportMessage v-else-if="!loaded" kind="loading">Loading report…</ReportMessage>
 
       <template v-else>
-        <section class="flex flex-col gap-1 px-5 pt-3" aria-label="Total orders">
-          <div class="flex items-baseline gap-2.5">
-            <span class="font-headline text-[52px] font-extrabold leading-none tracking-[-0.02em]">{{ formatCount(loaded.totals.orders) }}</span>
-            <span class="text-[14px] text-on-primary/60">orders</span>
-            <span v-if="change" class="ml-auto rounded-full bg-secondary-container px-2.5 py-1 font-headline text-[13px] font-bold text-on-secondary-container">{{ change }}</span>
-          </div>
-          <span class="text-[13px] text-on-primary/60">{{ previousLabel }} · {{ formatCount(loaded.previousTotals.orders) }} orders</span>
-        </section>
+        <ReportTotal
+          section-label="Total orders"
+          :value="formatCount(loaded.totals.orders)"
+          unit="orders"
+          :change="change"
+          :comparison="`${previousLabel} · ${formatCount(loaded.previousTotals.orders)} orders`"
+        />
 
-        <p v-if="focusLabel" class="px-5 pt-4 text-[13px] font-bold text-lime">{{ focusLabel }}</p>
-        <OrderReportCompletion v-if="focus" :report="focus" />
+        <ReportFocusLabel v-if="focusLabel">{{ focusLabel }}</ReportFocusLabel>
+        <ReportCompletion v-if="focus" section-label="Order status" :ring="completionRing(focus)" :stats="statusStats(focus)" :note="completionNote(focus)" />
 
-        <OrderReportDayPicker v-if="view.period === 'week'" :days="days" :selected="view.day" :today="today" @select="selectDay" />
-        <OrderReportChart v-else title="Orders per week" :bars="bars" />
+        <ReportDayPicker v-if="view.period === 'week'" section-label="Orders per day, choose a day" unit="orders" :days="days" :selected="view.day" :today="today" @select="selectDay" />
+        <ReportBarChart v-else title="Orders per week" :bars="bars" />
 
         <template v-if="focus">
-          <p v-if="focus.totals.orders === 0" class="mx-4 mt-3 rounded-[20px] border border-on-primary/10 bg-on-primary/5 px-4 py-6 text-center text-[13px] text-on-primary/60">{{ view.day ? 'No orders this day.' : 'No orders in this period.' }}</p>
-          <OrderReportServices v-else :rows="services" />
+          <ReportEmptyCard v-if="focus.totals.orders === 0">{{ view.day ? 'No orders this day.' : 'No orders in this period.' }}</ReportEmptyCard>
+          <ReportBreakdownCard v-else title="By service" hint="orders · pieces" heading-id="order-report-by-service" :rows="services" />
         </template>
       </template>
     </PullToRefresh>
 
-    <OrderReportPeriodToggle :period="view.period" @select="selectPeriod" />
+    <ReportPeriodToggle :options="PERIOD_OPTIONS" :active="view.period" group-label="Report period" @select="selectPeriod" />
   </AppLayout>
 </template>

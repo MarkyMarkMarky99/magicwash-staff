@@ -70,6 +70,25 @@ opens it through `use-nav-drawer.ts`. It shows the staff-management entry to eve
 
 `PullToRefresh.vue` is the shared pull-to-refresh scroll region, a drop-in for `ScrollRegion` on pages that opt in by passing `refresh: () => Promise<void>`; every other attribute (`as`, `class`, ...) is forwarded to the inner `ScrollRegion`. Dragging the body down while it is scrolled to the top (touch, or the mouse for desktop testing) moves the body down at half the drag distance, up to 96px, while the app header stays put; the gap shows `bg-primary` with a lime refresh icon that turns with the pull and the body's top corners round. Releasing at 64px or more calls `refresh`, holds the body at 56px with a spinner until the promise settles, then closes in 250ms; releasing earlier springs back without calling it. It reacts only to a mostly vertical downward drag, calls `preventDefault` only while pulling, ignores a new pull during a refresh, and drops the animation under `prefers-reduced-motion`. The caller invalidates and reloads inside `refresh`; the component and its `use-pull-to-refresh` composable know nothing about data. The gesture maths is in `src/shared/utils/pull-to-refresh.ts`. The Orders report page uses it. With `inline` it wraps non-scrolling content instead of the scroll region, reading the scroll position from the nearest scrolling ancestor; ListContainer uses it so the gap opens under its header.
 
+`AssignmentCard.vue` is the shared assignment `<li>` card of the personal assistants: a big due day and month column, an optional assignee line with Overdue, status and failed-delivery badges, the detail (two lines), `BY <creator>` (an agent creator shows its catalog name from `src/shared/utils/agent-display-names.ts`) and `Order <id> · due …`. It takes `assignment` (`TeamAgentAssignment`), `showAssignee` (default `true`; the staff profile passes `false`) and `tappable` (makes the card one button that emits `select`); the `action` slot adds a trailing 56px column (the assignments page puts its Cancel button there). Display helpers are in `src/shared/utils/assignment-display.ts`. The assignments page and the staff profile use it.
+
+### Report components (`src/shared/components/reports/`)
+
+The dark report pages (Orders report, Staff profile) are built from these; they carry the `bg-on-surface` page look (`on-primary` text, `border-on-primary/10 bg-on-primary/5` cards) and know nothing about orders or staff. Callers pass labels, values and units; the `sectionLabel` / `groupLabel` props are the region's accessible name. Types are in `report-types.ts`; shared formatting maths (`shiftDate`, `percentOf`, `changePercent`, `barHeights`, `formatCount`, date labels) is in `src/shared/utils/report-format.ts`.
+
+- `ReportHeading.vue`: title and subtitle with `leading`, default (under the subtitle) and `action` slots.
+- `ReportPeriodHeader.vue`: `variant="range"` (uppercase caption between arrows) or `navigator` (boxed month switcher); emits `step(-1 | 1)`; `navigable=false` shows the caption alone.
+- `ReportTotal.vue`: the big total, unit, change badge (hidden when `null`) and comparison line.
+- `ReportFocusLabel.vue`: the lime label naming the selected day.
+- `ReportCompletion.vue`: `CompletionRing` (`ring`) beside up to three stat cards (`stats`, tones `warning`, `info`, `lime`) and a `note` line.
+- `ReportDayPicker.vue`: seven tappable day columns (`days` of `{ date, value }`, `selected`, `today`, `unit` for the accessible name); emits `select(date)`.
+- `ReportBarChart.vue`: titled bar chart (`bars` of `{ key, label, value, highlight }`).
+- `ReportCard.vue`: the card shell with a title, optional right-hand `hint` and a slot; `ReportBreakdownCard.vue` is a `ReportCard` of label/value rows with a lime share bar; `ReportEmptyCard.vue` is the card-shaped empty message.
+- `ReportPeriodToggle.vue`: the floating two-option pill pinned to the bottom of the page; emits `select(key)`.
+- `ReportMessage.vue`: the loading line or the error alert with Retry (`retry`).
+
+`CompletionRing.vue` also takes optional `caption` (default `Completed`) and `countText` (default `{completed} of {total}`) for the arc texts.
+
 ### Feature Components
 
 - May understand the owning feature's domain.

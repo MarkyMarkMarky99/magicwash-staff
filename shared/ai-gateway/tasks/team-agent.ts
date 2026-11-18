@@ -151,9 +151,11 @@ export async function getTeamAgentNotes(access: TeamAgentAccess): Promise<TeamAg
 }
 
 export async function listPersonalAssignments(
-  { status, ...access }: PersonalAssignmentsAccess & { status: TeamAgentAssignmentStatus },
+  { status, staffId, ...access }: PersonalAssignmentsAccess & { status: TeamAgentAssignmentStatus, staffId?: string },
 ): Promise<TeamAgentAssignment[]> {
-  const path = `/agents/personal/assignments?${new URLSearchParams({ status })}`
+  const query = new URLSearchParams({ status })
+  if (staffId) query.set('staffId', staffId)
+  const path = `/agents/personal/assignments?${query}`
   return (await readEndpoint({ ...access, agentId: 'personal' }, 'GET', path, assignmentsSchema)).assignments
 }
 

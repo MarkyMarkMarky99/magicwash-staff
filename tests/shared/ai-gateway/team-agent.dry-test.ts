@@ -249,6 +249,11 @@ test('assignments list and cancel use the personal admin endpoints', async () =>
   assert.equal(listed[1]!.orderId, null)
   assert.equal(listed[2]!.orderId, 'ORD-123')
   assert.deepEqual(listed[2]!.createdBy, { kind: 'agent', agentId: 'washing' })
+  const forStaff = await listPersonalAssignments({ baseUrl: access.baseUrl, getToken: access.getToken, status: 'open', staffId: 'stf 1', fetchImpl: async (url) => {
+    assert.equal(url, 'http://stub.invalid/agents/personal/assignments?status=open&staffId=stf+1')
+    return Response.json({ assignments: [assignment] })
+  } })
+  assert.equal(forStaff.length, 1)
   const cancelled = await cancelPersonalAssignment({ baseUrl: access.baseUrl, getToken: access.getToken, id: 'as/1', fetchImpl: async (url, init) => {
     assert.equal(url, 'http://stub.invalid/agents/personal/assignments/as%2F1/cancel')
     assert.equal(init?.method, 'POST')

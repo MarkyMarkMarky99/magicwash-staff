@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, useId, watch } from 'vue'
 
-const props = withDefaults(defineProps<{ percentage: number; completed: number; total: number; label: string; tone?: 'onLight' | 'onDark' }>(), { tone: 'onLight' })
+const props = withDefaults(defineProps<{ percentage: number; completed: number; total: number; label: string; tone?: 'onLight' | 'onDark'; caption?: string; countText?: string }>(), { tone: 'onLight', caption: 'Completed', countText: undefined })
 
 const SKINS = {
   onLight: {
@@ -49,8 +49,8 @@ watch(() => props.percentage, value => { shown.value = value })
         <path :id="`${id}-top`" d="M 27 50 A 23 23 0 0 1 73 50" />
         <path :id="`${id}-bottom`" d="M 22 50 A 28 28 0 0 0 78 50" />
       </defs>
-      <text class="font-label" :class="skin.caption" font-size="6" font-weight="600" letter-spacing="0.3"><textPath :href="`#${id}-top`" startOffset="50%" text-anchor="middle">Completed</textPath></text>
-      <text class="font-label" :class="skin.count" font-size="6.5" font-weight="700" letter-spacing="0.2"><textPath :href="`#${id}-bottom`" startOffset="50%" text-anchor="middle">{{ completed }} of {{ total }}</textPath></text>
+      <text class="font-label" :class="skin.caption" font-size="6" font-weight="600" letter-spacing="0.3"><textPath :href="`#${id}-top`" startOffset="50%" text-anchor="middle">{{ caption }}</textPath></text>
+      <text class="font-label" :class="skin.count" font-size="6.5" font-weight="700" letter-spacing="0.2"><textPath :href="`#${id}-bottom`" startOffset="50%" text-anchor="middle">{{ countText ?? `${completed} of ${total}` }}</textPath></text>
     </svg>
     <span class="relative max-w-[96px] truncate font-headline font-semibold leading-none tracking-tight" :class="[skin.label, labelSize]">{{ label }}</span>
     <span class="ring-motion pointer-events-none absolute inset-0" :style="{ transform: `rotate(${labelAngle}deg)` }">
