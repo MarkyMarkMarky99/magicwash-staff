@@ -10,7 +10,7 @@ import { usePriceListStore } from '@/data/price-list/price-list.store'
 import { useStaffStore } from '@/data/staff/staff.store'
 import { appointmentPendingCountKey } from '@/shared/appointment-pending-count'
 import { staffSignedInKey } from '@/shared/staff-session'
-import { agentsUnreadKey } from '@/shared/agents-unread'
+import { agentsUnreadByAgentKey, agentsUnreadKey } from '@/shared/agents-unread'
 import { APP_Z_INDEX_CLASS } from '@/shared/layouts/z-index'
 import { useNavDrawer } from '@/shared/composables/use-nav-drawer'
 import { useRoute, useRouter } from 'vue-router'
@@ -21,6 +21,8 @@ import PickerOverlay from '@/shared/layouts/PickerOverlay.vue'
 import LaundryItemDetailView from '@/features/laundry-items/components/LaundryItemDetailView.vue'
 import { useAppGarmentScan } from '@/app/composables/useAppGarmentScan'
 import { useAgentsUnread } from '@/app/composables/useAgentsUnread'
+import { useAgentBubble } from '@/app/composables/useAgentBubble'
+import AgentFloatingBubble from '@/features/agents/components/AgentFloatingBubble.vue'
 import { preloadDocumentScanner } from '@/features/orders/utils/document-scanner-model'
 
 const appointmentStore = useAppointmentStore()
@@ -163,7 +165,15 @@ function onKeydown(event: KeyboardEvent) {
 
 provide(appointmentPendingCountKey, pendingCount)
 provide(staffSignedInKey, computed(() => authStore.status === 'signedIn'))
-provide(agentsUnreadKey, useAgentsUnread(() => authStore.role, () => authStore.staff?.staffId ?? null))
+const agentsUnread = useAgentsUnread(() => authStore.role, () => authStore.staff?.staffId ?? null)
+provide(agentsUnreadKey, agentsUnread.total)
+provide(agentsUnreadByAgentKey, agentsUnread.byAgent)
+const { bubble: agentBubble, dismiss: dismissAgentBubble } = useAgentBubble(() => agentsUnread.latest.value, () => agentsUnread.total.value, () => authStore.staff?.staffId ?? null)
+
+function openAgentBubble(): void {
+  const bubble = agentBubble.value
+  if (bubble) void router.push({ name: 'team-agent-chat', params: { agentId: bubble.agentId } })
+}
 
 // Keep the schedule and pending badge ready from the same backend-backed store.
 onMounted(async () => {
@@ -215,6 +225,15 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
         <component :is="Component" />
       </KeepAlive>
       </RouterView>
+      <AgentFloatingBubble
+        v-if="shellMounted && agentBubble"
+        :agent-id="agentBubble.agentId"
+        :name="agentBubble.name"
+        :text="agentBubble.text"
+        :count="agentBubble.count"
+        @open="openAgentBubble"
+        @dismiss="dismissAgentBubble"
+      />
     </div>
     <PickerOverlay v-if="shellMounted && scannedGarmentId !== null" open size="full" :draggable="false" ariaLabel="Garment detail" :close-button="false" @close="garmentScan.close">
       <template #header><AppHeader :back-action="garmentScan.close" /></template>

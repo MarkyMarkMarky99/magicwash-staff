@@ -104,6 +104,7 @@ function defineTeamAgentStore(agentId: TeamAgentId, target: string | undefined) 
     const sending = ref(false)
     const pending = ref<PendingTeamAgentMessage[]>([])
     const unreadCount = ref(0)
+    const latestUnreadAi = ref<TeamAgentEvent | null>(null)
     const reminders = ref<TeamAgentReminder[]>([])
     const notes = ref<TeamAgentNote[]>([])
     const panelLoading = ref(false)
@@ -141,9 +142,27 @@ function defineTeamAgentStore(agentId: TeamAgentId, target: string | undefined) 
 
     function markSeen(): void {
       unreadCount.value = 0
+      latestUnreadAi.value = null
       if (latestId === null || latestId === lastSeenId) return
       lastSeenId = latestId
       writeLastSeen(agentId, target, viewer, latestId)
+    }
+
+    /** Counts events the viewer did not send; an action attempt already followed by its result counts once. */
+    function countUnread(fresh: TeamAgentEvent[], known: Set<string>): void {
+      const finished = new Set<string>()
+      for (const id of [...known, ...fresh.map(event => event.id)]) {
+        const key = resultKey(id)
+        if (key !== null) finished.add(key)
+      }
+      const counted = fresh.filter((event) => {
+        if (event.speaker?.staffId === viewer) return false
+        const key = attemptKey(event.id)
+        return key === null || !finished.has(key)
+      })
+      unreadCount.value += counted.length
+      const latestAi = counted.findLast(event => event.kind === 'agent' || event.kind === 'system')
+      if (latestAi) latestUnreadAi.value = latestAi
     }
 
     function removePending(keep: (entry: PendingTeamAgentMessage) => boolean): void {
@@ -222,7 +241,7 @@ function defineTeamAgentStore(agentId: TeamAgentId, target: string | undefined) 
           dropReconciledPending()
         }
         if (viewing) markSeen()
-        else unreadCount.value += fresh.length
+        else countUnread(fresh, known)
       } catch (reason) {
         if (run === generation) error.value = errorMessage(reason)
       }
@@ -363,6 +382,7 @@ function defineTeamAgentStore(agentId: TeamAgentId, target: string | undefined) 
       sending.value = false
       removePending(() => false)
       unreadCount.value = 0
+      latestUnreadAi.value = null
       reminders.value = []
       notes.value = []
       panelLoading.value = false
@@ -375,7 +395,11 @@ function defineTeamAgentStore(agentId: TeamAgentId, target: string | undefined) 
     }
 
     function bindViewer(staffId: string | null): void {
-      if (agentId !== 'personal' || staffId === viewer) return
+      if (staffId === viewer) return
+      if (agentId !== 'personal') {
+        viewer = staffId
+        return
+      }
       reset()
       viewer = staffId
       lastSeenId = readLastSeen(agentId, target, viewer)
@@ -395,6 +419,7 @@ function defineTeamAgentStore(agentId: TeamAgentId, target: string | undefined) 
       sending,
       pending,
       unreadCount,
+      latestUnreadAi,
       reminders,
       notes,
       panelLoading,
