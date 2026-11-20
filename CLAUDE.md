@@ -39,6 +39,7 @@ implemented behavior, correct the canonical document rather than adding a compet
 - [Register Garments page](docs/features/laundry-items/register-garments-page.md)
 - [Garment detail page](docs/features/laundry-items/laundry-item-detail-page.md)
 - [Agent chat](docs/features/agents/agent-chat.md)
+- [Stock-take](docs/features/stock-take/stock-take.md)
 
 ## Verification
 

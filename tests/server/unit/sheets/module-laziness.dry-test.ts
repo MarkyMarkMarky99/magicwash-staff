@@ -33,6 +33,7 @@ const modulePaths = [
   '../../../../server/modules/packages/package.module.js',
   '../../../../server/modules/after-photos/after-photo.module.js',
   '../../../../server/modules/job-tickets/job-ticket.module.js',
+  '../../../../server/modules/stock-takes/stock-take.module.js',
 ]
 
 async function main(): Promise<void> {
@@ -59,7 +60,7 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log('19 module laziness checks passed')
+  console.log(modulePaths.length + ' module laziness checks passed')
 }
 
 main().catch((error) => {

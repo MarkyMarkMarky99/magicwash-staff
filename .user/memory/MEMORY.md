@@ -7,6 +7,8 @@
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 
 ## Pending work
+- **Stock-take (temporary)** — owner will ask to remove it; removal steps in `.user/memory/stock-take-removal.md`.
+  - Every session must end Finish or Cancel; an OPEN/CLOSED row in `StockTakes` freezes ticket, bag and garment writes.
 - **MagicwashAI local gateway** — handoff: `.user/memory/magicwash-ai-gateway-handoff.md`
   - Live at `ai.magicwash-laundry.com`; corporate-form AI prefill merged to main; prod `VITE_AI_GATEWAY_URL` is set.
   - Need 3–5 more real slips (other branches, harder handwriting) for `scripts/eval-read-slip.js`.

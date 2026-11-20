@@ -394,6 +394,36 @@ conflicts with it, stop and have the user update the registry; never rewrite the
 code. Do not alter the separate Python project's similarly named environment
 variables or spreadsheet bindings.
 
+## Stock-take routes
+
+`StockTakes` and `StockTakeEntries` live in `JOB_TICKETS_SPREADSHEET_ID`. Provision both tabs
+with the pending registry headers before deploying the guarded writers. The guard needs a readable
+session tab and fails closed if it cannot read one.
+
+| Method and path | Role | Request and effect |
+| --- | --- | --- |
+| `GET /api/stock-takes` | Signed-in staff | Returns the active session or null. |
+| `POST /api/stock-takes` | Admin | Accepts optional `notes` and opens a session if none is active. |
+| `POST /api/stock-takes/scans` | Signed-in staff | Accepts `sessionId` and `scans`, acknowledges each normalized scan, and returns the number added to the open session. |
+| `POST /api/stock-takes/close` | Admin | Accepts `sessionId` and ends scanning. |
+| `POST /api/stock-takes/cancel` | Admin | Accepts `sessionId` and abandons the active session before any corrections have been applied. |
+| `GET /api/stock-takes/report` | Admin | Requires the `sessionId` query parameter and returns order accounting, observations that need review, and skipped plans. |
+| `POST /api/stock-takes/resolutions` | Admin | Accepts `sessionId` and `resolutions` for a closed session. |
+| `POST /api/stock-takes/preview` | Admin | Accepts `sessionId`, supersedes prior plans as needed, and saves the current plan for a closed session. |
+| `POST /api/stock-takes/apply` | Admin | Accepts `sessionId`, preflights, writes and reads back `JobTickets.updateMany`, marks entries applied or skipped, and keeps the session closed. |
+| `POST /api/stock-takes/finish` | Admin | Accepts `sessionId` and marks the closed session applied when no planned rows remain. |
+
+Actor fields come from the session. The repositories stamp session opening and entry creation and
+stamp updates to plan state. Preview fixes ticket timestamps for retry verification. Apply
+writes only live ITEM tickets and does not create WorkTransactions. The stock-take API has no row
+edit, delete, or session list operations.
+
+The freeze returns HTTP 409 with `STOCK_TAKE_ACTIVE` on job-ticket advance, start-order,
+complete-order, reopen and PATCH, packaging confirm, bag-item POST, WEIGHT image POST, laundry-photo
+POST, PATCH and reassign, work-order POST and PATCH, intake POST, and order-garment POST and PATCH.
+Packing confirm also covers its own bag images. See the [stock-take design](../../plans/stock-take.md)
+for review, preflight, and operational boundaries.
+
 ## Backend verification
 
 Run relevant `tests/server/` dry tests with `npx tsx <path>` and run `npm run typecheck:api` for

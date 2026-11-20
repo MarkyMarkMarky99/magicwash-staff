@@ -4,6 +4,7 @@ import type { bagItemsRowSchema } from '../../sheets/BagItems/BagItems.db-contra
 import { getBagItemsRepository } from '../../sheets/BagItems/BagItems.repository.js'
 import { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
+import { withStockTakeFreezeGuard } from '../../shared/services/stock-take-freeze.js'
 import type { ApiRowFromFieldMap } from '../../shared/repositories/base.repository.js'
 import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
 import { BaseCrudService } from '../../shared/services/base-crud.service.js'
@@ -54,4 +55,4 @@ export function createBagItemService(
 }
 
 export const bagItemService = createBagItemService()
-export const bagItemRoutes = createCrudRoutes(bagItemService, bagItemApiContract, { create: ['createdBy'] })
+export const bagItemRoutes = createCrudRoutes(bagItemService, bagItemApiContract, { create: ['createdBy'] }, { create: withStockTakeFreezeGuard })

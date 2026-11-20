@@ -14,6 +14,7 @@ import { Mapper, type ApiRowFromFieldMap } from '../../shared/repositories/base.
 import type { SheetBatchUpdateContract, SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
 import { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
+import { withStockTakeFreezeGuard } from '../../shared/services/stock-take-freeze.js'
 import { ApiHandler } from '../../shared/http/api-handler.js'
 import type { GatewayModuleRoutes } from '../../shared/http/gateway.types.js'
 import { ok } from '../../shared/http/response.js'
@@ -179,7 +180,7 @@ export class LaundryPhotoService extends BaseCrudService<
 }
 
 export const laundryPhotoService = new LaundryPhotoService()
-const crudRoutes = createCrudRoutes(laundryPhotoService, laundryPhotoApiContract, { create: ['createdBy'], update: ['updatedBy'] })
+const crudRoutes = createCrudRoutes(laundryPhotoService, laundryPhotoApiContract, { create: ['createdBy'], update: ['updatedBy'] }, { create: withStockTakeFreezeGuard, update: withStockTakeFreezeGuard })
 export const laundryPhotoRoutes: GatewayModuleRoutes = {
   collection: crudRoutes.collection,
   item: new ApiHandler({
@@ -193,7 +194,8 @@ export const laundryPhotoRoutes: GatewayModuleRoutes = {
     },
     POST: async (req) => {
       if (req.params.id !== 'reassign') throw ApiError.notFound('Route not found')
-      return ok(await laundryPhotoService.reassign(bodyWithSessionActor(req, 'updatedBy')))
+      const payload = bodyWithSessionActor(req, 'updatedBy')
+      return ok(await withStockTakeFreezeGuard(() => laundryPhotoService.reassign(payload)))
     },
     DELETE: async (req) => crudRoutes.item!.handleRequest(req),
   }),

@@ -4,6 +4,7 @@ import { BagLogisticsTicketService } from './bag-logistics-ticket.service.js'
 import { WeightPhotoTicketService } from './weight-photo-ticket.service.js'
 import { orderImageApiContract, orderImageCreateRequestSchema } from '../../../contracts/order-images/order-image-api.schema.js'
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
+import { withStockTakeFreezeGuard } from '../../shared/services/stock-take-freeze.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import type {
   ApiRowFromFieldMap,
@@ -146,4 +147,8 @@ export class OrderImageService extends BaseCrudService<
 }
 
 export const orderImageService = new OrderImageService()
-export const orderImageRoutes = createCrudRoutes(orderImageService, orderImageApiContract, { create: ['createdBy'] })
+export const orderImageRoutes = createCrudRoutes(orderImageService, orderImageApiContract, { create: ['createdBy'] }, {
+  create: (write, request) => typeof request.body === 'object' && request.body !== null
+    && 'imageType' in request.body && request.body.imageType === 'WEIGHT'
+    ? withStockTakeFreezeGuard(write) : write(),
+})

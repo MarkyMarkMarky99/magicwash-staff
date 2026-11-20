@@ -1,3 +1,1 @@
-export function isStaffCardCode(code: string): boolean {
-  return code.trim().toUpperCase().startsWith('MWS-')
-}
+export { isStaffCardCode } from '@shared/utils/scan-code'

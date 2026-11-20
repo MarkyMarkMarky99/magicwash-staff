@@ -101,8 +101,11 @@ export class AppointmentService extends BaseCrudService<
         if (this.completeDeliveryOrder) {
           await this.completeDeliveryOrder(appointment.deliveryOrderId, completion)
         } else {
-          const { workOrderService } = await import('../work-orders/work-order.module.js')
-          await workOrderService.update(appointment.deliveryOrderId, completion)
+          const [{ workOrderService }, { withStockTakeFreezeGuard }] = await Promise.all([
+            import('../work-orders/work-order.module.js'),
+            import('../../shared/services/stock-take-freeze.js'),
+          ])
+          await withStockTakeFreezeGuard(() => workOrderService.update(appointment.deliveryOrderId!, completion))
         }
       } catch (error) {
         console.error('Failed to complete delivery order', error)

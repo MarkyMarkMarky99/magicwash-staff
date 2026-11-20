@@ -5,6 +5,7 @@ import { getOrderGarmentsRepository } from '../../sheets/OrderGarments/OrderGarm
 import { ReadQueryDTO } from '../../shared/dtos/read-query.dto.js'
 import { generateShortId } from '../../shared/utils/id.js'
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
+import { withStockTakeFreezeGuard } from '../../shared/services/stock-take-freeze.js'
 import type { ApiRowFromFieldMap } from '../../shared/repositories/base.repository.js'
 import type { SheetRepositoryContract } from '../../shared/repositories/sheet-repository.contract.js'
 import { BaseCrudService } from '../../shared/services/base-crud.service.js'
@@ -67,4 +68,4 @@ export const orderGarmentService = createOrderGarmentService()
 export const orderGarmentRoutes = createCrudRoutes(orderGarmentService, orderGarmentApiContract, {
   create: ['createdBy'],
   update: ['updatedBy'],
-})
+}, { create: withStockTakeFreezeGuard, update: withStockTakeFreezeGuard })

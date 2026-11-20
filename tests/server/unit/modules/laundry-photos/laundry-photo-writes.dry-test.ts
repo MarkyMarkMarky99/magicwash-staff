@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict'
+import { stubClearStockTake } from '../../stock-take-freeze.fixture.js'
+
+stubClearStockTake()
 import { generateKeyPairSync } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'

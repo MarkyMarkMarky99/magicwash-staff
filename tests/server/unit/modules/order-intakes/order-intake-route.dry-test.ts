@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict'
+import { stubClearStockTake } from '../../stock-take-freeze.fixture.js'
+
+stubClearStockTake()
 import { routeRegistry } from '../../../../../server/api/route-registry.js'
 import { createOrderIntakeRoutes } from '../../../../../server/modules/order-intakes/order-intake.module.js'
 

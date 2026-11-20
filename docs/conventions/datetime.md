@@ -30,7 +30,9 @@ or parses with day and month transposed. 373 cells had to be repaired once alrea
 `formatBangkokTimestamp` (`server/shared/utils/bangkok-timestamp.ts`) is the only production
 producer. `SheetRepository` calls it on append, batchAppend, and update, driven by each sheet's
 `audit.onAppend` / `audit.onUpdate` declaration. Do not format an audit timestamp anywhere else and
-do not pass one in from a service.
+do not pass one in from a service. Stock-take ticket corrections are an exception because the
+preview stores a fixed `updated_at` used to recognize a verified retry. See
+[Stock-take apply](../plans/stock-take.md#apply-forward-only).
 
 `deleted_at` is never auto-stamped. Soft-delete, where it exists, is an explicit UPDATE.
 

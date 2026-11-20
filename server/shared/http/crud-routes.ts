@@ -15,7 +15,16 @@ import { created, ok, okPaged } from './response.js'
 type AnyCrudService = BaseCrudService<any, any, any, any, any, any, any, any>
 
 /** Builds the collection/item routes every module needs, driven by its API contract's capability slots. */
-export function createCrudRoutes(service: AnyCrudService, api: ModuleApiContract, actors: { create?: string[]; update?: string[] } = {}): GatewayModuleRoutes {
+type WriteGuard = <T>(write: () => Promise<T>, request: Parameters<ApiHandler['handleRequest']>[0]) => Promise<T>
+
+export function createCrudRoutes(
+  service: AnyCrudService,
+  api: ModuleApiContract,
+  actors: { create?: string[]; update?: string[] } = {},
+  guards: { create?: WriteGuard; update?: WriteGuard } = {},
+): GatewayModuleRoutes {
+  const create = guards.create ?? (write => write())
+  const update = guards.update ?? (write => write())
   const canCreate = api.request?.create !== undefined && api.response.create !== undefined
   const canGetById = api.response.detail !== undefined
   const canUpdate = api.request?.update !== undefined && api.response.update !== undefined
@@ -25,7 +34,10 @@ export function createCrudRoutes(service: AnyCrudService, api: ModuleApiContract
       const { items, pagination } = await service.list(req.query)
       return okPaged(items, pagination)
     },
-    ...(canCreate ? { POST: async (req) => created(await service.create(actors.create ? bodyWithSessionActor(req, ...actors.create) : req.body)) } : {}),
+    ...(canCreate ? { POST: async (req) => {
+      const payload = actors.create ? bodyWithSessionActor(req, ...actors.create) : req.body
+      return created(await create(() => service.create(payload), req))
+    } } : {}),
   })
 
   const item =
@@ -35,7 +47,11 @@ export function createCrudRoutes(service: AnyCrudService, api: ModuleApiContract
             ? { GET: async (req) => ok(await service.getById(requireRouteId(req.params))) }
             : {}),
           ...(canUpdate
-            ? { PATCH: async (req) => ok(await service.update(requireRouteId(req.params), actors.update ? bodyWithSessionActor(req, ...actors.update) : req.body)) }
+            ? { PATCH: async (req) => {
+              const id = requireRouteId(req.params)
+              const payload = actors.update ? bodyWithSessionActor(req, ...actors.update) : req.body
+              return ok(await update(() => service.update(id, payload), req))
+            } }
             : {}),
         })
       : undefined

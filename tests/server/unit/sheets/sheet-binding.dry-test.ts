@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { attendanceDbContract } from '../../../../server/sheets/Attendance/Attendance.db-contract.js'
 import { laundryItemPhotosDbContract } from '../../../../server/sheets/LaundryItemPhotos/LaundryItemPhotos.db-contract.js'
 import { orderGarmentsDbContract } from '../../../../server/sheets/OrderGarments/OrderGarments.db-contract.js'
 import { laundryItemsDbContract } from '../../../../server/sheets/LaundryItems/LaundryItems.db-contract.js'
@@ -30,10 +31,12 @@ import { packagesDbContract } from '../../../../server/sheets/Packages/Packages.
 import { issueReportsDbContract } from '../../../../server/sheets/IssueReports/IssueReports.db-contract.js'
 import { itemsDbContract } from '../../../../server/sheets/Items/Items.db-contract.js'
 import { jobTicketsDbContract } from '../../../../server/sheets/JobTickets/JobTickets.db-contract.js'
+import { stockTakesDbContract } from '../../../../server/sheets/StockTakes/StockTakes.db-contract.js'
+import { stockTakeEntriesDbContract } from '../../../../server/sheets/StockTakeEntries/StockTakeEntries.db-contract.js'
 import { workTransactionsDbContract } from '../../../../server/sheets/WorkTransactions/WorkTransactions.db-contract.js'
 import { workRatesDbContract } from '../../../../server/sheets/WorkRates/WorkRates.db-contract.js'
 
-const expectedSheetCount = 30
+const expectedSheetCount = 33
 const expectedSheetDirectories = [
   'LaundryItemPhotos',
   'OrderGarments',
@@ -41,6 +44,7 @@ const expectedSheetDirectories = [
   'BagItems',
   'AfterPhoto',
   'Appointments',
+  'Attendance',
   'CustomerPackages',
   'CustomerIDMapping',
   'Customers',
@@ -50,6 +54,8 @@ const expectedSheetDirectories = [
   'IssueReports',
   'Items',
   'JobTickets',
+  'StockTakes',
+  'StockTakeEntries',
   'LaundryPhotos',
   'Machines',
   'OrderForm',
@@ -68,6 +74,9 @@ const expectedSheetDirectories = [
 ] as const
 
 const bindings = [
+  { name: 'Attendance', contract: attendanceDbContract, expectedSpreadsheetId: 'STAFF_SPREADSHEET_ID', expectedSheetName: 'Attendance' },
+  { name: 'StockTakes', contract: stockTakesDbContract, expectedSpreadsheetId: 'JOB_TICKETS_SPREADSHEET_ID', expectedSheetName: 'StockTakes' },
+  { name: 'StockTakeEntries', contract: stockTakeEntriesDbContract, expectedSpreadsheetId: 'JOB_TICKETS_SPREADSHEET_ID', expectedSheetName: 'StockTakeEntries' },
   { name: 'LaundryItemPhotos', contract: laundryItemPhotosDbContract, expectedSpreadsheetId: 'LAUNDRY_ITEMS_SPREADSHEET_ID', expectedSheetName: 'LaundryItemPhotos' },
   { name: 'OrderGarments', contract: orderGarmentsDbContract, expectedSpreadsheetId: 'LAUNDRY_ITEMS_SPREADSHEET_ID', expectedSheetName: 'OrderGarments' },
   { name: 'LaundryItems', contract: laundryItemsDbContract, expectedSpreadsheetId: 'LAUNDRY_ITEMS_SPREADSHEET_ID', expectedSheetName: 'LaundryItems' },

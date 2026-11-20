@@ -14,6 +14,7 @@ import { invoicesRowSchema } from '../../../../server/sheets/Invoices/Invoices.d
 import { invoiceItemsRowSchema } from '../../../../server/sheets/InvoiceItems/InvoiceItems.db-contract.js'
 import { paymentsRowSchema } from '../../../../server/sheets/Payments/Payments.db-contract.js'
 import { jobTicketsRowSchema } from '../../../../server/sheets/JobTickets/JobTickets.db-contract.js'
+import { stockTakesRowSchema } from '../../../../server/sheets/StockTakes/StockTakes.db-contract.js'
 
 // ── Drives the REAL production wiring: the services exported by
 //    order.module.ts / appointment.module.ts, built on the real repository
@@ -994,6 +995,31 @@ test('LaundryItemPhotos production wiring maps all columns, filters and workbook
     assert.match(url.searchParams.get('tq')!, /C = 'order-1'/)
     assert.match(url.searchParams.get('tq')!, /D = 'BEFORE'/)
     assert.doesNotMatch(url.searchParams.get('tq')!, /limit|offset|contains/)
+  })
+})
+
+test('Stock-take active route reads the physical sheet through authenticated Values API', async () => {
+  await withMockFetch(async url => {
+    if (url === 'https://oauth2.googleapis.com/token') {
+      return response('', { access_token: 'test-access-token', expires_in: 3600 })
+    }
+    assert.match(decodeURIComponent(url), /characterization-job-tickets-id\/values\/StockTakes!A1:I/)
+    assert.match(url, /dateTimeRenderOption=SERIAL_NUMBER/)
+    return response('', { values: [
+      Object.keys(stockTakesRowSchema.shape),
+      ['ST-1', 'CLOSED', '2026-11-19 09:10:11', 'opener', 46345.5, 'closer', null, null, 'Audit'],
+    ] })
+  }, async () => {
+    const { stockTakeRoutes } = await import('../../../../server/modules/stock-takes/stock-take.module.js')
+    const result = await stockTakeRoutes.collection.handleRequest({
+      method: 'GET', query: {}, body: null, headers: {}, params: {},
+      staff: { staffId: 'staff', role: 'staff', email: 'staff@example.test', name: 'Staff' },
+    })
+    assert.equal(result.status, 200)
+    assert.deepEqual((result.body as { data: unknown }).data, {
+      id: 'ST-1', status: 'CLOSED', openedAt: '2026-11-19 09:10:11', openedBy: 'opener',
+      closedAt: '2026-11-19 12:00:00', closedBy: 'closer', appliedAt: null, appliedBy: null, notes: 'Audit',
+    })
   })
 })
 

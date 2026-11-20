@@ -31,6 +31,8 @@ import { packageTransactionsDbContract } from '../../../server/sheets/PackageTra
 import { packagesDbContract } from '../../../server/sheets/Packages/Packages.db-contract.js'
 import { issueReportsDbContract } from '../../../server/sheets/IssueReports/IssueReports.db-contract.js'
 import { jobTicketsDbContract } from '../../../server/sheets/JobTickets/JobTickets.db-contract.js'
+import { stockTakesDbContract } from '../../../server/sheets/StockTakes/StockTakes.db-contract.js'
+import { stockTakeEntriesDbContract } from '../../../server/sheets/StockTakeEntries/StockTakeEntries.db-contract.js'
 import { workTransactionsDbContract } from '../../../server/sheets/WorkTransactions/WorkTransactions.db-contract.js'
 import { workRatesDbContract } from '../../../server/sheets/WorkRates/WorkRates.db-contract.js'
 
@@ -101,6 +103,18 @@ const readableSheets: readonly ReadableSheet[] = [
     sheetName: orderFormDbContract.sheetName,
     spreadsheetIdEnv: orderFormDbContract.spreadsheetId!,
     rowSchema: orderFormDbContract.row,
+  },
+  {
+    name: 'StockTakes',
+    sheetName: stockTakesDbContract.sheetName,
+    spreadsheetIdEnv: stockTakesDbContract.spreadsheetId!,
+    rowSchema: stockTakesDbContract.row,
+  },
+  {
+    name: 'StockTakeEntries',
+    sheetName: stockTakeEntriesDbContract.sheetName,
+    spreadsheetIdEnv: stockTakeEntriesDbContract.spreadsheetId!,
+    rowSchema: stockTakeEntriesDbContract.row,
   },
   {
     name: 'JobTickets',

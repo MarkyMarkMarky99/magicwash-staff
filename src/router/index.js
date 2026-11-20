@@ -19,6 +19,7 @@ import { orderReportRoutes } from '@/features/order-reports/routes'
 import { deliveryTrackingRoutes } from '@/features/delivery-tracking/routes'
 import { agentRoutes } from '@/features/agents/routes'
 import { laundryItemRoutes } from '@/features/laundry-items/routes'
+import { stockTakeRoutes } from '@/features/stock-take/routes'
 
 const routes = [
   ...washQueueRoutes,
@@ -39,6 +40,7 @@ const routes = [
   ...deliveryTrackingRoutes,
   ...agentRoutes,
   ...laundryItemRoutes,
+  ...stockTakeRoutes,
 ]
 
 if (import.meta.env.DEV) {

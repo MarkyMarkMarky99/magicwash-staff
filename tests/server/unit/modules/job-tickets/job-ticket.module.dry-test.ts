@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict'
+import { stubClearStockTake } from '../../stock-take-freeze.fixture.js'
+
+stubClearStockTake()
 import type { ApiHandlerRequest } from '../../../../../server/shared/http/api-handler.js'
 import {
   jobTicketFieldMap,

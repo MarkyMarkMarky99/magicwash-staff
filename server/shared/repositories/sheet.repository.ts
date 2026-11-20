@@ -29,6 +29,7 @@ import {
 import {
   buildRowRange,
   buildSheetHeaderMap,
+  columnLetterForIndex,
   SheetHeaderMapError,
   SheetHeaderMapResolver,
   type SheetHeaderMap,
@@ -134,6 +135,19 @@ export class SheetRepository<TDbRow extends object>
           this.contract.primaryKey,
         ),
       )
+  }
+
+  /** Authenticated, uncached read for a write precondition or readback. */
+  async readFresh(): Promise<Array<Partial<TDbRow>>> {
+    if (!this.sheetsApiClient) throw new Error('Fresh reads require an authenticated Sheets API client')
+    const columns = Object.keys(this.contract.row.shape)
+    const [header, ...rows] = await this.sheetsApiClient.readRange(
+      'A1:' + columnLetterForIndex(columns.length - 1),
+      { valueRenderOption: 'UNFORMATTED_VALUE', dateTimeRenderOption: 'SERIAL_NUMBER' },
+    )
+    if (!header) throw new Error('Fresh sheet read returned no headers')
+    const map = buildSheetHeaderMap(header, columns, this.contract.primaryKey)
+    return rows.map(row => parseRowValues(row, map) as Partial<TDbRow>)
   }
 
   async read(query?: ReadQueryDTO<Partial<TDbRow>>): Promise<Array<Partial<TDbRow>>> {

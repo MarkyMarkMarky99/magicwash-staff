@@ -29,6 +29,8 @@ import { packageTransactionsDbContract } from '../../../../server/sheets/Package
 import { packagesDbContract } from '../../../../server/sheets/Packages/Packages.db-contract.js'
 import { issueReportsDbContract } from '../../../../server/sheets/IssueReports/IssueReports.db-contract.js'
 import { jobTicketsDbContract } from '../../../../server/sheets/JobTickets/JobTickets.db-contract.js'
+import { stockTakesDbContract } from '../../../../server/sheets/StockTakes/StockTakes.db-contract.js'
+import { stockTakeEntriesDbContract } from '../../../../server/sheets/StockTakeEntries/StockTakeEntries.db-contract.js'
 import { workTransactionsDbContract } from '../../../../server/sheets/WorkTransactions/WorkTransactions.db-contract.js'
 import { workRatesDbContract } from '../../../../server/sheets/WorkRates/WorkRates.db-contract.js'
 import { deriveGVizColumns } from '../../../../server/shared/repositories/utils/gviz-query.builder.js'
@@ -293,6 +295,18 @@ const tests: ColumnOrderTest[] = [
       net_total: 'N',
     },
     primaryKeyColumn: 'B',
+  },
+  {
+    name: 'StockTakes',
+    contract: stockTakesDbContract,
+    expected: { id: 'A', status: 'B', opened_at: 'C', opened_by: 'D', closed_at: 'E', closed_by: 'F', applied_at: 'G', applied_by: 'H', notes: 'I' },
+    primaryKeyColumn: 'A',
+  },
+  {
+    name: 'StockTakeEntries',
+    contract: stockTakeEntriesDbContract,
+    expected: { id: 'A', stock_take_id: 'B', kind: 'C', order_id: 'D', laundry_item_id: 'E', bag_id: 'F', department: 'G', status: 'H', resolution: 'I', reason: 'J', job_ticket_id: 'K', plan_state: 'L', baseline: 'M', patch: 'N', created_at: 'O', created_by: 'P', updated_at: 'Q' },
+    primaryKeyColumn: 'A',
   },
   {
     name: 'JobTickets',

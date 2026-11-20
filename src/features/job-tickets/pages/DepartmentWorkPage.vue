@@ -29,6 +29,7 @@ import type { AdvanceStatus, Grouper, OrderInfo, ScanQueueEntry, TicketStatus } 
 import { presentStartOrderResult, type ScanDisplay, type ScanTone } from '../scan-result'
 import { useScanNotice } from '../composables/useScanNotice'
 import { useScannerGunInput } from '@/shared/composables/useScannerGunInput'
+import { failureMessage, failureNotice } from '../stock-take-pause'
 
 const route = useRoute()
 const router = useRouter()
@@ -340,9 +341,9 @@ async function sendConfirmed(): Promise<void> {
       confirmIntent.value = null
       pendingDestination = null
     }
-  } catch {
+  } catch (error) {
     for (const entry of entries) setTapState(entry.ticketId, 'failed')
-    showPageNotice({ title: 'Connection failed', message: 'Connection failed. Try again', tone: 'error' })
+    showPageNotice({ ...failureNotice(error, 'Connection failed', 'Connection failed. Try again'), tone: 'error' })
     confirmIntent.value = null
     pendingDestination = null
   } finally {
@@ -371,10 +372,10 @@ async function startOrder(orderId: string): Promise<void> {
     const failedIds = response.kind === 'write_failed' ? pendingIds : response.blocked.map(ticket => ticket.ticketId)
     for (const ticketId of failedIds) setTapState(ticketId, 'failed')
     showPageNotice({ title: orderId, ...presentStartOrderResult(response) })
-  } catch {
+  } catch (error) {
     if (department.value?.code !== departmentCode) return
     for (const ticketId of pendingIds) setTapState(ticketId, 'failed')
-    showPageNotice({ title: orderId, message: 'Connection failed. Try again', tone: 'error' })
+    showPageNotice({ title: orderId, message: failureMessage(error, 'Connection failed. Try again'), tone: 'error' })
   } finally {
     for (const ticketId of pendingIds) {
       if (tapStates.value.get(ticketId) === 'saving') setTapState(ticketId, null)
@@ -409,10 +410,10 @@ async function completeOrder(): Promise<void> {
         ? 'Could not save. Check the order before trying again' : 'Could not save. Try again', tone: 'error' })
       if (response.certainty === 'unknown') await reload()
     }
-  } catch {
+  } catch (error) {
     if (department.value?.code !== departmentCode) return
     for (const ticketId of openIds) setTapState(ticketId, 'failed')
-    showPageNotice({ title: orderId, message: 'Connection failed. Check the order before trying again', tone: 'error' })
+    showPageNotice({ title: orderId, message: failureMessage(error, 'Connection failed. Check the order before trying again'), tone: 'error' })
     await reload()
   } finally {
     for (const ticketId of openIds) {

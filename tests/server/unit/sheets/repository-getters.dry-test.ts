@@ -44,6 +44,8 @@ const [
   packagesModule,
   issueReportsModule,
   jobTicketsModule,
+  stockTakesModule,
+  stockTakeEntriesModule,
   workTransactionsModule,
   workRatesModule,
 ] = await Promise.all([
@@ -71,6 +73,8 @@ const [
   import('../../../../server/sheets/Packages/Packages.repository.js'),
   import('../../../../server/sheets/IssueReports/IssueReports.repository.js'),
   import('../../../../server/sheets/JobTickets/JobTickets.repository.js'),
+  import('../../../../server/sheets/StockTakes/StockTakes.repository.js'),
+  import('../../../../server/sheets/StockTakeEntries/StockTakeEntries.repository.js'),
   import('../../../../server/sheets/WorkTransactions/WorkTransactions.repository.js'),
   import('../../../../server/sheets/WorkRates/WorkRates.repository.js'),
 ])
@@ -112,6 +116,8 @@ const getters = [
   ['Packages', packagesModule.getPackagesRepository],
   ['IssueReports', issueReportsModule.getIssueReportsRepository],
   ['JobTickets', jobTicketsModule.getJobTicketsRepository],
+  ['StockTakes', stockTakesModule.getStockTakesRepository],
+  ['StockTakeEntries', stockTakeEntriesModule.getStockTakeEntriesRepository],
   ['WorkTransactions', workTransactionsModule.getWorkTransactionsRepository],
   ['WorkRates', workRatesModule.getWorkRatesRepository],
   ['AfterPhoto', afterPhotoModule.getAfterPhotoRepository],

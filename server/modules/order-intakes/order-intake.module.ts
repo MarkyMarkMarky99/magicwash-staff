@@ -12,6 +12,7 @@ import { ApiHandler } from '../../shared/http/api-handler.js'
 import type { GatewayModuleRoutes } from '../../shared/http/gateway.types.js'
 import { created } from '../../shared/http/response.js'
 import { requireStaffId } from '../../shared/http/session-actor.js'
+import { withStockTakeFreezeGuard } from '../../shared/services/stock-take-freeze.js'
 import { OrderIntakeService } from './order-intake.service.js'
 
 export const orderIntakeService = new OrderIntakeService({
@@ -42,7 +43,10 @@ export const orderIntakeService = new OrderIntakeService({
 export function createOrderIntakeRoutes(service: Pick<OrderIntakeService, 'create'> = orderIntakeService): GatewayModuleRoutes {
   return {
     collection: new ApiHandler({
-      POST: async req => created(await service.create(req.body, requireStaffId(req))),
+      POST: async req => {
+        const actor = requireStaffId(req)
+        return created(await withStockTakeFreezeGuard(() => service.create(req.body, actor)))
+      },
     }),
   }
 }

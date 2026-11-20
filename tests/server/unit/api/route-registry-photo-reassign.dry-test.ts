@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict'
+import { stubClearStockTake } from '../stock-take-freeze.fixture.js'
+
+stubClearStockTake()
 import { resolveRoute } from '../../../../server/api/route-registry.js'
 import { laundryPhotoService } from '../../../../server/modules/laundry-photos/laundry-photo.module.js'
 import { afterPhotoService } from '../../../../server/modules/after-photos/after-photo.module.js'
