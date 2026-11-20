@@ -42,18 +42,17 @@ Loads the active session on open. The session card shows id, status badge, who o
 
 Buttons are enabled by session status:
 
-- Close count: `OPEN` only, after a confirmation.
-- Cancel: `OPEN` or `CLOSED`, after a confirmation, and disabled once an apply on this page wrote tickets (the server also refuses).
-- Preview corrections: `CLOSED`.
-- Apply: `CLOSED` and a preview with planned garments is pending.
-- Finish: `CLOSED` and no preview with planned garments is pending.
-- Resolutions: `CLOSED`.
+The page has two session buttons, so the whole flow is Open, scan, Finish:
+
+- Finish: `OPEN` or `CLOSED`, after a confirmation. One server call stops scanning, plans and writes the ticket corrections for every scanned garment, and ends the session. Garments not scanned are left untouched.
+- Cancel: `OPEN` or `CLOSED`, after a confirmation. Abandons the count without writing tickets.
+- Resolutions: `CLOSED` only (a session left `CLOSED` by an older flow); the normal flow never shows them.
 
 While the session is `OPEN` or `CLOSED` a notice reminds the admin that tickets, bags and garments are frozen.
 
 ### Report
 
-The report loads on demand with "Load report" and "Refresh report"; nothing refreshes by itself, and preview, apply and recording a resolution reload it. A report that belongs to a different session than the active one is hidden. Sections:
+The report loads on demand with "Load report" and "Refresh report"; nothing refreshes by itself, and recording a resolution reloads it. A report that belongs to a different session than the active one is hidden. Sections:
 
 - Orders: one row per open order with found, returned, off-site and expected counts and an Accounted or Review badge; a row expands to its garments with their disposition (found, returned, off-site, missing).
 - Missing garments: tag, garment type, registration photo, last ticket (department, task, step, status), a logistics hint per bag, and any existing resolution and reason.
@@ -69,9 +68,9 @@ Available only while the session is `CLOSED`. Every resolution is recorded throu
 - Conflict "more than one live task in the zone": one button per ticket id; choosing one records `TASK_PICK` with that ticket.
 - Zone and bag conflicts have no resolution and stay listed.
 
-### Preview, apply, finish
+### Finish
 
-Preview shows the planned corrections: garments, tickets and changes in total, then one line per garment with its ticket and change counts (zero changes means the route is already correct). Apply shows how many garments were applied and skipped and lists the skipped ones, then reloads the report. Finish ends the session; the page then shows the final session with its end time. Skipped garments go to the owner by the list in the report.
+Finish ends the session; the page then shows the final session with its end time. Backward, blocked and skipped garments are not written; loading the report afterwards lists them for the owner.
 
 ## Department work pages
 

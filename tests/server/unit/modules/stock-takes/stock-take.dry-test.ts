@@ -302,7 +302,6 @@ test('apply retries a failed state save without another ticket write and cannot 
     assert.deepEqual(await service.apply(id), { applied: [], skipped: [] })
     const preview = await service.preview(id, 'admin')
     assert.equal(preview.planned[0]?.ticketCount, 2)
-    await assert.rejects(service.finish(id, 'admin'), /pending corrections/)
     failStateSave(true)
     await assert.rejects(service.apply(id), /interrupted/)
     assert.deepEqual(writes, ['JobTickets'])
@@ -326,6 +325,17 @@ test('apply retries a failed state save without another ticket write and cannot 
     SheetRepository.prototype.update = originalUpdate
     SheetRepository.prototype.updateMany = originalUpdateMany
   }
+})
+
+test('finish from an open count closes, plans, applies and ends in one step', async () => {
+  const { service, entries, tickets, writes } = memory()
+  const { id } = await service.open(null, 'admin')
+  await service.scans(id, [wash], 'staff')
+  assert.equal((await service.finish(id, 'admin')).status, 'APPLIED')
+  assert.deepEqual(writes, ['JobTickets'])
+  assert.equal(tickets.find(row => row.department === 'Washing')?.status, 'In Progress')
+  assert.ok(entries.some(row => row.kind === 'PLAN' && row.plan_state === 'APPLIED'))
+  assert.equal(await service.active(), null)
 })
 
 test('a resolution retires pending plans before Apply and leaves ticket writes untouched', async () => {

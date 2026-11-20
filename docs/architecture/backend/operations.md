@@ -411,7 +411,7 @@ session tab and fails closed if it cannot read one.
 | `POST /api/stock-takes/resolutions` | Admin | Accepts `sessionId` and `resolutions` for a closed session. |
 | `POST /api/stock-takes/preview` | Admin | Accepts `sessionId`, supersedes prior plans as needed, and saves the current plan for a closed session. |
 | `POST /api/stock-takes/apply` | Admin | Accepts `sessionId`, preflights, writes and reads back `JobTickets.updateMany`, marks entries applied or skipped, and keeps the session closed. |
-| `POST /api/stock-takes/finish` | Admin | Accepts `sessionId` and marks the closed session applied when no planned rows remain. |
+| `POST /api/stock-takes/finish` | Admin | Accepts `sessionId`; from `OPEN` or `CLOSED` it closes the count, applies any pending plan, previews and applies every remaining scanned garment, and marks the session applied. The page uses only this and cancel. |
 
 Actor fields come from the session. The repositories stamp session opening and entry creation and
 stamp updates to plan state. Preview fixes ticket timestamps for retry verification. Apply

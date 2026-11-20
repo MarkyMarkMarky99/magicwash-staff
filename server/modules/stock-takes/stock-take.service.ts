@@ -290,8 +290,11 @@ export class StockTakeService {
   async finish(id: string, actor: string) {
     const stored = await this.readSession(id)
     if (stored.status === 'APPLIED') return stored
+    if (stored.status === 'OPEN') await this.close(id, actor)
     await this.requireActive(id, 'CLOSED')
-    if (plansByGarment(await this.entries(id), ['PLANNED']).size) throw ApiError.conflict('Apply or re-preview the pending corrections before finishing.')
+    await this.apply(id)
+    await this.preview(id, actor)
+    await this.apply(id)
     await this.deps.sessions().update(id, {
       status: 'APPLIED', applied_by: actor, applied_at: formatBangkokTimestamp(this.deps.now()),
     })

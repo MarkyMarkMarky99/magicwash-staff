@@ -5,11 +5,8 @@ export type ReportGap = StockTakeReport['membershipGaps'][number]
 export type ReportConflict = StockTakeReport['conflicts'][number]
 export type MissingChoice = 'RETURNED' | 'OFF_SITE' | 'LOST' | 'KEEP_LOOKING'
 export type SessionActions = {
-  canClose: boolean
   canCancel: boolean
   canResolve: boolean
-  canPreview: boolean
-  canApply: boolean
   canFinish: boolean
 }
 
@@ -93,17 +90,10 @@ export function conflictAction(conflict: ReportConflict): 'link' | 'task' | null
   return null
 }
 
-export function sessionActions(session: StockTakeSession | null, planPending: boolean, ticketsWritten: boolean): SessionActions {
+export function sessionActions(session: StockTakeSession | null): SessionActions {
   const open = session?.status === 'OPEN'
   const closed = session?.status === 'CLOSED'
-  return {
-    canClose: open,
-    canCancel: (open || closed) && !ticketsWritten,
-    canResolve: closed,
-    canPreview: closed,
-    canApply: closed && planPending,
-    canFinish: closed && !planPending,
-  }
+  return { canCancel: open || closed, canResolve: closed, canFinish: open || closed }
 }
 
 export function planTotals(planned: StockTakePreview['planned']): { garments: number; tickets: number; changes: number } {

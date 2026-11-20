@@ -2,9 +2,9 @@
 
 Owner asked (2026-11-20) for stock-take to stay temporary and be removable on request.
 
-- Find the commit: `git log --oneline --grep "feat(stock-take): temporary stock-take mode"`.
+- Find the commits: `git log --oneline --grep "feat(stock-take)"`; revert them newest first.
 - Make sure no `StockTakes` row is OPEN or CLOSED first.
-- `git revert <commit>`; fix conflicts by keeping later code and dropping only stock-take lines.
+- `git revert <commits>`; fix conflicts by keeping later code and dropping only stock-take lines.
 - Touch points outside the stock-take folders: freeze guard calls in job-ticket, bag-item, laundry-photo,
   order-garment, order-image, order-intake, packaging-bag and work-order modules; appointment.service
   order-closing guard; `guards` option in `server/shared/http/crud-routes.ts`; `STOCK_TAKE_ACTIVE` error code;

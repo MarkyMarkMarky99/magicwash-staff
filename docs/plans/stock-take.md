@@ -130,7 +130,8 @@ unit. Only forward moves are allowed: a ticket may go `Pending` → `In Progress
   garment that has no `APPLIED` rows: its earlier `PLANNED` / `SKIPPED` rows become `SUPERSEDED` and
   new `PLANNED` rows are appended. The current plan of a garment = its `PLANNED` rows.
 - Write the remaining patches; read back; mark rows `APPLIED`. The session stays `CLOSED`; the admin
-  re-previews skipped garments or presses Finish, which requires no `PLANNED` rows and sets the
+  re-previews skipped garments or presses Finish. The owner page offers only Finish and Cancel: Finish
+  runs close, apply, preview and apply in one call, then sets the
   session `APPLIED` (garments still `SKIPPED` go to the owner list). Zero remaining patches is a valid apply (skip the write call). If a `plan_state`
   save fails after a successful write, re-running apply finds those garments done and only saves
   their state.

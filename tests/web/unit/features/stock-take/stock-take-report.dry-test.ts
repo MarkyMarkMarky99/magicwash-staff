@@ -36,13 +36,11 @@ assert.equal(conflictAction({ orderId: 'ORD-1', tag: 'AB12cd34', code: 'multiple
 assert.equal(conflictAction({ orderId: 'ORD-1', tag: 'AB12cd34', code: 'multiple_tasks', ticketIds: [] }), null)
 assert.equal(conflictAction({ orderId: null, tag: 'AB12cd34', code: 'multiple_zones', ticketIds: [] }), null)
 
-assert.deepEqual(sessionActions(null, false, false), { canClose: false, canCancel: false, canResolve: false, canPreview: false, canApply: false, canFinish: false })
-assert.deepEqual(sessionActions(session('OPEN'), false, false), { canClose: true, canCancel: true, canResolve: false, canPreview: false, canApply: false, canFinish: false })
-assert.deepEqual(sessionActions(session('CLOSED'), false, false), { canClose: false, canCancel: true, canResolve: true, canPreview: true, canApply: false, canFinish: true })
-assert.deepEqual(sessionActions(session('CLOSED'), true, false), { canClose: false, canCancel: true, canResolve: true, canPreview: true, canApply: true, canFinish: false })
-assert.equal(sessionActions(session('CLOSED'), false, true).canCancel, false)
-assert.equal(sessionActions(session('APPLIED'), false, false).canFinish, false)
-assert.equal(sessionActions(session('CANCELLED'), false, false).canCancel, false)
+assert.deepEqual(sessionActions(null), { canCancel: false, canResolve: false, canFinish: false })
+assert.deepEqual(sessionActions(session('OPEN')), { canCancel: true, canResolve: false, canFinish: true })
+assert.deepEqual(sessionActions(session('CLOSED')), { canCancel: true, canResolve: true, canFinish: true })
+assert.deepEqual(sessionActions(session('APPLIED')), { canCancel: false, canResolve: false, canFinish: false })
+assert.equal(sessionActions(session('CANCELLED')).canCancel, false)
 
 const planned: StockTakePreview['planned'] = [
   { orderId: 'ORD-1', tag: 'AB12cd34', ticketCount: 3, changeCount: 2 },

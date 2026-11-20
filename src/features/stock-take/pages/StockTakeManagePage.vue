@@ -7,15 +7,15 @@ import ListContainer from '@/shared/components/ListContainer.vue'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import ConfirmOverlay from '@/shared/layouts/ConfirmOverlay.vue'
 import { useStockTakeStore } from '@/data/stock-takes/stock-take.store'
-import type { StockTakeApply, StockTakePreview, StockTakeResolution } from '@/data/stock-takes/stock-take.service'
+import type { StockTakeResolution } from '@/data/stock-takes/stock-take.service'
 import { formatSheetDateTime } from '@/shared/utils/sheet-date'
 import MissingGarmentCard from '../components/MissingGarmentCard.vue'
 import {
-  accountedSummary, canConfirmGap, codeLabel, conflictAction, errorText, linkConfirmation, planTotals, sessionActions, taskPick,
+  accountedSummary, canConfirmGap, codeLabel, conflictAction, errorText, linkConfirmation, sessionActions, taskPick,
   type ReportConflict, type ReportGap,
 } from '../stock-take-report'
 
-type Confirming = 'close' | 'cancel' | null
+type Confirming = 'finish' | 'cancel' | null
 
 const store = useStockTakeStore()
 const busy = ref<string | null>(null)
@@ -23,17 +23,12 @@ const error = ref<string | null>(null)
 const notice = ref<string | null>(null)
 const notes = ref('')
 const confirming = ref<Confirming>(null)
-const planned = ref<StockTakePreview['planned'] | null>(null)
-const applyResult = ref<StockTakeApply | null>(null)
-const ticketsWritten = ref(false)
 const expandedOrders = ref(new Set<string>())
 
 const session = computed(() => store.active ?? (store.report?.session ?? null))
 const report = computed(() => store.report && (!store.active || store.report.session.id === store.active.id) ? store.report : null)
-const planPending = computed(() => (planned.value?.length ?? 0) > 0)
-const actions = computed(() => sessionActions(session.value, planPending.value, ticketsWritten.value))
+const actions = computed(() => sessionActions(session.value))
 const summary = computed(() => report.value ? accountedSummary(report.value) : null)
-const totals = computed(() => planned.value ? planTotals(planned.value) : null)
 const statusTone = computed(() => {
   const status = session.value?.status
   return status === 'OPEN' ? 'success' : status === 'CLOSED' ? 'warning' : status === 'APPLIED' ? 'brand' : 'neutral'
@@ -65,11 +60,6 @@ async function run(name: string, task: () => Promise<void>): Promise<void> {
   }
 }
 
-function resetPlan(): void {
-  planned.value = null
-  applyResult.value = null
-}
-
 function load(): Promise<void> {
   return run('load', async () => { await store.refreshActive() })
 }
@@ -85,8 +75,6 @@ function open(): Promise<void> {
     const value = notes.value.trim()
     await store.open(value ? { notes: value } : {})
     notes.value = ''
-    resetPlan()
-    ticketsWritten.value = false
     notice.value = 'Stock-take opened. Staff can start counting'
   })
 }
@@ -97,12 +85,11 @@ function confirmed(): Promise<void> {
   confirming.value = null
   if (!id || !action) return Promise.resolve()
   return run(action, async () => {
-    if (action === 'close') {
-      await store.close(id)
-      notice.value = 'Counting closed. Review the report'
+    if (action === 'finish') {
+      await store.finish(id)
+      notice.value = 'Stock-take finished. Job tickets now match the scans'
     } else {
       await store.cancel(id)
-      resetPlan()
       notice.value = 'Stock-take cancelled'
     }
   })
@@ -113,42 +100,8 @@ function resolve(resolutions: StockTakeResolution[]): Promise<void> {
   if (!id) return Promise.resolve()
   return run('resolve', async () => {
     const result = await store.resolve(id, resolutions)
-    resetPlan()
     await store.refreshReport(id)
-    notice.value = `Recorded ${result.recorded} resolution${result.recorded === 1 ? '' : 's'}. Preview again before applying`
-  })
-}
-
-function preview(): Promise<void> {
-  const id = session.value?.id
-  if (!id) return Promise.resolve()
-  return run('preview', async () => {
-    const result = await store.preview(id)
-    planned.value = result.planned
-    applyResult.value = null
-    notice.value = result.planned.length ? 'Plan saved. Check it, then apply' : 'Nothing to apply'
-  })
-}
-
-function apply(): Promise<void> {
-  const id = session.value?.id
-  if (!id) return Promise.resolve()
-  return run('apply', async () => {
-    const result = await store.apply(id)
-    applyResult.value = result
-    planned.value = null
-    if (result.applied.length) ticketsWritten.value = true
-    await store.refreshReport(id)
-  })
-}
-
-function finish(): Promise<void> {
-  const id = session.value?.id
-  if (!id) return Promise.resolve()
-  return run('finish', async () => {
-    await store.finish(id)
-    resetPlan()
-    notice.value = 'Stock-take finished'
+    notice.value = `Recorded ${result.recorded} resolution${result.recorded === 1 ? '' : 's'}`
   })
 }
 
@@ -179,7 +132,7 @@ onActivated(() => { void load() })
       <div class="px-4 pb-2 pt-4">
         <div class="min-w-0 border-l-4 border-lime pl-2">
           <h2 class="font-headline text-xl font-bold leading-tight text-primary">Manage stock-take</h2>
-          <span class="mt-0.5 block font-label text-[10px] font-extrabold uppercase tracking-[0.08em] text-on-surface-variant">Open, review and apply corrections</span>
+          <span class="mt-0.5 block font-label text-[10px] font-extrabold uppercase tracking-[0.08em] text-on-surface-variant">Open, scan, then finish</span>
         </div>
       </div>
 
@@ -198,9 +151,8 @@ onActivated(() => { void load() })
             <p v-if="session.appliedAt" class="font-label text-xs text-on-surface-variant">Ended {{ formatSheetDateTime(session.appliedAt) }} by {{ session.appliedBy }}</p>
             <p v-if="session.notes" class="font-body text-sm text-on-surface">{{ session.notes }}</p>
             <div class="flex flex-wrap gap-2">
-              <button type="button" class="rounded-full bg-primary px-4 py-2 font-label text-sm text-on-primary focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-40" :disabled="!actions.canClose || busy !== null" @click="confirming = 'close'">Close count</button>
+              <button type="button" class="rounded-full bg-primary px-4 py-2 font-label text-sm text-on-primary focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-40" :disabled="!actions.canFinish || busy !== null" @click="confirming = 'finish'">Finish</button>
               <button type="button" class="rounded-full border border-outline-variant px-4 py-2 font-label text-sm text-on-surface focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-40" :disabled="!actions.canCancel || busy !== null" @click="confirming = 'cancel'">Cancel</button>
-              <button type="button" class="rounded-full bg-primary px-4 py-2 font-label text-sm text-on-primary focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-40" :disabled="!actions.canFinish || busy !== null" @click="finish">Finish</button>
             </div>
           </template>
           <template v-else>
@@ -210,34 +162,14 @@ onActivated(() => { void load() })
           </template>
         </section>
 
-        <InlineNotice v-if="session?.status === 'OPEN'" tone="info" icon="info">Staff are counting. Job tickets, bags and garments are frozen until this ends. Close the count when everything is scanned.</InlineNotice>
-        <InlineNotice v-else-if="session?.status === 'CLOSED'" tone="warning" icon="lock">Counting is closed. Job tickets, bags and garments stay frozen until you finish or cancel.</InlineNotice>
+        <InlineNotice v-if="session?.status === 'OPEN'" tone="info" icon="info">Staff are counting. Job tickets, bags and garments are frozen until this ends. Press Finish when everything is scanned.</InlineNotice>
+        <InlineNotice v-else-if="session?.status === 'CLOSED'" tone="warning" icon="lock">Counting is closed. Press Finish to update job tickets, or Cancel.</InlineNotice>
 
         <div v-if="session" class="flex flex-wrap items-center gap-2">
           <button type="button" class="rounded-full border border-outline-variant px-4 py-2 font-label text-sm text-on-surface focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-40" :disabled="busy !== null" @click="loadReport">{{ report ? 'Refresh report' : 'Load report' }}</button>
-          <button type="button" class="rounded-full border border-outline-variant px-4 py-2 font-label text-sm text-on-surface focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-40" :disabled="!actions.canPreview || busy !== null" @click="preview">Preview corrections</button>
-          <button type="button" class="rounded-full bg-primary px-4 py-2 font-label text-sm text-on-primary focus-visible:outline-2 focus-visible:outline-lime disabled:opacity-40" :disabled="!actions.canApply || busy !== null" @click="apply">Apply</button>
           <span v-if="busy" class="font-label text-xs text-on-surface-variant" role="status">Working…</span>
         </div>
 
-        <section v-if="totals && planned" class="flex flex-col gap-2 rounded-2xl border border-outline-variant/30 bg-white p-4" aria-label="Planned corrections">
-          <h3 class="font-headline text-sm font-bold text-primary">Planned corrections</h3>
-          <p class="font-body text-sm text-on-surface">{{ totals.garments }} garments · {{ totals.tickets }} tickets · {{ totals.changes }} changes</p>
-          <ul class="flex flex-col divide-y divide-outline-variant/10">
-            <li v-for="entry in planned" :key="entry.orderId + entry.tag" class="flex items-center justify-between gap-2 py-1.5 font-label text-xs">
-              <span class="min-w-0 truncate">{{ entry.orderId }} · {{ entry.tag }}</span>
-              <span class="flex-none text-on-surface-variant">{{ entry.ticketCount }} tickets · {{ entry.changeCount }} changes</span>
-            </li>
-          </ul>
-        </section>
-
-        <section v-if="applyResult" class="flex flex-col gap-2 rounded-2xl border border-outline-variant/30 bg-white p-4" aria-label="Apply result">
-          <h3 class="font-headline text-sm font-bold text-primary">Apply result</h3>
-          <p class="font-body text-sm text-on-surface">{{ applyResult.applied.length }} applied · {{ applyResult.skipped.length }} skipped</p>
-          <ul v-if="applyResult.skipped.length" class="flex flex-col divide-y divide-outline-variant/10">
-            <li v-for="entry in applyResult.skipped" :key="entry.orderId + entry.tag" class="py-1.5 font-label text-xs">Skipped: {{ entry.orderId }} · {{ entry.tag }}</li>
-          </ul>
-        </section>
       </div>
 
       <template v-if="report">
@@ -312,10 +244,10 @@ onActivated(() => { void load() })
 
     <ConfirmOverlay
       :open="confirming !== null"
-      :title="confirming === 'close' ? 'Close the count?' : 'Cancel the stock-take?'"
-      :description="confirming === 'close' ? 'Staff can no longer scan. You then review the report and apply corrections.' : 'The count is abandoned and no ticket is changed. Job tickets, bags and garments unfreeze.'"
-      :cancel-label="confirming === 'close' ? 'Keep counting' : 'Keep stock-take'"
-      :confirm-label="confirming === 'close' ? 'Close count' : 'Cancel stock-take'"
+      :title="confirming === 'finish' ? 'Finish the stock-take?' : 'Cancel the stock-take?'"
+      :description="confirming === 'finish' ? 'Scanning stops and the job tickets of every scanned garment move to where it was found. Garments not scanned stay as they are.' : 'The count is abandoned and no ticket is changed. Job tickets, bags and garments unfreeze.'"
+      :cancel-label="confirming === 'finish' ? 'Keep counting' : 'Keep stock-take'"
+      :confirm-label="confirming === 'finish' ? 'Finish' : 'Cancel stock-take'"
       @close="confirming = null"
       @confirm="confirmed"
     />
