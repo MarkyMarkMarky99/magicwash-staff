@@ -77,6 +77,19 @@ and the initiating admin's `staffId` when present. Department-agent closures use
 
 `/agents/personal-assignments` (`personal-assignments`, admin only; guarded like the target route and redirected to the list for a non-admin) lists work admins assigned through assistants. The list calls `GET /agents/personal/assignments?status=open|all` through `usePersonalAssignmentsStore`; the filter lives in the route query (`?status=all`, absent means Open). Each card shows the assignee, a status badge (Open, Done, Cancelled), an Overdue badge for an open assignment past `dueAt`, a failed-deliveries badge when `failedDeliveries > 0`, the detail, the due time (Bangkok display, prefixed with `Order <orderId>` when the assignment has an order) and who created it (for `createdBy.kind === 'agent'` the agent's catalog name, e.g. น้องซักผ้า, instead of an admin name). The card is the shared `AssignmentCard`. `GET /agents/personal/assignments` also takes `staffId` (admins may pass any id; a staff caller must omit it and gets only their own); the staff profile uses `status=open&staffId=<id>` for its Open assignments section (see `docs/features/staff/profile.md`) through `useStaffOpenAssignmentsStore`, and `listPersonalAssignments` / `fetchPersonalAssignments` take an optional `staffId`. Open cards have a Cancel button; it opens a confirm overlay, then `POST /agents/personal/assignments/:id/cancel` replaces the row with the returned assignment. The list supports pull-to-refresh. Response fields are parsed leniently (optional fields are nullish).
 
+## Push notifications
+
+Admins and staff can turn on phone notifications above the agent list. On iOS and iPadOS, open
+the app from the Home Screen first. If permission is blocked, change it in the phone's settings.
+Device accounts never subscribe.
+
+MagicwashAI sends team replies to every subscribed admin or staff member who can see that agent.
+Personal replies go only to the assistant's owner. The notification body is generic. Tapping a
+notification opens the chat. Sign-in refreshes any existing subscription for the current account.
+Sign-out unsubscribes the browser and closes displayed notifications.
+
 ## Verification
+
+Run the push workflow with `npx tsx --tsconfig jsconfig.json --experimental-test-module-mocks tests/web/unit/data/team-agent/push-notifications.dry-test.ts`.
 
 Run the chat wrapper test with `npx tsx tests/shared/ai-gateway/chat.dry-test.ts`. Run the Pinia workflow test with `npx tsx --tsconfig jsconfig.json --experimental-test-module-mocks tests/web/unit/features/agents/stores/agent-chat.store.dry-test.ts` (Node 22 module mocking isolates gateway configuration). Run the team-agent endpoint wrapper test with `npx tsx tests/shared/ai-gateway/team-agent.dry-test.ts`, its store test with `npx tsx --tsconfig jsconfig.json --experimental-test-module-mocks tests/web/unit/data/team-agent/team-agent.store.dry-test.ts`, and the catalog role test with `npx tsx --tsconfig jsconfig.json tests/web/unit/features/agents/agents.dry-test.ts`, and the bubble helpers test with `npx tsx tests/web/unit/features/agents/agent-bubble.dry-test.ts`. The service-key allowlist (including `GET /api/work-transactions` for the AI service key) is covered by `npx tsx tests/server/unit/api/staff-auth-gateway.dry-test.ts`. All use fake fetch responses and make no live service calls.

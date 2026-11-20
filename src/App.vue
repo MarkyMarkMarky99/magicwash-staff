@@ -204,7 +204,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
     <div v-if="garmentScanNotice" class="app-column fixed inset-x-0 bottom-4 z-[100] px-4">
       <InlineNotice tone="error" dismissible @dismiss="garmentScanNotice = null">{{ garmentScanNotice }}</InlineNotice>
     </div>
-    <NavSidebar v-if="!isPublicRoute" :open="drawerOpen" />
+    <NavSidebar v-if="!isPublicRoute" :open="drawerOpen" @sign-out="authStore.signOut()" />
 
     <div
       ref="appShell"

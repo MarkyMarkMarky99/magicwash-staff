@@ -6,7 +6,8 @@ loads once and keeps for every page. Owner of this behavior: `src/main.js`, `src
 
 ## Order of events
 
-1. `src/main.js` creates the app with Pinia and the router and mounts `App.vue`.
+1. `src/main.js` starts service worker registration in browsers that support push, then creates
+   the app with Pinia and the router and mounts `App.vue` without waiting for the worker.
 2. `App.vue` sets up, before mounting:
    - the staff-card gun listener, active only on the shared device account
      ([shared-device flow](../../features/staff/shared-device.md));
@@ -18,6 +19,8 @@ loads once and keeps for every page. Owner of this behavior: `src/main.js`, `src
 4. `authStore.ready()` starts the Firebase sign-in listener once. For a signed-in Firebase user it
    calls `GET /api/auth/me`. The status becomes `signedIn` (or `pending` / `unregistered` on a 403)
    and the ready promise resolves.
+   For an admin or staff session, the auth store also syncs an existing push subscription in
+   the background once per sign-in. See [Agent chat](../../features/agents/agent-chat.md#push-notifications).
 5. `App.vue` `onMounted`, after `router.isReady()` and only on non-public routes:
    - starts loading the document-scanner model in the background (`preloadDocumentScanner`);
    - waits for the first `signedIn` status, then starts the preloads below once.

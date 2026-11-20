@@ -2,7 +2,7 @@
 import { inject, onScopeDispose, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { invalidate } from '@/shared/api/response-cache'
-import { onUserChanged, signOutUser } from '@/shared/api/firebase-auth'
+import { onUserChanged } from '@/shared/api/firebase-auth'
 import { useNavDrawer } from '@/shared/composables/use-nav-drawer'
 import { staffSignedInKey } from '@/shared/staff-session'
 import { agentsUnreadKey } from '@/shared/agents-unread'
@@ -10,6 +10,7 @@ import { agentsUnreadKey } from '@/shared/agents-unread'
 defineProps({
   open: Boolean
 })
+const emit = defineEmits(['sign-out'])
 const { close } = useNavDrawer()
 
 const router = useRouter()
@@ -32,7 +33,7 @@ function refresh() {
 
 function logout() {
   close()
-  void signOutUser()
+  emit('sign-out')
 }
 </script>
 

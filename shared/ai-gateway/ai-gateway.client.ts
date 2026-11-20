@@ -88,11 +88,12 @@ export async function callAiTask({
 }
 
 export async function callAiGatewayEndpoint({
-  baseUrl, method, path, getToken, signal, timeoutMs = 20000, fetchImpl = fetch,
+  baseUrl, method, path, body, getToken, signal, timeoutMs = 20000, fetchImpl = fetch,
 }: {
   baseUrl: string
   method: 'GET' | 'POST'
   path: string
+  body?: object
   getToken: () => Promise<string | null>
   signal?: AbortSignal
   timeoutMs?: number
@@ -105,7 +106,10 @@ export async function callAiGatewayEndpoint({
       if (combinedSignal.aborted) throw new AiGatewayError('ABORTED', 'AI request cancelled')
       const headers: Record<string, string> = {}
       if (token !== null) headers.Authorization = `Bearer ${token}`
-      const response = await fetchImpl(`${baseUrl.trim().replace(/\/+$/, '')}${path}`, { method, headers, signal: combinedSignal })
+      if (body !== undefined) headers['Content-Type'] = 'application/json'
+      const response = await fetchImpl(`${baseUrl.trim().replace(/\/+$/, '')}${path}`, {
+        method, headers, signal: combinedSignal, ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      })
       const data = await readGatewayJson(response)
       if (!response.ok) throw new AiGatewayError('INVALID_RESPONSE', 'AI gateway returned an invalid response', response.status)
       const success = aiGatewaySuccessSchema.safeParse(data)

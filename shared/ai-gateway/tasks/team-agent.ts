@@ -59,6 +59,8 @@ const remindersSchema = z.object({ reminders: z.array(reminderSchema) })
 const cancelledReminderSchema = z.object({ reminder: reminderSchema })
 const assignmentsSchema = z.object({ assignments: z.array(assignmentSchema) })
 const cancelledAssignmentSchema = z.object({ assignment: assignmentSchema })
+const pushKeySchema = z.object({ publicKey: z.string().regex(/^[A-Za-z0-9_-]+={0,2}$/) })
+const emptyResultSchema = z.object({}).strict()
 const notesSchema = z.object({
   files: z.array(z.object({ name: z.string(), content: z.string(), updatedAt: z.string().nullish() })),
 })
@@ -85,7 +87,8 @@ export interface TeamAgentAccess {
   fetchImpl?: typeof fetch
 }
 
-export type PersonalAssignmentsAccess = Omit<TeamAgentAccess, 'agentId' | 'staffId' | 'staffName'>
+export type TeamAgentGatewayAccess = Omit<TeamAgentAccess, 'agentId' | 'staffId' | 'staffName'>
+export type PersonalAssignmentsAccess = TeamAgentGatewayAccess
 
 function agentPath(access: TeamAgentAccess, suffix: string, query: URLSearchParams = new URLSearchParams()): string {
   if (access.staffId) query.set('staffId', access.staffId)
@@ -95,9 +98,10 @@ function agentPath(access: TeamAgentAccess, suffix: string, query: URLSearchPara
 }
 
 async function readEndpoint<T extends z.ZodType>(
-  access: TeamAgentAccess, method: 'GET' | 'POST', path: string, schema: T,
+  access: TeamAgentGatewayAccess, method: 'GET' | 'POST', path: string, schema: T, body?: object,
+  timeoutMs?: number,
 ): Promise<z.infer<T>> {
-  const data = await callAiGatewayEndpoint({ ...access, method, path })
+  const data = await callAiGatewayEndpoint({ ...access, method, path, body, timeoutMs })
   const parsed = schema.safeParse(data)
   if (!parsed.success) throw new AiGatewayError('INVALID_RESPONSE', 'AI gateway returned an invalid agent reply')
   return parsed.data
@@ -156,12 +160,28 @@ export async function listPersonalAssignments(
   const query = new URLSearchParams({ status })
   if (staffId) query.set('staffId', staffId)
   const path = `/agents/personal/assignments?${query}`
-  return (await readEndpoint({ ...access, agentId: 'personal' }, 'GET', path, assignmentsSchema)).assignments
+  return (await readEndpoint(access, 'GET', path, assignmentsSchema)).assignments
 }
 
 export async function cancelPersonalAssignment(
   { id, ...access }: PersonalAssignmentsAccess & { id: string },
 ): Promise<TeamAgentAssignment> {
   const path = `/agents/personal/assignments/${encodeURIComponent(id)}/cancel`
-  return (await readEndpoint({ ...access, agentId: 'personal' }, 'POST', path, cancelledAssignmentSchema)).assignment
+  return (await readEndpoint(access, 'POST', path, cancelledAssignmentSchema)).assignment
+}
+
+export async function getTeamAgentPushKey(access: TeamAgentGatewayAccess): Promise<string> {
+  return (await readEndpoint(access, 'GET', '/agents/push/key', pushKeySchema)).publicKey
+}
+
+export async function subscribeTeamAgentPush(
+  { subscription, ...access }: TeamAgentGatewayAccess & { subscription: object },
+): Promise<void> {
+  await readEndpoint(access, 'POST', '/agents/push/subscribe', emptyResultSchema, { subscription })
+}
+
+export async function unsubscribeTeamAgentPush(
+  { endpoint, ...access }: TeamAgentGatewayAccess & { endpoint: string },
+): Promise<void> {
+  await readEndpoint(access, 'POST', '/agents/push/unsubscribe', emptyResultSchema, { endpoint }, 3000)
 }

@@ -5,12 +5,15 @@ import {
   getTeamAgentHistory,
   getTeamAgentImage,
   getTeamAgentNotes,
+  getTeamAgentPushKey,
   listPersonalAssignments,
   listTeamAgentReminders,
   sendTeamAgentMessage,
-  type PersonalAssignmentsAccess,
+  subscribeTeamAgentPush,
+  unsubscribeTeamAgentPush,
   type TeamAgentAccess,
   type TeamAgentAssignmentStatus,
+  type TeamAgentGatewayAccess,
   type TeamAgentId,
 } from '@shared/ai-gateway/tasks/team-agent'
 import { aiGatewayBaseUrl, aiGatewayToken } from '@/shared/ai-gateway/ai-gateway.config'
@@ -44,7 +47,7 @@ function access(agentId: TeamAgentId, staffId?: string): TeamAgentAccess {
   return { agentId, baseUrl: gatewayBaseUrl(), getToken: aiGatewayToken, ...(staffId ? { staffId } : {}), ...(staffName ? { staffName } : {}) }
 }
 
-function assignmentsAccess(): PersonalAssignmentsAccess {
+function gatewayAccess(): TeamAgentGatewayAccess {
   return { baseUrl: gatewayBaseUrl(), getToken: aiGatewayToken }
 }
 
@@ -74,9 +77,21 @@ export function fetchNotes(agentId: TeamAgentId, staffId?: string) {
 
 /** `staffId` filters to one assignee and is admin-only; a staff viewer omits it and gets their own. */
 export function fetchPersonalAssignments(status: TeamAgentAssignmentStatus, staffId?: string) {
-  return listPersonalAssignments({ ...assignmentsAccess(), status, ...(staffId ? { staffId } : {}) })
+  return listPersonalAssignments({ ...gatewayAccess(), status, ...(staffId ? { staffId } : {}) })
 }
 
 export function cancelAssignment(id: string) {
-  return cancelPersonalAssignment({ ...assignmentsAccess(), id })
+  return cancelPersonalAssignment({ ...gatewayAccess(), id })
+}
+
+export function fetchPushKey(signal?: AbortSignal) {
+  return getTeamAgentPushKey({ ...gatewayAccess(), signal })
+}
+
+export function subscribePush(subscription: PushSubscriptionJSON, signal?: AbortSignal) {
+  return subscribeTeamAgentPush({ ...gatewayAccess(), subscription, signal })
+}
+
+export function unsubscribePush(endpoint: string) {
+  return unsubscribeTeamAgentPush({ ...gatewayAccess(), endpoint })
 }

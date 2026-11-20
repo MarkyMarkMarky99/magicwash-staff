@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, inject, ref } from 'vue'
+import { computed, inject, onActivated, onDeactivated, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/data/auth/auth.store'
+import { enablePush, hasActivePushSubscription, needsHomeScreen, pushSupported } from '@/data/team-agent/push-notifications'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import AgentRow from '../components/AgentRow.vue'
 import { AGENTS, agentVisibleToRole } from '../agents'
@@ -13,6 +14,46 @@ const router = useRouter()
 const { role, isAdmin } = storeToRefs(useAuthStore())
 const unreadByAgent = inject(agentsUnreadByAgentKey, ref<Record<string, number>>({}))
 const visibleAgents = computed(() => AGENTS.filter(agent => agentVisibleToRole(agent, role.value)))
+const supported = pushSupported()
+const homeScreenRequired = needsHomeScreen()
+const permission = ref<NotificationPermission>(supported ? Notification.permission : 'default')
+const subscribed = ref<boolean>()
+const enabling = ref(false)
+const enableFailed = ref(false)
+const showPushRow = computed(() => (role.value === 'admin' || role.value === 'staff')
+  && (homeScreenRequired || supported)
+  && (homeScreenRequired || permission.value !== 'granted' || subscribed.value === false || enabling.value))
+
+async function refreshPushStatus(): Promise<void> {
+  if (!supported || homeScreenRequired || enabling.value) return
+  permission.value = Notification.permission
+  const active = await hasActivePushSubscription().catch(() => false)
+  if (!enabling.value) subscribed.value = active
+}
+
+onActivated(() => {
+  window.addEventListener('focus', refreshPushStatus)
+  void refreshPushStatus()
+})
+onDeactivated(() => {
+  window.removeEventListener('focus', refreshPushStatus)
+})
+
+async function turnOnNotifications(): Promise<void> {
+  if (!showPushRow.value || !supported || homeScreenRequired || enabling.value || permission.value === 'denied') return
+  enabling.value = true
+  enableFailed.value = false
+  try {
+    permission.value = await enablePush()
+    subscribed.value = permission.value === 'granted'
+  } catch {
+    permission.value = Notification.permission
+    subscribed.value = false
+    enableFailed.value = true
+  } finally {
+    enabling.value = false
+  }
+}
 
 function openAgent(agentId: AgentId): void {
   void router.push({ name: isTeamAgentId(agentId) ? 'team-agent-chat' : 'agent-chat', params: { agentId } })
@@ -27,6 +68,17 @@ function openAgent(agentId: AgentId): void {
           <h2 class="font-headline text-xl font-bold leading-tight text-primary">Agents</h2>
           <span class="mt-0.5 block font-label text-[10px] font-extrabold uppercase tracking-[0.08em] text-on-surface-variant">Chat with AI helpers</span>
         </div>
+      </div>
+      <div v-if="showPushRow" class="mx-3 mb-2.5 flex flex-wrap items-center gap-2 font-body text-sm text-on-surface-variant">
+        <p v-if="homeScreenRequired">To get notifications, add this app to your Home Screen first</p>
+        <p v-else-if="permission === 'denied'">Notifications are blocked in this phone's settings</p>
+        <template v-else>
+          <button type="button" class="inline-flex h-9 items-center gap-2 rounded-full border-[1.5px] border-outline-variant bg-white px-4 font-body text-[13px] font-extrabold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime active:bg-surface-container disabled:opacity-50" :disabled="enabling" @click="turnOnNotifications">
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">notifications</span>
+            Turn on notifications
+          </button>
+          <p v-if="enableFailed" role="alert" class="text-error">Couldn’t turn on notifications. Try again.</p>
+        </template>
       </div>
       <ul class="grid gap-2.5 px-3">
         <li v-for="agent in visibleAgents" :key="agent.id">

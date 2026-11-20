@@ -1,4 +1,5 @@
 import { useOperatorStore } from '@/data/operator/operator.store'
+import { disablePushForSignOut, syncPush } from '@/data/team-agent/push-notifications'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import type { User } from 'firebase/auth'
@@ -37,6 +38,7 @@ export const useAuthStore = defineStore('auth', () => {
   let started = false
   let sequence = 0
   let currentUser: User | null = null
+  let pushSession: { key: string, controller: AbortController } | undefined
   let resolveReady: () => void = () => undefined
   const readyPromise = new Promise<void>((resolve) => {
     resolveReady = resolve
@@ -49,6 +51,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function applyUser(user: User | null): Promise<void> {
     const id = ++sequence
+    if (currentUser?.uid !== user?.uid) {
+      pushSession?.controller.abort()
+      pushSession = undefined
+    }
     currentUser = user
     if (user === null) {
       operatorStore.clear()
@@ -71,6 +77,17 @@ export const useAuthStore = defineStore('auth', () => {
       error.value = null
       status.value = 'signedIn'
       resolveReady()
+      const pushKey = session.role === 'admin' || session.role === 'staff'
+        ? `${session.staffId}:${session.role}` : undefined
+      if (pushKey !== pushSession?.key) {
+        pushSession?.controller.abort()
+        pushSession = undefined
+        if (pushKey) {
+          const controller = new AbortController()
+          pushSession = { key: pushKey, controller }
+          void syncPush(controller.signal)
+        }
+      }
     } catch (reason) {
       if (id !== sequence) return
       if (reason instanceof ApiError && reason.status === 403) {
@@ -159,6 +176,8 @@ export const useAuthStore = defineStore('auth', () => {
   async function signOut(): Promise<void> {
     operatorStore.clear()
     error.value = null
+    pushSession?.controller.abort()
+    if (pushSession || role.value === 'admin' || role.value === 'staff') await disablePushForSignOut()
     await signOutUser()
   }
 

@@ -3,5 +3,7 @@ import { createPinia } from 'pinia'
 import './style.css'
 import App from './App.vue'
 import router from './router'
+import { registerServiceWorker } from '@/data/team-agent/push-notifications'
 
+registerServiceWorker()
 createApp(App).use(createPinia()).use(router).mount('#app')
