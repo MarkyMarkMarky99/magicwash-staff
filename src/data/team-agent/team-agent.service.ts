@@ -8,6 +8,7 @@ import {
   getTeamAgentPushKey,
   listPersonalAssignments,
   listTeamAgentReminders,
+  markTeamAgentRead,
   sendTeamAgentMessage,
   subscribeTeamAgentPush,
   unsubscribeTeamAgentPush,
@@ -61,6 +62,10 @@ export function fetchImage(agentId: TeamAgentId, staffId: string | undefined, id
 
 export function fetchHistory(agentId: TeamAgentId, staffId: string | undefined, options: { after?: string, before?: string, limit?: number }) {
   return getTeamAgentHistory({ ...access(agentId, staffId), ...options })
+}
+
+export async function markRead(agentId: TeamAgentId, staffId: string | undefined, eventId: string) {
+  return markTeamAgentRead({ ...access(agentId, staffId), eventId })
 }
 
 export function fetchReminders(agentId: TeamAgentId, staffId?: string) {

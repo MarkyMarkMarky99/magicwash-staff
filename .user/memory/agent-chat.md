@@ -13,4 +13,5 @@ Canonical doc: `docs/features/agents/agent-chat.md`.
 - Staff profile uses shared report components (src/shared/components/reports) + open assignments, live 2026-11-18; staff-viewer case not browser-tested.
 - Department agents assign work to their own staff: live 2026-11-18 (`docs/plans/department-staff-assignments.md`); owner must set each employee's Departments.
 - น้องนัดหมาย closes orders (and all leftover tickets) once staff confirm delivery; asks at 20:00; staff can open its chat; not yet tried in a real chat.
-- Push notifications for agent replies live 2026-11-20 (Agents page button, MagicwashAI sends); not yet received on a real phone.
+- Push notifications for agent replies live 2026-11-20; delivery confirmed on the owner's phone and PC.
+- Unread read position is stored per staff member in MagicwashAI (2026-11-20); badges follow the person across devices.

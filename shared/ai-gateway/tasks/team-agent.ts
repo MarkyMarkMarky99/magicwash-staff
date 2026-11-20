@@ -54,7 +54,8 @@ const assignmentSchema = z.object({
 })
 
 const acceptedSchema = z.object({ accepted: z.literal(true), turnId: z.coerce.string(), eventId: z.coerce.string() })
-const historySchema = z.object({ events: z.array(eventSchema), busy: z.boolean() })
+const readSchema = z.object({ readId: z.string().nullable() })
+const historySchema = z.object({ events: z.array(eventSchema), busy: z.boolean(), readId: readSchema.shape.readId.optional() })
 const remindersSchema = z.object({ reminders: z.array(reminderSchema) })
 const cancelledReminderSchema = z.object({ reminder: reminderSchema })
 const assignmentsSchema = z.object({ assignments: z.array(assignmentSchema) })
@@ -137,6 +138,10 @@ export async function getTeamAgentHistory(
   if (before !== undefined) query.set('before', before)
   if (limit !== undefined) query.set('limit', String(Math.min(Math.max(Math.trunc(limit), 1), HISTORY_MAX_LIMIT)))
   return readEndpoint(access, 'GET', agentPath(access, 'history', query), historySchema)
+}
+
+export function markTeamAgentRead({ eventId, ...access }: TeamAgentAccess & { eventId: string }) {
+  return readEndpoint(access, 'POST', agentPath(access, 'read'), readSchema, { eventId })
 }
 
 export async function listTeamAgentReminders(access: TeamAgentAccess): Promise<TeamAgentReminder[]> {

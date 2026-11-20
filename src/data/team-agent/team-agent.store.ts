@@ -6,6 +6,7 @@ import {
   fetchImage,
   fetchNotes,
   fetchReminders,
+  markRead,
   sendMessage,
   type TeamAgentEvent,
   type TeamAgentId,
@@ -128,6 +129,12 @@ function defineTeamAgentStore(agentId: TeamAgentId, target: string | undefined) 
     let latestId: string | null = null
     let viewer: string | null = null
     let lastSeenId: string | null = readLastSeen(agentId, target, viewer)
+    let migrationId = lastSeenId
+    let confirmedReadId: string | null = null
+    let readVersion = 0
+    const readWrites = new Set<string>()
+    let unreadCursor: string | null = null
+    const unreadAttempts = new Set<string>()
     let generation = 0
     let baselineEmpty = false
     let tail: Promise<void> = Promise.resolve()
@@ -140,29 +147,89 @@ function defineTeamAgentStore(agentId: TeamAgentId, target: string | undefined) 
       return next
     }
 
-    function markSeen(): void {
+    function clearUnread(): void {
       unreadCount.value = 0
       latestUnreadAi.value = null
-      if (latestId === null || latestId === lastSeenId) return
-      lastSeenId = latestId
-      writeLastSeen(agentId, target, viewer, latestId)
+      unreadCursor = null
+      unreadAttempts.clear()
     }
 
-    /** Counts events the viewer did not send; an action attempt already followed by its result counts once. */
-    function countUnread(fresh: TeamAgentEvent[], known: Set<string>): void {
+    function postRead(id: string): void {
+      if (target !== undefined || id === confirmedReadId || readWrites.has(id)) return
+      const run = generation
+      readWrites.add(id)
+      void markRead(agentId, target, id).then(({ readId }) => {
+        if (run !== generation || readId === null) return
+        readVersion += 1
+        if (lastSeenId === id) confirmedReadId = readId
+      }).catch(() => undefined).finally(() => {
+        if (run === generation) readWrites.delete(id)
+      })
+    }
+
+    function markSeen(): void {
+      clearUnread()
+      if (latestId === null) return
+      if (latestId !== lastSeenId) {
+        lastSeenId = latestId
+        writeLastSeen(agentId, target, viewer, latestId)
+      }
+      migrationId = null
+      postRead(latestId)
+    }
+
+    function countUnread(fresh: TeamAgentEvent[]): void {
       const finished = new Set<string>()
-      for (const id of [...known, ...fresh.map(event => event.id)]) {
-        const key = resultKey(id)
-        if (key !== null) finished.add(key)
+      for (const event of fresh) {
+        const key = resultKey(event.id)
+        if (key === null) continue
+        finished.add(key)
+        if (unreadAttempts.delete(key)) unreadCount.value -= 1
       }
       const counted = fresh.filter((event) => {
         if (event.speaker?.staffId === viewer) return false
         const key = attemptKey(event.id)
-        return key === null || !finished.has(key)
+        if (key === null) return true
+        if (finished.has(key)) return false
+        unreadAttempts.add(key)
+        return true
       })
       unreadCount.value += counted.length
       const latestAi = counted.findLast(event => event.kind === 'agent' || event.kind === 'system')
       if (latestAi) latestUnreadAi.value = latestAi
+      unreadCursor = fresh.at(-1)?.id ?? unreadCursor
+    }
+
+    async function fetchUnread(after: string | null, run: number, firstPage?: TeamAgentEvent[]): Promise<TeamAgentEvent[]> {
+      let page = firstPage ?? (await fetchHistory(agentId, target, { after: after ?? undefined, limit: POLL_LIMIT })).events
+      const unread = [...page]
+      while (run === generation && page.length === POLL_LIMIT) {
+        const cursor = page[page.length - 1]!.id
+        page = (await fetchHistory(agentId, target, { after: cursor, limit: POLL_LIMIT })).events
+        if (page.at(-1)?.id === cursor) break
+        unread.push(...page)
+      }
+      return unread
+    }
+
+    async function reconcileReadId(readId: string | null | undefined, run: number, version: number): Promise<boolean> {
+      // History can contain a snapshot from before a concurrent read write.
+      if (target !== undefined || readId === undefined || version !== readVersion || readWrites.size > 0) return false
+      const previousMigrationId = migrationId
+      migrationId = null
+      if (readId === null) {
+        if (previousMigrationId !== null) postRead(previousMigrationId)
+        return false
+      }
+      confirmedReadId = readId
+      if (readId === lastSeenId) return false
+      const unread = viewing ? [] : await fetchUnread(readId, run)
+      if (run !== generation) return false
+      lastSeenId = readId
+      writeLastSeen(agentId, target, viewer, readId)
+      clearUnread()
+      if (!viewing) countUnread(unread)
+      return true
     }
 
     function removePending(keep: (entry: PendingTeamAgentMessage) => boolean): void {
@@ -214,14 +281,19 @@ function defineTeamAgentStore(agentId: TeamAgentId, target: string | undefined) 
     async function runRefresh(): Promise<void> {
       queuedRefresh = null
       const run = generation
-      const cursor = latestId ?? lastSeenId
+      const version = readVersion
+      const unreadAfter = unreadCursor ?? lastSeenId
+      const cursor = loaded.value ? latestId ?? unreadAfter : unreadAfter
       const baseline = cursor === null && !loaded.value && !baselineEmpty
       try {
         const history = await fetchHistory(agentId, target, baseline ? { limit: 1 } : { after: cursor ?? undefined, limit: POLL_LIMIT })
         if (run !== generation) return
         busy.value = history.busy
         error.value = null
+        const readChanged = await reconcileReadId(history.readId, run, version)
+        if (run !== generation) return
         if (baseline) {
+          if (readChanged) return
           const first = history.events.at(-1)
           if (first) {
             latestId = first.id
@@ -233,15 +305,18 @@ function defineTeamAgentStore(agentId: TeamAgentId, target: string | undefined) 
         }
         const known = new Set(events.value.map(event => event.id))
         const fresh = history.events.filter(event => !known.has(event.id))
-        if (!fresh.length) return
-        latestId = fresh[fresh.length - 1]!.id
-        if (loaded.value) {
+        latestId = fresh.at(-1)?.id ?? latestId
+        if (loaded.value && fresh.length) {
           events.value = [...events.value, ...fresh]
           if (viewing) loadEventImages(fresh)
           dropReconciledPending()
         }
-        if (viewing) markSeen()
-        else countUnread(fresh, known)
+        if (viewing) {
+          if (!readChanged || fresh.length) markSeen()
+        } else if (!readChanged) {
+          const unread = await fetchUnread(unreadAfter, run, cursor === unreadAfter ? history.events : undefined)
+          if (run === generation) countUnread(unread)
+        }
       } catch (reason) {
         if (run === generation) error.value = errorMessage(reason)
       }
@@ -254,6 +329,7 @@ function defineTeamAgentStore(agentId: TeamAgentId, target: string | undefined) 
 
     async function runLoadLatest(): Promise<void> {
       const run = generation
+      const version = readVersion
       loading.value = true
       try {
         const history = await fetchHistory(agentId, target, { limit: CHAT_HISTORY_LIMIT })
@@ -266,7 +342,8 @@ function defineTeamAgentStore(agentId: TeamAgentId, target: string | undefined) 
         error.value = null
         latestId = history.events.at(-1)?.id ?? latestId
         dropReconciledPending()
-        if (viewing) markSeen()
+        await reconcileReadId(history.readId, run, version)
+        if (run === generation && viewing) markSeen()
       } catch (reason) {
         if (run === generation) error.value = errorMessage(reason)
       } finally {
@@ -276,6 +353,7 @@ function defineTeamAgentStore(agentId: TeamAgentId, target: string | undefined) 
 
     async function runLoadOlder(): Promise<void> {
       const run = generation
+      const version = readVersion
       const oldest = events.value[0]?.id
       try {
         if (oldest === undefined) return
@@ -287,6 +365,7 @@ function defineTeamAgentStore(agentId: TeamAgentId, target: string | undefined) 
         hasOlder.value = history.events.length >= CHAT_HISTORY_LIMIT
         if (viewing) loadEventImages(older)
         error.value = null
+        await reconcileReadId(history.readId, run, version)
       } catch (reason) {
         if (run === generation) error.value = errorMessage(reason)
       } finally {
@@ -381,8 +460,7 @@ function defineTeamAgentStore(agentId: TeamAgentId, target: string | undefined) 
       sendError.value = null
       sending.value = false
       removePending(() => false)
-      unreadCount.value = 0
-      latestUnreadAi.value = null
+      clearUnread()
       reminders.value = []
       notes.value = []
       panelLoading.value = false
@@ -390,19 +468,18 @@ function defineTeamAgentStore(agentId: TeamAgentId, target: string | undefined) 
       cancellingId.value = null
       releaseImages()
       latestId = null
+      confirmedReadId = null
+      readWrites.clear()
       baselineEmpty = false
       queuedRefresh = null
     }
 
     function bindViewer(staffId: string | null): void {
       if (staffId === viewer) return
-      if (agentId !== 'personal') {
-        viewer = staffId
-        return
-      }
       reset()
       viewer = staffId
       lastSeenId = readLastSeen(agentId, target, viewer)
+      migrationId = lastSeenId
     }
 
     return {

@@ -25,7 +25,13 @@ const server: { events: FakeEvent[], busy: boolean, posts: string[], failPost: b
 }
 const personalServer: Record<string, FakeEvent[]> = {}
 const personalRequests: URL[] = []
+const personalReadRequests: URL[] = []
 const chatTargets: (string | null)[] = []
+let readId: string | null | undefined
+let failHistory = false
+let failRead = false
+let readResponse: Promise<void> | undefined
+const readPosts: string[] = []
 let counter = 0
 function add(kind: 'staff' | 'agent' | 'action', text: string, extra: Partial<FakeEvent> = {}): FakeEvent {
   counter += 1
@@ -89,15 +95,34 @@ globalThis.fetch = async (input, init) => {
     }
     return Response.json({ events: slice, busy: false })
   }
+  if (url.pathname === '/agents/personal/read') {
+    personalReadRequests.push(url)
+    return Response.json({ readId: null })
+  }
   if (url.pathname === '/agents/washing/history') {
     server.washingHistoryRequests += 1
     return Response.json({ events: [], busy: false })
   }
+  if (url.pathname.endsWith('/read')) {
+    assert.equal(url.pathname, '/agents/appointments/read')
+    assert.equal(init?.method, 'POST')
+    const { eventId } = JSON.parse(init!.body as string)
+    readPosts.push(eventId)
+    if (readId === undefined || failRead) throw new Error('Offline')
+    const index = server.events.findIndex(event => event.id === eventId)
+    if (index === -1) {
+      return Response.json({ ok: false, requestId: null, task: null, error: { code: 'INVALID_INPUT', message: 'Unknown event' } }, { status: 400 })
+    }
+    await readResponse
+    if (index > server.events.findIndex(event => event.id === readId)) readId = eventId
+    return Response.json({ readId })
+  }
   assert.equal(url.pathname, '/agents/appointments/history')
+  if (failHistory) throw new Error('Offline')
   const after = url.searchParams.get('after')
   const limit = Number(url.searchParams.get('limit'))
   const start = after === null ? Math.max(0, server.events.length - limit) : server.events.findIndex(event => event.id === after) + 1
-  return Response.json({ events: server.events.slice(start, start + limit), busy: server.busy })
+  return Response.json({ events: server.events.slice(start, start + limit), busy: server.busy, readId })
 }
 
 const { useTeamAgentStore } = await import('../../../../../src/data/team-agent/team-agent.store.ts')
@@ -277,7 +302,9 @@ try {
   own.bindViewer('S3')
   assert.equal(own.unreadCount, 1, 'binding the same viewer again keeps state')
 
-  // Existing agents ignore viewer binding.
+  assert.ok(personalReadRequests.length > 0, 'the viewer’s own personal chat posts reads')
+  assert.ok(personalReadRequests.every(url => !url.searchParams.has('staffId')), 'admin target reads stay local')
+
   const appointments = useTeamAgentStore('appointments')
   const appointmentsUnread = appointments.unreadCount
   appointments.bindViewer('S9')
@@ -316,6 +343,98 @@ try {
   assert.equal(counting.unreadCount, 1, 'a rebound viewer counts the previous viewer as another staff member')
   counting.reset()
   assert.equal(counting.latestUnreadAi, null)
+
+  const markerKey = 'team-agent-last-seen-event:appointments'
+  const settleRead = () => new Promise(resolve => setTimeout(resolve, 0))
+  server.events = []
+  const oldMarker = add('agent', 'read here').id
+  const newMarker = add('agent', 'read on the phone').id
+  const unreadReply = add('agent', 'still unread')
+  storage.set(markerKey, oldMarker)
+  readId = oldMarker
+  setActivePinia(createPinia())
+  const synced = useTeamAgentStore('appointments')
+  synced.bindViewer('S1')
+  await synced.refresh()
+  assert.equal(synced.unreadCount, 2)
+  readId = newMarker
+  await synced.refresh()
+  assert.equal(synced.unreadCount, 1, 'the next poll recounts even without new events')
+  assert.equal(synced.latestUnreadAi?.id, unreadReply.id)
+  assert.equal(storage.get(markerKey), newMarker)
+  readId = unreadReply.id
+  await synced.refresh()
+  assert.equal(synced.unreadCount, 0)
+  assert.equal(synced.latestUnreadAi, null)
+  assert.equal(storage.get(markerKey), unreadReply.id)
+
+  add('action', 'working', { id: 'action:sync:attempt' })
+  await synced.refresh()
+  assert.equal(synced.unreadCount, 1)
+  add('action', 'finished', { id: 'action:sync:result' })
+  await synced.refresh()
+  assert.equal(synced.unreadCount, 1, 'an action counts once even when its result arrives in a later poll')
+  const latest = add('agent', 'new reply').id
+  let finishRead!: () => void
+  readResponse = new Promise<void>(resolve => { finishRead = resolve })
+  const postsBeforeOpen = readPosts.length
+  await synced.openChat()
+  await synced.refresh()
+  assert.deepEqual(readPosts.slice(postsBeforeOpen), [latest], 'opening and polling post the latest id once while in flight')
+  assert.equal(storage.get(markerKey), latest)
+  finishRead()
+  await settleRead()
+  await synced.refresh()
+  assert.deepEqual(readPosts.slice(postsBeforeOpen), [latest], 'a confirmed id is never posted again')
+  assert.equal(readId, latest)
+  readResponse = undefined
+
+  for (const localId of [newMarker, 'unknown-local-id']) {
+    const postsBeforeMigration = readPosts.length
+    readId = null
+    storage.set(markerKey, localId)
+    setActivePinia(createPinia())
+    const migrating = useTeamAgentStore('appointments')
+    await migrating.refresh()
+    await settleRead()
+    await migrating.refresh()
+    assert.deepEqual(readPosts.slice(postsBeforeMigration), [localId], 'migration runs once even if the id is unknown')
+    assert.equal(migrating.error, null)
+    assert.equal(storage.get(markerKey), localId)
+  }
+
+  readId = newMarker
+  failRead = true
+  storage.set(markerKey, newMarker)
+  setActivePinia(createPinia())
+  const offline = useTeamAgentStore('appointments')
+  await offline.openChat()
+  await settleRead()
+  assert.equal(offline.error, null, 'a failed read write is silent')
+  assert.equal(offline.unreadCount, 0)
+  assert.equal(storage.get(markerKey), latest, 'reading still advances the local marker')
+  offline.closeChat()
+  failHistory = true
+  await offline.refresh()
+  assert.equal(offline.unreadCount, 0)
+  assert.equal(storage.get(markerKey), latest, 'a failed history request keeps the local marker')
+  failHistory = false
+  readId = undefined
+  setActivePinia(createPinia())
+  const fallback = useTeamAgentStore('appointments')
+  add('agent', 'after the local marker')
+  await fallback.refresh()
+  assert.equal(fallback.unreadCount, 1)
+
+  storage.delete(markerKey)
+  server.events = []
+  readId = add('agent', 'read on another device').id
+  for (let index = 0; index < 501; index += 1) add('agent', `unread ${index}`)
+  setActivePinia(createPinia())
+  const newDevice = useTeamAgentStore('appointments')
+  await newDevice.refresh()
+  assert.equal(newDevice.unreadCount, 501, 'a new device counts all pages after the server marker')
+  assert.equal(storage.get(markerKey), readId)
   console.log('team-agent.store.dry-test: OK')
 } finally {
   globalThis.fetch = originalFetch

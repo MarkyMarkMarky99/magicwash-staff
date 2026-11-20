@@ -8,6 +8,7 @@ import {
   getTeamAgentHistory,
   listPersonalAssignments,
   listTeamAgentReminders,
+  markTeamAgentRead,
   sendTeamAgentMessage,
 } from '../../../shared/ai-gateway/tasks/team-agent.js'
 import { AiGatewayError } from '../../../shared/ai-gateway/ai-gateway.errors.js'
@@ -88,7 +89,7 @@ test('send rejects an empty message without a request', async () => {
 
 test('history sends after and limit and accepts a bare or enveloped body', async () => {
   for (const wrap of [false, true]) {
-    const body = { events: [event], busy: true }
+    const body = { events: [event], busy: true, readId: 'e0' }
     const history = await getTeamAgentHistory({ ...access, after: 'e0', limit: 50, fetchImpl: async (url, init) => {
       assert.equal(url, 'http://stub.invalid/agents/appointments/history?after=e0&limit=50')
       assert.equal(init?.method, 'GET')
@@ -96,6 +97,7 @@ test('history sends after and limit and accepts a bare or enveloped body', async
     } })
     assert.equal(history.busy, true)
     assert.equal(history.events[0]!.id, 'e1')
+    assert.equal(history.readId, 'e0')
   }
 })
 
@@ -166,6 +168,16 @@ test('history accepts close and reopen action events', async () => {
 })
 
 const personal = { ...access, agentId: 'personal' as const }
+
+test('read posts the event id and uses the same personal target parameters as history', async () => {
+  assert.deepEqual(await markTeamAgentRead({ ...personal, staffId: 'S2', staffName: 'Mali M', eventId: 'e1', fetchImpl: async (url, init) => {
+    assert.equal(url, 'http://stub.invalid/agents/personal/read?staffId=S2&staffName=Mali+M')
+    assert.equal(init?.method, 'POST')
+    assert.deepEqual(JSON.parse(init!.body as string), { eventId: 'e1' })
+    return Response.json({ readId: null })
+  } }), { readId: null })
+})
+
 const assignment = {
   id: 'as1', version: 2, assigneeStaffId: 'S2', assigneeName: 'Mali', createdBy: { kind: 'admin', staffId: 'S1', name: 'Boss' },
   requestedByAdmin: 'S1', detail: 'Finish the coats', dueAt: '2026-11-19T10:00:00+07:00', status: 'open', reportTo: 'personal:S1',
