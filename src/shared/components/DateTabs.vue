@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, onActivated, onMounted, ref, watch } from 'vue'
 import { getSheetDateCalendar, todaySheetDate } from '@/shared/utils/sheet-date'
 import { addSheetDateDays } from '@/shared/utils/sheet-date'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
@@ -43,17 +43,20 @@ const dates = computed(() => {
   })
 })
 
-async function scrollToSelected() {
-  await nextTick()
-  stripRef.value?.el?.querySelector('[data-selected="true"]')?.scrollIntoView({
-    behavior: 'smooth',
-    block: 'nearest',
-    inline: 'center',
-  })
+function scrollToSelected(behavior: ScrollBehavior = 'instant') {
+  const strip = stripRef.value?.el
+  const selected = strip?.querySelector('[data-selected="true"]')
+  if (!strip || !selected) return
+
+  const button = selected.getBoundingClientRect()
+  const viewport = strip.getBoundingClientRect()
+  const left = strip.scrollLeft + button.left + button.width / 2 - viewport.left - strip.clientWidth / 2
+  strip.scrollTo({ left, behavior })
 }
 
-watch(() => [props.year, props.month, props.selectedDate], scrollToSelected)
-onMounted(scrollToSelected)
+watch(() => [props.year, props.month, props.selectedDate], () => scrollToSelected('smooth'), { flush: 'post' })
+onMounted(() => scrollToSelected())
+onActivated(() => scrollToSelected())
 </script>
 
 <template>

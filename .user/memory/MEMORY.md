@@ -140,7 +140,6 @@
   - Decide whether to delete `src/features/orders/utils/order-price-list-items.ts` (no caller) and its unit test.
   - Decide whether `output/price-list-images/generated/*.jpg` belong in the repo or `.gitignore`.
   - Two allowlisted cross-feature imports remain (`PriceListItemPicker` in invoices and orders); reopen only when a third feature needs it.
-  - Appointment date strip opens at day 1 instead of centering today; diagnose in a real browser first.
   - `ListContainer` collapsible header is a non-focusable `div` without `aria-expanded`.
   - Browser-check ListContainer search, theme consistency, and the order-detail dropdown at the bottom edge.
   - Delete `docs/plans/scroll-region.md` and `docs/plans/overlay-frame.md` once unreferenced.
