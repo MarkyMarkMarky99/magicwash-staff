@@ -62,6 +62,25 @@ try {
     params: { id: 'order-1' },
   })
   assert.equal(itemPatch.status, 422)
+
+  const service = workOrderModule.workOrderService
+  const originalUpdate = service.update
+  try {
+    service.update = async (id, payload, options) => {
+      assert.equal(id, 'order-1')
+      assert.deepEqual(payload, { status: 'COMPLETED', updatedBy: 'AI-worker' })
+      assert.deepEqual(options, { reportCascadeFailure: true })
+      return { orderId: id, status: 'COMPLETED' } as Awaited<ReturnType<typeof originalUpdate>>
+    }
+    const secretaryPatch = await resolved.item.handleRequest({
+      method: 'PATCH', query: {}, headers: {}, params: { id: 'order-1' }, body: { status: 'COMPLETED' },
+      staff: { staffId: 'AI-worker', role: 'assistant', name: 'Secretary', email: 'secretary@example.invalid',
+        onBehalfOf: { staffId: 'worker', role: 'staff', departments: [] } },
+    })
+    assert.equal(secretaryPatch.status, 200)
+  } finally {
+    service.update = originalUpdate
+  }
 } finally {
   if (previousSpreadsheetId === undefined) {
     delete process.env.ORDERS_SPREADSHEET_ID

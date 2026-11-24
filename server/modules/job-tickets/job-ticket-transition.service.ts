@@ -68,8 +68,12 @@ export class JobTicketTransitionService {
     })
     const repository = this.repository()
     const orders = alreadyRead === undefined ? await this.readOrderTickets(repository, requested)
-      : new Map([...new Set(requested.map(entry => entry.orderId))].map(orderId => [orderId,
-        alreadyRead.filter(ticket => String(ticket.order_id ?? '') === orderId && !ticket.deleted_at)]))
+      : new Map([...new Set(requested.map(entry => entry.orderId))].map(orderId => [orderId, [] as Array<Partial<JobTicketDbRow>>]))
+    if (alreadyRead !== undefined) {
+      for (const ticket of alreadyRead) {
+        if (!ticket.deleted_at) orders.get(String(ticket.order_id ?? ''))?.push(ticket)
+      }
+    }
     const blocked: Extract<JobTicketAdvanceResponse, { kind: 'completed' }>['blocked'] = []
     const skipped: Extract<JobTicketAdvanceResponse, { kind: 'completed' }>['skipped'] = []
     const advanced: Extract<JobTicketAdvanceResponse, { kind: 'completed' }>['advanced'] = []

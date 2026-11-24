@@ -7,7 +7,7 @@ Agents are AI helpers staff chat with from the side menu entry "Agents". `regist
 - `/agents` (`agent-list`): one row card per agent, avatar at the left edge, name, role line, description, chevron. Seven agents: `register-customer` (น้องลงทะเบียน), `price-check` (น้องราคา), `order-tracking` (น้องติดตาม), and the team agents `appointments` (น้องนัดหมาย), `washing` (น้องซักผ้า), `ironing` (น้องรีดผ้า) and `personal` (ผู้ช่วยส่วนตัว, role line "My assistant"), the last three for `admin` and `staff`. Admins also get an "Assignments" row under the list that opens `/agents/personal-assignments`. Each catalog entry has an optional `roles` list; an agent whose list excludes the signed-in role (every `device` account, for the team agents) is hidden from the list and its route redirects to the list.
 - `/agents/:agentId` (`agent-chat`, `meta.parent = agent-list`): a full page with its own top bar (back, avatar, name, role, "End"). Back returns to the list through `useGoBack`. An unknown `agentId` replaces the route with the list. The page is excluded from `KeepAlive`; the history lives in the store, not the component.
 - UI text is English; only staff messages, agent replies, agent names, greetings and suggestion chips stay in Thai. The not-saved notice shows once per device (localStorage `agent-chat-notice-seen`) and hides itself after 6 seconds. The thinking bubble reads "Thinking… (may take up to a few min)". The composer textarea hides its scrollbar.
-- The chat shows the not-saved notice, an empty state with greeting and three suggestion chips, staff bubbles with up to three image thumbnails, agent bubbles with the avatar, a thinking bubble, an error bubble with "Retry", and a composer (attach up to three images, multi-line input, send disabled while thinking).
+- The chat shows the not-saved notice, an empty state with greeting and three suggestion chips, staff bubbles with up to three image thumbnails, agent bubbles with the avatar, a thinking bubble, an error bubble with "Retry", and a composer (attach up to three images, multi-line input, send disabled while thinking). Enter sends; Shift+Enter adds a line; Enter during an open IME composition (Thai input) stays with the IME.
 - "End" opens a confirm overlay; confirming clears that agent's chat and returns to the agent list.
 
 ## Proposal cards
@@ -54,6 +54,25 @@ Only `order-tracking` keeps the approximately 2 s fake response and the exact `e
 - Unread counting: `src/App.vue` calls `useAgentsUnread` (`src/app/composables/useAgentsUnread.ts`), which polls every 60 s each team agent the signed-in role can see (nothing for `device` or signed-out) and binds the signed-in staff ID to every team store. It returns `total`, `byAgent` and `latest`; `App.vue` provides `total` as `agentsUnreadKey` and `byAgent` as `agentsUnreadByAgentKey` (`src/shared/agents-unread.ts`). MagicwashAI stores the read position per staff member and chat. The next poll picks up reads from another device. Each store counts events after that position, excluding events the viewer sent (`speaker.staffId` equal to the bound viewer) and an action `:attempt` whose `:result` is already present. Agent, system and action events and other staff's messages count. The store also keeps `latestUnreadAi`, the newest unread `agent` or `system` event; both reset when the chat shows the latest event. For these chats, localStorage is a fallback and supplies a one-time migration when MagicwashAI has no read position. With no marker in either place, the badge starts from the latest event.
 - Row badge: each team-agent row on `/agents` shows its `byAgent` count in a filled `error` pill (`1`–`99`, `99+`) before the chevron, hidden at 0, the same style as the "Agents" menu entry's total.
 - Floating bubble: `AgentFloatingBubble` (`src/features/agents/components/`) is mounted by `App.vue` inside the app shell (above page content and header, below `#overlay-root` so any modal overlay covers and inerts it) only after the shell has mounted and only while `useAgentBubble` (`src/app/composables/useAgentBubble.ts`) has a message. It shows the 56 px avatar of the agent holding the newest unread agent or system message (`latest`, compared by event `at`), a speech bubble with that agent's name and the message text without markdown symbols (`plainBubbleText`) clamped to 3 lines, and a count pill on the avatar when more than one message is unread across all chats. It never shows for `device` or signed-out accounts, on public routes, or while the viewer is on that agent's own chat route. Tapping the avatar or bubble pushes `/agents/<agentId>`, whose `openChat` marks the chat read. The × button hides it until a newer message arrives; the dismissed event ID and its `at` are kept in localStorage `agent-bubble-dismissed:<staffId>`. It is draggable by pointer events (touch and mouse): a move under 6 px is a tap, a longer one drags the avatar and bubble together, and on release the group snaps to the nearer left or right edge with a 12 px margin, kept above a bottom reserve of 88 px plus the safe-area inset; the bubble sits on the side away from the edge. The side and vertical position are kept per device in localStorage `agent-bubble-position`. The entrance fade is dropped under `prefers-reduced-motion`. All storage access is in try/catch.
+
+## Secretary
+
+MagicwashAI uses a server-only `SECRETARY_PROXY_KEY` to call Vercel with `x-secretary-key`
+and `x-assistant-id`. The assistant is an active Staff row with role `assistant` and StaffId
+`AI-<owner StaffId>`. History resolves that StaffId to the assistant's name. Vercel reads the
+active owner's role and departments for every request.
+
+The allowlist covers staff directory, customer, appointment, work-order, and job-ticket reads.
+Admin owners can book, reschedule, and cancel appointments. Admin and staff owners can complete
+appointments and work orders. A secretary can close job tickets for one order or for up to 200
+orders in the same department. Closing and reopening require an admin owner or a staff owner
+assigned to that department. Batch close reports completed tickets for each requested order and
+awards no score.
+See [Secretary API permissions](../../architecture/backend/operations.md#secretary).
+
+### Secretary chat (trial)
+
+The `secretary` agent (display name `เลขาส่วนตัว`) is a per-owner team agent like `personal`: the signed-in user talks to their own secretary, so its store and last-seen key are per staff member. For this trial the catalog entry is visible to `admin` only. It is a separate service: every call (history, images, reminders, notes, read markers, `POST /tasks/chat`) uses the base URL `<AI gateway base URL>/secretary` with the same contract as the other team agents. The admin "open another employee's assistant" route, the assignments page and push notifications do not apply to it.
 
 ## Personal assistants
 

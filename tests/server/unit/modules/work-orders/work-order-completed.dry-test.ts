@@ -108,8 +108,12 @@ try {
     failure = mode
     assert.deepEqual(await service.update('order-1', { status: 'COMPLETED', updatedBy: 'driver' }), result)
   }
+  failure = 'read'
+  await assert.rejects(service.update('order-1', { status: 'COMPLETED', updatedBy: 'AI-driver' },
+    { reportCascadeFailure: true }), { status: 500, message: /Order completed, but job ticket completion/ })
+  assert.equal(repository.updateCalls.at(-1)?.data.updated_by, 'AI-driver')
 } finally { console.error = originalError }
-assert.equal(logs.length, 2)
+assert.equal(logs.length, 3)
 assert.ok(logs.every(args => args[0] === 'Failed to close open tickets for completed order'))
 assert.equal(earnWrites, 0)
 const beforeReads = reads

@@ -4,6 +4,7 @@ import { AppointmentService, type AppointmentSheetDbRow } from '../../../../../s
 import { createAppointmentTransformer } from '../../../../../server/modules/appointments/appointment.transformer.js'
 import { appointmentsRowSchema } from '../../../../../server/sheets/Appointments/Appointments.db-contract.js'
 import type { ApiHandlerRequest } from '../../../../../server/shared/http/api-handler.js'
+import type { StaffMember } from '../../../../../server/shared/auth/staff-list.js'
 import { appointmentCreateFixtures } from './appointment-write.fixtures.js'
 
 const fixture = appointmentCreateFixtures[0]!
@@ -24,15 +25,17 @@ const service = new AppointmentService({
 const routes = createAppointmentRoutes(service, () => instant)
 const ai = { staffId: 'AI', name: 'Assistant', email: 'ai@example.com', role: 'staff' as const }
 const human = { ...ai, staffId: 'worker' }
-function request(method: string, body: unknown, staff = ai): ApiHandlerRequest {
+const secretary: StaffMember = { staffId: 'AI-worker', name: 'Secretary', email: 'secretary@example.invalid',
+  role: 'assistant', onBehalfOf: { staffId: 'worker', role: 'admin', departments: [] } }
+function request(method: string, body: unknown, staff: StaffMember = ai): ApiHandlerRequest {
   return { method, body, staff, query: {}, headers: {}, params: { id: 'APPT-test' } }
 }
-async function create(date: string, slot = '10:00-12:00', staff = ai) {
+async function create(date: string, slot = '10:00-12:00', staff: StaffMember = ai) {
   return routes.collection.handleRequest(request('POST', {
     ...fixture.frontendRequest, appointmentDate: date, timeSlot: slot, createdBy: 'spoofed',
   }, staff))
 }
-async function patch(body: Record<string, unknown>, staff = ai) {
+async function patch(body: Record<string, unknown>, staff: StaffMember = ai) {
   return routes.item.handleRequest(request('PATCH', { ...body, updatedBy: 'spoofed' }, staff))
 }
 async function rejected(run: () => ReturnType<typeof create>, message: RegExp) {
@@ -96,4 +99,12 @@ assert.equal((await routes.collection.handleRequest(request('DELETE', {}))).stat
 assert.equal((await routes.item.handleRequest(request('POST', {}))).status, 405)
 assert.equal((await routes.collection.handleRequest(request('GET', undefined))).status, 200)
 assert.equal((await routes.item.handleRequest(request('GET', undefined))).status, 200)
+
+await rejected(() => create('2026-11-16', '10:00-12:00', secretary), /already started/)
+await rejected(() => create('2026-11-17', '10:00-12:00', secretary), /Tuesday/)
+assert.equal((await create('2026-11-18', '10:00-12:00', secretary)).status, 201)
+assert.equal(writes.at(-1)?.CreatedBy, 'AI-worker')
+await rejected(() => patch({ appointmentDate: '2026-11-17', timeSlot: '10:00-12:00', status: 'PENDING' }, secretary), /Tuesday/)
+assert.equal((await patch({ appointmentDate: '2026-11-18', timeSlot: '10:00-12:00', status: 'PENDING' }, secretary)).status, 200)
+assert.equal(writes.at(-1)?.UpdatedBy, 'AI-worker')
 console.log('appointment routes AI date policy dry test passed')

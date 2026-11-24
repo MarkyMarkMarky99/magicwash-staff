@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { jobTicketDepartmentSchema } from '../../../contracts/job-tickets/job-ticket-api.schema.js'
-import { registerStaffBodySchema, staffDirectoryEntrySchema, staffSchema, updateStaffBodySchema } from '../../../contracts/staff/staff-api.schema.js'
-import { invalidateStaffListCache } from '../../shared/auth/staff-list.js'
+import { registerStaffBodySchema, staffDirectoryEntrySchema, staffReadRoleSchema, staffSchema, updateStaffBodySchema } from '../../../contracts/staff/staff-api.schema.js'
+import { invalidateStaffListCache, type SecretaryOwner, type StaffMember } from '../../shared/auth/staff-list.js'
 import { ApiError } from '../../shared/http/api-error.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import { buildSheetHeaderMap, columnLetterForIndex } from '../../shared/repositories/sheet-header-map.js'
@@ -35,22 +35,41 @@ export class StaffService {
   constructor(private readonly client: Pick<SheetsApiClient, 'readRange' | 'appendRows' | 'updateCells'>) {}
 
   async list(): Promise<Staff[]> {
-    return (await this.load()).rows.map(({ staff }) => staff)
+    return (await this.load()).rows.flatMap(({ staff }) => staff.role === 'assistant' ? [] : [staff])
   }
 
   async listDirectory(): Promise<StaffDirectoryEntry[]> {
-    return (await this.list()).map((staff) => staffDirectoryEntrySchema.parse(staff))
+    return (await this.load()).rows.map(({ staff }) => staffDirectoryEntrySchema.parse(staff))
+  }
+
+  async listAssistantIds(): Promise<Set<string>> {
+    return new Set((await this.load()).rows.flatMap(({ staff }) => staff.role === 'assistant' ? [staff.staffId] : []))
+  }
+
+  async resolveSecretary(ownerId: string): Promise<(StaffMember & { onBehalfOf: SecretaryOwner }) | undefined> {
+    const { rows } = await this.load()
+    const assistants = rows.filter(({ staff }) => staff.staffId === `AI-${ownerId}`)
+    const owners = rows.filter(({ staff }) => staff.staffId === ownerId)
+    if (assistants.length !== 1 || owners.length !== 1) return undefined
+    const assistant = assistants[0]!.staff
+    const owner = owners[0]!.staff
+    if (!assistant.active || assistant.role !== 'assistant' || !owner.active || owner.staffId.toUpperCase() === 'AI'
+      || (owner.role !== 'admin' && owner.role !== 'staff')) return undefined
+    return {
+      staffId: assistant.staffId, email: assistant.email, name: assistant.name, role: assistant.role,
+      onBehalfOf: { staffId: owner.staffId, role: owner.role, departments: owner.departments },
+    }
   }
 
   async me(email: string): Promise<Staff> {
-    const row = (await this.load()).rows.find(({ staff }) => staff.email.trim().toLowerCase() === email)
+    const row = (await this.load()).rows.find(({ staff }) => staff.role !== 'assistant' && staff.email.trim().toLowerCase() === email)
     if (!row) throw ApiError.notFound('Staff not found')
     return row.staff
   }
 
   async getById(staffId: string): Promise<Staff> {
     const id = parseOrThrow(z.string().min(1), staffId)
-    const row = (await this.load()).rows.find(({ staff }) => staff.staffId === id)
+    const row = (await this.load()).rows.find(({ staff }) => staff.role !== 'assistant' && staff.staffId === id)
     if (!row) throw ApiError.notFound('Staff not found')
     return row.staff
   }
@@ -77,7 +96,7 @@ export class StaffService {
     const id = parseOrThrow(z.string().min(1), staffId)
     const { departments, ...body } = parseOrThrow(updateStaffBodySchema, payload)
     const { header, rows } = await this.load()
-    const row = rows.find(({ staff }) => staff.staffId === id)
+    const row = rows.find(({ staff }) => staff.role !== 'assistant' && staff.staffId === id)
     if (!row) throw ApiError.notFound('Staff not found')
     if (row.staff.email.trim().toLowerCase() === email && (body.role !== undefined || body.active !== undefined)) {
       throw ApiError.conflict('You cannot change your own role or active status')
@@ -109,7 +128,7 @@ export class StaffService {
         field, String(cells[header.indexByName[column]] ?? ''),
       ]))
       if (!values.email!.trim()) continue
-      const role = values.role!.trim().toLowerCase()
+      const role = staffReadRoleSchema.safeParse(values.role!.trim().toLowerCase())
       const active = cells[header.indexByName.Active]
       const departmentsCell = departmentsIndex === undefined ? '' : String(cells[departmentsIndex] ?? '')
       const departments = departmentsCell.split(',').map((value) => value.trim())
@@ -124,7 +143,7 @@ export class StaffService {
         departments: jobTicketDepartmentSchema.options.filter((department) =>
           departments.includes(department),
         ),
-        role: role === 'admin' || role === 'staff' || role === 'device' ? role : null,
+        role: role.success ? role.data : null,
         active: active === true || (typeof active === 'string' && active.trim().toLowerCase() === 'true'),
       }
       rows.push({ staff, rowNumber: index + 2 })

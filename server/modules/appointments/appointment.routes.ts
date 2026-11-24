@@ -3,6 +3,7 @@ import { bangkokToday, normalizeSheetDate, normalizeSheetTimestamp } from '../..
 import { ApiError } from '../../shared/http/api-error.js'
 import { ApiHandler } from '../../shared/http/api-handler.js'
 import { createCrudRoutes } from '../../shared/http/crud-routes.js'
+import { ok } from '../../shared/http/response.js'
 import { bodyWithSessionActor } from '../../shared/http/session-actor.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import type { AppointmentService } from './appointment.service.js'
@@ -14,7 +15,7 @@ export function createAppointmentRoutes(service: AppointmentService, now: () => 
     collection: new ApiHandler({
       GET: (req) => routes.collection.handleRequest(req),
       POST: (req) => {
-        if (req.staff?.staffId.trim().toUpperCase() === 'AI') {
+        if (req.staff?.staffId.trim().toUpperCase() === 'AI' || req.staff?.onBehalfOf) {
           const data = parseOrThrow(appointmentApiContract.request.create, bodyWithSessionActor(req, 'createdBy'))
           const clock = now()
           const date = validateDateWindow(data.appointmentDate, clock, 0, 13)
@@ -31,7 +32,7 @@ export function createAppointmentRoutes(service: AppointmentService, now: () => 
     item: new ApiHandler({
       GET: (req) => routes.item!.handleRequest(req),
       PATCH: async (req) => {
-        if (req.staff?.staffId.trim().toUpperCase() === 'AI') {
+        if (req.staff?.staffId.trim().toUpperCase() === 'AI' || req.staff?.onBehalfOf) {
           const data = parseOrThrow(appointmentApiContract.request.update, bodyWithSessionActor(req, 'updatedBy'))
           if (data.status !== 'CANCELLED' && data.appointmentDate !== undefined) {
             const existing = await service.getById(req.params.id)
@@ -39,6 +40,9 @@ export function createAppointmentRoutes(service: AppointmentService, now: () => 
               const date = validateDateWindow(data.appointmentDate, now(), 1, 14)
               if (date.getUTCDay() === 2) throw ApiError.validation('AI cannot move appointments to Tuesday: the shop is closed (Asia/Bangkok)')
             }
+          }
+          if (req.staff?.onBehalfOf) {
+            return ok(await service.update(req.params.id!, data, { reportCascadeFailure: true }))
           }
         }
         return routes.item!.handleRequest(req)

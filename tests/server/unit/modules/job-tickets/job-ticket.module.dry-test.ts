@@ -3,6 +3,7 @@ import { stubClearStockTake } from '../../stock-take-freeze.fixture.js'
 
 stubClearStockTake()
 import type { ApiHandlerRequest } from '../../../../../server/shared/http/api-handler.js'
+import type { SecretaryOwner } from '../../../../../server/shared/auth/staff-list.js'
 import {
   jobTicketFieldMap,
   jobTicketDepartmentWorkService,
@@ -44,6 +45,7 @@ const advanceMethods = jobTicketAdvanceService as unknown as { advance: (payload
 const originalAdvance = advanceMethods.advance
 const originalReopen = jobTicketReopenService.reopen
 const originalComplete = jobTicketCompleteService.completeOrder
+const originalCompleteOrders = jobTicketCompleteService.completeOrders
 const originalDepartmentWork = jobTicketDepartmentWorkService.list
 const originalGetById = jobTicketService.getById
 let completeCalls = 0
@@ -87,7 +89,28 @@ try {
     jobTicketCompleteService.completeOrder = async () => ({ kind: 'write_failed', certainty })
     assert.equal((await jobTicketRoutes.item!.handleRequest(adminRequest)).status, status)
   }
-  for (const endpoint of ['complete-order', 'reopen']) {
+
+  const batchBody = { department: 'Packaging', orderIds: ['123', '456'] }
+  const batchRequest = { ...adminRequest, params: { id: 'complete-orders' }, body: batchBody }
+  for (const orderIds of [['123', '123'], Array.from({ length: 201 }, (_, index) => String(index))]) {
+    assert.equal((await jobTicketRoutes.item!.handleRequest({ ...batchRequest, body: { ...batchBody, orderIds } })).status, 422)
+  }
+  const batchResponse = { kind: 'completed' as const, scannedBy: 'admin-id',
+    results: batchBody.orderIds.map(orderId => ({ orderId, completed: [] })) }
+  jobTicketCompleteService.completeOrders = async (payload, actor, owner) => {
+    assert.deepEqual(payload, batchBody)
+    assert.equal(actor, 'admin-id')
+    assert.equal(owner, undefined)
+    return batchResponse
+  }
+  assert.deepEqual(await jobTicketRoutes.item!.handleRequest(batchRequest), { status: 200, body: batchResponse })
+  for (const [certainty, status] of [['rejected', 502], ['unknown', 500]] as const) {
+    const body = { kind: 'write_failed' as const, certainty }
+    jobTicketCompleteService.completeOrders = async () => body
+    assert.deepEqual(await jobTicketRoutes.item!.handleRequest(batchRequest), { status, body })
+  }
+
+  for (const endpoint of ['complete-order', 'complete-orders', 'reopen']) {
     let calls = 0
     const respond = async (_payload: unknown, actor: string) => {
       calls++
@@ -95,8 +118,11 @@ try {
       return { kind: 'completed' as const, completed: [], scannedBy: actor, results: [], voidsWritten: [] }
     }
     jobTicketCompleteService.completeOrder = respond
+    jobTicketCompleteService.completeOrders = respond
     jobTicketReopenService.reopen = respond
-    const aiRequest = { ...request(endpoint), body: { orderId: 'o1', department: 'Washing', ticketIds: ['t1'], reason: 'redo' },
+    const body = endpoint === 'complete-orders' ? { orderIds: ['o1', 'o2'], department: 'Washing' }
+      : { orderId: 'o1', department: 'Washing', ticketIds: ['t1'], reason: 'redo' }
+    const aiRequest = { ...request(endpoint), body,
       staff: { staffId: 'AI', role: 'staff' as const, name: 'AI', email: 'ai@test' } }
     const result = await jobTicketRoutes.item!.handleRequest(aiRequest)
     assert.equal(result.status, 200)
@@ -104,6 +130,19 @@ try {
     assert.equal(calls, 1)
     assert.equal((await jobTicketRoutes.item!.handleRequest({ ...aiRequest, staff: undefined })).status, 403)
     assert.equal((await jobTicketRoutes.item!.handleRequest({ ...aiRequest, staff: { ...aiRequest.staff, staffId: 'other' } })).status, 403)
+
+    const onBehalfOf: SecretaryOwner = { staffId: 'worker', role: 'staff', departments: ['Washing'] }
+    const secretary = { ...aiRequest.staff, staffId: 'AI-worker', role: 'assistant' as const, onBehalfOf }
+    const respondAsSecretary = async (_payload: unknown, actor: string, owner?: SecretaryOwner) => {
+      assert.equal(actor, secretary.staffId)
+      assert.deepEqual(owner, onBehalfOf)
+      return { kind: 'completed' as const, completed: [], scannedBy: actor, results: [], voidsWritten: [] }
+    }
+    jobTicketCompleteService.completeOrder = respondAsSecretary
+    jobTicketCompleteService.completeOrders = respondAsSecretary
+    jobTicketReopenService.reopen = respondAsSecretary
+    assert.equal((await jobTicketRoutes.item!.handleRequest({ ...aiRequest, staff: secretary })).status, 200)
+    assert.equal((await jobTicketRoutes.item!.handleRequest({ ...aiRequest, staff: { ...secretary, onBehalfOf: undefined } })).status, 403)
   }
   for (const [certainty, status] of [['rejected', 502], ['unknown', 500]] as const) {
     jobTicketReopenService.reopen = async () => ({ kind: 'write_failed', certainty, results: [], voidsWritten: [] })
@@ -134,6 +173,7 @@ try {
   jobTicketService.getById = originalGetById
   jobTicketReopenService.reopen = originalReopen
   jobTicketCompleteService.completeOrder = originalComplete
+  jobTicketCompleteService.completeOrders = originalCompleteOrders
   startMethods.startOrder = originalStart
   advanceMethods.advance = originalAdvance
 }

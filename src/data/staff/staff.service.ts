@@ -1,12 +1,14 @@
 import type { z } from 'zod'
 import {
   registerStaffBodySchema,
+  staffDirectoryEntrySchema,
   staffSchema,
   updateStaffBodySchema,
 } from '@contracts/staff/staff-api.schema'
 import { apiGet, apiPatch, apiPost } from '@/shared/api/api-client'
 
 export type StaffDto = z.infer<typeof staffSchema>
+export type StaffDirectoryEntry = z.infer<typeof staffDirectoryEntrySchema>
 export type RegisterStaffInput = z.infer<typeof registerStaffBodySchema>
 export type UpdateStaffInput = z.infer<typeof updateStaffBodySchema>
 
@@ -26,6 +28,10 @@ export function registerStaff(payload: RegisterStaffInput): Promise<StaffDto> {
 
 export function listStaff(): Promise<StaffDto[]> {
   return apiGet<StaffDto[]>(STAFF_ENDPOINT)
+}
+
+export function listStaffDirectory(): Promise<StaffDirectoryEntry[]> {
+  return apiGet<StaffDirectoryEntry[]>(`${STAFF_ENDPOINT}/directory`)
 }
 
 export function getStaff(staffId: string): Promise<StaffDto> {

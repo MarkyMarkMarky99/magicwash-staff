@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import type { SheetRepositoryContract } from '../../../../../server/shared/repositories/sheet-repository.contract.js'
 import { AppointmentService, type AppointmentSheetDbRow } from '../../../../../server/modules/appointments/appointment.service.js'
 import { createAppointmentTransformer } from '../../../../../server/modules/appointments/appointment.transformer.js'
+import { createAppointmentRoutes } from '../../../../../server/modules/appointments/appointment.routes.js'
 
 function responseRow(appointmentId: string): AppointmentSheetDbRow {
   return {
@@ -70,6 +71,16 @@ try {
   assert.equal(result.status, 'COMPLETED')
   assert.equal(result.deliveryOrderId, 'order-1')
   assert.equal(logs[0]?.[0], 'Failed to complete delivery order')
+  const response = await createAppointmentRoutes(service).item.handleRequest({
+    method: 'PATCH', params: { id: 'APPT-existing' }, query: {}, headers: {}, body: { status: 'COMPLETED' },
+    staff: { staffId: 'AI-driver', role: 'assistant', email: 'secretary@example.invalid', name: 'Secretary',
+      onBehalfOf: { staffId: 'driver', role: 'staff', departments: [] } },
+  })
+  assert.equal(response.status, 500)
+  assert.match(JSON.stringify(response.body), /Appointment completed, but linked order completion could not be confirmed/)
+  assert.equal(row.Status, 'COMPLETED')
+  assert.equal(row.UpdatedBy, 'AI-driver')
+  assert.deepEqual(calls.at(-1), { orderId: 'order-1', payload: { status: 'COMPLETED', updatedBy: 'AI-driver' } })
   before = calls.length
   updateFails = true
   await assert.rejects(() => service.update('APPT-existing', { status: 'COMPLETED', updatedBy: 'driver' }))

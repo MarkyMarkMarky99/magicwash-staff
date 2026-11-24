@@ -4,10 +4,12 @@ import type { jobTicketsRowSchema } from '../../sheets/JobTickets/JobTickets.db-
 import type { workTransactionsRowSchema } from '../../sheets/WorkTransactions/WorkTransactions.db-contract.js'
 import { getJobTicketsRepository } from '../../sheets/JobTickets/JobTickets.repository.js'
 import { getWorkTransactionsRepository } from '../../sheets/WorkTransactions/WorkTransactions.repository.js'
+import type { SecretaryOwner } from '../../shared/auth/staff-list.js'
 import type { SheetRepositoryContract, SheetBatchUpdateContract } from '../../shared/repositories/sheet-repository.contract.js'
 import { WriteCommittedUnreadableError } from '../../shared/repositories/sheets-api.client.js'
 import { classifySheetWriteFailure } from '../../shared/repositories/write-failure.js'
 import { ApiError } from '../../shared/http/api-error.js'
+import { requireSecretaryDepartment } from '../../shared/http/secretary-policy.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
 import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
 import { generateShortId } from '../../shared/utils/id.js'
@@ -25,11 +27,12 @@ interface ReopenOptions {
 export class JobTicketReopenService {
   constructor(private readonly options: ReopenOptions = {}) {}
 
-  async reopen(payload: unknown, actor: string): Promise<JobTicketReopenResponse> {
+  async reopen(payload: unknown, actor: string, owner?: SecretaryOwner): Promise<JobTicketReopenResponse> {
     const request = parseOrThrow(jobTicketReopenRequestSchema, payload)
     if (actor === 'AI' && request.department !== 'Washing' && request.department !== 'Ironing') {
       throw ApiError.forbidden('AI may only reopen Washing and Ironing tickets')
     }
+    if (owner) requireSecretaryDepartment(owner, request.department)
     const repository = (this.options.repository ?? getJobTicketsRepository)()
     const ledger = (this.options.workTransactionRepository ?? getWorkTransactionsRepository)()
     const tickets = (await repository.read({ where: { order_id: request.orderId } }))

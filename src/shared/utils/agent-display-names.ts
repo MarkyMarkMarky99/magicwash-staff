@@ -7,6 +7,7 @@ export const AGENT_DISPLAY_NAMES = {
   washing: 'น้องซักผ้า',
   ironing: 'น้องรีดผ้า',
   personal: 'ผู้ช่วยส่วนตัว',
+  secretary: 'เลขาส่วนตัว',
 } as const
 
 export type AgentDisplayNameId = keyof typeof AGENT_DISPLAY_NAMES

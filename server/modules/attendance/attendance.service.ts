@@ -10,6 +10,7 @@ import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
 import { generateShortId } from '../../shared/utils/id.js'
 import type { AttendanceRow } from '../../sheets/Attendance/Attendance.db-contract.js'
 import { getAttendanceRepository } from '../../sheets/Attendance/Attendance.repository.js'
+import { createStaffService } from '../staff/staff.service.js'
 
 type Repository = Pick<ReturnType<typeof getAttendanceRepository>, 'read' | 'append' | 'update'>
 type Create = z.infer<typeof attendanceApiContract.request.create>
@@ -46,6 +47,7 @@ export class AttendanceService {
   constructor(
     private readonly getRepository: () => Repository = getAttendanceRepository,
     private readonly now: () => Date = () => new Date(),
+    private readonly readAssistantIds: () => Promise<ReadonlySet<string>> = () => createStaffService().listAssistantIds(),
   ) {}
 
   async list(query: unknown) {
@@ -102,8 +104,12 @@ export class AttendanceService {
     if (actor.role !== 'admin') throw ApiError.forbidden('Attendance administration requires an admin')
   }
 
-  private async activeRows() {
-    return (await this.getRepository().read()).filter((row) => !row.deleted_at)
+  private async activeRows(targetStaffId?: string) {
+    const [rows, assistants] = await Promise.all([this.getRepository().read(), this.readAssistantIds()])
+    if (targetStaffId !== undefined && assistants.has(targetStaffId)) {
+      throw ApiError.forbidden('Assistants cannot have attendance records')
+    }
+    return rows.filter((row) => !row.deleted_at && !assistants.has(row.staff_id))
   }
 
   private findRow(rows: AttendanceRow[], id: string): AttendanceRow {
@@ -113,7 +119,7 @@ export class AttendanceService {
   }
 
   private async createRow(body: Create, actorId: string) {
-    this.checkRules(body, await this.activeRows())
+    this.checkRules(body, await this.activeRows(body.staffId))
     return toApi(await this.getRepository().append({
       id: generateShortId(), staff_id: body.staffId, work_date: body.workDate, status: body.status,
       notes: body.notes ?? null, created_by: actorId,

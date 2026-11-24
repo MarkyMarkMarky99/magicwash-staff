@@ -6,6 +6,7 @@ import type { jobTicketsRowSchema } from '../../../../../server/sheets/JobTicket
 import type { workTransactionsRowSchema } from '../../../../../server/sheets/WorkTransactions/WorkTransactions.db-contract.js'
 import { WriteRejectedError, WriteCommittedUnreadableError } from '../../../../../server/shared/repositories/sheets-api.client.js'
 import { ApiError } from '../../../../../server/shared/http/api-error.js'
+import { WorkTransactionService } from '../../../../../server/modules/work-transactions/work-transaction.service.js'
 
 type Ticket = z.infer<typeof jobTicketsRowSchema>
 type Transaction = z.infer<typeof workTransactionsRowSchema>
@@ -156,4 +157,19 @@ for (const change of [{ reason: '' }, { reason: 'line\nbreak' }, { ticketIds: []
   await assert.rejects(run(invalid, { ...payload, ...change }), error => error instanceof ApiError && error.status === 422)
 }
 assert.equal(invalid.reads, 0)
+
+const secretaryReopen = setup([ticket('t1')], [{ ...earn('e1'), created_at: '2026-11-17 09:00:00' }])
+await assert.rejects(secretaryReopen.service.reopen(payload, 'AI-owner',
+  { staffId: 'owner', role: 'staff', departments: ['Ironing'] }), { status: 403 })
+assert.equal(secretaryReopen.reads, 0)
+assert.equal((await secretaryReopen.service.reopen(payload, 'AI-owner',
+  { staffId: 'owner', role: 'staff', departments: ['Washing'] })).kind, 'completed')
+assert.equal(secretaryReopen.tickets[0]?.updated_by, 'AI-owner')
+assert.match(secretaryReopen.tickets[0]!.notes!, /AI-owner: redo stain$/)
+secretaryReopen.transactions.at(-1)!.created_at = '2026-11-17 10:04:05'
+const scores = await new WorkTransactionService(() => ({ read: async () => secretaryReopen.transactions }))
+  .list({ from: '2026-11-17', to: '2026-11-17' })
+assert.equal(scores.at(-1)?.type, 'VOID')
+assert.equal(scores.at(-1)?.createdBy, 'AI-owner')
+assert.equal(scores.at(-1)?.staffId, 'A')
 console.log('job-ticket-reopen.dry-test: OK')

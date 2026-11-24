@@ -9,7 +9,8 @@ time it is shown (the endpoint is in `NEVER_CACHE`; a new Bangkok day moves the 
 computes everything in `src/features/staff/utils/staff-performance.ts`. Until that read succeeds
 the results area shows a loading line or the error with Retry, never empty results. Minutes and job counts
 include correction rows: a VOID lowers both, an ADJUSTMENT changes minutes only. The name and
-details come from the prefetched staff list.
+details come from the prefetched staff list. Daily and weekly rankings exclude assistants using
+the credited StaffId. A secretary's reversal of a human award still counts against the original recipient.
 
 The member's departments show as small chips under the subtitle (same English labels as the task rows; nothing renders when there are none).
 

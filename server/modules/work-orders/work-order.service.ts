@@ -30,6 +30,7 @@ import { getStaffList, type StaffMember } from '../../shared/auth/staff-list.js'
 import { getWorkTransactionsRepository } from '../../sheets/WorkTransactions/WorkTransactions.repository.js'
 import { workTransactionsRowSchema } from '../../sheets/WorkTransactions/WorkTransactions.db-contract.js'
 import { formatBangkokTimestamp } from '../../shared/utils/bangkok-timestamp.js'
+import { ApiError } from '../../shared/http/api-error.js'
 import { generateShortId } from '../../shared/utils/id.js'
 import {
   orderFormFieldMap,
@@ -304,7 +305,7 @@ export class WorkOrderService extends BaseCrudService<
     }
   }
 
-  override async update(id: string, payload: unknown): Promise<WorkOrderUpdateResponse> {
+  override async update(id: string, payload: unknown, options?: { reportCascadeFailure: boolean }): Promise<WorkOrderUpdateResponse> {
     const updatedOrder = await super.update(id, payload)
     const request = parseOrThrow(workOrderApiContract.request.update, payload)
     const emptyProvisioning = {
@@ -337,6 +338,9 @@ export class WorkOrderService extends BaseCrudService<
           if (updates.length > 0) await repository.updateMany(updates)
         } catch (error) {
           console.error('Failed to close open tickets for completed order', error)
+          if (options?.reportCascadeFailure) {
+            throw ApiError.internal('Order completed, but job ticket completion could not be confirmed', { orderId: updatedOrder.orderId })
+          }
         }
       }
       return { ...updatedOrder, ticketProvisioning: emptyProvisioning }

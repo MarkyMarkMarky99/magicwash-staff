@@ -2,7 +2,7 @@
 
 A Google account that is not on the `Staff` allow-list registers itself, then waits for an admin to approve it. Admins approve and maintain staff from a list. There is no self-edit after registration: only admins change a staff row.
 
-Backend contract: `contracts/staff/staff-api.schema.ts`. Routes: `GET /api/staff/me`, `POST /api/staff`, authenticated `GET /api/staff`, and admin-only `GET /api/staff/:staffId`, `PATCH /api/staff/:staffId`. The authenticated list returns every staff profile, including pending/inactive rows. Invalid or missing authentication returns 401. The app prefetches it at load to map StaffIds to names. All staff GETs bypass the response cache (`/api/staff` is in `NEVER_CACHE`), so an approval is visible on the next read.
+Backend contract: `contracts/staff/staff-api.schema.ts`. Routes: `GET /api/staff/me`, `POST /api/staff`, authenticated `GET /api/staff`, and admin-only `GET /api/staff/:staffId`, `PATCH /api/staff/:staffId`. The authenticated list returns employee and device profiles, including pending and inactive rows. Invalid or missing authentication returns 401. The app prefetches the roster and directory at startup. All staff GETs bypass the response cache (`/api/staff` is in `NEVER_CACHE`), so an approval is visible on the next read.
 
 ## Departments and directory
 
@@ -16,9 +16,10 @@ values and stores unique values in enum order, joined by a comma and space (for 
 `Washing, Ironing`). An empty array clears the cell. A PATCH that supplies departments before
 the column exists returns 409 before writing any fields. Registration starts with `departments: []`.
 
-`GET /api/staff/directory` is available to signed-in staff of any role and to the AI service key.
-It returns `{ staffId, name, role, active, departments }` for each row included in the staff list.
-The AI integration can use role, active status, and departments to select eligible staff.
+`GET /api/staff/directory` is available to signed-in staff of any role, the AI service key, and
+authenticated secretaries. It returns `{ staffId, name, role, active, departments }` for roster
+members. Staff and secretaries also receive active and inactive assistants for audit history.
+The literal AI directory supplies assignment recipients and excludes assistants.
 
 ## Login states
 

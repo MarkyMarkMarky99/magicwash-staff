@@ -88,6 +88,15 @@ export const AGENTS: AgentInfo[] = [
     suggestions: [],
     roles: ['admin', 'staff'],
   },
+  {
+    id: 'secretary',
+    name: AGENT_DISPLAY_NAMES['secretary'],
+    role: 'My secretary',
+    description: 'Your own secretary: hands department and appointment work to helpers and checks the result',
+    greeting: 'สวัสดีค่ะ หนูเป็นเลขาส่วนตัวของคุณ ถามงานแผนก นัดหมาย หรือสั่งปิดงานได้เลยค่ะ',
+    suggestions: [],
+    roles: ['admin'],
+  },
 ]
 
 export function agentVisibleToRole(agent: AgentInfo, role: StaffRole | null): boolean {

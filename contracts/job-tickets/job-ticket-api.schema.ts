@@ -66,27 +66,48 @@ export const jobTicketStartOrderRequestSchema = z.object({
   scannedBy: z.string().trim().min(1),
 })
 
+const jobTicketCloseDepartmentSchema = z.enum(['Washing', 'DryCleaning', 'Ironing', 'Packaging', 'Logistics'])
+
 export const jobTicketCompleteOrderRequestSchema = z.object({
   orderId: z.string().trim().min(1),
-  department: z.enum(['Washing', 'DryCleaning', 'Ironing', 'Packaging', 'Logistics']),
+  department: jobTicketCloseDepartmentSchema,
+})
+
+export const jobTicketCompleteOrdersRequestSchema = z.object({
+  department: jobTicketCloseDepartmentSchema,
+  orderIds: z.array(z.string().trim().min(1)).min(1).max(200)
+    .refine(orderIds => new Set(orderIds).size === orderIds.length, 'Order IDs must be unique'),
+}).strict()
+
+const jobTicketCompletedSchema = z.object({
+  ticketId: z.string(),
+  status: z.literal('Completed'),
+  startedAt: z.string(),
+  startedBy: z.string().nullable(),
+  completedAt: z.string(),
+})
+
+const jobTicketCloseWriteFailedSchema = z.object({
+  kind: z.literal('write_failed'),
+  certainty: z.enum(['rejected', 'unknown']),
 })
 
 export const jobTicketCompleteOrderResponseSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('completed'),
-    completed: z.array(z.object({
-      ticketId: z.string(),
-      status: z.literal('Completed'),
-      startedAt: z.string(),
-      startedBy: z.string().nullable(),
-      completedAt: z.string(),
-    })),
+    completed: z.array(jobTicketCompletedSchema),
     scannedBy: z.string(),
   }),
+  jobTicketCloseWriteFailedSchema,
+])
+
+export const jobTicketCompleteOrdersResponseSchema = z.discriminatedUnion('kind', [
   z.object({
-    kind: z.literal('write_failed'),
-    certainty: z.enum(['rejected', 'unknown']),
+    kind: z.literal('completed'),
+    scannedBy: z.string(),
+    results: z.array(z.object({ orderId: z.string(), completed: z.array(jobTicketCompletedSchema) })),
   }),
+  jobTicketCloseWriteFailedSchema,
 ])
 
 export const jobTicketReopenRequestSchema = z.object({

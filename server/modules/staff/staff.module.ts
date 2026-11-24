@@ -28,7 +28,11 @@ export function createStaffRoutes(service: StaffService): GatewayModuleRoutes {
       GET: async (req) => {
         if (req.params.id === 'directory') {
           if (!req.staff) throw ApiError.unauthorized()
-          return ok(await service.listDirectory())
+          const directory = await service.listDirectory()
+          // The literal AI directory feeds the legacy assignment recipient list.
+          return ok(req.staff.staffId.trim().toUpperCase() === 'AI'
+            ? directory.filter((row) => row.role !== 'assistant')
+            : directory)
         }
         if (req.params.id === 'me') return ok(await service.me(requireIdentity(req)))
         requireAdmin(req)

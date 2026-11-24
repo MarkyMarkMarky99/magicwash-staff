@@ -104,10 +104,11 @@ The unwrapped response is `completed` with HTTP 200, or `write_failed` with HTTP
 
 ## `POST /api/job-tickets/complete-order`
 
-Admin or AI department closure accepts `{ orderId, department }`, with a trimmed nonempty order ID
-and Washing, DryCleaning, Ironing, Packaging, or Logistics. Non-admin callers receive 403 before
-any service read or write. The scan and update actor is always `req.staff.staffId`; request-body
-actors are ignored.
+Department closure accepts `{ orderId, department }`, with a trimmed nonempty order ID and
+Washing, DryCleaning, Ironing, Packaging, or Logistics. Admins can close tickets in any of those
+departments. The legacy `AI` actor can close only Washing and Ironing tickets. A secretary may
+close tickets for an admin owner or a staff owner assigned to the requested department. The scan
+and update actor is always `req.staff.staffId`. The single-order service ignores request-body actors.
 
 One `where order_id` read selects non-deleted Pending and In Progress tickets belonging to that
 order and department. The department list and this action share `isDepartmentWorkTicket`:
@@ -127,13 +128,29 @@ completed entry contains `ticketId`, `status: 'Completed'`, `startedAt`, nullabl
 `{ kind: 'write_failed', certainty }`, with HTTP 502 for rejected and HTTP 500 for unknown
 persistence. Failed responses do not claim closed tickets.
 
+## `POST /api/job-tickets/complete-orders`
+
+Batch department closure accepts only `department` and `orderIds`. Supply 1 to 200 nonempty
+string IDs that are unique after trimming. The batch uses the same departments, permissions,
+ticket selection, and audit actor as single-order closure.
+
+The service reads JobTickets once and submits all eligible tickets in one `updateMany` call.
+It skips earlier-step gating and awards no score. A batch with no eligible tickets makes no write.
+
+The unwrapped HTTP 200 response contains `kind` set to `completed`, `scannedBy`, and `results`.
+Each result contains the `orderId` and a `completed` array with the same fields as single-order
+closure. Results follow the request order, including an empty array for each unknown order or
+order without eligible tickets. A write failure returns one `write_failed` response with `certainty`
+for the whole batch. Rejected writes return HTTP 502 and uncertain writes return HTTP 500.
+
 ## `POST /api/job-tickets/reopen`
 
 Admin or StaffId `AI` accepts `{ orderId, department, ticketIds, reason }`. AI may close or reopen
 only Washing and Ironing; admins retain all existing complete-order departments and may reopen
 any department. Actors come from the authenticated session, never the body. The service key also
 allows exactly GET department-work, GET the paginated job-ticket collection (including its existing
-orderId and laundryItemId filters), GET the work-order collection, and POST complete-order/reopen.
+orderId and laundryItemId filters), GET the work-order collection, and POST complete-order,
+complete-orders, and reopen.
 It grants no job-ticket detail reads or other job-ticket writes.
 
 Reopen requires a trimmed nonempty orderId, a JobTicket department, one or more nonempty ticket IDs

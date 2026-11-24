@@ -7,6 +7,7 @@ import { API_ERROR_CODES } from '../../../contracts/shared/api.schema.js'
 import { ApiError } from './api-error.js'
 import type { ApiHandlerRequest, ApiQueryParams } from './api-handler.js'
 import { errorBody, type ApiResult, writeResult } from './response.js'
+import { authorizeSecretary, resolveSecretary, secretaryOwnerId } from './secretary-policy.js'
 import type { GatewayModuleRoutes, RouteLoader } from './gateway.types.js'
 
 type RouteRegistry = Record<string, RouteLoader>
@@ -31,7 +32,16 @@ export class ApiGateway {
   }
 
   private dispatch = async (req: VercelRequest): Promise<ApiResult> => {
-    const segments = parsePath(req)
+    const ownerId = secretaryOwnerId(req.headers)
+    let segments: string[]
+    try {
+      segments = parsePath(req)
+    } catch (error) {
+      if (ownerId !== undefined) throw ApiError.forbidden()
+      throw error
+    }
+    const secretary = ownerId === undefined ? undefined : await resolveSecretary(ownerId)
+    if (secretary) authorizeSecretary(toApiRequest(req, segments, secretary), segments, secretary.onBehalfOf)
     if (segments.length === 0 || segments.length > 3) {
       throw ApiError.notFound('Route not found')
     }
@@ -50,14 +60,14 @@ export class ApiGateway {
       && (req.body?.status !== 'COMPLETED' || Object.keys(req.body ?? {}).some((field) => field !== 'status' && field !== 'updatedBy'))) {
       throw ApiError.forbidden('AI service key may only set work order status to COMPLETED')
     }
-    const identity = moduleName === 'staff' && !hasAiServiceKey ? await this.authenticateIdentity(req) : undefined
-    let staff = hasAiServiceKey
+    const identity = moduleName === 'staff' && !hasAiServiceKey && !secretary ? await this.authenticateIdentity(req) : undefined
+    let staff = secretary ?? (hasAiServiceKey
       ? await findStaffById('AI')
       : moduleName === 'staff'
         ? identity?.staff
         : isPublicModule(moduleName) || hasInvoicePrintKey(req, segments)
           ? undefined
-          : await this.authenticate(req)
+          : await this.authenticate(req))
     if (hasAiServiceKey && !staff) throw ApiError.forbidden('AI is not an active staff member')
     if (staff?.role === 'device' && moduleName !== 'auth' && moduleName !== 'staff') {
       const operatorId = req.headers['x-operator-id']
@@ -112,7 +122,7 @@ function hasAiRouteServiceKey(req: VercelRequest, segments: string[]): boolean {
     ))
     || (moduleName === 'job-tickets' && (
       (req.method === 'GET' && (segments.length === 1 || (segments.length === 2 && segments[1] === 'department-work')))
-      || (req.method === 'POST' && segments.length === 2 && ['complete-order', 'reopen'].includes(segments[1]!))
+      || (req.method === 'POST' && segments.length === 2 && ['complete-order', 'complete-orders', 'reopen'].includes(segments[1]!))
     ))
     || (moduleName === 'work-orders' && (
       (req.method === 'GET' && segments.length === 1)

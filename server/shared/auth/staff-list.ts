@@ -1,10 +1,20 @@
 import { SheetsApiClient, type SheetsApiValues } from '../repositories/sheets-api.client.js'
+import type { z } from 'zod'
+import { staffReadRoleSchema } from '../../../contracts/staff/staff-api.schema.js'
+import type { jobTicketDepartmentSchema } from '../../../contracts/job-tickets/job-ticket-api.schema.js'
+
+export interface SecretaryOwner {
+  staffId: string
+  role: 'admin' | 'staff'
+  departments: readonly z.infer<typeof jobTicketDepartmentSchema>[]
+}
 
 export interface StaffMember {
   staffId: string
   email: string
   name: string
-  role: 'admin' | 'staff' | 'device'
+  role: z.infer<typeof staffReadRoleSchema>
+  onBehalfOf?: SecretaryOwner
 }
 
 const CACHE_TTL_MS = 60_000
@@ -29,11 +39,11 @@ export function parseStaffList(rows: SheetsApiValues): Map<string, StaffMember> 
     const staffId = String(row[staffIdColumn] ?? '').trim()
     const email = String(row[emailColumn] ?? '').trim()
     const name = String(row[nameColumn] ?? '').trim()
-    const role = String(row[roleColumn] ?? '').trim().toLowerCase()
+    const role = staffReadRoleSchema.safeParse(String(row[roleColumn] ?? '').trim().toLowerCase())
     const active = row[activeColumn]
-    if (!email || (role !== 'admin' && role !== 'staff' && role !== 'device')) continue
+    if (!email || !role.success) continue
     if (active !== true && !(typeof active === 'string' && active.trim().toLowerCase() === 'true')) continue
-    members.set(email.toLowerCase(), { staffId, email, name, role })
+    members.set(email.toLowerCase(), { staffId, email, name, role: role.data })
   }
   return members
 }
@@ -42,7 +52,12 @@ async function loadStaffList(): Promise<Map<string, StaffMember>> {
   const spreadsheetId = process.env.STAFF_SPREADSHEET_ID
   if (!spreadsheetId?.trim()) throw new Error('STAFF_SPREADSHEET_ID is not set')
   const client = new SheetsApiClient({ spreadsheetId, sheetName: 'Staff' })
-  return parseStaffList(await client.readRange('A:I', { valueRenderOption: 'UNFORMATTED_VALUE' }))
+  const members = parseStaffList(await client.readRange('A:I', { valueRenderOption: 'UNFORMATTED_VALUE' }))
+  // Authentication, card resolution and work eligibility share this active map.
+  for (const [email, member] of members) {
+    if (member.role === 'assistant') members.delete(email)
+  }
+  return members
 }
 
 export function getStaffList(): Promise<Map<string, StaffMember>> {

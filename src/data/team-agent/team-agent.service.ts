@@ -43,9 +43,14 @@ export function setTargetName(staffId: string, name: string): void {
   if (name.trim()) targetNames.set(staffId, name.trim())
 }
 
+function agentBaseUrl(agentId: TeamAgentId): string {
+  const baseUrl = gatewayBaseUrl()
+  return agentId === 'secretary' ? `${baseUrl.replace(/\/+$/, '')}/secretary` : baseUrl
+}
+
 function access(agentId: TeamAgentId, staffId?: string): TeamAgentAccess {
   const staffName = staffId ? targetNames.get(staffId) : undefined
-  return { agentId, baseUrl: gatewayBaseUrl(), getToken: aiGatewayToken, ...(staffId ? { staffId } : {}), ...(staffName ? { staffName } : {}) }
+  return { agentId, baseUrl: agentBaseUrl(agentId), getToken: aiGatewayToken, ...(staffId ? { staffId } : {}), ...(staffName ? { staffName } : {}) }
 }
 
 function gatewayAccess(): TeamAgentGatewayAccess {

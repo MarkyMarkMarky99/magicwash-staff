@@ -16,7 +16,7 @@ import { ApiHandler } from '../../shared/http/api-handler.js'
 import type { GatewayModuleRoutes } from '../../shared/http/gateway.types.js'
 import { ok, type ApiResult } from '../../shared/http/response.js'
 import { JobTicketAdvanceService } from './job-ticket-advance.service.js'
-import { JobTicketCompleteService, type JobTicketCompleteOrderResponse } from './job-ticket-complete.service.js'
+import { JobTicketCompleteService, type JobTicketCompleteOrderResponse, type JobTicketCompleteOrdersResponse } from './job-ticket-complete.service.js'
 import { JobTicketReopenService, type JobTicketReopenResponse } from './job-ticket-reopen.service.js'
 import { JobTicketStartService } from './job-ticket-start.service.js'
 import { JobTicketDepartmentWorkService } from './job-ticket-department-work.service.js'
@@ -77,17 +77,21 @@ export const jobTicketRoutes: GatewayModuleRoutes = {
       return crudRoutes.item!.handleRequest(req)
     },
     PATCH: async (req) => crudRoutes.item!.handleRequest(req),
-    POST: async (req): Promise<ApiResult<JobTicketStartOrderResponse | JobTicketAdvanceResponse | JobTicketCompleteOrderResponse | JobTicketReopenResponse>> => {
+    POST: async (req): Promise<ApiResult<JobTicketStartOrderResponse | JobTicketAdvanceResponse | JobTicketCompleteOrderResponse | JobTicketCompleteOrdersResponse | JobTicketReopenResponse>> => {
       if (req.params.id === 'reopen') {
-        if (!req.staff || (req.staff.role !== 'admin' && req.staff.staffId !== 'AI')) throw ApiError.forbidden()
+        if (!req.staff || (req.staff.role !== 'admin' && req.staff.staffId !== 'AI' && !req.staff.onBehalfOf)) throw ApiError.forbidden()
         const actor = req.staff.staffId
-        const response = await withStockTakeFreezeGuard(() => jobTicketReopenService.reopen(req.body, actor))
+        const owner = req.staff.onBehalfOf
+        const response = await withStockTakeFreezeGuard(() => jobTicketReopenService.reopen(req.body, actor, owner))
         return { status: response.kind === 'completed' ? 200 : response.certainty === 'rejected' ? 502 : 500, body: response }
       }
-      if (req.params.id === 'complete-order') {
-        if (!req.staff || (req.staff.role !== 'admin' && req.staff.staffId !== 'AI')) throw ApiError.forbidden()
+      if (req.params.id === 'complete-order' || req.params.id === 'complete-orders') {
+        if (!req.staff || (req.staff.role !== 'admin' && req.staff.staffId !== 'AI' && !req.staff.onBehalfOf)) throw ApiError.forbidden()
         const actor = req.staff.staffId
-        const response = await withStockTakeFreezeGuard(() => jobTicketCompleteService.completeOrder(req.body, actor))
+        const owner = req.staff.onBehalfOf
+        const response = req.params.id === 'complete-order'
+          ? await withStockTakeFreezeGuard(() => jobTicketCompleteService.completeOrder(req.body, actor, owner))
+          : await withStockTakeFreezeGuard(() => jobTicketCompleteService.completeOrders(req.body, actor, owner))
         return { status: response.kind === 'completed' ? 200 : response.certainty === 'rejected' ? 502 : 500, body: response }
       }
       if (req.params.id === 'start-order') {

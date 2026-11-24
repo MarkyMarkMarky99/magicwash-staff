@@ -14,6 +14,8 @@
   - Need 3–5 more real slips (other branches, harder handwriting) for `scripts/eval-read-slip.js`.
   - Price groups KLINIQ, KLINIQUE, MAISON, MAISON_GAYSORN, SOULTEL live (2026-10-21) on the shared default slip prompt; only blank forms tested, need filled slips (esp. KLINIQ, whose LAUNDRY COUNT sits beside SPA COUNT).
 - **Agent chat (`/agents`)** — pending items in `.user/memory/agent-chat.md`; prod chats need MagicwashAI running on this PC.
+  - Secretary (admin-only trial, plan `docs/plans/personal-secretary.md`): batch `close-orders` untested on real tickets; no push notifications yet.
+  - Each new secretary owner needs a manual Codex login in its own home (see MagicwashAI `.env.secretary.example`).
 - **Corporate count-sheet order** — see `docs/features/orders/corporate-order-form.md`
   - Slip-photo upload on Save not yet tried in a real browser.
   - Owner: update G Drive `PriceList.json` description (price-0 rows may be active for CRYO).

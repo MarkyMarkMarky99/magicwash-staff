@@ -3,6 +3,7 @@ import { jobTicketDepartmentSchema } from '../job-tickets/job-ticket-api.schema.
 import type { ModuleApiContract } from '../shared/module-api-contract.js'
 
 export const staffRoleSchema = z.enum(['admin', 'staff', 'device'])
+export const staffReadRoleSchema = z.enum([...staffRoleSchema.options, 'assistant'])
 
 const startDateSchema = z.union([z.string().date(), z.literal('')])
 const requiredTextSchema = z.string().trim().min(1)
@@ -13,7 +14,7 @@ export const staffSchema = z.object({
   name: z.string(),
   phone: z.string(),
   address: z.string(),
-  role: staffRoleSchema.nullable(),
+  role: staffReadRoleSchema.nullable(),
   position: z.string(),
   startDate: startDateSchema,
   departments: z.array(jobTicketDepartmentSchema),

@@ -40,13 +40,17 @@ const LEGACY_APPOINTMENTS_KEY = 'appointments-agent-last-seen-event'
 const CHAT_HISTORY_LIMIT = 200
 const POLL_LIMIT = 500
 
+function isPerStaffAgent(agentId: TeamAgentId): boolean {
+  return agentId === 'personal' || agentId === 'secretary'
+}
+
 function storeId(agentId: TeamAgentId, target: string | undefined): string {
-  return agentId === 'personal' ? `team-agent-personal:${target ?? 'self'}` : `team-agent-${agentId}`
+  return isPerStaffAgent(agentId) ? `team-agent-${agentId}:${target ?? 'self'}` : `team-agent-${agentId}`
 }
 
 function lastSeenKey(agentId: TeamAgentId, target: string | undefined, viewer: string | null): string | null {
-  if (agentId !== 'personal') return `team-agent-last-seen-event:${agentId}`
-  return viewer === null ? null : `team-agent-last-seen-event:personal:${viewer}:${target ?? 'self'}`
+  if (!isPerStaffAgent(agentId)) return `team-agent-last-seen-event:${agentId}`
+  return viewer === null ? null : `team-agent-last-seen-event:${agentId}:${viewer}:${target ?? 'self'}`
 }
 
 function readLastSeen(agentId: TeamAgentId, target: string | undefined, viewer: string | null): string | null {

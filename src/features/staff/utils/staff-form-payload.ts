@@ -22,7 +22,7 @@ export function staffFormFromRow(row: StaffDto): StaffFormState {
     name: row.name,
     phone: row.phone,
     address: row.address,
-    role: row.role ?? '',
+    role: row.role === 'assistant' ? '' : row.role ?? '',
     position: row.position,
     startDate: row.startDate,
     departments: [...row.departments],

@@ -101,7 +101,7 @@ On this laundry route the key permits only `itemId` and optional `updatedBy` (ot
 The same key also permits collection/item appointments GET, collection POST, item PATCH, and
 collection/item customers GET; job-ticket collection/department-work GET; work-order collection GET; work-transaction collection GET;
 staff directory GET (exactly `GET /api/staff/directory`);
-and job-ticket complete-order/reopen POST. Job-ticket AI writes are limited to Washing and Ironing.
+and job-ticket complete-order, complete-orders, and reopen POST. Job-ticket AI writes are limited to Washing and Ironing.
 All service-key requests resolve their actor via `findStaffById('AI')`
 from the active Staff allowlist; a missing or inactive AI row returns 403. Actor fields are replaced
 with that row's StaffId. Other methods and routes retain their normal authentication.
@@ -110,8 +110,8 @@ stamp `created_at` on append and `updated_at` on update using Bangkok `yyyy-MM-d
 Item GET/PATCH validate the same tag format and return 404 for missing rows. There is no delete
 endpoint. Job-ticket orchestration remains outside this module.
 
-Appointments retain generic CRUD behind an appointment-specific request boundary. For `req.staff`
-with StaffId AI, create accepts Bangkok today through today+13 inclusive, excludes Tuesdays, and
+Appointments retain generic CRUD behind an appointment-specific request boundary. For the literal
+StaffId AI and for secretary requests, create accepts Bangkok today through today+13 inclusive, excludes Tuesdays, and
 requires today's slot start to be strictly later than the current Bangkok minute. PATCH changing
 the stored date accepts tomorrow through today+14 inclusive, excluding Tuesdays (shop closed). Unchanged dates
 (compared after sheet-date normalization), cancellations (`status: CANCELLED`), and PATCHes without
@@ -314,7 +314,7 @@ JSON, schema, and count-mismatch failures and redact the print server URL and Ac
 
 ## Environment and external state
 
-The gateway leaves `portal` and `delivery-tracking` public. Outside the AI service-key exception for the directory,
+The gateway leaves `portal` and `delivery-tracking` public. Outside the AI and secretary key exceptions for the directory,
 the `staff` module verifies identity through
 `authenticateIdentity`; missing or invalid Firebase ID tokens in the `Authorization: Bearer`
 header return 401. Token verification uses Firebase's public keys for `FIREBASE_PROJECT_ID` and requires
@@ -353,8 +353,8 @@ OrderForm tab once and aggregates it in memory, including per-day detail in `day
 | --- | --- | --- |
 | `GET /api/staff/me` | Valid token | Own row including pending/inactive rows; 404 if absent |
 | `POST /api/staff` | Valid token | Register own verified email; 201, or 409 for any existing email |
-| `GET /api/staff` | Approved staff; verified identities without an approved StaffMember return 401 | Every row in the existing list response, with all columns and no role/active filtering; rows with nonempty Email include blank StaffIds |
-| `GET /api/staff/directory` | Approved staff of any role or AI service key | The same rows projected to `{ staffId, name, role, active, departments }` |
+| `GET /api/staff` | Approved staff; verified identities without an approved StaffMember return 401 | All employee and device rows with nonempty Email, including pending and inactive profiles and legacy blank StaffIds |
+| `GET /api/staff/directory` | Approved staff, AI service key, or secretary proxy key with assistant identity | Rows projected to `{ staffId, name, role, active, departments }`. Staff and secretaries receive active and inactive assistants for history names. The literal AI directory supplies assignment recipients and excludes assistants. |
 | `GET /api/staff/:staffId` | Active admin | Staff row, or 404 |
 | `PATCH /api/staff/:staffId` | Active admin | Updated row, or 404; own role/active fields return 409 |
 
@@ -377,6 +377,43 @@ remain visible but cannot be addressed by an empty ID. Duplicate email lookup is
 case-insensitive; Sheets provides no atomic unique-email constraint across concurrent requests.
 See [Staff registration and management](../../features/staff/registration.md) for department mapping
 and missing-column behavior.
+
+### Secretary
+
+The secretary has its own Staff row with the exact StaffId `AI-<owner StaffId>`, a display name,
+role `assistant`, Active true, and a unique non-login Email. The Vercel gateway compares
+`x-secretary-key` with the server-only `SECRETARY_PROXY_KEY` using a timing-safe comparison
+and resolves `x-assistant-id` against the Staff sheet on every request. An unset or blank key
+disables secretary access. The assistant and its admin or staff owner must both be active.
+The owner's current role and Departments determine permissions. Audit fields record the
+secretary's own StaffId. Combining these headers with another authentication method, sending
+`x-assistant-id` with the legacy service key, or failing identity resolution returns 403.
+
+The gateway checks the following allowlist before loading the route module. Bodies contain only
+the fields listed for that operation. The server adds the audit actor.
+
+| Request | Allowed inputs and owner permissions |
+| --- | --- |
+| GET `staff/directory`, `customers/:id`, `appointments/:id` | Either owner role |
+| GET `customers` | Either role, with `keyword`, `page`, `perPage` |
+| GET `appointments` | Either role, with `appointmentDate`, `page`, `perPage` |
+| GET `work-orders` | Either role, with `customerId`, `page`, `perPage`, `sortOrder` |
+| GET `job-tickets` | Either role, with `orderId` or `laundryItemId`, plus `page`, `perPage`, `sortBy`, `sortOrder` |
+| GET `job-tickets/department-work` | Either role, with `department` |
+| POST `job-tickets/complete-order` or `job-tickets/reopen` | Admin or staff assigned to the requested department. Both take `orderId` and `department`. Reopen also requires `reason` and `ticketIds`. |
+| POST `job-tickets/complete-orders` | Admin or staff assigned to the requested department. Takes `department` and `orderIds` with 1 to 200 unique order IDs. |
+| POST `appointments` | Admin. Required fields are `customerId`, `customerName`, `customerCode`, `phone`, `address`, `location`, `appointmentType`, `appointmentDate`, and `timeSlot`. Optional fields are `notes`, `vehicle`, `pickupOrderId`, and `deliveryOrderId`. |
+| PATCH `appointments/:id` | Admin can reschedule with `appointmentDate`, `timeSlot`, and `status` set to `PENDING`, or cancel with `status` set to `CANCELLED`. Either owner role can complete with `status` set to `COMPLETED`. |
+| PATCH `work-orders/:id` | Either owner role, with only `status` set to `COMPLETED`. |
+
+Secretary appointment completion can cascade to the appointment's existing delivery order.
+A failure to confirm a downstream order or ticket update after the primary write returns a
+partial-failure error identifying the affected records. Secretary ticket close awards no score.
+A reopen VOID records the secretary as creator and credits the original EARN subject.
+
+Assistant rows are excluded from Firebase identity, staff cards, device operators, employee
+rosters, attendance records and day-off conflicts, KPI rankings, and active staff eligibility
+for ticket provisioning and weight-photo checks.
 
 App startup, the route guard and the preloaded data are described in
 [App startup](../frontend/app-startup.md). Frontend writes record

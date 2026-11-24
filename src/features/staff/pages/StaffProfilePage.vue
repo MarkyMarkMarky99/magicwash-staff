@@ -102,7 +102,8 @@ const previousWeekMinutes = computed(() => dailyMinutes(rows.value, props.staffI
 const average = computed(() => averageWorkedDay(weekMinutes.value))
 
 const day = computed(() => summarizeDay(rows.value, props.staffId, selectedDay.value))
-const dayRanking = computed(() => rankStaff(rows.value, [selectedDay.value]))
+const rankingRows = computed(() => rows.value.filter((row) => !staffStore.isAssistant(row.staffId)))
+const dayRanking = computed(() => rankStaff(rankingRows.value, [selectedDay.value]))
 const dayRank = computed(() => dayRanking.value.findIndex((total) => total.staffId === props.staffId) + 1)
 
 const rangeLabel = computed(() => `Last 7 days · ${shortDate(week.value[0]!)} – ${shortDate(today.value)}`)
@@ -118,7 +119,7 @@ const previousWeekTotal = computed(() => previousWeekMinutes.value.reduce((sum, 
 const weekChange = computed(() => changePercent(weekTotal.value, previousWeekTotal.value))
 const bars = computed(() => weekBars(week.value, weekMinutes.value, today.value))
 const leaderboard = computed(() => {
-  const ranking = rankStaff(rows.value, week.value)
+  const ranking = rankStaff(rankingRows.value, week.value)
   const top = ranking[0]?.minutes ?? 1
   return ranking.map((total, index) => ({
     staffId: total.staffId,

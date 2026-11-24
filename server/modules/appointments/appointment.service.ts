@@ -91,7 +91,7 @@ export class AppointmentService extends BaseCrudService<
     this.generateAppointmentId = input.generateAppointmentId ?? defaultAppointmentId
   }
 
-  override async update(id: string, payload: unknown): Promise<AppointmentUpdateResponse> {
+  override async update(id: string, payload: unknown, options?: { reportCascadeFailure: boolean }): Promise<AppointmentUpdateResponse> {
     const appointment = await super.update(id, payload)
     const request = parseOrThrow(appointmentApiContract.request.update, payload)
     if (request.status === 'COMPLETED' && appointment.deliveryOrderId?.trim()
@@ -105,10 +105,15 @@ export class AppointmentService extends BaseCrudService<
             import('../work-orders/work-order.module.js'),
             import('../../shared/services/stock-take-freeze.js'),
           ])
-          await withStockTakeFreezeGuard(() => workOrderService.update(appointment.deliveryOrderId!, completion))
+          await withStockTakeFreezeGuard(() => workOrderService.update(appointment.deliveryOrderId!, completion, options))
         }
       } catch (error) {
         console.error('Failed to complete delivery order', error)
+        if (options?.reportCascadeFailure) {
+          throw ApiError.internal('Appointment completed, but linked order completion could not be confirmed', {
+            appointmentId: appointment.appointmentId, orderId: appointment.deliveryOrderId,
+          })
+        }
       }
     }
     return appointment

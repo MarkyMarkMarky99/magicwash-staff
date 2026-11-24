@@ -20,7 +20,7 @@ function row(id: string, staffId: string, date: string, status: AttendanceRow['s
     created_by: 'original', updated_at: null, updated_by: null, deleted_at: null, deleted_by: null,
   }
 }
-function setup(initial: AttendanceRow[] = []) {
+function setup(initial: AttendanceRow[] = [], assistants = new Set<string>()) {
   const rows = initial.map((value) => ({ ...value }))
   const writes: Partial<AttendanceRow>[] = []
   let reads = 0
@@ -38,7 +38,7 @@ function setup(initial: AttendanceRow[] = []) {
       Object.assign(saved, patch, { updated_at: timestamp })
       return { ...saved }
     },
-  }), () => new Date('2026-10-27T17:30:00Z')) // Already Oct 28 in Bangkok.
+  }), () => new Date('2026-10-27T17:30:00Z'), async () => assistants) // Already Oct 28 in Bangkok.
   return { service, rows, writes, readCount: () => reads, routes: createAttendanceRoutes(service) }
 }
 async function fails(action: () => Promise<unknown>, status: number, reason?: RegExp) {
@@ -123,6 +123,12 @@ assert.deepEqual((await listing.service.list({ week: '2026-11-01' })).map((value
 assert.deepEqual((await listing.service.list({ week: '2026-10-26' })).map((value) => value.id), ['sunday', 'leave', 'absent'])
 assert.deepEqual((await listing.service.list({ week: '2026-11-02' })).map((value) => value.id), ['monday'])
 
+const secretaryAttendance = setup([row('secretary', 'AI-staff', '2026-10-30')], new Set(['AI-staff']))
+assert.deepEqual(await secretaryAttendance.service.list({ week: '2026-10-30' }), [])
+await fails(() => secretaryAttendance.service.create({ staffId: 'AI-staff', workDate: '2026-10-30', status: 'LEAVE' }, admin), 403)
+await fails(() => secretaryAttendance.service.update('secretary', { notes: 'no' }, admin), 404)
+assert.equal((await secretaryAttendance.service.bookDayOff({ workDate: '2026-10-30' }, staff)).staffId, 'staff')
+
 // Self exclusion, null clearing, fixed staff identity and a released quota after status change.
 const edit = setup([row('self', 'staff', '2026-10-30')])
 const edited = await edit.service.update('self', { notes: 'personal' }, admin)
@@ -206,6 +212,7 @@ try {
   SheetsApiClient.prototype.readRange = async () => [
     ['Email', 'Name', 'Role', 'Active', 'StaffId'],
     ['admin@test', 'Scanned Admin', 'admin', true, 'scanned-admin'],
+    ['secretary@example.invalid', 'Secretary', 'assistant', true, 'AI-scanned-admin'],
   ]
   const shared = setup()
   const gateway = new ApiGateway({ attendance: async () => shared.routes }, async () => device)
@@ -216,6 +223,7 @@ try {
   assert.equal((await call('POST', '/day-off')).status, 403)
   assert.equal((await call('GET', '')).status, 200)
   assert.equal((await call('POST', '/day-off', 'scanned-admin')).status, 201)
+  assert.equal((await call('POST', '/day-off', 'AI-scanned-admin')).status, 403)
   assert.equal(shared.rows[0]!.staff_id, 'scanned-admin')
   assert.equal(shared.rows[0]!.created_by, 'scanned-admin')
   assert.equal((await call('POST', '', 'scanned-admin')).status, 403)

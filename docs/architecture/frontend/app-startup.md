@@ -38,7 +38,7 @@ read these stores instead of fetching their own copy.
 |---|---|---|---|
 | appointments (`appointment.store`) | `/api/appointments`: all appointments in one request, capped at 1,000 rows | the schedule, pending list and pending badge in the nav | an explicit refresh; writes upsert their returned row locally |
 | customers (`customer.store`) | `/api/customers` (all customers) | customer names and indexes on every page | whenever `/api/customers` is invalidated: Customer list pull-to-refresh, a customer write, the nav refresh control |
-| staff (`staff.store`) | `/api/staff` (all staff) | StaffId → name everywhere | Staff list pull-to-refresh, a page when not loaded yet, Retry; writes upsert locally |
+| staff (`staff.store`) | `/api/staff` and `/api/staff/directory` | Employee roster and StaffId → name lookup, including inactive assistants | Staff list pull-to-refresh, a page when not loaded yet, Retry; writes upsert locally |
 | price list (`price-list.store`) | `/api/price-list` | prices in order and invoice forms | a price-list write, or a forced reload |
 
 The Items catalog (`/api/items`) and wash programs (`/api/wash-programs`) are not preloaded. Pages

@@ -20,6 +20,8 @@ const rows: SheetsApiValue[][] = [
   ['admin@example.com', 'Admin', 'admin', true, 'admin-id', '', '', '', ''],
   ['inactive@example.com', 'Inactive', 'staff', false, 'inactive-id', '', '', '', 'not-a-date'],
   ['device@example.com', 'Device', 'device', true, 'device-id'],
+  ['secretary@example.invalid', 'Secretary Name', 'assistant', true, 'AI-worker-id'],
+  ['former-secretary@example.invalid', 'Previous Secretary', 'assistant', false, 'AI-inactive-id'],
 ]
 const writes: { url: string; body: Record<string, unknown> }[] = []
 const fetchImpl: typeof fetch = async (input, init) => {
@@ -159,14 +161,33 @@ assert.deepEqual(list[1]!.departments, ['Washing', 'Ironing'])
 assert.equal(list.find((row) => row.staffId === 'inactive-id')!.startDate, '')
 assert.equal(list.find((row) => row.staffId === 'inactive-id')!.active, false)
 assert.deepEqual(list.find((row) => row.staffId === newStaff.staffId), newStaff)
-const expectedDirectory = list.map(({ staffId, name, role, active, departments }) => ({
-  staffId, name, role, active, departments,
-}))
+const assistantDirectory = [
+  { staffId: 'AI-worker-id', name: 'Secretary Name', role: 'assistant', active: true, departments: [] },
+  { staffId: 'AI-inactive-id', name: 'Previous Secretary', role: 'assistant', active: false, departments: [] },
+]
+const expectedDirectory = [
+  ...list.slice(0, -1).map(({ staffId, name, role, active, departments }) => ({ staffId, name, role, active, departments })),
+  ...assistantDirectory,
+  { staffId: newStaff.staffId, name: newStaff.name, role: null, active: false, departments: [] },
+]
+assert.deepEqual(await service.listAssistantIds(), new Set(assistantDirectory.map(row => row.staffId)))
+for (const id of assistantDirectory.map(row => row.staffId)) {
+  assert.equal((await call('GET', `/api/staff/${id}`, 'admin@example.com')).status, 404)
+  assert.equal((await call('PATCH', `/api/staff/${id}`, 'admin@example.com', { role: 'staff' })).status, 404)
+}
+assert.equal((await call('GET', '/api/staff/me', 'secretary@example.invalid')).status, 404)
+assert.equal((await call('POST', '/api/staff', 'secretary@example.invalid', { name: 'A', phone: '0', address: 'Home' })).status, 409)
+assert.equal(updateStaffBodySchema.safeParse({ role: 'assistant' }).success, false)
 for (const email of ['admin@example.com', 'worker@example.com', 'device@example.com']) {
   const directory = await call('GET', '/api/staff/directory', email)
   assert.equal(directory.status, 200)
   assert.deepEqual(data(directory), expectedDirectory)
 }
+const legacyDirectory = await routes.item!.handleRequest({
+  method: 'GET', query: {}, headers: {}, params: { id: 'directory' }, body: undefined,
+  staff: { staffId: 'AI', role: 'staff', email: 'ai@example.com', name: 'AI' },
+})
+assert.deepEqual(data(legacyDirectory), expectedDirectory.filter((row) => row.role !== 'assistant'))
 assert.equal((await call('GET', '/api/staff/directory', 'new@example.com')).status, 401)
 assert.equal((await call('PATCH', '/api/staff/directory', 'admin@example.com', { name: 'Changed' })).status, 404)
 assert.equal((await call('GET', '/api/staff/missing', 'admin@example.com')).status, 404)

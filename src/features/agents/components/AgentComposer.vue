@@ -28,10 +28,10 @@ function onFiles(event: Event): void {
 }
 
 function onKeydown(event: KeyboardEvent): void {
-  if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && canSend.value) {
-    event.preventDefault()
-    emit('send')
-  }
+  // Enter sends; Shift+Enter adds a line. An open IME composition (Thai input) keeps Enter for the IME.
+  if (event.key !== 'Enter' || event.shiftKey || event.isComposing || event.keyCode === 229) return
+  event.preventDefault()
+  if (canSend.value) emit('send')
 }
 
 watch(() => props.text, () => void nextTick(fit), { immediate: true, flush: 'post' })
