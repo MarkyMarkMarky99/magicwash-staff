@@ -25,3 +25,27 @@ on the secretary-specific base URL `<gateway>/secretary` (GET reads, POST update
 `contracts/ai-gateway/secretary-api.schema.ts` and validate the response owner ID as well as shape.
 The frontend team-agent service supplies the same Firebase token and base URL used by secretary chat.
 See [Secretary settings](../features/agents/agent-chat.md#secretary-settings).
+
+## Direct chat and preferred language
+
+`shared/ai-gateway/tasks/direct-chat.ts` wraps the main gateway's `/direct` routes, with schemas in
+`contracts/ai-gateway/direct-chat-api.schema.ts`. Inbox is `{ conversations }`. Before-history uses
+message seqs and returns `highWater` and `readSeq`; after-history uses the journal cursor and
+returns `translationUpdates`, `nextAfter` and `hasMore`. These are separate response contracts.
+Translation states are `pending`, `done`, `unavailable`, `off`, with `to`, `text` and `same` when
+provided. Message sends use JSON `{ text, clientId }`, or FormData with JSON field `request` and
+repeated file field `images`. `callAiGatewayEndpoint` accepts FormData directly and leaves its
+Content-Type unset so the browser supplies the boundary; existing JSON callers retain their behavior.
+Image reads use `callAiGatewayBlob`. Read and translation retry calls use the direct-chat routes,
+never generic task history. Direct-chat timestamps preserve the upstream UTC ISO values.
+
+`shared/ai-gateway/tasks/preferences.ts` validates `GET /preferences?staffId=<id>` and
+`POST /preferences` with `{ staffId, language }`; both return `{ staffId, language }` and validate
+owner identity. Schemas are in `contracts/ai-gateway/preferences-api.schema.ts`. Frontend
+`src/data/preferences/` owns the service and store. The staff-page compatibility service still
+reads secretary settings for `codexReady`, but gets/saves language through main `/preferences`.
+Secretary enable/disable remains in the staff service.
+
+The direct-chat store owns only the inbox and one open thread, session/generation guards, retry
+payloads, polling and revocable image URLs. See [Direct chat](../features/agents/direct-chat.md)
+for exact UI/store/service APIs and verification commands. The visible DM page is currently a stub.

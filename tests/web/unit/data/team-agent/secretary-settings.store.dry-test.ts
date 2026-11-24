@@ -15,12 +15,17 @@ const previousFetch = globalThis.fetch
 globalThis.fetch = async (input, init) => {
   calls++
   const url = new URL(String(input))
-  assert.equal(url.pathname, '/secretary/settings')
+  assert.ok(['/secretary/settings', '/preferences'].includes(url.pathname))
   assert.equal(new Headers(init?.headers).get('Authorization'), 'Bearer firebase-token')
-  if (deferred) return new Promise<Response>(resolve => { response = resolve })
+  if (deferred && url.pathname === '/preferences') return new Promise<Response>(resolve => { response = resolve })
   if (fail) return Response.json({ error: 'Forbidden' }, { status: 403 })
-  const language = init?.method === 'POST' ? JSON.parse(String(init.body)).language : 'th'
-  return Response.json({ staffId: url.searchParams.get('staffId'), language, codexReady: true })
+  const body = init?.method === 'POST' ? JSON.parse(String(init.body)) : null
+  const language = body?.language ?? 'th'
+  if (init?.method === 'POST') {
+    assert.equal(url.pathname, '/preferences')
+    assert.deepEqual(Object.keys(body), ['staffId', 'language'])
+  }
+  return Response.json({ staffId: body?.staffId ?? url.searchParams.get('staffId'), language, ...(url.pathname === '/secretary/settings' ? { codexReady: true } : {}) })
 }
 try {
   setActivePinia(createPinia())

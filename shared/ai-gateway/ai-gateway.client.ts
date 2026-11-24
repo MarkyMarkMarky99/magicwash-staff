@@ -93,7 +93,7 @@ export async function callAiGatewayEndpoint({
   baseUrl: string
   method: 'GET' | 'POST'
   path: string
-  body?: object
+  body?: object | FormData
   getToken: () => Promise<string | null>
   signal?: AbortSignal
   timeoutMs?: number
@@ -106,9 +106,9 @@ export async function callAiGatewayEndpoint({
       if (combinedSignal.aborted) throw new AiGatewayError('ABORTED', 'AI request cancelled')
       const headers: Record<string, string> = {}
       if (token !== null) headers.Authorization = `Bearer ${token}`
-      if (body !== undefined) headers['Content-Type'] = 'application/json'
+      if (body !== undefined && !(body instanceof FormData)) headers['Content-Type'] = 'application/json'
       const response = await fetchImpl(`${baseUrl.trim().replace(/\/+$/, '')}${path}`, {
-        method, headers, signal: combinedSignal, ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+        method, headers, signal: combinedSignal, ...(body === undefined ? {} : { body: body instanceof FormData ? body : JSON.stringify(body) }),
       })
       const data = await readGatewayJson(response)
       if (!response.ok) throw new AiGatewayError('INVALID_RESPONSE', 'AI gateway returned an invalid response', response.status)

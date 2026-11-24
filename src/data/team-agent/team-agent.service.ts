@@ -1,4 +1,5 @@
-import { getSecretarySettings, putSecretarySettings, type UpdateSecretarySettingsInput } from '@shared/ai-gateway/tasks/secretary'
+import { fetchPreferences, updatePreferences } from '@/data/preferences/preferences.service'
+import { getSecretarySettings, type UpdateSecretarySettingsInput } from '@shared/ai-gateway/tasks/secretary'
 import { AiGatewayError } from '@shared/ai-gateway/ai-gateway.errors'
 import {
   cancelPersonalAssignment,
@@ -109,10 +110,16 @@ export function unsubscribePush(endpoint: string) {
   return unsubscribeTeamAgentPush({ ...gatewayAccess(), endpoint })
 }
 
-export function fetchSecretarySettings(staffId: string) {
-  return getSecretarySettings({ baseUrl: agentBaseUrl('secretary'), getToken: aiGatewayToken, staffId })
+export async function fetchSecretarySettings(staffId: string) {
+  const [settings, preferences] = await Promise.all([
+    getSecretarySettings({ baseUrl: agentBaseUrl('secretary'), getToken: aiGatewayToken, staffId }),
+    fetchPreferences(staffId),
+  ])
+  return { ...settings, language: preferences.language }
 }
 
-export function updateSecretarySettings(staffId: string, body: UpdateSecretarySettingsInput) {
-  return putSecretarySettings({ baseUrl: agentBaseUrl('secretary'), getToken: aiGatewayToken, staffId, body })
+export async function updateSecretarySettings(staffId: string, body: UpdateSecretarySettingsInput) {
+  const preferences = await updatePreferences(staffId, body.language)
+  const settings = await getSecretarySettings({ baseUrl: agentBaseUrl('secretary'), getToken: aiGatewayToken, staffId })
+  return { ...settings, language: preferences.language }
 }

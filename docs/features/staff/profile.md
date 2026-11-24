@@ -44,14 +44,24 @@ cards are not tappable. Visibility rules live in `assignmentAccess` (`src/featur
 Only signed-in StaffIds earn minutes, so names come from `useStaffStore().nameOf`; an unknown id
 shows as itself. Department labels are English; tickets whose id prefix is unknown show as Other.
 
+## Preferred language
+
+Admins see a "Preferred language" card (`StaffPreferredLanguageSection.vue`) on the profile of every
+active admin or staff member, whether or not they have a secretary. It is a Thai / Burmese / English
+choice (`FormOptionGrid`, compact) read and saved through `usePreferencesStore` (MagicwashAI
+`/preferences`; see [Direct chat](../agents/direct-chat.md#preferred-language-and-unread)). The language
+drives the translation each person reads in direct chats and the secretary's reply language. It reloads
+on every visit; a failed read shows "Could not load the preferred language" with Retry, a failed save
+"Could not save the language".
+
 ## Secretary section
 
 Admins see a "Secretary" card (`StaffSecretarySection.vue`) on the profile of an active admin or staff
-member. It has a "Personal secretary" switch (enables or disables the `AI-<StaffId>` row), and while
-the secretary is active, a Thai / Burmese / English reply-language choice and a read-only Codex
-connected status. When MagicwashAI cannot be reached it shows "Secretary service unavailable" in
-place of language and status; the switch still works. See
-[registration](registration.md#secretary-administration) for permissions, row lifecycle and errors.
+member. It has a "Personal secretary" switch (enables or disables the `AI-<StaffId>` row) and, while
+the secretary is active, a read-only Codex connected status. When MagicwashAI cannot be reached it shows
+"Secretary service unavailable" in place of the status; the switch still works. It has no language
+control. See [registration](registration.md#secretary-administration) for permissions, row lifecycle and
+errors.
 
 ## Secretary data integration
 
@@ -86,3 +96,10 @@ Promise<SecretarySettings>` and `updateSecretarySettings(staffId: string,
 body: UpdateSecretarySettingsInput): Promise<SecretarySettings>`.
 Admin viewers may load any owner and update language; staff may load only their own settings.
 `codexReady` is read-only, owned by MagicwashAI, and never written to Staff.
+
+
+The data layer reads/saves `language` through main MagicwashAI `/preferences`; the compatibility
+secretary settings service reads `codexReady` from secretary settings as before and also returns the
+preferred language. The profile UI reads the language only through `usePreferencesStore`, including for an
+active admin/staff member without a secretary. See
+[Direct chat data API](../agents/direct-chat.md#preferred-language-and-unread).

@@ -12,7 +12,11 @@ This is the format written into Google Sheets, and the format API DTOs emit. Dat
 ISO 8601 (`2026-07-13T18:08:20+07:00`, or anything ending in `Z`) is **not** this project's format
 and must not appear in a sheet cell or an API response.
 
-The one exception is the HTTP envelope's `meta.timestamp` (`server/shared/http/response.ts`), which
+An external-service exception is direct chat: MagicwashAI returns message `at` as UTC ISO with
+milliseconds. Its gateway contracts and data store preserve that value; it is never written to Sheets.
+See [Direct chat](../features/agents/direct-chat.md).
+
+The HTTP metadata exception is the HTTP envelope's `meta.timestamp` (`server/shared/http/response.ts`), which
 is UTC ISO. That is transport metadata, not business data, and is out of scope here.
 
 ## Why it is not negotiable

@@ -125,7 +125,7 @@ function logout() {
             @click="navigate('/agents')"
           >
             <span class="material-symbols-outlined">smart_toy</span>
-            <span>Agents</span>
+            <span>Chats</span>
             <span v-if="agentsUnread > 0" class="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-error px-1.5 text-[11px] font-bold leading-none text-on-error" :aria-label="`${agentsUnread} unread`">{{ agentsUnread > 99 ? '99+' : agentsUnread }}</span>
           </button>
         </li>

@@ -11,6 +11,18 @@ async function adminOnly() {
 
 export const agentRoutes: RouteRecordRaw[] = [
   {
+    path: '/agents/dm/:conversationId',
+    name: 'direct-chat',
+    component: () => import('./pages/DirectChatPage.vue'),
+    meta: { parent: 'agent-list' },
+    props: true,
+    beforeEnter: async () => {
+      const auth = useAuthStore()
+      await auth.ready()
+      return auth.role === 'admin' || auth.role === 'staff' ? true : { name: 'agent-list', replace: true }
+    },
+  },
+  {
     path: '/agents',
     name: 'agent-list',
     component: () => import('./pages/AgentListPage.vue'),

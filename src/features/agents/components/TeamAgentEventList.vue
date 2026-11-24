@@ -12,7 +12,7 @@ type ActionType = NonNullable<TeamAgentEvent['action']>['type']
 type Outcome = NonNullable<TeamAgentEvent['action']>['outcome']
 
 const props = defineProps<{
-  agent: AgentInfo
+  agent?: AgentInfo
   events: TeamAgentEvent[]
   pending: PendingTeamAgentMessage[]
   imageStates: Record<string, TeamAgentImageState>
@@ -20,11 +20,13 @@ const props = defineProps<{
   loading: boolean
   hasOlder: boolean
   olderLoading: boolean
+  /** Also loads older events when the list is scrolled to the top, not only through the button. */
+  autoLoadOlder?: boolean
   ownStaffId: string
   ownName: string
 }>()
 
-const emit = defineEmits<{ loadOlder: [] }>()
+const emit = defineEmits<{ loadOlder: []; bottomChange: [atBottom: boolean] }>()
 
 const ACTION_ICONS: Record<ActionType, string> = {
   create: 'event_available',
@@ -49,17 +51,35 @@ const OUTCOME_CLASSES: Record<Outcome, string> = {
 }
 
 const STICK_DISTANCE_PX = 120
+const BOTTOM_DISTANCE_PX = 48
+const TOP_DISTANCE_PX = 48
 const region = ref<{ el: HTMLElement | null } | null>(null)
 let stickToBottom = true
+let atBottom: boolean | null = null
+
+function reportBottom(): void {
+  const el = region.value?.el
+  if (!el) return
+  const next = el.scrollHeight - el.scrollTop - el.clientHeight < BOTTOM_DISTANCE_PX
+  if (next === atBottom) return
+  atBottom = next
+  emit('bottomChange', next)
+}
 
 function onScroll(): void {
   const el = region.value?.el
-  if (el) stickToBottom = el.scrollHeight - el.scrollTop - el.clientHeight < STICK_DISTANCE_PX
+  if (!el) return
+  stickToBottom = el.scrollHeight - el.scrollTop - el.clientHeight < STICK_DISTANCE_PX
+  reportBottom()
+  if (props.autoLoadOlder && el.scrollTop < TOP_DISTANCE_PX && props.hasOlder && !props.olderLoading) loadOlder()
 }
 
 let heightBeforeOlder: number | null = null
 
-onMounted(() => region.value?.el?.addEventListener('scroll', onScroll, { passive: true }))
+onMounted(() => {
+  region.value?.el?.addEventListener('scroll', onScroll, { passive: true })
+  reportBottom()
+})
 onBeforeUnmount(() => region.value?.el?.removeEventListener('scroll', onScroll))
 
 function loadOlder(): void {
@@ -80,6 +100,7 @@ watch(() => [props.events.length, props.pending.length, props.busy, props.loadin
   await nextTick()
   const el = region.value?.el
   if (el && stickToBottom && !prepending) el.scrollTop = el.scrollHeight
+  reportBottom()
 }, { flush: 'post' })
 </script>
 
@@ -87,7 +108,9 @@ watch(() => [props.events.length, props.pending.length, props.busy, props.loadin
   <ScrollRegion ref="region" class="flex flex-col gap-3 bg-surface px-3 pb-4 pt-3.5">
     <p v-if="loading && !events.length" class="my-auto text-center font-body text-sm text-on-surface-variant" role="status">Loading…</p>
 
-    <div v-else-if="!events.length && !pending.length" class="my-auto flex flex-col items-center gap-3.5 px-2 text-center">
+    <p v-else-if="!events.length && !pending.length && !agent" class="my-auto text-center font-body text-sm text-on-surface-variant">No messages yet.</p>
+
+    <div v-else-if="!events.length && !pending.length && agent" class="my-auto flex flex-col items-center gap-3.5 px-2 text-center">
       <span class="rounded-full shadow-[0_0_0_4px_white]"><AgentAvatar :agent-id="agent.id" :size="104" /></span>
       <div class="max-w-[340px] rounded-[18px] bg-white px-4 py-3 font-body text-sm leading-relaxed shadow-[0_1px_0_color-mix(in_srgb,var(--color-on-surface)_6%,transparent)]">
         <b class="mb-0.5 block font-headline text-base font-extrabold text-primary">{{ agent.name }}</b>
@@ -112,7 +135,7 @@ watch(() => [props.events.length, props.pending.length, props.busy, props.loadin
           <b class="font-label text-[10px] font-extrabold uppercase tracking-[0.08em]">System</b> · {{ event.text }} · {{ formatEventTime(event.at) }}
         </p>
 
-        <div v-else-if="event.kind === 'agent'" class="flex items-end gap-2">
+        <div v-else-if="event.kind === 'agent' && agent" class="flex items-end gap-2">
           <span class="self-start"><AgentAvatar :agent-id="agent.id" :size="32" /></span>
           <div class="flex min-w-0 max-w-[calc(100%-44px)] flex-col">
             <span class="mb-0.5 px-1 font-label text-[10px] font-extrabold uppercase tracking-[0.08em] text-on-surface-variant">AI · {{ formatEventTime(event.at) }}</span>
@@ -126,6 +149,7 @@ watch(() => [props.events.length, props.pending.length, props.busy, props.loadin
             <span class="mb-0.5 px-1 font-label text-[10px] font-extrabold uppercase tracking-[0.08em] text-on-surface-variant">{{ event.speaker?.name ?? 'Staff' }} · {{ formatEventTime(event.at) }}</span>
             <TeamAgentEventImages v-if="event.images?.length" class="mb-1.5" :images="event.images" :states="imageStates" :align-end="event.speaker?.staffId === ownStaffId" />
             <p v-if="event.text" class="whitespace-pre-wrap break-words px-3.5 py-2 font-body text-sm font-semibold leading-relaxed text-primary [overflow-wrap:anywhere]" :class="event.speaker?.staffId === ownStaffId ? 'rounded-[18px_6px_18px_18px] bg-lime' : 'rounded-[6px_18px_18px_18px] bg-secondary-container'">{{ event.text }}</p>
+            <slot name="staff-extra" :event="event" :own="event.speaker?.staffId === ownStaffId" />
           </div>
         </div>
       </template>

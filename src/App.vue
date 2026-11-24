@@ -168,7 +168,7 @@ provide(staffSignedInKey, computed(() => authStore.status === 'signedIn'))
 const agentsUnread = useAgentsUnread(() => authStore.role, () => authStore.staff?.staffId ?? null)
 provide(agentsUnreadKey, agentsUnread.total)
 provide(agentsUnreadByAgentKey, agentsUnread.byAgent)
-const { bubble: agentBubble, dismiss: dismissAgentBubble } = useAgentBubble(() => agentsUnread.latest.value, () => agentsUnread.total.value, () => authStore.staff?.staffId ?? null)
+const { bubble: agentBubble, dismiss: dismissAgentBubble } = useAgentBubble(() => agentsUnread.latest.value, () => agentsUnread.aiTotal.value, () => authStore.staff?.staffId ?? null)
 
 function openAgentBubble(): void {
   const bubble = agentBubble.value
@@ -220,9 +220,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
       <RouterView v-slot="{ Component }">
       <!-- Form pages must not be cached: their component-local refs would otherwise survive across subjects. `exclude` matches component names, so renaming one of these files silently removes it from this list. -->
       <KeepAlive
-        :exclude="['WashQueuePage', 'CreateAppointmentPage', 'RescheduleAppointmentPage', 'InvoiceCreatePage', 'InvoicePaymentFormPage', 'InvoicePaymentReviewPage', 'CustomerFormPage', 'CustomerPackageCreatePage', 'PriceListFormPage', 'PriceListItemCreatePage', 'PackageFormPage', 'IssueReportFormPage', 'OrderCreatePage', 'CorporateOrderPage', 'OrderIntakePage', 'LaundryItemRegisterPage', 'LaundryItemDetailPage', 'StaffFormPage', 'AgentChatPage', 'TeamAgentChatRoute']"
+        :exclude="['WashQueuePage', 'CreateAppointmentPage', 'RescheduleAppointmentPage', 'InvoiceCreatePage', 'InvoicePaymentFormPage', 'InvoicePaymentReviewPage', 'CustomerFormPage', 'CustomerPackageCreatePage', 'PriceListFormPage', 'PriceListItemCreatePage', 'PackageFormPage', 'IssueReportFormPage', 'OrderCreatePage', 'CorporateOrderPage', 'OrderIntakePage', 'LaundryItemRegisterPage', 'LaundryItemDetailPage', 'StaffFormPage', 'AgentChatPage', 'TeamAgentChatRoute', 'DirectChatPage']"
       >
-        <component :is="Component" />
+        <component :is="Component" :key="route.name === 'direct-chat' ? `dm:${route.params.conversationId}:${authStore.staff?.staffId ?? 'signed-out'}` : undefined" />
       </KeepAlive>
       </RouterView>
       <AgentFloatingBubble

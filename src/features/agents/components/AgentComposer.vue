@@ -2,7 +2,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { MAX_DRAFT_IMAGES, type DraftImage } from '../agent-chat.types'
 
-const props = withDefaults(defineProps<{ text: string; images: DraftImage[]; thinking: boolean; allowImages?: boolean }>(), { allowImages: true })
+const props = withDefaults(defineProps<{ text: string; images: DraftImage[]; thinking: boolean; allowImages?: boolean; maxlength?: number }>(), { allowImages: true, maxlength: undefined })
 const emit = defineEmits<{ 'update:text': [text: string]; addFiles: [files: File[]]; removeImage: [id: string]; send: [] }>()
 
 const input = ref<HTMLTextAreaElement | null>(null)
@@ -54,7 +54,7 @@ defineExpose({ focus: () => input.value?.focus() })
       <button v-if="allowImages" type="button" class="grid h-[46px] w-[46px] flex-none place-items-center rounded-full border-[1.5px] border-outline-variant bg-surface-container-low text-primary focus-visible:outline-2 focus-visible:outline-lime active:bg-secondary-container disabled:opacity-40" aria-label="Attach image" :disabled="!canAttach" @click="fileInput?.click()">
         <span class="material-symbols-outlined text-[22px]" aria-hidden="true">add_photo_alternate</span>
       </button>
-      <textarea ref="input" rows="1" class="no-scrollbar block h-[46px] max-h-[124px] min-w-0 flex-1 resize-none rounded-[23px] border-[1.5px] border-outline-variant bg-surface px-4 py-[11px] font-body text-[14.5px] font-medium leading-normal text-on-surface placeholder:text-on-surface-variant/80 focus:border-primary focus:bg-white focus:outline-none" placeholder="Type a message…" aria-label="Type a message" :value="text" @input="onInput" @keydown="onKeydown" />
+      <textarea ref="input" rows="1" class="no-scrollbar block h-[46px] max-h-[124px] min-w-0 flex-1 resize-none rounded-[23px] border-[1.5px] border-outline-variant bg-surface px-4 py-[11px] font-body text-[14.5px] font-medium leading-normal text-on-surface placeholder:text-on-surface-variant/80 focus:border-primary focus:bg-white focus:outline-none" placeholder="Type a message…" aria-label="Type a message" :maxlength="maxlength" :value="text" @input="onInput" @keydown="onKeydown" />
       <button type="button" class="grid h-[46px] w-[46px] flex-none place-items-center rounded-full bg-primary text-lime shadow-[3px_3px_0_color-mix(in_srgb,var(--color-primary)_70%,black)] transition-[transform,box-shadow] focus-visible:outline-2 focus-visible:outline-lime active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_color-mix(in_srgb,var(--color-primary)_70%,black)] disabled:bg-surface-container disabled:text-on-surface-variant disabled:shadow-none" aria-label="ส่ง" :disabled="!canSend" @click="emit('send')">
         <span class="material-symbols-outlined fill-icon text-[22px]" aria-hidden="true">arrow_upward</span>
       </button>
