@@ -5,6 +5,7 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
+- **`docs/magicwashai-reference`** — docs-only commit naming MagicwashAI in the gateway doc and CLAUDE.md, awaiting merge/push approval; see `.user/memory/docs-magicwashai-reference.md`.
 
 ## Pending work
 - **Stock-take (temporary)** — owner will ask to remove it; removal steps in `.user/memory/stock-take-removal.md`.

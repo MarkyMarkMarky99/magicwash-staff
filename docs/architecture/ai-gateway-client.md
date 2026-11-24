@@ -1,8 +1,14 @@
 # AI gateway client
 
+## MagicwashAI
+
+All AI work for this app runs in MagicwashAI, a separate repository at `C:\MagicwashAI` (its `README.md` covers setup and operation). It runs in Docker on the shop computer, bound to `127.0.0.1:3110`, and is reached through a Cloudflare tunnel at `VITE_AI_GATEWAY_URL`. MagicwashAI owns prompts, models, agent sessions and history, chat and image storage, translation and the AI-side data reads. This repository only relays requests to it and renders results. A change to AI behavior is made in MagicwashAI, not here.
+
+## Client
+
 The runtime client lives in repository-root shared/ai-gateway so the frontend and Vercel backend can use the same protocol. Its zod runtime contracts live in contracts/ai-gateway. Internal imports in these folders use relative paths with explicit .js extensions. Neither folder depends on Vue, Firebase, frontend environment variables, or browser APIs beyond fetch, FormData, Blob, AbortController and AbortSignal. Contract files export schemas; consumers declare their schema-derived type aliases locally.
 
-The generic client handles authenticated task calls, JSON or multipart bodies, response-envelope validation, gateway error codes, cancellation and deadlines. Health checks return validated readiness information or null and never throw. A task wrapper validates its task-specific input and result. Callers send task names and input, never prompts; task instructions belong to the separate gateway service.
+The generic client handles authenticated task calls, JSON or multipart bodies, response-envelope validation, gateway error codes, cancellation and deadlines. Health checks return validated readiness information or null and never throw. A task wrapper validates its task-specific input and result. Callers send task names and input, never prompts; task instructions belong to MagicwashAI.
 
 Frontend configuration and Firebase token retrieval live in src/shared/ai-gateway. An empty VITE_AI_GATEWAY_URL disables corporate slip reading without issuing requests. Feature code owns its workflow, image preparation, warnings and draft updates. The corporate form behavior is documented in [Corporate order form](../features/orders/corporate-order-form.md).
 
