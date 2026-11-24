@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { AGENTS, agentById, agentVisibleToRole } from '../../../../../src/features/agents/agents.ts'
+import { AGENTS, agentById, agentVisibleToRole, agentVisibleToViewer } from '../../../../../src/features/agents/agents.ts'
 
 const visible = (role: 'admin' | 'staff' | 'device' | null) => AGENTS.filter(agent => agentVisibleToRole(agent, role)).map(agent => agent.id)
 
@@ -14,3 +14,12 @@ assert.equal(agentById('personal').role, 'My assistant')
 assert.ok(visible('admin').includes('personal') && visible('staff').includes('personal'))
 assert.ok(!visible('device').includes('personal') && !visible(null).includes('personal'))
 console.log('agents.dry-test: OK')
+
+for (const role of ['admin', 'staff', 'device', null] as const) {
+  for (const active of [true, false]) {
+    assert.equal(agentVisibleToViewer(agentById('secretary'), role, active), active && (role === 'admin' || role === 'staff'))
+    for (const agent of AGENTS.filter(agent => agent.id !== 'secretary')) {
+      assert.equal(agentVisibleToViewer(agent, role, active), agentVisibleToRole(agent, role))
+    }
+  }
+}

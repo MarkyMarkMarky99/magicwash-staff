@@ -118,7 +118,7 @@ try {
   }
 
   for (const path of [
-    '/api/unknown', '/api/portal/orders', '/api/work-transactions', '/api/staff/me', '/api/staff', '/api/work-orders/O1',
+    '/api/staff/secretary/Owner1', '/api/unknown', '/api/portal/orders', '/api/work-transactions', '/api/staff/me', '/api/staff', '/api/work-orders/O1',
     '/api/job-tickets/T1', '/api/staff/directory/extra', '/api/laundry-items/T1', '/api/customers/%ZZ', '/api',
   ]) await forbidden(path)
   for (const [path, query] of [
@@ -181,6 +181,9 @@ try {
   assert.deepEqual(staffResult.body, { actor: { ...expectedActor, onBehalfOf: {
     staffId: 'Owner1', role: 'staff', departments: ['Packaging'],
   } }, email: undefined })
+
+  await forbidden('/api/staff/secretary/Owner1', 'PATCH', { active: false })
+  await forbidden('/api/staff/secretary/Owner1', 'PATCH', { active: true })
 
   const legacy = { 'x-service-key': 'legacy-key' }
   assert.deepEqual((await call('/api/work-orders/O1', 'PATCH', { ...completed, updatedBy: 'supplied' }, legacy)).body,

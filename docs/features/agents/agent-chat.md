@@ -70,9 +70,15 @@ assigned to that department. Batch close reports completed tickets for each requ
 awards no score.
 See [Secretary API permissions](../../architecture/backend/operations.md#secretary).
 
-### Secretary chat (trial)
+### Secretary chat
 
-The `secretary` agent (display name `เลขาส่วนตัว`) is a per-owner team agent like `personal`: the signed-in user talks to their own secretary, so its store and last-seen key are per staff member. For this trial the catalog entry is visible to `admin` only. It is a separate service: every call (history, images, reminders, notes, read markers, `POST /tasks/chat`) uses the base URL `<AI gateway base URL>/secretary` with the same contract as the other team agents. The admin "open another employee's assistant" route, the assignments page and push notifications do not apply to it.
+The `secretary` agent (display name `เลขาส่วนตัว`) is a per-owner team agent like `personal`: the signed-in user talks to their own secretary, so its store and last-seen key are per staff member. The catalog entry permits `admin` and `staff`, and the list shows it only when the signed-in
+owner's exact `AI-<staffId>` directory row is an active assistant. Missing, inactive, ambiguous or
+unavailable directory state hides it. `agentVisibleToViewer` combines the role check with this gate;
+`agentVisibleToRole` retains its role-only behavior for other agents. Background unread polling,
+badges and the floating bubble use the same viewer gate. The directory is already preloaded;
+secretary management actions update it immediately. This is a discovery gate; MagicwashAI and
+Vercel enforce request permissions independently. It is a separate service: every call (history, images, reminders, notes, read markers, `POST /tasks/chat`) uses the base URL `<AI gateway base URL>/secretary` with the same contract as the other team agents. The admin "open another employee's assistant" route, the assignments page and push notifications do not apply to it.
 
 ## Personal assistants
 
@@ -112,3 +118,21 @@ Sign-out unsubscribes the browser and closes displayed notifications.
 Run the push workflow with `npx tsx --tsconfig jsconfig.json --experimental-test-module-mocks tests/web/unit/data/team-agent/push-notifications.dry-test.ts`.
 
 Run the chat wrapper test with `npx tsx tests/shared/ai-gateway/chat.dry-test.ts`. Run the Pinia workflow test with `npx tsx --tsconfig jsconfig.json --experimental-test-module-mocks tests/web/unit/features/agents/stores/agent-chat.store.dry-test.ts` (Node 22 module mocking isolates gateway configuration). Run the team-agent endpoint wrapper test with `npx tsx tests/shared/ai-gateway/team-agent.dry-test.ts`, its store test with `npx tsx --tsconfig jsconfig.json --experimental-test-module-mocks tests/web/unit/data/team-agent/team-agent.store.dry-test.ts`, and the catalog role test with `npx tsx --tsconfig jsconfig.json tests/web/unit/features/agents/agents.dry-test.ts`, and the bubble helpers test with `npx tsx tests/web/unit/features/agents/agent-bubble.dry-test.ts`. The service-key allowlist (including `GET /api/work-transactions` for the AI service key) is covered by `npx tsx tests/server/unit/api/staff-auth-gateway.dry-test.ts`. All use fake fetch responses and make no live service calls.
+
+### Secretary settings
+
+MagicwashAI owns language and Codex readiness. `GET <gateway>/secretary/settings?staffId=<ownerId>`
+returns `{ staffId, language: 'th' | 'my' | 'en', codexReady: boolean }`; admins may read any owner,
+staff only themselves. Admin-only `POST` to the same URL accepts exactly `{ language }` and returns
+the same shape. Both use the configured AI gateway base URL and Firebase Bearer token, as secretary
+chat does, with the shared 20-second deadline and error handling. Contracts live in
+`contracts/ai-gateway/secretary-api.schema.ts`; the wrapper validates inputs and responses, including
+the returned owner ID. No settings are stored in Sheets. See
+[profile integration](../staff/profile.md#secretary-data-integration) for store/service signatures.
+
+Secretary-specific dry tests: `npx tsx tests/shared/ai-gateway/secretary.dry-test.ts`,
+`npx tsx tests/server/unit/api/staff-api.dry-test.ts`,
+`npx tsx tests/server/unit/api/secretary-gateway.dry-test.ts`,
+`npx tsx --tsconfig jsconfig.json tests/web/unit/data/staff-store.dry-test.ts`, and
+`npx tsx --tsconfig jsconfig.json --experimental-test-module-mocks tests/web/unit/data/team-agent/secretary-settings.store.dry-test.ts`.
+The catalog test above covers both roles and active/inactive secretary states.

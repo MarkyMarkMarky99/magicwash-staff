@@ -1,5 +1,7 @@
 import type { z } from 'zod'
 import {
+  staffSecretarySchema,
+  updateStaffSecretaryBodySchema,
   registerStaffBodySchema,
   staffDirectoryEntrySchema,
   staffSchema,
@@ -42,5 +44,17 @@ export function updateStaff(staffId: string, payload: UpdateStaffInput): Promise
   return apiPatch<StaffDto>(`${STAFF_ENDPOINT}/${encodeURIComponent(staffId)}`, {
     data: payload,
     requestSchema: updateStaffBodySchema,
+  })
+}
+
+export type StaffSecretary = z.infer<typeof staffSecretarySchema>
+
+export function getStaffSecretary(staffId: string): Promise<StaffSecretary> {
+  return apiGet<StaffSecretary>(`${STAFF_ENDPOINT}/secretary/${encodeURIComponent(staffId)}`)
+}
+
+export function setStaffSecretaryActive(staffId: string, active: boolean): Promise<StaffSecretary> {
+  return apiPatch<StaffSecretary>(`${STAFF_ENDPOINT}/secretary/${encodeURIComponent(staffId)}`, {
+    data: { active }, requestSchema: updateStaffSecretaryBodySchema,
   })
 }

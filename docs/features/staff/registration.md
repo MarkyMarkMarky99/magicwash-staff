@@ -67,3 +67,32 @@ Approved roles are `admin`, `staff`, and `device`. An active `device` row belong
 The card code is `MWS-<StaffId>`, derived from the StaffId, not stored, and never reissued. A lost card is reprinted with the same code. The login reader reads A:I.
 
 See [Shared shop device and staff card operator](shared-device.md) for scanning, expiry, and server authorization.
+
+## Secretary administration
+
+Admins read `GET /api/staff/secretary/:staffId` and write
+`PATCH /api/staff/secretary/:staffId` with exactly `{ active: boolean }`.
+Both return the normal success envelope containing
+`{ staffId, assistantId: "AI-<staffId>", exists: boolean, active: boolean }`.
+Here `staffId` is the owner, never the assistant. The routes use Firebase identity auth and
+require an admin; staff, device, legacy service-key and secretary-key callers cannot manage rows.
+
+An owner must be exactly one active human `admin` or `staff` row, excluding legacy `AI`.
+A missing owner returns 404; an inactive/ineligible owner, duplicate owner/secretary StaffId,
+secretary ID occupied by another role, or placeholder email collision returns 409.
+Invalid PATCH bodies return 422. Checks happen before writes, including for reads and disables.
+
+Enabling appends a missing row with StaffId `AI-<staffId>`, Role `assistant`, Active TRUE,
+Name `เลขาของ <owner name>` and Email `secretary+<staffId>@example.invalid`.
+Other existing columns are blank. Re-enabling changes only the existing assistant's Active cell;
+its name, email and history stay intact. Disabling sets only that cell FALSE and never deletes.
+Disabling a missing secretary returns `exists: false, active: false` without appending.
+The owner's row is never written, including when an admin manages their own secretary.
+Writes use the existing authenticated, header-resolved Staff persistence path with RAW input.
+The canonical Staff registry has no audit columns; none are added. Successful changes invalidate
+the login allowlist cache. Sheets has no atomic uniqueness constraint: concurrent enable requests
+across instances can race on append; later reads/writes reject duplicate IDs for repair.
+
+The preloaded directory supplies secretary eligibility. Staff store actions update its assistant
+state after successful reads/writes; assistants stay outside the employee roster. Failed directory
+reloads clear eligibility, and duplicate directory IDs cannot enable the agent-list gate.

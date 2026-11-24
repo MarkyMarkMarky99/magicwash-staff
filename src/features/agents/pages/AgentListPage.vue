@@ -2,18 +2,20 @@
 import { computed, inject, onActivated, onDeactivated, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
+import { useStaffStore } from '@/data/staff/staff.store'
 import { useAuthStore } from '@/data/auth/auth.store'
 import { enablePush, hasActivePushSubscription, needsHomeScreen, pushSupported } from '@/data/team-agent/push-notifications'
 import ListPageLayout from '@/shared/layouts/ListPageLayout.vue'
 import AgentRow from '../components/AgentRow.vue'
-import { AGENTS, agentVisibleToRole } from '../agents'
+import { AGENTS, agentVisibleToViewer } from '../agents'
 import { agentsUnreadByAgentKey } from '@/shared/agents-unread'
 import { isTeamAgentId, type AgentId } from '../agent-chat.types'
 
 const router = useRouter()
-const { role, isAdmin } = storeToRefs(useAuthStore())
+const staffStore = useStaffStore()
+const { role, isAdmin, staff } = storeToRefs(useAuthStore())
 const unreadByAgent = inject(agentsUnreadByAgentKey, ref<Record<string, number>>({}))
-const visibleAgents = computed(() => AGENTS.filter(agent => agentVisibleToRole(agent, role.value)))
+const visibleAgents = computed(() => AGENTS.filter(agent => agentVisibleToViewer(agent, role.value, staffStore.hasActiveSecretary(staff.value?.staffId))))
 const supported = pushSupported()
 const homeScreenRequired = needsHomeScreen()
 const permission = ref<NotificationPermission>(supported ? Notification.permission : 'default')

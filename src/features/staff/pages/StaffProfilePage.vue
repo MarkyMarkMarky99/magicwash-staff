@@ -20,6 +20,7 @@ import ReportPeriodHeader from '@/shared/components/reports/ReportPeriodHeader.v
 import ReportPeriodToggle from '@/shared/components/reports/ReportPeriodToggle.vue'
 import ReportTotal from '@/shared/components/reports/ReportTotal.vue'
 import type { ReportOption } from '@/shared/components/reports/report-types'
+import StaffSecretarySection from '../components/StaffSecretarySection.vue'
 import { personalAgentTargetRoute, staffEditRoute } from '@/shared/navigation/form-routes'
 import { changePercent, formatCount, shortDate, tileLabel } from '@/shared/utils/report-format'
 import { useAuthStore } from '@/data/auth/auth.store'
@@ -132,6 +133,7 @@ const leaderboard = computed(() => {
 })
 
 const access = computed(() => assignmentAccess(role.value, staff.value?.staffId ?? null, props.staffId))
+const showSecretary = computed(() => isAdmin.value && member.value?.active === true && (member.value.role === 'admin' || member.value.role === 'staff'))
 const assignmentTarget = computed(() => (access.value.visible ? (access.value.staffId ?? 'self') : null))
 
 function formatMonth(date: string): string {
@@ -320,6 +322,8 @@ watch([assignmentTarget, () => props.staffId], () => {
         {{ assignmentsError }}
         <button type="button" class="ml-1 min-h-11 font-bold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-lime" @click="loadAssignments()">Retry</button>
       </p>
+
+      <StaffSecretarySection v-if="showSecretary" :staff-id="staffId" />
     </PullToRefresh>
 
     <ReportPeriodToggle :options="VIEW_OPTIONS" :active="view" group-label="Period" @select="view = $event" />

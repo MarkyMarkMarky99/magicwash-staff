@@ -270,4 +270,88 @@ for (const departments of [[], ['Washing']]) {
   )
 }
 assert.equal(updateValues, previousUpdate)
+
+const secretaryPath = '/api/staff/secretary/admin-id'
+for (const method of ['GET', 'PATCH']) {
+  assert.equal((await call(method, secretaryPath)).status, 401)
+  for (const email of ['worker@example.com', 'device@example.com', 'new@example.com']) {
+    assert.equal((await call(method, secretaryPath, email, { active: true })).status, 403)
+  }
+}
+const rowSnapshot = rows.map(row => [...row])
+const secretaryState = (exists: boolean, active: boolean) => ({ staffId: 'admin-id', assistantId: 'AI-admin-id', exists, active })
+assert.deepEqual(data(await call('GET', secretaryPath, 'admin@example.com')), secretaryState(false, false))
+const beforeDisableMissing = writes.length
+assert.deepEqual(data(await call('PATCH', secretaryPath, 'admin@example.com', { active: false })), secretaryState(false, false))
+assert.equal(writes.length, beforeDisableMissing)
+assert.deepEqual(data(await call('PATCH', secretaryPath, 'admin@example.com', { active: true })), secretaryState(true, true))
+assert.deepEqual(rows.at(-1), ['secretary+admin-id@example.invalid', 'เลขาของ New Admin', 'assistant', true, 'AI-admin-id', '', '', '', '', ''])
+assert.equal(new URL(writes.at(-1)!.url).searchParams.get('valueInputOption'), 'RAW')
+assert.deepEqual(rows.slice(0, -1), rowSnapshot, 'Enabling never changes an existing owner or colleague row')
+const beforeRepeat = writes.length
+await call('PATCH', secretaryPath, 'admin@example.com', { active: true })
+assert.equal(writes.length, beforeRepeat)
+assert.deepEqual(data(await call('PATCH', secretaryPath, 'admin@example.com', { active: false })), secretaryState(true, false))
+assert.deepEqual(writes.at(-1)!.body.data, [{ range: `Staff!D${rows.length + 1}`, values: [[false]] }])
+assert.deepEqual(data(await call('GET', secretaryPath, 'admin@example.com')), secretaryState(true, false))
+const countBeforeReactivate = rows.length
+await call('PATCH', secretaryPath, 'admin@example.com', { active: true })
+assert.equal(rows.length, countBeforeReactivate)
+assert.deepEqual(rows.slice(0, -1), rowSnapshot)
+for (const body of [{}, { active: 'true' }, { active: true, name: 'Injected' }, { language: 'th' }, null]) {
+  assert.equal((await call('PATCH', secretaryPath, 'admin@example.com', body)).status, 422)
+}
+for (const [id, expected] of [['missing', 404], ['inactive-id', 409], ['AI-worker-id', 409], ['device-id', 409], [newStaff.staffId, 409]]) {
+  for (const method of ['GET', 'PATCH']) {
+    assert.equal((await call(method, `/api/staff/secretary/${id}`, 'admin@example.com', { active: true })).status, expected)
+  }
+}
+rows.push(['legacy@example.com', 'Legacy', 'staff', true, 'AI'])
+assert.equal((await call('PATCH', '/api/staff/secretary/AI', 'admin@example.com', { active: true })).status, 409)
+rows.pop()
+for (const duplicate of [[...rows[3]!], [...rows.at(-1)!], ['', 'Duplicate without email', 'assistant', false, 'AI-admin-id']]) {
+  const before: number = writes.length
+  rows.push(duplicate)
+  for (const method of ['GET', 'PATCH']) {
+    assert.equal((await call(method, secretaryPath, 'admin@example.com', { active: true })).status, 409)
+  }
+  assert.equal(writes.length, before)
+  rows.pop()
+}
+const secretaryRow = rows.at(-1)!
+secretaryRow[2] = 'staff'
+assert.equal((await call('PATCH', secretaryPath, 'admin@example.com', { active: false })).status, 409)
+secretaryRow[2] = 'assistant'
+await assert.rejects(service.getSecretary(' '), (error: unknown) => error instanceof ApiError && error.status === 422)
+const reorderedSecretaryHeader = ['Active', 'Name', 'StaffId', 'Email', 'Phone', 'Address', 'Role', 'Position', 'StartDate']
+const reorderedSecretaryRows: SheetsApiValue[][] = [[true, 'Owner', 'O1', 'owner@example.com', '', '', 'staff', '', '']]
+const reorderedSecretary = new StaffService({
+  readRange: async (range) => range === '1:1' ? [reorderedSecretaryHeader] : reorderedSecretaryRows,
+  appendRows: async (values, option, width) => {
+    assert.equal(option, 'RAW')
+    assert.equal(width, 9)
+    reorderedSecretaryRows.push(...values.map(row => [...row]))
+    return { updates: { updatedRows: 1, updatedData: { values } } }
+  },
+  updateCells: async (changes, option) => {
+    assert.equal(option, 'RAW')
+    assert.deepEqual(changes, [{ range: 'Staff!A3', values: [[false]] }])
+    reorderedSecretaryRows[1]![0] = false
+    return { responses: [] }
+  },
+})
+await reorderedSecretary.updateSecretary('O1', { active: true })
+assert.deepEqual(reorderedSecretaryRows[1], [true, 'เลขาของ Owner', 'AI-O1', 'secretary+O1@example.invalid', '', '', 'assistant', '', ''])
+await reorderedSecretary.updateSecretary('O1', { active: false })
+assert.deepEqual(await reorderedSecretary.getSecretary('O1'), { staffId: 'O1', assistantId: 'AI-O1', exists: true, active: false })
+const collidingEmail = new StaffService({
+  readRange: async (range) => range === '1:1' ? [header] : [
+    ['o@example.com', 'Owner', 'staff', true, 'O1'],
+    ['secretary+o1@example.invalid', 'Other', 'staff', true, 'other'],
+  ],
+  appendRows: async () => { throw new Error('Must reject before append') },
+  updateCells: async () => { throw new Error('Must reject before update') },
+})
+await assert.rejects(collidingEmail.updateSecretary('O1', { active: true }),
+  (error: unknown) => error instanceof ApiError && error.status === 409)
 console.log('staff API dry test passed')

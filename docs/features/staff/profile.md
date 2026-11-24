@@ -43,3 +43,46 @@ cards are not tappable. Visibility rules live in `assignmentAccess` (`src/featur
 
 Only signed-in StaffIds earn minutes, so names come from `useStaffStore().nameOf`; an unknown id
 shows as itself. Department labels are English; tickets whose id prefix is unknown show as Other.
+
+## Secretary section
+
+Admins see a "Secretary" card (`StaffSecretarySection.vue`) on the profile of an active admin or staff
+member. It has a "Personal secretary" switch (enables or disables the `AI-<StaffId>` row), and while
+the secretary is active, a Thai / Burmese / English reply-language choice and a read-only Codex
+connected status. When MagicwashAI cannot be reached it shows "Secretary service unavailable" in
+place of language and status; the switch still works. See
+[registration](registration.md#secretary-administration) for permissions, row lifecycle and errors.
+
+## Secretary data integration
+
+Use `useStaffStore()` from `src/data/staff/staff.store.ts`:
+
+- `readSecretary(staffId: string): Promise<StaffSecretary>`
+- `enableSecretary(staffId: string): Promise<StaffSecretary>`
+- `disableSecretary(staffId: string): Promise<StaffSecretary>`
+- `hasActiveSecretary(staffId: string | null | undefined): boolean`
+
+`StaffSecretary` is `{ staffId: string, assistantId: string, exists: boolean, active: boolean }`.
+Actions reject on errors and update directory eligibility on success. Use their returned state for
+profile state; await a write before allowing another write to the same owner. Late reads/actions
+cannot overwrite a newer action or repopulate a reset store.
+The underlying staff service exports `getStaffSecretary(staffId: string): Promise<StaffSecretary>`
+and `setStaffSecretaryActive(staffId: string, active: boolean): Promise<StaffSecretary>`.
+
+Use `useSecretarySettingsStore()` from `src/data/team-agent/secretary-settings.store.ts`:
+
+- `load(staffId: string): Promise<SecretarySettings>`
+- `update(staffId: string, body: UpdateSecretarySettingsInput): Promise<SecretarySettings>`
+- `reset(): void`
+
+State is `staffId`, `settings` (nullable), `loading`, `saving`, and `error` (nullable string).
+Errors are recorded and rethrown. Switching targets clears the old settings immediately; late
+results after another request or reset are ignored. Reset when leaving the management flow or
+changing the signed-in account; settings are memory-only and are not preloaded.
+`SecretarySettings` is `{ staffId: string, language: 'th' | 'my' | 'en', codexReady: boolean }`;
+`UpdateSecretarySettingsInput` is `{ language: 'th' | 'my' | 'en' }`.
+The underlying team-agent service exports `fetchSecretarySettings(staffId: string):
+Promise<SecretarySettings>` and `updateSecretarySettings(staffId: string,
+body: UpdateSecretarySettingsInput): Promise<SecretarySettings>`.
+Admin viewers may load any owner and update language; staff may load only their own settings.
+`codexReady` is read-only, owned by MagicwashAI, and never written to Staff.

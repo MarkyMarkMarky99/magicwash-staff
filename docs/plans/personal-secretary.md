@@ -18,7 +18,7 @@ Codex Sol (session `01a20c6d-4e7d-71e1-a724-a49707940147`); this revision is not
 - Hiding a skill or subagent is routing only. **The Vercel backend is the permission check.**
 - **No new sheet columns.** Each secretary is its own Staff row with its own StaffId; every write it
   or its subagents make is recorded under that StaffId in the existing columns.
-- Trial: one secretary for the owner (admin), writes allowed.
+- Initial trial: one secretary for the owner (admin), writes allowed. Admin-managed enable/disable now supports active human admin and staff owners.
 
 ## Identity
 
@@ -152,3 +152,21 @@ skills/roles declared per run (fresh and resumed); existing service unchanged.
 
 - Self-service secretary creation for staff.
 - Decide whether department team agents are retired or moved to named operations.
+
+## Webapp secretary administration (2026-11-24)
+
+Implemented in W without new API functions or sheet columns: Firebase admin-only
+`GET` / `PATCH /api/staff/secretary/:staffId`, strict `{ active }` writes, and separate assistant
+rows as specified above. Missing rows are appended on enable with `เลขาของ <owner name>` and
+`secretary+<staffId>@example.invalid`; disable preserves the row. Re-enable updates only Active.
+Invalid owners, duplicate IDs and non-assistant ID collisions fail before writing. The Staff
+registry has no audit columns. See [registration](../features/staff/registration.md#secretary-administration)
+for the full lifecycle and the Sheets concurrent-append limitation.
+
+Reply language (`th`, `my`, `en`) and read-only `codexReady` remain in MagicwashAI:
+`GET /secretary/settings?staffId=<ownerId>` (admin any owner, staff self),
+`POST` with `{ language }` (admin only). Both return `{ staffId, language, codexReady }`.
+W supplies validated gateway service functions and a settings store using the secretary base URL
+and Firebase token. No profile UI is part of this implementation. The admin/staff agent-list entry
+and background unread polling require the viewer's own active assistant in the existing directory.
+See [profile integration](../features/staff/profile.md#secretary-data-integration) for UI call signatures.

@@ -53,3 +53,18 @@ export const staffApiContract = {
   request: { create: registerStaffBodySchema, update: updateStaffBodySchema },
   response: staffResponses,
 } satisfies ModuleApiContract
+
+export const secretaryStaffIdSchema = z.string().trim().min(1)
+export const updateStaffSecretaryBodySchema = z.object({ active: z.boolean() }).strict()
+export const staffSecretarySchema = z.object({
+  staffId: secretaryStaffIdSchema,
+  assistantId: z.string(),
+  exists: z.boolean(),
+  active: z.boolean(),
+})
+
+export const staffSecretaryApiContract = {
+  query: { list: z.never() },
+  request: { create: z.never(), update: updateStaffSecretaryBodySchema },
+  response: { list: staffSecretarySchema, detail: staffSecretarySchema, update: staffSecretarySchema },
+} satisfies ModuleApiContract

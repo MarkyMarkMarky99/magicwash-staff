@@ -488,3 +488,14 @@ Handlers replace request-body actor fields with the resolved `req.staff.staffId`
 This applies to job-ticket start-order, advance, and update; packaging confirmation; before/after photo creation, update, and reassignment; order images; work orders; order-item creation, update, and quantity reassignment; bag items; customer registration/update; packages; issue reports; appointments; customer-package purchases and package transactions. WashQueue and complete-order retain their existing session-derived actors. Read-only modules and print submissions have no persisted actor field to replace. Staff registration and management use authenticated Google identity and admin checks rather than a client actor.
 
 Device sessions resolve `X-Operator-Id` through active Staff rows outside auth/staff routes. The operator's request role is capped to staff. Without an operator only GET is allowed. See [shared-device operator flow](../../features/staff/shared-device.md).
+
+## Staff secretary administration routes
+
+`GET /api/staff/secretary/:staffId` and `PATCH /api/staff/secretary/:staffId` are Firebase
+admin-only nested routes in the existing staff module, dispatched through `api/[...path].ts`.
+No additional Vercel function is created. PATCH accepts `{ active: boolean }`; response data is
+`{ staffId, assistantId, exists, active }`. The owner ID is the final path segment, following the
+existing `nestedItem` convention. These routes are outside the AI and secretary service-key
+allowlists. See [Staff administration](../../features/staff/registration.md#secretary-administration)
+for validation, persistence and idempotency; contracts are in `contracts/staff/staff-api.schema.ts`.
+Language/Codex settings GET and POST belong to MagicwashAI at `/secretary/settings`, not Vercel.

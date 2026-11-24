@@ -95,12 +95,16 @@ export const AGENTS: AgentInfo[] = [
     description: 'Your own secretary: hands department and appointment work to helpers and checks the result',
     greeting: 'สวัสดีค่ะ หนูเป็นเลขาส่วนตัวของคุณ ถามงานแผนก นัดหมาย หรือสั่งปิดงานได้เลยค่ะ',
     suggestions: [],
-    roles: ['admin'],
+    roles: ['admin', 'staff'],
   },
 ]
 
 export function agentVisibleToRole(agent: AgentInfo, role: StaffRole | null): boolean {
   return !agent.roles || (role !== null && agent.roles.includes(role))
+}
+
+export function agentVisibleToViewer(agent: AgentInfo, role: StaffRole | null, secretaryActive: boolean): boolean {
+  return agentVisibleToRole(agent, role) && (agent.id !== 'secretary' || secretaryActive)
 }
 
 export function agentById(id: AgentId): AgentInfo {

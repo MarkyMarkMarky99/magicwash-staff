@@ -1,6 +1,15 @@
 import { z } from 'zod'
 import { jobTicketDepartmentSchema } from '../../../contracts/job-tickets/job-ticket-api.schema.js'
-import { registerStaffBodySchema, staffDirectoryEntrySchema, staffReadRoleSchema, staffSchema, updateStaffBodySchema } from '../../../contracts/staff/staff-api.schema.js'
+import {
+  registerStaffBodySchema,
+  secretaryStaffIdSchema,
+  staffDirectoryEntrySchema,
+  staffReadRoleSchema,
+  staffSchema,
+  staffSecretarySchema,
+  updateStaffBodySchema,
+  updateStaffSecretaryBodySchema,
+} from '../../../contracts/staff/staff-api.schema.js'
 import { invalidateStaffListCache, type SecretaryOwner, type StaffMember } from '../../shared/auth/staff-list.js'
 import { ApiError } from '../../shared/http/api-error.js'
 import { parseOrThrow } from '../../shared/http/validate.js'
@@ -115,7 +124,52 @@ export class StaffService {
     return { ...row.staff, ...body, departments: departments ?? row.staff.departments }
   }
 
-  private async load() {
+  async getSecretary(staffId: string): Promise<z.infer<typeof staffSecretarySchema>> {
+    const id = parseOrThrow(secretaryStaffIdSchema, staffId)
+    const { owner, assistant } = await this.secretaryRows(id)
+    return { staffId: owner.staff.staffId, assistantId: `AI-${id}`, exists: !!assistant, active: assistant?.staff.active ?? false }
+  }
+
+  async updateSecretary(staffId: string, payload: unknown): Promise<z.infer<typeof staffSecretarySchema>> {
+    const id = parseOrThrow(secretaryStaffIdSchema, staffId)
+    const { active } = parseOrThrow(updateStaffSecretaryBodySchema, payload)
+    const { header, rows, owner, assistant } = await this.secretaryRows(id)
+    const assistantId = `AI-${id}`
+    if (assistant) {
+      if (assistant.staff.active !== active) {
+        await this.client.updateCells([{ range: `Staff!${header.letterByName.Active}${assistant.rowNumber}`, values: [[active]] }], 'RAW')
+      }
+    } else if (active) {
+      const email = `secretary+${id}@example.invalid`
+      if (rows.some(({ staff }) => staff.email.trim().toLowerCase() === email.toLowerCase())) {
+        throw ApiError.conflict('Secretary email already belongs to another row')
+      }
+      const values: SheetsApiValue[] = Array(header.width).fill('')
+      const fields = { Email: email, Name: `เลขาของ ${owner.staff.name}`, Role: 'assistant', Active: true, StaffId: assistantId }
+      for (const [column, value] of Object.entries(fields)) values[header.indexByName[column]] = value
+      await this.client.appendRows([values], 'RAW', header.width)
+    }
+    invalidateStaffListCache()
+    return { staffId: id, assistantId, exists: !!assistant || active, active }
+  }
+
+  private async secretaryRows(id: string) {
+    const loaded = await this.load(true)
+    const owners = loaded.rows.filter(({ staff }) => staff.staffId === id)
+    if (!owners.length) throw ApiError.notFound('Secretary owner not found')
+    if (owners.length !== 1) throw ApiError.conflict('Secretary owner StaffId is not unique')
+    const owner = owners[0]!
+    if (!owner.staff.active || id.toUpperCase() === 'AI' || !['admin', 'staff'].includes(owner.staff.role ?? '')) {
+      throw ApiError.conflict('Secretary owner must be an active human admin or staff member')
+    }
+    const assistants = loaded.rows.filter(({ staff }) => staff.staffId === `AI-${id}`)
+    if (assistants.length > 1) throw ApiError.conflict('Secretary StaffId is not unique')
+    const assistant = assistants[0]
+    if (assistant && assistant.staff.role !== 'assistant') throw ApiError.conflict('Secretary StaffId belongs to a non-assistant row')
+    return { ...loaded, owner, assistant }
+  }
+
+  private async load(includeBlankEmail = false) {
     const headers = await this.client.readRange('1:1', { valueRenderOption: 'UNFORMATTED_VALUE' })
     const header = buildSheetHeaderMap(headers[0] ?? [], Object.values(staffColumns), 'Email')
     const data = await this.client.readRange(`A2:${columnLetterForIndex(header.width - 1)}`, {
@@ -127,7 +181,7 @@ export class StaffService {
       const values = Object.fromEntries(Object.entries(staffColumns).map(([field, column]) => [
         field, String(cells[header.indexByName[column]] ?? ''),
       ]))
-      if (!values.email!.trim()) continue
+      if (!includeBlankEmail && !values.email!.trim()) continue
       const role = staffReadRoleSchema.safeParse(values.role!.trim().toLowerCase())
       const active = cells[header.indexByName.Active]
       const departmentsCell = departmentsIndex === undefined ? '' : String(cells[departmentsIndex] ?? '')

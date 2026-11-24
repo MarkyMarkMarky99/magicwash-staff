@@ -17,3 +17,11 @@ The first turn omits `sessionId`; later turns send the returned ID with only new
 ## Appointments agent endpoints
 
 `shared/ai-gateway/tasks/team-agent.ts` sends `POST /tasks/chat` with `agentId` (`appointments`, `washing` or `ironing`) through `callAiTask` and reads the four `/agents/<agentId>/...` endpoints (history, reminders, reminder cancel, notes) through `callAiGatewayEndpoint`, which shares the base URL, Bearer token, deadline and error-envelope handling with `callAiTask`. These are quick reads with a 20 s deadline. A body wrapped in the success envelope is unwrapped. See [Agent chat](../features/agents/agent-chat.md#team-agents).
+
+## Secretary settings
+
+`shared/ai-gateway/tasks/secretary.ts` reads and updates settings using `/settings?staffId=<id>`
+on the secretary-specific base URL `<gateway>/secretary` (GET reads, POST updates). Settings use contract schemas in
+`contracts/ai-gateway/secretary-api.schema.ts` and validate the response owner ID as well as shape.
+The frontend team-agent service supplies the same Firebase token and base URL used by secretary chat.
+See [Secretary settings](../features/agents/agent-chat.md#secretary-settings).

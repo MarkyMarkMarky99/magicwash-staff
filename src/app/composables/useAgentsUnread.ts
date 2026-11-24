@@ -1,7 +1,8 @@
 import { computed, onScopeDispose, watch } from 'vue'
+import { useStaffStore } from '@/data/staff/staff.store'
 import { useTeamAgentStore } from '@/data/team-agent/team-agent.store'
 import { TEAM_AGENT_IDS, type TeamAgentId } from '@/features/agents/agent-chat.types'
-import { agentById, agentVisibleToRole } from '@/features/agents/agents'
+import { agentById, agentVisibleToViewer } from '@/features/agents/agents'
 import type { StaffSession } from '@/data/auth/auth.service'
 
 const BACKGROUND_POLL_MS = 60000
@@ -14,8 +15,9 @@ export interface AgentUnreadMessage {
 }
 
 export function useAgentsUnread(role: () => StaffSession['role'] | null, viewerStaffId: () => string | null) {
+  const staffStore = useStaffStore()
   const stores = Object.fromEntries(TEAM_AGENT_IDS.map(id => [id, useTeamAgentStore(id)])) as Record<TeamAgentId, ReturnType<typeof useTeamAgentStore>>
-  const visibleIds = computed(() => TEAM_AGENT_IDS.filter(id => agentVisibleToRole(agentById(id), role())))
+  const visibleIds = computed(() => TEAM_AGENT_IDS.filter(id => agentVisibleToViewer(agentById(id), role(), staffStore.hasActiveSecretary(viewerStaffId()))))
   let timer: ReturnType<typeof setInterval> | null = null
 
   function stop(): void {

@@ -1,3 +1,4 @@
+import { getSecretarySettings, putSecretarySettings, type UpdateSecretarySettingsInput } from '@shared/ai-gateway/tasks/secretary'
 import { AiGatewayError } from '@shared/ai-gateway/ai-gateway.errors'
 import {
   cancelPersonalAssignment,
@@ -18,6 +19,8 @@ import {
   type TeamAgentId,
 } from '@shared/ai-gateway/tasks/team-agent'
 import { aiGatewayBaseUrl, aiGatewayToken } from '@/shared/ai-gateway/ai-gateway.config'
+
+export type { SecretarySettings, UpdateSecretarySettingsInput } from '@shared/ai-gateway/tasks/secretary'
 
 export type {
   TeamAgentAccepted,
@@ -104,4 +107,12 @@ export function subscribePush(subscription: PushSubscriptionJSON, signal?: Abort
 
 export function unsubscribePush(endpoint: string) {
   return unsubscribeTeamAgentPush({ ...gatewayAccess(), endpoint })
+}
+
+export function fetchSecretarySettings(staffId: string) {
+  return getSecretarySettings({ baseUrl: agentBaseUrl('secretary'), getToken: aiGatewayToken, staffId })
+}
+
+export function updateSecretarySettings(staffId: string, body: UpdateSecretarySettingsInput) {
+  return putSecretarySettings({ baseUrl: agentBaseUrl('secretary'), getToken: aiGatewayToken, staffId, body })
 }
