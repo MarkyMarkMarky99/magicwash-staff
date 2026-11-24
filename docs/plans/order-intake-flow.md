@@ -167,6 +167,7 @@ Per Save:
 
 | sheet | call | API | count |
 |---|---|---|---|
+| StockTakes | fresh read to check for an active stock-take before intake | Sheets API read | 1 |
 | LaundryItems | read the customer's garments (tag owner, registered, type) | GViz | 1 |
 | Items | check every `itemId` exists | GViz | 1 |
 | WorkRates | rates for Tagging | GViz | 0–1 (cached after first load) |
@@ -180,7 +181,7 @@ Per Save:
 | WorkTransactions | append all earn rows | Sheets API write | 0–1 |
 | OrderForm | status to `APPROVED`: row lookup + write + readback | Sheets API | 2 reads + 1 write |
 
-Total per Save: **2–3 GViz reads, 2–5 Sheets API reads, 5–8 Sheets API writes**, the same for 5 or
+Total per Save: **2–3 GViz reads, 3–6 Sheets API reads, 5–8 Sheets API writes**, the same for 5 or
 50 garments. A cold server instance adds one header read per sheet on its first write (up to 8,
 once). For comparison, the approve path alone today costs 4 GViz reads, 3 Sheets API reads and 3
 writes.

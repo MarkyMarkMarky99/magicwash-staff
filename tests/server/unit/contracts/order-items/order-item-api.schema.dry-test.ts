@@ -9,7 +9,10 @@ const {
   orderItemCreateSchema,
   orderItemDetailResponseSchema,
   orderItemListQuerySchema,
+  orderItemQuantityReassignResponseSchema,
+  orderItemQuantityReassignSchema,
   orderItemResponseSchema,
+  orderItemUpdateResponseSchema,
   orderItemUpdateSchema,
   orderServiceTypeSchema,
 } = orderItemModule
@@ -28,7 +31,10 @@ assert.deepEqual(new Set(Object.keys(orderItemModule)), new Set([
   'orderItemCreateSchema',
   'orderItemDetailResponseSchema',
   'orderItemListQuerySchema',
+  'orderItemQuantityReassignResponseSchema',
+  'orderItemQuantityReassignSchema',
   'orderItemResponseSchema',
+  'orderItemUpdateResponseSchema',
   'orderItemUpdateSchema',
   'orderServiceTypeSchema',
 ]))
@@ -36,14 +42,14 @@ assert.deepEqual(new Set(Object.keys(orderItemModule)), new Set([
 assert.deepEqual(Object.keys(orderItemApiContract), ['query', 'request', 'response'])
 assert.deepEqual(Object.keys(orderItemApiContract.query), ['list'])
 assert.deepEqual(Object.keys(orderItemApiContract.request ?? {}), ['create', 'update'])
-assert.deepEqual(Object.keys(orderItemApiContract.response), ['list', 'detail', 'create'])
+assert.deepEqual(Object.keys(orderItemApiContract.response), ['list', 'detail', 'create', 'update'])
 assert.equal(orderItemApiContract.query.list, orderItemListQuerySchema)
 assert.equal(orderItemApiContract.request?.create, orderItemCreateSchema)
 assert.equal(orderItemApiContract.request?.update, orderItemUpdateSchema)
 assert.equal(orderItemApiContract.response.list, orderItemResponseSchema)
 assert.equal(orderItemApiContract.response.detail, orderItemDetailResponseSchema)
 assert.equal(orderItemApiContract.response.create, orderItemCreateResponseSchema)
-assert.equal('update' in orderItemApiContract.response, false)
+assert.equal(orderItemApiContract.response.update, orderItemUpdateResponseSchema)
 
 assert.throws(() => orderItemListQuerySchema.parse({}))
 assert.deepEqual(orderItemListQuerySchema.parse({ orderId: '  ORD-1  ' }), {
@@ -96,6 +102,23 @@ assert.deepEqual(orderItemResponseSchema.parse(dto), dto)
 assert.deepEqual(Object.keys(orderItemResponseSchema.parse(dto)), RESPONSE_FIELDS)
 assert.equal(orderItemDetailResponseSchema, orderItemResponseSchema)
 assert.equal(orderItemCreateResponseSchema, orderItemResponseSchema)
+assert.equal(orderItemUpdateResponseSchema, orderItemResponseSchema)
+assert.deepEqual(orderItemQuantityReassignResponseSchema.parse({ items: [dto] }), { items: [dto] })
 assert.throws(() => orderItemUpdateSchema.parse({}))
+
+const update = { quantity: 2, updatedBy: 'staff-1' }
+assert.deepEqual(orderItemUpdateSchema.parse({ ...update, updatedBy: ' staff-1 ' }), update)
+assert.throws(() => orderItemUpdateSchema.parse({ ...update, quantity: 1.5 }))
+assert.throws(() => orderItemUpdateSchema.parse({ ...update, price: 20 }))
+
+const item = { orderItemId: 'ITEM-1', quantity: 2 }
+const reassign = { items: [item], updatedBy: 'staff-1' }
+assert.deepEqual(orderItemQuantityReassignSchema.parse({
+  items: [{ ...item, orderItemId: ' ITEM-1 ' }], updatedBy: ' staff-1 ',
+}), reassign)
+assert.throws(() => orderItemQuantityReassignSchema.parse({ ...reassign, items: [] }))
+assert.throws(() => orderItemQuantityReassignSchema.parse({
+  ...reassign, items: [item, { ...item, orderItemId: ' ITEM-1 ' }],
+}))
 
 console.log('order-item-api.schema.dry-test: OK')

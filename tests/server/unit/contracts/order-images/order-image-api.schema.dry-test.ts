@@ -6,6 +6,7 @@ import { API_PAGINATION_DEFAULTS } from '../../../../../contracts/shared/api.sch
 const {
   MAX_ORDER_IMAGES_PER_PAGE,
   orderImageApiContract,
+  orderImageCreateRequestSchema,
   orderImageCreateResponseSchema,
   orderImageCreateSchema,
   orderImageDetailResponseSchema,
@@ -25,6 +26,7 @@ assert.equal(MAX_ORDER_IMAGES_PER_PAGE, 500)
 assert.deepEqual(new Set(Object.keys(orderImageModule)), new Set([
   'MAX_ORDER_IMAGES_PER_PAGE',
   'orderImageApiContract',
+  'orderImageCreateRequestSchema',
   'orderImageCreateResponseSchema',
   'orderImageCreateSchema',
   'orderImageDetailResponseSchema',
@@ -98,6 +100,19 @@ for (const quantity of [null, 0, -0.01, 20.55, 200.1]) {
   assert.throws(() => orderImageCreateSchema.parse({ ...minimalCreate, quantity }))
 }
 assert.throws(() => orderImageCreateSchema.parse({ ...minimalCreate, imageType: 'BELONGING', quantity: 1 }))
+
+assert.equal(orderImageCreateRequestSchema.parse(minimalCreate).itemCount, null)
+for (const itemCount of [1, 999]) {
+  const request = { ...minimalCreate, itemCount }
+  assert.equal(orderImageCreateRequestSchema.parse(request).itemCount, itemCount)
+  assert.deepEqual(orderImageCreateSchema.parse(request), orderImageCreateSchema.parse(minimalCreate))
+}
+for (const itemCount of [0, 1.5, 1000]) {
+  assert.throws(() => orderImageCreateRequestSchema.parse({ ...minimalCreate, itemCount }), ZodError)
+}
+assert.throws(() => orderImageCreateRequestSchema.parse({
+  ...minimalCreate, imageType: 'BELONGING', quantity: null, itemCount: 1,
+}), ZodError)
 
 const dto = {
   orderImageId: 'IMAGE-1', orderId: 'ORD-1', customerId: null, deliveryId: 'DEL-1', imageType: 'legacy spelling',

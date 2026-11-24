@@ -16,7 +16,7 @@ import { SheetRepository } from '../../../../server/shared/repositories/sheet.re
  * Sheets API workflow.
  *
  * Exercises the REAL `InvoiceService` against a mocked `fetch`, asserting the
- * exact wire-level requests: one InvoiceItems batch append and one Invoices
+ * exact wire-level requests: a GViz invoice-number preflight, one InvoiceItems batch append and one Invoices
  * append through the Sheets API, plus an OrderForm keyed PATCH through the
  * Sheets API with only the invoice link fields.
  *
@@ -36,6 +36,7 @@ process.env.GOOGLE_SERVICE_ACCOUNT_KEY = Buffer.from(JSON.stringify({
 const { InvoiceService } = await import('../../../../server/modules/invoices/invoice.service.js')
 
 const fixedNow = new Date('2026-04-01T00:34:56.000Z')
+const invoiceNumber = 'INV260700000001'
 
 const invoiceItemsHeaders = Object.keys(invoiceItemsRowSchema.shape)
 const invoicesHeaders = Object.keys(invoicesRowSchema.shape)
@@ -99,7 +100,6 @@ async function withRoutedFetch<T>(
       return response({ json: { access_token: 'test-access-token', expires_in: 3600 } })
     }
 
-    assert.equal(parsedUrl.origin, 'https://sheets.googleapis.com')
     const call: FetchCall = {
       url: stringUrl,
       method: init?.method,
@@ -107,6 +107,12 @@ async function withRoutedFetch<T>(
     }
     calls.push(call)
     const path = sheetsPath(stringUrl)
+
+    if (parsedUrl.origin === 'https://docs.google.com') {
+      return new Response(JSON.stringify({ status: 'ok', table: { cols: [{ id: 'A' }], rows: [] } }))
+    }
+
+    assert.equal(parsedUrl.origin, 'https://sheets.googleapis.com')
 
     // ── InvoiceItems: header load + one batch append ──
     if (init?.method === 'GET' && path.endsWith('/values/InvoiceItems!1:1')) {
@@ -148,7 +154,7 @@ async function withRoutedFetch<T>(
     if (init?.method === 'POST' && path.endsWith('/values:batchUpdate')) {
       assert.equal(call.body?.valueInputOption, 'USER_ENTERED')
       assert.deepEqual(call.body?.data, [
-        { range: 'OrderForm!S2:S2', values: [['INV-0001']] },
+        { range: 'OrderForm!S2:S2', values: [[invoiceNumber]] },
         { range: 'OrderForm!R2:R2', values: [['session-staff']] },
         { range: 'OrderForm!Q2:Q2', values: [['2026-04-01 07:34:56']] },
       ])
@@ -169,7 +175,7 @@ async function withRoutedFetch<T>(
 
 function baseRequest(): CreateInvoiceRequest {
   return {
-    invoiceNumber: 'INV-0001',
+    invoiceNumber,
     sourceOrderId: 'ORD-0001',
     issuedDate: '2026-07-29',
     dueDate: '2026-08-12',
@@ -205,11 +211,16 @@ async function main(): Promise<void> {
     const result = await service.create(baseRequest(), 'session-staff')
     assert.equal(result.kind, 'created')
 
-    // Source-sheet writes use the Sheets API; view synchronization is a
-    // separate endpoint.
-    assert.equal(calls.length, 8, 'header×3 + primary-key read×1 + append×2 + update×2')
+    const [preflight, ...sheetsCalls] = calls
+    assert.equal(preflight!.method ?? 'GET', 'GET')
+    const preflightUrl = new URL(preflight!.url)
+    assert.equal(preflightUrl.origin, 'https://docs.google.com')
+    assert.equal(preflightUrl.pathname, '/spreadsheets/d/invoices-spreadsheet-id/gviz/tq')
+    assert.equal(preflightUrl.searchParams.get('sheet'), 'Invoices')
+    assert.equal(preflightUrl.searchParams.get('tq'), 'select A')
+    assert.equal(sheetsCalls.length, 8, 'header×3 + primary-key read×1 + append×2 + update×2')
     assert.deepEqual(
-      calls.map((call) => `${call.method ?? 'GET'} ${sheetsPath(call.url).replace(/^\/v4\/spreadsheets\/[^/]+/, '')}`),
+      sheetsCalls.map((call) => `${call.method ?? 'GET'} ${sheetsPath(call.url).replace(/^\/v4\/spreadsheets\/[^/]+/, '')}`),
       [
         'GET /values/InvoiceItems!1:1',
         'POST /values/InvoiceItems!A:A:append',
@@ -238,7 +249,7 @@ async function main(): Promise<void> {
       // sku is sixth of fourteen and never sent by the service → ''
       // net_total server-computed: FIXED -10 per unit × quantity 10 = 400, not 490.
       [
-        'INV-0001',
+        invoiceNumber,
         'itemid01',
         1,
         'ORD-0001',
@@ -254,7 +265,7 @@ async function main(): Promise<void> {
         400,
       ],
       [
-        'INV-0001',
+        invoiceNumber,
         'itemid02',
         2,
         'ORD-0001',
@@ -296,7 +307,7 @@ async function main(): Promise<void> {
 
     const expectedCustomer = { customer_code: 'CUS-0001', customer_name: 'Somchai' }
     const expectedInvoiceRow = [
-      'INV-0001',
+      invoiceNumber,
       'ISSUED',
       'ORDER',
       '',
@@ -326,10 +337,10 @@ async function main(): Promise<void> {
     )
 
     // ── OrderForm: one UPDATE, PATCH-only body (assertions also live in the mock) ──
-    const orderFormCall = calls[6]!
+    const orderFormCall = sheetsCalls[6]!
     assert.equal(orderFormCall.body?.valueInputOption, 'USER_ENTERED')
     assert.deepEqual(orderFormCall.body?.data, [
-      { range: 'OrderForm!S2:S2', values: [['INV-0001']] },
+      { range: 'OrderForm!S2:S2', values: [[invoiceNumber]] },
       { range: 'OrderForm!R2:R2', values: [['session-staff']] },
       { range: 'OrderForm!Q2:Q2', values: [['2026-04-01 07:34:56']] },
     ])

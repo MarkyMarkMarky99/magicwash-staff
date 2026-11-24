@@ -57,6 +57,7 @@ Request
 - `notes` — string, nullable, default `null`
 - `quantity` — required for `WEIGHT`: greater than 0, at most 200 kg, and at most one decimal
   place. It must be `null` for all other types. PICKUP and DELIVERY have no capture UI.
+- `itemCount` — optional whole number from 1 to 999 for `WEIGHT`, defaults to `null`. Used for bag-tag printing only.
 - `createdBy` — string, required
 - not accepted: `orderImageId`, `createdAt`
 
@@ -82,7 +83,7 @@ Behaviour
 - After Packaging provisioning and before bag-tag printing, each saved WEIGHT image also
   provisions a Pending Logistics ORDER ticket `LOG-<orderId>-<orderImageId>-LOG-BAG` at step 0.
   See [Bag logistics tickets](./job-ticket.md#bag-logistics-tickets). Failures leave the save response unchanged.
-- Bag-tag printing sends the saved WEIGHT quantity as `weightKg`, `itemCount: null`, and the
+- Bag-tag printing sends the saved WEIGHT quantity as `weightKg`, the request's `itemCount`, and the
   normalized image creation time as `packedAt`. The print response is unchanged.
   [Packaging Confirm](../../packaging/confirm.md) records weighed bags as WEIGHT (photo in
   `imagePath`, kg in `quantity`) and unweighed bags as PACK with null `quantity`. Both create

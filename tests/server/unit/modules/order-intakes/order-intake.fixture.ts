@@ -4,6 +4,7 @@ import type { orderIntakeCreateSchema } from '../../../../../contracts/order-int
 import { OrderIntakeService, type OrderIntakeDependencies } from '../../../../../server/modules/order-intakes/order-intake.service.js'
 import { createOrderIntakeRoutes } from '../../../../../server/modules/order-intakes/order-intake.module.js'
 import { resetWorkRatesCache } from '../../../../../server/modules/work-orders/work-rate-lookup.js'
+import { getStockTakesRepository } from '../../../../../server/sheets/StockTakes/StockTakes.repository.js'
 
 export function intakePayload(count = 10): z.infer<typeof orderIntakeCreateSchema> {
   const items = ['item0001', 'item0002', 'item0003'].map(itemId => ({ itemId, tags: [] as string[] }))
@@ -85,9 +86,22 @@ export function intakeFixture(payload = intakePayload(), failure?: string, untyp
   }
   const service = new OrderIntakeService(deps)
   const routes = createOrderIntakeRoutes(service)
-  const save = () => routes.collection!.handleRequest({
-    method: 'POST', body: payload, params: {}, query: {}, headers: {},
-    staff: { staffId: 'staff-1', email: 'staff@example.test', name: 'Staff', role: 'staff' },
-  })
+  const save = async () => {
+    process.env.JOB_TICKETS_SPREADSHEET_ID ??= 'dry-test-job-tickets'
+    const stockTakes = getStockTakesRepository()
+    const readFresh = stockTakes.readFresh
+    stockTakes.readFresh = async () => {
+      increment(reads, 'StockTakes')
+      return []
+    }
+    try {
+      return await routes.collection!.handleRequest({
+        method: 'POST', body: payload, params: {}, query: {}, headers: {},
+        staff: { staffId: 'staff-1', email: 'staff@example.test', name: 'Staff', role: 'staff' },
+      })
+    } finally {
+      stockTakes.readFresh = readFresh
+    }
+  }
   return { deps, service, save, registered, others, calls, gviz, reads, writes, rows }
 }
