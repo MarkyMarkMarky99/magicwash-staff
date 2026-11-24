@@ -5,7 +5,6 @@
 - **`feat/live-order-helper`** — stale read-only helper awaiting revival and live parity checks; see `.user/memory/feat-live-order-helper.md`.
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
-- **`feat/direct-chat`** — Chats (staff DMs, images, Luna translation) built, not yet live-tested with a real send or pushed; see `.user/memory/feat-direct-chat.md`.
 
 ## Pending work
 - **Stock-take (temporary)** — owner will ask to remove it; removal steps in `.user/memory/stock-take-removal.md`.
@@ -16,6 +15,7 @@
   - Price groups KLINIQ, KLINIQUE, MAISON, MAISON_GAYSORN, SOULTEL live (2026-10-21) on the shared default slip prompt; only blank forms tested, need filled slips (esp. KLINIQ, whose LAUNDRY COUNT sits beside SPA COUNT).
 - **Agent chat (`/agents`)** — pending items in `.user/memory/agent-chat.md`; prod chats need MagicwashAI running on this PC.
   - Secretary (plan `docs/plans/personal-secretary.md`): admins enable it per staff on staff detail; batch `close-orders` untested on real tickets; no push notifications yet; it can book its owner's day off (cancel stays admin-only).
+  - Chats DMs (plan `docs/plans/direct-chat.md`): recipient-side translation view untested; DM push not built (needs shared-phone test); empty divider under Secretary switch when off.
   - All secretaries share one Codex login (MagicwashAI `/codex-home/shared/auth.json`); survival across a token refresh is unproven.
 - **Corporate count-sheet order** — see `docs/features/orders/corporate-order-form.md`
   - Slip-photo upload on Save not yet tried in a real browser.
