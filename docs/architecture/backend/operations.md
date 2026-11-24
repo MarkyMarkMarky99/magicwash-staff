@@ -400,6 +400,8 @@ the fields listed for that operation. The server adds the audit actor.
 | GET `work-orders` | Either role, with `customerId`, `page`, `perPage`, `sortOrder` |
 | GET `job-tickets` | Either role, with `orderId` or `laundryItemId`, plus `page`, `perPage`, `sortBy`, `sortOrder` |
 | GET `job-tickets/department-work` | Either role, with `department` |
+| GET `attendance` | Either role, with only `week` (string date); returns active attendance for that Monday-Sunday week. |
+| POST `attendance/day-off` | Either role, with exactly `{ workDate }`; books `DAY_OFF` for `onBehalfOf.staffId`, with the assistant StaffId in `created_by`. |
 | POST `job-tickets/complete-order` or `job-tickets/reopen` | Admin or staff assigned to the requested department. Both take `orderId` and `department`. Reopen also requires `reason` and `ticketIds`. |
 | POST `job-tickets/complete-orders` | Admin or staff assigned to the requested department. Takes `department` and `orderIds` with 1 to 200 unique order IDs. |
 | POST `appointments` | Admin. Required fields are `customerId`, `customerName`, `customerCode`, `phone`, `address`, `location`, `appointmentType`, `appointmentDate`, and `timeSlot`. Optional fields are `notes`, `vehicle`, `pickupOrderId`, and `deliveryOrderId`. |
@@ -410,6 +412,12 @@ Secretary appointment completion can cascade to the appointment's existing deliv
 A failure to confirm a downstream order or ticket update after the primary write returns a
 partial-failure error identifying the affected records. Secretary ticket close awards no score.
 A reopen VOID records the secretary as creator and credits the original EARN subject.
+
+Secretary day-off booking uses the same rules as self-booking: tomorrow through today+14 inclusive
+in Bangkok, one active row per owner/date, one `DAY_OFF` per date, and one `DAY_OFF` per owner
+per Monday-Sunday week. The owner must have role staff or admin. An assistant without
+`onBehalfOf` cannot book. Attendance admin create (`POST attendance`), PATCH and DELETE stay
+forbidden through the proxy, including for admin owners. The existing Attendance columns are unchanged.
 
 Assistant rows are excluded from Firebase identity, staff cards, device operators, employee
 rosters, attendance records and day-off conflicts, KPI rankings, and active staff eligibility

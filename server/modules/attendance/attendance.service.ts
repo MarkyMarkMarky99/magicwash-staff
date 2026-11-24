@@ -58,13 +58,14 @@ export class AttendanceService {
   }
 
   async bookDayOff(payload: unknown, actor: StaffMember) {
-    if (actor.role !== 'staff' && actor.role !== 'admin') throw ApiError.forbidden()
+    const owner = actor.onBehalfOf ?? actor
+    if (owner.role !== 'staff' && owner.role !== 'admin') throw ApiError.forbidden()
     const { workDate } = parseInput(attendanceDayOffSchema, payload)
     const today = bangkokToday(this.now())
     if (workDate <= today || workDate > addDays(today, 14)) {
       throw ApiError.badRequest('Day off must be tomorrow through 14 days ahead (Asia/Bangkok)')
     }
-    return this.createRow({ staffId: actor.staffId, workDate, status: 'DAY_OFF' }, actor.staffId)
+    return this.createRow({ staffId: owner.staffId, workDate, status: 'DAY_OFF' }, actor.staffId)
   }
 
   async create(payload: unknown, actor: StaffMember) {

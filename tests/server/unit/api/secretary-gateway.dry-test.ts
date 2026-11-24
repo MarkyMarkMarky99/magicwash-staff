@@ -26,7 +26,7 @@ const write = new ApiHandler({
 const routes = { collection: new ApiHandler({ GET: read.handleRequest, POST: write.handleRequest }),
   item: new ApiHandler({ GET: read.handleRequest, POST: write.handleRequest, PATCH: write.handleRequest }) }
 const registry = Object.fromEntries(
-  ['staff', 'customers', 'appointments', 'work-orders', 'job-tickets', 'work-transactions', 'portal', 'laundry-items'].map(module => [
+  ['staff', 'customers', 'appointments', 'work-orders', 'job-tickets', 'work-transactions', 'portal', 'laundry-items', 'attendance'].map(module => [
     module, async () => { moduleLoads++; return routes },
   ]),
 )
@@ -54,6 +54,7 @@ const cancelled = { status: 'CANCELLED' }
 const close = { orderId: 'O1', department: 'Washing' }
 const closeOrders = { orderIds: ['O1', 'O2'], department: 'Washing' }
 const reopen = { ...close, reason: 'Wash again', ticketIds: ['T1'] }
+const dayOff = { workDate: '2026-11-25' }
 
 try {
   process.env.STAFF_SPREADSHEET_ID = 'dry-staff'
@@ -110,6 +111,7 @@ try {
     ['/api/appointments/A1', {}], ['/api/work-orders', { customerId: 'C1', page: '1', perPage: '500', sortOrder: 'desc' }],
     ['/api/job-tickets', { orderId: 'O1', page: '1', perPage: '500', sortBy: 'stepNo', sortOrder: 'asc' }],
     ['/api/job-tickets', { laundryItemId: 'T1' }], ['/api/job-tickets/department-work', { department: 'Washing' }],
+    ['/api/attendance', { week: '2026-11-25' }],
     ['/api/[...path]', { path: ['staff', 'directory'] }],
   ] satisfies [string, VercelRequest['query']][]) {
     const result = await call(path, 'GET', undefined, validHeaders, query)
@@ -120,12 +122,16 @@ try {
   for (const path of [
     '/api/staff/secretary/Owner1', '/api/unknown', '/api/portal/orders', '/api/work-transactions', '/api/staff/me', '/api/staff', '/api/work-orders/O1',
     '/api/job-tickets/T1', '/api/staff/directory/extra', '/api/laundry-items/T1', '/api/customers/%ZZ', '/api',
+    '/api/attendance/id', '/api/attendance/day-off',
   ]) await forbidden(path)
   for (const [path, query] of [
     ['/api/customers', { sortBy: 'customerIndex' }], ['/api/customers/C1', { keyword: 'x' }],
     ['/api/job-tickets', {}], ['/api/job-tickets', { orderId: 'O1', laundryItemId: 'T1' }],
     ['/api/job-tickets', { orderId: ['O1', 'O2'] }],
     ['/api/job-tickets/department-work', {}],
+    ['/api/attendance', { week: ['2026-11-25'] }],
+    ['/api/attendance', { week: '2026-11-25', staffId: 'Other' }],
+    ['/api/attendance', { week: '2026-11-25', page: '1' }],
   ] satisfies [string, VercelRequest['query']][]) await forbidden(path, 'GET', undefined, validHeaders, query)
 
   const writes = [
@@ -135,6 +141,7 @@ try {
     ['/api/appointments', 'POST', { ...appointment, notes: 'note', vehicle: 'VAN', pickupOrderId: 'P1', deliveryOrderId: 'O1' }],
     ['/api/appointments/A1', 'PATCH', reschedule], ['/api/appointments/A1', 'PATCH', cancelled],
     ['/api/appointments/A1', 'PATCH', completed], ['/api/work-orders/O1', 'PATCH', completed],
+    ['/api/attendance/day-off', 'POST', dayOff],
   ] as const
   for (const [path, method, body] of writes) {
     const actorField = method === 'POST' ? 'createdBy' : 'updatedBy'
@@ -144,6 +151,7 @@ try {
     await forbidden(path, method, { ...body, [actorField]: 'Owner1' })
     await forbidden(path, method, { ...body, extra: true })
     await forbidden(path, method, [body])
+    if (body === dayOff) await forbidden(path, method, body, validHeaders, { week: '2026-11-25' })
   }
   for (const [path, method, body] of [
     ['/api/job-tickets/start-order', 'POST', close], ['/api/job-tickets/complete-order', 'POST', { orderId: 'O1' }],
@@ -158,6 +166,13 @@ try {
     ['/api/appointments/A1', 'PATCH', { ...cancelled, appointmentDate: '2026-11-25' }],
     ['/api/appointments/A1', 'PATCH', { status: 'CONFIRMED' }], ['/api/appointments/A1', 'DELETE', completed],
     ['/api/work-orders/O1', 'PATCH', cancelled], ['/api/work-orders', 'PATCH', completed],
+    ['/api/attendance', 'POST', { staffId: 'Owner1', ...dayOff, status: 'DAY_OFF' }],
+    ['/api/attendance/id', 'PATCH', dayOff], ['/api/attendance/id', 'DELETE', undefined],
+    ['/api/attendance/day-off', 'PATCH', dayOff], ['/api/attendance/day-off', 'DELETE', undefined],
+    ['/api/attendance/day-off', 'POST', {}], ['/api/attendance/day-off', 'POST', null],
+    ['/api/attendance/day-off', 'POST', { ...dayOff, staffId: 'Other' }],
+    ['/api/attendance/day-off', 'POST', { ...dayOff, status: 'LEAVE' }],
+    ['/api/attendance/day-off', 'POST', { ...dayOff, notes: 'no' }],
   ] as const) await forbidden(path, method, body)
 
   // Warm the normal auth cache, then change the owner row without invalidating it.
@@ -169,7 +184,7 @@ try {
   assert.equal((await findStaffByCardCode('MWS-Owner1'))?.staffId, 'Owner1')
   rows = [[...owner.slice(0, 2), 'staff', ...owner.slice(3, 9), 'Packaging'], assistant, ai]
   for (const [path, method, body] of writes) {
-    if (body === completed) assert.equal((await call(path, method, body)).status, 200)
+    if (body === completed || body === dayOff) assert.equal((await call(path, method, body)).status, 200)
     else await forbidden(path, method, body)
   }
   for (const [path, body] of [
@@ -181,6 +196,10 @@ try {
   assert.deepEqual(staffResult.body, { actor: { ...expectedActor, onBehalfOf: {
     staffId: 'Owner1', role: 'staff', departments: ['Packaging'],
   } }, email: undefined })
+  assert.equal((await call('/api/attendance', 'GET', undefined, validHeaders, { week: '2026-11-25' })).status, 200)
+  await forbidden('/api/attendance', 'POST', { staffId: 'Owner1', ...dayOff, status: 'DAY_OFF' })
+  await forbidden('/api/attendance/id', 'PATCH', dayOff)
+  await forbidden('/api/attendance/id', 'DELETE')
 
   await forbidden('/api/staff/secretary/Owner1', 'PATCH', { active: false })
   await forbidden('/api/staff/secretary/Owner1', 'PATCH', { active: true })

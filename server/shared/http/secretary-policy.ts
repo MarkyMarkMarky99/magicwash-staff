@@ -36,6 +36,7 @@ export async function resolveSecretary(ownerId: string) {
 
 const pagination = ['page', 'perPage']
 const collectionQueries: ReadonlyMap<string, readonly string[]> = new Map([
+  ['attendance', ['week']],
   ['customers', [...pagination, 'keyword']],
   ['appointments', [...pagination, 'appointmentDate']],
   ['work-orders', [...pagination, 'customerId', 'sortOrder']],
@@ -95,6 +96,9 @@ export function authorizeSecretary(req: ApiHandlerRequest, segments: string[], o
   }
   if (req.method === 'POST' && module === 'appointments' && id === undefined
     && owner.role === 'admin' && hasExactFields(body, appointmentCreateFields, appointmentOptionalFields)) return
+
+  if (req.method === 'POST' && module === 'attendance' && id === 'day-off'
+    && hasExactFields(body, ['workDate'])) return
 
   if (req.method === 'PATCH' && id !== undefined) {
     const { status } = body as { status?: unknown }

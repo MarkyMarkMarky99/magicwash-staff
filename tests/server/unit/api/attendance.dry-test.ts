@@ -6,6 +6,7 @@ import type { AttendanceRow } from '../../../../server/sheets/Attendance/Attenda
 import { ApiError } from '../../../../server/shared/http/api-error.js'
 import { ApiGateway } from '../../../../server/shared/http/api-gateway.js'
 import type { ApiHandlerRequest } from '../../../../server/shared/http/api-handler.js'
+import { authorizeSecretary } from '../../../../server/shared/http/secretary-policy.js'
 import { SheetsApiClient } from '../../../../server/shared/repositories/sheets-api.client.js'
 import { invalidateStaffListCache, type StaffMember } from '../../../../server/shared/auth/staff-list.js'
 import { routeRegistry } from '../../../../server/api/route-registry.js'
@@ -13,6 +14,14 @@ import { routeRegistry } from '../../../../server/api/route-registry.js'
 const admin: StaffMember = { staffId: 'admin', role: 'admin', name: 'Admin', email: 'admin@test' }
 const staff: StaffMember = { ...admin, staffId: 'staff', role: 'staff' }
 const device: StaffMember = { ...admin, staffId: 'device', role: 'device' }
+const secretary: StaffMember = {
+  ...staff, staffId: 'AI-staff', role: 'assistant',
+  onBehalfOf: { staffId: staff.staffId, role: 'staff', departments: [] },
+}
+const adminSecretary: StaffMember = {
+  ...secretary, staffId: 'AI-admin',
+  onBehalfOf: { staffId: admin.staffId, role: 'admin', departments: [] },
+}
 const timestamp = '2026-10-28 00:30:00'
 function row(id: string, staffId: string, date: string, status: AttendanceRow['status'] = 'DAY_OFF'): AttendanceRow {
   return {
@@ -79,12 +88,20 @@ for (const scenario of conflicts) {
 // Staff day-off booking uses those same rules.
 for (const existing of [row('a', 'someone', '2026-10-30'), row('a', 'staff', '2026-10-29'), row('a', 'staff', '2026-10-30', 'LEAVE')]) {
   await fails(() => setup([existing]).service.bookDayOff({ workDate: '2026-10-30' }, staff), 409)
+  const delegated = setup([existing], new Set(['AI-staff']))
+  await fails(() => delegated.service.bookDayOff({ workDate: '2026-10-30' }, secretary), 409)
+  assert.equal(delegated.writes.length, 0)
 }
 
 // Inclusive tomorrow..today+14, calculated in Bangkok; admins can record the past.
 for (const date of ['2026-10-27', '2026-10-28', '2026-11-12']) {
   await fails(() => setup().service.bookDayOff({ workDate: date }, staff), 400, /tomorrow.*14 days/)
   await fails(() => setup().service.bookDayOff({ workDate: date }, admin), 400)
+  for (const actor of [secretary, adminSecretary]) {
+    const delegated = setup()
+    await fails(() => delegated.service.bookDayOff({ workDate: date }, actor), 400)
+    assert.equal(delegated.writes.length, 0)
+  }
 }
 for (const date of ['2026-10-29', '2026-11-11']) {
   const booked = await setup().service.bookDayOff({ workDate: date }, staff)
@@ -93,6 +110,27 @@ for (const date of ['2026-10-29', '2026-11-11']) {
   assert.equal(booked.status, 'DAY_OFF')
   assert.equal(booked.notes, null)
   await setup().service.bookDayOff({ workDate: date }, admin)
+  for (const actor of [secretary, adminSecretary]) {
+    const delegated = setup([], new Set([actor.staffId]))
+    const result = await delegated.service.bookDayOff({ workDate: date }, actor)
+    assert.equal(result.staffId, actor.onBehalfOf!.staffId)
+    assert.equal(result.createdBy, actor.staffId)
+    assert.equal(result.status, 'DAY_OFF')
+    assert.equal(delegated.rows[0]!.staff_id, actor.onBehalfOf!.staffId)
+    assert.equal(delegated.rows[0]!.created_by, actor.staffId)
+  }
+}
+for (const actor of [
+  { ...secretary, onBehalfOf: undefined },
+  { ...secretary, staffId: 'AI', onBehalfOf: undefined },
+  ...(['device', 'assistant'] as const).map(role => ({
+    ...secretary, onBehalfOf: { ...secretary.onBehalfOf!, role },
+  } as unknown as StaffMember)),
+]) {
+  const forbidden = setup()
+  await fails(() => forbidden.service.bookDayOff({ workDate: '2026-10-30' }, actor), 403)
+  assert.equal(forbidden.readCount(), 0)
+  assert.equal(forbidden.writes.length, 0)
 }
 for (const status of ['DAY_OFF', 'LEAVE', 'ABSENT'] as const) {
   const past = setup()
@@ -170,6 +208,12 @@ for (const body of [ {}, { staffId: '', workDate: '2026-10-30', status: 'LEAVE' 
   await fails(() => invalid.service.create(body, admin), 400)
 }
 await fails(() => invalid.service.bookDayOff({ workDate: '2026-10-30', staffId: 'other' }, staff), 400)
+for (const body of [
+  { workDate: '2026-10-30', staffId: 'other' },
+  { workDate: '2026-10-30', createdBy: 'forged' },
+  { workDate: '2026-10-30', status: 'LEAVE' },
+  { workDate: '2026-02-29' },
+]) await fails(() => invalid.service.bookDayOff(body, secretary), 400)
 await fails(() => invalid.service.list({}), 400)
 await fails(() => invalid.service.list({ week: ['2026-10-30'] }), 400)
 assert.equal(invalid.readCount(), 0)
@@ -177,6 +221,23 @@ assert.equal(invalid.readCount(), 0)
 const { routes } = setup()
 function request(method: string, actor?: StaffMember, body?: unknown, id?: string): ApiHandlerRequest {
   return { method, staff: actor, body, query: { week: '2026-10-30' }, params: id ? { id } : {}, headers: {} }
+}
+for (const actor of [secretary, adminSecretary]) {
+  for (const [method, id, body] of [
+    ['POST', undefined, { staffId: 'other', workDate: '2026-10-30', status: 'DAY_OFF' }],
+    ['PATCH', 'id', { workDate: '2026-10-30' }],
+    ['DELETE', 'id', undefined],
+  ] as const) {
+    const req = { ...request(method, actor, body, id), query: {} }
+    assert.throws(() => authorizeSecretary(req, id ? ['attendance', id] : ['attendance'], actor.onBehalfOf!),
+      (error: unknown) => error instanceof ApiError && error.status === 403)
+  }
+  const delegated = setup()
+  const req = { ...request('POST', actor, { workDate: '2026-10-30' }, 'day-off'), query: {} }
+  authorizeSecretary(req, ['attendance', 'day-off'], actor.onBehalfOf!)
+  assert.equal((await delegated.routes.item!.handleRequest(req)).status, 201)
+  assert.equal(delegated.rows[0]!.staff_id, actor.onBehalfOf!.staffId)
+  assert.equal(delegated.rows[0]!.created_by, actor.staffId)
 }
 for (const actor of [staff, device]) {
   assert.equal((await routes.collection.handleRequest(request('POST', actor, {}))).status, 403)
@@ -206,6 +267,7 @@ assert.equal((await adminRoutes.item!.handleRequest(request('PATCH', admin, { no
 // Use the existing gateway operator resolution: a scanned admin is capped to staff.
 const originalRead = SheetsApiClient.prototype.readRange
 const originalSpreadsheet = process.env.STAFF_SPREADSHEET_ID
+const originalSecretaryKey = process.env.SECRETARY_PROXY_KEY
 try {
   process.env.STAFF_SPREADSHEET_ID = 'staff-test'
   invalidateStaffListCache()
@@ -229,10 +291,42 @@ try {
   assert.equal((await call('POST', '', 'scanned-admin')).status, 403)
   assert.equal((await call('PATCH', '/id', 'scanned-admin')).status, 403)
   assert.equal((await call('DELETE', '/id', 'scanned-admin')).status, 403)
+
+  process.env.SECRETARY_PROXY_KEY = 'attendance-secretary-test'
+  for (const role of ['staff', 'admin'] as const) {
+    const header = ['Email', 'Name', 'Role', 'Active', 'StaffId', 'Phone', 'Address', 'Position', 'StartDate', 'Departments']
+    const people = [
+      ['owner@test', 'Owner', role, true, 'owner'],
+      ['secretary@example.invalid', 'Secretary', 'assistant', true, 'AI-owner'],
+    ]
+    SheetsApiClient.prototype.readRange = async (range) => range === '1:1' ? [header] : people
+    const delegated = setup([], new Set(['AI-owner']))
+    const proxy = new ApiGateway({ attendance: async () => delegated.routes }, async () => {
+      assert.fail('Secretary requests must use proxy authentication')
+    })
+    const secretaryCall = (method: string, path: string, body?: unknown) => proxy.handleRequest({
+      method, url: `/api/attendance${path}`, body,
+      query: method === 'GET' ? { week: '2026-10-30' } : {},
+      headers: { 'x-secretary-key': 'attendance-secretary-test', 'x-assistant-id': 'AI-owner' },
+    } as unknown as VercelRequest)
+    assert.equal((await secretaryCall('POST', '/day-off', { workDate: '2026-10-30' })).status, 201)
+    assert.equal(delegated.rows[0]!.staff_id, 'owner')
+    assert.equal(delegated.rows[0]!.created_by, 'AI-owner')
+    const listed = await secretaryCall('GET', '')
+    assert.equal(listed.status, 200)
+    assert.equal((listed.body as { data: { staffId: string }[] }).data[0]!.staffId, 'owner')
+    assert.equal((await secretaryCall('POST', '/day-off', { workDate: '2026-10-31' })).status, 409)
+    assert.equal((await secretaryCall('POST', '', { staffId: 'other', workDate: '2026-10-31', status: 'LEAVE' })).status, 403)
+    assert.equal((await secretaryCall('PATCH', `/${delegated.rows[0]!.id}`, { notes: 'no' })).status, 403)
+    assert.equal((await secretaryCall('DELETE', `/${delegated.rows[0]!.id}`)).status, 403)
+    assert.equal(delegated.writes.length, 1)
+  }
 } finally {
   SheetsApiClient.prototype.readRange = originalRead
   invalidateStaffListCache()
   if (originalSpreadsheet === undefined) delete process.env.STAFF_SPREADSHEET_ID
   else process.env.STAFF_SPREADSHEET_ID = originalSpreadsheet
+  if (originalSecretaryKey === undefined) delete process.env.SECRETARY_PROXY_KEY
+  else process.env.SECRETARY_PROXY_KEY = originalSecretaryKey
 }
-console.log('Attendance service, routes and shared-device tests passed')
+console.log('Attendance service, routes, shared-device and secretary proxy tests passed')

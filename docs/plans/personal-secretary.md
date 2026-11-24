@@ -91,12 +91,19 @@ original EARN subject).
 | Appointment create, reschedule (date + slot only), cancel (status only) | owner admin |
 | Appointment complete (status only; cascade to its existing linked order) | owner admin or staff |
 | Work-order PATCH status `COMPLETED` only | owner admin or staff |
+| GET `attendance` | owner admin or staff; only query key `week` (string date) |
+| POST `attendance/day-off` | owner admin or staff; exactly `{ workDate }`; books for the owner, with `created_by = AI-<owner>` |
 | The fixed GETs above | allowed |
 | Anything else, or any extra payload key | forbidden |
 
 - The secretary gets its own branch in `api-gateway.ts` and the affected routes/services; literal
-  `AI` branches stay exactly as they are. Booking rules (date/slot) for secretary requests: same as
-  the literal `AI` branch.
+  `AI` branches stay exactly as they are. Appointment booking rules (date/slot) for secretary
+  requests: same as the literal `AI` branch.
+- Attendance booking follows self-booking rules: Bangkok tomorrow through today+14 inclusive,
+  one active attendance row per owner/date, one `DAY_OFF` per date and one per owner per
+  Monday-Sunday week. The target is always `onBehalfOf.staffId`; the audit actor is the assistant.
+  Admin create (`POST attendance`), PATCH and DELETE are forbidden even for admin owners.
+  Assistants without `onBehalfOf`, including a legacy assistant `AI`, cannot book.
 - W returns partial results honestly (e.g. appointment updated but order cascade failed); the
   secretary reports from the write log plus fresh reads, not from the top-level object alone.
 

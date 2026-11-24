@@ -62,7 +62,13 @@ and `x-assistant-id`. The assistant is an active Staff row with role `assistant`
 `AI-<owner StaffId>`. History resolves that StaffId to the assistant's name. Vercel reads the
 active owner's role and departments for every request.
 
-The allowlist covers staff directory, customer, appointment, work-order, and job-ticket reads.
+The allowlist covers staff directory, customer, appointment, work-order, job-ticket, and weekly
+attendance reads (`GET /api/attendance`, only query key `week` as a string date).
+Staff and admin owners can have their secretary book their own day off via
+`POST /api/attendance/day-off` with exactly `{ workDate }`. The attendance subject is the owner;
+`created_by` records `AI-<owner>`. Bangkok tomorrow through today+14, date conflicts and the
+Monday-Sunday weekly quota apply as for self-booking. Attendance admin create, PATCH and DELETE
+remain forbidden through the proxy, even for admin owners; assistants without `onBehalfOf` cannot book.
 Admin owners can book, reschedule, and cancel appointments. Admin and staff owners can complete
 appointments and work orders. A secretary can close job tickets for one order or for up to 200
 orders in the same department. Closing and reopening require an admin owner or a staff owner

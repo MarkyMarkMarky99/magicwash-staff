@@ -1,7 +1,7 @@
 # Plan — staff attendance and day-off booking
 
-Status: **planned, not built.** When phase 1 ships, move the rules below into
-`docs/features/staff/attendance.md` and keep this file as build history.
+Status: **phase 1 implemented** (day-off booking and admin records). Phase 2 remains planned.
+This document records the attendance rules and implementation scope.
 
 ## Goal
 
@@ -41,9 +41,15 @@ created_at | created_by | updated_at | updated_by | deleted_at | deleted_by
 - Create and update check these rules before writing. A failed check returns `409` with the reason.
 - Staff can only book their own `DAY_OFF`. Everything else is admin only: record any status for any
   staff, edit, cancel.
+- A personal secretary can read the weekly attendance list and book `DAY_OFF` for its active
+  staff or admin owner through the secretary proxy. The booking uses `onBehalfOf.staffId` as
+  `staff_id` and the assistant's `AI-<owner>` StaffId as `created_by`. It follows the same date
+  window, conflicts and weekly quota as self-booking; assistants without `onBehalfOf` cannot book.
+  Secretary admin create, edit and cancel remain forbidden, including for admin owners.
 - Cancel = set `deleted_at` / `deleted_by`. Staff cannot cancel or change their own booking.
-- The tomorrow-to-14-days window applies to staff booking only. Admin may write any date, past
-  included (leave and absence are often recorded after the day).
+- The tomorrow-to-14-days window applies to `/attendance/day-off` for staff, admin and secretary
+  bookings. Admin may use `/attendance` to write any date, past included (leave and absence are
+  often recorded after the day).
 - Update can change `work_date`, `status` and `notes`. `staff_id` is fixed; to move a row to another
   staff member, cancel it and create a new one.
 - On the shared device the actor is the scanned operator (`docs/features/staff/shared-device.md`).
@@ -58,7 +64,7 @@ Backend (mirror `server/modules/bag-items/` and `server/sheets/LaundryItems/`):
 
 ```text
 GET    /attendance?week=yyyy-MM-dd   active rows of that Monday-Sunday week, all statuses   everyone
-POST   /attendance/day-off           book { workDate } as DAY_OFF for the acting staff      staff
+POST   /attendance/day-off           book { workDate } as DAY_OFF for self or secretary owner   staff/admin/secretary
 POST   /attendance                   { staffId, workDate, status, notes? }                   admin
 PATCH  /attendance/:id               { workDate?, status?, notes? }                          admin
 DELETE /attendance/:id               cancel (soft delete)                                     admin
