@@ -48,33 +48,18 @@ Status: design only (2026-11-25), reviewed by codex-advisor; nothing built.
 
 ## Webapp (W)
 
-### Billing read access
+### No billing API (owner, 2026-11-25)
 
-- A new key, `BILLING_READ_KEY`, is separate from `AI_SERVICE_KEY`. That key allows writes
-  (`server/shared/http/api-gateway.ts`) and must never reach the billing agent.
-- The gateway accepts `BILLING_READ_KEY` for `GET` only, on a fixed list:
-  - invoice lines (below) and invoice detail;
-  - work order detail and customers;
-  - order garments, laundry items and laundry item photos;
-  - legacy laundry photos and after photos;
-  - order images and the price list.
-- Billing's AI environment receives only `WEBAPP_API_URL` and `BILLING_READ_KEY`. It gets no listener
-  URL, so it has no write path.
-
-### Invoice evidence read
-
-- A new gateway module, `GET /api/invoice-lines`, is used instead of `/api/invoices/lines`, which
-  would dispatch as invoice detail with `id = lines`.
-  - It reuses the existing invoice sheet repositories and returns issued lines only.
-  - Filters: `customerId`, `orderId`, `sku`, text `q`, and `ids` (a list of `invoiceItemId`s).
-  - The result size is bounded, newest first.
-  - Leaving out `customerId` searches every customer.
-- Each line carries:
-  - `invoiceItemId`, `invoiceNumber`, `issuedDate`, `customerId`;
-  - `sourceOrderId`, `sourceItemId`, `sku`;
-  - `description`, `unit`, `quantity`, `unitPrice`, `netTotal`.
-- The existing list and detail responses do not change, except that detail also returns
-  `sourceItemId` and `sku`.
+- The agent reads the sheets directly through GViz. It does not go through Vercel, so there is no
+  billing key and no new read endpoint, and nothing spends Vercel quota or time.
+- The agent gets no webapp credential at all, which is also why it has no write path.
+- W changes are only:
+  - line provenance;
+  - the invoice list `orderId` filter;
+  - the chat card and prefill.
+- Invoice detail also returns `sourceItemId` and `sku`.
+- The invoice list query gains an `orderId` filter, matched on `InvoiceItems.source_order_id`, for
+  the prefill's duplicate check.
 
 ### Line provenance (every invoice, not only drafted ones)
 
@@ -109,7 +94,7 @@ Status: design only (2026-11-25), reviewed by codex-advisor; nothing built.
     the form seeded. A "probable" citation shows as a badge on its line in
     the form.
   - Before applying, the page looks up issued invoices for the order through
-    `invoice-lines?orderId=`. It does not rely on the order's linked invoice number, which can stay
+    the invoice list `orderId` filter. It does not rely on the order's linked invoice number, which can stay
     empty if the order-link write failed. If one exists, the page shows the duplicate warning and
     does not apply the draft.
 
@@ -120,7 +105,7 @@ Status: design only (2026-11-25), reviewed by codex-advisor; nothing built.
 - Add `billing` to `src/team-agents/configs.js`:
   - `allowedRoles: ['admin']`, `dailySlots: []`, `actionTypes: []`;
   - model `gpt-6.2-sol`, effort `medium`;
-  - env allowlist: `WEBAPP_API_URL` and `BILLING_READ_KEY`.
+  - env allowlist: the spreadsheet IDs it reads only, with no webapp URL or key.
 - Team startup (`server.js`) passes billing a `runConfig`, the same hook the secretary uses. It
   turns on `features.multi_agent_v2` and registers the two Luna roles through
   `agents.<name>.config_file`.
@@ -139,7 +124,7 @@ Status: design only (2026-11-25), reviewed by codex-advisor; nothing built.
     and applied to Sol and both Luna roles:
     - the workspace is read-only;
     - writes are allowed only in a per-turn scratch directory, removed after the turn;
-    - network is allowed for the W reads.
+    - network is allowed for GViz reads and photo downloads.
     The exact Codex settings are confirmed by a live probe, as the translation sandbox was.
   - The `photo` script stages images in that scratch directory, and the subagents read them from
     there.
@@ -153,9 +138,13 @@ Status: design only (2026-11-25), reviewed by codex-advisor; nothing built.
   - never write anything;
   - how to brief each subagent.
 - `.agents/skills/billing/SKILL.md` covers how to use the scripts.
-- `scripts/` holds small read-only node scripts over the W billing reads:
-  - `lines`: query `invoice-lines` with its filters;
-  - `order`: an order with its items, garments, garment photos, order images and customer;
+- `scripts/` holds small read-only node scripts that read GViz directly, through the same reader as
+  `src/sheets/price-list.js`, mapping columns by header name per the G Drive schema registry:
+  - `lines`: `Invoices` + `InvoiceItems`, issued invoices only (no deleted, draft, cancelled or void).
+    Filters: customer, order, sku, text and invoice item IDs, newest first, bounded;
+  - `order`: an order with its items (`OrderItems`), garments (`OrderGarments` → `LaundryItems`),
+    garment photos (`LaundryItemPhotos`; legacy `LaundryPhotos`/`AfterPhoto`), `OrderImages` and
+    the customer;
   - `prices`: active PriceList rows;
   - `photo`: download one image to a local file, resized, and print its path.
 
@@ -180,7 +169,8 @@ Status: design only (2026-11-25), reviewed by codex-advisor; nothing built.
   - `source` is one of `customer-history`, `other-history`, `price-list` or `needs-price`;
   - a history source cites `invoiceItemId`s and the tag(s) it compared against;
   - a PriceList source cites `itemCode`, `serviceType` and `priceGroup` together.
-- The AI server fills and checks everything else from fresh W reads before the reply is stored:
+- The AI server fills and checks everything else from fresh GViz reads before the reply is stored. It uses the same readers as the
+  scripts:
   - customer, description and quantity come from the order, never from the model;
   - work-order items have no unit field. The unit follows the invoice form's rule
     (`invoiceUnitForOrderItem`): the PriceList unit for the item's `itemId`, else `piece`;
@@ -227,10 +217,11 @@ Status: design only (2026-11-25), reviewed by codex-advisor; nothing built.
 
 - W:
   - `typecheck:web`, `typecheck:api`, `vite build`;
-  - dry-tests: the billing key is GET-only and confined to its list; the lines read excludes
-    non-issued invoices; the provenance write rejects a foreign order item; prefill applies once and
+  - dry-tests: the invoice list `orderId` filter; the provenance write rejects a foreign order item; prefill applies once and
     is refused on an ID mismatch or an existing invoice.
 - AI:
+  - unit tests for the GViz `lines` reader: header mapping, and that it excludes non-issued
+    invoices;
   - unit tests for the draft check: a fake citation, a price mismatch, the wrong customer source, a
     foreign order item, a model-supplied URL ignored;
   - unit tests for the role gate and the absence of a write path;
