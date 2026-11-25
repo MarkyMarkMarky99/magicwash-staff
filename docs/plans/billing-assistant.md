@@ -18,7 +18,8 @@ Status: webapp non-visual part built, not deployed.
   at photos and report back, so the main context stays small.
 - The agent composes the bill lines itself (later 2026-11-25). Rules cannot cover every case, so it
   copies how this customer was billed before (wording, package or per piece, units, quantities) and
-  reasons from context. Example: a 20-piece ironing order billed as "แพกเกจรีดเสื้อผ้าทั่วไป 10 ชิ้น"
+  reasons from context. It writes what staff tell it, including prices given in chat and one draft
+  covering several orders of the same customer. Example: a 20-piece ironing order billed as "แพกเกจรีดเสื้อผ้าทั่วไป 10 ชิ้น"
   × 2 package at 250, as on the customer's previous invoice. The server guards facts only.
 
 ## Claude defaults (changeable)
@@ -94,8 +95,9 @@ Status: webapp non-visual part built, not deployed.
   - The button stores the checked draft and pushes the invoice create route with `customerId` and
     `orderId`.
   - The page applies the draft once, only when both IDs match the loaded order.
-  - The draft lines replace the lines seeded from the order. A line covering exactly one order item
-    keeps it as `sourceItemId`; a line with a PriceList row keeps its `itemCode` as `sku`.
+  - The draft lines replace the lines seeded from the order. A line covering exactly one item of the
+    opened order keeps it as `sourceItemId`; lines from another order keep none. The invoice links
+    only the opened order; a line with a PriceList row keeps its `itemCode` as `sku`.
   - A null price stays blank. The line's `photoMatch` and `source` show as badges in the form.
   - Before applying, the page looks up existing invoices for the order through
     the invoice list `orderId` filter. It does not rely on the order's linked invoice number, which can stay
@@ -177,17 +179,19 @@ Status: webapp non-visual part built, not deployed.
   one onto order items, and the price need not equal a cited price.
 - The AI server checks facts from fresh GViz reads before the reply is stored, with the same readers
   as the scripts:
-  - the order must exist; `customerId` comes from the order;
-  - a line with an empty description or unit, or a quantity that is not above zero, is dropped;
-  - `orderItemIds` outside the order are dropped; order items no line covers raise a warning;
-  - every cited `invoiceItemId` must be an issued invoice line, else it is dropped. The citation's
-    invoice, order, description, quantity, unit, price and photo are resolved from the sheets, never
-    from model text;
-  - a PriceList row must be in effect today, else it is dropped;
+  - the main order must exist; `customerId` comes from it. A line may name another order of the
+    same customer (`orderId`), else it belongs to the main order;
+  - a line with an empty description is dropped; a bad quantity becomes 1 and an empty unit `piece`;
+  - `orderItemIds` outside the line's order are dropped;
+  - unknown cited `invoiceItemId`s and PriceList rows not in effect are dropped silently. The
+    citation's invoice, order, description, quantity, unit, price and photo are resolved from the
+    sheets, never from model text;
   - `source` is derived by the server: no price → `needs-price`; a citation from this customer →
-    `customer-history`; another customer's → `other-history`; a PriceList row → `price-list`; a
-    priced line with no evidence stays priced as `needs-price` with a warning.
-- Warnings point at the line by index. Only the checked draft reaches the card and the prefill.
+    `customer-history`; another customer's → `other-history`; a PriceList row → `price-list`;
+    otherwise `chat` (a price staff gave or the agent chose without a citation).
+- No warnings are raised. Only the checked draft reaches the card and the prefill.
+- Each turn's prompt starts with a standing instruction to follow staff (`turnPrompt`), so changed
+  rules reach the long-lived session without starting a new one.
 - Citation strength is shown as is, not hidden. Only the photo link varies:
   - "exact": the cited line's `sourceItemId` leads to an OrderGarments row with that
     `orderitem_id`, then to that garment's photo on the same order;

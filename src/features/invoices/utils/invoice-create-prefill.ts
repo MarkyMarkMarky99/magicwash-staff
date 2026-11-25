@@ -3,8 +3,8 @@ import type { InvoiceCreateOrder } from '../services/invoice-create-context.serv
 import { createEmptyLineItemRow, type LineItemFormRow } from '../types/invoice-create.types'
 import { invoiceUnitOptionFor } from './invoice-price-list.utils'
 
-function draftFormLine(line: BillingDraftLine): LineItemFormRow {
-  const [sourceItemId, ...others] = line.orderItemIds
+function draftFormLine(line: BillingDraftLine, orderId: string): LineItemFormRow {
+  const [sourceItemId, ...others] = (line.orderId ?? orderId) === orderId ? line.orderItemIds : []
   return {
     ...createEmptyLineItemRow(),
     ...(sourceItemId !== undefined && others.length === 0 ? { sourceItemId } : {}),
@@ -32,5 +32,5 @@ export async function applyInvoiceCreatePrefill(
   const existingInvoiceNumber = await findExistingInvoice(order.orderId)
   if (existingInvoiceNumber !== null) return { items, existingInvoiceNumber }
 
-  return { items: draft.lines.map(draftFormLine), existingInvoiceNumber: null }
+  return { items: draft.lines.map((line) => draftFormLine(line, order.orderId)), existingInvoiceNumber: null }
 }

@@ -61,7 +61,7 @@ The billing agent appears as **น้องออกบิล** with the role li
 
 `TeamAgentChatPage.openBillingDraft(draft: BillingDraft)` puts the draft in a one-shot, in-memory slot and pushes `/invoices/create` with `customerId` and `orderId`. Invoice creation consumes the slot on context load and checks both IDs against the loaded order. A fresh invoice list request filtered by `orderId` checks for an existing invoice even when the order link is empty. If one exists, the page shows the existing duplicate warning and keeps the seeded lines.
 
-The draft lines replace the lines seeded from the order: description, quantity, unit and price as the agent wrote them, a blank price when it is null. A line covering exactly one order item keeps it as `sourceItemId`; a cited PriceList row's `itemCode` becomes `sku`. The form retains `photoMatch` and `source` as optional local fields. Staff review and submit the invoice through the normal create form. See [invoice API provenance and order filtering](../../architecture/backend/service-layer.md#invoice-provenance-and-order-filtering).
+The draft lines replace the lines seeded from the order: description, quantity, unit and price as the agent wrote them, a blank price when it is null. A line covering exactly one item of the opened order keeps it as `sourceItemId`; a line from another order of the customer keeps none, and the invoice links only the opened order; a cited PriceList row's `itemCode` becomes `sku`. The form retains `photoMatch` and `source` as optional local fields. Staff review and submit the invoice through the normal create form. See [invoice API provenance and order filtering](../../architecture/backend/service-layer.md#invoice-provenance-and-order-filtering).
 
 ## Secretary
 

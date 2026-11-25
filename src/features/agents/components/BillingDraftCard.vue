@@ -9,12 +9,14 @@ const SOURCE_LABELS: Record<BillingDraftLine['source'], string> = {
   'customer-history': 'This customer',
   'other-history': 'Other customer',
   'price-list': 'Price list',
+  chat: 'Set in chat',
   'needs-price': 'Needs price',
 }
 const SOURCE_CLASSES: Record<BillingDraftLine['source'], string> = {
   'customer-history': 'bg-success-container text-on-success-container',
   'other-history': 'bg-secondary-container text-primary',
   'price-list': 'bg-surface-container text-on-surface-variant',
+  chat: 'bg-surface-container text-on-surface-variant',
   'needs-price': 'bg-warning-container text-on-warning-container',
 }
 const PHOTO_LABELS = { exact: 'Exact photo', probable: 'Probable photo', none: 'No photo' } as const

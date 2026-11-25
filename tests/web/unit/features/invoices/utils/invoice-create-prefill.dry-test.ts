@@ -69,6 +69,17 @@ test('keeps one covered item as provenance, the price list code as sku, custom u
   assert.equal(items[1].photoMatch, 'probable')
 })
 
+test('lines from another order of the customer keep no item provenance', async () => {
+  const { items } = await applyInvoiceCreatePrefill({ ...draft, lines: [
+    draftLine({ orderItemIds: ['ITEM-1'], orderId: 'ORDER-1' }),
+    draftLine({ orderItemIds: ['OTHER-ITEM'], orderId: 'ORDER-2', description: 'ซักแห้งแจ็กเก็ตยีนส์', source: 'chat' }),
+  ] }, order, [seededLine('ITEM-1')], noInvoices)
+  assert.deepEqual(items.map((line) => [line.sourceItemId, line.description, line.source]), [
+    ['ITEM-1', 'แพกเกจรีดเสื้อผ้าทั่วไป 10 ชิ้น', 'customer-history'],
+    [undefined, 'ซักแห้งแจ็กเก็ตยีนส์', 'chat'],
+  ])
+})
+
 test('refuses a draft on either ID mismatch or with no lines, without an invoice lookup', async () => {
   const items = [seededLine('ITEM-1')]
   for (const [value, target] of [

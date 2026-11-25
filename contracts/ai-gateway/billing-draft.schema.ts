@@ -23,12 +23,13 @@ const billingPriceListRowSchema = z.object({
 })
 
 const billingDraftLineSchema = z.object({
+  orderId: z.string().optional(),
   description: z.string(),
   quantity: z.number(),
   unit: z.string(),
   unitPrice: z.number().nullable(),
   orderItemIds: z.array(z.string()),
-  source: z.enum(['customer-history', 'other-history', 'price-list', 'needs-price']),
+  source: z.enum(['customer-history', 'other-history', 'price-list', 'chat', 'needs-price']),
   photoMatch: z.enum(['exact', 'probable', 'none']).nullable(),
   reason: z.string(),
   citations: z.array(billingCitationSchema),
