@@ -8,12 +8,14 @@
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
+import type { BillingDraft } from '@contracts/ai-gateway/billing-draft.schema'
 import type { CreateInvoiceRequest, CreateInvoiceResponse } from '@contracts/invoices/invoice-api.schema'
 import { computeInvoiceLine, computeInvoiceTotal, roundMoney } from '@shared/utils/invoice-calculator'
 import AppLayout from '@/shared/layouts/AppLayout.vue'
 import ScrollRegion from '@/shared/components/ScrollRegion.vue'
 import FormInput from '@/shared/components/FormInput.vue'
 import { useCloseRoute } from '@/shared/navigation/use-close-route'
+import { takeInvoiceCreatePrefill } from '@/shared/navigation/invoice-create-prefill'
 import {
   createEmptyAdjustmentRow,
   createEmptyLineItemRow,
@@ -21,7 +23,7 @@ import {
   type AdjustmentFormRow,
   type LineItemFormRow,
 } from '../types/invoice-create.types'
-import { createInvoice } from '@/data/invoices/invoice.service'
+import { createInvoice, getInvoices } from '@/data/invoices/invoice.service'
 import { generateInvoiceNumber } from '@/data/invoices/invoice-number.utils'
 import { canRetryInvoiceOutcome, isInvoicePersisted, synthesizeNetworkFailureOutcome } from '@/data/invoices/invoice-outcome.utils'
 import InvoiceLineItemsEditor from '../components/InvoiceLineItemsEditor.vue'
@@ -41,12 +43,12 @@ import { usePriceListStore } from '@/data/price-list/price-list.store'
 import type { PriceListDto } from '@/data/price-list/price-list.service'
 import { isValidItemQuantity } from '@shared/utils/item-quantity'
 import {
-  appendPickedLine,
+  applyPriceListSelection,
   filterInvoicePriceListItems,
   invoiceUnitForOrderItem,
   invoiceUnitOptionFor,
-  toLineItemFormRow,
 } from '../utils/invoice-price-list.utils'
+import { applyInvoiceCreatePrefill } from '../utils/invoice-create-prefill'
 
 const router = useRouter()
 const route = useRoute()
@@ -61,7 +63,9 @@ const customer = ref<InvoiceCreateCustomer | null>(null)
 const contextLoading = ref(false)
 const contextError = ref<string | null>(null)
 let contextRequestId = 0
-const { warningInvoiceNumber } = useDuplicateInvoiceWarning(order)
+let pendingDraft: BillingDraft | null = null
+const existingInvoiceNumber = ref<string | null>(null)
+const { warningInvoiceNumber } = useDuplicateInvoiceWarning(order, existingInvoiceNumber)
 
 function todayIso(): string {
   return todaySheetDate()
@@ -113,9 +117,8 @@ watch(
   { immediate: true },
 )
 
-function handlePriceListSelect(item: PriceListDto) {
-  const line = toLineItemFormRow(item)
-  items.value = appendPickedLine(items.value, line)
+function handlePriceListSelect(item: PriceListDto | null, lineKey?: string) {
+  items.value = applyPriceListSelection(items.value, item, lineKey)
   closePriceListPicker()
 }
 
@@ -193,6 +196,8 @@ const requestPayload = computed<CreateInvoiceRequest | null>(() => {
     },
     adjustments: toRealAdjustments(invoiceAdjustments.value),
     items: items.value.map((item) => ({
+      ...(item.sourceItemId !== undefined ? { sourceItemId: item.sourceItemId } : {}),
+      ...(item.sku !== undefined ? { sku: item.sku } : {}),
       description: item.description.trim(),
       unit: item.unit.trim(),
       quantity: Number(item.quantity) || 0,
@@ -226,6 +231,7 @@ function initializeForm(currentOrder: InvoiceCreateOrder) {
       const unit = invoiceUnitForOrderItem(item.itemId, priceListStore.items)
       return {
         key: crypto.randomUUID(),
+        sourceItemId: item.orderItemId,
         description: item.description ?? '',
         unit,
         unitOption: invoiceUnitOptionFor(unit),
@@ -246,8 +252,11 @@ async function syncCreateContext() {
   const requestId = ++contextRequestId
   const customerId = readRouteId(route.query.customerId)
   const orderId = readRouteId(route.query.orderId)
+  const draft = takeInvoiceCreatePrefill() ?? pendingDraft
+  pendingDraft = null
 
   contextError.value = null
+  existingInvoiceNumber.value = null
   if (!customerId || !orderId
     || route.query.customerId !== customerId || route.query.orderId !== orderId) {
     contextLoading.value = false
@@ -258,6 +267,8 @@ async function syncCreateContext() {
     return
   }
 
+  if (draft?.customerId === customerId && draft.orderId === orderId) pendingDraft = draft
+  const contextDraft = pendingDraft
   contextLoading.value = true
   order.value = null
   customer.value = null
@@ -272,6 +283,16 @@ async function syncCreateContext() {
 
     customer.value = context.customer
     initializeForm(context.order)
+    if (contextDraft !== null) {
+      const prefill = await applyInvoiceCreatePrefill(contextDraft, context.order, items.value, async (id) => {
+        const { invoices } = await getInvoices({ orderId: id, perPage: 100 })
+        return invoices.find((invoice) => invoice.status !== 'CANCELLED' && invoice.status !== 'VOID')?.invoiceNumber ?? null
+      })
+      if (requestId !== contextRequestId) return
+      items.value = prefill.items
+      existingInvoiceNumber.value = prefill.existingInvoiceNumber
+      pendingDraft = null
+    }
   } catch (reason) {
     if (requestId !== contextRequestId) return
     contextError.value = reason instanceof Error && reason.message

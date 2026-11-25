@@ -1,7 +1,7 @@
 # Billing assistant (น้องออกบิล) — v1 plan
 
 Spans two repositories: **AI** = `C:\MagicwashAI`, **W** = `C:\MagicwashGemini\webapp-vue`.
-Status: design only (2026-11-25), reviewed by codex-advisor; nothing built.
+Status: webapp non-visual part built, not deployed.
 
 ## Owner decisions (2026-11-25)
 
@@ -66,7 +66,8 @@ Status: design only (2026-11-25), reviewed by codex-advisor; nothing built.
 - Form state:
   - a line seeded from an order item keeps that item's `orderItemId` as `sourceItemId`;
   - a PriceList pick keeps that row's `itemCode` as `sku`;
-  - editing the description or picking another row clears the matching value.
+  - editing the description or clearing the PriceList selection clears the SKU. A different
+    PriceList selection uses its own SKU. Source item IDs stay with their seeded lines.
 - `invoiceLineInputSchema` gains optional `sourceItemId` and `sku`.
 - The server rejects a `sourceItemId` that does not belong to `sourceOrderId`. It writes both values
   to `InvoiceItems.source_item_id` and `sku`. The columns already exist; today `source_item_id` is
@@ -93,7 +94,7 @@ Status: design only (2026-11-25), reviewed by codex-advisor; nothing built.
   - Lines marked `needs-price` stay blank. So does a line whose checked unit differs from the unit
     the form seeded. A "probable" citation shows as a badge on its line in
     the form.
-  - Before applying, the page looks up issued invoices for the order through
+  - Before applying, the page looks up existing invoices for the order through
     the invoice list `orderId` filter. It does not rely on the order's linked invoice number, which can stay
     empty if the order-link write failed. If one exists, the page shows the duplicate warning and
     does not apply the draft.

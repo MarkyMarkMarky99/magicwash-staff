@@ -23,6 +23,8 @@ import { getPaymentsRepository } from '../../sheets/Payments/Payments.repository
 import { paymentsRowSchema } from '../../sheets/Payments/Payments.db-contract.js'
 import { getOrderFormRepository } from '../../sheets/OrderForm/OrderForm.repository.js'
 import { orderFormRowSchema } from '../../sheets/OrderForm/OrderForm.db-contract.js'
+import { getOrderItemFormsRepository } from '../../sheets/OrderItemForms/OrderItemForms.repository.js'
+import type { orderItemFormsRowSchema } from '../../sheets/OrderItemForms/OrderItemForms.db-contract.js'
 import { syncInvoiceView as defaultSyncInvoiceView } from './invoice-view-sync-client.js'
 import type { InvoiceViewSyncResult } from './invoice-view-sync-client.js'
 import { classifySheetWriteFailure } from '../../shared/repositories/write-failure.js'
@@ -35,6 +37,7 @@ type InvoicesDbRow = z.infer<typeof invoicesRowSchema>
 type InvoiceItemsDbRow = z.infer<typeof invoiceItemsRowSchema>
 type PaymentsDbRow = z.infer<typeof paymentsRowSchema>
 type OrderFormDbRow = z.infer<typeof orderFormRowSchema>
+type OrderItemDbRow = z.infer<typeof orderItemFormsRowSchema>
 
 export const invoicesFieldMap = {
   invoice_number: 'invoiceNumber',
@@ -136,6 +139,9 @@ export interface PaymentReader {
 }
 export interface OrderFormWriter {
   update(id: string, data: Partial<OrderFormDbRow>): Promise<unknown>
+}
+interface OrderItemReader {
+  read(query: ReadQueryDTO<Partial<OrderItemDbRow>>): Promise<Array<Partial<OrderItemDbRow>>>
 }
 export type ViewSyncFn = (invoiceNumber: string) => Promise<InvoiceViewSyncResult>
 export interface InvoiceViewReader {
@@ -309,6 +315,8 @@ function assembleInvoiceRows(
           adjustments: calculatorAdjustments(itemAdjustments),
         })
         return {
+          sourceItemId: asNullableString(item.source_item_id),
+          sku: asNullableString(item.sku),
           description: asNullableString(item.description),
           unit: asNullableString(item.unit),
           quantity: typeof item.quantity === 'number' ? item.quantity : null,
@@ -385,6 +393,7 @@ export interface InvoiceServiceOptions {
   invoiceItemReader?: () => InvoiceItemReader
   paymentRepository?: () => PaymentReader
   orderFormRepository?: () => OrderFormWriter
+  orderItemRepository?: () => OrderItemReader
   invoiceViewRepository?: InvoiceViewReader
   syncInvoiceView?: ViewSyncFn
   generateItemId?: () => string
@@ -411,6 +420,7 @@ export class InvoiceService {
   private readonly invoiceItemReader: () => InvoiceItemReader
   private readonly paymentRepository: () => PaymentReader
   private readonly orderFormRepository: () => OrderFormWriter
+  private readonly orderItemRepository: () => OrderItemReader
   private readonly syncInvoiceView: ViewSyncFn
   private readonly generateItemId: () => string
   private readonly now: () => Date
@@ -425,6 +435,7 @@ export class InvoiceService {
     this.paymentRepository = options.paymentRepository ?? getPaymentsRepository
 
     this.orderFormRepository = options.orderFormRepository ?? getOrderFormRepository
+    this.orderItemRepository = options.orderItemRepository ?? getOrderItemFormsRepository
 
     this.syncInvoiceView = options.syncInvoiceView ?? defaultSyncInvoiceView
     this.generateItemId = options.generateItemId ?? defaultGenerateItemId
@@ -458,6 +469,29 @@ export class InvoiceService {
 
     const request = parsed.data
 
+    if (request.items.some((item) => item.sourceItemId !== undefined)) {
+      const orderItems = request.sourceOrderId
+        ? await this.orderItemRepository().read({
+            select: ['id', 'order_id'],
+            where: { order_id: request.sourceOrderId },
+          })
+        : []
+      const orderItemIds = new Set(orderItems
+        .filter((item) => item.order_id === request.sourceOrderId)
+        .map((item) => item.id))
+      const issues = request.items.flatMap((item, index) =>
+        item.sourceItemId !== undefined && !orderItemIds.has(item.sourceItemId)
+          ? [{
+              path: `items.${index}.sourceItemId`,
+              message: request.sourceOrderId
+                ? 'source item must belong to the source order'
+                : 'source item requires a source order',
+            }]
+          : [],
+      )
+      if (issues.length > 0) return { kind: 'validation_error', issues }
+    }
+
     if (await this.invoiceNumberAlreadyUsed(request.invoiceNumber)) {
       return {
         kind: 'validation_error',
@@ -482,9 +516,8 @@ export class InvoiceService {
       // Package purchases have no source order. Order invoices fan out the
       // single sourceOrderId onto every line.
       source_order_id: request.sourceOrderId ?? null,
-      // Always null — no per-item traceability, only
-      // per-order via sourceOrderId above.
-      source_item_id: null,
+      source_item_id: item.sourceItemId ?? null,
+      sku: item.sku ?? null,
       service_type: null,
       description: item.description,
       quantity: item.quantity,
@@ -692,7 +725,7 @@ export class InvoiceService {
 
   async list(query: ApiQueryParams): Promise<InvoiceListResult> {
     const validQuery = parseOrThrow(invoiceApiContract.query.list, query)
-    const rows = await this.readInvoices()
+    const rows = await this.readInvoices(validQuery.orderId)
     const filtered = rows.filter((row) => this.matchesListQuery(row, validQuery))
     filtered.sort((left, right) => compareInvoiceRows(left, right, validQuery))
 
@@ -721,13 +754,19 @@ export class InvoiceService {
     return matches[0]
   }
 
-  private async readInvoices(): Promise<InvoiceDetailResponse[]> {
+  private async readInvoices(orderId?: string): Promise<InvoiceDetailResponse[]> {
     const [invoices, items, payments] = await Promise.all([
       this.invoiceRepository().read(),
       this.invoiceItemReader().read(),
       this.paymentRepository().read(),
     ])
-    return assembleInvoiceRows(invoices, items, payments, bangkokToday(this.now()))
+    const matchingInvoiceNumbers = orderId === undefined ? null : new Set(items
+      .filter((item) => item.source_order_id === orderId)
+      .map((item) => item.invoice_number))
+    const matchingInvoices = matchingInvoiceNumbers === null
+      ? invoices
+      : invoices.filter((invoice) => matchingInvoiceNumbers.has(invoice.invoice_number))
+    return assembleInvoiceRows(matchingInvoices, items, payments, bangkokToday(this.now()))
   }
 
   private matchesListQuery(row: InvoiceDetailResponse, query: InvoiceListQuery): boolean {

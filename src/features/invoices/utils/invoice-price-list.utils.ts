@@ -13,18 +13,18 @@ export function filterInvoicePriceListItems(items: PriceListDto[]): PriceListDto
 
 export function toLineItemFormRow(
   item: PriceListDto,
+  line = createEmptyLineItemRow(),
 ): LineItemFormRow {
-  const line = createEmptyLineItemRow()
   const serviceLabel = serviceTypePresentation[item.serviceType].label
-  line.description = `${item.displayNameTh} (${serviceLabel} / ${item.serviceType})`
   const unit = item.unit ?? ''
-  const unitOption = invoiceUnitOptionFor(unit)
-  line.unit = unit
-  line.unitOption = unitOption
-  line.quantity = '1'
-  line.unitPrice = String(item.price)
-  line.adjustments = []
-  return line
+  return {
+    ...line,
+    sku: item.itemCode,
+    description: `${item.displayNameTh} (${serviceLabel} / ${item.serviceType})`,
+    unit,
+    unitOption: invoiceUnitOptionFor(unit),
+    unitPrice: String(item.price),
+  }
 }
 
 export function invoiceUnitOptionFor(unit: string): InvoiceUnitOption {
@@ -65,4 +65,17 @@ export function appendPickedLine(
   if (existing.length === 0) return [picked]
   if (existing.length === 1 && isUnusedPlaceholderLine(existing[0]!)) return [picked]
   return [...existing, picked]
+}
+
+export function applyPriceListSelection(
+  rows: LineItemFormRow[],
+  item: PriceListDto | null,
+  lineKey?: string,
+): LineItemFormRow[] {
+  if (lineKey === undefined) return item === null ? rows : appendPickedLine(rows, toLineItemFormRow(item))
+
+  return rows.map((line) => {
+    if (line.key !== lineKey) return line
+    return item === null ? { ...line, sku: undefined } : toLineItemFormRow(item, line)
+  })
 }

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { billingDraftSchema } from '../../../contracts/ai-gateway/billing-draft.schema.js'
 import {
   cancelPersonalAssignment,
   cancelTeamAgentReminder,
@@ -80,6 +81,50 @@ test('history events keep images metadata', async () => {
   }) })
   assert.deepEqual(history.events[0]!.images, [{ id: 'img1', name: 'a.jpg', type: 'image/jpeg' }])
   assert.equal(history.events[1]!.images, undefined)
+})
+
+test('billing history keeps checked drafts and drops invalid proposals without losing events', async () => {
+  const proposal = {
+    orderId: 'ORD-1',
+    customerId: 'CUS-1',
+    lines: [{
+      orderItemId: 'ITEM-1',
+      description: 'Jacket',
+      unit: 'piece',
+      quantity: 1,
+      unitPrice: 150,
+      source: 'customer-history',
+      photoMatch: 'probable',
+      citations: [{
+        invoiceItemId: 'INV-ITEM-1', invoiceNumber: 'INV-1', issuedDate: '2026-11-01',
+        customerId: 'CUS-1', orderId: null, tagId: null, photoUrl: null, unitPrice: 150,
+      }],
+      priceListRow: { itemCode: 'SKU-1', serviceType: 'WSIR', priceGroup: 'DEFAULT', price: 200 },
+      priceListPrice: 200,
+      otherPrices: [175],
+      note: 'Most recent price',
+    }],
+    warnings: [{ message: 'Check the photo match', orderItemId: 'ITEM-1' }],
+  }
+  const invalid = { ...proposal, lines: [{ ...proposal.lines[0], unitPrice: '150' }] }
+  assert.deepEqual(billingDraftSchema.parse(proposal), proposal)
+  assert.equal(billingDraftSchema.safeParse(invalid).success, false)
+
+  const history = await getTeamAgentHistory({ ...access, agentId: 'billing', fetchImpl: async (url) => {
+    assert.equal(url, 'http://stub.invalid/agents/billing/history')
+    return Response.json({
+      events: [
+        { ...event, id: 'valid', kind: 'agent', proposal },
+        { ...event, id: 'invalid', kind: 'agent', proposal: invalid },
+        { ...event, id: 'null', kind: 'agent', proposal: null },
+        event,
+      ],
+      busy: false,
+    })
+  } })
+  assert.deepEqual(history.events.map(({ id, proposal }) => [id, proposal]), [
+    ['valid', proposal], ['invalid', null], ['null', null], [event.id, undefined],
+  ])
 })
 
 test('send rejects an empty message without a request', async () => {

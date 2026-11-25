@@ -31,14 +31,18 @@ function itemRow(invoiceNumber: string): unknown[] {
   return [invoiceNumber, 'item0001', 1, null, null, null, null, 'Laundry', 1, 'KG', 100, 100, '[]', 100]
 }
 
-async function withMockSources<T>(invoices: unknown[][], run: () => Promise<T>): Promise<T> {
+async function withMockSources<T>(
+  invoices: unknown[][],
+  run: () => Promise<T>,
+  items = invoices.map((row) => itemRow(String(row[0]))),
+): Promise<T> {
   const originalFetch = globalThis.fetch
   globalThis.fetch = (async (input: URL | string) => {
     const sheet = new URL(String(input)).searchParams.get('sheet')
     const text = sheet === 'Invoices'
       ? gvizBody(16, invoices)
       : sheet === 'InvoiceItems'
-        ? gvizBody(14, invoices.map((row) => itemRow(String(row[0]))))
+        ? gvizBody(14, items)
         : gvizBody(16, [])
     return { ok: true, status: 200, statusText: 'OK', text: async () => text } as Response
   }) as typeof fetch
@@ -83,6 +87,22 @@ test('GET list applies inclusive date filtering before descending sort and pagin
   })
 })
 
+test('GET list filters by any line source order and keeps the complete invoice totals', async () => {
+  const lines = [
+    itemRow('INV-0001'),
+    Object.assign(itemRow('INV-0001'), { 2: 2, 3: 'ORD-1' }),
+    Object.assign(itemRow('INV-0002'), { 3: 'ORD-OTHER' }),
+    Object.assign(itemRow('ORPHAN'), { 3: 'ORD-1' }),
+  ]
+  await withMockSources([invoiceRow('INV-0001', '2026-07-01'), invoiceRow('INV-0002', '2026-07-02')], async () => {
+    const result = await invoiceRoutes.collection.handleRequest(getRequest({ orderId: 'ORD-1', perPage: '1' }))
+    assert.equal(result.status, 200)
+    const body = result.body as { data: Array<Record<string, unknown>>; meta: { pagination: { total: number } } }
+    assert.deepEqual(body.data.map((row) => [row.invoiceNumber, row.grandTotal]), [['INV-0001', 200]])
+    assert.equal(body.meta.pagination.total, 1)
+  }, lines)
+})
+
 test('GET item returns the assembled detail DTO', async () => {
   await withMockSources([invoiceRow('INV-0001', '2026-07-01')], async () => {
     const result = await invoiceRoutes.item!.handleRequest({
@@ -92,7 +112,22 @@ test('GET item returns the assembled detail DTO', async () => {
     const body = result.body as { data: Record<string, unknown> }
     assert.equal(body.data.invoiceNumber, 'INV-0001')
     assert.equal(body.data.grandTotal, 100)
+    const items = body.data.items as Array<Record<string, unknown>>
+    assert.equal(items[0]!.sourceItemId, null)
+    assert.equal(items[0]!.sku, null)
   })
+})
+
+test('GET item exposes stored line provenance', async () => {
+  await withMockSources([invoiceRow('INV-0001', '2026-07-01')], async () => {
+    const result = await invoiceRoutes.item!.handleRequest({
+      ...getRequest(), params: { id: 'INV-0001' },
+    })
+    assert.equal(result.status, 200)
+    const body = result.body as { data: { items: Array<Record<string, unknown>> } }
+    assert.equal(body.data.items[0]!.sourceItemId, 'ITEM-1')
+    assert.equal(body.data.items[0]!.sku, 'SKU-1')
+  }, [Object.assign(itemRow('INV-0001'), { 3: 'ORD-1', 4: 'ITEM-1', 5: 'SKU-1' })])
 })
 
 test('GET item returns 404 for an absent source header', async () => {

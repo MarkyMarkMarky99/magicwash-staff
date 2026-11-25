@@ -4,6 +4,7 @@ export const AGENT_DISPLAY_NAMES = {
   'price-check': 'น้องราคา',
   'order-tracking': 'น้องติดตาม',
   appointments: 'น้องนัดหมาย',
+  billing: 'น้องออกบิล',
   washing: 'น้องซักผ้า',
   ironing: 'น้องรีดผ้า',
   personal: 'ผู้ช่วยส่วนตัว',

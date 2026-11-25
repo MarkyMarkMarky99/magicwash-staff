@@ -134,10 +134,11 @@ New module mounted at `/direct` in the main service after CORS (GET/POST/OPTIONS
 
 ### Push
 
-Reuse the single push instance; an exact-StaffId sender shares delivery and expired-endpoint
-cleanup with agent push. Fully generic text (title "Magicwash", body "Open Chats to read"),
-tag = conversation, URL `/#/agents/dm/<id>`; skipped when the recipient has already read it;
-never fails a send. Enabled only after sign-out and account switch on one browser profile pass.
+Built 2026-11-25. Reuse the single push instance; an exact-StaffId sender (`notifyStaff`) shares
+delivery and expired-endpoint cleanup with agent push. Owner decision 2026-11-25: the title is the
+sender's name (body "ส่งข้อความถึงคุณ แตะเพื่ออ่าน"), replacing the earlier generic text.
+Tag = conversation, URL `/#/agents/dm/<id>`; a duplicate send pushes nothing; push never fails or
+delays a send.
 
 ## webapp-vue
 

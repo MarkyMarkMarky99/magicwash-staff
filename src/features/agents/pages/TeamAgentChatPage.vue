@@ -2,6 +2,9 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
+import type { BillingDraft } from '@contracts/ai-gateway/billing-draft.schema'
+import { invoiceCreateRoute } from '@/shared/navigation/form-routes'
+import { setInvoiceCreatePrefill } from '@/shared/navigation/invoice-create-prefill'
 import InlineNotice from '@/shared/components/InlineNotice.vue'
 import { useGoBack } from '@/shared/composables/use-go-back'
 import { useAuthStore } from '@/data/auth/auth.store'
@@ -41,6 +44,13 @@ watch(title, (name) => {
   if (target !== undefined && name && name !== target) setTargetName(target, name)
 }, { immediate: true })
 const canView = computed(() => agentVisibleToRole(agent, role.value))
+
+function openBillingDraft(draft: BillingDraft): void {
+  if (props.agentId !== 'billing' || !isAdmin.value) return
+  setInvoiceCreatePrefill(draft)
+  void router.push(invoiceCreateRoute({ customerId: draft.customerId, orderId: draft.orderId }))
+}
+
 const draft = ref('')
 const draftImages = ref<DraftImage[]>([])
 const preparing = ref(false)
@@ -149,6 +159,7 @@ function openPanel(): void {
       :own-staff-id="staff?.staffId ?? ''"
       :own-name="staff?.name ?? ''"
       @load-older="store.loadOlder()"
+      @open-billing-draft="openBillingDraft"
     />
 
     <AgentComposer

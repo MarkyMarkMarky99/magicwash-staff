@@ -28,6 +28,7 @@ export const MAX_INVOICES_PER_PAGE = 100
 export const invoiceListQuerySchema = z.object({
   keyword: z.string().default(''),
   customerId: z.string().trim().min(1).nullable().optional().default(null),
+  orderId: z.string().trim().min(1).optional(),
   status: invoiceStatusSchema.nullable().optional().default(null),
   dateFrom: invoiceReadIsoDateSchema.nullable().optional().default(null),
   dateTo: invoiceReadIsoDateSchema.nullable().optional().default(null),
@@ -85,6 +86,8 @@ export const invoiceNumberSchema = z
 
 export const invoiceLineInputSchema = z
   .object({
+    sourceItemId: z.string().trim().min(1).optional(),
+    sku: z.string().trim().min(1).optional(),
     description: z.string().trim().min(1),
     unit: z.string().trim().min(1).optional(),
     quantity: z.number().positive(),
@@ -156,6 +159,8 @@ export const invoiceAdjustmentSchema = z.object({
 })
 
 export const invoiceItemSchema = z.object({
+  sourceItemId: z.string().nullable(),
+  sku: z.string().nullable(),
   description: z.string().nullable(),
   unit: z.string().nullable(),
   quantity: z.number().nullable(),

@@ -37,5 +37,7 @@ code and selects it immediately, without a variant, service, or price step. Each
 its code on the image so similarly named items stay distinguishable. Order then opens its quantity
 form and saves the selected row's `id` with `price: null`; service type remains on the
 order header. Invoice passes active, DEFAULT-group rows across services and uses price mode. It
-copies the selected row's description, unit, and price into a line item. The picker does not own
+copies the selected row's description, unit, price, and item code into a line item. The form
+clears the item code on a manual description edit or a cleared selection. A replacement assigns
+the new item code and keeps the seeded order item ID. The picker does not own
 either workflow.

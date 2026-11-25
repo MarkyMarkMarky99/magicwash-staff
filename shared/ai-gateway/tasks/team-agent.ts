@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { callAiGatewayBlob, callAiGatewayEndpoint, callAiTask } from '../ai-gateway.client.js'
 import { AiGatewayError } from '../ai-gateway.errors.js'
 import { TEAM_AGENT_IDS } from '../../../contracts/ai-gateway/chat-api.schema.js'
+import { billingDraftSchema } from '../../../contracts/ai-gateway/billing-draft.schema.js'
 
 const MAX_MESSAGE_LENGTH = 4000
 const HISTORY_MAX_LIMIT = 500
@@ -14,6 +15,7 @@ const eventSchema = z.object({
   kind: z.enum(['staff', 'agent', 'action', 'system']),
   speaker: z.object({ staffId: z.string(), name: z.string(), role: z.enum(['admin', 'staff', 'system']).nullish() }).nullish(),
   text: z.string(),
+  proposal: billingDraftSchema.nullish().catch(null),
   images: z.array(z.object({ id: z.coerce.string(), name: z.string(), type: z.string() })).nullish(),
   action: z.object({
     type: z.enum([

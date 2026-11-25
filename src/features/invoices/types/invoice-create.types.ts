@@ -1,5 +1,6 @@
 import type { z } from 'zod'
 import type { invoiceAdjustmentCalculationSchema } from '@contracts/invoices/invoice-api.schema'
+import type { BillingDraftLine } from '@contracts/ai-gateway/billing-draft.schema'
 
 type InvoiceAdjustmentCalculation = z.infer<typeof invoiceAdjustmentCalculationSchema>
 
@@ -19,6 +20,10 @@ export type InvoiceUnitOption = (typeof invoiceUnitOptions)[number]
 
 export interface LineItemFormRow {
   key: string
+  sourceItemId?: string
+  sku?: string
+  photoMatch?: BillingDraftLine['photoMatch']
+  source?: BillingDraftLine['source']
   description: string
   unit: string
   unitOption: InvoiceUnitOption

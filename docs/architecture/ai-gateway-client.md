@@ -20,9 +20,9 @@ Gateway tests use injected fetch implementations and never contact a service. Sh
 
 The first turn omits `sessionId`; later turns send the returned ID with only new text and images. Results contain `agentId`, `sessionId`, `reply`, a nullable customer or price proposal, and top-level warnings. `SESSION_NOT_FOUND` (404) means the session expired or the gateway restarted; the Agents store clears its session so a retry starts a new chat. See [Agent chat](../features/agents/agent-chat.md) for image preparation and UI behavior.
 
-## Appointments agent endpoints
+## Team agent endpoints
 
-`shared/ai-gateway/tasks/team-agent.ts` sends `POST /tasks/chat` with `agentId` (`appointments`, `washing` or `ironing`) through `callAiTask` and reads the four `/agents/<agentId>/...` endpoints (history, reminders, reminder cancel, notes) through `callAiGatewayEndpoint`, which shares the base URL, Bearer token, deadline and error-envelope handling with `callAiTask`. These are quick reads with a 20 s deadline. A body wrapped in the success envelope is unwrapped. See [Agent chat](../features/agents/agent-chat.md#team-agents).
+`shared/ai-gateway/tasks/team-agent.ts` sends `POST /tasks/chat` with a team `agentId` through `callAiTask` and calls the `/agents/<agentId>/...` JSON endpoints through `callAiGatewayEndpoint`, which shares the base URL, Bearer token, deadline and error-envelope handling with `callAiTask`. Team requests have a 20 s deadline. A body wrapped in the success envelope is unwrapped. Billing history can carry a checked draft on the event's `proposal` field. See [Agent chat](../features/agents/agent-chat.md#team-agents).
 
 ## Secretary settings
 

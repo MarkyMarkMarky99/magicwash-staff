@@ -53,6 +53,19 @@ Sheet repositories use database column names only and have no public API-shape k
 
 See `persistence.md` for the repository and contract layer.
 
+## Invoice provenance and order filtering
+
+Invoice create accepts optional line fields `sourceItemId` and `sku`. Order-seeded lines carry their
+order item ID. PriceList selections carry the selected row's item code, which is cleared by manual
+description edits. The create service reads the source order's items once when any line supplies
+`sourceItemId`. It verifies ownership before writes and returns HTTP 422 with a `validation_error`
+for a foreign item or a source item on an invoice with no order.
+
+The fields persist as `InvoiceItems.source_item_id` and `InvoiceItems.sku`. Invoice detail returns
+both as nullable fields. `GET /api/invoices?orderId=<id>` matches an invoice if any of its lines
+has that `source_order_id`. The service filters the full-load reads before pagination and retains
+every line when calculating the matching invoices' totals.
+
 ## Placement Rule
 
 Declare `fieldMap` and `jsonColumns` on the module or the named service that owns it (e.g. `customer.module.ts`, or `invoice.service.ts` for invoices), never on the repository.

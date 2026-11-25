@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import type { PriceListDto } from '../../../../../../src/data/price-list/price-list.service'
 import {
   appendPickedLine,
+  applyPriceListSelection,
   filterInvoicePriceListItems,
   invoiceUnitForOrderItem,
   invoiceUnitOptionFor,
@@ -45,6 +46,7 @@ assert.deepEqual(
   ['active'],
 )
 assert.equal(picked.description.includes('WSIR'), true)
+assert.equal(picked.sku, 'ITM-0001')
 assert.equal(picked.description.includes('Synthetic Fiber Pillow'), false)
 assert.equal(picked.unit, 'piece')
 assert.equal(picked.unitOption, 'piece')
@@ -66,5 +68,15 @@ assert.equal(invoiceUnitForOrderItem('pl-1', [item({ unit: '   ' })]), 'piece')
 
 assert.equal(isUnusedPlaceholderLine(createSyntheticPlaceholderLine()), true)
 assert.deepEqual(appendPickedLine([], picked), [picked])
+
+const seeded = { ...picked, sourceItemId: 'ORDER-ITEM-1', quantity: '3' }
+const [reselected] = applyPriceListSelection([seeded], item({ itemCode: 'ITM-NEW', price: 125 }), seeded.key)
+assert.equal(reselected!.sku, 'ITM-NEW')
+assert.equal(reselected!.key, seeded.key)
+assert.equal(reselected!.sourceItemId, seeded.sourceItemId)
+assert.equal(reselected!.quantity, seeded.quantity)
+assert.equal(reselected!.unitPrice, '125')
+const [cleared] = applyPriceListSelection([reselected!], null, seeded.key)
+assert.deepEqual(cleared, { ...reselected, sku: undefined })
 
 console.log('invoice-price-list.utils.dry-test: OK')

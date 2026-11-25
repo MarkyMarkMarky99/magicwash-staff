@@ -112,6 +112,7 @@ async function resolveWriteResponse(
 async function withMockFetch<T>(
   handler: MockHandler,
   run: () => Promise<T>,
+  readOrderItems?: (url: URL) => unknown[][],
 ): Promise<T> {
   const originalFetch = globalThis.fetch
   const previousHandler = activeHandler
@@ -126,6 +127,14 @@ async function withMockFetch<T>(
     }
 
     const parsedUrl = new URL(stringUrl)
+    if (parsedUrl.searchParams.get('sheet') === 'OrderItemForms') {
+      assert.ok(readOrderItems, 'unexpected order item read')
+      const rows = readOrderItems(parsedUrl)
+      return new Response(`google.visualization.Query.setResponse(${JSON.stringify({
+        status: 'ok',
+        table: { cols: [{ id: 'A' }, { id: 'B' }], rows: rows.map((values) => ({ c: values.map((v) => ({ v })) })) },
+      })});`)
+    }
     assert.equal(parsedUrl.origin, 'https://sheets.googleapis.com')
     const path = decodeURIComponent(parsedUrl.pathname)
     const body = init?.body === undefined
@@ -212,6 +221,68 @@ function validPayload(): Record<string, unknown> {
 }
 
 const okWrite = async () => response({ json: { status: 'ok' } })
+
+test('POST writes line provenance to Sheets after one source-order item read', async () => {
+  let reads = 0
+  let itemWrites = 0
+  await withMockFetch(async (body) => {
+    if (body.target === 'InvoiceItem') {
+      itemWrites++
+      const rows = body.values as unknown[][]
+      assert.deepEqual(rows.map((row) => row.slice(3, 6)), [
+        ['ORD-0001', 'ITEM-1', 'SKU-1'],
+        ['ORD-0001', 'ITEM-2', ''],
+        ['ORD-0001', '', ''],
+      ])
+    }
+    return okWrite()
+  }, async () => {
+    const line = { description: 'Laundry', quantity: 1, unitPrice: 50 }
+    const result = await invoiceRoutes.collection.handleRequest(postRequest({
+      ...validPayload(),
+      items: [{ ...line, sourceItemId: 'ITEM-1', sku: 'SKU-1' }, { ...line, sourceItemId: 'ITEM-2' }, line],
+    }))
+    assert.equal(result.status, 201)
+  }, (url) => {
+    reads++
+    assert.match(url.searchParams.get('tq') ?? '', /where B = 'ORD-0001'/i)
+    return [['ITEM-1', 'ORD-0001'], ['ITEM-2', 'ORD-0001']]
+  })
+  assert.equal(reads, 1)
+  assert.equal(itemWrites, 1)
+})
+
+test('POST rejects an order item from another order with HTTP 422 before writing', async () => {
+  await withMockFetch(async () => assert.fail('unexpected write'), async () => {
+    const result = await invoiceRoutes.collection.handleRequest(postRequest({
+      ...validPayload(),
+      items: [{ description: 'Laundry', quantity: 1, unitPrice: 50, sourceItemId: 'FOREIGN' }],
+    }))
+    assert.equal(result.status, 422)
+    assert.deepEqual(result.body, {
+      kind: 'validation_error',
+      issues: [{ path: 'items.0.sourceItemId', message: 'source item must belong to the source order' }],
+    })
+  }, () => [['FOREIGN', 'ORD-OTHER']])
+})
+
+test('POST rejects a cycle invoice carrying a source item before any external call', async () => {
+  await withMockFetch(async () => assert.fail('unexpected write'), async () => {
+    const result = await invoiceRoutes.collection.handleRequest(postRequest({
+      ...validPayload(),
+      sourceOrderId: null,
+      billingType: 'CYCLE',
+      billingPeriodStart: '2026-07-01',
+      billingPeriodEnd: '2026-07-31',
+      items: [{ description: 'Laundry', quantity: 1, unitPrice: 50, sourceItemId: 'ITEM-1' }],
+    }))
+    assert.equal(result.status, 422)
+    assert.deepEqual(result.body, {
+      kind: 'validation_error',
+      issues: [{ path: 'items.0.sourceItemId', message: 'source item requires a source order' }],
+    })
+  })
+})
 
 test('POST returns 422 and calls no external write for invalid input', async () => {
   let fetchCalled = false

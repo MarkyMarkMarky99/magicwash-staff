@@ -6,12 +6,13 @@ type DuplicateInvoiceOrder = {
 
 export function useDuplicateInvoiceWarning(
   order: Ref<DuplicateInvoiceOrder | null>,
+  existingInvoiceNumber?: Ref<string | null>,
 ) {
   const awaitingConfirmationState = ref(false)
   const awaitingConfirmation = computed(() => awaitingConfirmationState.value)
 
   const warningInvoiceNumber = computed(() => {
-    const invoiceNumber = order.value?.invoiceNumber?.trim()
+    const invoiceNumber = existingInvoiceNumber?.value ?? order.value?.invoiceNumber?.trim()
     return invoiceNumber || null
   })
 

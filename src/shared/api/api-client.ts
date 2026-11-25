@@ -38,6 +38,7 @@ export class ApiError extends Error {
 
 interface GetListOptions<TQuery extends z.ZodTypeAny, TItem = unknown> {
   query?: unknown
+  requireFresh?: boolean
   /** Contract list-query schema — the request is validated against it. */
   querySchema: TQuery
   /**
@@ -63,7 +64,7 @@ export async function apiGetList<TItem, TQuery extends z.ZodTypeAny = z.ZodTypeA
     pagination: body.meta.pagination,
   })
 
-  return read(url, unwrap, options.onFresh)
+  return options.requireFresh ? fetchFresh(url, unwrap) : read(url, unwrap, options.onFresh)
 }
 
 export async function apiGet<T>(path: string, options: GetOptions<T> = {}): Promise<T> {

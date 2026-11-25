@@ -29,10 +29,11 @@ function invalidateInvoiceCaches(outcome: CreateInvoiceResponse): void {
   }
 }
 
-export async function getInvoices(filter: InvoiceFilter): Promise<InvoiceListResponseDto> {
+export async function getInvoices(filter: Partial<InvoiceFilter>): Promise<InvoiceListResponseDto> {
   const { items, pagination } = await apiGetList<InvoiceListItemDto>(INVOICES_ENDPOINT, {
     query: filter,
     querySchema: invoiceListQuerySchema,
+    requireFresh: filter.orderId !== undefined,
   })
 
   return {

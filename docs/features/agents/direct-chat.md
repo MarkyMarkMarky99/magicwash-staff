@@ -194,5 +194,12 @@ npx tsx --tsconfig jsconfig.json --experimental-test-module-mocks tests/web/unit
 npx tsx --tsconfig jsconfig.json tests/web/unit/utils/prepare-chat-image.dry-test.ts
 ```
 
+## Notifications
+
+A sent message sends a Web Push to the recipient's subscribed devices (MagicwashAI
+`notifyStaff`): title = sender's name, body "ส่งข้อความถึงคุณ แตะเพื่ออ่าน", tag = conversation
+(one notification per conversation), tapping opens `/#/agents/dm/<id>`. The recipient must have
+turned on notifications on the Chats page (iPhone: home-screen app first). No webapp change.
+
 Live two-account delivery, membership denial, Thai/Burmese translation, shared-phone sign-out and
 push, and phone/browser UI flows require the finished UI and a deployed MagicwashAI service.

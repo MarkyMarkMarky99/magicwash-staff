@@ -112,8 +112,9 @@ function removeLine(index: number) {
               type="text"
               placeholder="Description"
               class="invoice-line-control flex-1"
-              @input="updateLine(index, { description: ($event.target as HTMLInputElement).value })"
+              @input="updateLine(index, { description: ($event.target as HTMLInputElement).value, sku: undefined })"
             >
+            <span v-if="line.photoMatch === 'probable'" class="mt-3 shrink-0 rounded-full bg-warning-container px-2 py-0.5 font-label text-[10px] font-extrabold uppercase text-on-warning-container">Probable photo</span>
 
             <button
               type="button"

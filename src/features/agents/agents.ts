@@ -62,6 +62,15 @@ export const AGENTS: AgentInfo[] = [
     roles: ['admin', 'staff'],
   },
   {
+    id: 'billing',
+    name: AGENT_DISPLAY_NAMES['billing'],
+    role: 'Billing assistant',
+    description: 'Drafts invoices for orders using past invoices and the price list',
+    greeting: 'สวัสดีค่ะ ส่งเลขออเดอร์ที่ต้องการออกบิลมาได้เลยค่ะ',
+    suggestions: [],
+    roles: ['admin'],
+  },
+  {
     id: 'washing',
     name: AGENT_DISPLAY_NAMES['washing'],
     role: 'Washing',

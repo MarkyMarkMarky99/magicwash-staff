@@ -6,6 +6,7 @@
 - **`feat/invoice-form-overlay`** — implemented WIP held by owner pending browser checks; see `.user/memory/feat-invoice-form-overlay.md`.
 - **`feat/package-credit`** — held by owner pending Preview verification and billing decisions; see `.user/memory/feat-package-credit.md`.
 - **`docs/magicwashai-reference`** — docs-only: MagicwashAI reference + billing-assistant design plan, awaiting merge/push approval; see `.user/memory/docs-magicwashai-reference.md`.
+- **`feat/billing-assistant`** — billing agent webapp side built on top of the docs branch, not deployed; ship after MagicwashAI; see `.user/memory/feat-billing-assistant.md`.
 
 ## Pending work
 - **Stock-take (temporary)** — owner will ask to remove it; removal steps in `.user/memory/stock-take-removal.md`.
@@ -16,7 +17,7 @@
   - Price groups KLINIQ, KLINIQUE, MAISON, MAISON_GAYSORN, SOULTEL live (2026-10-21) on the shared default slip prompt; only blank forms tested, need filled slips (esp. KLINIQ, whose LAUNDRY COUNT sits beside SPA COUNT).
 - **Agent chat (`/agents`)** — pending items in `.user/memory/agent-chat.md`; prod chats need MagicwashAI running on this PC.
   - Secretary (plan `docs/plans/personal-secretary.md`): admins enable it per staff on staff detail; batch `close-orders` untested on real tickets; no push notifications yet; it can book its owner's day off (cancel stays admin-only).
-  - Chats DMs (plan `docs/plans/direct-chat.md`): recipient-side translation view untested; DM push not built (needs shared-phone test); empty divider under Secretary switch when off.
+  - Chats DMs (plan `docs/plans/direct-chat.md`): recipient-side translation view untested; DM push built in MagicwashAI (sender name), not live-tested; empty divider under Secretary switch when off.
   - All secretaries share one Codex login (MagicwashAI `/codex-home/shared/auth.json`); survival across a token refresh is unproven.
 - **Corporate count-sheet order** — see `docs/features/orders/corporate-order-form.md`
   - Slip-photo upload on Save not yet tried in a real browser.
@@ -27,7 +28,6 @@
   - Unload weighing + photo temporarily OFF (owner): flag `UNLOAD_WEIGH_REQUIRED` in `src/features/wash-queue/unload-policy.ts`; swipe-right loads or unloads at once, no confirm/undo.
   - Time Book save on prod (~4 s on `vercel dev`; estimate 2–2.5 s).
   - Open: Hand wash option (needs a no-machine booking contract); tag label look not owner-approved; >1:30 warning colour, dryer copy, Photo button edge; KPI deferred.
-- Approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
 - **Packaging bags and Logistics**
   - Print one unweighed (PACK) bag tag on prod; PACK photos do not show on order detail yet.
   - Test order `ffa710fc` on live sheets is packed test data (bag `e7f8a9b0`).
