@@ -16,6 +16,10 @@ Status: webapp non-visual part built, not deployed.
 - Access: role `admin` only.
 - Main model `gpt-6.2-sol` writes the bill and decides. `gpt-6-luna` subagents filter history and look
   at photos and report back, so the main context stays small.
+- The agent composes the bill lines itself (later 2026-11-25). Rules cannot cover every case, so it
+  copies how this customer was billed before (wording, package or per piece, units, quantities) and
+  reasons from context. Example: a 20-piece ironing order billed as "แพกเกจรีดเสื้อผ้าทั่วไป 10 ชิ้น"
+  × 2 package at 250, as on the customer's previous invoice. The server guards facts only.
 
 ## Claude defaults (changeable)
 
@@ -79,7 +83,8 @@ Status: webapp non-visual part built, not deployed.
 - `TEAM_AGENT_IDS` and the catalog gain `billing` (น้องออกบิล), `roles: ['admin']`.
 - The team event schema gains an optional `proposal` that carries only the checked draft.
 - Draft card:
-  - lines with price, source badge and the PriceList price;
+  - lines as the agent wrote them (description, quantity × unit, price), the reason, source badge
+    and the PriceList price when one is cited;
   - citations as links to the invoice detail, the order and the garment photo;
   - photo matches marked "exact" or "probable";
   - warnings in orange;
@@ -89,11 +94,9 @@ Status: webapp non-visual part built, not deployed.
   - The button stores the checked draft and pushes the invoice create route with `customerId` and
     `orderId`.
   - The page applies the draft once, only when both IDs match the loaded order.
-  - The seeded order lines stay as they are. The draft only fills the price of the line with the
-    same `orderItemId`, so the model cannot add, drop or duplicate a billed line.
-  - Lines marked `needs-price` stay blank. So does a line whose checked unit differs from the unit
-    the form seeded. A "probable" citation shows as a badge on its line in
-    the form.
+  - The draft lines replace the lines seeded from the order. A line covering exactly one order item
+    keeps it as `sourceItemId`; a line with a PriceList row keeps its `itemCode` as `sku`.
+  - A null price stays blank. The line's `photoMatch` and `source` show as badges in the form.
   - Before applying, the page looks up existing invoices for the order through
     the invoice list `orderId` filter. It does not rely on the order's linked invoice number, which can stay
     empty if the order-link write failed. If one exists, the page shows the duplicate warning and
@@ -135,7 +138,8 @@ Status: webapp non-visual part built, not deployed.
 - `AGENTS.md` holds the framework:
   - role, Thai tone and the price order;
   - always cite;
-  - no evidence means mark the line `needs-price` and ask;
+  - find the order from the customer's name, phone or dates (`customer`), never ask staff for IDs;
+  - copy how past invoices billed the same kind of work; no evidence means a null price and a question;
   - never write anything;
   - how to brief each subagent.
 - `.agents/skills/billing/SKILL.md` covers how to use the scripts.
@@ -146,6 +150,8 @@ Status: webapp non-visual part built, not deployed.
   - `order`: an order with its items (`OrderItems`), garments (`OrderGarments` → `LaundryItems`),
     garment photos (`LaundryItemPhotos`; legacy `LaundryPhotos`/`AfterPhoto`), `OrderImages` and
     the customer;
+  - `customer`: customers by name, code or phone, each with its latest orders and their issued
+    invoice numbers;
   - `prices`: active PriceList rows;
   - `photo`: download one image to a local file, resized, and print its path.
 
@@ -165,37 +171,30 @@ Status: webapp non-visual part built, not deployed.
 
 ### Draft and server check
 
-- Sol's draft names only IDs and its decision:
-  - top level: `orderId`, plus per line `orderItemId`, `unitPrice | null`, `source`, `note`;
-  - `source` is one of `customer-history`, `other-history`, `price-list` or `needs-price`;
-  - a history source cites `invoiceItemId`s and the tag(s) it compared against;
-  - a PriceList source cites `itemCode`, `serviceType` and `priceGroup` together.
-- The AI server fills and checks everything else from fresh GViz reads before the reply is stored. It uses the same readers as the
-  scripts:
-  - customer, description and quantity come from the order, never from the model;
-  - work-order items have no unit field. The unit follows the invoice form's rule
-    (`invoiceUnitForOrderItem`): the PriceList unit for the item's `itemId`, else `piece`;
-  - every cited `invoiceItemId` must exist in the issued lines;
-  - `customer-history` requires the cited line's customer to equal the order's customer;
-    `other-history` requires a different customer;
-  - a history `unitPrice` must equal one cited line's `unitPrice`, and that line's unit must match
-    the order line's unit;
-  - a PriceList citation names `itemCode`, `serviceType` and `priceGroup`. The row must be active
-    and in effect today, its unit must match, and `unitPrice` must equal its price;
-  - each `orderItemId` appears at most once in the draft;
-  - `orderItemId` must belong to `orderId`;
-  - citation links (invoice, order, photo URL) are resolved by the server from the IDs, never taken
-    from model text.
-- A line that fails any check becomes `needs-price`: no price, with a warning. Only the checked draft
-  reaches the card and the prefill.
-- Citation strength is shown as is, not hidden. The price is always verified against the invoice
-  line. Only the photo link varies:
+- Sol writes each line in full: `description`, `quantity`, `unit`, `unitPrice | null`, the
+  `orderItemIds` it covers, a short Thai `reason`, `citations` (`invoiceItemId` and the compared tag)
+  and an optional PriceList row (`itemCode`, `serviceType`, `priceGroup`). Lines need not map one to
+  one onto order items, and the price need not equal a cited price.
+- The AI server checks facts from fresh GViz reads before the reply is stored, with the same readers
+  as the scripts:
+  - the order must exist; `customerId` comes from the order;
+  - a line with an empty description or unit, or a quantity that is not above zero, is dropped;
+  - `orderItemIds` outside the order are dropped; order items no line covers raise a warning;
+  - every cited `invoiceItemId` must be an issued invoice line, else it is dropped. The citation's
+    invoice, order, description, quantity, unit, price and photo are resolved from the sheets, never
+    from model text;
+  - a PriceList row must be in effect today, else it is dropped;
+  - `source` is derived by the server: no price → `needs-price`; a citation from this customer →
+    `customer-history`; another customer's → `other-history`; a PriceList row → `price-list`; a
+    priced line with no evidence stays priced as `needs-price` with a warning.
+- Warnings point at the line by index. Only the checked draft reaches the card and the prefill.
+- Citation strength is shown as is, not hidden. Only the photo link varies:
   - "exact": the cited line's `sourceItemId` leads to an OrderGarments row with that
     `orderitem_id`, then to that garment's photo on the same order;
   - "probable": any weaker link, for example an older line without `sourceItemId` or a garment link
     left empty. The photo is a garment of the same kind from the cited order;
   - "no photo": the cited order has no garment photo, or a CYCLE invoice has no order.
-  All three keep the verified price; the admin decides. This is the agreed exception to "cite the
+  The admin decides. This is the agreed exception to "cite the
   garment photo", because nearly every existing invoice line predates provenance.
 - A line sourced from PriceList only cites the PriceList row, with no invoice or photo.
 

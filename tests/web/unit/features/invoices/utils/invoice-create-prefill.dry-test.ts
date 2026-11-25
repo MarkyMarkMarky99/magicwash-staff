@@ -9,20 +9,18 @@ import { applyInvoiceCreatePrefill } from '@/features/invoices/utils/invoice-cre
 
 const order = { orderId: 'ORDER-1', customerId: 'CUS-1' }
 
-function draftLine(orderItemId: string, overrides: Partial<BillingDraftLine> = {}): BillingDraftLine {
+function draftLine(overrides: Partial<BillingDraftLine> = {}): BillingDraftLine {
   return {
-    orderItemId,
-    description: 'Suggested description',
-    unit: 'piece',
-    quantity: 99,
-    unitPrice: 50,
+    description: 'แพกเกจรีดเสื้อผ้าทั่วไป 10 ชิ้น',
+    quantity: 2,
+    unit: 'package',
+    unitPrice: 250,
+    orderItemIds: ['ITEM-1', 'ITEM-2'],
     source: 'customer-history',
-    photoMatch: 'probable',
+    photoMatch: null,
+    reason: '',
     citations: [],
     priceListRow: null,
-    priceListPrice: null,
-    otherPrices: [],
-    note: '',
     ...overrides,
   }
 }
@@ -31,63 +29,62 @@ function seededLine(sourceItemId: string) {
   return { ...createEmptyLineItemRow(), sourceItemId, description: 'Seeded description', quantity: '2' }
 }
 
-const draft: BillingDraft = { ...order, lines: [draftLine('ITEM-1')], warnings: [] }
+const draft: BillingDraft = { ...order, lines: [draftLine()], warnings: [] }
 const noInvoices = async () => null
 const noLookup = async () => assert.fail('duplicate lookup should not run')
 
-test('takes and applies a matching draft once without changing seeded line identity or adding lines', async () => {
-  const items = [seededLine('ITEM-1'), seededLine('ITEM-2'), createEmptyLineItemRow()]
-  setInvoiceCreatePrefill({ ...draft, lines: [...draft.lines, draftLine('MISSING')] })
+test('replaces the seeded order lines with the draft lines once', async () => {
+  const items = [seededLine('ITEM-1'), seededLine('ITEM-2')]
+  setInvoiceCreatePrefill(draft)
   const first = await applyInvoiceCreatePrefill(takeInvoiceCreatePrefill(), order, items, async (id) => {
     assert.equal(id, order.orderId)
     return null
   })
-  assert.deepEqual(first.items, [
-    { ...items[0], unitPrice: '50', photoMatch: 'probable', source: 'customer-history' },
-    items[1],
-    items[2],
-  ])
+  assert.equal(first.items.length, 1)
+  const [line] = first.items
+  assert.equal(line.description, 'แพกเกจรีดเสื้อผ้าทั่วไป 10 ชิ้น')
+  assert.equal(line.quantity, '2')
+  assert.equal(line.unit, 'package')
+  assert.equal(line.unitOption, 'package')
+  assert.equal(line.unitPrice, '250')
+  assert.equal(line.source, 'customer-history')
+  assert.equal(line.sourceItemId, undefined)
+  assert.equal(line.sku, undefined)
   const second = await applyInvoiceCreatePrefill(takeInvoiceCreatePrefill(), order, items, noLookup)
   assert.deepEqual(second, { items, existingInvoiceNumber: null })
 })
 
-test('refuses a draft on either ID mismatch without an invoice lookup', async () => {
+test('keeps one covered item as provenance, the price list code as sku, custom units and blank prices', async () => {
+  const { items } = await applyInvoiceCreatePrefill({ ...draft, lines: [
+    draftLine({ orderItemIds: ['ITEM-1'], unit: 'piece', priceListRow: {
+      itemCode: 'ITM-0048', serviceType: 'IRON', priceGroup: 'DEFAULT', unit: 'piece', price: 35,
+    } }),
+    draftLine({ orderItemIds: [], unit: 'ถุง', unitPrice: null, source: 'needs-price', photoMatch: 'probable' }),
+  ] }, order, [seededLine('ITEM-1')], noInvoices)
+  assert.equal(items[0].sourceItemId, 'ITEM-1')
+  assert.equal(items[0].sku, 'ITM-0048')
+  assert.equal(items[1].unitOption, 'custom')
+  assert.equal(items[1].unit, 'ถุง')
+  assert.equal(items[1].unitPrice, '')
+  assert.equal(items[1].photoMatch, 'probable')
+})
+
+test('refuses a draft on either ID mismatch or with no lines, without an invoice lookup', async () => {
   const items = [seededLine('ITEM-1')]
-  for (const mismatch of [{ ...order, orderId: 'OTHER' }, { ...order, customerId: 'OTHER' }]) {
-    setInvoiceCreatePrefill(draft)
-    const result = await applyInvoiceCreatePrefill(takeInvoiceCreatePrefill(), mismatch, items, noLookup)
+  for (const [value, target] of [
+    [draft, { ...order, orderId: 'OTHER' }],
+    [draft, { ...order, customerId: 'OTHER' }],
+    [{ ...draft, lines: [] }, order],
+  ] as const) {
+    const result = await applyInvoiceCreatePrefill(value, target, items, noLookup)
     assert.deepEqual(result, { items, existingInvoiceNumber: null })
-    assert.equal(takeInvoiceCreatePrefill(), null)
   }
 })
 
-test('refuses a draft and supplies the duplicate warning even when the order has no invoice link', async () => {
+test('refuses a draft and supplies the duplicate warning when the order already has an invoice', async () => {
   const items = [seededLine('ITEM-1')]
   const result = await applyInvoiceCreatePrefill(draft, order, items, async () => 'INV-1')
   assert.deepEqual(result, { items, existingInvoiceNumber: 'INV-1' })
   const warning = useDuplicateInvoiceWarning(ref({ invoiceNumber: null }), ref(result.existingInvoiceNumber))
   assert.equal(warning.warningInvoiceNumber.value, 'INV-1')
-})
-
-test('leaves mismatched units, needs-price and null prices blank and accepts zero', async () => {
-  const lines = [
-    draftLine('ITEM-1', { unit: 'kg' }),
-    draftLine('ITEM-2', { source: 'needs-price' }),
-    draftLine('ITEM-3', { unitPrice: null }),
-    draftLine('ITEM-4', { unitPrice: 0 }),
-  ]
-  const { items } = await applyInvoiceCreatePrefill(
-    { ...draft, lines }, order, lines.map((line) => seededLine(line.orderItemId)), noInvoices,
-  )
-  assert.deepEqual(items.map((line) => line.unitPrice), ['', '', '', '0'])
-  assert.deepEqual(items.map((line) => line.source), lines.map((line) => line.source))
-  assert.deepEqual(items.map((line) => line.photoMatch), lines.map((line) => line.photoMatch))
-})
-
-test('uses the first draft line for an order item ID at most once', async () => {
-  const { items } = await applyInvoiceCreatePrefill(
-    { ...draft, lines: [draftLine('ITEM-1'), draftLine('ITEM-1', { unitPrice: 75 })] },
-    order, [seededLine('ITEM-1'), seededLine('ITEM-1')], noInvoices,
-  )
-  assert.deepEqual(items.map((line) => line.unitPrice), ['50', ''])
 })

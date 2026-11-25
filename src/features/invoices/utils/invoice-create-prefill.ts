@@ -1,6 +1,23 @@
 import type { BillingDraft, BillingDraftLine } from '@contracts/ai-gateway/billing-draft.schema'
 import type { InvoiceCreateOrder } from '../services/invoice-create-context.service'
-import type { LineItemFormRow } from '../types/invoice-create.types'
+import { createEmptyLineItemRow, type LineItemFormRow } from '../types/invoice-create.types'
+import { invoiceUnitOptionFor } from './invoice-price-list.utils'
+
+function draftFormLine(line: BillingDraftLine): LineItemFormRow {
+  const [sourceItemId, ...others] = line.orderItemIds
+  return {
+    ...createEmptyLineItemRow(),
+    ...(sourceItemId !== undefined && others.length === 0 ? { sourceItemId } : {}),
+    ...(line.priceListRow ? { sku: line.priceListRow.itemCode } : {}),
+    photoMatch: line.photoMatch,
+    source: line.source,
+    description: line.description,
+    unit: line.unit,
+    unitOption: invoiceUnitOptionFor(line.unit),
+    quantity: String(line.quantity),
+    unitPrice: line.unitPrice === null ? '' : String(line.unitPrice),
+  }
+}
 
 export async function applyInvoiceCreatePrefill(
   draft: BillingDraft | null,
@@ -8,32 +25,12 @@ export async function applyInvoiceCreatePrefill(
   items: LineItemFormRow[],
   findExistingInvoice: (orderId: string) => Promise<string | null>,
 ): Promise<{ items: LineItemFormRow[]; existingInvoiceNumber: string | null }> {
-  if (!draft || draft.orderId !== order.orderId || draft.customerId !== order.customerId) {
+  if (!draft || draft.orderId !== order.orderId || draft.customerId !== order.customerId || draft.lines.length === 0) {
     return { items, existingInvoiceNumber: null }
   }
 
   const existingInvoiceNumber = await findExistingInvoice(order.orderId)
   if (existingInvoiceNumber !== null) return { items, existingInvoiceNumber }
 
-  const draftLines = new Map<string, BillingDraftLine>()
-  for (const line of draft.lines) {
-    if (!draftLines.has(line.orderItemId)) draftLines.set(line.orderItemId, line)
-  }
-
-  return {
-    items: items.map((item) => {
-      if (item.sourceItemId === undefined) return item
-      const line = draftLines.get(item.sourceItemId)
-      if (!line) return item
-      draftLines.delete(item.sourceItemId)
-      const usePrice = line.source !== 'needs-price' && line.unitPrice !== null && line.unit === item.unit
-      return {
-        ...item,
-        unitPrice: usePrice ? String(line.unitPrice) : '',
-        photoMatch: line.photoMatch,
-        source: line.source,
-      }
-    }),
-    existingInvoiceNumber: null,
-  }
+  return { items: draft.lines.map(draftFormLine), existingInvoiceNumber: null }
 }

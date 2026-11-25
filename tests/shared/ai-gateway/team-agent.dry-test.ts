@@ -88,23 +88,21 @@ test('billing history keeps checked drafts and drops invalid proposals without l
     orderId: 'ORD-1',
     customerId: 'CUS-1',
     lines: [{
-      orderItemId: 'ITEM-1',
       description: 'Jacket',
-      unit: 'piece',
       quantity: 1,
+      unit: 'piece',
       unitPrice: 150,
+      orderItemIds: ['ITEM-1'],
       source: 'customer-history',
       photoMatch: 'probable',
+      reason: 'Most recent price',
       citations: [{
-        invoiceItemId: 'INV-ITEM-1', invoiceNumber: 'INV-1', issuedDate: '2026-11-01',
-        customerId: 'CUS-1', orderId: null, tagId: null, photoUrl: null, unitPrice: 150,
+        invoiceItemId: 'INV-ITEM-1', invoiceNumber: 'INV-1', issuedDate: '2026-11-01', customerId: 'CUS-1',
+        orderId: null, tagId: null, photoUrl: null, description: 'Jacket', quantity: 1, unit: 'piece', unitPrice: 150,
       }],
-      priceListRow: { itemCode: 'SKU-1', serviceType: 'WSIR', priceGroup: 'DEFAULT', price: 200 },
-      priceListPrice: 200,
-      otherPrices: [175],
-      note: 'Most recent price',
+      priceListRow: { itemCode: 'SKU-1', serviceType: 'WSIR', priceGroup: 'DEFAULT', unit: 'piece', price: 200 },
     }],
-    warnings: [{ message: 'Check the photo match', orderItemId: 'ITEM-1' }],
+    warnings: [{ message: 'Check the photo match', lineIndex: 0 }],
   }
   const invalid = { ...proposal, lines: [{ ...proposal.lines[0], unitPrice: '150' }] }
   assert.deepEqual(billingDraftSchema.parse(proposal), proposal)
