@@ -130,6 +130,20 @@ test('send rejects an empty message without a request', async () => {
     (error: unknown) => error instanceof AiGatewayError && error.code === 'INVALID_INPUT')
 })
 
+test('history keeps valid cards and converts an invalid card to null without losing the event', async () => {
+  const agentEvent = { ...event, kind: 'agent', text: 'Order ready' }
+  const card = { type: 'bubble', title: 'Ready', body: [{ type: 'text', text: 'Packed bag' }] }
+  const validEvent = { ...agentEvent, id: 'valid', card }
+  const invalidEvent = { ...agentEvent, id: 'invalid', card: { ...card, body: [] } }
+  const history = await getTeamAgentHistory({ ...access, fetchImpl: async () => Response.json({
+    events: [invalidEvent, validEvent], busy: true, readId: 'valid',
+  }) })
+
+  assert.deepEqual(history, {
+    events: [{ ...invalidEvent, card: null }, validEvent], busy: true, readId: 'valid',
+  })
+})
+
 test('history sends after and limit and accepts a bare or enveloped body', async () => {
   for (const wrap of [false, true]) {
     const body = { events: [event], busy: true, readId: 'e0' }

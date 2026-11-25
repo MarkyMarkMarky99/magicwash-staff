@@ -39,7 +39,8 @@ An overlay that must close through browser or Android Back is route-owned. The d
 for new route-owned overlays is a query parameter; `CameraOverlay` is the established exception,
 using a path plus route metadata. The navigation drawer uses `?menu=1`; the app-level garment scan
 uses `?scannedGarment=<tagId>`, with a second scan replacing the open garment. Its nested photo and
-picker state uses the existing `garmentDetail` query. Other overlays use local state.
+picker state uses the existing `garmentDetail` query. The agent chat photo viewers use
+`?billingPhoto=<eventId>~<index>` and `?cardPhoto=<eventId>~<index>`. Other overlays use local state.
 
 The `ownsWorkScan: true` route meta flag disables the app-level garment scanner on
 `order-create-intake`, `laundry-item-register`, `department-work`, `packaging-order-bags`, `logistics-order-bags`, and `stock-take-count`.

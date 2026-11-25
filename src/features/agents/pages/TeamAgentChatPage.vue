@@ -133,6 +133,11 @@ async function send(): Promise<void> {
   if (!draftImages.value.length) addFiles(drafts.map(image => image.file))
 }
 
+function sendCardMessage(text: string): void {
+  if (sending.value || preparing.value) return
+  void store.send(text, [])
+}
+
 function openPanel(): void {
   panelOpen.value = true
   void store.loadPanel()
@@ -159,7 +164,10 @@ function openPanel(): void {
       :own-staff-id="staff?.staffId ?? ''"
       :own-name="staff?.name ?? ''"
       @load-older="store.loadOlder()"
+      :card-message-disabled="sending || preparing"
       @open-billing-draft="openBillingDraft"
+      @open-card-route="router.push($event)"
+      @send-card-message="sendCardMessage"
     />
 
     <AgentComposer

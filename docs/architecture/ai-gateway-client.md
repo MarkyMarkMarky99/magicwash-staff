@@ -24,6 +24,13 @@ The first turn omits `sessionId`; later turns send the returned ID with only new
 
 `shared/ai-gateway/tasks/team-agent.ts` sends `POST /tasks/chat` with a team `agentId` through `callAiTask` and calls the `/agents/<agentId>/...` JSON endpoints through `callAiGatewayEndpoint`, which shares the base URL, Bearer token, deadline and error-envelope handling with `callAiTask`. Team requests have a 20 s deadline. A body wrapped in the success envelope is unwrapped. Billing history can carry a checked draft on the event's `proposal` field. See [Agent chat](../features/agents/agent-chat.md#team-agents).
 
+### Team agent event cards
+
+Agent history events may include an optional, nullable `card` alongside their reply text. The
+[Agent card contract](../../contracts/ai-gateway/agent-card.schema.ts) defines the supported card
+shapes. The history parser keeps valid cards and converts invalid cards to `null` so the event and
+its text remain available.
+
 ## Secretary settings
 
 `shared/ai-gateway/tasks/secretary.ts` reads and updates settings using `/settings?staffId=<id>`

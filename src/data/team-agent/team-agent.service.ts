@@ -27,6 +27,7 @@ export type {
   TeamAgentAccepted,
   TeamAgentAssignment,
   TeamAgentAssignmentStatus,
+  TeamAgentCard,
   TeamAgentEvent,
   TeamAgentEventImage,
   TeamAgentId,

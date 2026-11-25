@@ -6,7 +6,9 @@ import type { TeamAgentEvent } from '@/data/team-agent/team-agent.service'
 import type { AgentInfo } from '../agents'
 import { formatEventTime } from '../utils/format-event-time'
 import type { BillingDraft } from '@contracts/ai-gateway/billing-draft.schema'
+import type { RouteLocationRaw } from 'vue-router'
 import AgentAvatar from './AgentAvatar.vue'
+import AgentFlexCard from './AgentFlexCard.vue'
 import BillingDraftCard from './BillingDraftCard.vue'
 import TeamAgentEventImages from './TeamAgentEventImages.vue'
 
@@ -26,9 +28,16 @@ const props = defineProps<{
   autoLoadOlder?: boolean
   ownStaffId: string
   ownName: string
+  cardMessageDisabled?: boolean
 }>()
 
-const emit = defineEmits<{ loadOlder: []; bottomChange: [atBottom: boolean]; openBillingDraft: [draft: BillingDraft] }>()
+const emit = defineEmits<{
+  loadOlder: []
+  bottomChange: [atBottom: boolean]
+  openBillingDraft: [draft: BillingDraft]
+  openCardRoute: [location: RouteLocationRaw]
+  sendCardMessage: [text: string]
+}>()
 
 const ACTION_ICONS: Record<ActionType, string> = {
   create: 'event_available',
@@ -144,6 +153,7 @@ watch(() => [props.events.length, props.pending.length, props.busy, props.loadin
             <TeamAgentEventImages v-if="event.images?.length" class="mb-1.5" :images="event.images" :states="imageStates" />
             <p v-if="event.text" class="whitespace-pre-wrap break-words rounded-[6px_18px_18px_18px] bg-white px-3.5 py-2 font-body text-sm leading-relaxed shadow-[0_1px_0_color-mix(in_srgb,var(--color-on-surface)_6%,transparent)] [overflow-wrap:anywhere]">{{ event.text }}</p>
             <BillingDraftCard v-if="event.proposal" :draft="event.proposal" :viewer-key="event.id" @open="emit('openBillingDraft', $event)" />
+            <AgentFlexCard v-if="event.card" :card="event.card" :event-id="event.id" :message-disabled="cardMessageDisabled" @route="emit('openCardRoute', $event)" @message="emit('sendCardMessage', $event)" />
           </div>
         </div>
 
