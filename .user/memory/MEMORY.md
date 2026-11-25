@@ -16,7 +16,8 @@
 - **Agent chat (`/agents`)** — pending items in `.user/memory/agent-chat.md`; prod chats need MagicwashAI running on this PC.
   - Secretary (plan `docs/plans/personal-secretary.md`): admins enable it per staff on staff detail; batch `close-orders` untested on real tickets; no push notifications yet; it can book its owner's day off (cancel stays admin-only).
   - Chats DMs (plan `docs/plans/direct-chat.md`): recipient-side translation view untested; DM push live (sender name), not checked on a phone; empty divider under Secretary switch when off.
-  - Billing assistant น้องออกบิล (plan `docs/plans/billing-assistant.md`): live, AI composes lines freely; card/prefill not yet checked in a browser; MagicwashAI commits unpushed (live in local Docker).
+  - Billing assistant น้องออกบิล (plan `docs/plans/billing-assistant.md`): live, AI composes lines freely; card photo thumbnails not yet checked with real photos on a phone; MagicwashAI commits unpushed (live in local Docker).
+  - Next idea: LINE Flex-style generic chat cards for all agents (separate task, not started).
   - Approve a test order to check the `TAG-...-TAG-PHOTO` ticket and its EARN row.
   - All secretaries share one Codex login (MagicwashAI `/codex-home/shared/auth.json`); survival across a token refresh is unproven.
 - **Corporate count-sheet order** — see `docs/features/orders/corporate-order-form.md`

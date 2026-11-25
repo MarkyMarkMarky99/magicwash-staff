@@ -143,7 +143,7 @@ watch(() => [props.events.length, props.pending.length, props.busy, props.loadin
             <span class="mb-0.5 px-1 font-label text-[10px] font-extrabold uppercase tracking-[0.08em] text-on-surface-variant">AI · {{ formatEventTime(event.at) }}</span>
             <TeamAgentEventImages v-if="event.images?.length" class="mb-1.5" :images="event.images" :states="imageStates" />
             <p v-if="event.text" class="whitespace-pre-wrap break-words rounded-[6px_18px_18px_18px] bg-white px-3.5 py-2 font-body text-sm leading-relaxed shadow-[0_1px_0_color-mix(in_srgb,var(--color-on-surface)_6%,transparent)] [overflow-wrap:anywhere]">{{ event.text }}</p>
-            <BillingDraftCard v-if="event.proposal" :draft="event.proposal" @open="emit('openBillingDraft', $event)" />
+            <BillingDraftCard v-if="event.proposal" :draft="event.proposal" :viewer-key="event.id" @open="emit('openBillingDraft', $event)" />
           </div>
         </div>
 

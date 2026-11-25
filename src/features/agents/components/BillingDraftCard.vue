@@ -1,9 +1,53 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { BillingDraft, BillingDraftLine } from '@contracts/ai-gateway/billing-draft.schema'
+import PhotoViewer from '@/shared/components/PhotoViewer.vue'
+import { useBillingPhotoRoute } from '../composables/useBillingPhotoRoute'
 import AgentCardFrame from './AgentCardFrame.vue'
 
-defineProps<{ draft: BillingDraft }>()
+const props = defineProps<{ draft: BillingDraft, viewerKey: string }>()
 defineEmits<{ open: [draft: BillingDraft] }>()
+
+type BillingCitation = BillingDraftLine['citations'][number]
+
+interface CitationGroup {
+  citation: BillingCitation
+  photoIds: string[]
+}
+
+const viewer = useBillingPhotoRoute()
+
+const photos = computed(() => {
+  const ids = new Map<string, string>()
+  for (const line of props.draft.lines) {
+    for (const citation of line.citations) {
+      if (citation.photoUrl && !ids.has(citation.photoUrl)) ids.set(citation.photoUrl, `${props.viewerKey}~${ids.size}`)
+    }
+  }
+  return ids
+})
+
+const viewerImages = computed(() => [...photos.value].map(([src, id]) => ({ id, src, alt: 'Garment photo' })))
+
+const activePhoto = computed(() => {
+  const id = viewer.openPhotoId.value
+  return id !== null && viewerImages.value.some(image => image.id === id) ? id : null
+})
+
+function citationGroups(line: BillingDraftLine): CitationGroup[] {
+  const groups = new Map<string, CitationGroup>()
+  for (const citation of line.citations) {
+    const group = groups.get(citation.invoiceItemId) ?? { citation, photoIds: [] }
+    const id = citation.photoUrl ? photos.value.get(citation.photoUrl) : undefined
+    if (id && !group.photoIds.includes(id)) group.photoIds.push(id)
+    groups.set(citation.invoiceItemId, group)
+  }
+  return [...groups.values()]
+}
+
+function photoSrc(id: string): string {
+  return viewerImages.value.find(image => image.id === id)?.src ?? ''
+}
 
 const SOURCE_LABELS: Record<BillingDraftLine['source'], string> = {
   'customer-history': 'This customer',
@@ -58,12 +102,16 @@ function listPrice(line: BillingDraftLine): number | null {
           <span v-if="listPrice(line) !== null" class="text-[11px] font-medium text-on-surface-variant">List: {{ formatPrice(listPrice(line)!) }}</span>
         </div>
         <p v-if="line.reason" class="mt-0.5 text-[11px] font-medium text-on-surface-variant [overflow-wrap:anywhere]">{{ line.reason }}</p>
-        <ul v-if="line.citations.length" class="mt-1 flex flex-col gap-0.5">
-          <li v-for="(citation, citationIndex) in line.citations" :key="`${citation.invoiceItemId}-${citationIndex}`" class="flex flex-wrap items-center gap-x-2.5 text-[11px] font-bold text-primary">
-            <RouterLink :to="{ name: 'invoice-detail', params: { invoiceNumber: citation.invoiceNumber } }" class="underline">{{ citation.invoiceNumber }}</RouterLink>
-            <RouterLink v-if="citation.orderId" :to="{ name: 'order-detail', params: { orderId: citation.orderId } }" class="underline">{{ citation.orderId }}</RouterLink>
-            <a v-if="citation.photoUrl" :href="citation.photoUrl" target="_blank" rel="noopener noreferrer" class="underline">Photo</a>
-            <span class="basis-full font-medium text-on-surface-variant [overflow-wrap:anywhere]">{{ citation.description }} · {{ citation.quantity ?? '?' }} × {{ citation.unit ?? '' }} · {{ formatPrice(citation.unitPrice) }}</span>
+        <ul v-if="line.citations.length" class="mt-1 flex flex-col gap-1.5">
+          <li v-for="group in citationGroups(line)" :key="group.citation.invoiceItemId" class="flex flex-wrap items-center gap-x-2.5 text-[11px] font-bold text-primary">
+            <RouterLink :to="{ name: 'invoice-detail', params: { invoiceNumber: group.citation.invoiceNumber } }" class="underline">{{ group.citation.invoiceNumber }}</RouterLink>
+            <RouterLink v-if="group.citation.orderId" :to="{ name: 'order-detail', params: { orderId: group.citation.orderId } }" class="underline">{{ group.citation.orderId }}</RouterLink>
+            <span class="basis-full font-medium text-on-surface-variant [overflow-wrap:anywhere]">{{ group.citation.description }} · {{ group.citation.quantity ?? '?' }} × {{ group.citation.unit ?? '' }} · {{ formatPrice(group.citation.unitPrice) }}</span>
+            <span v-if="group.photoIds.length" class="mt-1 flex basis-full gap-1.5 overflow-x-auto [scrollbar-width:none]">
+              <button v-for="id in group.photoIds" :key="id" type="button" class="h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 border-primary bg-surface-container" aria-label="View garment photo" @click="viewer.open(id)">
+                <img :src="photoSrc(id)" alt="" class="h-full w-full object-cover" loading="lazy" decoding="async">
+              </button>
+            </span>
           </li>
         </ul>
       </li>
@@ -77,5 +125,6 @@ function listPrice(line: BillingDraftLine): number | null {
         <span class="material-symbols-outlined text-[20px]" aria-hidden="true">receipt_long</span>Open in invoice form
       </button>
     </div>
+    <PhotoViewer v-if="activePhoto" :images="viewerImages" :active-id="activePhoto" @change="viewer.open($event, true)" @close="viewer.close" />
   </AgentCardFrame>
 </template>
